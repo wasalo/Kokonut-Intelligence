@@ -1101,6 +1101,42 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_learning_application_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/learning/application",
+        path,
+    )
+    if (
+        solution_lifecycle_learning_application_queue_match
+        and method.upper() == "GET"
+        and enabled
+    ):
+        return {
+            "resource": "solution_lifecycle",
+            "action": "apply",
+            "public": False,
+            "location_id": solution_lifecycle_learning_application_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_learning_application_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/learning/([0-9a-fA-F-]{36})/apply",
+        path,
+    )
+    if (
+        solution_lifecycle_learning_application_match
+        and method.upper() == "POST"
+        and enabled
+    ):
+        return {
+            "resource": "solution_lifecycle",
+            "action": "apply",
+            "public": False,
+            "location_id": solution_lifecycle_learning_application_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_learning_proposal_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/replications/([0-9a-fA-F-]{36})/learning",
         path,

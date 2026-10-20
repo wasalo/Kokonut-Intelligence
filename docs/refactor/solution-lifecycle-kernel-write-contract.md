@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–499 are additive and are
+**Status:** prepared implementation contract; migrations 488–500 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -368,9 +368,10 @@ acknowledgement, and requires a 10–4,000 character reason for rejection. The
 decision and immutable idempotency receipt commit atomically; exact retries
 return the original receipt while changed-input reuse fails closed. The
 decision changes only learning review status and attribution. It does not
-apply the lesson or change the solution stage. The legacy learning-application
-path now accepts only records with accepted status and recorded reviewer
-attribution; application remains a separate operation.
+apply the lesson or change the solution stage. The former direct legacy
+learning-application helper is retired and fails closed; application is now
+available only through the separately scoped Gateway operation in migration
+500.
 
 The dedicated non-login review owner has narrow source/tenant-check reads and
 decision-column writes. Runtime can call only the bounded functions, cannot
@@ -378,7 +379,37 @@ read the private receipt directly, and cannot bypass the proposed-to-reviewed
 trigger. Directus has no execute grant. The operator console renders private
 lesson text as text, gates queue/detail and decisions on exact review grants,
 and uses no-store reads, CSRF, acknowledgement, stale-record checks, and stable
-retry IDs. Migration 499 is not applied to candidate or legacy.
+retry IDs. Migrations 499–500 are not applied to candidate or legacy.
+
+## Accepted learning application
+
+Migration 500 adds a paged accepted-learning application queue and an apply
+action:
+
+- `GET /operator/api/solution-lifecycle/{location_id}/learning/application`
+- `POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/apply`
+
+Both require exact signed location `solution_lifecycle:apply` scope. The
+operator must be an active human and must differ from the learning reviewer.
+The bounded queue revalidates current completed replication and independent
+completion review, validated experiment/result, and active location-visible
+solution lineage before returning private lesson content. The action requires
+explicit acknowledgement and a target version of 1–80 non-whitespace
+characters. PostgreSQL repeats authorization, source-state, identity, and
+reviewer-independence checks, then atomically marks only the learning record
+applied and stores an immutable retry receipt. Exact retries replay the
+original result; changed-payload reuse and stale or unauthorized records fail
+closed. Solution stage is unchanged.
+
+A dedicated non-login applier role owns only the narrow source columns and
+bounded functions. Runtime cannot directly update learning records or read
+application receipts; Directus has no function access. The console renders
+lesson content as text, gates queue and action on the apply grant, and uses
+same-origin no-store/CSRF requests, explicit acknowledgement, bounded paging,
+and a stable request ID for retry. The legacy application helper fails closed.
+Migration 500 passed disposable PostgreSQL 16 apply/replay and nine grouped
+application, scope, identity, idempotency, lifecycle, and privilege checks;
+candidate and legacy were untouched.
 
 The focused Gateway, route-policy, console, solution-application, and migration
 selection passes 94 tests; the database-backed solution-scale test is skipped
@@ -400,16 +431,17 @@ Focused Gateway, route-policy, console, and migration checks cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
-completion-report proposal/review, and learning proposal review. Disposable
-PostgreSQL 16 applies and replays migrations 488–499 and checks location-origin
+completion-report proposal/review, learning proposal/review, and accepted
+learning application. Disposable PostgreSQL 16 applies and replays migrations 488–500 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
 states, independent reviewer separation, immutable receipts, unchanged release
-state, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
+state, exact learning-application grant and actor separation, retries, private
+receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–499. After application, do not edit or reverse them; disable the routes and
+488–500. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

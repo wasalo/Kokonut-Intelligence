@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "500_location_solution_learning_application.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 500 applies and replays after migration 499",
+    "application queue requires exact signed apply scope and active human identity",
+    "runtime cannot directly update learning records or read application receipts",
+    "only accepted learning with current source lineage can be applied at the exact location",
+    "the applying human must differ from the independent reviewer",
+    "application stores the responsible human and target version atomically",
+    "exact retries replay and changed request reuse is rejected",
+    "application records do not change the solution lifecycle stage",
+    "runtime has bounded-function access and Directus cannot execute application functions"
+  ],
+  "acceptance_groups_passed": 9
+}

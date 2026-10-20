@@ -39,7 +39,7 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
         assert evaluated["status"] == "passed"
         learning = solution_scale.record_learning(conn, solution_id, "context_transfer", "Training must be localized", "Update the adoption playbook", transferability="medium", evidence=[{"source":"replication"}], owner_party_id=PARTY_ID)
         learning_id = str(learning["id"])
-        with pytest.raises(ValueError, match="not available for application"):
+        with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
             solution_scale.apply_learning(conn, learning_id, "solution-v2", PARTY_ID)
         replacement_id = str(uuid.uuid4())
         with conn.cursor() as cur:
@@ -85,29 +85,8 @@ def test_retirement_proposal_requires_attributed_proposer_before_database_access
     mock_conn.cursor.assert_not_called()
 
 
-def test_apply_learning_requires_accepted_review_attribution():
+def test_apply_learning_legacy_helper_fails_closed_without_gateway_context():
     connection = MagicMock()
-    cursor = connection.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = {"id": "learning-id", "decision_status": "applied"}
-
-    result = solution_scale.apply_learning(
-        connection, "learning-id", "solution-v2", PARTY_ID
-    )
-
-    sql = cursor.execute.call_args.args[0]
-    assert "decision_status = 'accepted'" in sql
-    assert "reviewed_by_party_id IS NOT NULL" in sql
-    assert "reviewed_at IS NOT NULL" in sql
-    assert result["decision_status"] == "applied"
-
-
-def test_apply_learning_rejects_proposed_records_without_opening_a_second_query():
-    connection = MagicMock()
-    cursor = connection.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = None
-
-    with pytest.raises(ValueError, match="not available for application"):
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
         solution_scale.apply_learning(connection, "learning-id", "solution-v2", PARTY_ID)
-
-    connection.rollback.assert_called_once()
-    assert cursor.execute.call_count == 1
+    connection.cursor.assert_not_called()

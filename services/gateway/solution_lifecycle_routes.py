@@ -10,6 +10,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     from services.gateway.solution_lifecycle_actions import (
         SolutionLifecycleActionInvalid,
         activate_location_solution_replication,
+        apply_location_solution_learning,
         approve_location_solution_funding,
         approve_location_solution_funding_tranche,
         approve_location_solution_gate,
@@ -49,6 +50,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         list_location_solution_funding_targets,
         list_location_solution_gates,
         list_location_solution_learning,
+        list_location_solution_learning_applications,
         list_location_solution_learning_review_queue,
         list_location_solution_replication_completion_review_queue,
         list_location_solution_replication_review_queue,
@@ -1313,6 +1315,111 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(
             jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers
+        )
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/learning/application")
+    async def location_solution_learning_application_queue(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_learning_applications,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified application access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location apply grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution learning application queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution learning application queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/apply"
+    )
+    async def apply_solution_learning(
+        request: Request, location_id: str, learning_record_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {"request_id", "applied_to_version", "acknowledged"}
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Learning application fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                apply_location_solution_learning,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                learning_record_id,
+                payload["request_id"],
+                payload["applied_to_version"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified application access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location apply grant distinct from the reviewer is required"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Accepted learning with current source lineage not found for this location"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Learning application input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Learning record is already applied or its application request conflicts"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution learning application unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution learning application unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
         )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/learning/review")

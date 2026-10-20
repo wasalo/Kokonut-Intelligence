@@ -1324,3 +1324,67 @@ def review_location_solution_learning(
         raise
     finally:
         connection.close()
+
+
+def apply_location_solution_learning(
+    operator_id: str,
+    location_id: str,
+    learning_record_id: str,
+    request_id: str,
+    applied_to_version: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Apply accepted learning through the exact-location bounded function."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_record_id = _normalize_uuid(learning_record_id, "learning record")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Learning application acknowledgement is required")
+    if (
+        not isinstance(applied_to_version, str)
+        or not 1 <= len(applied_to_version.strip()) <= 80
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Applied-to version must contain 1 to 80 non-whitespace characters"
+        )
+    normalized_version = applied_to_version.strip()
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="apply",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.apply_location_solution_learning(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id,
+                    learning_record_id,
+                    request_id,
+                    normalized_version,
+                    acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution learning application returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

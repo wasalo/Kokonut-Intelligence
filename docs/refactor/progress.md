@@ -12403,3 +12403,32 @@ The replication status view now exposes a report form for active replications on
 Migration 499 adds exact-location learning-review queue/detail and accept/reject routes under signed `solution_lifecycle:review` and an active human identity. PostgreSQL revalidates the completed replication and independent completion review, current validated source experiment/result, active location-visible solution, and reviewer independence from every upstream actor. The console exposes private lesson text with text-only rendering, conflict indicators, exact-grant gating, CSRF/no-store, acknowledgement, stale-record protection, and stable retry IDs. Decisions and immutable receipts are atomic; rejection requires a reason. Review records do not apply learning or change solution stage. The legacy apply path now requires accepted status and recorded reviewer attribution.
 
 The focused Gateway, route-policy, console, solution-application, and migration selection passes 94 tests; the database-backed solution-scale test is skipped because no permitted local PostgreSQL connection was available. Ruff, Python compilation, inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 499 and passes eleven grouped review checks. Candidate and legacy remain untouched; migration 499 is not rolled out. CAP-035 remains prepared pending populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 745 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [read contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/499_location_solution_learning_review.sql); [Gateway tests](../tests/test_gateway_solution_learning_review.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable check](../../scripts/check-solution-learning-review-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-learning-review-disposable.json).
+
+### CAP-035 location-scoped accepted learning application — 20 October 2026
+
+Migration 500 adds a separate exact-location learning-application queue and
+Gateway action under `solution_lifecycle:apply`. PostgreSQL revalidates accepted
+review, current replication/completion and validated source lineage, active
+solution visibility, and the active human identity. The applier must differ
+from the independent reviewer. Application requires acknowledgement and a
+bounded target version; state and immutable retry receipt commit atomically.
+Stale lineage and changed-payload retries fail closed. The solution stage does
+not change, and the direct legacy helper now fails closed. Runtime cannot
+update learning records or read application receipts directly; Directus cannot
+execute the application functions. The console uses exact-grant gating,
+text-only rendering, CSRF/no-store, bounded paging, and stable retries.
+
+The focused Gateway, console, route-policy, and legacy selection passes 64
+tests with one database-backed skip; all 33 migration-runner tests pass. Ruff,
+Python compilation, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations through 500 and passes
+nine grouped application, scope, actor-separation, retry, lifecycle, and
+privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-solution-learning-application-disposable.json)).
+Candidate and legacy databases are untouched; migration 500 is not rolled out.
+CAP-035 remains prepared pending remaining lifecycle parity, populated fixtures,
+live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner
+review. Checklist: 746 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
+[read contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/500_location_solution_learning_application.sql);
+[Gateway tests](../tests/test_gateway_solution_learning_application.py);
+[disposable checker](../../scripts/check-solution-learning-application-disposable.py).

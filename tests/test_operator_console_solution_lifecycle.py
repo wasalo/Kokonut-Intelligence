@@ -577,7 +577,7 @@ def test_learning_review_console_uses_current_lineage_csrf_and_stable_retries_wi
     submit = _function(
         source,
         "async function submitSolutionLifecycleLearningReview(",
-        "function renderCoordinationSummary(",
+        "function appendSolutionLifecycleLearningApplicationItem(",
     )
     assert "solutionLifecycleReviewLocations.has(locationId)" in submit
     assert "solutionLifecycleLearningReviewConfirm.checked" in submit
@@ -588,6 +588,50 @@ def test_learning_review_console_uses_current_lineage_csrf_and_stable_retries_wi
     assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
     assert '"X-CSRF-Token": csrf' in submit
     assert "applied_to_version" not in submit and "solution stage is unchanged" in submit
+
+
+def test_learning_application_console_requires_apply_grant_and_records_version_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-learning-application".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "exact location apply grant" in panel.group(0)
+    assert "distinct from the independent reviewer" in panel.group(0)
+    assert "does not change the solution stage" in panel.group(0)
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "apply"' in source
+    assert 'solutionLifecycleLearningApplication.hidden = !solutionLifecycleApplyLocations.has(solutionLifecycleLocation.value)' in source
+
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleLearningApplicationItem(",
+        "async function loadSolutionLifecycleLearningApplicationQueue(",
+    )
+    assert "cell.textContent" in renderer
+    assert "item.is_reviewed_by_current_actor" in renderer
+    assert "innerHTML" not in renderer
+
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleLearningApplicationQueue(",
+        "async function submitSolutionLifecycleLearningApplication(",
+    )
+    assert "solutionLifecycleApplyLocations.has(locationId)" in queue
+    assert "/learning/application" in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    assert "requestVersion !== solutionLifecycleLearningApplicationRequestVersion" in queue
+    assert "result.next_offset" in queue and "result.has_more" in queue
+
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleLearningApplication(",
+        "function renderCoordinationSummary(",
+    )
+    assert "solutionLifecycleApplyLocations.has(locationId)" in submit
+    assert "item.is_reviewed_by_current_actor === true" in submit
+    assert "solutionLifecyclePendingLearningApplications.get(learningRecordId)" in submit
+    assert "solutionLifecyclePendingLearningApplications.set(learningRecordId, pending)" in submit
+    assert "X-CSRF-Token" in submit and 'cache: "no-store"' in submit
+    assert 'method: "POST"' in submit and 'credentials: "same-origin"' in submit
+    assert "decision_status" not in submit and "current_stage" not in submit
 
 
 def test_replication_proposal_sources_require_both_grants_and_reviewed_validation():

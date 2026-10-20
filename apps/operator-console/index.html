@@ -886,6 +886,19 @@
               <p id="solution-lifecycle-learning-review-readonly-status" class="muted" role="status" aria-live="polite"></p>
             </section>
           </section>
+          <section id="solution-lifecycle-learning-application" hidden aria-labelledby="solution-lifecycle-learning-application-heading">
+            <h3 id="solution-lifecycle-learning-application-heading">Apply accepted learning</h3>
+            <p class="muted">Requires an exact location apply grant and an active human distinct from the independent reviewer. This records where an accepted lesson was applied; it does not change the solution stage.</p>
+            <button id="solution-lifecycle-learning-application-load" type="button">Load accepted learning</button>
+            <p id="solution-lifecycle-learning-application-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Solution</th><th>Lesson</th><th>Finding</th><th>Recommended action</th><th>Applied version</th><th>Confirmation</th><th></th></tr></thead>
+                <tbody id="solution-lifecycle-learning-application-queue"></tbody>
+              </table>
+            </div>
+            <button id="solution-lifecycle-learning-application-more" class="secondary" type="button" hidden>Load more accepted learning</button>
+          </section>
           <section id="solution-lifecycle-retirement-proposal" hidden aria-labelledby="solution-lifecycle-retirement-proposal-heading">
             <h3 id="solution-lifecycle-retirement-proposal-heading">Propose retirement of a location-origin solution</h3>
             <p class="muted">Requires both location read and create grants. This creates a proposed retirement for separate human review; it does not approve, schedule, or execute a retirement.</p>
@@ -1438,6 +1451,11 @@
       const solutionLifecycleLearningReviewSubmit = document.querySelector("#solution-lifecycle-learning-review-submit");
       const solutionLifecycleLearningReviewDetailStatus = document.querySelector("#solution-lifecycle-learning-review-detail-status");
       const solutionLifecycleLearningReviewReadonlyStatus = document.querySelector("#solution-lifecycle-learning-review-readonly-status");
+      const solutionLifecycleLearningApplication = document.querySelector("#solution-lifecycle-learning-application");
+      const solutionLifecycleLearningApplicationLoad = document.querySelector("#solution-lifecycle-learning-application-load");
+      const solutionLifecycleLearningApplicationMore = document.querySelector("#solution-lifecycle-learning-application-more");
+      const solutionLifecycleLearningApplicationStatus = document.querySelector("#solution-lifecycle-learning-application-status");
+      const solutionLifecycleLearningApplicationQueue = document.querySelector("#solution-lifecycle-learning-application-queue");
       const solutionLifecycleReplicationProposal = document.querySelector("#solution-lifecycle-replication-proposal");
       const solutionLifecycleReplicationSourcesLoad = document.querySelector("#solution-lifecycle-replication-sources-load");
       const solutionLifecycleReplicationSourcesMore = document.querySelector("#solution-lifecycle-replication-sources-more");
@@ -1510,6 +1528,7 @@
       let solutionLifecycleReviewLocations = new Set();
       let solutionLifecycleTransitionLocations = new Set();
       let solutionLifecycleSubmitLocations = new Set();
+      let solutionLifecycleApplyLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
       let solutionLifecycleGatesOffset = 0;
@@ -1534,6 +1553,10 @@
       let solutionLifecycleLearningSourcesOffset = 0;
       let solutionLifecyclePendingLearningProposal = null;
       let solutionLifecycleLearningReviewOffset = 0;
+      let solutionLifecycleLearningApplicationOffset = 0;
+      let solutionLifecycleLearningApplicationRequestVersion = 0;
+      let solutionLifecyclePendingLearningApplications = new Map();
+      let solutionLifecycleLearningApplicationItems = new Map();
       let solutionLifecycleLearningReviewRequestVersion = 0;
       let solutionLifecycleLearningReviewDetailVersion = 0;
       let solutionLifecycleLearningReviewDetailRecord = null;
@@ -5911,6 +5934,201 @@
         }
       }
 
+      function appendSolutionLifecycleLearningApplicationItem(item) {
+        const row = document.createElement("tr");
+        for (const value of [item.solution_name, item.lesson_type, item.finding, item.recommended_action]) {
+          const cell = document.createElement("td");
+          cell.textContent = value || "";
+          row.append(cell);
+        }
+        const versionCell = document.createElement("td");
+        const versionInput = document.createElement("input");
+        versionInput.type = "text";
+        versionInput.maxLength = 80;
+        versionInput.required = true;
+        versionInput.setAttribute("aria-label", "Applied version");
+        versionCell.append(versionInput);
+        row.append(versionCell);
+
+        const confirmationCell = document.createElement("td");
+        const confirmation = document.createElement("input");
+        confirmation.type = "checkbox";
+        confirmation.setAttribute("aria-label", "Confirm application");
+        confirmationCell.append(confirmation);
+        row.append(confirmationCell);
+
+        const actionCell = document.createElement("td");
+        const applyButton = document.createElement("button");
+        applyButton.type = "button";
+        const rowStatus = document.createElement("p");
+        rowStatus.className = "muted";
+        rowStatus.setAttribute("role", "status");
+        rowStatus.setAttribute("aria-live", "polite");
+        actionCell.append(applyButton, rowStatus);
+        row.append(actionCell);
+
+        const requestKey = String(item.learning_record_id || "");
+        if (requestKey) solutionLifecycleLearningApplicationItems.set(requestKey, item);
+        const pending = solutionLifecyclePendingLearningApplications.get(requestKey);
+        if (item.is_reviewed_by_current_actor === true) {
+          applyButton.disabled = true;
+          rowStatus.textContent = "The reviewer must be a different human.";
+        } else {
+          applyButton.textContent = pending ? "Retry application" : "Apply accepted learning";
+          if (pending && pending.location_id === solutionLifecycleLocation.value) {
+            versionInput.value = pending.applied_to_version;
+            versionInput.disabled = true;
+            confirmation.checked = true;
+            confirmation.disabled = true;
+            rowStatus.textContent = "Prior response may be uncertain; retry the unchanged request.";
+          }
+          applyButton.addEventListener("click", () => {
+            submitSolutionLifecycleLearningApplication(item, versionInput, confirmation, applyButton, rowStatus);
+          });
+        }
+        solutionLifecycleLearningApplicationQueue.append(row);
+      }
+
+      async function loadSolutionLifecycleLearningApplicationQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleLearningApplicationRequestVersion;
+        if (!locationId || !solutionLifecycleApplyLocations.has(locationId)) {
+          solutionLifecycleLearningApplicationQueue.replaceChildren();
+          solutionLifecycleLearningApplicationMore.hidden = true;
+          solutionLifecycleLearningApplicationStatus.textContent = "An exact location apply grant is required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleLearningApplicationOffset : 0;
+        solutionLifecycleLearningApplicationLoad.disabled = true;
+        solutionLifecycleLearningApplicationMore.disabled = true;
+        if (!append) solutionLifecycleLearningApplicationQueue.replaceChildren();
+        solutionLifecycleLearningApplicationStatus.textContent = "Loading accepted learning…";
+        try {
+          const url = new URL(`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/application`, window.location.origin);
+          url.searchParams.set("limit", "25");
+          url.searchParams.set("offset", String(offset));
+          const response = await fetch(url, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          const result = await response.json().catch(() => ({}));
+          if (requestVersion !== solutionLifecycleLearningApplicationRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          if (!response.ok) throw new Error(result.error || "Accepted learning could not be loaded.");
+          const items = Array.isArray(result.learning) ? result.learning : [];
+          const renderedIds = new Set(items.map((item) => String(item.learning_record_id || "")));
+          for (const item of items) appendSolutionLifecycleLearningApplicationItem(item);
+          for (const [learningRecordId, pending] of solutionLifecyclePendingLearningApplications) {
+            const cachedItem = solutionLifecycleLearningApplicationItems.get(learningRecordId);
+            if (pending.location_id === locationId && cachedItem && !renderedIds.has(learningRecordId)) {
+              appendSolutionLifecycleLearningApplicationItem(cachedItem);
+            }
+          }
+          solutionLifecycleLearningApplicationOffset = Number.isInteger(result.next_offset)
+            ? result.next_offset : offset + items.length;
+          solutionLifecycleLearningApplicationMore.hidden = result.has_more !== true
+            || solutionLifecycleLearningApplicationOffset <= offset;
+          solutionLifecycleLearningApplicationStatus.textContent = items.length
+            ? `${solutionLifecycleLearningApplicationQueue.querySelectorAll("tr").length} accepted lesson(s) available for application.`
+            : "No accepted, unapplied learning is currently available for this location.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleLearningApplicationRequestVersion) {
+            solutionLifecycleLearningApplicationStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleLearningApplicationRequestVersion) {
+            solutionLifecycleLearningApplicationLoad.disabled = false;
+            solutionLifecycleLearningApplicationMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitSolutionLifecycleLearningApplication(item, versionInput, confirmation, button, rowStatus) {
+        const locationId = solutionLifecycleLocation.value;
+        const learningRecordId = String(item.learning_record_id || "");
+        const appliedToVersion = versionInput.value.trim();
+        if (!learningRecordId || !solutionLifecycleApplyLocations.has(locationId)
+            || item.is_reviewed_by_current_actor === true) {
+          rowStatus.textContent = "An exact location apply grant and a human distinct from the reviewer are required.";
+          return;
+        }
+        if (!appliedToVersion || appliedToVersion.length > 80 || !confirmation.checked) {
+          rowStatus.textContent = "Enter an applied version of at most 80 characters and confirm the action.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ location_id: locationId, applied_to_version: appliedToVersion });
+        let pending = solutionLifecyclePendingLearningApplications.get(learningRecordId);
+        if (pending && (pending.fingerprint !== fingerprint || pending.location_id !== locationId)) {
+          rowStatus.textContent = "The prior response may be uncertain. Retry its unchanged request before changing the version.";
+          return;
+        }
+        if (!pending) {
+          if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+            rowStatus.textContent = "A secure browser context is required to apply learning.";
+            return;
+          }
+          pending = {
+            fingerprint,
+            location_id: locationId,
+            applied_to_version: appliedToVersion,
+            request_id: window.crypto.randomUUID()
+          };
+          solutionLifecyclePendingLearningApplications.set(learningRecordId, pending);
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecyclePendingLearningApplications.delete(learningRecordId);
+          rowStatus.textContent = "Refresh the operator session before applying learning.";
+          return;
+        }
+        button.disabled = true;
+        versionInput.disabled = true;
+        confirmation.disabled = true;
+        rowStatus.textContent = "Recording learning application…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/${encodeURIComponent(learningRecordId)}/apply`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({
+                request_id: pending.request_id,
+                applied_to_version: pending.applied_to_version,
+                acknowledged: true
+              })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingLearningApplications.delete(learningRecordId);
+            throw new Error("Your session or exact location apply grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingLearningApplications.delete(learningRecordId);
+            throw new Error(result.error || "The learning application could not be recorded.");
+          }
+          solutionLifecyclePendingLearningApplications.delete(learningRecordId);
+          solutionLifecycleLearningApplicationStatus.textContent = result.replayed
+            ? "The prior learning application was confirmed. The solution stage is unchanged."
+            : "Learning application recorded. The solution stage is unchanged.";
+          await loadSolutionLifecycleLearningApplicationQueue();
+        } catch (error) {
+          rowStatus.textContent = solutionLifecyclePendingLearningApplications.has(learningRecordId)
+            ? `${error.message} Retry unchanged to reuse the request ID.`
+            : error.message;
+          if (solutionLifecyclePendingLearningApplications.has(learningRecordId)) {
+            button.disabled = false;
+            button.textContent = "Retry application";
+          } else {
+            versionInput.disabled = false;
+            confirmation.disabled = false;
+          }
+        }
+      }
+
       function renderCoordinationSummary(summary) {
         coordinationSummaryCounts.replaceChildren();
         for (const [field, label] of [
@@ -6888,11 +7106,18 @@
             .map((scope) => scope.location_id)
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          const solutionLifecycleApplyLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "apply")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           const solutionLifecycleLocationIds = [...new Set([
-            ...solutionLifecycleReadLocationIds, ...solutionLifecycleReviewLocationIds
+            ...solutionLifecycleReadLocationIds, ...solutionLifecycleReviewLocationIds,
+            ...solutionLifecycleApplyLocationIds
           ])];
           solutionLifecycleLocations = new Set(solutionLifecycleReadLocationIds);
           solutionLifecycleReviewLocations = new Set(solutionLifecycleReviewLocationIds);
+          solutionLifecycleApplyLocations = new Set(solutionLifecycleApplyLocationIds);
           solutionLifecycleTransitionLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "transition")
             .map((scope) => scope.location_id)
@@ -7201,8 +7426,11 @@
             solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleReplicationCompletionReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleLearningApplication.hidden = !solutionLifecycleApplyLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
-            await loadSolutionLifecycleSummary();
+            if (solutionLifecycleLocations.has(solutionLifecycleLocation.value)) {
+              await loadSolutionLifecycleSummary();
+            }
             hasAuthorizedSurface = true;
           }
           if (coordinationLocationIds.length) {
@@ -10605,6 +10833,12 @@
         solutionLifecycleLearningReviewDetailRecord = null;
         solutionLifecyclePendingLearningReview = null;
         solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleLearningApplicationRequestVersion += 1;
+        solutionLifecycleLearningApplicationOffset = 0;
+        solutionLifecycleLearningApplicationQueue.replaceChildren();
+        solutionLifecycleLearningApplicationStatus.textContent = "";
+        solutionLifecycleLearningApplicationMore.hidden = true;
+        solutionLifecycleLearningApplication.hidden = !solutionLifecycleApplyLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
@@ -10632,7 +10866,9 @@
         solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
-        loadSolutionLifecycleSummary();
+        if (solutionLifecycleLocations.has(solutionLifecycleLocation.value)) {
+          loadSolutionLifecycleSummary();
+        }
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
       solutionLifecycleGatesMore.addEventListener("click", () => loadSolutionLifecycleGates(true));
@@ -10673,6 +10909,8 @@
       solutionLifecycleReplicationCompletionReviewLoad.addEventListener("click", () => loadSolutionLifecycleReplicationCompletionReviewQueue());
       solutionLifecycleLearningReviewLoad.addEventListener("click", () => loadSolutionLifecycleLearningReviewQueue());
       solutionLifecycleLearningReviewMore.addEventListener("click", () => loadSolutionLifecycleLearningReviewQueue(true));
+      solutionLifecycleLearningApplicationLoad.addEventListener("click", () => loadSolutionLifecycleLearningApplicationQueue());
+      solutionLifecycleLearningApplicationMore.addEventListener("click", () => loadSolutionLifecycleLearningApplicationQueue(true));
       solutionLifecycleLearningReviewDecision.addEventListener("change", () => {
         solutionLifecycleLearningReviewReason.required = solutionLifecycleLearningReviewDecision.value === "rejected";
       });

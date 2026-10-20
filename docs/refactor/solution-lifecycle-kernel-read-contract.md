@@ -1,11 +1,10 @@
 # Solution lifecycle Kernel read contract
 
-**Status:** CAP-035 location-scoped reads and gated actions are prepared,
-including migration 494 replication proposals, migration 495 independent
-review, migration 496 controlled activation, migration 497 completion-report
-proposals, migration 498 independent completion-report review, and migration
-499 independent learning review. They have not been owner-accepted or rolled
-out to candidate/legacy.
+**Status:** CAP-035 location-scoped reads and gated actions are prepared.
+Migrations 494–500 add replication proposals/review/activation, completion
+reports, independent learning review, and location-scoped learning
+application. They have not been owner-accepted or rolled out to candidate or
+legacy.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -29,7 +28,8 @@ out to candidate/legacy.
 `496_location_solution_replication_activation.sql`, and
 `497_location_solution_replication_completion_proposal.sql`, and
 `498_location_solution_replication_completion_review.sql`, and
-`499_location_solution_learning_review.sql`.
+`499_location_solution_learning_review.sql`, and
+`500_location_solution_learning_application.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -58,20 +58,24 @@ out to candidate/legacy.
 `GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`, and
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`,
 `GET /operator/api/solution-lifecycle/{location_id}/learning/review`,
-`GET /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`, and
-`POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`.
+`GET /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`,
+`POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`,
+`GET /operator/api/solution-lifecycle/{location_id}/learning/application`, and
+`POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/apply`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact
-`solution_lifecycle:create`; replication completion proposals require exact
+`solution_lifecycle:create`; learning application queue/action require exact
+`solution_lifecycle:apply`; replication completion proposals require exact
 `solution_lifecycle:submit`; review requires exact `solution_lifecycle:review`;
 replication activation requires exact `solution_lifecycle:transition`;
 retirement review reads, gate evaluations, replication review/activation,
 completion proposals, and completion-review reads also require an active human
 party binding. Mutations use
 signed operator tenant context checked in Gateway and PostgreSQL.
-Learning-review queue/detail/decision routes also require an active human
-binding and current source lineage; the reviewer must be independent from the
-proposal and its upstream lifecycle actors.
+Learning-review and learning-application queue/action routes also require an
+active human binding and current source lineage; the reviewer must be independent from the
+proposal and its upstream lifecycle actors, and the applier must be a distinct
+human from the independent learning reviewer.
 Experiment review detail and result submission require exact
 `solution_lifecycle:review` scope and an active human binding; the result
 reviewer must differ from both the experiment owner and protocol approver.
@@ -250,12 +254,36 @@ source experiment owner/protocol approver, or source result reviewer.
 Rejection requires a 10–4,000 character reason. The append-only receipt makes
 exact retries idempotent and changed-input retries fail closed. Review records
 only decision and reviewer attribution; it does not apply the lesson or change
-the solution stage. The separate legacy apply path now requires accepted
-status and recorded reviewer attribution. A dedicated non-login reviewer role
+the solution stage. The former direct legacy apply helper is retired and fails
+closed. Migration 500 adds a separate exact-location application boundary that
+requires accepted review status and recorded reviewer attribution. A dedicated
+non-login reviewer role
 has narrow decision permissions; runtime can execute only bounded functions,
 cannot read review receipts directly, and cannot bypass the lifecycle trigger.
-Directus cannot execute these functions. Migration 499 remains unapplied to
+Directus cannot execute these functions. Migrations 499–500 remain unapplied to
 candidate and legacy.
+
+## Accepted learning application (migration 500)
+
+`GET /operator/api/solution-lifecycle/{location_id}/learning/application` and
+`POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/apply`
+are protected by the exact signed location `solution_lifecycle:apply` grant and
+an active human identity. The bounded queue exposes only accepted learning
+whose reviewed replication, completion review, validated source experiment and
+result, and active location-visible solution remain current. Private lesson
+content is returned only to the explicitly authorized applier audience; the
+queue reveals whether the current actor is the reviewer without returning
+identities.
+
+The separate applier function requires explicit acknowledgement and a bounded
+target version, and requires the applying human to differ from the independent
+reviewer. It records application state and an immutable retry receipt
+atomically. Exact retries replay the receipt; changed-input reuse, stale source
+lineage, missing scope, or a non-accepted record fails closed. Application
+does not change the solution stage. Runtime has no direct update or receipt
+read access, and Directus cannot execute the function. Migration 500 has passed
+disposable PostgreSQL 16 apply/replay acceptance; candidate and legacy remain
+untouched.
 
 ## Database boundary
 
