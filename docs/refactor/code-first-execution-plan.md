@@ -6,13 +6,15 @@
 **Latest implementation slice — 20 October 2026:** The optional Directus
 weekly callback now identifies its real effect: a grouped read of verified,
 source-eligible farm activity that returns location-week rows and persists no
-snapshots. Its log no longer reports snapshots as created. A focused hook
-regression exercises the registered callback, query filters/grouping, and
-absence of a write call. Directus hook and schedule ownership/output parity
-remain open; the daily NOI callback still runs through the Directus database
-connection and needs reconciliation with the default-off signed per-location
-NOI worker. See the [parity inventory](directus-parity-inventory.md) and
-[evidence](builds/2026-10-20-recovery/directus-weekly-schedule-effect.json).
+snapshots. Its log no longer reports snapshots as created. The daily NOI batch
+reports succeeded/failed crop-cycle totals and flags partial failure instead of
+logging an apparently complete success count. The 72-test extension suite and
+Directus extension build pass. Directus hook and schedule ownership/output
+parity remain open; the daily NOI callback still runs through the Directus
+database connection and needs reconciliation with the default-off signed
+per-location NOI worker. See the [parity inventory](directus-parity-inventory.md),
+[weekly evidence](builds/2026-10-20-recovery/directus-weekly-schedule-effect.json),
+and [NOI evidence](builds/2026-10-20-recovery/directus-noi-partial-failures.json).
 
 **Latest code-first audit slice — 20 October 2026:** The optional Directus parity inventory now includes a deterministic source report for literal permission declarations. It counts 175 declared rule rows, of which 125 use wildcard fields and 50 use explicit field lists; it identifies 28 wildcard Auditor declarations, confirms zero literal `farm_activity` permission insertions, and records four permission updates plus one deletion. The generated JSON is freshness-checked in CI, and parser regressions cover quoted delimiters and SQL comments. This is not effective deployed permission state and does not alter role access; conditional seed logic, later mutations, custom policies, relation parity, hook effects, and runtime acceptance remain open. See the [parity inventory](directus-parity-inventory.md), [checker](../scripts/directus_permission_inventory.py), [tests](../tests/test_directus_permission_inventory.py), and [source report](builds/2026-10-20-recovery/directus-permission-source-inventory.json).
 

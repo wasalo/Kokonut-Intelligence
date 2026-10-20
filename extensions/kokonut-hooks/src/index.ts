@@ -612,8 +612,16 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   schedule('0 2 * * *', async () => {
     console.log('[Kokonut] Running daily NOI reconciliation...');
     try {
-      const results = await batchCalculateNoi();
-      console.log(`[Kokonut] NOI reconciled for ${results.length} crop cycles`);
+      const result = await batchCalculateNoi();
+      if (result.failed > 0) {
+        console.error(
+          `[Kokonut] NOI reconciliation completed with partial failures: succeeded=${result.succeeded} failed=${result.failed}`
+        );
+      } else {
+        console.log(
+          `[Kokonut] NOI reconciliation completed: succeeded=${result.succeeded} failed=0`
+        );
+      }
     } catch (error) {
       console.error(`[Kokonut] NOI reconciliation failed: ${errorClass(error)}`);
     }

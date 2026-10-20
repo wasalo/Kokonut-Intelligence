@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "area": "directus_daily_noi_partial_failure_reporting",
+  "source": "extensions/kokonut-hooks/src/metrics-calculator.ts",
+  "result_contract": {
+    "succeeded": "number of crop-cycle snapshots successfully upserted",
+    "failed": "number of crop-cycle calculations or upserts that failed"
+  },
+  "schedule_behavior": {
+    "partial_failure_summary": "NOI reconciliation completed with partial failures: succeeded=N failed=N",
+    "per_cycle_errors": "exception class and crop-cycle ID only",
+    "location_scope": "unchanged; Directus callback still processes active crop cycles across locations"
+  },
+  "verification": {
+    "directus_hook_tests": "72 passed across 7 files",
+    "extension_build": "passed",
+    "mocked_schedule_failure_case": true,
+    "database_or_provider_contacted": false
+  },
+  "acceptance_limits": [
+    "Does not provision a worker credential or enable the default-off signed NOI worker.",
+    "Does not reconcile active Directus schedules or prove runtime identity, overlap, or output parity."
+  ]
+}

@@ -159,8 +159,11 @@ The hook source also has effects beyond request validation: NOI snapshot
 recalculation, financial projection writes, lifecycle history, and daily/weekly
 scheduled callbacks. The daily 02:00 callback calls the snapshot upsert path
 for every active crop cycle through the Directus database connection; it does
-not establish a location-scoped worker identity. A separate default-off native
-NOI worker already reconciles one explicitly granted location at a time.
+not establish a location-scoped worker identity. Its batch result now counts
+successful and failed crop-cycle reconciliations separately, and the schedule
+reports partial failure explicitly instead of presenting a success count that
+omits failed cycles. A separate default-off native NOI worker already
+reconciles one explicitly granted location at a time.
 
 The weekly `0 3 * * 0` callback reads verified, source-eligible
 `farm_activity`, groups by week and location, and discards the result. It does
