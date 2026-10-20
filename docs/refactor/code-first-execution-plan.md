@@ -9,11 +9,15 @@ private bounded source-record manifests. Draft requests bind to signed
 `ai_summary:draft` location scope, persist the requester, and return their
 saved result before regeneration on retry. Source manifests record exact
 location-owned row counts and up to 50 ordered IDs per table, and PostgreSQL
-checks every ID against the requested location. The review queue exposes these
-references under the exact review grant. Review blocks self-approval/rejection
+checks every ID against the requested location. Sensor and expense references
+match the summary’s top-three sensor types and top-five configured expense
+categories, with deterministic tie ordering. The review queue exposes these
+references under the exact review grant. Draft generation uses `REPEATABLE READ`
+so summary values and source references share one database snapshot. Review
+blocks self-approval/rejection
 and marks legacy unattributed drafts as unapprovable; independent verification
 sets `verified` only and publication remains separate. The focused
-Gateway/route-policy/console/source-reference/safety selection passes 60 tests
+Gateway/route-policy/console/source-reference/safety selection passes 62 tests
 with nine PostgreSQL-dependent skips;
 disposable PostgreSQL 16 applies/replays 521–523 with 11 grouped checks. Ruff,
 Python compilation, and inline JavaScript syntax checks pass. Candidate and

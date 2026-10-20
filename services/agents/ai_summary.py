@@ -142,7 +142,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
         SELECT COUNT(*) as count, sensor_type
         FROM sensor_reading WHERE location_id = %s
         AND reading_date >= CURRENT_DATE - INTERVAL '30 days'
-        GROUP BY sensor_type ORDER BY count DESC LIMIT 3
+        GROUP BY sensor_type ORDER BY count DESC, sensor_type NULLS LAST LIMIT 3
     """, (location_id,))
     sensors = [dict(r) for r in cur.fetchall()]
 
@@ -159,8 +159,13 @@ def generate_operations_summary(conn, location_id: str) -> dict:
         ),
         "crop_cycle": ("status = 'active'", (), "id", False),
         "sensor_reading": (
-            "reading_date >= CURRENT_DATE - INTERVAL '30 days'",
-            (), "reading_date, id", False,
+            "reading_date >= CURRENT_DATE - INTERVAL '30 days' AND EXISTS ("
+            "SELECT 1 FROM (SELECT sensor_type FROM public.sensor_reading "
+            "WHERE location_id = %s AND reading_date >= CURRENT_DATE - INTERVAL '30 days' "
+            "GROUP BY sensor_type ORDER BY COUNT(*) DESC, sensor_type NULLS LAST LIMIT 3) "
+            "AS top_sensor_types WHERE top_sensor_types.sensor_type "
+            "IS NOT DISTINCT FROM sensor_reading.sensor_type)",
+            (location_id,), "reading_date, id", False,
         ),
     })
 
@@ -203,7 +208,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         FROM expense_event ee
         JOIN expense_category ec ON ee.category = ec.name
         WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
-        GROUP BY ec.name ORDER BY total DESC LIMIT 5
+        GROUP BY ec.name ORDER BY total DESC, ec.name LIMIT 5
     """, (location_id,))
     expenses = [dict(r) for r in cur.fetchall()]
 
@@ -225,7 +230,14 @@ def generate_financial_summary(conn, location_id: str) -> dict:
             "id",
             False,
         ),
-        "expense_event": ("status IN ('verified', 'published')", (), "expense_date, id", False),
+        "expense_event": (
+            "status IN ('verified', 'published') AND category IN ("
+            "SELECT ee.category FROM public.expense_event AS ee "
+            "JOIN public.expense_category AS ec ON ee.category = ec.name "
+            "WHERE ee.location_id = %s AND ee.status IN ('verified', 'published') "
+            "GROUP BY ee.category ORDER BY SUM(ee.amount) DESC, ee.category LIMIT 5)",
+            (location_id,), "expense_date, id", False,
+        ),
         "noi_snapshot": ("TRUE", (), "period_end, id", False),
     })
 

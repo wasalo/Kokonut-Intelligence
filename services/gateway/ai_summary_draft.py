@@ -52,6 +52,10 @@ def create_operator_ai_summary_draft(
     connection = (connection_factory or _connection_factory())()
     try:
         with connection.cursor() as cursor:
+            # Keep generated aggregates and the subsequent source-ID manifest
+            # on one PostgreSQL snapshot so concurrent writes cannot make the
+            # recorded references describe a different input set.
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         set_operator_tenant_context(

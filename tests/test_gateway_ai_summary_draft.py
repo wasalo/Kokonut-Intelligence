@@ -128,6 +128,7 @@ def test_create_sets_scope_before_lookup_generation_and_write_then_commits():
         "resource": "ai_summary",
         "action": "draft",
     }
+    assert connection.operations[0][0] == "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ"
     assert result["summary_id"] == SUMMARY_ID
     assert result["source_references"] == connection.source_references
     assert result["resulting_status"] == "draft"

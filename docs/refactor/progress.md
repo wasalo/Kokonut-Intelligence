@@ -6,8 +6,11 @@ private immutable receipt provides idempotent retries, and retries return the
 stored result before regeneration. Migration 523 records exact source-row counts
 and up to 50 ordered IDs per location-owned table in a private append-only
 manifest; PostgreSQL checks each ID against the exact location, and the scoped
-review queue exposes the manifest to reviewers. The console renders IDs safely
-and marks larger result sets as samples. The console shows draft creation only for
+review queue exposes the manifest to reviewers. The sensor sample matches
+the three reported types and expense sample matches the five reported
+configured categories, with deterministic tie ordering. The console renders IDs safely
+and marks larger result sets as samples. Generation uses `REPEATABLE READ` so
+summary values and references share one snapshot. The console shows draft creation only for
 that exact location grant and reports that independent review is still needed.
 Migration 521's review queue now includes both attributed and legacy drafts:
 self-review is blocked for either decision, legacy unattributed summaries may
@@ -18,7 +21,7 @@ Legacy summaries are not backfilled; global crop/category references,
 background-agent sources, and full source snapshots remain open provenance work.
 
 The focused Gateway, route-policy, console, source-reference, and agent-safety
-selection passes 60 tests with nine PostgreSQL-dependent skips; Ruff, Python
+selection passes 62 tests with nine PostgreSQL-dependent skips; Ruff, Python
 compilation, and inline JavaScript syntax checks pass.
 Disposable PostgreSQL 16 applies/replays migrations 521–523 on a network-disabled
 container and passes 11 grouped attribution, idempotency, location binding,
