@@ -11566,3 +11566,21 @@ universal writer isolation, populated parity, live OIDC/browser, and
 MAN-CAP-065 owner review remain open. Checklist: 693 complete / 24 open;
 matrix classifications unchanged. [Contract](business-planning-kernel-edit-contract.md);
 [evidence](builds/2026-10-19-recovery/cap-065-business-canvas-metadata-disposable.json).
+
+### CAP-035 location-scoped solution gate read — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/gates` for bounded
+item-level status on gates belonging to solutions originated in or explicitly
+linked to the location. The route reuses exact `solution_lifecycle:read`, OIDC,
+and signed tenant context. It includes solution/gate labels and status, gate
+requirements as scalar counts/flags, and only the latest evaluation result and
+timestamp; evidence, observations, and reviewer identities are omitted. It is
+read-only and changes no approval behavior. The focused Gateway, route-policy,
+and migration selection passes 54 tests with Ruff and compilation. Disposable
+PostgreSQL 16 applies/replays migration 466 and passes six scope, ordering,
+pagination, privacy, and privilege checks. Candidate and legacy databases are
+untouched; migration 466 is not rolled out. The other item-level solution
+workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and
+MAN-CAP-035 review remain open. Checklist: 694 complete / 24 open; matrix
+classifications unchanged. [Contract](solution-lifecycle-kernel-read-contract.md);
+[evidence](builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json).

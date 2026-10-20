@@ -1,8 +1,10 @@
 # Solution lifecycle Kernel read contract
 
-**Status:** CAP-035 first location-scoped read slice prepared; not owner-accepted.
-**Migration:** `459_location_scoped_solution_lifecycle_summary.sql`.
-**Route:** `GET /operator/api/solution-lifecycle/{location_id}/summary`.
+**Status:** CAP-035 first location-scoped summary and gate-item read slices prepared; not owner-accepted.
+**Migrations:** `459_location_scoped_solution_lifecycle_summary.sql` and
+`466_location_scoped_solution_gates.sql`.
+**Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary` and
+`GET /operator/api/solution-lifecycle/{location_id}/gates`.
 **Authorization:** exact `solution_lifecycle:read` location grant plus signed
 operator tenant context, checked in both Gateway and PostgreSQL.
 
@@ -34,6 +36,18 @@ contain no row IDs, names, canonical keys, actor or party identities, free text,
 evidence, funding amounts, or raw JSON payloads. Responses are `no-store` and
 vary on the session cookie.
 
+The gates route returns a bounded page of gate items only for solutions that
+originate in the requested location or have an explicit `solution_link` to that
+location. Each item includes solution/gate identifiers, the solution's display
+name/type/stage/status, gate transition and requirement counts, approval-needed
+flag, gate status/creation time, and only the latest evaluation pass/fail value
+and timestamp. It omits gate requirements JSON, observed values, evaluation and
+gate evidence, reviewer/actor identities, narratives, funding data, and raw
+payloads. Pages accept 1–50 items and an offset up to 10,000; the database
+function receives at most 51 rows to compute `has_more`, and the Gateway caps
+the serialized page at 256 KiB. The read does not approve, fail, or otherwise
+mutate a gate.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -42,16 +56,18 @@ the projection. The function rechecks actor type, signed location context, and
 the exact `solution_lifecycle:read` grant. Runtime can execute the bounded
 function but cannot select the solution tables directly; Directus has neither
 function nor table access. The reader has no identity-table access and no write
-privileges.
+privileges. Migration 466 adds a second bounded function under the same reader
+role and exact signed-location grant checks.
 
 ## Verification and remaining parity
 
-The focused Gateway, route-policy, and migration metadata selection and
-disposable PostgreSQL 16 apply/replay acceptance are recorded in
-`builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json`.
-Candidate and legacy databases are untouched; migration 459 has not been rolled
-out. This is not parity acceptance. Remaining work includes item-level read and
-write workflows, gate and experiment evidence detail under reviewed grants,
+The summary and gate-read source checks and their separate disposable PostgreSQL
+16 apply/replay acceptance are recorded in
+`builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json` and
+`builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json`.
+Candidate and legacy databases are untouched; migrations 459 and 466 have not
+been rolled out. This is not parity acceptance. Remaining work includes item-level
+read and write workflows beyond stage gates, gate and experiment evidence detail under reviewed grants,
 funding/tranche and adoption event detail, populated legacy-to-Kernel fixture
 comparison, browser/OIDC acceptance, broader ACL/RLS, recovery behavior, and
 MAN-CAP-035 owner review.

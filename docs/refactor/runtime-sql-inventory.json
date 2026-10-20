@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 892,
-    "execution_sites": 4213,
+    "execution_sites": 4217,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 3884,
+    "sites_without_worker_operation_refs": 3888,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
@@ -15,16 +15,16 @@
       "RELEASE": 12,
       "ROLLBACK": 8,
       "SAVEPOINT": 7,
-      "SELECT": 2619,
-      "SET": 182,
+      "SELECT": 2620,
+      "SET": 185,
       "UNKNOWN": 192,
       "UPDATE": 445,
       "WITH": 26
     },
     "statement_groups": {
-      "read_candidate": 2619,
+      "read_candidate": 2620,
       "schema_change": 1,
-      "transaction_or_session": 209,
+      "transaction_or_session": 212,
       "unknown_requires_manual_review": 192,
       "with_requires_manual_review": 26,
       "write_candidate": 1166
@@ -33,10 +33,10 @@
       "composed": 16,
       "composed_or_variable": 263,
       "fstring": 283,
-      "literal": 3651
+      "literal": 3655
     },
-    "relation_candidates": 1099,
-    "sites_without_relation_candidates": 613,
+    "relation_candidates": 1100,
+    "sites_without_relation_candidates": 616,
     "service_packages": 67
   },
   "service_packages": {
@@ -366,16 +366,16 @@
     },
     "gateway": {
       "source_files": 90,
-      "execution_sites": 354,
+      "execution_sites": 358,
       "statement_groups": {
-        "read_candidate": 148,
-        "transaction_or_session": 151,
+        "read_candidate": 149,
+        "transaction_or_session": 154,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 35
       },
-      "candidate_relation_names": 98,
-      "sites_without_relation_candidates": 184,
+      "candidate_relation_names": 99,
+      "sites_without_relation_candidates": 187,
       "non_literal_sites": 10,
       "sites_with_worker_operation_refs": 0
     },
@@ -1285,6 +1285,7 @@
     "kokonut_security.list_location_delphi_recommendation_reviews": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/delphi_recommendation_review.py"]},
     "kokonut_security.list_location_party_identity_cases": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/stakeholder_identity.py"]},
     "kokonut_security.list_location_party_identity_trust_evidence": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/stakeholder_trust.py"]},
+    "kokonut_security.list_location_solution_gates": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/solution_lifecycle_reads.py"]},
     "kokonut_security.list_location_strategy_plan_summaries": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/strategy_reads.py"]},
     "kokonut_security.list_my_governance_role_assignment_proposals": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_assignment_proposal_reads.py"]},
     "kokonut_security.list_operator_governance_party_bindings": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/operator_cli.py"]},
@@ -4682,10 +4683,14 @@
     {"id": "services/gateway/sequential_decision_reads.py:43:12","source": "services/gateway/sequential_decision_reads.py","line": 43,"column": 12,"scope": "get_location_sequential_decision_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/sequential_decision_reads.py:44:12","source": "services/gateway/sequential_decision_reads.py","line": 44,"column": 12,"scope": "get_location_sequential_decision_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/sequential_decision_reads.py:53:12","source": "services/gateway/sequential_decision_reads.py","line": 53,"column": 12,"scope": "get_location_sequential_decision_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "93053df244b189ae0034c6ae1a13f16b853c4e6274af7265a1ccf9c07b4e2b9a","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/solution_lifecycle_reads.py:41:12","source": "services/gateway/solution_lifecycle_reads.py","line": 41,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/solution_lifecycle_reads.py:42:12","source": "services/gateway/solution_lifecycle_reads.py","line": 42,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/solution_lifecycle_reads.py:43:12","source": "services/gateway/solution_lifecycle_reads.py","line": 43,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/solution_lifecycle_reads.py:52:12","source": "services/gateway/solution_lifecycle_reads.py","line": 52,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "a03c650427d994147d8dc59325157656ee6b8344d61b693742159652c49900e3","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:72:12","source": "services/gateway/solution_lifecycle_reads.py","line": 72,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:73:12","source": "services/gateway/solution_lifecycle_reads.py","line": 73,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:74:12","source": "services/gateway/solution_lifecycle_reads.py","line": 74,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:83:12","source": "services/gateway/solution_lifecycle_reads.py","line": 83,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "a03c650427d994147d8dc59325157656ee6b8344d61b693742159652c49900e3","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:122:12","source": "services/gateway/solution_lifecycle_reads.py","line": 122,"column": 12,"scope": "list_location_solution_gates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:123:12","source": "services/gateway/solution_lifecycle_reads.py","line": 123,"column": 12,"scope": "list_location_solution_gates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:124:12","source": "services/gateway/solution_lifecycle_reads.py","line": 124,"column": 12,"scope": "list_location_solution_gates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:133:12","source": "services/gateway/solution_lifecycle_reads.py","line": 133,"column": 12,"scope": "list_location_solution_gates","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.list_location_solution_gates"],"static_sql_sha256": "12435dcd495728cc5b0cefddd694275e7768a3ccddc4adfb5b695a416f04c442","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/stakeholder_identity.py:75:16","source": "services/gateway/stakeholder_identity.py","line": 75,"column": 16,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/stakeholder_identity.py:76:12","source": "services/gateway/stakeholder_identity.py","line": 76,"column": 12,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/stakeholder_identity.py:77:12","source": "services/gateway/stakeholder_identity.py","line": 77,"column": 12,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

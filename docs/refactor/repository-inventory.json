@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "3876b299863168a78312ac892fa3ff1a845e0273",
+  "baseline_commit": "6c3cebae149a123aed51c99f332c3d3303fffe5c",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -451,7 +451,7 @@
     },
     {
       "category": "External",
-      "description": "1-click BMC derivation from canonical tables; comprehensive status composing 13 per-location sections plus network-wide rollup",
+      "description": "1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup",
       "id": "CAP-065",
       "name": "Business Model Canvas",
       "parity": "not_yet_validated"
@@ -951,9 +951,39 @@
       "source": "services/gateway/business_architecture_routes.py"
     },
     {
-      "line": 17,
+      "line": 63,
+      "method": "GET",
+      "path": "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions",
+      "source": "services/gateway/business_planning_edit_routes.py"
+    },
+    {
+      "line": 110,
+      "method": "PATCH",
+      "path": "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}",
+      "source": "services/gateway/business_planning_edit_routes.py"
+    },
+    {
+      "line": 163,
+      "method": "PATCH",
+      "path": "/operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata",
+      "source": "services/gateway/business_planning_edit_routes.py"
+    },
+    {
+      "line": 24,
       "method": "GET",
       "path": "/operator/api/business-planning/{location_id}/canvases",
+      "source": "services/gateway/business_planning_routes.py"
+    },
+    {
+      "line": 144,
+      "method": "POST",
+      "path": "/operator/api/business-planning/{location_id}/canvases",
+      "source": "services/gateway/business_planning_routes.py"
+    },
+    {
+      "line": 151,
+      "method": "POST",
+      "path": "/operator/api/business-planning/{location_id}/canvases/from-data",
       "source": "services/gateway/business_planning_routes.py"
     },
     {
@@ -961,6 +991,12 @@
       "method": "GET",
       "path": "/operator/api/competitive-landscape/{location_id}/summaries",
       "source": "services/gateway/competitive_landscape_routes.py"
+    },
+    {
+      "line": 19,
+      "method": "GET",
+      "path": "/operator/api/comprehensive-status/{location_id}",
+      "source": "services/gateway/comprehensive_status_routes.py"
     },
     {
       "line": 17,
@@ -1203,157 +1239,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1406,
+      "line": 1484,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1421,
+      "line": 1499,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1430,
+      "line": 1508,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1488,
+      "line": 1566,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1516,
+      "line": 1594,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1556,
+      "line": 1634,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1607,
+      "line": 1685,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1647,
+      "line": 1725,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1700,
+      "line": 1778,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1760,
+      "line": 1838,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1815,
+      "line": 1893,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1859,
+      "line": 1937,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1920,
+      "line": 1998,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2003,
+      "line": 2081,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2096,
+      "line": 2174,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2144,
+      "line": 2222,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2196,
+      "line": 2274,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2254,
+      "line": 2332,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2308,
+      "line": 2386,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2397,
+      "line": 2475,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2417,
+      "line": 2495,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2437,
+      "line": 2515,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2473,
+      "line": 2551,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2501,
+      "line": 2579,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2529,
+      "line": 2607,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2572,
+      "line": 2650,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1503,9 +1539,15 @@
       "source": "services/gateway/sequential_decision_routes.py"
     },
     {
-      "line": 17,
+      "line": 19,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/summary",
+      "source": "services/gateway/solution_lifecycle_routes.py"
+    },
+    {
+      "line": 60,
+      "method": "GET",
+      "path": "/operator/api/solution-lifecycle/{location_id}/gates",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
@@ -2173,7 +2215,11 @@
       "schemas/postgres/459_location_scoped_solution_lifecycle_summary.sql",
       "schemas/postgres/460_location_scoped_sequential_decision_summary.sql",
       "schemas/postgres/461_location_scoped_operating_pilot_summary.sql",
-      "schemas/postgres/462_tree_density_area_units.sql"
+      "schemas/postgres/462_tree_density_area_units.sql",
+      "schemas/postgres/463_location_scoped_business_canvas_create.sql",
+      "schemas/postgres/464_location_scoped_business_canvas_edit.sql",
+      "schemas/postgres/465_location_scoped_business_canvas_metadata_edit.sql",
+      "schemas/postgres/466_location_scoped_solution_gates.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2834,8 +2880,11 @@
         "tests/test_gateway_attestations.py",
         "tests/test_gateway_auth.py",
         "tests/test_gateway_business_architecture_reads.py",
+        "tests/test_gateway_business_planning_edits.py",
+        "tests/test_gateway_business_planning_metadata.py",
         "tests/test_gateway_business_planning_reads.py",
         "tests/test_gateway_competitive_landscape_reads.py",
+        "tests/test_gateway_comprehensive_status_reads.py",
         "tests/test_gateway_coordination_reads.py",
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
@@ -3012,6 +3061,8 @@
         "services/csw/serializer.py"
       ],
       "test_references": [
+        "tests/test_csw_catalog.py",
+        "tests/test_csw_serializer.py",
         "tests/test_linked_data.py"
       ]
     },
@@ -3205,6 +3256,7 @@
         "tests/test_stakeholder_end_to_end.py",
         "tests/test_stakeholder_engagement.py",
         "tests/test_stakeholder_foundation.py",
+        "tests/test_stakeholder_outcomes_scope.py",
         "tests/test_stakeholder_phases_8_11.py",
         "tests/test_state_of_kokonut.py",
         "tests/test_state_of_kokonut_graphs.py",
@@ -3350,11 +3402,17 @@
         "services/gateway/auth.py",
         "services/gateway/business_architecture_reads.py",
         "services/gateway/business_architecture_routes.py",
+        "services/gateway/business_planning_edit_routes.py",
+        "services/gateway/business_planning_edits.py",
+        "services/gateway/business_planning_metadata.py",
         "services/gateway/business_planning_reads.py",
         "services/gateway/business_planning_routes.py",
+        "services/gateway/business_planning_writes.py",
         "services/gateway/cli.py",
         "services/gateway/competitive_landscape_reads.py",
         "services/gateway/competitive_landscape_routes.py",
+        "services/gateway/comprehensive_status_reads.py",
+        "services/gateway/comprehensive_status_routes.py",
         "services/gateway/coordination_reads.py",
         "services/gateway/coordination_routes.py",
         "services/gateway/credit_custody.py",
@@ -3435,8 +3493,12 @@
         "tests/test_gateway_audit.py",
         "tests/test_gateway_auth.py",
         "tests/test_gateway_business_architecture_reads.py",
+        "tests/test_gateway_business_planning_edits.py",
+        "tests/test_gateway_business_planning_metadata.py",
         "tests/test_gateway_business_planning_reads.py",
+        "tests/test_gateway_business_planning_writes.py",
         "tests/test_gateway_competitive_landscape_reads.py",
+        "tests/test_gateway_comprehensive_status_reads.py",
         "tests/test_gateway_coordination_reads.py",
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
@@ -3567,6 +3629,7 @@
       "test_references": [
         "tests/test_grpc.py",
         "tests/test_grpc_auth_context_lifecycle.py",
+        "tests/test_grpc_auth_denial_cardinality.py",
         "tests/test_grpc_enabled_transport.py",
         "tests/test_grpc_error_redaction.py"
       ]
@@ -3918,7 +3981,9 @@
         "services/linkml/validator.py"
       ],
       "test_references": [
-        "tests/test_linked_data.py"
+        "tests/test_linked_data.py",
+        "tests/test_linkml_jsonld.py",
+        "tests/test_regen_standards_parity.py"
       ]
     },
     "management": {
@@ -4687,6 +4752,8 @@
     "tests/test_crisp_scoring.py",
     "tests/test_crop_phenology.py",
     "tests/test_crop_rotation.py",
+    "tests/test_csw_catalog.py",
+    "tests/test_csw_serializer.py",
     "tests/test_customer_value.py",
     "tests/test_dao_proposal_history.py",
     "tests/test_data_governance.py",
@@ -4780,8 +4847,12 @@
     "tests/test_gateway_audit.py",
     "tests/test_gateway_auth.py",
     "tests/test_gateway_business_architecture_reads.py",
+    "tests/test_gateway_business_planning_edits.py",
+    "tests/test_gateway_business_planning_metadata.py",
     "tests/test_gateway_business_planning_reads.py",
+    "tests/test_gateway_business_planning_writes.py",
     "tests/test_gateway_competitive_landscape_reads.py",
+    "tests/test_gateway_comprehensive_status_reads.py",
     "tests/test_gateway_coordination_reads.py",
     "tests/test_gateway_credit_custody.py",
     "tests/test_gateway_data_stream.py",
@@ -4841,6 +4912,7 @@
     "tests/test_growth_curve.py",
     "tests/test_grpc.py",
     "tests/test_grpc_auth_context_lifecycle.py",
+    "tests/test_grpc_auth_denial_cardinality.py",
     "tests/test_grpc_enabled_transport.py",
     "tests/test_grpc_error_redaction.py",
     "tests/test_grpc_health_error_redaction.py",
@@ -4879,8 +4951,10 @@
     "tests/test_learning_plans.py",
     "tests/test_legacy_geo_import_error_redaction.py",
     "tests/test_linked_data.py",
+    "tests/test_linkml_jsonld.py",
     "tests/test_llm_chat.py",
     "tests/test_management_workflow.py",
+    "tests/test_map_viewer_contract.py",
     "tests/test_market_data.py",
     "tests/test_market_data_recovery.py",
     "tests/test_market_data_worker.py",
@@ -4985,6 +5059,7 @@
     "tests/test_raster_metadata_error_redaction.py",
     "tests/test_rdf_graph.py",
     "tests/test_reference_class.py",
+    "tests/test_regen_standards_parity.py",
     "tests/test_regenerative_outcomes.py",
     "tests/test_regional_readiness.py",
     "tests/test_relational_integrity.py",
@@ -5068,6 +5143,7 @@
     "tests/test_stakeholder_engagement.py",
     "tests/test_stakeholder_foundation.py",
     "tests/test_stakeholder_grievances.py",
+    "tests/test_stakeholder_outcomes_scope.py",
     "tests/test_stakeholder_phases_8_11.py",
     "tests/test_stakeholder_representation.py",
     "tests/test_state_of_kokonut.py",
