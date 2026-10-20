@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 22,
-    "new_success_path_cases": 12,
-    "database_backed_cases_with_stubbed_query": 6,
+    "tests_passed": 28,
+    "new_success_path_cases": 17,
+    "database_backed_cases_with_stubbed_query": 11,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -91,10 +91,41 @@
       "arguments": ["list", "--entity-type", "location"],
       "dependencies": ["PostgreSQL read via roadmap service; stubbed in this check"],
       "output": "JSON roadmap rows"
+    },
+    {
+      "name": "consent",
+      "arguments": ["list", "--party-id", "synthetic-party", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON effective consent rows"
+    },
+    {
+      "name": "coordination",
+      "arguments": ["list", "--status", "approved", "--type", "alliance"],
+      "dependencies": ["PostgreSQL read via coordination service; stubbed in this check"],
+      "output": "JSON alliance rows"
+    },
+    {
+      "name": "governance-proposals",
+      "arguments": ["list", "--circle-id", "synthetic-circle", "--status", "submitted"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON proposal lineage rows",
+      "database_behavior": "CLI connection is closed after both successful and failed service calls."
+    },
+    {
+      "name": "stakeholder-decisions",
+      "arguments": ["list", "--status", "approved", "--scope-id", "synthetic-scope"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON decision lineage rows"
+    },
+    {
+      "name": "stakeholder-engagement",
+      "arguments": ["list-plans", "--stakeholder-party-id", "synthetic-party", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
+      "output": "JSON engagement plan rows"
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations and six PostgreSQL-backed commands whose service queries were stubbed, across 11 mounted groups.",
+    "Successful parity is covered for six offline command invocations and eleven PostgreSQL-backed commands whose service queries were stubbed, across 16 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

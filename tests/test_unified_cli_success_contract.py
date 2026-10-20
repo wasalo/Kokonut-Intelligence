@@ -274,3 +274,163 @@ def test_database_backed_read_cli_output_matches_with_stubbed_query(
         assert query_calls[0][0] == ()
     assert query_calls[0][1] == query_calls[1][1] == expected_kwargs
     assert unified.stderr == ""
+
+
+@pytest.mark.parametrize(
+    (
+        "group",
+        "module_path",
+        "arguments",
+        "query_path",
+        "connection_factory_name",
+        "expected_query_args",
+        "expected_kwargs",
+    ),
+    [
+        (
+            "consent",
+            "services.analytics.cli_consent",
+            ["list", "--party-id", "synthetic-party", "--status", "active"],
+            "list_effective_consent",
+            "get_db",
+            ("<connection>", "synthetic-party"),
+            {"effective_status": "active"},
+        ),
+        (
+            "coordination",
+            "services.analytics.cli_coordination",
+            ["list", "--status", "approved", "--type", "alliance"],
+            "list_alliances",
+            None,
+            (),
+            {"status": "approved", "coordination_type": "alliance"},
+        ),
+        (
+            "governance-proposals",
+            "services.analytics.cli_governance_proposals",
+            ["list", "--circle-id", "synthetic-circle", "--status", "submitted"],
+            "list_proposals",
+            "_connection",
+            ("<connection>",),
+            {"circle_id": "synthetic-circle", "status": "submitted"},
+        ),
+        (
+            "stakeholder-decisions",
+            "services.analytics.cli_stakeholder_decisions",
+            ["list", "--status", "approved", "--scope-id", "synthetic-scope"],
+            "decisions.list_decisions",
+            "get_db",
+            ("<connection>",),
+            {"status": "approved", "scope_id": "synthetic-scope"},
+        ),
+        (
+            "stakeholder-engagement",
+            "services.analytics.cli_stakeholder_engagement",
+            ["list-plans", "--stakeholder-party-id", "synthetic-party", "--status", "active"],
+            "list_plans",
+            "get_db",
+            ("<connection>",),
+            {"stakeholder_party_id": "synthetic-party", "status": "active"},
+        ),
+    ],
+)
+def test_governance_read_cli_output_matches_and_closes_connections(
+    group: str,
+    module_path: str,
+    arguments: list[str],
+    query_path: str,
+    connection_factory_name: str | None,
+    expected_query_args: tuple[object, ...],
+    expected_kwargs: dict[str, object],
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    cli_module = importlib.import_module(module_path)
+    rows = [{"id": "synthetic-governance-row", "status": "active"}]
+    query_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fake_query(*args, **kwargs):
+        query_calls.append((args, kwargs))
+        return rows
+
+    query_owner = cli_module
+    query_name = query_path
+    if "." in query_path:
+        owner_path, query_name = query_path.rsplit(".", maxsplit=1)
+        query_owner = getattr(cli_module, owner_path)
+    monkeypatch.setattr(query_owner, query_name, fake_query)
+    if connection_factory_name:
+        monkeypatch.setattr(cli_module, connection_factory_name, make_connection)
+
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = [module_path, *arguments]
+        cli_module.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, [group, "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert json.loads(unified.output) == json.loads(standalone_output) == rows
+    assert len(query_calls) == 2
+    for index, call in enumerate(query_calls):
+        expected_args = tuple(
+            connections[index] if value == "<connection>" else value
+            for value in expected_query_args
+        )
+        assert call[0] == expected_args
+    assert query_calls[0][1] == query_calls[1][1] == expected_kwargs
+    if connection_factory_name:
+        assert len(connections) == 2
+        assert all(connection.closed for connection in connections)
+    assert unified.stderr == ""
+
+
+def test_governance_proposal_cli_closes_connection_when_query_fails(monkeypatch) -> None:
+    from services.analytics import cli_governance_proposals
+
+    class FakeConnection:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(cli_governance_proposals, "_connection", lambda: connection)
+
+    def fail_query(*_args, **_kwargs):
+        raise RuntimeError("synthetic read failure")
+
+    monkeypatch.setattr(cli_governance_proposals, "list_proposals", fail_query)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = [
+            "services.analytics.cli_governance_proposals",
+            "list",
+            "--status",
+            "submitted",
+        ]
+        with pytest.raises(RuntimeError, match="synthetic read failure"):
+            cli_governance_proposals.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.closed is True

@@ -67,15 +67,20 @@ mounted unified command using the same arguments. It covers:
 | `value-stream-defs` | `list --stakeholder farmer` | PostgreSQL read through value-stream service; query is stubbed in this test | JSON value-stream rows |
 | `vision-mission` | `current --entity-type organization` | PostgreSQL read through vision/mission service; query is stubbed in this test | JSON current statement rows |
 | `technology-roadmap` | `list --entity-type location` | PostgreSQL read through roadmap service; query is stubbed in this test | JSON roadmap rows |
+| `consent` | `list --party-id <synthetic-party> --status active` | PostgreSQL read; connection and query are stubbed | JSON effective consent rows |
+| `coordination` | `list --status approved --type alliance` | PostgreSQL read through coordination service; query is stubbed | JSON alliance rows |
+| `governance-proposals` | `list --circle-id <synthetic-circle> --status submitted` | PostgreSQL read; connection and query are stubbed | JSON proposal lineage rows |
+| `stakeholder-decisions` | `list --status approved --scope-id <synthetic-scope>` | PostgreSQL read; connection and query are stubbed | JSON decision lineage rows |
+| `stakeholder-engagement` | `list-plans --stakeholder-party-id <synthetic-party> --status active` | PostgreSQL read; connection and query are stubbed | JSON engagement plan rows |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Six successful offline invocations and six PostgreSQL-backed
+real service. Six successful offline invocations and eleven PostgreSQL-backed
 read invocations with stubbed query functions match their standalone output
-across 11 mounted groups (22 tests including the native Typer command-tree
+across 16 mounted groups (28 tests including the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -86,18 +91,19 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 22-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 28-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The six database-backed success paths exercise their real parsers, forwarding,
+The eleven database-backed success paths exercise their real parsers, forwarding,
 and JSON renderers from both entry points with synthetic query results. The
-stakeholder command also uses a fake connection and proves it closes the
-connection. The cases confirm parsed filters reach the expected service calls;
-they do not claim database query behavior or authorization.
+connection-taking commands use fake connections and prove they close them.
+Governance proposal CLI cleanup closes its connection after both successful
+and failing service calls. The cases confirm parsed filters reach expected
+service calls; they do not claim database query behavior or authorization.
 
 This closes successful output parity only for these six offline command
-invocations across five mounted groups plus six stubbed database-backed paths.
-The other 26 mounted groups still need command-specific success-path checks and
+invocations across five mounted groups plus eleven stubbed database-backed
+paths. The other 21 mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 
