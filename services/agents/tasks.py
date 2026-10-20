@@ -330,10 +330,36 @@ def _task_definition(task_key: str) -> dict[str, Any]:
 
 
 def validate_task_capabilities(task_key: str) -> None:
-    """Fail closed unless every declared task write remains a draft or submission."""
+    """Validate task schemas and fail closed unless writes stay draft/submission only."""
     task = _task_definition(task_key)
     if task.get("high_risk") is not False:
         raise ValueError(f"Agent task {task_key} cannot declare high-risk execution")
+
+    supported_schema_keys = {"type", "format", "required"}
+    for section in ("inputs", "outputs"):
+        schema = task.get(section)
+        if not isinstance(schema, dict):
+            raise ValueError(f"Agent task {task_key} must declare {section} as an object")
+        for field, spec in schema.items():
+            if not isinstance(field, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", field):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} field name")
+            if not isinstance(spec, dict):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} schema for {field}")
+            if set(spec) - supported_schema_keys:
+                raise ValueError(f"Agent task {task_key} uses unsupported {section} schema constraints for {field}")
+            expected_type = spec.get("type")
+            if not isinstance(expected_type, str) or expected_type not in _SCHEMA_TYPE_CHECKS:
+                raise ValueError(f"Agent task {task_key} uses unsupported {section} schema type for {field}")
+            if not isinstance(spec.get("required"), bool):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} required flag for {field}")
+            value_format = spec.get("format")
+            if value_format is not None:
+                if (
+                    not isinstance(value_format, str)
+                    or value_format not in {"uuid", "date"}
+                    or expected_type != "string"
+                ):
+                    raise ValueError(f"Agent task {task_key} uses unsupported {section} format for {field}")
 
     writes = task.get("writes")
     if not isinstance(writes, list):

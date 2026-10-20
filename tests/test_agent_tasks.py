@@ -151,6 +151,30 @@ def test_task_catalogue_rejects_unknown_write_targets(monkeypatch) -> None:
         validate_task_capabilities("unreviewed_task")
 
 
+@pytest.mark.parametrize(
+    ("section", "field", "value", "message"),
+    [
+        ("inputs", "type", "date", "unsupported inputs schema type"),
+        ("inputs", "format", "slug", "unsupported inputs format"),
+        ("inputs", "required", "yes", "invalid inputs required flag"),
+        ("inputs", "future_keyword", True, "unsupported inputs schema constraints"),
+        ("outputs", "format", [], "unsupported outputs format"),
+    ],
+)
+def test_task_catalogue_rejects_malformed_schema_declarations(
+    monkeypatch, section: str, field: str, value, message: str
+) -> None:
+    from copy import deepcopy
+
+    task = deepcopy(TASK_CATALOGUE["ai_summary_synthesis"])
+    target_field = "summary" if section == "outputs" else "location_id"
+    task[section][target_field][field] = value
+    monkeypatch.setitem(TASK_CATALOGUE, "malformed_input_schema", task)
+
+    with pytest.raises(ValueError, match=message):
+        validate_task_capabilities("malformed_input_schema")
+
+
 def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
     class Conn:
         def close(self) -> None:

@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-10-20",
+  "capability": "CAP-038",
+  "scope": "Fail closed on malformed registered task input/output schema declarations.",
+  "behavior": {
+    "validated_sections": ["inputs", "outputs"],
+    "supported_top_level_types": ["array", "boolean", "integer", "number", "object", "string"],
+    "supported_string_formats": ["uuid", "date"],
+    "required_flag": "Must be a boolean.",
+    "schema_keywords": ["type", "format", "required"],
+    "enforcement": "Runs through task capability validation used by list/get and executable task entry points. Unsupported schema declarations fail before task work or database access."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_agent_tasks.py tests/test_agents_base.py tests/test_agent_input_preflight.py -q",
+    "test_files": 3,
+    "passed": 35,
+    "database_or_provider_contacted": false,
+    "capability_matrix_validation": "passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "The validator covers declared top-level fields only; nested object properties and array items have no schema contract yet.",
+    "Schema validation does not authenticate the caller, establish tenant scope, or prove runtime database least privilege."
+  ]
+}

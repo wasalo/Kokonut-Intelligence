@@ -23,6 +23,12 @@ standalone runner opens a database connection or initializes the Delphi
 facilitator. This validates shape only; it does not authenticate the caller,
 prove location membership, or authorize access to the referenced object.
 
+The catalogue itself is checked whenever task capabilities are validated. Each
+input and output field must use a supported primitive type, a supported
+string-only `uuid` or `date` format, a boolean `required` flag, and only schema
+keywords the validator actually implements. Unknown types, formats, flags, or
+constraints fail closed even when the affected field is optional or omitted.
+
 The policy denies execution actions in `HIGH_RISK_ACTIONS`, including
 `verify`, `publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, and
 `financial_write`. `requires_human_approval` remains audit metadata; it does not
@@ -47,6 +53,10 @@ run without decrypting `.env.sops`.
   validate declared top-level task inputs before work begins. The validator
   checks required fields, primitive types, UUIDs, and exact ISO dates; it does
   not validate nested payloads or replace authentication and tenant grants.
+- The full task catalogue is validated for supported top-level input/output
+  schema declarations before tasks are listed or invoked. The current validator
+  intentionally supports a small top-level subset; nested JSON schemas remain
+  undefined rather than being implied by object/array type checks.
 - Both shared and standalone draft persistence helpers repeat their write-side
   checks before requesting a cursor. They reject malformed task scope and
   incomplete/empty persisted content, invalid source-table metadata, or an
