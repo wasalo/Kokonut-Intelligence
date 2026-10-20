@@ -171,11 +171,48 @@ def test_experiment_renderer_limits_result_visibility_to_reviewed_enum_and_metad
     ):
         assert f"experiment.{field}" in renderer
     assert "experiment.latest_result_reviewed_at" in renderer
-    for private_field in ("experiment_id", "solution_id", "hypothesis", "metric_key", "primary_results", "adverse_events", "evidence"):
+    for private_field in ("solution_id", "hypothesis", "metric_key", "primary_results", "adverse_events", "evidence"):
         assert f"experiment.{private_field}" not in renderer
+    assert "heading.textContent = experiment.experiment_id" not in renderer
     assert "No reviewed result" in renderer
     assert "textContent" in renderer
     assert "innerHTML" not in renderer
+
+
+def test_experiment_result_review_form_is_exact_grant_and_pending_state_gated():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(",
+        "function createSolutionLifecycleExperimentReviewPanel(",
+    )
+    assert "solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert 'experiment.experiment_status === "completed"' in renderer
+    assert "!experiment.latest_result_reviewed_at" in renderer
+    assert "createSolutionLifecycleExperimentReviewPanel(experiment.experiment_id)" in renderer
+
+
+def test_experiment_result_review_uses_private_text_detail_csrf_and_stable_retry():
+    source = CONSOLE.read_text(encoding="utf-8")
+    review = _function(
+        source,
+        "function createSolutionLifecycleExperimentReviewPanel(",
+        "async function loadSolutionLifecycleExperiments(",
+    )
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/review`' in review
+    assert 'credentials: "same-origin"' in review and 'cache: "no-store"' in review
+    assert "result.protocol || {}" in review and "result.latest_analysis || {}" in review
+    assert "result.observations || []" in review
+    assert "protocol.textContent = JSON.stringify" in review
+    assert "analysis.textContent = JSON.stringify" in review
+    assert "observations.textContent = JSON.stringify" in review
+    assert "innerHTML" not in review
+    assert 'method: "POST"' in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "acknowledgement.checked" in review
+    assert "form.pendingExperimentReview.fingerprint !== fingerprint" in review
+    assert "form.pendingExperimentReview.request_id" in review
+    assert "does not advance the solution stage" in review
 
 
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():

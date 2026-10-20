@@ -2442,7 +2442,210 @@
           details.append(term, description);
         }
         article.append(heading, details);
+        if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
+            && experiment.experiment_status === "completed"
+            && !experiment.latest_result_reviewed_at
+            && typeof experiment.experiment_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
+          article.append(createSolutionLifecycleExperimentReviewPanel(experiment.experiment_id));
+        }
         solutionLifecycleExperimentRows.append(article);
+      }
+
+      function createSolutionLifecycleExperimentReviewPanel(experimentId) {
+        const panel = document.createElement("section");
+        panel.className = "form-grid";
+        const heading = document.createElement("h5");
+        heading.textContent = "Independent experiment result review";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "A reviewer with the exact location review grant can inspect this private protocol and evidence. The reviewer must be a different active person from the experiment owner and protocol approver. Recording a result does not advance the solution stage.";
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.textContent = "Review completed experiment";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        const detail = document.createElement("div");
+        detail.hidden = true;
+        const protocol = document.createElement("pre");
+        const analysis = document.createElement("pre");
+        const observations = document.createElement("pre");
+        const form = document.createElement("form");
+        form.className = "form-grid";
+        form.hidden = true;
+        const outcomeLabel = document.createElement("label");
+        outcomeLabel.textContent = "Reviewed outcome";
+        const outcome = document.createElement("select");
+        outcome.required = true;
+        for (const [value, label] of [
+          ["validated", "Validated"],
+          ["invalidated", "Invalidated"],
+          ["inconclusive", "Inconclusive"],
+          ["requires_replication", "Requires replication"]
+        ]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          outcome.append(option);
+        }
+        outcomeLabel.append(outcome);
+        const primaryLabel = document.createElement("label");
+        primaryLabel.textContent = "Primary results (JSON object)";
+        const primary = document.createElement("textarea");
+        primary.required = true;
+        primary.maxLength = 65536;
+        primary.value = "{}";
+        primary.spellcheck = false;
+        primaryLabel.append(primary);
+        const secondaryLabel = document.createElement("label");
+        secondaryLabel.textContent = "Secondary results (JSON object)";
+        const secondary = document.createElement("textarea");
+        secondary.required = true;
+        secondary.maxLength = 65536;
+        secondary.value = "{}";
+        secondary.spellcheck = false;
+        secondaryLabel.append(secondary);
+        const limitationsLabel = document.createElement("label");
+        limitationsLabel.textContent = "Limitations (optional)";
+        const limitations = document.createElement("textarea");
+        limitations.maxLength = 4000;
+        limitationsLabel.append(limitations);
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Evidence references (JSON array)";
+        const evidence = document.createElement("textarea");
+        evidence.required = true;
+        evidence.maxLength = 65536;
+        evidence.value = "[]";
+        evidence.spellcheck = false;
+        evidenceLabel.append(evidence);
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(
+          acknowledgement,
+          document.createTextNode(" I reviewed the protocol, recorded evidence, analysis, and limitations. This records one reviewed result and does not advance the solution stage.")
+        );
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record reviewed result";
+        const resultStatus = document.createElement("p");
+        resultStatus.className = "muted";
+        resultStatus.setAttribute("role", "status");
+        resultStatus.setAttribute("aria-live", "polite");
+        form.append(outcomeLabel, primaryLabel, secondaryLabel, limitationsLabel, evidenceLabel, acknowledgementLabel, submit, resultStatus);
+        detail.append(
+          document.createTextNode("Protocol"), protocol,
+          document.createTextNode("Latest analysis"), analysis,
+          document.createTextNode("Recent observations (up to 100; evidence is private)"), observations,
+          form
+        );
+        panel.append(heading, explanation, openButton, status, detail);
+
+        openButton.addEventListener("click", async () => {
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleReviewLocations.has(locationId)) {
+            status.textContent = "A current read and review grant for this location is required.";
+            return;
+          }
+          openButton.disabled = true;
+          status.textContent = "Loading private experiment review detail…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/review`,
+              { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location review grant is no longer valid.");
+            }
+            if (!response.ok) throw new Error(result.error || "Experiment review detail could not be loaded.");
+            if (locationId !== solutionLifecycleLocation.value) return;
+            protocol.textContent = JSON.stringify(result.protocol || {}, null, 2);
+            analysis.textContent = JSON.stringify(result.latest_analysis || {}, null, 2);
+            observations.textContent = JSON.stringify(result.observations || [], null, 2);
+            detail.hidden = false;
+            form.hidden = false;
+            form.reviewExperimentReady = true;
+            status.textContent = `${Number(result.observation_count) || 0} observations available${result.observations_truncated ? " (showing the latest 100)" : ""}. Private evidence is displayed as text.`;
+          } catch (error) {
+            status.textContent = error.message;
+          } finally {
+            openButton.disabled = false;
+          }
+        });
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!form.reviewExperimentReady
+              || !solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleReviewLocations.has(locationId)) {
+            resultStatus.textContent = "Load private review detail with a current exact location review grant first.";
+            return;
+          }
+          if (!acknowledgement.checked) return;
+          let primaryValue;
+          let secondaryValue;
+          let evidenceValue;
+          try {
+            primaryValue = JSON.parse(primary.value);
+            secondaryValue = JSON.parse(secondary.value);
+            evidenceValue = JSON.parse(evidence.value);
+          } catch {
+            resultStatus.textContent = "Results and evidence must be valid JSON.";
+            return;
+          }
+          if (!primaryValue || Array.isArray(primaryValue) || typeof primaryValue !== "object"
+              || !secondaryValue || Array.isArray(secondaryValue) || typeof secondaryValue !== "object"
+              || !Array.isArray(evidenceValue)) {
+            resultStatus.textContent = "Primary and secondary results must be JSON objects, and evidence must be a JSON array.";
+            return;
+          }
+          const request = {
+            outcome: outcome.value,
+            primary_results: primaryValue,
+            secondary_results: secondaryValue,
+            limitations: limitations.value || null,
+            evidence: evidenceValue
+          };
+          const fingerprint = JSON.stringify(request);
+          if (!form.pendingExperimentReview || form.pendingExperimentReview.fingerprint !== fingerprint) {
+            form.pendingExperimentReview = { fingerprint, request_id: crypto.randomUUID() };
+          }
+          submit.disabled = true;
+          resultStatus.textContent = "Recording the reviewed result…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/review`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({ ...request, request_id: form.pendingExperimentReview.request_id })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location review grant is no longer valid.");
+            }
+            if (!response.ok) throw new Error(result.error || "The result could not be recorded.");
+            resultStatus.textContent = result.replayed
+              ? "The original result was confirmed after retry."
+              : "Reviewed result recorded. The solution stage was not changed.";
+            form.pendingExperimentReview = null;
+            await Promise.all([loadSolutionLifecycleExperiments(), loadSolutionLifecycleSummary()]);
+          } catch (error) {
+            resultStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return panel;
       }
 
       async function loadSolutionLifecycleExperiments(append = false) {

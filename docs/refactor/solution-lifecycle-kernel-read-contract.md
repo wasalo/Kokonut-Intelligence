@@ -4,7 +4,8 @@
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
 reads, independently reviewed retirement and learning proposal actions, the
 private retirement-review view, and append-only gate-evaluation submission are
-prepared; not owner-accepted.
+prepared; migration 487 now adds private experiment result review; not
+owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -20,7 +21,8 @@ prepared; not owner-accepted.
 `477_location_solution_learning_proposal.sql`,
 `481_location_solution_retirement_candidates.sql`, and
 `482_location_solution_retirement_review_queue.sql`, and
-`483_location_solution_gate_evaluation.sql`.
+`483_location_solution_gate_evaluation.sql`, and
+`487_location_solution_experiment_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -36,12 +38,17 @@ prepared; not owner-accepted.
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`,
 `GET /operator/api/solution-lifecycle/{location_id}/retirements/review`, and
 `GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}`, and
-`POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations`.
+`POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations`,
+`GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`, and
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact `solution_lifecycle:create`;
 approval requires exact `solution_lifecycle:review`; retirement review reads and
 gate evaluations also require an active human party binding. Mutations use signed
 operator tenant context checked in Gateway and PostgreSQL.
+Experiment review detail and result submission require exact
+`solution_lifecycle:review` scope and an active human binding; the result
+reviewer must differ from both the experiment owner and protocol approver.
 
 ## Purpose and boundary
 
@@ -415,12 +422,45 @@ prerequisites, atomicity, retry/collision behavior, and direct-table/Directus
 boundaries. Evidence is recorded in
 `builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json`.
 
+## CAP-035 experiment result review (migration 487)
+
+`GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`
+returns pending review detail only for an experiment whose solution originated
+at the exact location. The response includes bounded protocol text, analysis,
+and up to 100 recent observations. It omits unit references and recorder,
+reviewer, and owner identities; large text and JSON fields are truncated or
+marked. Private evidence is rendered as text in the operator console.
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`
+accepts one allowlisted outcome, primary and secondary result objects,
+limitations, evidence references, and a request ID. PostgreSQL requires a
+completed experiment and an active human with the exact location review grant,
+distinct from both the experiment owner and protocol approver. It records the
+result, updates the experiment outcome, and inserts an immutable payload receipt
+in one transaction. Identical retries return the saved result; changed payload,
+cross-location reuse, an existing result, a missing grant, or self-review fails
+closed. Review does not change solution stage.
+
+The non-login reviewer owner has bounded source-column privileges and can update
+only the experiment key/status columns needed to lock and mark completion. It
+cannot modify observations or protocol content, and cannot update or delete the
+receipt. Runtime can execute the two bounded functions but cannot read the
+receipt or experiment protocol directly; Directus cannot execute the functions.
+The focused Gateway, route-policy, console, and migration selection passes 74
+tests; Ruff and Python compilation pass, and the console test parses its inline
+JavaScript. Disposable PostgreSQL 16 applies/replays migrations 483–487 and
+passes ten experiment-review acceptance groups in addition to the eight gate
+evaluation, seven gate review, and seven stage-transition groups. Candidate and
+legacy databases are untouched; migration 487 is not rolled out. Evidence is
+recorded in
+`builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json`.
+
 ## Rollback
 
 Before migration rollout, remove a route registration, route-policy entry, read
-or action service, migration source, and tests together. If migrations 483–486
-have been applied, disable the corresponding evaluation, review, approval, or
-transition routes and console panels, but retain the ordered migrations, roles,
+or action service, migration source, and tests together. If migrations 483–487
+have been applied, disable the corresponding evaluation, review, approval,
+transition, or experiment-review routes and console panels, but retain the ordered migrations, roles,
 and ACLs until separately reviewed forward migrations remove them. Do not edit or reverse
 an applied migration; any schema rollback requires a separately reviewed
 forward migration after checking for location links, evaluation evidence,

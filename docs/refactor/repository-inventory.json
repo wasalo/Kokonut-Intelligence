@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "ffa575f1ab9c6cf448bf4f83cc0d0dfad565df63",
+  "baseline_commit": "f6c97e879ce8d8694ed0ee1154e8ed7e1e93e0b5",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1251,157 +1251,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1754,
+      "line": 1768,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1769,
+      "line": 1783,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1778,
+      "line": 1792,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1836,
+      "line": 1850,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1864,
+      "line": 1878,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1904,
+      "line": 1918,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1955,
+      "line": 1969,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1995,
+      "line": 2009,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2048,
+      "line": 2062,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2108,
+      "line": 2122,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2163,
+      "line": 2177,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2207,
+      "line": 2221,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2268,
+      "line": 2282,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2351,
+      "line": 2365,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2444,
+      "line": 2458,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2492,
+      "line": 2506,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2544,
+      "line": 2558,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2602,
+      "line": 2616,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2656,
+      "line": 2670,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2745,
+      "line": 2759,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2765,
+      "line": 2779,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2785,
+      "line": 2799,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2821,
+      "line": 2835,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2849,
+      "line": 2863,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2877,
+      "line": 2891,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2920,
+      "line": 2934,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1557,115 +1557,127 @@
       "source": "services/gateway/sequential_decision_routes.py"
     },
     {
-      "line": 40,
+      "line": 42,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 116,
+      "line": 118,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/review",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 170,
+      "line": 172,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 242,
+      "line": 244,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/transition",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 319,
+      "line": 321,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/summary",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 360,
+      "line": 362,
+      "method": "GET",
+      "path": "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review",
+      "source": "services/gateway/solution_lifecycle_routes.py"
+    },
+    {
+      "line": 419,
+      "method": "POST",
+      "path": "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review",
+      "source": "services/gateway/solution_lifecycle_routes.py"
+    },
+    {
+      "line": 500,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/adoption",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 410,
+      "line": 550,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/scale-gates",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 460,
+      "line": 600,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/replications",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 510,
+      "line": 650,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/learning",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 560,
+      "line": 700,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 648,
+      "line": 788,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/retirements",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 698,
+      "line": 838,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/retirement-candidates",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 748,
+      "line": 888,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/retirements/review",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 798,
+      "line": 938,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 858,
+      "line": 998,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 937,
+      "line": 1077,
       "method": "POST",
       "path": "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 1001,
+      "line": 1141,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/funding",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 1051,
+      "line": 1191,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/gates",
       "source": "services/gateway/solution_lifecycle_routes.py"
     },
     {
-      "line": 1101,
+      "line": 1241,
       "method": "GET",
       "path": "/operator/api/solution-lifecycle/{location_id}/experiments",
       "source": "services/gateway/solution_lifecycle_routes.py"
@@ -2359,7 +2371,8 @@
       "schemas/postgres/483_location_solution_gate_evaluation.sql",
       "schemas/postgres/484_location_solution_gate_review.sql",
       "schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql",
-      "schemas/postgres/486_location_solution_gate_transition.sql"
+      "schemas/postgres/486_location_solution_gate_transition.sql",
+      "schemas/postgres/487_location_solution_experiment_review.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3051,6 +3064,7 @@
         "tests/test_gateway_sequential_decision_reads.py",
         "tests/test_gateway_solution_learning_proposals.py",
         "tests/test_gateway_solution_lifecycle_actions.py",
+        "tests/test_gateway_solution_lifecycle_experiment_review.py",
         "tests/test_gateway_solution_lifecycle_gate_evaluations.py",
         "tests/test_gateway_solution_lifecycle_gate_review.py",
         "tests/test_gateway_solution_lifecycle_gate_transitions.py",
@@ -3679,6 +3693,7 @@
         "tests/test_gateway_sequential_decision_reads.py",
         "tests/test_gateway_solution_learning_proposals.py",
         "tests/test_gateway_solution_lifecycle_actions.py",
+        "tests/test_gateway_solution_lifecycle_experiment_review.py",
         "tests/test_gateway_solution_lifecycle_gate_evaluations.py",
         "tests/test_gateway_solution_lifecycle_gate_review.py",
         "tests/test_gateway_solution_lifecycle_gate_transitions.py",
@@ -5039,6 +5054,7 @@
     "tests/test_gateway_sequential_decision_reads.py",
     "tests/test_gateway_solution_learning_proposals.py",
     "tests/test_gateway_solution_lifecycle_actions.py",
+    "tests/test_gateway_solution_lifecycle_experiment_review.py",
     "tests/test_gateway_solution_lifecycle_gate_evaluations.py",
     "tests/test_gateway_solution_lifecycle_gate_review.py",
     "tests/test_gateway_solution_lifecycle_gate_transitions.py",

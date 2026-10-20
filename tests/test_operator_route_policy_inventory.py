@@ -36,6 +36,7 @@ _PARAMETER_SAMPLES = {
     "retirement_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "solution_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "gate_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
+    "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -200,6 +201,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments/dddddddd-dddd-4ddd-8ddd-dddddddddddf/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments/dddddddd-dddd-4ddd-8ddd-dddddddddddf/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding",

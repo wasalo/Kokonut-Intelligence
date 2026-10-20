@@ -38,6 +38,12 @@ LEARNING_TYPES = frozenset({
 })
 LEARNING_CONFIDENCE = frozenset({"high", "moderate", "low", "insufficient_evidence"})
 LEARNING_TRANSFERABILITY = frozenset({"high", "medium", "low", "unknown"})
+EXPERIMENT_OUTCOMES = frozenset({
+    "validated",
+    "invalidated",
+    "inconclusive",
+    "requires_replication",
+})
 
 
 def _connection_factory() -> Callable:
@@ -167,6 +173,93 @@ def approve_location_solution_gate(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution gate approval returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_solution_experiment(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    request_id: str,
+    outcome: str,
+    primary_results: dict,
+    secondary_results: dict,
+    limitations: str | None,
+    evidence: list,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record one independent human result review for a completed location experiment."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if outcome not in EXPERIMENT_OUTCOMES:
+        raise SolutionLifecycleActionInvalid("Experiment review outcome is invalid")
+    if not isinstance(primary_results, dict) or not isinstance(secondary_results, dict):
+        raise SolutionLifecycleActionInvalid("Experiment results must be JSON objects")
+    if limitations is not None and (
+        not isinstance(limitations, str) or len(limitations) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid("Experiment limitations must be at most 4000 characters")
+    if not isinstance(evidence, list) or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid("Experiment evidence must be a list of at most 100 items")
+    try:
+        encoded_primary = json.dumps(
+            primary_results, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+        encoded_secondary = json.dumps(
+            secondary_results, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Experiment review values must contain JSON data") from exc
+    if any(len(value.encode("utf-8")) > 65536 for value in (
+        encoded_primary, encoded_secondary, encoded_evidence
+    )):
+        raise SolutionLifecycleActionInvalid("Experiment review values exceed the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_experiment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text,
+                           %s::jsonb, %s::jsonb, %s::text, %s::jsonb
+                       )""",
+                (
+                    location_id,
+                    experiment_id,
+                    request_id,
+                    outcome,
+                    encoded_primary,
+                    encoded_secondary,
+                    limitations,
+                    encoded_evidence,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution experiment review returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result
