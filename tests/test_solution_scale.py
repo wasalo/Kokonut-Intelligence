@@ -12,12 +12,12 @@ PARTY_ID = "b0000000-0000-0000-0000-000000002712"
 PROPOSER_ID = "b0000000-0000-0000-0000-000000002713"
 
 
-def test_scale_requires_evidence_and_learning_application_uses_gateway():
+def test_legacy_learning_and_stage_gate_writes_fail_closed():
     try:
         conn = get_db()
     except Exception as exc:  # pragma: no cover
         pytest.skip(f"no database available: {exc}")
-    solution_id = learning_id = None
+    solution_id = None
     try:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
@@ -27,20 +27,27 @@ def test_scale_requires_evidence_and_learning_application_uses_gateway():
         conn.commit()
         solution = solution_lifecycle.create_solution(conn, f"scale-{uuid.uuid4().hex[:8]}", "Validated practice", "practice", "A recurring problem", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
-        gate = solution_scale.create_gate(conn, solution_id, "organization", str(uuid.uuid4()), "replicability", "Replicate in a distinct context", threshold="1",)
-        with pytest.raises(ValueError, match="evidence"):
-            solution_scale.evaluate_gate(conn, str(gate["id"]), True, "pass", [], PARTY_ID)
         lifecycle_gate = solution_lifecycle.create_gate(conn, solution_id, "discovered", "scaled")
-        solution_lifecycle.approve_gate(conn, str(lifecycle_gate["id"]), PARTY_ID)
-        solution_lifecycle.evaluate_gate(conn, str(lifecycle_gate["id"]), True, PARTY_ID, evidence=[{"source": "review"}])
-        with pytest.raises(ValueError, match="scale gates"):
-            solution_lifecycle.transition(conn, solution_id, "scaled", PARTY_ID, approved_by_party_id=PARTY_ID, rationale="Attempted scale")
-        evaluated = solution_scale.evaluate_gate(conn, str(gate["id"]), True, "pass", [{"replication":"reviewed"}], PARTY_ID)
-        assert evaluated["status"] == "passed"
-        learning = solution_scale.record_learning(conn, solution_id, "context_transfer", "Training must be localized", "Update the adoption playbook", transferability="medium", evidence=[{"source":"replication"}], owner_party_id=PARTY_ID)
-        learning_id = str(learning["id"])
         with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
-            solution_scale.apply_learning(conn, learning_id, "solution-v2", PARTY_ID)
+            solution_lifecycle.approve_gate(conn, str(lifecycle_gate["id"]), PARTY_ID)
+        with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+            solution_lifecycle.evaluate_gate(
+                conn, str(lifecycle_gate["id"]), True, PARTY_ID,
+                evidence=[{"source": "review"}],
+            )
+        with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+            solution_lifecycle.transition(conn, solution_id, "scaled", PARTY_ID, approved_by_party_id=PARTY_ID, rationale="Attempted scale")
+        with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+            solution_scale.record_learning(
+                conn,
+                solution_id,
+                "context_transfer",
+                "Training must be localized",
+                "Update the adoption playbook",
+                transferability="medium",
+                evidence=[{"source": "replication"}],
+                owner_party_id=PARTY_ID,
+            )
     finally:
         conn.rollback()
         with conn.cursor() as cur:
@@ -59,10 +66,37 @@ def test_clean_helper_converts_uuids():
     assert cleaned["id"] == str(mock_uuid)
 
 
-def test_evaluate_gate_rejects_empty_evidence():
+def test_legacy_scale_gate_evaluation_fails_closed_before_database_access():
     mock_conn = MagicMock()
-    with pytest.raises(ValueError, match="evidence"):
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
         solution_scale.evaluate_gate(mock_conn, "gate-id", True, "val", [], "party-id")
+    mock_conn.cursor.assert_not_called()
+
+
+def test_legacy_scale_gate_creation_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_scale.create_gate(
+            mock_conn, "solution-id", "location", "location-id", "safety", "Review safety"
+        )
+    mock_conn.cursor.assert_not_called()
+
+
+def test_legacy_learning_proposal_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_scale.record_learning(
+            mock_conn,
+            "solution-id",
+            "context_transfer",
+            "A bounded finding",
+            "A proposed action",
+            source_replication_id="replication-id",
+            evidence=[{"source": "review"}],
+            owner_party_id=PARTY_ID,
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
 
 
 def test_retirement_proposal_requires_attributed_proposer_before_database_access():

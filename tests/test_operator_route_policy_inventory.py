@@ -36,6 +36,7 @@ _PARAMETER_SAMPLES = {
     "retirement_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "solution_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "gate_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
+    "assessment_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
     "funding_case_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed",
     "learning_record_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeec",
@@ -204,6 +205,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("solution_lifecycle", "transition", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/stage-transition-targets",
+    ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/solutions/dddddddd-dddd-4ddd-8ddd-dddddddddddd/stage-transition",
+    ): _expected("solution_lifecycle", "transition", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
     (
@@ -262,6 +271,26 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates/assessment-targets",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates/dddddddd-dddd-4ddd-8ddd-ddddddddddde/evaluations",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates/review/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/scale-gates/review/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/replications",
@@ -695,6 +724,22 @@ for _route_action, _policy_action in _TRANSITION_ACTIONS.items():
             f"/operator/api/farm-activity-records/55555555-5555-4555-8555-555555555555/{_route_action}",
         )
     ] = _expected("farm_activity", _policy_action, scoped=True)
+
+for _retirement_route_action, _retirement_policy_action in {
+    "migration": "transition",
+    "sunset": "transition",
+    "post-retirement-review": "review",
+}.items():
+    _EXPECTED_OPERATOR_POLICIES[(
+        "POST",
+        f"/operator/api/solution-lifecycle/{_LOCATION_ID}/retirements/"
+        f"{_PARAMETER_SAMPLES['retirement_id']}/{_retirement_route_action}",
+    )] = _expected(
+        "solution_lifecycle",
+        _retirement_policy_action,
+        scoped=True,
+        location_id=_LOCATION_ID,
+    )
 
 
 def _concrete_paths(route_path):

@@ -25,8 +25,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         review_location_solution_learning,
         review_location_solution_replication,
         review_location_solution_replication_completion,
+        review_location_solution_scale_gate_assessment,
         submit_location_solution_funding,
+        submit_location_solution_scale_gate_assessment,
         transition_location_solution_gate,
+        transition_location_solution_retirement,
+        transition_location_solution_stage,
     )
     from services.gateway.solution_lifecycle_reads import (
         SolutionLifecycleReadInvalid,
@@ -43,6 +47,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         get_location_solution_replication_completion_review_detail,
         get_location_solution_replication_review_detail,
         get_location_solution_retirement_review_detail,
+        get_location_solution_scale_gate_review_detail,
         list_location_solution_adoption,
         list_location_solution_experiments,
         list_location_solution_funding,
@@ -58,7 +63,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         list_location_solution_retirement_candidates,
         list_location_solution_retirement_review_queue,
         list_location_solution_retirements,
+        list_location_solution_scale_gate_assessment_targets,
+        list_location_solution_scale_gate_review_queue,
         list_location_solution_scale_gates,
+        list_location_solution_stage_transition_targets,
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -334,6 +342,88 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution gate transition unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/stage-transition"
+    )
+    async def transition_solution_stage(
+        request: Request, location_id: str, solution_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "expected_from_stage", "to_stage", "rationale",
+            "evidence", "rollback_plan", "acknowledged",
+        }
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Solution stage transition fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                transition_location_solution_stage,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                solution_id,
+                payload["expected_from_stage"],
+                payload["to_stage"],
+                payload["request_id"],
+                payload["rationale"],
+                payload["evidence"],
+                payload["rollback_plan"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle transition access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle transition grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Location-origin solution not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Solution stage transition request is invalid"}, headers=headers)
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Solution stage changed or transition conflicts with lifecycle prerequisites; refresh and retry"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution stage transition unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution stage transition unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(
@@ -681,6 +771,219 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets"
+    )
+    async def location_solution_scale_gate_assessment_targets(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_scale_gate_assessment_targets,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified assessment access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location create grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate assessment targets unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Scale-gate assessment targets unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/{gate_id}/evaluations"
+    )
+    async def submit_solution_scale_gate_assessment(
+        request: Request, location_id: str, gate_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "measured_value", "sample_size", "reported_pass",
+            "evidence_refs", "acknowledged",
+        }
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(status_code=400, content={"error": "Scale-gate assessment fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                submit_location_solution_scale_gate_assessment,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                gate_id,
+                payload["request_id"],
+                payload["measured_value"],
+                payload["sample_size"],
+                payload["reported_pass"],
+                payload["evidence_refs"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified scale-gate assessment access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location create grant is required"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Scale gate not found for this location"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Scale-gate assessment input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Scale gate already has a pending assessment or the request conflicts"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate assessment unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Scale-gate assessment unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/scale-gates/review")
+    async def location_solution_scale_gate_review_queue(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_scale_gate_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified scale-gate review access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Scale-gate review queue unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+    )
+    async def location_solution_scale_gate_review_detail(
+        request: Request, location_id: str, assessment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_scale_gate_review_detail,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                assessment_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified scale-gate review access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleReviewNotFound as exc:
+            return JSONResponse(status_code=404, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate review detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Scale-gate review detail unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}"
+    )
+    async def review_solution_scale_gate_assessment(
+        request: Request, location_id: str, assessment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {"request_id", "decision", "review_reason", "acknowledged"}
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(status_code=400, content={"error": "Scale-gate review fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                review_location_solution_scale_gate_assessment,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                assessment_id,
+                payload["request_id"],
+                payload["decision"],
+                payload["review_reason"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified scale-gate review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active independent human location review grant is required"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Pending scale-gate assessment not found for this location"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Scale-gate review input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Scale-gate assessment was already reviewed or the request conflicts"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Scale-gate review unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Scale-gate review unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/replications")
     async def location_solution_replications(
@@ -2009,6 +2312,109 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
+    async def _transition_solution_retirement(
+        request: Request, location_id: str, retirement_id: str, action: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "note", "evidence_refs", "effective_at", "acknowledged"
+        }
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Retirement transition fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                transition_location_solution_retirement,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                retirement_id,
+                payload["request_id"],
+                action,
+                payload["note"],
+                payload["evidence_refs"],
+                payload["effective_at"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution retirement transition access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current active-human location transition or review grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Retirement not found"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Retirement transition input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "40001", "55000"}:
+                return JSONResponse(status_code=409, content={"error": "Retirement is not eligible for this transition"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement transition unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution retirement transition unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/migration"
+    )
+    async def begin_solution_retirement_migration(
+        request: Request, location_id: str, retirement_id: str
+    ):
+        return await _transition_solution_retirement(
+            request, location_id, retirement_id, "migration_started"
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/sunset"
+    )
+    async def sunset_location_solution_retirement(
+        request: Request, location_id: str, retirement_id: str
+    ):
+        return await _transition_solution_retirement(
+            request, location_id, retirement_id, "sunset"
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/post-retirement-review"
+    )
+    async def complete_location_solution_retirement_review(
+        request: Request, location_id: str, retirement_id: str
+    ):
+        return await _transition_solution_retirement(
+            request, location_id, retirement_id, "post_retirement_review"
+        )
+
     @router.get("/operator/api/solution-lifecycle/{location_id}/funding")
     async def location_solution_lifecycle_funding(
         request: Request,
@@ -2601,6 +3007,58 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution lifecycle gates unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/stage-transition-targets"
+    )
+    async def location_solution_stage_transition_targets(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_stage_transition_targets,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle read grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution stage-transition targets unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution stage-transition targets unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from functools import partial
 from typing import Callable
@@ -46,6 +47,17 @@ EXPERIMENT_OUTCOMES = frozenset({
     "invalidated",
     "inconclusive",
     "requires_replication",
+})
+SOLUTION_STAGES = frozenset({
+    "discovered", "triaged", "framed", "experiment_ready", "testing",
+    "validated", "investment_ready", "funded", "pilot_active",
+    "adoption_ready", "adopting", "scaled", "maintained", "paused",
+    "superseded", "retired", "failed",
+})
+NONPROMOTION_SOLUTION_STAGES = frozenset({
+    "discovered", "triaged", "framed", "experiment_ready", "testing",
+    "investment_ready", "pilot_active", "adopting", "maintained",
+    "paused", "failed",
 })
 FUNDING_CAPITAL_STAGES = frozenset({
     "discovery", "experiment", "pilot", "replication", "scale", "maintenance",
@@ -158,6 +170,143 @@ def record_location_solution_gate_evaluation(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution gate evaluation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def submit_location_solution_scale_gate_assessment(
+    operator_id: str,
+    location_id: str,
+    gate_id: str,
+    request_id: str,
+    measured_value: str,
+    sample_size: int,
+    reported_pass: bool | None,
+    evidence_refs: list,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit one location-scoped scale-gate assessment for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    gate_id = _normalize_uuid(gate_id, "scale gate")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(measured_value, str) or not 1 <= len(measured_value.strip()) <= 1000:
+        raise SolutionLifecycleActionInvalid("Measured value must contain 1 to 1,000 characters")
+    if isinstance(sample_size, bool) or not isinstance(sample_size, int) or not 1 <= sample_size <= 10_000_000:
+        raise SolutionLifecycleActionInvalid("Sample size must be an integer from 1 to 10,000,000")
+    if reported_pass is not None and not isinstance(reported_pass, bool):
+        raise SolutionLifecycleActionInvalid("Reported gate result must be true, false, or null")
+    if not isinstance(evidence_refs, list) or not evidence_refs or len(evidence_refs) > 100:
+        raise SolutionLifecycleActionInvalid("Assessment evidence must contain 1 to 100 references")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Scale-gate assessment acknowledgement is required")
+    try:
+        encoded_evidence = json.dumps(
+            evidence_refs, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Assessment evidence must contain JSON data") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Assessment evidence exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.submit_location_solution_scale_gate_assessment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::integer,
+                           %s::boolean, %s::jsonb
+                       )""",
+                (
+                    location_id, gate_id, request_id, measured_value.strip(),
+                    sample_size, reported_pass, encoded_evidence,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Scale-gate assessment returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_solution_scale_gate_assessment(
+    operator_id: str,
+    location_id: str,
+    assessment_id: str,
+    request_id: str,
+    decision: str,
+    review_reason: str | None,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record an independent human decision for a pending scale-gate assessment."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    assessment_id = _normalize_uuid(assessment_id, "assessment")
+    request_id = _normalize_uuid(request_id, "request")
+    if decision not in {"accepted", "rejected"}:
+        raise SolutionLifecycleActionInvalid("Scale-gate decision must be accepted or rejected")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Scale-gate review acknowledgement is required")
+    if review_reason is not None and (
+        not isinstance(review_reason, str)
+        or not review_reason.strip()
+        or len(review_reason) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid("Scale-gate review note is limited to 4,000 characters")
+    if decision == "rejected" and (
+        review_reason is None or len(review_reason.strip()) < 10
+    ):
+        raise SolutionLifecycleActionInvalid("A rejection reason of at least 10 characters is required")
+    normalized_reason = review_reason.strip() if review_reason is not None else None
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_scale_gate_assessment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text
+                       )""",
+                (location_id, assessment_id, request_id, decision, normalized_reason),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Scale-gate review returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result
@@ -669,6 +818,103 @@ def transition_location_solution_gate(
         connection.close()
 
 
+def transition_location_solution_stage(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    expected_from_stage: str,
+    to_stage: str,
+    request_id: str,
+    rationale: str,
+    evidence: list,
+    rollback_plan: str | None = None,
+    acknowledged: bool = False,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record an acknowledged exact-location non-promotion stage transition."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(expected_from_stage, str) or expected_from_stage not in SOLUTION_STAGES:
+        raise SolutionLifecycleActionInvalid("Invalid expected solution stage")
+    if not isinstance(to_stage, str) or to_stage not in NONPROMOTION_SOLUTION_STAGES:
+        raise SolutionLifecycleActionInvalid(
+            "Promotion and retirement stages require their dedicated workflows"
+        )
+    if expected_from_stage == to_stage:
+        raise SolutionLifecycleActionInvalid("A solution cannot transition to its current stage")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Stage transition requires explicit acknowledgement")
+    if not isinstance(rationale, str) or not 10 <= len(rationale.strip()) <= 4000:
+        raise SolutionLifecycleActionInvalid(
+            "Transition rationale must contain between 10 and 4000 characters"
+        )
+    if not isinstance(evidence, list) or not evidence or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid(
+            "Transition evidence must be a nonempty list of at most 100 items"
+        )
+    if rollback_plan is not None and (
+        not isinstance(rollback_plan, str) or len(rollback_plan) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Transition rollback plan must be at most 4000 characters"
+        )
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid(
+            "Transition evidence must contain JSON values"
+        ) from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Transition evidence exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="transition",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.transition_location_solution_stage(
+                           %s::uuid, %s::uuid, %s::text, %s::text, %s::uuid,
+                           %s::text, %s::jsonb, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id,
+                    solution_id,
+                    expected_from_stage,
+                    to_stage,
+                    request_id,
+                    rationale.strip(),
+                    encoded_evidence,
+                    rollback_plan,
+                    acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution stage transition returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def approve_location_solution_retirement(
     operator_id: str,
     location_id: str,
@@ -704,6 +950,94 @@ def approve_location_solution_retirement(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution retirement approval returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def transition_location_solution_retirement(
+    operator_id: str,
+    location_id: str,
+    retirement_id: str,
+    request_id: str,
+    action: str,
+    note: str,
+    evidence_refs: list,
+    effective_at: str | None,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Advance an approved exact-location retirement with an immutable receipt."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    retirement_id = _normalize_uuid(retirement_id, "retirement")
+    request_id = _normalize_uuid(request_id, "request")
+    if action not in {"migration_started", "sunset", "post_retirement_review"}:
+        raise SolutionLifecycleActionInvalid("Unsupported retirement transition")
+    if not isinstance(note, str) or not 10 <= len(note.strip()) <= 4000:
+        raise SolutionLifecycleActionInvalid("Retirement transition note must contain 10 to 4,000 characters")
+    if not isinstance(evidence_refs, list) or not evidence_refs or len(evidence_refs) > 100:
+        raise SolutionLifecycleActionInvalid("Retirement transition requires 1 to 100 evidence references")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Retirement transition acknowledgement is required")
+    try:
+        encoded_evidence = json.dumps(
+            evidence_refs, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Retirement evidence must contain JSON values") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Retirement evidence exceeds the 64 KiB limit")
+
+    normalized_effective_at = None
+    if action == "migration_started":
+        if not isinstance(effective_at, str) or not effective_at.strip():
+            raise SolutionLifecycleActionInvalid("A timezone-aware sunset effective date is required")
+        try:
+            parsed_effective_at = datetime.fromisoformat(
+                effective_at.strip().replace("Z", "+00:00")
+            )
+        except ValueError as exc:
+            raise SolutionLifecycleActionInvalid("Sunset effective date must be a valid ISO timestamp") from exc
+        if parsed_effective_at.tzinfo is None or parsed_effective_at.utcoffset() is None:
+            raise SolutionLifecycleActionInvalid("Sunset effective date must include a timezone")
+        normalized_effective_at = parsed_effective_at.astimezone(timezone.utc).isoformat()
+    elif effective_at is not None:
+        raise SolutionLifecycleActionInvalid("Only migration start accepts an effective date")
+
+    connection = (connection_factory or _connection_factory())()
+    scope_action = "review" if action == "post_retirement_review" else "transition"
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action=scope_action,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.transition_location_solution_retirement(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text,
+                           %s::jsonb, %s::timestamptz
+                       )""",
+                (
+                    location_id, retirement_id, request_id, action, note.strip(),
+                    encoded_evidence, normalized_effective_at,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution retirement transition returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

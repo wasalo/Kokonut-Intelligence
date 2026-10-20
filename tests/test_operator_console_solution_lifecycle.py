@@ -430,7 +430,7 @@ def test_supplemental_projection_routes_and_result_keys_are_fixed_allowlists():
 
 def test_supplemental_projection_reader_uses_same_origin_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function resetSolutionLifecycleRetirementSources(")
+    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function appendScaleGateAssessmentTarget(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/${view.route}?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -1092,6 +1092,128 @@ def test_replication_completion_submission_is_active_row_submit_grant_gated_and_
         'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
     )
     assert "Resolve the pending completion-report request" in location_change
+
+
+def test_scale_gate_assessment_and_review_panels_are_hidden_and_explain_separate_human_decisions():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assessment = re.search(r'<section id="solution-lifecycle-scale-assessment".*?</section>', source, re.DOTALL)
+    review = re.search(r'<section id="solution-lifecycle-scale-review".*?</section>', source, re.DOTALL)
+    assert assessment is not None and 'id="solution-lifecycle-scale-assessment" hidden' in assessment.group()
+    assert review is not None and 'id="solution-lifecycle-scale-review" hidden' in review.group()
+    assert "exact location create grant" in assessment.group()
+    assert "different active human" in assessment.group()
+    assert "exact location review grant" in review.group()
+    assert "Neither decision advances the solution stage" in review.group()
+
+
+def test_scale_gate_assessment_is_typed_evidence_backed_create_only_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendScaleGateAssessmentTarget(", "async function loadSolutionLifecycleScaleGateAssessmentTargets(")
+    reader = _function(
+        source,
+        "async function loadSolutionLifecycleScaleGateAssessmentTargets(",
+        "async function submitSolutionLifecycleScaleGateAssessment(",
+    )
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleScaleGateAssessment(",
+        "function appendSolutionLifecycleScaleGateReview(",
+    )
+    assert "target.comparison_operator" in renderer and "target.threshold_numeric" in renderer
+    assert "Proposed result for independent review" in renderer
+    assert "sample.max = \"10000000\"" in renderer
+    assert "textContent" in renderer and "innerHTML" not in renderer
+    assert "solutionLifecycleCreateLocations.has(locationId)" in reader
+    assert "/scale-gates/assessment-targets?${params}" in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'cache: "no-store"' in reader
+    assert "requestVersion !== solutionLifecycleScaleAssessmentRequestVersion" in reader
+    assert "locationId !== solutionLifecycleLocation.value" in reader
+    assert "evidenceRefs.length < 1 || evidenceRefs.length > 100" in submit
+    assert "form.pendingAssessment.fingerprint !== fingerprint" in submit
+    assert "form.pendingAssessment.request_id" in submit
+    assert "/scale-gates/${encodeURIComponent(target.scale_gate_id)}/evaluations`" in submit
+    assert 'method: "POST"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "does not advance the solution stage" in renderer
+    assert "innerHTML" not in submit
+
+
+def test_scale_gate_review_queue_detail_and_decision_are_scoped_independent_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendSolutionLifecycleScaleGateReview(", "async function loadSolutionLifecycleScaleGateReviewQueue(")
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleScaleGateReviewQueue(",
+        "async function loadSolutionLifecycleScaleGateReviewDetail(",
+    )
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleScaleGateReviewDetail(",
+        "async function submitSolutionLifecycleScaleGateReview(",
+    )
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleScaleGateReview(",
+        "function resetSolutionLifecycleRetirementSources(",
+    )
+    assert "item.evaluator_conflict === true" in renderer and "button.disabled" in renderer
+    assert "textContent" in renderer and "innerHTML" not in renderer
+    assert "solutionLifecycleReviewLocations.has(locationId)" in queue
+    assert "/scale-gates/review?${params}" in queue
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in queue
+    assert 'cache: "no-store"' in queue
+    assert "requestVersion !== solutionLifecycleScaleReviewRequestVersion" in queue
+    assert "locationId !== solutionLifecycleLocation.value" in queue
+    assert "record.evaluator_conflict !== true" in detail
+    assert "solutionLifecycleScaleReviewEvidence.textContent = JSON.stringify" in detail
+    assert "innerHTML" not in detail
+    assert 'decision === "rejected" && (!reviewReason || reviewReason.length < 10' in submit
+    assert "solutionLifecyclePendingScaleReview.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingScaleReview.request_id" in submit
+    assert "/scale-gates/review/${encodeURIComponent(record.assessment_id)}`" in submit
+    assert 'method: "POST"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "Solution stage unchanged" in submit
+    assert "innerHTML" not in submit
+
+
+def test_retirement_migration_sunset_and_post_review_are_scoped_acknowledged_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleSupplementalRecord(",
+        "function createSolutionLifecycleReplicationActivationForm(",
+    )
+    form = _function(
+        source,
+        "function createSolutionLifecycleRetirementTransitionForm(",
+        "function createSolutionLifecycleReplicationActivationForm(",
+    )
+    assert 'view.route === "retirements"' in renderer
+    assert 'record.retirement_status === "approved"' in renderer
+    assert 'record.retirement_status === "migration"' in renderer
+    assert 'record.retirement_status === "sunset"' in renderer
+    assert "solutionLifecycleTransitionLocations.has(locationId)" in renderer
+    assert "solutionLifecycleReviewLocations.has(locationId)" in renderer
+    assert 'effectiveDate.type = "datetime-local"' in form
+    assert "parsed.toISOString()" in form
+    assert "solutionLifecyclePendingRetirementTransition.fingerprint !== fingerprint" in form
+    assert "pendingRequest.requestId" in form
+    assert "pendingRequest.payload" in form
+    assert "post-retirement-review" in form
+    assert 'credentials: "same-origin"' in form and 'cache: "no-store"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "no data will be deleted or pruned" in form.lower()
+    assert "innerHTML" not in renderer + form
+
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "Resolve the pending retirement transition before changing locations." in location_change
+    assert "|| solutionLifecyclePendingRetirementTransition)" in source
 
 
 def test_inline_javascript_parses_when_node_is_available():

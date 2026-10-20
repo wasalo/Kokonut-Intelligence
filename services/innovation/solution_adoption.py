@@ -56,13 +56,8 @@ def approve_configuration(conn, solution_id: str, scope_type: str, scope_id: str
 
 
 def record_event(conn, program_id: str, adopter_ref: str, event_type: str, *, cohort_id: Optional[str] = None, fidelity_score: Optional[float] = None, support_required: Optional[str] = None, outcome: Optional[dict[str, Any]] = None, consent_checked: bool = False, evidence: Optional[dict[str, Any]] = None, recorded_by_party_id: Optional[str] = None) -> Dict[str, Any]:
-    if event_type not in ("aware", "interested") and not consent_checked:
-        raise ValueError("adoption events beyond interest require consent confirmation")
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""INSERT INTO solution_adoption_event
-            (program_id, cohort_id, adopter_ref, event_type, fidelity_score, support_required,
-             outcome, consent_checked, evidence, recorded_by_party_id)
-            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s::jsonb, %s, %s::jsonb, %s::uuid) RETURNING *""", (program_id, cohort_id, adopter_ref, event_type, fidelity_score, support_required, json.dumps(outcome or {}), consent_checked, json.dumps(evidence or {}), recorded_by_party_id))
-        row = _clean(cur.fetchone())
-        conn.commit()
-        return row
+    del conn, program_id, adopter_ref, event_type, cohort_id, fidelity_score
+    del support_required, outcome, consent_checked, evidence, recorded_by_party_id
+    raise ValueError(
+        "adoption events require a consent-aware, location-scoped Gateway path"
+    )

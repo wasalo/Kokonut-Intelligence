@@ -1,3 +1,50 @@
+### CAP-035 legacy stage-transition writer retirement — 20 October 2026
+
+Retired the direct SQL implementation in `solution_lifecycle.transition`.
+Every valid non-retirement stage now fails before database access. Migration
+486 continues to support exact-location, gate-backed promotion transitions;
+scoped transitions to other stages remain an open capability-parity item.
+Retirement continues through the separately scoped migration 502 workflow.
+The experiment integration test now establishes its starting stage as fixture
+state, and stage-transition regressions use mocks to prove there is no cursor,
+commit, or rollback. The focused lifecycle, experiment, and scale selection
+passes 17 tests; two database-backed cases were deselected to avoid the
+candidate/legacy databases. Ruff, Python compilation, capability-matrix
+validation, refreshed runtime SQL inventory validation, and `git diff --check`
+pass. No database or migration was used. CAP-035 remains prepared; consent-aware
+adoption event writes, separate funding release, remaining lifecycle parity,
+populated comparison, live OIDC/browser, ACL/RLS, recovery, and owner acceptance
+remain open. Checklist: 754 complete / 24 open; capability matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows ([source-to-route
+audit](solution-lifecycle-source-route-audit.md); [write
+contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_lifecycle.py)).
+
+### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
+
+Retired the remaining `solution_scale.record_learning` direct insert. The
+helper now fails before database access; the supported flow remains the
+location-scoped Gateway proposal followed by independent review and accepted-
+only application. Updated the database-backed regression to expect rejection
+and added a mocked regression proving no cursor or commit occurs. A repository-
+only effects audit also enumerates still-open direct solution, experiment,
+adoption, and funding writes. In particular, adoption event writes still rely
+on a caller-supplied `consent_checked` boolean, and funding release has no
+scoped execution route. Those effects remain open for bounded implementation;
+this slice does not claim full CAP-035 parity. The focused mock test passes
+(1); Ruff, Python compilation, capability-matrix validation, refreshed runtime
+SQL inventory validation, and diff checks pass. No candidate, legacy, archived, or populated
+database was inspected or changed; no migration was added or rolled out. The
+CAP-035 source audit is linked from the capability matrix and checklist.
+Checklist: 751 complete / 24 open; capability matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows ([source-to-route audit](solution-lifecycle-source-route-audit.md);
+[write contract](solution-lifecycle-kernel-write-contract.md);
+[service](../services/innovation/solution_scale.py);
+[test](../tests/test_solution_scale.py)).
+
+### CAP-036 repository subject-lineage audit — 20 October 2026
+
+The repository-only CAP-036 lineage inventory is complete. A built-in Python source checker confirms the single SQL writer for `decision_hypothesis` is the generic sequential-evidence helper, with no production service callers; test fixtures use `strategy_plan`, `threat`, and an intentionally unknown `test` type. The similarly named customer-value helper writes to a separate table. Migrations 460 and 478 retain the same three exact location-scoped lineages. No candidate, legacy, or archived database was inspected. Unknown subject types remain excluded; a populated-corpus aggregate and reference-output comparison are still required before any additional type can be exposed. The checker passes and generated JSON evidence is recorded. CAP-036 remains prepared pending corpus lineage, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 750 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Inventory](sequential-evidence-subject-lineage-inventory.md); [checker](../../scripts/check-sequential-subject-lineage.py); [evidence](builds/2026-10-20-recovery/cap-036-subject-lineage-source-audit.json).
+
 ### CAP-035 replication completion-report proposal — 20 October 2026
 
 Migration 497 adds a private exact-location completion-report proposal API for an active, approved, started replication. Submission requires the signed `solution_lifecycle:submit` grant, an active human binding, current validated source/result lineage, bounded outcome/maturity/summary/evidence, acknowledgement, and a stable request ID. It creates only a pending report; replication and solution lifecycle fields remain unchanged until a future independent review decision. There is no console form or decision queue in this slice. The focused Gateway, route-policy, replication proposal/review/activation, console-regression, and migration selection passes 122 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16 applies/replays migration 497 and passes ten grouped scope, validation, retry, pending-report, lineage, privacy, and privilege checks. Candidate and legacy databases remain untouched; migration 497 is not rolled out. CAP-035 remains prepared pending completion review/decision, populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 742 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/497_location_solution_replication_completion_proposal.sql); [tests](../../tests/test_gateway_solution_replication_completion_proposals.py); [disposable checker](../../scripts/check-solution-replication-completion-proposal-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-replication-completion-proposal-disposable.json).
@@ -12449,3 +12496,114 @@ remain open. Checklist: 747 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
 [service](../services/innovation/solution_scale.py);
 [tests](../tests/test_solution_scale.py).
+
+### CAP-035 location-scoped scale-gate assessment and review — 20 October 2026
+
+Migration 501 adds an exact-location assessment workflow for pending/failed
+scale gates. Evaluators submit bounded evidence and measurements under exact
+`solution_lifecycle:create`; PostgreSQL computes typed threshold outcomes and
+enforces minimum sample sizes. A private review queue/detail and decision path
+requires exact `solution_lifecycle:review` and an active human distinct from the
+evaluator. Acceptance updates only the gate's measured result, evidence, status,
+and reviewer attribution. Rejection preserves the previous gate state. Neither
+decision advances solution stage. The operator console exposes the workflow with
+create/review grant gating, text-only evidence, acknowledgement, CSRF/no-store,
+pagination, stale-response checks, and stable request retries. Legacy direct
+scale-gate helpers now fail before opening a database connection.
+
+The focused Gateway, route-policy, legacy, and console selection passes 77
+tests with one database-backed skip. Ruff, Python compilation, inline
+JavaScript syntax, migration metadata, capability-matrix validation, runtime SQL
+inventory, and diff checks pass. Disposable PostgreSQL 16 applies/replays
+migration 501 and passes nine grouped authorization, typed threshold,
+minimum-sample, independent-review, retry, unchanged-stage, and role-boundary
+checks ([evidence](builds/2026-10-20-recovery/cap-035-scale-gate-review-disposable.json)). Candidate and legacy databases are untouched; migration 501 is
+not rolled out. CAP-035 remains prepared pending remaining lifecycle parity,
+populated fixtures, live OIDC/browser acceptance, broader ACL/RLS, recovery, and
+MAN-CAP-035 owner review. Checklist: 748 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/501_location_solution_scale_gate_evaluation_review.sql); [Gateway tests](../tests/test_gateway_solution_scale_gate_reviews.py); [console tests](../tests/test_operator_console_solution_lifecycle.py); [disposable checker](../../scripts/check-solution-scale-gate-review-disposable.py).
+
+### CAP-035 location-scoped retirement execution and review — 20 October 2026
+
+Migration 502 adds the final source-owned retirement transitions: approved to
+migration with an operator-selected timezone-aware effective timestamp,
+migration to sunset only after that timestamp, and sunset to completed through a
+separate active-human post-retirement review. Each action requires signed exact
+location scope; sunset atomically retires the solution and writes the canonical
+lifecycle event, while migration start leaves it active. Append-only transition
+receipts make retries stable and reject changed-payload request reuse. Runtime
+and Directus cannot access the receipt table directly. The console requires the
+matching transition or review grant, CSRF/no-store, acknowledgement, and stable
+request IDs, and it makes clear that no data is deleted or pruned. Retention
+periods and legal holds remain configurable policy inputs rather than hardcoded
+migration behavior. Legacy direct retirement transition fails closed before
+database access.
+
+The focused Gateway, route-policy, console, legacy, and migration selection
+passes 134 tests with one database-backed skip. Ruff, Python compilation,
+inline JavaScript syntax, migration metadata, capability validation, runtime SQL
+inventory, and diff checks pass. Disposable PostgreSQL 16 applies and replays
+migration 502 after the CAP-035 chain and passes nine grouped timing,
+authorization, actor-separation, retry, lifecycle, and role-boundary checks
+([evidence](builds/2026-10-20-recovery/cap-035-retirement-execution-disposable.json)).
+Candidate and legacy remain untouched; migration 502 is not rolled out. CAP-035
+remains prepared pending populated parity, live OIDC/browser acceptance, broader
+ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 749 complete / 24
+open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+[Write contract](solution-lifecycle-kernel-write-contract.md); [migration](../schemas/postgres/502_location_solution_retirement_execution.sql);
+[Gateway tests](../tests/test_gateway_solution_retirement_execution.py); [console tests](../tests/test_operator_console_solution_lifecycle.py);
+[disposable checker](../../scripts/check-solution-retirement-execution-disposable.py).
+### CAP-035 fail-closed legacy gate approval and evaluation — 20 October 2026
+
+The legacy `solution_lifecycle.approve_gate` and `evaluate_gate` helpers now
+fail before database access. Exact-location evaluation and review/approval
+remain available through Gateway actions backed by migrations 483–485. Updated
+the existing database-backed regressions to reflect that boundary and added
+mock checks for cursor/commit absence. The broader legacy transition helper
+remains direct and is still open; its consumer/test migration is tracked in the
+source-route audit. The focused two-helper mock tests pass; Ruff, compilation,
+matrix validation, runtime SQL inventory validation, and diff checks pass. No
+database or migration was used. Checklist: 753 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md), [contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_lifecycle.py).
+
+### CAP-035 fail-closed legacy adoption-event writer — 20 October 2026
+
+The legacy `solution_adoption.record_event` path no longer treats
+`consent_checked=True` as evidence and fails before database access for every
+event type. The canonical consent stream is party-linked, while adoption
+programs have no reviewed consent-policy configuration and the existing
+`adopter_ref` is not linked to a canonical participant party. Both boolean
+values now have focused mock coverage; the database-backed integration
+regression was updated but not run. A consent-aware exact-location Gateway
+writer remains open, so this closes an unsafe legacy path without claiming
+event-ingestion parity. The two focused mock cases pass; Ruff, Python
+compilation, capability-matrix validation, runtime SQL inventory validation,
+and diff checks pass. No migration or database was used. Checklist: 752
+complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md), [write contract](solution-lifecycle-kernel-write-contract.md), and [tests](../tests/test_solution_adoption.py).
+
+### CAP-035 non-promotion stage transitions — 20 October 2026
+
+Migration 503 adds an exact-location stage target read and transition action for
+nonterminal stages outside the promotion gates. The write requires signed
+`solution_lifecycle:transition`, active human attribution, explicit
+acknowledgement, bounded rationale/evidence, and a compare-and-set against the
+expected current stage. Stage, lifecycle event, and immutable retry receipt are
+atomic. Promotion targets remain on migration 486; retirement and supersession
+remain on the independent retirement/replacement workflow. Transitioning to
+`adopting` still requires approved location readiness/configuration. The console
+has a bounded exact-origin target list and a grant-gated, CSRF/no-store form.
+
+The Gateway, route-policy, console-contract, and promotion regression selection
+passes 38 tests; Ruff and Python compilation pass. Disposable PostgreSQL 16
+applies/replays migration 503 and passes 14 grouped checks for scope, active
+human identity, adoption readiness, promotion/retirement/supersession
+separation, stale-state rejection, retries, atomicity, and role boundaries
+([evidence](builds/2026-10-20-recovery/cap-035-nonpromotion-stage-transition-disposable.json)).
+Candidate and legacy remain untouched; migration 503 is not rolled out. CAP-035
+remains prepared pending populated legacy parity, live OIDC/browser acceptance,
+broader ACL/RLS review, recovery, and owner acceptance. Checklist: 755 complete
+/ 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared across 66
+rows. [Migration](../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
+
+### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026

@@ -766,6 +766,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_stage_transition_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/solutions/([0-9a-fA-F-]{36})/stage-transition",
+        path,
+    )
+    if solution_lifecycle_stage_transition_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "transition",
+            "public": False,
+            "location_id": solution_lifecycle_stage_transition_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_stage_targets_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/stage-transition-targets",
+        path,
+    )
+    if solution_lifecycle_stage_targets_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "read",
+            "public": False,
+            "location_id": solution_lifecycle_stage_targets_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_experiments_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/experiments", path
     )
@@ -925,6 +953,62 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "read",
             "public": False,
             "location_id": solution_lifecycle_adoption_events_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_scale_gate_targets_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/scale-gates/assessment-targets",
+        path,
+    )
+    if solution_lifecycle_scale_gate_targets_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_scale_gate_targets_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_scale_gate_evaluation_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/scale-gates/([0-9a-fA-F-]{36})/evaluations",
+        path,
+    )
+    if solution_lifecycle_scale_gate_evaluation_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_scale_gate_evaluation_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_scale_gate_review_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/scale-gates/review",
+        path,
+    )
+    if solution_lifecycle_scale_gate_review_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_scale_gate_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_scale_gate_review_detail_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/scale-gates/review/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if solution_lifecycle_scale_gate_review_detail_match and method.upper() in {"GET", "POST"} and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_scale_gate_review_detail_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }
@@ -1230,6 +1314,48 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "review",
             "public": False,
             "location_id": solution_lifecycle_retirement_approval_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_retirement_migration_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/retirements/([0-9a-fA-F-]{36})/migration",
+        path,
+    )
+    if solution_lifecycle_retirement_migration_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "transition",
+            "public": False,
+            "location_id": solution_lifecycle_retirement_migration_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_retirement_sunset_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/retirements/([0-9a-fA-F-]{36})/sunset",
+        path,
+    )
+    if solution_lifecycle_retirement_sunset_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "transition",
+            "public": False,
+            "location_id": solution_lifecycle_retirement_sunset_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_retirement_post_review_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/retirements/([0-9a-fA-F-]{36})/post-retirement-review",
+        path,
+    )
+    if solution_lifecycle_retirement_post_review_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_retirement_post_review_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

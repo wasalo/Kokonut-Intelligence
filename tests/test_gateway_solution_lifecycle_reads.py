@@ -1490,7 +1490,7 @@ def test_replication_context_denial_rolls_back_without_projection_call():
     assert connection.rolled_back and connection.closed
 
 
-def test_replication_route_policy_uses_exact_solution_location_read_grant():
+def test_replication_routes_use_exact_solution_location_read_and_create_grants():
     path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/replications"
     assert auth_route_policy("GET", path, enabled=True) == {
         "resource": "solution_lifecycle",
@@ -1500,7 +1500,14 @@ def test_replication_route_policy_uses_exact_solution_location_read_grant():
         "scope_required": True,
         "operator_auth": True,
     }
-    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "solution_lifecycle",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
     assert auth_route_policy("GET", path + "/extra", enabled=True) is None
 
 

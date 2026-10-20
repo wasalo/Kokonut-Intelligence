@@ -169,6 +169,64 @@ def list_location_solution_gates(
             connection.close()
 
 
+def list_location_solution_stage_transition_targets(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int | str = 25,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded exact-origin solutions eligible for non-promotion transitions."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
+    page_offset = _page_value(offset, "Offset", 0, 10000)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.list_location_solution_stage_transition_targets(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, page_size + 1, page_offset),
+            )
+            rows = [_mapping(cursor, row) for row in cursor.fetchall()]
+        has_more = len(rows) > page_size
+        result = {
+            "location_id": location_id,
+            "offset": page_offset,
+            "solutions": rows[:page_size],
+            "has_more": has_more,
+            "next_offset": page_offset + page_size if has_more else None,
+        }
+        size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
+        if size > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution stage-transition target page exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
 def get_location_solution_gate_review(
     operator_id: str,
     location_id: str,
@@ -777,6 +835,163 @@ def list_location_solution_scale_gates(
         if size > _MAX_READ_RESPONSE_BYTES:
             raise SolutionLifecycleResponseTooLarge(
                 "Solution scale-gate page exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def _list_location_scale_gate_page(
+    operator_id: str,
+    location_id: str,
+    *,
+    function_name: str,
+    result_key: str,
+    action: str,
+    limit: int | str,
+    offset: int | str,
+    connection_factory: Callable | None,
+) -> dict:
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
+    page_offset = _page_value(offset, "Offset", 0, 10000)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action=action,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT * FROM kokonut_security.{function_name}(%s::uuid, %s::integer, %s::integer)",
+                (location_id, page_size + 1, page_offset),
+            )
+            rows = [_mapping(cursor, row) for row in cursor.fetchall()]
+        has_more = len(rows) > page_size
+        result = {
+            "location_id": location_id,
+            "offset": page_offset,
+            result_key: rows[:page_size],
+            "has_more": has_more,
+            "next_offset": page_offset + page_size if has_more else None,
+        }
+        response_bytes = len(
+            json.dumps(result, default=str, separators=(",", ":")).encode("utf-8")
+        )
+        if response_bytes > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution scale-gate page exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_solution_scale_gate_assessment_targets(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int | str = 25,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded assessment criteria only to exact-location creators."""
+    return _list_location_scale_gate_page(
+        operator_id,
+        location_id,
+        function_name="list_location_solution_scale_gate_assessment_targets",
+        result_key="targets",
+        action="create",
+        limit=limit,
+        offset=offset,
+        connection_factory=connection_factory,
+    )
+
+
+def list_location_solution_scale_gate_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int | str = 25,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded pending scale-gate assessment metadata to reviewers."""
+    return _list_location_scale_gate_page(
+        operator_id,
+        location_id,
+        function_name="list_location_solution_scale_gate_review_queue",
+        result_key="assessments",
+        action="review",
+        limit=limit,
+        offset=offset,
+        connection_factory=connection_factory,
+    )
+
+
+def get_location_solution_scale_gate_review_detail(
+    operator_id: str,
+    location_id: str,
+    assessment_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return one pending assessment's bounded private evidence for review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    assessment_id = _normalize_uuid(assessment_id, "assessment")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.get_location_solution_scale_gate_review_detail(
+                           %s::uuid, %s::uuid
+                       )""",
+                (location_id, assessment_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise SolutionLifecycleReviewNotFound(
+                    "Pending scale-gate assessment not found for this location"
+                )
+            result = {"location_id": location_id, **_mapping(cursor, row)}
+        response_bytes = len(
+            json.dumps(result, default=str, separators=(",", ":")).encode("utf-8")
+        )
+        if response_bytes > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution scale-gate review detail exceeds 256 KiB"
             )
         return result
     except Exception:

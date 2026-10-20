@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–500 are additive and are
+**Status:** prepared implementation contract; migrations 488–502 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -411,6 +411,48 @@ Migration 500 passed disposable PostgreSQL 16 apply/replay and nine grouped
 application, scope, identity, idempotency, lifecycle, and privilege checks;
 candidate and legacy were untouched.
 
+## Legacy direct learning-proposal boundary
+
+`solution_scale.record_learning` no longer writes `solution_learning_record`
+through the legacy shared-role connection. It fails before opening a cursor;
+proposals must use the exact-location replication learning route, then pass
+independent review before the separately authorized apply action. This closes
+the duplicate direct write without removing the proposal/review/application
+capability. The source audit records other lifecycle write helpers that still
+need equivalent scoped paths or retirement at
+`solution-lifecycle-source-route-audit.md`.
+
+## Adoption-event consent boundary
+
+The legacy `solution_adoption.record_event` helper no longer accepts
+`consent_checked=True` as evidence and fails before database access for every
+event type. The canonical consent stream is party-linked, while adoption
+programs currently have no configured consent policy and event references have
+no canonical participant-party link. Do not restore the legacy write by adding
+another caller-supplied flag. The replacement must bind the participant to a
+canonical party, resolve the program's reviewed policy, validate the current
+exact-scope consent decision, and write through a bounded location-scoped
+Gateway action. Adoption event ingestion remains an open capability until that
+path exists.
+
+## Legacy gate-evaluation and approval boundary
+
+The legacy `solution_lifecycle.evaluate_gate` and `approve_gate` helpers no
+longer write directly to shared tables. Evaluation uses the exact-location
+Gateway action backed by migrations 483 and 484; independent gate review and
+approval use the review path, with compatibility behavior for gates that do
+not require a distinct reviewer preserved by migration 485. The helpers fail
+before database access, leaving the protected paths as the supported write
+surface. The legacy `transition` helper now fails before database access for
+all valid non-retirement stages. Migration 486 supports exact-location,
+gate-backed promotion transitions and rechecks the approved current-stage gate
+and its prerequisites in one transaction. Scoped transitions to the other
+non-retirement stages do not yet have a replacement route and remain an open
+capability-parity item. Retirement stays separate and uses migration 502's
+migration-start, effective-sunset, and post-retirement-review workflow. The
+experiment integration test sets its initial stage as fixture state; no
+production service caller remains on the legacy helper.
+
 ## Legacy retirement-helper boundary
 
 The old `solution_scale.propose_retirement` and
@@ -437,23 +479,142 @@ migration 499. After applying the migration, use a separately reviewed forward
 migration to change its schema or ACL objects; do not edit or reverse an
 applied migration.
 
+## Scale-gate assessment and independent review
+
+Migration 501 adds exact-location assessment target listing, submission, private
+review queue/detail, and independent accept/reject routes:
+
+- `GET /operator/api/solution-lifecycle/{location_id}/scale-gates/assessment-targets`
+- `POST /operator/api/solution-lifecycle/{location_id}/scale-gates/{gate_id}/evaluations`
+- `GET /operator/api/solution-lifecycle/{location_id}/scale-gates/review`
+- `GET /operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}`
+- `POST /operator/api/solution-lifecycle/{location_id}/scale-gates/review/{assessment_id}`
+
+Submission requires signed exact-location `solution_lifecycle:create`, an active
+human identity, a pending or failed location gate, bounded sample/evidence, and
+a stable request UUID. PostgreSQL derives typed numeric results from the stored
+comparator and threshold and enforces the configured minimum sample; untyped
+gates require an explicitly proposed result. Assessments begin pending, retain
+append-only measured values and evidence references, and allow only one pending
+assessment per gate. Exact request retries replay; changed reuse fails closed.
+
+Queue/detail and decision require signed exact-location
+`solution_lifecycle:review`. The reviewer must be an active human distinct from
+the evaluator. Acceptance records reviewer attribution and applies only the
+assessment's result, measurement, and evidence to the gate. Rejection records a
+reason and leaves the existing gate state unchanged. Neither decision changes
+the solution stage. The console requires acknowledgement, uses text-only
+evidence rendering, bounded pagination, CSRF/no-store requests, and stable
+request IDs. Legacy direct scale-gate helpers fail before database access.
+Runtime and Directus cannot read or write these tables directly; bounded
+security-definer functions use a dedicated non-login owner with column-scoped
+privileges.
+
+Migration 501 passed disposable PostgreSQL 16 apply/replay and nine grouped
+checks for typed threshold/sample behavior, exact signed scope, actor separation,
+review and retry semantics, unchanged stage, and role boundaries. Candidate and
+legacy databases were untouched. Migration 501 has not been rolled out.
+
+## Retirement migration, sunset, and post-retirement review
+
+Migration 502 advances an independently approved location retirement through
+three separately authorized actions:
+
+- `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/migration`
+  requires exact `solution_lifecycle:transition`, a current/future timezone-aware
+  effective timestamp selected by the operator, the approved migration plan and
+  evidence, and an active human distinct from proposer and approver. It records
+  status `migration` and leaves the solution active.
+- `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/sunset`
+  requires the same exact transition grant and becomes eligible only at or after
+  the stored effective timestamp. It atomically moves the retirement to
+  `sunset`, sets the solution lifecycle stage/status to `retired`, records
+  `retired_at`, and appends the canonical solution lifecycle event.
+- `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/post-retirement-review`
+  requires exact `solution_lifecycle:review` and a separate active human who is
+  distinct from the proposer, approver, and sunset actor. It records the
+  evidence-backed review date and moves the retirement to `completed`.
+
+All requests require acknowledgement, bounded notes and evidence, a stable
+request UUID, and signed exact-location tenant context. PostgreSQL locks the
+retirement and solution while transitioning, writes immutable receipts in the
+same transaction, replays exact retries, and rejects changed-content reuse or
+out-of-order transitions. Runtime and Directus cannot read or write the receipt
+table directly. Neither sunset nor review deletes or prunes source, farm, or
+evidence data. Retention periods and legal holds are governed by separately
+configurable policy; migration 502 hardcodes no archive or deletion interval.
+The old shared-role `solution_lifecycle.transition(..., to_stage="retired")`
+path fails before database access.
+
+Migration 502 passed disposable PostgreSQL 16 apply/replay after the CAP-035
+chain and nine grouped checks for independent approval, effective-time gating,
+unchanged active state during migration, atomic sunset, separate post-review,
+stable retries, and runtime/Directus access boundaries. Candidate and legacy
+databases were untouched; migration 502 has not been rolled out.
+
+### Non-promotion stage transitions
+
+Migration 503 adds a bounded exact-origin target read and a separate action for
+nonterminal stages that do not use promotion gates:
+
+- `GET /operator/api/solution-lifecycle/{location_id}/stage-transition-targets`
+  requires signed exact-location `solution_lifecycle:read`. It returns at most
+  50 location-origin solutions per page, with fixed labels, current stage,
+  solution status, and update time. It excludes retired and superseded records;
+  explicit location links do not authorize mutation.
+- `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/stage-transition`
+  requires signed exact-location `solution_lifecycle:transition`, an active
+  operator-to-person binding, the exact location-origin relationship, explicit
+  acknowledgement, a 10–4,000 character rationale, 1–100 evidence references
+  capped at 64 KiB, and an optional rollback plan capped at 4,000 characters.
+  `expected_from_stage` is compared under a solution row lock so stale console
+  views fail with a conflict.
+
+The allowed targets are `discovered`, `triaged`, `framed`, `experiment_ready`,
+`testing`, `investment_ready`, `pilot_active`, `adopting`, `maintained`,
+`paused`, and `failed`. `validated`, `funded`, `adoption_ready`, and `scaled`
+remain behind migration 486's approved gate transition. `retired` and
+`superseded` remain behind the reviewed retirement/replacement workflow;
+generic stage writes cannot bypass its independent approval or replacement
+selection. `adopting` also retains the legacy requirement for approved location
+readiness and configuration. The generic transition never changes solution
+status, creates an approval, or retires data.
+
+The stage update, canonical lifecycle event, and private append-only request
+receipt commit atomically. Exact retries replay the original event; reusing a
+request UUID with changed input is rejected. Runtime can call only the bounded
+functions, Directus cannot execute either function, and runtime/Directus cannot
+read or write the receipt table directly. The dedicated function owner has
+column-scoped privileges and no role memberships.
+
+Focused Gateway, route-policy, console-contract, and existing gate-transition
+checks pass 38 tests. Disposable PostgreSQL 16 applies and replays migration
+503 after the CAP-035 chain and passes 14 grouped checks for exact location
+scope, active human identity, adoption prerequisites, promotion/retirement/
+supersession separation, stale-stage rejection, idempotency collisions,
+atomicity, and role boundaries. The synthetic fixture adds canonical columns
+omitted by earlier compact test fixtures. Candidate and legacy remain
+untouched; migration 503 is not rolled out.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration checks cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
-completion-report proposal/review, learning proposal/review, and accepted
-learning application. Disposable PostgreSQL 16 applies and replays migrations 488–500 and checks location-origin
+completion-report proposal/review, learning proposal/review, accepted learning
+application, scale-gate assessment/review, and retirement execution. Disposable
+PostgreSQL 16 applies and replays migrations 488–502 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
 states, independent reviewer separation, immutable receipts, unchanged release
 state, exact learning-application grant and actor separation, retries, private
-receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
-not involved.
+receipts, unchanged solution/replication lifecycle stage, effective retirement
+timing, sunset, and separate post-retirement review. The checker uses synthetic
+rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–500. After application, do not edit or reverse them; disable the routes and
+488–503. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

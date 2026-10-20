@@ -603,6 +603,16 @@
           <p id="solution-lifecycle-gates-status" class="muted" role="status" aria-live="polite"></p>
           <div id="solution-lifecycle-gate-rows"></div>
           <button id="solution-lifecycle-gates-more" class="secondary" type="button" hidden>Load more gates</button>
+          <section id="solution-lifecycle-stage-transitions" hidden aria-labelledby="solution-lifecycle-stage-transitions-heading">
+            <h3 id="solution-lifecycle-stage-transitions-heading">Other lifecycle stage transitions</h3>
+            <p class="muted">Requires exact location read and transition grants. This panel handles non-promotion stages only. Validated, funded, adoption-ready, and scaled stages still require their approved stage-gate workflow; retirement uses its separate sunset process. Each transition records the expected current stage, a rationale, evidence, an optional rollback plan, human acknowledgement, and an immutable retry receipt. Moving to adopting also requires approved location readiness and configuration.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-stage-transitions-load" type="button">Load location-origin solutions</button>
+              <button id="solution-lifecycle-stage-transitions-more" class="secondary" type="button" hidden>Load more solutions</button>
+            </div>
+            <p id="solution-lifecycle-stage-transitions-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="solution-lifecycle-stage-transition-rows"></div>
+          </section>
           <h3>Experiments and reviewed outcomes</h3>
           <p class="muted">This read shows experiment lifecycle metadata and only an explicitly reviewed outcome. Protocol narratives, metric names and values, observations, adverse-event details, and evidence remain private; this panel cannot approve or review results.</p>
           <div class="toolbar">
@@ -698,6 +708,50 @@
           <div id="solution-lifecycle-projection-rows"></div>
           <button id="solution-lifecycle-projection-more" class="secondary" type="button" hidden>Load more records</button>
           </div>
+          <section id="solution-lifecycle-scale-assessment" hidden aria-labelledby="solution-lifecycle-scale-assessment-heading">
+            <h3 id="solution-lifecycle-scale-assessment-heading">Assess a scale gate</h3>
+            <p class="muted">Requires an exact location create grant. Typed measurements are evaluated against the configured comparator in PostgreSQL; untyped gates require a proposed result. Every assessment needs evidence and remains pending until a different active human reviews it. Gate approval does not change the solution stage.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-scale-assessment-load" type="button">Load assessable gates</button>
+              <button id="solution-lifecycle-scale-assessment-more" class="secondary" type="button" hidden>Load more gates</button>
+            </div>
+            <p id="solution-lifecycle-scale-assessment-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="solution-lifecycle-scale-assessment-targets"></div>
+          </section>
+          <section id="solution-lifecycle-scale-review" hidden aria-labelledby="solution-lifecycle-scale-review-heading">
+            <h3 id="solution-lifecycle-scale-review-heading">Independent scale-gate review</h3>
+            <p class="muted">Requires an exact location review grant and a different active human from the evaluator. Accepting the assessment updates only the current scale-gate result; rejecting it preserves the existing gate status. Neither decision advances the solution stage.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-scale-review-load" type="button">Load pending assessments</button>
+              <button id="solution-lifecycle-scale-review-more" class="secondary" type="button" hidden>Load more assessments</button>
+            </div>
+            <p id="solution-lifecycle-scale-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Solution</th><th>Gate</th><th>Result</th><th>Measured value</th><th>Sample</th><th>Actor</th><th></th></tr></thead>
+                <tbody id="solution-lifecycle-scale-review-queue"></tbody>
+              </table>
+            </div>
+            <section id="solution-lifecycle-scale-review-detail" hidden aria-labelledby="solution-lifecycle-scale-review-detail-heading">
+              <h4 id="solution-lifecycle-scale-review-detail-heading">Assessment detail</h4>
+              <dl id="solution-lifecycle-scale-review-metadata"></dl>
+              <h5>Evidence references</h5>
+              <pre id="solution-lifecycle-scale-review-evidence"></pre>
+              <form id="solution-lifecycle-scale-review-form" class="stacked-form" hidden>
+                <label for="solution-lifecycle-scale-review-decision">Decision</label>
+                <select id="solution-lifecycle-scale-review-decision" required>
+                  <option value="accepted">Accept assessment</option>
+                  <option value="rejected">Reject assessment</option>
+                </select>
+                <label for="solution-lifecycle-scale-review-reason">Review note (required for rejection)</label>
+                <textarea id="solution-lifecycle-scale-review-reason" maxlength="4000"></textarea>
+                <label><input id="solution-lifecycle-scale-review-confirm" type="checkbox" required> I independently reviewed this assessment and confirm this decision does not change the solution stage.</label>
+                <button id="solution-lifecycle-scale-review-submit" type="submit">Record review decision</button>
+                <p id="solution-lifecycle-scale-review-detail-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+              <p id="solution-lifecycle-scale-review-readonly-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
+          </section>
           <section id="solution-lifecycle-replication-proposal" hidden aria-labelledby="solution-lifecycle-replication-proposal-heading">
             <h3 id="solution-lifecycle-replication-proposal-heading">Propose replication at this location</h3>
             <p class="muted">Requires exact location read and create grants. Only a validated, independently reviewed source experiment is eligible. This records a proposed replication for separate human review; it does not approve, activate, complete, or change the solution stage.</p>
@@ -947,7 +1001,7 @@
           </section>
           <section id="solution-lifecycle-retirement-review" hidden aria-labelledby="solution-lifecycle-retirement-review-heading">
             <h3 id="solution-lifecycle-retirement-review-heading">Retirement review inbox</h3>
-            <p class="muted">Requires the exact location review grant and an active human identity binding. Proposal details may contain private evidence; they are shown as text, never as clickable links. Approval changes the proposal to approved but does not schedule or execute a retirement. Self-authored and unattributed proposals cannot be approved.</p>
+            <p class="muted">Requires the exact location review grant and an active human identity binding. Proposal details may contain private evidence; they are shown as text, never as clickable links. Approval changes the proposal to approved but does not schedule or execute a retirement. The later migration, sunset, and post-retirement review steps are separately acknowledged. Sunset changes the solution to retired but deletes no data; retention and legal holds follow separately configured policy. Self-authored and unattributed proposals cannot be approved.</p>
             <div class="toolbar">
               <button id="solution-lifecycle-retirement-review-load" type="button">Load pending reviews</button>
               <button id="solution-lifecycle-retirement-review-more" class="secondary" type="button" hidden>Load more reviews</button>
@@ -1376,6 +1430,11 @@
       const solutionLifecycleGatesStatus = document.querySelector("#solution-lifecycle-gates-status");
       const solutionLifecycleGateRows = document.querySelector("#solution-lifecycle-gate-rows");
       const solutionLifecycleGatesMore = document.querySelector("#solution-lifecycle-gates-more");
+      const solutionLifecycleStageTransitions = document.querySelector("#solution-lifecycle-stage-transitions");
+      const solutionLifecycleStageTransitionsLoad = document.querySelector("#solution-lifecycle-stage-transitions-load");
+      const solutionLifecycleStageTransitionsMore = document.querySelector("#solution-lifecycle-stage-transitions-more");
+      const solutionLifecycleStageTransitionsStatus = document.querySelector("#solution-lifecycle-stage-transitions-status");
+      const solutionLifecycleStageTransitionRows = document.querySelector("#solution-lifecycle-stage-transition-rows");
       const solutionLifecycleExperimentsLoad = document.querySelector("#solution-lifecycle-experiments-load");
       const solutionLifecycleExperimentsStatus = document.querySelector("#solution-lifecycle-experiments-status");
       const solutionLifecycleExperimentRows = document.querySelector("#solution-lifecycle-experiment-rows");
@@ -1424,6 +1483,26 @@
       const solutionLifecycleProjectionStatus = document.querySelector("#solution-lifecycle-projection-status");
       const solutionLifecycleProjectionRows = document.querySelector("#solution-lifecycle-projection-rows");
       const solutionLifecycleProjectionMore = document.querySelector("#solution-lifecycle-projection-more");
+      const solutionLifecycleScaleAssessment = document.querySelector("#solution-lifecycle-scale-assessment");
+      const solutionLifecycleScaleAssessmentLoad = document.querySelector("#solution-lifecycle-scale-assessment-load");
+      const solutionLifecycleScaleAssessmentMore = document.querySelector("#solution-lifecycle-scale-assessment-more");
+      const solutionLifecycleScaleAssessmentStatus = document.querySelector("#solution-lifecycle-scale-assessment-status");
+      const solutionLifecycleScaleAssessmentTargets = document.querySelector("#solution-lifecycle-scale-assessment-targets");
+      const solutionLifecycleScaleReview = document.querySelector("#solution-lifecycle-scale-review");
+      const solutionLifecycleScaleReviewLoad = document.querySelector("#solution-lifecycle-scale-review-load");
+      const solutionLifecycleScaleReviewMore = document.querySelector("#solution-lifecycle-scale-review-more");
+      const solutionLifecycleScaleReviewStatus = document.querySelector("#solution-lifecycle-scale-review-status");
+      const solutionLifecycleScaleReviewQueue = document.querySelector("#solution-lifecycle-scale-review-queue");
+      const solutionLifecycleScaleReviewDetail = document.querySelector("#solution-lifecycle-scale-review-detail");
+      const solutionLifecycleScaleReviewMetadata = document.querySelector("#solution-lifecycle-scale-review-metadata");
+      const solutionLifecycleScaleReviewEvidence = document.querySelector("#solution-lifecycle-scale-review-evidence");
+      const solutionLifecycleScaleReviewForm = document.querySelector("#solution-lifecycle-scale-review-form");
+      const solutionLifecycleScaleReviewDecision = document.querySelector("#solution-lifecycle-scale-review-decision");
+      const solutionLifecycleScaleReviewReason = document.querySelector("#solution-lifecycle-scale-review-reason");
+      const solutionLifecycleScaleReviewConfirm = document.querySelector("#solution-lifecycle-scale-review-confirm");
+      const solutionLifecycleScaleReviewSubmit = document.querySelector("#solution-lifecycle-scale-review-submit");
+      const solutionLifecycleScaleReviewDetailStatus = document.querySelector("#solution-lifecycle-scale-review-detail-status");
+      const solutionLifecycleScaleReviewReadonlyStatus = document.querySelector("#solution-lifecycle-scale-review-readonly-status");
       const solutionLifecycleLearningProposal = document.querySelector("#solution-lifecycle-learning-proposal");
       const solutionLifecycleLearningSourcesLoad = document.querySelector("#solution-lifecycle-learning-sources-load");
       const solutionLifecycleLearningSourcesMore = document.querySelector("#solution-lifecycle-learning-sources-more");
@@ -1532,6 +1611,8 @@
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
       let solutionLifecycleGatesOffset = 0;
+      let solutionLifecycleStageTransitionsRequestVersion = 0;
+      let solutionLifecycleStageTransitionsOffset = 0;
       let solutionLifecycleExperimentsRequestVersion = 0;
       let solutionLifecycleExperimentsOffset = 0;
       let solutionLifecycleFundingRequestVersion = 0;
@@ -1548,6 +1629,14 @@
       let solutionLifecyclePendingFundingTrancheApproval = null;
       let solutionLifecycleProjectionRequestVersion = 0;
       let solutionLifecycleProjectionOffset = 0;
+      let solutionLifecycleScaleAssessmentRequestVersion = 0;
+      let solutionLifecycleScaleAssessmentOffset = 0;
+      let solutionLifecycleScaleReviewRequestVersion = 0;
+      let solutionLifecycleScaleReviewDetailVersion = 0;
+      let solutionLifecycleScaleReviewOffset = 0;
+      let solutionLifecycleScaleReviewDetailRecord = null;
+      let solutionLifecyclePendingScaleReview = null;
+      let solutionLifecyclePendingScaleAssessment = null;
       let solutionLifecycleAdoptionEventRequestVersion = 0;
       let solutionLifecycleLearningSourcesRequestVersion = 0;
       let solutionLifecycleLearningSourcesOffset = 0;
@@ -1586,6 +1675,7 @@
       let solutionLifecycleRetirementReviewDetailVersion = 0;
       let solutionLifecycleRetirementReviewDetailRecord = null;
       let solutionLifecyclePendingRetirementApproval = null;
+      let solutionLifecyclePendingRetirementTransition = null;
       const solutionLifecycleSupplementalViews = Object.freeze({
         adoption: {
           route: "adoption", responseKey: "programs", title: "Adoption program",
@@ -2576,6 +2666,243 @@
           }
         });
         return form;
+      }
+
+      function appendSolutionLifecycleStageTransitionTarget(solution) {
+        if (!solution || typeof solution.solution_id !== "string"
+            || typeof solution.current_stage !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(solution.solution_id)) return;
+        const article = document.createElement("article");
+        article.className = "record-card";
+        const heading = document.createElement("h4");
+        heading.textContent = typeof solution.solution_name === "string" ? solution.solution_name : "Location-origin solution";
+        const details = document.createElement("dl");
+        for (const [label, value] of [
+          ["Type", solution.solution_type],
+          ["Current stage", solution.current_stage],
+          ["Solution status", solution.solution_status],
+          ["Last updated", solution.updated_at]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        article.append(heading, details);
+        if (solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)) {
+          article.append(createSolutionLifecycleNonpromotionTransitionForm(
+            solution.solution_id, solution.current_stage
+          ));
+        }
+        solutionLifecycleStageTransitionRows.append(article);
+      }
+
+      function createSolutionLifecycleNonpromotionTransitionForm(solutionId, expectedFromStage) {
+        const form = document.createElement("form");
+        form.className = "form-grid";
+        const heading = document.createElement("h5");
+        heading.textContent = "Record a non-promotion stage transition";
+        const targetLabel = document.createElement("label");
+        targetLabel.textContent = "New lifecycle stage";
+        const target = document.createElement("select");
+        target.required = true;
+        const nonpromotionStages = [
+          ["discovered", "Discovered"], ["triaged", "Triaged"], ["framed", "Framed"],
+          ["experiment_ready", "Experiment ready"], ["testing", "Testing"],
+          ["investment_ready", "Investment ready"], ["pilot_active", "Pilot active"],
+          ["adopting", "Adopting"], ["maintained", "Maintained"], ["paused", "Paused"],
+          ["failed", "Failed"]
+        ];
+        for (const [value, label] of nonpromotionStages) {
+          if (value === expectedFromStage) continue;
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          target.append(option);
+        }
+        targetLabel.append(target);
+        const rationaleLabel = document.createElement("label");
+        rationaleLabel.textContent = "Transition rationale";
+        const rationale = document.createElement("textarea");
+        rationale.required = true;
+        rationale.minLength = 10;
+        rationale.maxLength = 4000;
+        rationaleLabel.append(rationale);
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Transition evidence references (JSON array)";
+        const evidence = document.createElement("textarea");
+        evidence.required = true;
+        evidence.maxLength = 65536;
+        evidence.spellcheck = false;
+        evidence.placeholder = '[{"uri":"https://…","description":"Reviewed source"}]';
+        evidenceLabel.append(evidence);
+        const rollbackLabel = document.createElement("label");
+        rollbackLabel.textContent = "Rollback plan (optional)";
+        const rollbackPlan = document.createElement("textarea");
+        rollbackPlan.maxLength = 4000;
+        rollbackLabel.append(rollbackPlan);
+        const acknowledgeLabel = document.createElement("label");
+        const acknowledge = document.createElement("input");
+        acknowledge.type = "checkbox";
+        acknowledge.required = true;
+        acknowledgeLabel.append(acknowledge, document.createTextNode(
+          " I confirm this is a non-promotion transition and authorize the recorded change."
+        ));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record stage transition";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(heading, targetLabel, rationaleLabel, evidenceLabel, rollbackLabel,
+          acknowledgeLabel, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleTransitionLocations.has(locationId)) {
+            status.textContent = "Current read and transition grants for this location are required.";
+            return;
+          }
+          if (!acknowledge.checked) {
+            status.textContent = "Explicit acknowledgement is required to record this transition.";
+            return;
+          }
+          let evidenceValue;
+          try {
+            evidenceValue = JSON.parse(evidence.value);
+          } catch (_error) {
+            status.textContent = "Evidence references must be valid JSON.";
+            return;
+          }
+          if (!Array.isArray(evidenceValue) || evidenceValue.length < 1 || evidenceValue.length > 100) {
+            status.textContent = "Evidence must be a nonempty JSON array with at most 100 items.";
+            return;
+          }
+          const rationaleValue = rationale.value.trim();
+          const rollbackValue = rollbackPlan.value || null;
+          if (rationaleValue.length < 10 || rationaleValue.length > 4000
+              || (rollbackValue !== null && rollbackValue.length > 4000)) {
+            status.textContent = "Provide a rationale from 10 to 4000 characters and a rollback plan of at most 4000 characters.";
+            return;
+          }
+          const fingerprint = JSON.stringify({
+            location_id: locationId,
+            solution_id: solutionId,
+            expected_from_stage: expectedFromStage,
+            to_stage: target.value,
+            rationale: rationaleValue,
+            evidence: evidenceValue,
+            rollback_plan: rollbackValue,
+            acknowledged: acknowledge.checked
+          });
+          if (form.pendingTransition?.fingerprint !== fingerprint) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to record this transition.";
+              return;
+            }
+            form.pendingTransition = { fingerprint, request_id: requestId };
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before recording this transition.";
+            return;
+          }
+          submit.disabled = true;
+          status.textContent = "Rechecking location scope and current lifecycle state…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/stage-transition`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf
+                },
+                body: JSON.stringify({
+                  request_id: form.pendingTransition.request_id,
+                  expected_from_stage: expectedFromStage,
+                  to_stage: target.value,
+                  rationale: rationaleValue,
+                  evidence: evidenceValue,
+                  rollback_plan: rollbackValue,
+                  acknowledged: acknowledge.checked
+                })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              form.pendingTransition = null;
+              throw new Error(result.error || "A current transition grant is required.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) form.pendingTransition = null;
+              throw new Error(result.error || "The lifecycle transition could not be recorded.");
+            }
+            form.pendingTransition = null;
+            status.textContent = result.replayed === true
+              ? `The ${result.to_stage || target.value} transition was already recorded.`
+              : `Solution advanced from ${result.from_stage || expectedFromStage} to ${result.to_stage || target.value}.`;
+            await Promise.all([
+              loadSolutionLifecycleStageTransitionTargets(),
+              loadSolutionLifecycleGates(),
+              loadSolutionLifecycleSummary()
+            ]);
+          } catch (error) {
+            status.textContent = error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
+      }
+
+      async function loadSolutionLifecycleStageTransitionTargets(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleStageTransitionsRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleTransitionLocations.has(locationId)) return;
+        const offset = append ? solutionLifecycleStageTransitionsOffset : 0;
+        solutionLifecycleStageTransitionsStatus.textContent = "Loading location-origin lifecycle targets…";
+        solutionLifecycleStageTransitionsLoad.disabled = true;
+        solutionLifecycleStageTransitionsMore.disabled = true;
+        if (!append) {
+          solutionLifecycleStageTransitionRows.replaceChildren();
+          solutionLifecycleStageTransitionsMore.hidden = true;
+        }
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/stage-transition-targets?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Lifecycle transition targets are unavailable.");
+          if (requestVersion !== solutionLifecycleStageTransitionsRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          for (const solution of result.solutions || []) appendSolutionLifecycleStageTransitionTarget(solution);
+          solutionLifecycleStageTransitionsOffset = Number.isInteger(result.next_offset)
+            ? result.next_offset : offset;
+          solutionLifecycleStageTransitionsMore.hidden = result.has_more !== true
+            || solutionLifecycleStageTransitionsOffset <= offset;
+          solutionLifecycleStageTransitionsStatus.textContent = solutionLifecycleStageTransitionRows.children.length
+            ? `${solutionLifecycleStageTransitionRows.children.length} exact-location solution${solutionLifecycleStageTransitionRows.children.length === 1 ? "" : "s"} shown. Promotion and retirement actions remain separate.`
+            : "No non-terminal location-origin solutions are available for stage transition.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleStageTransitionsRequestVersion) return;
+          solutionLifecycleStageTransitionsStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleStageTransitionsRequestVersion) {
+            solutionLifecycleStageTransitionsLoad.disabled = false;
+            solutionLifecycleStageTransitionsMore.disabled = false;
+          }
+        }
       }
 
       async function loadSolutionLifecycleGates(append = false) {
@@ -3857,6 +4184,23 @@
           ));
           article.append(detailButton, detailStatus);
         }
+        if (view.route === "retirements"
+            && typeof record.retirement_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.retirement_id)) {
+          const nextAction = record.retirement_status === "approved"
+            ? "migration_started"
+            : record.retirement_status === "migration"
+              ? "sunset"
+              : record.retirement_status === "sunset"
+                ? "post_retirement_review"
+                : null;
+          const permitted = nextAction === "post_retirement_review"
+            ? solutionLifecycleReviewLocations.has(locationId)
+            : solutionLifecycleTransitionLocations.has(locationId);
+          if (nextAction && permitted) {
+            article.append(createSolutionLifecycleRetirementTransitionForm(record, locationId, nextAction));
+          }
+        }
         if (view.route === "replications"
             && solutionLifecycleTransitionLocations.has(locationId)
             && typeof record.replication_id === "string"
@@ -3875,6 +4219,216 @@
           article.append(createSolutionLifecycleReplicationCompletionProposalForm(record, locationId));
         }
         solutionLifecycleProjectionRows.append(article);
+      }
+
+      function createSolutionLifecycleRetirementTransitionForm(record, locationId, action) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const pending = solutionLifecyclePendingRetirementTransition;
+        const isPending = pending?.locationId === locationId
+          && pending?.retirementId === record.retirement_id && pending?.action === action;
+        const heading = document.createElement("h5");
+        heading.textContent = action === "migration_started"
+          ? "Begin approved migration plan"
+          : action === "sunset"
+            ? "Apply retirement sunset"
+            : "Complete post-retirement review";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = action === "migration_started"
+          ? "This records the start of the approved migration plan and its operator-selected sunset time. The solution stays active until sunset."
+          : action === "sunset"
+            ? "This is an acknowledged lifecycle action. It retires the solution at the approved effective time but does not delete data."
+            : "This records a human post-retirement review with evidence. It completes the retirement record but does not delete or prune data.";
+        form.append(heading, explanation);
+
+        let effectiveDate = null;
+        if (action === "migration_started") {
+          const dateLabel = document.createElement("label");
+          dateLabel.textContent = "Sunset effective date and time (select the operational date; no fixed delay is imposed)";
+          effectiveDate = document.createElement("input");
+          effectiveDate.type = "datetime-local";
+          effectiveDate.required = true;
+          if (isPending) effectiveDate.value = pending.localEffectiveAt || "";
+          dateLabel.append(effectiveDate);
+          form.append(dateLabel);
+        }
+        const noteLabel = document.createElement("label");
+        noteLabel.textContent = action === "post_retirement_review"
+          ? "Post-retirement review finding (10–4,000 characters)"
+          : "Transition note (10–4,000 characters)";
+        const note = document.createElement("textarea");
+        note.minLength = 10;
+        note.maxLength = 4000;
+        note.required = true;
+        if (isPending) note.value = pending.payload.note;
+        noteLabel.append(note);
+        form.append(noteLabel);
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Evidence references (JSON array, 1–100 items / 64 KiB)";
+        const evidence = document.createElement("textarea");
+        evidence.maxLength = 65536;
+        evidence.required = true;
+        evidence.spellcheck = false;
+        evidence.value = isPending ? JSON.stringify(pending.payload.evidence_refs, null, 2) : "[]";
+        evidenceLabel.append(evidence);
+        form.append(evidenceLabel);
+        const acknowledgeLabel = document.createElement("label");
+        const acknowledge = document.createElement("input");
+        acknowledge.type = "checkbox";
+        acknowledge.required = true;
+        acknowledge.checked = isPending;
+        const acknowledgementText = action === "migration_started"
+          ? " I confirm this migration plan is approved and the selected sunset time is operationally correct."
+          : action === "sunset"
+            ? " I confirm the effective time has arrived and the approved sunset plan is ready. No data will be deleted."
+            : " I independently reviewed the post-retirement evidence. This records the review only; no data will be deleted or pruned.";
+        acknowledgeLabel.append(acknowledge, document.createTextNode(acknowledgementText));
+        form.append(acknowledgeLabel);
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = action === "migration_started"
+          ? "Begin migration"
+          : action === "sunset"
+            ? "Apply sunset"
+            : "Complete post-retirement review";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        if (isPending) status.textContent = "The prior response may be uncertain. Retry the unchanged transition to reuse its request ID.";
+        form.append(submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const requiredGrant = action === "post_retirement_review"
+            ? solutionLifecycleReviewLocations.has(locationId)
+            : solutionLifecycleTransitionLocations.has(locationId);
+          if (solutionLifecycleLocation.value !== locationId
+              || !solutionLifecycleLocations.has(locationId) || !requiredGrant) {
+            status.textContent = "An exact location read grant and the required transition or review grant are required.";
+            return;
+          }
+          if (!acknowledge.checked) {
+            status.textContent = "Confirm this retirement transition before submitting.";
+            return;
+          }
+          let evidenceRefs;
+          try {
+            evidenceRefs = JSON.parse(evidence.value);
+          } catch {
+            status.textContent = "Evidence references must be valid JSON.";
+            return;
+          }
+          if (!Array.isArray(evidenceRefs) || evidenceRefs.length < 1 || evidenceRefs.length > 100
+              || new TextEncoder().encode(JSON.stringify(evidenceRefs)).length > 65536) {
+            status.textContent = "Provide 1 to 100 evidence references within the 64 KiB limit.";
+            return;
+          }
+          const noteValue = note.value.trim();
+          if (noteValue.length < 10 || noteValue.length > 4000) {
+            status.textContent = "The transition note must contain 10 to 4,000 non-whitespace characters.";
+            return;
+          }
+          let effectiveAt = null;
+          if (action === "migration_started") {
+            const parsed = new Date(effectiveDate.value);
+            if (!effectiveDate.value || !Number.isFinite(parsed.getTime())) {
+              status.textContent = "Choose a valid sunset effective date and time.";
+              return;
+            }
+            effectiveAt = parsed.toISOString();
+          }
+          const payload = { note: noteValue, evidence_refs: evidenceRefs, effective_at: effectiveAt, acknowledged: true };
+          const fingerprint = JSON.stringify({ retirement_id: record.retirement_id, action, ...payload });
+          if (solutionLifecyclePendingRetirementTransition
+              && (solutionLifecyclePendingRetirementTransition.locationId !== locationId
+                || solutionLifecyclePendingRetirementTransition.retirementId !== record.retirement_id
+                || solutionLifecyclePendingRetirementTransition.action !== action)) {
+            status.textContent = "Resolve the earlier retirement transition before selecting another record.";
+            return;
+          }
+          if (solutionLifecyclePendingRetirementTransition
+              && solutionLifecyclePendingRetirementTransition.fingerprint !== fingerprint) {
+            status.textContent = "The prior response may be uncertain. Retry the exact same transition before changing it.";
+            return;
+          }
+          if (!solutionLifecyclePendingRetirementTransition) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to change retirement status.";
+              return;
+            }
+            solutionLifecyclePendingRetirementTransition = {
+              locationId,
+              retirementId: record.retirement_id,
+              action,
+              requestId,
+              fingerprint,
+              payload,
+              localEffectiveAt: effectiveDate?.value || null,
+            };
+          }
+          const routeAction = action === "migration_started"
+            ? "migration"
+            : action === "sunset"
+              ? "sunset"
+              : "post-retirement-review";
+          const pendingRequest = solutionLifecyclePendingRetirementTransition;
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before changing retirement status.";
+            return;
+          }
+          submit.disabled = true;
+          status.textContent = "Recording the acknowledged retirement transition…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/${encodeURIComponent(record.retirement_id)}/${routeAction}`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf,
+                },
+                body: JSON.stringify({ request_id: pendingRequest.requestId, ...pendingRequest.payload }),
+              },
+            );
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              if (response.status < 500 && solutionLifecyclePendingRetirementTransition === pendingRequest) {
+                solutionLifecyclePendingRetirementTransition = null;
+              }
+              if (response.status === 401 || response.status === 403) {
+                throw new Error("Your active-human identity or exact location transition/review grant is no longer valid.");
+              }
+              throw new Error(result.error || "The retirement transition could not be recorded.");
+            }
+            if (solutionLifecyclePendingRetirementTransition !== pendingRequest) return;
+            solutionLifecyclePendingRetirementTransition = null;
+            status.textContent = result.replayed === true
+              ? "The original retirement transition was already recorded."
+              : action === "migration_started"
+                ? "Migration has started. The solution remains active until its selected sunset time."
+                : action === "sunset"
+                  ? "Sunset recorded. The solution is retired; no data was deleted."
+                  : "Post-retirement review recorded. The retirement is complete; no data was deleted or pruned.";
+            if (solutionLifecycleProjection.value === "retirements"
+                && solutionLifecycleLocation.value === locationId) {
+              await loadSolutionLifecycleProjection();
+            }
+            await loadSolutionLifecycleSummary();
+          } catch (error) {
+            status.textContent = solutionLifecyclePendingRetirementTransition === pendingRequest
+              ? `${error.message} Retry this unchanged transition to reuse its request ID.`
+              : error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       function createSolutionLifecycleReplicationActivationForm(record, locationId) {
@@ -4302,6 +4856,444 @@
             solutionLifecycleProjectionLoad.disabled = false;
             solutionLifecycleProjectionMore.disabled = false;
           }
+        }
+      }
+
+      function appendScaleGateAssessmentTarget(target) {
+        const article = document.createElement("article");
+        article.className = "record-card";
+        const heading = document.createElement("h4");
+        heading.textContent = `${target.solution_name || "Solution"} · ${target.gate_type || "Scale gate"}`;
+        article.append(heading);
+        const criteria = document.createElement("p");
+        const typed = typeof target.comparison_operator === "string"
+          && target.threshold_numeric !== null && target.threshold_numeric !== undefined;
+        const threshold = typed
+          ? `${target.comparison_operator} ${target.threshold_numeric}${target.unit ? ` ${target.unit}` : ""}`
+          : target.threshold || "Human-reviewed evidence";
+        criteria.textContent = `${target.requirement || "No requirement description"} · Threshold: ${threshold}`;
+        article.append(criteria);
+
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        form.scaleGateTarget = target;
+        const measuredLabel = document.createElement("label");
+        measuredLabel.textContent = typed ? `Measured value (${target.unit || "configured unit"})` : "Measured value or concise finding";
+        const measured = document.createElement("input");
+        measured.type = "text";
+        measured.required = true;
+        measured.maxLength = 1000;
+        measured.autocomplete = "off";
+        measuredLabel.append(measured);
+        form.append(measuredLabel);
+
+        const sampleLabel = document.createElement("label");
+        sampleLabel.textContent = `Sample size${target.minimum_sample ? ` (minimum ${target.minimum_sample})` : ""}`;
+        const sample = document.createElement("input");
+        sample.type = "number";
+        sample.min = String(target.minimum_sample || 1);
+        sample.max = "10000000";
+        sample.step = "1";
+        sample.required = true;
+        sampleLabel.append(sample);
+        form.append(sampleLabel);
+
+        let reported = null;
+        if (!typed) {
+          const resultLabel = document.createElement("label");
+          resultLabel.textContent = "Proposed result for independent review";
+          reported = document.createElement("select");
+          reported.required = true;
+          for (const [value, label] of [["", "Choose a proposed result"], ["true", "Meets the gate"], ["false", "Does not meet the gate"]]) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = label;
+            reported.append(option);
+          }
+          resultLabel.append(reported);
+          form.append(resultLabel);
+        }
+
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Evidence references (JSON array)";
+        const evidence = document.createElement("textarea");
+        evidence.required = true;
+        evidence.maxLength = 65536;
+        evidence.spellcheck = false;
+        evidence.value = "[]";
+        evidenceLabel.append(evidence);
+        form.append(evidenceLabel);
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(acknowledgement, document.createTextNode(" I confirm this is an evidence-backed assessment. It remains pending until independent review and does not advance the solution stage."));
+        form.append(acknowledgementLabel);
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Submit assessment for review";
+        form.append(submit);
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(status);
+        form.addEventListener("submit", submitSolutionLifecycleScaleGateAssessment);
+        form.scaleGateFields = { measured, sample, reported, evidence, acknowledgement, submit, status, typed };
+        article.append(form);
+        solutionLifecycleScaleAssessmentTargets.append(article);
+      }
+
+      async function loadSolutionLifecycleScaleGateAssessmentTargets(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleScaleAssessmentRequestVersion;
+        if (!solutionLifecycleCreateLocations.has(locationId)) {
+          solutionLifecycleScaleAssessmentTargets.replaceChildren();
+          solutionLifecycleScaleAssessmentMore.hidden = true;
+          solutionLifecycleScaleAssessmentStatus.textContent = "An exact location create grant is required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleScaleAssessmentOffset : 0;
+        if (!append) {
+          solutionLifecycleScaleAssessmentTargets.replaceChildren();
+          solutionLifecycleScaleAssessmentMore.hidden = true;
+        }
+        solutionLifecycleScaleAssessmentLoad.disabled = true;
+        solutionLifecycleScaleAssessmentMore.disabled = true;
+        solutionLifecycleScaleAssessmentStatus.textContent = "Loading assessable scale gates…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/scale-gates/assessment-targets?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(response.status === 401 || response.status === 403
+            ? "Your exact location create grant is no longer valid. Reload the console to refresh access."
+            : "Scale-gate assessment targets could not be loaded. Retry when the service is available.");
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleScaleAssessmentRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const targets = Array.isArray(result.targets) ? result.targets : [];
+          for (const target of targets) appendScaleGateAssessmentTarget(target);
+          solutionLifecycleScaleAssessmentOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset : offset;
+          solutionLifecycleScaleAssessmentMore.hidden = result.has_more !== true
+            || solutionLifecycleScaleAssessmentOffset <= offset;
+          solutionLifecycleScaleAssessmentStatus.textContent = targets.length
+            ? `${solutionLifecycleScaleAssessmentTargets.children.length} assessable scale gate(s) shown. Submissions await independent review.`
+            : "No pending or failed scale gates are available for assessment.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleScaleAssessmentRequestVersion) {
+            solutionLifecycleScaleAssessmentStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleScaleAssessmentRequestVersion) {
+            solutionLifecycleScaleAssessmentLoad.disabled = false;
+            solutionLifecycleScaleAssessmentMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitSolutionLifecycleScaleGateAssessment(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const target = form.scaleGateTarget;
+        const fields = form.scaleGateFields;
+        const locationId = solutionLifecycleLocation.value;
+        if (!target || !solutionLifecycleCreateLocations.has(locationId)) {
+          fields.status.textContent = "Select a location with an exact create grant before submitting.";
+          return;
+        }
+        if (!fields.acknowledgement.checked) {
+          fields.status.textContent = "Confirm that this assessment awaits independent review.";
+          return;
+        }
+        let evidenceRefs;
+        try {
+          evidenceRefs = JSON.parse(fields.evidence.value);
+        } catch {
+          fields.status.textContent = "Evidence references must be valid JSON.";
+          return;
+        }
+        if (!Array.isArray(evidenceRefs) || evidenceRefs.length < 1 || evidenceRefs.length > 100) {
+          fields.status.textContent = "Provide 1 to 100 evidence references as a JSON array.";
+          return;
+        }
+        if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+          fields.status.textContent = "A secure browser context is required to submit an assessment.";
+          return;
+        }
+        const payload = {
+          measured_value: fields.measured.value.trim(),
+          sample_size: Number(fields.sample.value),
+          reported_pass: fields.typed ? null : fields.reported.value === "true",
+          evidence_refs: evidenceRefs,
+          acknowledged: true,
+        };
+        if (!Number.isInteger(payload.sample_size) || payload.sample_size < 1) {
+          fields.status.textContent = "Sample size must be a positive whole number.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ gate_id: target.scale_gate_id, ...payload });
+        if (form.pendingAssessment && form.pendingAssessment.fingerprint !== fingerprint) {
+          fields.status.textContent = "The previous request may have reached the server. Retry the exact same assessment before changing it.";
+          return;
+        }
+        form.pendingAssessment ||= { fingerprint, request_id: window.crypto.randomUUID() };
+        solutionLifecyclePendingScaleAssessment ||= {
+          location_id: locationId,
+          gate_id: target.scale_gate_id,
+        };
+        if (solutionLifecyclePendingScaleAssessment.location_id !== locationId
+            || solutionLifecyclePendingScaleAssessment.gate_id !== target.scale_gate_id) {
+          fields.status.textContent = "Resolve the pending assessment request before submitting another gate.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          fields.status.textContent = "A current same-origin CSRF token is required. Reload the console.";
+          return;
+        }
+        fields.submit.disabled = true;
+        fields.status.textContent = "Submitting assessment for independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/scale-gates/${encodeURIComponent(target.scale_gate_id)}/evaluations`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: form.pendingAssessment.request_id, ...payload }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(response.status === 401 || response.status === 403
+            ? "Your exact location create grant is no longer valid. Reload the console to refresh access."
+            : result.error || "Scale-gate assessment could not be submitted. Retry the unchanged request.");
+          form.pendingAssessment = null;
+          solutionLifecyclePendingScaleAssessment = null;
+          form.reset();
+          fields.evidence.value = "[]";
+          fields.status.textContent = "Assessment submitted as pending; an independent human must review it.";
+          await loadSolutionLifecycleScaleGateAssessmentTargets();
+          await loadSolutionLifecycleProjection();
+        } catch (error) {
+          fields.status.textContent = error.message;
+        } finally {
+          fields.submit.disabled = false;
+        }
+      }
+
+      function appendSolutionLifecycleScaleGateReview(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.solution_name || "—",
+          item.gate_type || "—",
+          item.passed === true ? "Meets gate" : "Does not meet gate",
+          item.measured_value || "—",
+          item.sample_size ?? "—",
+          item.evaluator_conflict === true ? "Self-authored" : "Independent",
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = String(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Review";
+        button.disabled = item.evaluator_conflict === true;
+        button.addEventListener("click", () => loadSolutionLifecycleScaleGateReviewDetail(item.assessment_id));
+        actionCell.append(button);
+        row.append(actionCell);
+        solutionLifecycleScaleReviewQueue.append(row);
+      }
+
+      async function loadSolutionLifecycleScaleGateReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleScaleReviewRequestVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleScaleReviewQueue.replaceChildren();
+          solutionLifecycleScaleReviewMore.hidden = true;
+          solutionLifecycleScaleReviewStatus.textContent = "An exact location review grant is required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleScaleReviewOffset : 0;
+        if (!append) {
+          solutionLifecycleScaleReviewQueue.replaceChildren();
+          solutionLifecycleScaleReviewMore.hidden = true;
+          solutionLifecycleScaleReviewDetail.hidden = true;
+          solutionLifecycleScaleReviewDetailRecord = null;
+        }
+        solutionLifecycleScaleReviewLoad.disabled = true;
+        solutionLifecycleScaleReviewMore.disabled = true;
+        solutionLifecycleScaleReviewStatus.textContent = "Loading pending scale-gate assessments…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/scale-gates/review?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(response.status === 401 || response.status === 403
+            ? "Your exact location review grant is no longer valid. Reload the console to refresh access."
+            : "Scale-gate review queue could not be loaded. Retry when the service is available.");
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleScaleReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const items = Array.isArray(result.assessments) ? result.assessments : [];
+          for (const item of items) appendSolutionLifecycleScaleGateReview(item);
+          solutionLifecycleScaleReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset : offset;
+          solutionLifecycleScaleReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleScaleReviewOffset <= offset;
+          solutionLifecycleScaleReviewStatus.textContent = items.length
+            ? `${solutionLifecycleScaleReviewQueue.querySelectorAll("tr").length} pending assessment(s) shown.`
+            : "No pending scale-gate assessments need review.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleScaleReviewRequestVersion) {
+            solutionLifecycleScaleReviewStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleScaleReviewRequestVersion) {
+            solutionLifecycleScaleReviewLoad.disabled = false;
+            solutionLifecycleScaleReviewMore.disabled = false;
+          }
+        }
+      }
+
+      async function loadSolutionLifecycleScaleGateReviewDetail(assessmentId) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleScaleReviewDetailVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)) return;
+        solutionLifecycleScaleReviewDetail.hidden = false;
+        solutionLifecycleScaleReviewForm.hidden = true;
+        solutionLifecycleScaleReviewDetailStatus.textContent = "Loading private assessment evidence…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/scale-gates/review/${encodeURIComponent(assessmentId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(response.status === 401 || response.status === 403
+            ? "Your exact location review grant is no longer valid. Reload the console to refresh access."
+            : "Pending scale-gate assessment could not be loaded.");
+          const record = await response.json();
+          if (requestVersion !== solutionLifecycleScaleReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          solutionLifecycleScaleReviewDetailRecord = record;
+          solutionLifecycleScaleReviewMetadata.replaceChildren();
+          for (const [label, value] of [
+            ["Solution", record.solution_name], ["Gate", record.gate_type],
+            ["Requirement", record.requirement], ["Threshold", record.threshold],
+            ["Result", record.passed === true ? "Meets gate" : "Does not meet gate"],
+            ["Measured", record.measured_value], ["Sample size", record.sample_size],
+            ["Unit", record.unit], ["Submitted", record.submitted_at],
+          ]) {
+            const term = document.createElement("dt");
+            const detail = document.createElement("dd");
+            term.textContent = label;
+            detail.textContent = value === null || value === undefined || value === "" ? "—" : String(value);
+            solutionLifecycleScaleReviewMetadata.append(term, detail);
+          }
+          solutionLifecycleScaleReviewEvidence.textContent = JSON.stringify(record.evidence_refs || [], null, 2);
+          solutionLifecycleScaleReviewForm.reset();
+          solutionLifecycleScaleReviewReason.required = false;
+          const canReview = record.evaluator_conflict !== true
+            && solutionLifecycleReviewLocations.has(locationId);
+          solutionLifecycleScaleReviewForm.hidden = !canReview;
+          solutionLifecycleScaleReviewReadonlyStatus.textContent = canReview
+            ? "Review the evidence, then accept or reject this assessment."
+            : "The evaluator cannot review their own assessment.";
+          solutionLifecycleScaleReviewDetailStatus.textContent = "Assessment detail loaded.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleScaleReviewDetailVersion) {
+            solutionLifecycleScaleReviewDetailStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitSolutionLifecycleScaleGateReview(event) {
+        event.preventDefault();
+        const record = solutionLifecycleScaleReviewDetailRecord;
+        const locationId = solutionLifecycleLocation.value;
+        const decision = solutionLifecycleScaleReviewDecision.value;
+        const reviewReason = solutionLifecycleScaleReviewReason.value.trim() || null;
+        if (!record || !solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "Select a current assessment and exact location review grant.";
+          return;
+        }
+        if (record.evaluator_conflict === true || !solutionLifecycleScaleReviewConfirm.checked) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "An independent reviewer must confirm the assessment review.";
+          return;
+        }
+        if (decision === "rejected" && (!reviewReason || reviewReason.length < 10 || reviewReason.length > 4000)) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "A rejection note between 10 and 4,000 characters is required.";
+          return;
+        }
+        if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "A secure browser context is required to review assessments.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ assessment_id: record.assessment_id, decision, review_reason: reviewReason });
+        if (solutionLifecyclePendingScaleReview
+            && solutionLifecyclePendingScaleReview.fingerprint !== fingerprint) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "The previous request may have reached the server. Retry the exact same decision before changing it.";
+          return;
+        }
+        solutionLifecyclePendingScaleReview ||= {
+          fingerprint,
+          request_id: window.crypto.randomUUID(),
+          assessment_id: record.assessment_id,
+          location_id: locationId,
+        };
+        if (solutionLifecyclePendingScaleReview.assessment_id !== record.assessment_id) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "Retry or confirm the previous assessment decision before selecting another record.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = "A current same-origin CSRF token is required. Reload the console.";
+          return;
+        }
+        solutionLifecycleScaleReviewSubmit.disabled = true;
+        solutionLifecycleScaleReviewDetailStatus.textContent = "Recording independent scale-gate review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/scale-gates/review/${encodeURIComponent(record.assessment_id)}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({
+                request_id: solutionLifecyclePendingScaleReview.request_id,
+                decision,
+                review_reason: reviewReason,
+                acknowledged: true,
+              }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(response.status === 401 || response.status === 403
+            ? "Your exact location review grant is no longer valid. Reload the console to refresh access."
+            : result.error || "Scale-gate review could not be recorded. Retry the unchanged decision.");
+          solutionLifecyclePendingScaleReview = null;
+          solutionLifecycleScaleReviewDetail.hidden = true;
+          solutionLifecycleScaleReviewDetailRecord = null;
+          solutionLifecycleScaleReviewStatus.textContent = result.gate_status === "passed"
+            ? "Assessment accepted; scale gate passed after independent human review. Solution stage unchanged."
+            : result.gate_status === "failed"
+              ? "Assessment accepted; scale gate failed after independent human review. Solution stage unchanged."
+              : "Assessment rejected; prior gate state preserved. Solution stage unchanged.";
+          solutionLifecycleScaleReviewDetailStatus.textContent = "Review decision recorded.";
+          await loadSolutionLifecycleScaleGateReviewQueue();
+          await loadSolutionLifecycleProjection();
+        } catch (error) {
+          solutionLifecycleScaleReviewDetailStatus.textContent = error.message;
+        } finally {
+          solutionLifecycleScaleReviewSubmit.disabled = false;
         }
       }
 
@@ -7427,6 +8419,8 @@
             solutionLifecycleReplicationCompletionReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningApplication.hidden = !solutionLifecycleApplyLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleScaleAssessment.hidden = !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleScaleReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
             if (solutionLifecycleLocations.has(solutionLifecycleLocation.value)) {
               await loadSolutionLifecycleSummary();
@@ -10681,6 +11675,18 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingScaleAssessment
+            && solutionLifecycleLocation.value !== solutionLifecyclePendingScaleAssessment.location_id) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingScaleAssessment.location_id;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending scale-gate assessment before changing locations.";
+          return;
+        }
+        if (solutionLifecyclePendingScaleReview
+            && solutionLifecycleLocation.value !== solutionLifecyclePendingScaleReview.location_id) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingScaleReview.location_id;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending scale-gate review before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingLearningReview) {
           solutionLifecycleLocation.value = solutionLifecyclePendingLearningReview.location_id;
           solutionLifecycleProjectionStatus.textContent = "Resolve the pending learning review request before changing locations.";
@@ -10699,6 +11705,12 @@
         if (solutionLifecyclePendingReplicationActivation) {
           solutionLifecycleLocation.value = solutionLifecyclePendingReplicationActivation.locationId;
           solutionLifecycleProjectionStatus.textContent = "Resolve the pending replication start request before changing locations.";
+          return;
+        }
+        if (solutionLifecyclePendingRetirementTransition
+            && solutionLifecycleLocation.value !== solutionLifecyclePendingRetirementTransition.locationId) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingRetirementTransition.locationId;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending retirement transition before changing locations.";
           return;
         }
         solutionLifecycleGatesRequestVersion += 1;
@@ -10833,6 +11845,21 @@
         solutionLifecycleLearningReviewDetailRecord = null;
         solutionLifecyclePendingLearningReview = null;
         solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleScaleAssessmentRequestVersion += 1;
+        solutionLifecycleScaleAssessmentOffset = 0;
+        solutionLifecycleScaleAssessmentTargets.replaceChildren();
+        solutionLifecycleScaleAssessmentStatus.textContent = "";
+        solutionLifecycleScaleAssessmentMore.hidden = true;
+        solutionLifecycleScaleAssessment.hidden = !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleScaleReviewRequestVersion += 1;
+        solutionLifecycleScaleReviewDetailVersion += 1;
+        solutionLifecycleScaleReviewOffset = 0;
+        solutionLifecycleScaleReviewQueue.replaceChildren();
+        solutionLifecycleScaleReviewDetail.hidden = true;
+        solutionLifecycleScaleReviewDetailRecord = null;
+        solutionLifecycleScaleReviewStatus.textContent = "";
+        solutionLifecycleScaleReviewMore.hidden = true;
+        solutionLifecycleScaleReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningApplicationRequestVersion += 1;
         solutionLifecycleLearningApplicationOffset = 0;
         solutionLifecycleLearningApplicationQueue.replaceChildren();
@@ -10846,6 +11873,15 @@
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleFundingProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleStageTransitionsRequestVersion += 1;
+        solutionLifecycleStageTransitionsOffset = 0;
+        solutionLifecycleStageTransitionRows.replaceChildren();
+        solutionLifecycleStageTransitionsStatus.textContent = "";
+        solutionLifecycleStageTransitionsMore.hidden = true;
+        solutionLifecycleStageTransitionsLoad.disabled = false;
+        solutionLifecycleStageTransitionsMore.disabled = false;
+        solutionLifecycleStageTransitions.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+          || !solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleRetirementSourcesRequestVersion += 1;
         solutionLifecycleRetirementSourcesOffset = 0;
         resetSolutionLifecycleRetirementSources();
@@ -10872,6 +11908,8 @@
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
       solutionLifecycleGatesMore.addEventListener("click", () => loadSolutionLifecycleGates(true));
+      solutionLifecycleStageTransitionsLoad.addEventListener("click", () => loadSolutionLifecycleStageTransitionTargets());
+      solutionLifecycleStageTransitionsMore.addEventListener("click", () => loadSolutionLifecycleStageTransitionTargets(true));
       solutionLifecycleExperimentsLoad.addEventListener("click", () => loadSolutionLifecycleExperiments());
       solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true));
       solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding());
@@ -10896,6 +11934,14 @@
       solutionLifecycleFundingTrancheApprovalSubmit.addEventListener("click", approveSolutionLifecycleFundingTranche);
       solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection());
       solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true));
+      solutionLifecycleScaleAssessmentLoad.addEventListener("click", () => loadSolutionLifecycleScaleGateAssessmentTargets());
+      solutionLifecycleScaleAssessmentMore.addEventListener("click", () => loadSolutionLifecycleScaleGateAssessmentTargets(true));
+      solutionLifecycleScaleReviewLoad.addEventListener("click", () => loadSolutionLifecycleScaleGateReviewQueue());
+      solutionLifecycleScaleReviewMore.addEventListener("click", () => loadSolutionLifecycleScaleGateReviewQueue(true));
+      solutionLifecycleScaleReviewDecision.addEventListener("change", () => {
+        solutionLifecycleScaleReviewReason.required = solutionLifecycleScaleReviewDecision.value === "rejected";
+      });
+      solutionLifecycleScaleReviewForm.addEventListener("submit", submitSolutionLifecycleScaleGateReview);
       solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection());
       solutionLifecycleLearningSourcesLoad.addEventListener("click", () => loadSolutionLifecycleLearningSources());
       solutionLifecycleLearningSourcesMore.addEventListener("click", () => loadSolutionLifecycleLearningSources(true));
@@ -10964,7 +12010,8 @@
         if (solutionLifecyclePendingLearningProposal || solutionLifecyclePendingReplicationProposal
             || solutionLifecyclePendingReplicationReview
             || solutionLifecyclePendingRetirementProposal
-            || solutionLifecyclePendingRetirementApproval) {
+            || solutionLifecyclePendingRetirementApproval
+            || solutionLifecyclePendingRetirementTransition) {
           event.preventDefault();
           event.returnValue = "";
         }

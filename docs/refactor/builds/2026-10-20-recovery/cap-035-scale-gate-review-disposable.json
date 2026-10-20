@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "501_location_solution_scale_gate_evaluation_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 501 applies and replays after the ordered CAP-035 lifecycle migrations",
+    "assessment targets and submissions require signed exact-location create scope",
+    "typed threshold outcomes and minimum sample sizes are enforced in PostgreSQL",
+    "pending assessments are private, append-only, evidence-backed, and idempotent",
+    "review queue and detail require exact location review scope and active human identity",
+    "evaluator self-review is rejected; independent review is idempotent",
+    "rejection preserves current gate state; acceptance updates only the gate result",
+    "assessment acceptance does not change solution stage",
+    "runtime cannot directly read/write scale gates or assessment history; Directus is denied"
+  ],
+  "acceptance_groups_passed": 9
+}

@@ -8,7 +8,6 @@ import pytest
 from services.ingestion.base import get_db
 from services.innovation import solution_adoption, solution_lifecycle
 
-
 PARTY_ID = "b0000000-0000-0000-0000-000000002711"
 
 
@@ -30,10 +29,13 @@ def test_adoption_requires_readiness_and_consent_for_use():
         program_id = str(program["id"])
         readiness = solution_adoption.assess_readiness(conn, solution_id, "location", adopter_id, 0.5, 0.8, remediation_plan="Train field coordinators", assessed_by_party_id=PARTY_ID)
         assert readiness["readiness_status"] == "remediating"
-        with pytest.raises(ValueError, match="consent"):
+        with pytest.raises(ValueError, match="consent-aware, location-scoped Gateway"):
             solution_adoption.record_event(conn, program_id, "adopter-1", "first_use")
-        event = solution_adoption.record_event(conn, program_id, "adopter-1", "first_use", consent_checked=True, recorded_by_party_id=PARTY_ID)
-        assert event["event_type"] == "first_use"
+        with pytest.raises(ValueError, match="consent-aware, location-scoped Gateway"):
+            solution_adoption.record_event(
+                conn, program_id, "adopter-1", "first_use",
+                consent_checked=True, recorded_by_party_id=PARTY_ID,
+            )
         configuration = solution_adoption.approve_configuration(conn, solution_id, "location", adopter_id, {"safety":"required"}, {"schedule":"local"}, adaptation_owner_party_id=PARTY_ID, approved_by_party_id=PARTY_ID)
         assert configuration["approval_status"] == "approved"
     finally:
@@ -46,15 +48,16 @@ def test_adoption_requires_readiness_and_consent_for_use():
         conn.close()
 
 
-def test_record_event_rejects_missing_consent():
+@pytest.mark.parametrize("consent_checked", [False, True])
+def test_legacy_record_event_fails_closed_before_database_access(consent_checked):
     mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
-    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
-    with pytest.raises(ValueError, match="consent"):
+    with pytest.raises(ValueError, match="consent-aware, location-scoped Gateway"):
         solution_adoption.record_event(
-            mock_conn, "program-id", "adopter-1", "first_use"
+            mock_conn, "program-id", "adopter-1", "first_use",
+            consent_checked=consent_checked,
         )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
 
 
 def test_assess_readiness_status_logic():

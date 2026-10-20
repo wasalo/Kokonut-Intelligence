@@ -1,0 +1,34 @@
+{
+  "result": "passed",
+  "audit_type": "repository source audit; no database access",
+  "database_corpus_inspected": false,
+  "sequential_ledger_sql_writers": [
+    "services/decision/sequential_evidence.py"
+  ],
+  "production_call_sites_of_generic_writer": [],
+  "projection_lineages": [
+    "solution",
+    "strategy_plan",
+    "threat"
+  ],
+  "projection_lineages_match_across_summary_and_timeline": true,
+  "test_fixture_subject_types": [
+    {
+      "file": "tests/test_odds_engine.py",
+      "line": 42,
+      "subject_type": "test"
+    },
+    {
+      "file": "tests/test_sequential_evidence.py",
+      "line": 18,
+      "subject_type": "threat"
+    },
+    {
+      "file": "tests/test_sequential_integration.py",
+      "line": 62,
+      "subject_type": "strategy_plan"
+    }
+  ],
+  "separate_customer_value_hypothesis_table": "strategy_customer_value_hypothesis",
+  "decision": "Keep unknown subject types excluded. Repository code has no production call site beyond the generic writer, which accepts arbitrary subject types. Populated/archived corpus lineage requires a database-backed inventory before any additional subject type can be exposed."
+}

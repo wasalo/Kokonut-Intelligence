@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 
 from psycopg2.extras import RealDictCursor
 
-
 STAGES = ("discovered", "triaged", "framed", "experiment_ready", "testing", "validated", "investment_ready", "funded", "pilot_active", "adoption_ready", "adopting", "scaled", "maintained", "paused", "superseded", "retired", "failed")
 PROMOTION_GATES = {"validated", "funded", "adoption_ready", "scaled"}
 ADOPTION_PROGRAM_READY = ("enablement_ready", "launch", "onboarding", "active", "assessed", "expand")
@@ -57,115 +56,27 @@ def create_gate(conn, solution_id: str, from_stage: str, to_stage: str, *, requi
 
 
 def approve_gate(conn, gate_id: str, approved_by_party_id: str) -> Dict[str, Any]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("UPDATE solution_stage_gate SET status = 'approved', approved_by_party_id = %s::uuid, approved_at = NOW() WHERE id = %s::uuid AND status IN ('draft', 'ready') RETURNING *", (approved_by_party_id, gate_id))
-        row = cur.fetchone()
-        if not row:
-            conn.rollback()
-            raise ValueError("only draft or ready solution gates can be approved")
-        conn.commit()
-        return _clean(row)
+    del conn, gate_id, approved_by_party_id
+    raise ValueError(
+        "gate approval requires an authenticated location-scoped Gateway grant"
+    )
 
 
 def evaluate_gate(conn, gate_id: str, passed: bool, evaluated_by_party_id: str, *, observed: Optional[dict[str, Any]] = None, evidence: Optional[list[Any]] = None) -> Dict[str, Any]:
-    if not evidence:
-        raise ValueError("solution gate evaluation requires evidence")
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""INSERT INTO solution_gate_evaluation
-            (gate_id, passed, observed, evidence, evaluated_by_party_id)
-            VALUES (%s::uuid, %s, %s::jsonb, %s::jsonb, %s::uuid) RETURNING *""", (gate_id, passed, json.dumps(observed or {}), json.dumps(evidence), evaluated_by_party_id))
-        row = _clean(cur.fetchone())
-        conn.commit()
-        return row
+    del conn, gate_id, passed, evaluated_by_party_id, observed, evidence
+    raise ValueError(
+        "gate evaluations require an authenticated location-scoped Gateway grant"
+    )
 
 
 def transition(conn, solution_id: str, to_stage: str, actor_party_id: Optional[str] = None, *, approved_by_party_id: Optional[str] = None, rationale: str, evidence: Optional[list[Any]] = None, rollback_plan: Optional[str] = None) -> Dict[str, Any]:
+    del conn, solution_id, actor_party_id, approved_by_party_id, rationale, evidence, rollback_plan
     if to_stage not in STAGES:
         raise ValueError("invalid solution stage")
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT * FROM solution WHERE id = %s::uuid FOR UPDATE", (solution_id,))
-        solution = cur.fetchone()
-        if not solution:
-            conn.rollback()
-            raise ValueError("solution not found")
-        from_stage = solution["current_stage"]
-        cur.execute("""SELECT g.* FROM solution_stage_gate g
-            WHERE g.solution_id = %s::uuid AND g.from_stage = %s AND g.to_stage = %s AND g.status = 'approved'
-              AND (SELECT COUNT(*) FROM solution_gate_evaluation e WHERE e.gate_id = g.id AND e.passed = TRUE) >= g.minimum_evaluation_count
-              AND (SELECT e.passed FROM solution_gate_evaluation e WHERE e.gate_id = g.id ORDER BY e.evaluated_at DESC LIMIT 1) = TRUE
-            ORDER BY g.approved_at DESC LIMIT 1""", (solution_id, from_stage, to_stage))
-        gate = cur.fetchone()
-        if to_stage in PROMOTION_GATES and (not gate or (gate["requires_human_approval"] and not approved_by_party_id)):
-            conn.rollback()
-            raise ValueError("approved stage gate and human approver are required for promotion")
-        if to_stage in PROMOTION_GATES:
-            if gate["requires_human_approval"] and approved_by_party_id != str(gate["approved_by_party_id"]):
-                conn.rollback()
-                raise ValueError("promotion approver must be the approved stage-gate approver")
-            if gate["required_evidence_maturity"] is not None and (
-                solution["evidence_maturity"] is None
-                or solution["evidence_maturity"] < gate["required_evidence_maturity"]
-            ):
-                conn.rollback()
-                raise ValueError("required evidence maturity has not been reached")
-            if gate["required_experiment_count"]:
-                cur.execute("""SELECT COUNT(*) AS count FROM solution_experiment_result r
-                    JOIN solution_experiment e ON e.id = r.experiment_id
-                    WHERE e.solution_id = %s::uuid AND r.outcome = 'validated'""", (solution_id,))
-                if cur.fetchone()["count"] < gate["required_experiment_count"]:
-                    conn.rollback()
-                    raise ValueError("required validated experiment count has not been reached")
-
-        if to_stage in ("adoption_ready", "adopting"):
-            cur.execute("""SELECT EXISTS (
-                SELECT 1 FROM solution_adoption_program p
-                JOIN solution_adopter_readiness r ON r.solution_id = p.solution_id
-                    AND r.adopter_scope_type = p.target_scope_type AND r.adopter_scope_id = p.target_scope_id
-                JOIN solution_configuration c ON c.solution_id = p.solution_id
-                    AND c.scope_type = p.target_scope_type AND c.scope_id = p.target_scope_id
-                WHERE p.solution_id = %s::uuid
-                  AND p.status IN %s AND r.readiness_status = 'ready'
-                  AND c.approval_status = 'approved' AND c.approved_by_party_id IS NOT NULL
-                  AND r.assessed_by_party_id IS NOT NULL
-            ) AS ready""", (solution_id, ADOPTION_PROGRAM_READY))
-            if not cur.fetchone()["ready"]:
-                conn.rollback()
-                raise ValueError("approved adoption configuration and adopter readiness are required")
-
-        if to_stage == "scaled":
-            cur.execute("""SELECT COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE status IN ('passed', 'waived')) AS satisfied,
-                COUNT(*) FILTER (WHERE status IN ('passed', 'waived') AND approved_by_party_id IS NULL) AS unapproved_satisfied
-            FROM solution_scale_gate WHERE solution_id = %s::uuid""", (solution_id,))
-            scale = cur.fetchone()
-            if not scale["total"] or scale["satisfied"] != scale["total"] or scale["unapproved_satisfied"]:
-                conn.rollback()
-                raise ValueError("all scale gates must be satisfied before scaling")
-
-        if to_stage == "funded":
-            cur.execute("""SELECT EXISTS (
-                SELECT 1 FROM solution_funding_case c
-                WHERE c.solution_id = %s::uuid AND c.decision_status = 'approved'
-                  AND c.approved_by_party_id IS NOT NULL
-            ) AS approved""", (solution_id,))
-            if not cur.fetchone()["approved"]:
-                conn.rollback()
-                raise ValueError("an approved funding case is required before funding")
-
-        if to_stage == "retired":
-            cur.execute("""SELECT EXISTS (
-                SELECT 1 FROM solution_retirement r
-                WHERE r.solution_id = %s::uuid AND r.status IN ('approved', 'migration', 'sunset', 'completed')
-                  AND r.approved_by_party_id IS NOT NULL
-                  AND jsonb_array_length(r.evidence_refs) > 0
-            ) AS approved""", (solution_id,))
-            if not cur.fetchone()["approved"]:
-                conn.rollback()
-                raise ValueError("an approved, evidenced retirement plan is required")
-        cur.execute("UPDATE solution SET current_stage = %s, status = CASE WHEN %s IN ('retired', 'superseded') THEN %s ELSE status END, retired_at = CASE WHEN %s = 'retired' THEN NOW() ELSE retired_at END, updated_at = NOW() WHERE id = %s::uuid RETURNING *", (to_stage, to_stage, to_stage, to_stage, solution_id))
-        updated = cur.fetchone()
-        cur.execute("""INSERT INTO solution_lifecycle_event
-            (solution_id, from_stage, to_stage, rationale, evidence, rollback_plan, actor_party_id, approved_by_party_id)
-            VALUES (%s::uuid, %s, %s, %s, %s::jsonb, %s, %s::uuid, %s::uuid)""", (solution_id, from_stage, to_stage, rationale, json.dumps(evidence or []), rollback_plan, actor_party_id, approved_by_party_id))
-        conn.commit()
-        return _clean(updated)
+    if to_stage == "retired":
+        raise ValueError(
+            "retirement must use the authenticated location-scoped execution and sunset workflow"
+        )
+    raise ValueError(
+        "stage transitions require an authenticated location-scoped Gateway grant"
+    )

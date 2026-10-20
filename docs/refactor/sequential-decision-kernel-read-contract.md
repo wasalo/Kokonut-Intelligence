@@ -28,6 +28,15 @@ The SQL projection recognizes only three explicit source lineages:
 Unknown subject types, organization-scoped plans, other locations, and
 unlinked solutions are excluded.
 
+The 20 October 2026 repository source audit found one SQL writer for the
+sequential ledger: `services/decision/sequential_evidence.py`. It accepts a
+dynamic subject type, and no production service calls it. Existing test fixtures
+use `strategy_plan`, `threat`, and an intentionally unknown `test` type. The
+similarly named customer-value helper writes to the separate
+`strategy_customer_value_hypothesis` table. Migrations 460 and 478 use the same
+three location-scoped projection lineages. This closes the repository-source
+inventory only; it does not inspect candidate, legacy, or archived data.
+
 ## Response
 
 The summary returns counts for hypothesis lifecycle state, evidence quality,
@@ -88,9 +97,13 @@ acceptance groups for ordering, pagination, exact source lineage, privacy,
 tenant grants, and role boundaries; evidence is in
 `builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json`.
 Candidate and legacy databases are untouched; migrations 460 and 478 are not
-rolled out. Remaining gates include complete source-type lineage, populated
-reference comparison, live OIDC/browser, broader ACL/RLS, recovery acceptance,
-and MAN-CAP-036 owner review.
+rolled out. The repository source-type inventory is recorded in
+`sequential-evidence-subject-lineage-inventory.md` and its static audit evidence
+is `builds/2026-10-20-recovery/cap-036-subject-lineage-source-audit.json`.
+Remaining gates include populated/archived corpus lineage, reference comparison,
+live OIDC/browser, broader ACL/RLS, recovery acceptance, and MAN-CAP-036 owner
+review. Unknown types remain excluded until their source and exact tenant
+mapping are proven from that corpus.
 
 ## Rollback
 
