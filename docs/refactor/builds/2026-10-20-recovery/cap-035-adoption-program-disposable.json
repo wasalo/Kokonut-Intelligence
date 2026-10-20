@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "513_location_solution_adoption_program_create.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 513 applies and replays idempotently",
+    "draft creation requires signed exact-location create context and an active human identity",
+    "only active adoption-ready or adopting solutions with exact location origin are eligible",
+    "program scope, creator attribution, draft status, and empty target population are server controlled",
+    "exact retries replay; changed request reuse fails closed",
+    "runtime direct insert/update/delete and receipt access are denied",
+    "Directus cannot write programs or execute the creator function"
+  ],
+  "acceptance_groups_passed": 7
+}

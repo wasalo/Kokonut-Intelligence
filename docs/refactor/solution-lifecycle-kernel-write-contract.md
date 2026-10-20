@@ -738,6 +738,33 @@ capability. The source audit records other lifecycle write helpers that still
 need equivalent scoped paths or retirement at
 `solution-lifecycle-source-route-audit.md`.
 
+## Location-scoped adoption-program draft
+
+`POST /operator/api/solution-lifecycle/{location_id}/adoption/programs` creates
+one adoption-program row in `draft` state through migration 513. The request
+contains a solution ID, adoption pathway, optional local adaptation policy,
+request UUID, and explicit acknowledgement. The route requires the exact
+location `solution_lifecycle:create` grant and signed tenant context; the
+operator console also requires the exact `solution_lifecycle:read` grant to
+load and select an eligible solution.
+
+PostgreSQL rechecks the exact location and active human operator binding. The
+solution must be active, originated at that exact location, and currently at
+`adoption_ready` or `adopting`. The database sets the target scope to that
+location, the target population to `{}`, the creator party from the authenticated
+binding, and status to `draft`. A private receipt supports exact request replay
+and rejects reuse of the request UUID with changed input. Runtime and Directus
+cannot write the program table directly; Directus cannot execute the function
+or read the receipt.
+
+This operation does not assess location readiness, approve a local
+configuration, record participant events, or launch adoption. Each needs a
+separate scoped action and applicable human review. The legacy
+`solution_adoption.create_program` helper fails before database access. To roll
+back before deployment, disable the route and console form while retaining the
+additive migration; do not reverse an applied migration or re-enable the legacy
+writer.
+
 ## Adoption-event consent boundary
 
 The legacy `solution_adoption.record_event` helper no longer accepts

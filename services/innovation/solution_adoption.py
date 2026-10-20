@@ -14,14 +14,12 @@ def _clean(row):
 
 
 def create_program(conn, solution_id: str, target_scope_type: str, target_scope_id: str, adoption_pathway: str, *, target_population: Optional[dict[str, Any]] = None, local_adaptation_policy: Optional[str] = None, champion_party_id: Optional[str] = None, created_by_party_id: Optional[str] = None) -> Dict[str, Any]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""INSERT INTO solution_adoption_program
-            (solution_id, target_scope_type, target_scope_id, target_population, adoption_pathway,
-             local_adaptation_policy, champion_party_id, created_by_party_id)
-            VALUES (%s::uuid, %s, %s::uuid, %s::jsonb, %s, %s, %s::uuid, %s::uuid) RETURNING *""", (solution_id, target_scope_type, target_scope_id, json.dumps(target_population or {}), adoption_pathway, local_adaptation_policy, champion_party_id, created_by_party_id))
-        row = _clean(cur.fetchone())
-        conn.commit()
-        return row
+    del conn, solution_id, target_scope_type, target_scope_id, adoption_pathway
+    del target_population, local_adaptation_policy, champion_party_id, created_by_party_id
+    raise RuntimeError(
+        "legacy adoption program creation is disabled; use the exact-location "
+        "solution-lifecycle Gateway draft action"
+    )
 
 
 def assess_readiness(conn, solution_id: str, adopter_scope_type: str, adopter_scope_id: str, current_level: float, required_level: float, *, remediation_plan: Optional[str] = None, assessed_by_party_id: Optional[str] = None) -> Dict[str, Any]:

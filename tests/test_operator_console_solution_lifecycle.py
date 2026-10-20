@@ -763,6 +763,56 @@ def test_adoption_event_detail_uses_only_consent_checked_coarse_suppressed_phase
     assert "innerHTML" not in loader
 
 
+def test_adoption_program_draft_requires_exact_grants_filters_origin_and_preserves_retry_scope():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-adoption-create".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "Requires exact location read and create grants" in panel.group(0)
+    assert "does not assess readiness" in panel.group(0)
+    assert 'solutionLifecycleAdoptionCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "create"' in source
+
+    targets = _function(
+        source,
+        "async function loadSolutionLifecycleAdoptionTargets(",
+        "async function submitSolutionLifecycleAdoptionProgram(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in targets
+    assert "solutionLifecycleCreateLocations.has(locationId)" in targets
+    assert "stage-transition-targets?${params}" in targets
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in targets
+    assert 'solution.solution_status !== "active"' in targets
+    assert '["adoption_ready", "adopting"].includes(solution.current_stage)' in targets
+    assert "requestVersion !== solutionLifecycleAdoptionTargetsRequestVersion" in targets
+    assert 'credentials: "same-origin"' in targets and 'cache: "no-store"' in targets
+    assert "option.textContent" in targets
+
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleAdoptionProgram(",
+        "async function loadSolutionLifecycleProjection(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert "solutionLifecyclePendingAdoptionCreate.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingAdoptionCreate.request_id" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "adoption/programs`" in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert "result.replayed === true" in submit
+    assert "solutionLifecyclePendingAdoptionCreate.locationId" in source
+    assert "innerHTML" not in targets + submit
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "solutionLifecyclePendingAdoptionCreate.locationId" in location_change
+    assert "solutionLifecycleAdoptionTargetsRequestVersion += 1" in location_change
+    assert "solutionLifecycleAdoptionCreateForm.reset()" in location_change
+
+
 def test_learning_proposal_source_loader_requires_both_grants_and_filters_reviewed_completion():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="solution-lifecycle-learning-proposal".*?</section>', source, re.DOTALL)

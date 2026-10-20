@@ -12694,3 +12694,32 @@ compilation, and diff checks pass. No migration or database was used. Checklist:
 across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md), and
 [tests](../tests/test_solution_funding.py).
+
+### CAP-035 location-scoped adoption-program draft — 20 October 2026
+
+Migration 513 adds a bounded location-scoped draft action at
+`POST /operator/api/solution-lifecycle/{location_id}/adoption/programs`. The
+signed create grant, active human binding, exact location origin, and active
+`adoption_ready`/`adopting` stage are rechecked in PostgreSQL. The function
+fixes target scope to the location and target population to empty, derives the
+creator from the authenticated operator binding, and stores an immutable
+private retry receipt. Runtime and Directus cannot write adoption-program rows
+directly, and Directus cannot execute the function or read receipts. The legacy
+`create_program` helper is retired. The console requires exact read/create
+grants and uses CSRF/no-store requests with stable retries. It creates a draft
+only: readiness, independent configuration approval, consent-aware participant
+events, and launch remain open.
+
+The focused Gateway, console, route-policy, legacy, and migration selection
+passes 109 tests. Ruff, Python compilation, inline JavaScript parsing,
+capability-matrix validation, runtime SQL inventory validation, and diff checks
+pass. Disposable PostgreSQL 16 applies/replays migration 513 and passes seven
+grouped checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)).
+Candidate and legacy databases are untouched; migration 513 is not rolled out.
+CAP-035 remains prepared. Checklist: 767 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
+[source-to-route audit](solution-lifecycle-source-route-audit.md), [write
+contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/513_location_solution_adoption_program_create.sql),
+[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+[disposable checker](../../scripts/check-solution-adoption-program-disposable.py).

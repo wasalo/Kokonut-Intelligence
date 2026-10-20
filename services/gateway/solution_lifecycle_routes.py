@@ -19,6 +19,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         approve_location_solution_retirement,
         complete_location_solution_experiment,
         create_location_solution,
+        create_location_solution_adoption_program,
         create_location_solution_experiment,
         create_location_solution_gate,
         propose_location_solution_funding,
@@ -1432,6 +1433,85 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution experiment result review unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs"
+    )
+    async def create_solution_adoption_program(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "solution_id", "adoption_pathway", "acknowledged",
+        }
+        optional_fields = {"local_adaptation_policy"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(required_fields | optional_fields)
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Location adoption program fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                create_location_solution_adoption_program,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                payload["solution_id"],
+                payload["request_id"],
+                payload["adoption_pathway"],
+                local_adaptation_policy=payload.get("local_adaptation_policy"),
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle create access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle create grant is required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Location adoption program input is invalid"}, headers=headers)
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The adoption program is no longer eligible; refresh the lifecycle view"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program creation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution adoption program creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(
