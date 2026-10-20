@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "d556f8c638f639808489bedf4ee7488f142a9881",
+  "baseline_commit": "6295524c409ff16ced61a58161a1c3fa78712d6d",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1239,157 +1239,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1617,
+      "line": 1630,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1632,
+      "line": 1645,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1641,
+      "line": 1654,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1699,
+      "line": 1712,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1727,
+      "line": 1740,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1767,
+      "line": 1780,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1818,
+      "line": 1831,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1858,
+      "line": 1871,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1911,
+      "line": 1924,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1971,
+      "line": 1984,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2026,
+      "line": 2039,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2070,
+      "line": 2083,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2131,
+      "line": 2144,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2214,
+      "line": 2227,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2307,
+      "line": 2320,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2355,
+      "line": 2368,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2407,
+      "line": 2420,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2465,
+      "line": 2478,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2519,
+      "line": 2532,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2608,
+      "line": 2621,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2628,
+      "line": 2641,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2648,
+      "line": 2661,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2684,
+      "line": 2697,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2712,
+      "line": 2725,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2740,
+      "line": 2753,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2783,
+      "line": 2796,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1533,9 +1533,15 @@
       "source": "services/gateway/router.py"
     },
     {
-      "line": 17,
+      "line": 19,
       "method": "GET",
       "path": "/operator/api/sequential-evidence/{location_id}/summary",
+      "source": "services/gateway/sequential_decision_routes.py"
+    },
+    {
+      "line": 60,
+      "method": "GET",
+      "path": "/operator/api/sequential-evidence/{location_id}/events",
       "source": "services/gateway/sequential_decision_routes.py"
     },
     {
@@ -2290,7 +2296,8 @@
       "schemas/postgres/474_solution_retirement_independent_review.sql",
       "schemas/postgres/475_location_solution_retirement_review.sql",
       "schemas/postgres/476_location_solution_retirement_proposal.sql",
-      "schemas/postgres/477_location_solution_learning_proposal.sql"
+      "schemas/postgres/477_location_solution_learning_proposal.sql",
+      "schemas/postgres/478_location_sequential_evidence_timeline.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
