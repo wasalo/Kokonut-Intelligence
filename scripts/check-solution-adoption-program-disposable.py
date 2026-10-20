@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 513's exact-location adoption-program draft contract."""
+"""Exercise exact-location adoption-program drafts through migrations 513/515."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/513_location_solution_adoption_program_create.sql"
+PREPARATION_MIGRATION = ROOT / "schemas/postgres/515_location_solution_adoption_preparation.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -22,7 +23,9 @@ UNGRANTED_OPERATOR_ID = "a0000000-0000-4000-8000-000000000042"
 PARTY_ID = "c1000000-0000-4000-8000-000000000041"
 SOLUTION_ID = "c0000000-0000-4000-8000-000000000041"
 INELIGIBLE_SOLUTION_ID = "c0000000-0000-4000-8000-000000000042"
+PILOT_SOLUTION_ID = "c0000000-0000-4000-8000-000000000043"
 REQUEST_ID = "ab000000-0000-4000-8000-000000000051"
+PILOT_REQUEST_ID = "ab000000-0000-4000-8000-000000000055"
 
 PREPARE = r"""
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -147,7 +150,9 @@ VALUES
     ('c0000000-0000-4000-8000-000000000041', 'synthetic:adoption:eligible',
      'location', 'b0000000-0000-4000-8000-000000000001', 'adoption_ready', 'active'),
     ('c0000000-0000-4000-8000-000000000042', 'synthetic:adoption:other-origin',
-     'location', 'b0000000-0000-4000-8000-000000000002', 'adoption_ready', 'active');
+     'location', 'b0000000-0000-4000-8000-000000000002', 'adoption_ready', 'active'),
+    ('c0000000-0000-4000-8000-000000000043', 'synthetic:adoption:pilot-active',
+     'location', 'b0000000-0000-4000-8000-000000000001', 'pilot_active', 'active');
 """
 
 ACCEPTANCE = f"""
@@ -157,7 +162,7 @@ SELECT set_config('kokonut.actor_id', '{OPERATOR_ID}', TRUE);
 SELECT set_config('kokonut.location_id', '{LOCATION_ID}', TRUE);
 SELECT set_config('kokonut.actor_type', 'operator', TRUE);
 DO $$
-DECLARE created RECORD; replay RECORD; denied BOOLEAN;
+DECLARE created RECORD; replay RECORD; pilot_created RECORD; denied BOOLEAN;
         direct_insert_denied BOOLEAN := FALSE;
         direct_update_denied BOOLEAN := FALSE;
         direct_delete_denied BOOLEAN := FALSE;
@@ -177,6 +182,14 @@ BEGIN
     IF NOT replay.replayed OR replay.program_id <> created.program_id
        OR replay.created_at <> created.created_at THEN
         RAISE EXCEPTION 'exact request retry did not replay the original draft';
+    END IF;
+
+    SELECT * INTO pilot_created FROM kokonut_security.create_location_solution_adoption_program(
+        '{LOCATION_ID}', '{PILOT_SOLUTION_ID}', '{PILOT_REQUEST_ID}',
+        'Prepare transition from the active pilot', NULL, TRUE
+    );
+    IF pilot_created.program_status <> 'draft' OR pilot_created.replayed THEN
+        RAISE EXCEPTION 'pilot-active solution did not receive a draft before adoption readiness';
     END IF;
 
     denied := FALSE;
@@ -242,10 +255,11 @@ DO $$
 DECLARE program_count BIGINT;
 BEGIN
     SELECT count(*) INTO program_count FROM public.solution_adoption_program
-     WHERE solution_id = '{SOLUTION_ID}' AND target_scope_type = 'location'
+     WHERE solution_id IN ('{SOLUTION_ID}', '{PILOT_SOLUTION_ID}')
+       AND target_scope_type = 'location'
        AND target_scope_id = '{LOCATION_ID}' AND status = 'draft'
        AND created_by_party_id = '{PARTY_ID}' AND target_population = '{{}}'::JSONB;
-    IF program_count <> 1 THEN RAISE EXCEPTION 'draft was not location-scoped and human-attributed'; END IF;
+    IF program_count <> 2 THEN RAISE EXCEPTION 'drafts were not location-scoped and human-attributed'; END IF;
     IF pg_catalog.has_function_privilege(
         'kokonut_directus_runtime',
         'kokonut_security.create_location_solution_adoption_program(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
@@ -293,13 +307,14 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migrations": [MIGRATION.name, PREPARATION_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
             "migration 513 applies and replays idempotently",
+            "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
             "draft creation requires signed exact-location create context and an active human identity",
-            "only active adoption-ready or adopting solutions with exact location origin are eligible",
+            "only active pilot_active, adoption_ready, or adopting solutions with exact location origin are eligible",
             "program scope, creator attribution, draft status, and empty target population are server controlled",
             "exact retries replay; changed request reuse fails closed",
             "runtime direct insert/update/delete and receipt access are denied",
@@ -319,10 +334,13 @@ def main() -> int:
         migration_text = MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, migration_text)
         psql(docker, container, migration_text)
+        preparation_text = PREPARATION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, preparation_text)
+        psql(docker, container, preparation_text)
         psql(docker, container, ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 7
-        print("PASS: migration 513 apply/replay, exact-location draft creation, retry, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 8
+        print("PASS: migrations 513/515 apply/replay, pilot preparation, exact-location draft creation, retry, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

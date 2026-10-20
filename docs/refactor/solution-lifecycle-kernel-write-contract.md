@@ -741,7 +741,7 @@ need equivalent scoped paths or retirement at
 ## Location-scoped adoption-program draft
 
 `POST /operator/api/solution-lifecycle/{location_id}/adoption/programs` creates
-one adoption-program row in `draft` state through migration 513. The request
+one adoption-program row in `draft` state through migrations 513 and 515. The request
 contains a solution ID, adoption pathway, optional local adaptation policy,
 request UUID, and explicit acknowledgement. The route requires the exact
 location `solution_lifecycle:create` grant and signed tenant context; the
@@ -750,7 +750,9 @@ load and select an eligible solution.
 
 PostgreSQL rechecks the exact location and active human operator binding. The
 solution must be active, originated at that exact location, and currently at
-`adoption_ready` or `adopting`. The database sets the target scope to that
+`pilot_active`, `adoption_ready`, or `adopting`. Migration 515 permits
+preparation at `pilot_active` so the program can exist before the existing
+adoption-ready transition gate is evaluated. The database sets the target scope to that
 location, the target population to `{}`, the creator party from the authenticated
 binding, and status to `draft`. A private receipt supports exact request replay
 and rejects reuse of the request UUID with changed input. Runtime and Directus

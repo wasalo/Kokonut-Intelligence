@@ -12744,3 +12744,29 @@ Checklist: 768 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
 [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
 [tests](../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
+
+### CAP-035 adoption preparation before the adoption-ready gate — 20 October 2026
+
+Review of the stage transition contract found that promotion to `adoption_ready`
+requires an existing program in `enablement_ready` or a later approved state,
+while migration 513 originally allowed a new program draft only at
+`adoption_ready` or `adopting`. Migration 515 extends the exact-location draft
+function to active location-origin solutions at `pilot_active`, while retaining
+all create-grant, active-human, exact-origin, draft-only, and immutable-retry
+checks. The operator console now lists eligible pilot-stage solutions too. This
+makes preparation possible before the gate; readiness, configuration approval,
+program enablement review, participant consent/events, and launch remain
+separate work.
+
+The focused Gateway, console, route-policy, legacy, and migration selection
+passes 110 tests. Disposable PostgreSQL 16 applies/replays migrations 513 and
+515 and passes eight grouped checks, including draft creation from `pilot_active`
+([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)).
+Ruff, Python compilation, inline JavaScript syntax, capability validation,
+runtime SQL inventory, and diff checks pass. Candidate and legacy remain
+untouched; migrations 513 and 515 are not rolled out. CAP-035 remains prepared.
+Checklist: 769 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-audit.md),
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/515_location_solution_adoption_preparation.sql),
+[checker](../../scripts/check-solution-adoption-program-disposable.py), and
+[console tests](../tests/test_operator_console_solution_lifecycle.py).

@@ -816,7 +816,7 @@
           <p class="muted">Choose a location-scoped status projection. Each view uses the existing read grant and omits evidence, narrative, and person-level details described in the lifecycle contract. Adoption event summaries show only coarse consent-checked phase counts and withhold the whole breakdown when any phase has fewer than five distinct references.</p>
           <section id="solution-lifecycle-adoption-create" hidden aria-labelledby="solution-lifecycle-adoption-create-heading">
             <h4 id="solution-lifecycle-adoption-create-heading">Propose an adoption-program draft</h4>
-            <p class="muted">Requires exact location read and create grants. Only active, location-origin solutions at adoption-ready or adopting can be selected. The draft does not assess readiness, approve a local configuration, collect participant events, or launch adoption. Independent review remains separate.</p>
+            <p class="muted">Requires exact location read and create grants. Active, location-origin solutions at pilot-active, adoption-ready, or adopting can be selected so an enablement program can be prepared before the adoption-ready gate. The draft does not assess readiness, approve a local configuration, collect participant events, or launch adoption. Independent review remains separate.</p>
             <div class="toolbar">
               <button id="solution-lifecycle-adoption-targets-load" type="button">Load eligible solutions</button>
               <button id="solution-lifecycle-adoption-targets-more" class="secondary" type="button" hidden>Load more solutions</button>
@@ -825,7 +825,7 @@
             <form id="solution-lifecycle-adoption-create-form" class="stacked-form">
               <label for="solution-lifecycle-adoption-solution">Location-origin solution</label>
               <select id="solution-lifecycle-adoption-solution" required>
-                <option value="">Load adoption-ready solutions, then choose one</option>
+                <option value="">Load pilot-active or adoption-stage solutions, then choose one</option>
               </select>
               <label for="solution-lifecycle-adoption-pathway">Adoption pathway</label>
               <textarea id="solution-lifecycle-adoption-pathway" required maxlength="2000" rows="3"></textarea>
@@ -6175,7 +6175,7 @@
         if (!solutionLifecycleLocations.has(locationId)
             || !solutionLifecycleCreateLocations.has(locationId)) {
           solutionLifecycleAdoptionSolution.replaceChildren(new Option(
-            "Load adoption-ready solutions, then choose one", "",
+            "Load pilot-active or adoption-stage solutions, then choose one", "",
           ));
           solutionLifecycleAdoptionTargetsStatus.textContent = "Exact location read and create grants are required.";
           solutionLifecycleAdoptionTargetsMore.hidden = true;
@@ -6190,7 +6190,7 @@
         }
         solutionLifecycleAdoptionTargetsLoad.disabled = true;
         solutionLifecycleAdoptionTargetsMore.disabled = true;
-        solutionLifecycleAdoptionTargetsStatus.textContent = "Loading adoption-ready solutions…";
+        solutionLifecycleAdoptionTargetsStatus.textContent = "Loading adoption-preparation solutions…";
         try {
           const params = new URLSearchParams({ limit: "25", offset: String(offset) });
           const response = await fetch(
@@ -6205,7 +6205,7 @@
           for (const solution of Array.isArray(result.solutions) ? result.solutions : []) {
             if (!validId.test(solution.solution_id || "")
                 || solution.solution_status !== "active"
-                || !["adoption_ready", "adopting"].includes(solution.current_stage)
+                || !["pilot_active", "adoption_ready", "adopting"].includes(solution.current_stage)
                 || [...solutionLifecycleAdoptionSolution.options].some((option) => option.value === solution.solution_id)) continue;
             const option = document.createElement("option");
             option.value = solution.solution_id;
@@ -6222,7 +6222,7 @@
             ? `${eligibleCount} eligible adoption-stage solution${eligibleCount === 1 ? "" : "s"} loaded.`
             : result.has_more === true
               ? "No eligible solution is on this page. Load more to continue."
-              : "No active location-origin solution is at adoption-ready or adopting.";
+              : "No active location-origin solution is at pilot-active, adoption-ready, or adopting.";
         } catch (error) {
           if (requestVersion !== solutionLifecycleAdoptionTargetsRequestVersion) return;
           solutionLifecycleAdoptionTargetsStatus.textContent = error.message;
@@ -6241,7 +6241,7 @@
         if (!solutionLifecycleLocations.has(locationId)
             || !solutionLifecycleCreateLocations.has(locationId)
             || !solutionId) {
-          solutionLifecycleAdoptionCreateStatus.textContent = "Choose a location-origin adoption-ready solution with exact read and create grants.";
+          solutionLifecycleAdoptionCreateStatus.textContent = "Choose an eligible location-origin solution with exact read and create grants.";
           return;
         }
         const csrf = csrfToken();
@@ -13263,7 +13263,7 @@
         solutionLifecycleAdoptionTargetsRequestVersion += 1;
         solutionLifecycleAdoptionTargetsOffset = 0;
         solutionLifecycleAdoptionSolution.replaceChildren(new Option(
-          "Load adoption-ready solutions, then choose one", "",
+          "Load pilot-active or adoption-stage solutions, then choose one", "",
         ));
         solutionLifecycleAdoptionTargetsStatus.textContent = "";
         solutionLifecycleAdoptionTargetsMore.hidden = true;

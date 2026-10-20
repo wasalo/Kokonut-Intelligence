@@ -783,7 +783,7 @@ def test_adoption_program_draft_requires_exact_grants_filters_origin_and_preserv
     assert "stage-transition-targets?${params}" in targets
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in targets
     assert 'solution.solution_status !== "active"' in targets
-    assert '["adoption_ready", "adopting"].includes(solution.current_stage)' in targets
+    assert '["pilot_active", "adoption_ready", "adopting"].includes(solution.current_stage)' in targets
     assert "requestVersion !== solutionLifecycleAdoptionTargetsRequestVersion" in targets
     assert 'credentials: "same-origin"' in targets and 'cache: "no-store"' in targets
     assert "option.textContent" in targets
