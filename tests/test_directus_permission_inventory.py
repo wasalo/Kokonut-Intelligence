@@ -47,8 +47,13 @@ def test_inventory_counts_literal_wildcard_rules_and_keeps_limits_explicit() -> 
     assert inventory["summary"]["wildcard_field_rows"] == 125
     assert inventory["summary"]["explicit_field_rows"] == 50
     assert inventory["summary"]["declared_farm_activity_rules"] == 0
+    assert inventory["summary"]["update_statements"] == 4
+    assert inventory["summary"]["delete_statements"] == 1
     assert inventory["summary"]["wildcard_rows_by_policy"]["Auditor Policy"] == 28
     assert "not effective deployed permission state" in inventory["limitations"][0]
+    delete = next(item for item in inventory["source_mutations"] if item["operation"] == "delete")
+    assert "collection = 'farm_activity'" in delete["statement"]
+    assert "policy IN" in delete["statement"]
 
     feedback = next(
         rule

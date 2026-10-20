@@ -152,6 +152,42 @@ def _insert_rows(sql: str, table: str) -> list[dict[str, Any]]:
     return records
 
 
+def _permission_mutations(sql: str) -> list[dict[str, Any]]:
+    clean = _mask_comments(sql)
+    pattern = re.compile(
+        r"\b(UPDATE|DELETE\s+FROM)\s+(?:public\.)?directus_permissions\b",
+        re.IGNORECASE,
+    )
+    mutations = []
+    for match in pattern.finditer(clean):
+        quote = False
+        index = match.end()
+        while index < len(clean):
+            char = clean[index]
+            if quote:
+                if char == "'":
+                    if index + 1 < len(clean) and clean[index + 1] == "'":
+                        index += 2
+                        continue
+                    quote = False
+            elif char == "'":
+                quote = True
+            elif char == ";":
+                break
+            index += 1
+        statement = " ".join(clean[match.start():index].split())
+        operation = "delete" if match.group(1).upper().startswith("DELETE") else "update"
+        mutations.append(
+            {
+                "line": clean.count("\n", 0, match.start()) + 1,
+                "operation": operation,
+                "target": "directus_permissions",
+                "statement": statement,
+            }
+        )
+    return mutations
+
+
 def build_inventory(source: Path, root: Path) -> dict[str, Any]:
     sql = source.read_text(encoding="utf-8")
     policies = {
@@ -193,12 +229,15 @@ def build_inventory(source: Path, root: Path) -> dict[str, Any]:
             }
         )
     rules.sort(key=lambda item: (str(item["policy"]), str(item["collection"]), str(item["action"]), item["line"]))
+    mutations = _permission_mutations(sql)
     wildcard = [rule for rule in rules if rule["field_access"] == "wildcard"]
     summary = {
         "literal_permission_rows": len(rules),
         "wildcard_field_rows": len(wildcard),
         "explicit_field_rows": sum(rule["field_access"] == "explicit" for rule in rules),
         "unknown_field_rows": sum(rule["field_access"] == "unknown" for rule in rules),
+        "update_statements": sum(mutation["operation"] == "update" for mutation in mutations),
+        "delete_statements": sum(mutation["operation"] == "delete" for mutation in mutations),
         "wildcard_rows_by_collection": dict(
             sorted(
                 (collection, sum(rule["collection"] == collection for rule in wildcard))
@@ -226,6 +265,7 @@ def build_inventory(source: Path, root: Path) -> dict[str, Any]:
         ],
         "summary": summary,
         "rules": rules,
+        "source_mutations": mutations,
     }
 
 

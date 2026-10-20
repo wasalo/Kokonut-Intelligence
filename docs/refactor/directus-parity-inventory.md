@@ -40,8 +40,9 @@ It finds 175 literal permission insert declarations: 125 use `fields = '*'`
 and 50 name explicit fields. The Auditor policy accounts for 28 wildcard
 declarations; Field Worker stakeholder-feedback read is one concrete example.
 No `farm_activity` permission insert is present in the seed, consistent with
-the Gateway-only decision. This report inventories literal source declarations
-only. It does not compute the effective result of conditional inserts, later
+the Gateway-only decision. The inventory also records four literal
+`UPDATE directus_permissions` and one `DELETE` statement, including the managed
+`farm_activity` cleanup. It inventories source declarations and mutations only. It does not compute the effective result of conditional inserts, later
 updates/deletes, built-in or operator-created policies, or a running Directus
 database, and it does not itself authorize narrowing any role's access.
 

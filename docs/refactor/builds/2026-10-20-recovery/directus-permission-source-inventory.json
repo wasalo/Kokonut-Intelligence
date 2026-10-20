@@ -3150,12 +3150,46 @@
   ],
   "scope": "literal INSERT declarations in the curated Directus SQL seed",
   "source": "config/directus/permissions.sql",
+  "source_mutations": [
+    {
+      "line": 171,
+      "operation": "update",
+      "statement": "UPDATE directus_permissions SET permissions = '{\"_and\":[{\"status\":{\"_in\":[\"verified\",\"published\"]}},{\"is_public\":{\"_eq\":true}},{\"consent_given\":{\"_eq\":true}},{\"party_id\":{\"_nnull\":true}}]}' WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read'",
+      "target": "directus_permissions"
+    },
+    {
+      "line": 637,
+      "operation": "update",
+      "statement": "UPDATE directus_permissions SET permissions = next_filter::JSON WHERE id = legacy_permission.id",
+      "target": "directus_permissions"
+    },
+    {
+      "line": 641,
+      "operation": "update",
+      "statement": "UPDATE directus_permissions SET permissions = '{}'::JSON WHERE id = legacy_permission.id",
+      "target": "directus_permissions"
+    },
+    {
+      "line": 652,
+      "operation": "update",
+      "statement": "UPDATE directus_permissions SET validation = '{}'::JSON WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND action = 'create' AND collection IN ('harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal') AND validation::JSONB = '{\"location_id\":{\"_eq\":\"$CURRENT_USER.location_id\"}}'::JSONB",
+      "target": "directus_permissions"
+    },
+    {
+      "line": 666,
+      "operation": "delete",
+      "statement": "DELETE FROM directus_permissions WHERE collection = 'farm_activity' AND policy IN ( 'b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000002', 'b1000000-0000-0000-0000-000000000003', 'b1000000-0000-0000-0000-000000000004', 'b1000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000009' )",
+      "target": "directus_permissions"
+    }
+  ],
   "source_sha256": "7b0c7eb631047f30a3d802d44e7fea40f492e38301a2bcce88736087c075e096",
   "summary": {
     "declared_farm_activity_rules": 0,
+    "delete_statements": 1,
     "explicit_field_rows": 50,
     "literal_permission_rows": 175,
     "unknown_field_rows": 0,
+    "update_statements": 4,
     "wildcard_field_rows": 125,
     "wildcard_rows_by_collection": {
       "agent_action_log": 3,
