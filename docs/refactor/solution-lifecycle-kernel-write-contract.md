@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–504 are additive and are
+**Status:** prepared implementation contract; migrations 488–505 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -31,14 +31,52 @@ binding, solution insert, opening event, and private receipt fields needed by
 the operation. Runtime can execute the function but cannot read the receipt
 directly; Directus cannot execute it. The legacy
 `solution_lifecycle.create_solution` helper now fails before database access.
-`add_link` and `create_gate` likewise fail closed until reviewed sharing and
-gate-definition policies have dedicated routes.
+`add_link` remains fail closed pending reviewed sharing policy. The legacy
+`create_gate` helper also fails closed; migration 505 adds the scoped
+gate-definition route below.
 
 Disposable PostgreSQL 16 acceptance applies and replays migration 504 after the
 CAP-035 chain. It verifies exact-location grants, active-human attribution,
 input validation, origin, opening-event atomicity, exact retries, changed-input
 rejection, and private receipt access. Candidate and legacy databases remain
 untouched; migration 504 has not been rolled out.
+
+## Location-origin promotion-gate definition
+
+`POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates`
+creates one immutable promotion-gate definition in `draft` state. It requires
+signed exact-location `solution_lifecycle:create` context, an active operator
+identity bound to an active person, an active solution whose canonical origin
+is exactly the requested location, explicit acknowledgement, and a stable
+request UUID. A shared or linked solution cannot be configured by a location
+that does not own its origin.
+
+The definition has a bounded 10–2,000 character criterion, optional evidence
+maturity from 1–6, and 0–100 required experiments. Supported promotions are
+fixed to the current lifecycle stages: `testing → validated`,
+`investment_ready → funded`, `pilot_active → adoption_ready`, and
+`adopting → scaled`. Each definition requires at least one evaluation and
+independent human approval. The gate and private immutable retry receipt are
+written atomically; changed-input request reuse fails closed. Creation never
+evaluates or approves the gate and never changes the solution stage.
+
+The existing exact-location gate list and reviewer detail now expose the
+criterion only for solutions originating at the requesting location. A
+location-linked solution from another origin retains its redacted read view.
+Runtime can invoke the bounded creator and read projections, but cannot access
+the gate table directly or read receipts. The runtime-role bootstrap reapplies
+that direct-table boundary after its broad compatibility grants. Directus also
+has no direct gate-table access and cannot execute the creator or read receipts.
+The console requires exact read/create grants, uses CSRF and
+same-origin no-store requests, and keeps uncertain retries bound to their
+original payload and request ID.
+
+Disposable PostgreSQL 16 acceptance applies/replays migration 505 and checks
+the previous gate-review projection, exact grants and origin, active-human
+binding, input bounds, supported stage mapping, immutable draft state, retry
+replay/collision behavior, cross-origin criterion redaction, and runtime/
+Directus privilege boundaries. Candidate and legacy databases are untouched;
+migration 505 has not been rolled out.
 
 ## Funding draft proposal
 
@@ -637,7 +675,7 @@ state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–504 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–505 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -648,6 +686,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–504. After application, do not edit or reverse them; disable the routes and
+488–505. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

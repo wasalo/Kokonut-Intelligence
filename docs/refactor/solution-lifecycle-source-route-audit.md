@@ -73,7 +73,7 @@ Other legacy direct mutation helpers already fail closed:
 | `solution_lifecycle.transition` | Shared-role writer retired. Gate-backed promotion transitions remain available through migration 486; retirement uses migration 502. |
 | `solution_lifecycle.create_solution` | Exact-location discovered-solution creation is available through migration 504; the legacy shared-role helper is retired. |
 | `solution_lifecycle.add_link` | No link-management route yet; legacy writer is retired pending explicit sharing policy. |
-| `solution_lifecycle.create_gate` | No gate-definition route yet; legacy writer is retired pending scoped configuration and review policy. |
+| `solution_lifecycle.create_gate` | The legacy writer is retired; use migration 505's exact-origin, location-scoped draft gate definition route. |
 
 ## Remaining source-to-route effects
 
@@ -85,7 +85,7 @@ mark CAP-035 complete or claim universal tenant isolation while they remain.
 | `solution_lifecycle.transition` for non-promotion stages | Migration 503 provides a bounded exact-origin target read and a signed exact-location action for nonterminal, non-promotion stages. It requires an active human binding, explicit acknowledgement, rationale/evidence, expected-stage compare-and-set, and an atomic immutable retry receipt. `adopting` rechecks approved location readiness/configuration; `superseded` and `retired` remain on the reviewed retirement workflow. | Compare behavior against populated legacy fixtures; complete live OIDC/browser acceptance, broader ACL/RLS review, recovery acceptance, and remaining source-to-route parity. |
 | `solution_lifecycle.create_solution` | Migration 504 adds exact-location discovered creation with signed create grant, active human attribution, an opening lifecycle event, bounded inputs, and an immutable retry receipt. | Compare created records against populated legacy fixtures; complete live OIDC/browser acceptance, ACL/RLS review, and recovery acceptance. |
 | `solution_lifecycle.add_link` | No link-management route. The direct helper now fails before database access. | Define reviewed network/location sharing, owner authority, revocation, and lineage rules before adding a route. |
-| `solution_lifecycle.create_gate` | No gate-definition route. The direct helper now fails before database access. | Define location-scoped gate versioning, activation, and independent review before adding a route. |
+| `solution_lifecycle.create_gate` | Migration 505 adds exact-origin promotion-gate definition at `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates`. The legacy direct helper remains retired. New definitions are immutable drafts with a bounded criterion and thresholds, one of four fixed current-stage promotions, one required evaluation, and independent human approval. The existing review projection exposes criterion only to the owning location. | Compare gate criteria and threshold semantics against populated legacy records; complete live OIDC/browser acceptance, broader ACL/RLS review, recovery acceptance, and remaining source-to-route parity. Gate evaluation, approval, and transition remain separate actions. |
 | `solution_experiments.create_experiment`, `submit_protocol`, `approve_protocol`, `start_experiment`, `record_observation`, `complete_experiment`, `analyze_sequentially` | Experiment status/review reads and independent result review exist; replication proposal/activation/completion are separate. | Port protocol drafting/review, observation collection, analysis, and completion with location scope, consent/evidence rules, and atomic retry semantics; then retire direct writers. |
 | `solution_experiments.review_result`, `create_replication` | Scoped independent result review and replication proposal paths exist. | Retire legacy writes after call sites/tests move, and preserve reviewer separation and validated-source checks. |
 | `solution_adoption.create_program`, `assess_readiness`, `approve_configuration` | Location-scoped adoption summaries and aggregate adoption-event summaries are reads only. `record_event` now fails closed and has no replacement write route. | Add scoped program/readiness/configuration writes and a consent-aware event route. Configure policy on the program, bind event references to canonical participant identity, and validate current consent at write time. |
@@ -98,11 +98,13 @@ establish universal database ACL/RLS boundaries. CAP-035 remains prepared.
 
 ## Verification and rollback
 
-The focused Gateway/route-policy/console selection covers migration 503 and
-504 route contracts; disposable PostgreSQL 16 checkers apply and replay both
-migrations after the CAP-035 chain. Migration 504 acceptance exercises exact
-scope, active human attribution, input validation, opening-event atomicity,
-exact retry replay, changed-payload rejection, and receipt privacy. Candidate
-and legacy databases were untouched; migrations 503 and 504 have not been
-rolled out. Before rollout, disable the new route and console form while
-retaining the additive migration; do not edit or reverse an applied migration.
+The focused Gateway/route-policy/console selection covers migrations 503–505;
+disposable PostgreSQL 16 checkers apply and replay these migrations after the
+CAP-035 chain. Migration 504 acceptance exercises exact scope, active human
+attribution, input validation, opening-event atomicity, exact retry replay,
+changed-payload rejection, and receipt privacy. Migration 505 acceptance
+exercises draft gate creation, fixed promotion mapping, exact-origin reads,
+criterion redaction, retries, and role boundaries. Candidate and legacy
+databases were untouched; migrations 503–505 have not been rolled out. Before
+rollout, disable the new route and console form while retaining the additive
+migrations; do not edit or reverse an applied migration.

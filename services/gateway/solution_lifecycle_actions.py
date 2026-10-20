@@ -73,6 +73,12 @@ SOLUTION_TYPES = frozenset({
 SOLUTION_RISK_CLASSES = frozenset({"low", "medium", "high", "critical"})
 SOLUTION_REVERSIBILITY = frozenset({"high", "medium", "low", "unknown"})
 _SOLUTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{1,159}$")
+SOLUTION_GATE_PROMOTIONS = {
+    "testing": "validated",
+    "investment_ready": "funded",
+    "pilot_active": "adoption_ready",
+    "adopting": "scaled",
+}
 
 
 def _normalize_funding_amount(value, field: str, *, required: bool = False) -> str | None:
@@ -214,6 +220,97 @@ def create_location_solution(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Location solution creation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_solution_gate(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    request_id: str,
+    to_stage: str,
+    criterion: str,
+    required_evidence_maturity: int | None,
+    required_experiment_count: int,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create one immutable, exact-origin promotion gate in draft state."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(to_stage, str) or to_stage not in SOLUTION_GATE_PROMOTIONS.values():
+        raise SolutionLifecycleActionInvalid("Unsupported solution promotion target")
+    if not isinstance(criterion, str) or not 10 <= len(criterion.strip()) <= 2000 or "\x00" in criterion:
+        raise SolutionLifecycleActionInvalid(
+            "Gate criterion must contain 10 to 2,000 characters and fit within 4 KiB"
+        )
+    try:
+        criterion_bytes = criterion.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Gate criterion must be valid UTF-8 text") from exc
+    if len(criterion_bytes) > 4000:
+        raise SolutionLifecycleActionInvalid(
+            "Gate criterion must contain 10 to 2,000 characters and fit within 4 KiB"
+        )
+    criterion = criterion.strip()
+    if required_evidence_maturity is not None and (
+        isinstance(required_evidence_maturity, bool)
+        or not isinstance(required_evidence_maturity, int)
+        or not 1 <= required_evidence_maturity <= 6
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Required evidence maturity must be an integer from 1 to 6"
+        )
+    if (
+        isinstance(required_experiment_count, bool)
+        or not isinstance(required_experiment_count, int)
+        or not 0 <= required_experiment_count <= 100
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Required experiment count must be an integer from 0 to 100"
+        )
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Gate creation requires acknowledgement that independent review is required"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.create_location_solution_gate(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text,
+                           %s::integer, %s::integer, %s::boolean
+                       )""",
+                (
+                    location_id, solution_id, request_id, to_stage, criterion,
+                    required_evidence_maturity, required_experiment_count,
+                    acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Location solution gate creation returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

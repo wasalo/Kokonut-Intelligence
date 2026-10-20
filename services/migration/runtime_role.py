@@ -731,6 +731,80 @@ def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
         )
 
 
+def _apply_solution_stage_gate_boundary(
+    cur, runtime_ident: sql.Identifier
+) -> dict[str, object]:
+    """Require bounded security-definer functions for solution stage-gate access."""
+    cur.execute("SELECT to_regclass('public.solution_stage_gate')")
+    if cur.fetchone()[0] is None:
+        return {
+            "installed": False,
+            "select": False,
+            "insert": False,
+            "update": False,
+            "delete": False,
+        }
+
+    table_ident = sql.Identifier("public", "solution_stage_gate")
+    cur.execute(
+        "SELECT attname FROM pg_attribute "
+        "WHERE attrelid = 'public.solution_stage_gate'::regclass "
+        "AND attnum > 0 AND NOT attisdropped"
+    )
+    columns = [row[0] for row in cur.fetchall()]
+    if not columns:
+        raise RuntimeError("solution_stage_gate has no columns for the runtime boundary")
+
+    cur.execute(
+        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+            table_ident, runtime_ident
+        )
+    )
+    # Column grants survive a table-level REVOKE; clear them before leaving the
+    # relation available only through its bounded Gateway projections/actions.
+    for column in columns:
+        for privilege in ("SELECT", "INSERT", "UPDATE"):
+            cur.execute(
+                sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                    sql.SQL(privilege),
+                    sql.Identifier(column),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+    return {
+        "installed": True,
+        "select": False,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "access": "bounded security-definer functions only",
+    }
+
+
+def _verify_solution_stage_gate_boundary(cur, role_name: str) -> None:
+    cur.execute("SELECT to_regclass('public.solution_stage_gate')")
+    if cur.fetchone()[0] is None:
+        return
+    cur.execute(
+        "SELECT has_table_privilege(%s, 'public.solution_stage_gate', 'SELECT'), "
+        "has_table_privilege(%s, 'public.solution_stage_gate', 'INSERT'), "
+        "has_table_privilege(%s, 'public.solution_stage_gate', 'UPDATE'), "
+        "has_table_privilege(%s, 'public.solution_stage_gate', 'DELETE'), "
+        "EXISTS (SELECT 1 FROM pg_attribute "
+        "WHERE attrelid = 'public.solution_stage_gate'::regclass "
+        "AND attnum > 0 AND NOT attisdropped "
+        "AND (has_column_privilege(%s, 'public.solution_stage_gate', attname, 'SELECT') "
+        "OR has_column_privilege(%s, 'public.solution_stage_gate', attname, 'INSERT') "
+        "OR has_column_privilege(%s, 'public.solution_stage_gate', attname, 'UPDATE'))) ",
+        (role_name, role_name, role_name, role_name, role_name, role_name, role_name),
+    )
+    if cur.fetchone() != (False, False, False, False, False):
+        raise RuntimeError(
+            f"{role_name} retains direct solution_stage_gate privileges"
+        )
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -757,7 +831,8 @@ def provision_runtime_role(
     """Provision a general runtime role plus a session-only auth principal.
 
     The runtime role keeps DML compatibility for existing public tables,
-    except ``operator_session``, mobile credentials, and ``api_key``, which use
+    except ``operator_session``, mobile credentials, ``api_key``, and
+    ``solution_stage_gate``, which use
     explicit least-privilege grants. New public tables and sequences receive no
     automatic runtime privileges. The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
@@ -1354,6 +1429,9 @@ def provision_runtime_role(
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
+        solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
+            cur, runtime_ident
+        )
         cur.execute(
             sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
         )
@@ -2197,6 +2275,7 @@ def provision_runtime_role(
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
+        _verify_solution_stage_gate_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
             cur, admin_user=admin_user, runtime_user=runtime_user
         )
@@ -2359,10 +2438,12 @@ def provision_runtime_role(
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
+            "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
+        "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,
         "operator_session_access": "bounded functions only",
         "security_definer_owners_verified": True,

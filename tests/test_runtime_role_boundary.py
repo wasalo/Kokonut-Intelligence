@@ -449,3 +449,65 @@ def test_runtime_api_key_access_is_read_only_and_column_scoped():
     assert result["insert"] == []
     assert result["update"] == []
     assert result["delete"] is False
+
+
+def test_runtime_solution_stage_gate_access_is_only_through_bounded_functions():
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, statement, parameters=None):
+            self.calls.append((statement, parameters))
+
+        def fetchone(self):
+            return ("solution_stage_gate",)
+
+        def fetchall(self):
+            return [(column,) for column in ("id", "requirements", "status")]
+
+    cursor = Cursor()
+    result = runtime_role._apply_solution_stage_gate_boundary(
+        cursor,
+        runtime_role.sql.Identifier("kokonut_runtime"),
+    )
+
+    assert result == {
+        "installed": True,
+        "select": False,
+        "insert": False,
+        "update": False,
+        "delete": False,
+        "access": "bounded security-definer functions only",
+    }
+    assert len(cursor.calls) == 3 + 3 * 3
+
+
+@pytest.mark.parametrize(
+    "privileges,should_raise",
+    [
+        ((False, False, False, False, False), False),
+        ((True, False, False, False, False), True),
+        ((False, False, True, False, False), True),
+        ((False, False, False, False, True), True),
+    ],
+)
+def test_runtime_solution_stage_gate_privilege_verification(privileges, should_raise):
+    class Cursor:
+        def __init__(self):
+            self.fetches = 0
+
+        def execute(self, _statement, _parameters=None):
+            return None
+
+        def fetchone(self):
+            self.fetches += 1
+            if self.fetches == 1:
+                return ("solution_stage_gate",)
+            return privileges
+
+    cursor = Cursor()
+    if should_raise:
+        with pytest.raises(RuntimeError, match="retains direct solution_stage_gate privileges"):
+            runtime_role._verify_solution_stage_gate_boundary(cursor, "kokonut_runtime")
+    else:
+        runtime_role._verify_solution_stage_gate_boundary(cursor, "kokonut_runtime")

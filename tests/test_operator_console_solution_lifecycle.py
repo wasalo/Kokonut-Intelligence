@@ -60,10 +60,11 @@ def test_gate_panel_displays_only_fixed_non_mutating_status_fields():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<h3>Location-linked stage gates</h3>(.*?)</section>', source, re.DOTALL)
     assert panel is not None
-    assert "does not approve a transition" in panel.group(1)
+    assert "different active human must approve a passing evaluation" in panel.group(1)
     renderer = _function(source, "function appendSolutionLifecycleGate(", "async function loadSolutionLifecycleGates(")
     for field in (
         "solution_name", "solution_type", "current_stage", "solution_status", "from_stage", "to_stage",
+        "gate_criterion",
         "required_evidence_maturity", "required_experiment_count", "requires_human_approval",
         "gate_status", "gate_created_at", "latest_evaluation_passed", "latest_evaluated_at",
     ):
@@ -117,7 +118,55 @@ def test_gate_evidence_and_approval_require_review_grant_and_remain_separate():
     assert 'approve.textContent = requiresIndependentReview' in review
     assert "The solution stage remains unchanged" in review
     assert "result.evaluated_by_party_id" not in review
+    assert "result.gate_criterion" in review
     assert "innerHTML" not in review
+
+
+def test_gate_definition_form_is_exact_location_gated_draft_only_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-gate-create".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "immutable promotion-gate definition in draft state" in panel.group(0)
+    assert "independent human approval" in panel.group(0)
+    assert "Criteria are shared with authorized readers and reviewers" in panel.group(0)
+    assert 'solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleGateCreate(",
+        "function appendSolutionLifecycleGate(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in submit
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert "solutionLifecyclePendingGateCreate.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingGateCreate.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/gates`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "await loadSolutionLifecycleGates()" in submit
+    assert "does not change the solution stage" in panel.group(0)
+    assert "innerHTML" not in submit
+
+
+def test_gate_definition_target_loader_uses_exact_location_read_and_current_stage_allowlist():
+    source = CONSOLE.read_text(encoding="utf-8")
+    loader = _function(
+        source,
+        "async function loadSolutionLifecycleGateCreateTargets(",
+        "async function submitSolutionLifecycleGateCreate(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in loader
+    assert "solutionLifecycleCreateLocations.has(locationId)" in loader
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/stage-transition-targets?${params}`' in loader
+    assert 'testing: "validated"' in loader
+    assert 'investment_ready: "funded"' in loader
+    assert 'pilot_active: "adoption_ready"' in loader
+    assert 'adopting: "scaled"' in loader
+    assert "requestVersion !== solutionLifecycleGateTargetsRequestVersion" in loader
+    assert "locationId !== solutionLifecycleLocation.value" in loader
+    assert 'cache: "no-store"' in loader
+    assert "innerHTML" not in loader
 
 
 def test_gate_transition_requires_approved_passing_gate_and_exact_transition_grant():

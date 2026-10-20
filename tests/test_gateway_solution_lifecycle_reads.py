@@ -533,7 +533,7 @@ def test_http_retirement_review_detail_maps_missing_item_to_not_found(monkeypatc
 def test_gate_list_uses_signed_context_bounded_page_and_returns_no_raw_evidence():
     columns = (
         "solution_id", "solution_name", "solution_type", "current_stage",
-        "solution_status", "gate_id", "from_stage", "to_stage",
+        "solution_status", "gate_id", "from_stage", "to_stage", "gate_criterion",
         "required_evidence_maturity", "required_experiment_count",
         "requires_human_approval", "gate_status", "gate_created_at",
         "latest_evaluation_passed", "latest_evaluated_at",
@@ -541,7 +541,8 @@ def test_gate_list_uses_signed_context_bounded_page_and_returns_no_raw_evidence(
     row = (
         "c0000000-0000-4000-8000-000000000001", "Soil cover", "practice",
         "testing", "active", "e0000000-0000-4000-8000-000000000001",
-        "testing", "validated", 3, 2, True, "ready", "2026-10-18T00:00:00Z",
+        "testing", "validated", "Independent field measurements support the expected outcome.",
+        3, 2, True, "ready", "2026-10-18T00:00:00Z",
         True, "2026-10-19T00:00:00Z",
     )
     connection = _Connection(rows=[row, row, row], columns=columns)
@@ -574,6 +575,9 @@ def test_gate_list_uses_signed_context_bounded_page_and_returns_no_raw_evidence(
     assert result["has_more"] is True
     assert result["next_offset"] == 7
     assert "latest_evaluation_passed" in result["gates"][0]
+    assert result["gates"][0]["gate_criterion"] == (
+        "Independent field measurements support the expected outcome."
+    )
     assert not {"evidence", "observed", "evaluated_by_party_id"}.intersection(
         result["gates"][0]
     )

@@ -29,6 +29,7 @@ REVIEW = {
     "gate_id": GATE_ID,
     "from_stage": "testing",
     "to_stage": "validated",
+    "gate_criterion": "Independent measurements support the success claim.",
     "requires_human_approval": True,
     "gate_status": "draft",
     "evaluation_passed": True,
