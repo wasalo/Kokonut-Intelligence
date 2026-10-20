@@ -139,6 +139,15 @@ exact `comprehensive_status:read` grant for that location. It generates the
 14-section report without saving or publishing it, accepts optional canonical
 date bounds, and returns `no-store` data capped at 512 KiB. Stakeholder classes
 receive no automatic grants. See the [Comprehensive Status read contract](comprehensive-status-kernel-read-contract.md).
+Business canvas blocks can be edited only while a canvas remains `draft`, using
+`PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/blocks/{block_name}`
+under an exact `business_planning:update` grant, expected version/timestamp,
+and a required change reason. Version history is read through
+`GET /operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions`
+under `business_planning:read`; it returns bounded current and prior snapshots.
+The edit path does not change lifecycle status. Existing direct CLI/Directus
+writes remain compatible and can bypass Kernel history. See the
+[business planning edit contract](business-planning-kernel-edit-contract.md).
 The Gateway checks each grant against the requested canonical location UUID;
 the mobile detail grant is intentionally separate from list access. Each
 read-only SQL query rechecks the active grant and binds record ID and location.

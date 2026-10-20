@@ -61,8 +61,11 @@ before suggestion reads. The Gateway now has a generated-draft path, but this
 does not prove populated-output parity. The fourteen-section status report now
 has a separate location-scoped read route under
 `comprehensive_status:read`; its read contract is documented separately, and
-populated-output parity remains open. Existing canvas edits and version history
-still need Kernel routes and parity evidence.
+populated-output parity remains open. A location-scoped, draft-only block-edit
+route and version-history read now cover the nine canvas blocks, but not
+metadata edits or lifecycle transitions. Existing CLI/Directus direct writers
+remain compatible and can still bypass Kernel version history, so universal
+write isolation remains open ([edit contract](business-planning-kernel-edit-contract.md)).
 
 ## Verification boundary
 

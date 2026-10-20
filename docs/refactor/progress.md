@@ -1,3 +1,19 @@
+### CAP-065 Gateway canvas block editing and version history — 19 October 2026
+
+Migration 464 and the Gateway now support exact-location, `draft`-only block
+edits under `business_planning:update`, with an expected version and timestamp,
+an idempotency key, a required reason, and an append-only prior-state ledger.
+The `business_planning:read` history route returns bounded current and prior
+snapshots. It does not change lifecycle state. Ninety-four focused tests pass;
+disposable PostgreSQL 16 applies/replays migrations 457, 463, and 464 and passes
+14 edit/history/authorization/privilege assertions. Ruff, compilation, the
+route-policy inventory, capability matrix, and refreshed runtime SQL inventory
+pass. Candidate and legacy databases remain untouched; migration 464 is not
+rolled out. Existing CLI/Directus writers can bypass Kernel history, while
+metadata/lifecycle editing, populated parity, live OIDC/browser, universal
+ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 692 complete / 24 open;
+matrix: 31 baseline-retained, 7 deployed, 28 prepared ([edit contract](business-planning-kernel-edit-contract.md); [tests](../tests/test_gateway_business_planning_edits.py); [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json)).
+
 ### CAP-065 Gateway comprehensive-status read — 19 October 2026
 
 `GET /operator/api/comprehensive-status/{location_id}` now generates the

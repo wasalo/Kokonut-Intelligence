@@ -17,6 +17,8 @@ from services.gateway.operator_auth import (  # noqa: E402
 _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 _PARAMETER_SAMPLES = {
     "location_id": _LOCATION_ID,
+    "canvas_id": "22222222-2222-4222-8222-222222222222",
+    "block_name": "key_partners",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "report_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
@@ -150,6 +152,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/from-data",
     ): _expected("business_planning", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/22222222-2222-4222-8222-222222222222/blocks/key_partners",
+    ): _expected("business_planning", "update", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/22222222-2222-4222-8222-222222222222/versions",
+    ): _expected("business_planning", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/coordination/11111111-1111-4111-8111-111111111111/summary",

@@ -579,6 +579,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    business_canvas_versions_match = re.fullmatch(
+        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases/([0-9a-fA-F-]{36})/versions",
+        path,
+    )
+    if business_canvas_versions_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "business_planning",
+            "action": "read",
+            "public": False,
+            "location_id": business_canvas_versions_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    business_canvas_block_edit_match = re.fullmatch(
+        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases/([0-9a-fA-F-]{36})/blocks/[a-z_]+",
+        path,
+    )
+    if business_canvas_block_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "business_planning",
+            "action": "update",
+            "public": False,
+            "location_id": business_canvas_block_edit_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     business_architecture_match = re.fullmatch(
         r"/operator/api/business-architecture/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2606,6 +2634,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.business_architecture_routes import register_business_architecture_routes
+    from services.gateway.business_planning_edit_routes import (
+        register_business_planning_edit_routes,
+    )
     from services.gateway.business_planning_routes import register_business_planning_routes
     from services.gateway.competitive_landscape_routes import (
         register_competitive_landscape_routes,
@@ -2664,6 +2695,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_business_architecture_routes(router, provider, run_in_threadpool, psycopg2)
     register_comprehensive_status_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_planning_routes(router, provider, run_in_threadpool, psycopg2)
+    register_business_planning_edit_routes(router, provider, run_in_threadpool, psycopg2)
     register_coordination_routes(router, provider, run_in_threadpool, psycopg2)
     register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)
     register_sequential_decision_routes(router, provider, run_in_threadpool, psycopg2)
