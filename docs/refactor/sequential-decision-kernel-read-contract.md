@@ -57,6 +57,17 @@ not expose hypothesis/event IDs, statements, source IDs/references, raw values,
 source reliability, dependence groups, likelihoods, posterior odds or
 probabilities, threshold evaluations, or party identities.
 
+## Operator console
+
+The operator console shows the aggregate summary and event timeline only when
+the signed session includes an exact `sequential_evidence:read` location grant.
+The location selector contains only granted UUIDs. Summary labels and timeline
+columns use fixed allowlists from the projection; all values are inserted as
+text. Requests are same-origin and no-store, pages contain 25 items, stale
+responses are discarded after a location change, and the load-more control
+stops at the database offset bound. The view makes no writes or threshold
+decisions and does not constitute live OIDC/browser acceptance.
+
 ## Database boundary
 
 `kokonut_sequential_reader` is a dedicated non-login, non-inheriting role with

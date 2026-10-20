@@ -1,3 +1,19 @@
+### CAP-036 sequential-evidence console reads — 19 October 2026
+
+The operator console now shows the CAP-036 aggregate summary and ordered event
+timeline for locations with the exact `sequential_evidence:read` session grant.
+Summary and timeline fields are allowlisted; the view omits statements, source
+references, evidence values, probabilities, and identities, and makes no
+threshold decisions. It uses same-origin no-store requests, stale-location
+response guards, and 25-item pagination. Focused console/Gateway/route-policy
+selection passes 28 tests, including inline JavaScript syntax validation; Ruff
+and capability-matrix validation also pass. No database or provider was used.
+CAP-036 remains prepared pending
+full source lineage, populated parity, live OIDC/browser behavior, broader
+ACL/RLS, recovery, and owner review. Checklist: 710 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared. [Contract](sequential-decision-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_sequential_evidence.py).
+
 ### CAP-037 operating-pilot console reads — 19 October 2026
 
 The operator console now has a read-only CAP-037 panel for locations with the

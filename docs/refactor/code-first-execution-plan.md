@@ -3,7 +3,7 @@
 **Updated:** 19 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 19 October 2026:** the operator console now
+**Previous implementation slice — 19 October 2026:** the operator console now
 surfaces CAP-037's existing summary, demand, and capacity-period GET routes for
 locations with an exact `operating_pilot:read` session grant. It uses
 same-origin/no-store requests, discards stale location responses, displays only
@@ -18,7 +18,22 @@ matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
 contract](operating-pilot-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
 [console checks](../tests/test_operator_console_operating_pilot.py).
 
-**Latest implementation slice — 19 October 2026:** CAP-037 now has a
+**Latest implementation slice — 19 October 2026:** CAP-036 now has an
+operator-console panel for the existing sequential evidence summary and ordered
+event timeline, gated by exact `sequential_evidence:read` location grants. It
+uses fixed summary/row allowlists, same-origin no-store reads, stale-location
+response guards, and 25-item pages. The view exposes no statements, source
+references, evidence values, probabilities, or identities and does not perform
+threshold actions. The focused console/Gateway/route-policy selection passes
+28 tests, including inline JavaScript syntax validation; Ruff and capability
+validation pass. No database or provider was used. CAP-036 remains prepared pending full source lineage, populated parity,
+live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review.
+Checklist: 710 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared. Evidence: [contract](sequential-decision-kernel-read-contract.md),
+[console](../apps/operator-console/index.html), and
+[console checks](../tests/test_operator_console_sequential_evidence.py).
+
+**Previous implementation slice — 19 October 2026:** CAP-037 now has a
 bounded aggregate capacity-period page at
 `GET /operator/api/operating-pilot/{location_id}/capacity-periods`. Migration
 480 groups submitted/approved profiles by period under an active Adelphi farm
@@ -32,7 +47,7 @@ populated mapping, audience review, live OIDC/browser, broader ACL/RLS,
 recovery, and owner acceptance. Checklist: 708 complete / 24 open; capability
 matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [contract](operating-pilot-kernel-read-contract.md), [migration](../schemas/postgres/480_location_operating_pilot_capacity_periods.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json).
 
-**Latest implementation slice — 19 October 2026:** CAP-036 now has a redacted location-scoped event timeline at `GET /operator/api/sequential-evidence/{location_id}/events`. Migration 478 pages stable evidence and posterior sequence metadata for the three known location-bound subject lineages; private narratives, source identifiers, evidence values, likelihoods, probabilities, and identities stay inside PostgreSQL. The focused Gateway/route-policy selection passes 23 tests, Ruff and compilation pass, and disposable PostgreSQL 16 migration apply/replay passes eight acceptance groups. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete source-type lineage, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 706 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read contract](sequential-decision-kernel-read-contract.md), [migration](../schemas/postgres/478_location_sequential_evidence_timeline.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
+**Previous implementation slice — 19 October 2026:** CAP-036 now has a redacted location-scoped event timeline at `GET /operator/api/sequential-evidence/{location_id}/events`. Migration 478 pages stable evidence and posterior sequence metadata for the three known location-bound subject lineages; private narratives, source identifiers, evidence values, likelihoods, probabilities, and identities stay inside PostgreSQL. The focused Gateway/route-policy selection passes 23 tests, Ruff and compilation pass, and disposable PostgreSQL 16 migration apply/replay passes eight acceptance groups. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete source-type lineage, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 706 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read contract](sequential-decision-kernel-read-contract.md), [migration](../schemas/postgres/478_location_sequential_evidence_timeline.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
 
 **Latest implementation slice — 19 October 2026:** CAP-035 now has a location-scoped learning proposal action at `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`. Migration 477 validates a completed, actively reviewed replication, exact location and solution lineage, a signed create grant, active proposer attribution, bounded lesson fields, and an idempotency receipt. Proposals remain `proposed`; runtime has no direct table access and Directus cannot execute the function. The focused Gateway/route-policy selection passes 16 tests; Ruff, compilation, and disposable PostgreSQL 16 apply/replay checks pass, including nine acceptance groups. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending remaining lifecycle workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 705 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [learning proposal contract](solution-lifecycle-kernel-read-contract.md), [migration](../schemas/postgres/477_location_solution_learning_proposal.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
 

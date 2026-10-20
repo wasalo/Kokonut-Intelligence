@@ -557,6 +557,27 @@
           </div>
           <button id="operating-pilot-capacity-more" class="secondary" type="button" hidden>Load more capacity periods</button>
         </section>
+        <section id="sequential-evidence" hidden aria-labelledby="sequential-evidence-heading">
+          <h2 id="sequential-evidence-heading">Sequential evidence</h2>
+          <p class="muted">Read-only location summary and ordered evidence metadata. Statements, evidence values, likelihoods, probabilities, source references, and identities are not shown. Threshold counts are advisory and do not approve or trigger actions.</p>
+          <div class="toolbar">
+            <label for="sequential-evidence-location">Granted location</label>
+            <select id="sequential-evidence-location"></select>
+            <button id="sequential-evidence-refresh" type="button">Refresh evidence</button>
+          </div>
+          <p id="sequential-evidence-status" class="muted" role="status" aria-live="polite"></p>
+          <h3>Location summary</h3>
+          <dl id="sequential-evidence-summary"></dl>
+          <h3>Evidence timeline</h3>
+          <p id="sequential-evidence-timeline-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Hypothesis sequence</th><th>Subject type</th><th>Evidence sequence</th><th>Observed</th><th>Ingested</th><th>Evidence class</th><th>Quality</th><th>Posterior update sequence</th><th>Calculation version</th><th>Updated</th></tr></thead>
+              <tbody id="sequential-evidence-timeline-rows"></tbody>
+            </table>
+          </div>
+          <button id="sequential-evidence-timeline-more" class="secondary" type="button" hidden>Load more evidence</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -605,7 +626,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, sequential evidence, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -755,6 +776,17 @@
       let operatingPilotCapacityRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
+      const sequentialEvidence = document.querySelector("#sequential-evidence");
+      const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
+      const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
+      const sequentialEvidenceSummary = document.querySelector("#sequential-evidence-summary");
+      const sequentialEvidenceTimelineStatus = document.querySelector("#sequential-evidence-timeline-status");
+      const sequentialEvidenceTimelineRows = document.querySelector("#sequential-evidence-timeline-rows");
+      const sequentialEvidenceTimelineMore = document.querySelector("#sequential-evidence-timeline-more");
+      let sequentialEvidenceLocations = new Set();
+      let sequentialEvidenceSummaryRequestVersion = 0;
+      let sequentialEvidenceTimelineRequestVersion = 0;
+      let sequentialEvidenceTimelineOffset = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1062,6 +1094,135 @@
         ]);
       }
 
+      function addSequentialEvidenceMetric(label, value) {
+        const term = document.createElement("dt");
+        const description = document.createElement("dd");
+        term.textContent = label;
+        description.textContent = value === null || value === undefined ? "—" : String(value);
+        sequentialEvidenceSummary.append(term, description);
+      }
+
+      function renderSequentialEvidenceSummary(summary) {
+        sequentialEvidenceSummary.replaceChildren();
+        addSequentialEvidenceMetric("Hypotheses", summary.hypothesis_count);
+        for (const [field, label] of [
+          ["draft", "Draft"], ["active", "Active"], ["resolved", "Resolved"], ["retired", "Retired"]
+        ]) {
+          addSequentialEvidenceMetric(`Hypotheses · ${label}`, summary.hypothesis_status_counts?.[field]);
+        }
+        addSequentialEvidenceMetric("Evidence events", summary.evidence_event_count);
+        for (const [field, label] of [
+          ["unverified", "Unverified"], ["provisional", "Provisional"], ["verified", "Verified"],
+          ["rejected", "Rejected"], ["stale", "Stale"]
+        ]) {
+          addSequentialEvidenceMetric(`Evidence quality · ${label}`, summary.evidence_quality_counts?.[field]);
+        }
+        addSequentialEvidenceMetric("Applied evidence events", summary.applied_evidence_event_count);
+        addSequentialEvidenceMetric("Posterior updates", summary.posterior_update_count);
+        for (const [field, label] of [
+          ["continue", "Continue"], ["act", "Act"], ["escalate", "Escalate"],
+          ["stop", "Stop"], ["reject", "Reject"], ["insufficient_evidence", "Insufficient evidence"]
+        ]) {
+          addSequentialEvidenceMetric(`Latest threshold action · ${label}`, summary.latest_decision_action_counts?.[field]);
+        }
+      }
+
+      function appendSequentialEvidenceRow(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.hypothesis_sequence,
+          item.subject_type,
+          item.evidence_sequence,
+          item.observed_at,
+          item.ingested_at,
+          item.evidence_class,
+          item.quality_status,
+          item.posterior_update_sequence,
+          item.calculation_version,
+          item.posterior_updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = value === null || value === undefined ? "—" : String(value);
+          row.append(cell);
+        }
+        sequentialEvidenceTimelineRows.append(row);
+      }
+
+      function sequentialEvidenceRequestError(response) {
+        if (response.status === 401 || response.status === 403) {
+          return "Your session or location read grant is no longer valid. Reload the console to refresh access.";
+        }
+        if (response.status === 404) return "Sequential evidence reads are unavailable for this location.";
+        return "The sequential evidence could not be loaded. Retry when the service is available.";
+      }
+
+      async function loadSequentialEvidenceSummary() {
+        const locationId = sequentialEvidenceLocation.value;
+        const requestVersion = ++sequentialEvidenceSummaryRequestVersion;
+        if (!sequentialEvidenceLocations.has(locationId)) return;
+        sequentialEvidenceStatus.textContent = "Loading location summary…";
+        try {
+          const response = await fetch(
+            `/operator/api/sequential-evidence/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(sequentialEvidenceRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== sequentialEvidenceSummaryRequestVersion
+              || locationId !== sequentialEvidenceLocation.value) return;
+          renderSequentialEvidenceSummary(result);
+          sequentialEvidenceStatus.textContent = "Aggregate decision and evidence counts. Threshold actions are advisory.";
+        } catch (error) {
+          if (requestVersion !== sequentialEvidenceSummaryRequestVersion) return;
+          sequentialEvidenceSummary.replaceChildren();
+          sequentialEvidenceStatus.textContent = error.message;
+        }
+      }
+
+      async function loadSequentialEvidenceTimeline(append = false) {
+        const locationId = sequentialEvidenceLocation.value;
+        const requestVersion = ++sequentialEvidenceTimelineRequestVersion;
+        if (!sequentialEvidenceLocations.has(locationId)) return;
+        if (!append) {
+          sequentialEvidenceTimelineOffset = 0;
+          sequentialEvidenceTimelineRows.replaceChildren();
+        }
+        const offset = append ? sequentialEvidenceTimelineOffset : 0;
+        sequentialEvidenceTimelineMore.disabled = true;
+        sequentialEvidenceTimelineStatus.textContent = "Loading evidence timeline…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/sequential-evidence/${encodeURIComponent(locationId)}/events?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(sequentialEvidenceRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== sequentialEvidenceTimelineRequestVersion
+              || locationId !== sequentialEvidenceLocation.value) return;
+          for (const item of result.items || []) appendSequentialEvidenceRow(item);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          sequentialEvidenceTimelineMore.hidden = !canContinue;
+          sequentialEvidenceTimelineOffset = canContinue ? nextOffset : 0;
+          sequentialEvidenceTimelineStatus.textContent = canContinue
+            ? "Showing a bounded page of redacted evidence metadata."
+            : sequentialEvidenceTimelineRows.childElementCount
+              ? "Evidence timeline loaded."
+              : "No location-scoped evidence events are available.";
+        } catch (error) {
+          if (requestVersion !== sequentialEvidenceTimelineRequestVersion) return;
+          sequentialEvidenceTimelineMore.hidden = true;
+          sequentialEvidenceTimelineStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === sequentialEvidenceTimelineRequestVersion) sequentialEvidenceTimelineMore.disabled = false;
+        }
+      }
+
+      async function loadSequentialEvidence() {
+        await Promise.all([loadSequentialEvidenceSummary(), loadSequentialEvidenceTimeline()]);
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1087,6 +1248,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotLocations = new Set(operatingPilotLocationIds);
+          const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          sequentialEvidenceLocations = new Set(sequentialEvidenceLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -1292,6 +1459,17 @@
             }
             operatingPilot.hidden = false;
             await loadOperatingPilot();
+            hasAuthorizedSurface = true;
+          }
+          if (sequentialEvidenceLocationIds.length) {
+            for (const locationId of sequentialEvidenceLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              sequentialEvidenceLocation.append(option);
+            }
+            sequentialEvidence.hidden = false;
+            await loadSequentialEvidence();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -4438,6 +4616,9 @@
       operatingPilotLocation.addEventListener("change", loadOperatingPilot);
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
+      document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
+      sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
+      sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

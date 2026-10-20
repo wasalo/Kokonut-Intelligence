@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c66f5798a8e86730b581078a7dde26acc1462376",
+  "baseline_commit": "6e97ca5e732ce07c961de0b9a9d4e6b6f2e17e47",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -5111,6 +5111,7 @@
     "tests/test_operator_console_governance_tensions.py",
     "tests/test_operator_console_mobile_disposition.py",
     "tests/test_operator_console_operating_pilot.py",
+    "tests/test_operator_console_sequential_evidence.py",
     "tests/test_operator_mobile_review.py",
     "tests/test_operator_oidc_provider_contract.py",
     "tests/test_operator_report_review.py",
