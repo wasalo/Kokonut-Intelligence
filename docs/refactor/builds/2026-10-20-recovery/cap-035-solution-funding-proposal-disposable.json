@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "migration": "488_location_solution_funding_proposals.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, and 468 apply, and migration 468 replays",
+    "funding cases and tranches are included only for exact origin or location-linked solutions",
+    "cases without tranches remain visible and tranche states/timestamps preserve ordering",
+    "amounts, milestone conditions, rationale, evidence, and party identities are omitted from function output and reader column grants",
+    "the migration-459 aggregate summary continues to work with only its required funding columns",
+    "page bounds, signed context, exact location grant, and read-only behavior are enforced",
+    "runtime can call the bounded function but cannot read funding tables; Directus cannot call it",
+    "funding draft targets are exact location-origin solutions and exclude linked/global and other-location solutions",
+    "draft creation requires signed exact-location create scope and an active human operator binding",
+    "case and proposed tranches are inserted atomically with bounded financial/evidence payloads",
+    "draft request retries replay exact receipts; changed payloads and cross-scope attempts fail closed",
+    "proposed tranche totals cannot exceed the request ceiling; empty tranches remain valid",
+    "case and tranche statuses remain draft/proposed and lifecycle stage is unchanged",
+    "runtime and Directus cannot read private funding receipts; proposer role cannot update/delete or approve/release"
+  ],
+  "assertions_passed": 9,
+  "proposal_assertions_passed": 7
+}

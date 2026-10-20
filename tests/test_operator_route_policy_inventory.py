@@ -215,6 +215,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding/targets",
+    ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/solutions/dddddddd-dddd-4ddd-8ddd-dddddddddddd/funding",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
     (

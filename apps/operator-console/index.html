@@ -613,6 +613,59 @@
           <button id="solution-lifecycle-experiments-more" class="secondary" type="button" hidden>Load more experiments</button>
           <h3>Funding and tranche status</h3>
           <p class="muted">This view contains lifecycle labels and timestamps only. Funding amounts, milestone terms, rationale, evidence, and submitter/approver/releaser identities remain private; no approval or release action is available.</p>
+          <section id="solution-lifecycle-funding-proposal" hidden aria-labelledby="solution-lifecycle-funding-proposal-heading">
+            <h4 id="solution-lifecycle-funding-proposal-heading">Create a funding draft</h4>
+            <p class="muted">Requires exact location read and create grants. This creates a private draft and optional proposed tranches only; it does not submit, approve, release funds, or advance the solution stage.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-funding-targets-load" type="button">Load eligible solutions</button>
+              <button id="solution-lifecycle-funding-targets-more" class="secondary" type="button" hidden>Load more solutions</button>
+            </div>
+            <p id="solution-lifecycle-funding-targets-status" class="muted" role="status" aria-live="polite"></p>
+            <form id="solution-lifecycle-funding-proposal-form" class="stacked-form">
+              <label for="solution-lifecycle-funding-solution">Location-origin solution</label>
+              <select id="solution-lifecycle-funding-solution" required>
+                <option value="">Load eligible solutions, then choose one</option>
+              </select>
+              <label for="solution-lifecycle-funding-stage">Capital stage</label>
+              <select id="solution-lifecycle-funding-stage" required>
+                <option value="discovery">Discovery</option><option value="experiment">Experiment</option>
+                <option value="pilot">Pilot</option><option value="replication">Replication</option>
+                <option value="scale">Scale</option><option value="maintenance">Maintenance</option>
+              </select>
+              <label for="solution-lifecycle-funding-instrument">Funding instrument</label>
+              <select id="solution-lifecycle-funding-instrument" required>
+                <option value="grant">Grant</option><option value="budget">Budget</option>
+                <option value="bounty">Bounty</option><option value="loan">Loan</option>
+                <option value="investment">Investment</option><option value="community_fund">Community fund</option>
+                <option value="in_kind">In kind</option>
+              </select>
+              <label for="solution-lifecycle-funding-amount">Requested amount</label>
+              <input id="solution-lifecycle-funding-amount" type="text" inputmode="decimal" required maxlength="20" placeholder="0.00">
+              <label for="solution-lifecycle-funding-minimum">Minimum viable amount (optional)</label>
+              <input id="solution-lifecycle-funding-minimum" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-maximum">Maximum authorized amount (optional)</label>
+              <input id="solution-lifecycle-funding-maximum" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-currency">Currency code</label>
+              <input id="solution-lifecycle-funding-currency" type="text" required minlength="2" maxlength="10" value="USD">
+              <label for="solution-lifecycle-funding-risk-value">Risk-adjusted expected value (optional)</label>
+              <input id="solution-lifecycle-funding-risk-value" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-public-value">Public-goods value (optional)</label>
+              <input id="solution-lifecycle-funding-public-value" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-community-share">Community share (optional)</label>
+              <input id="solution-lifecycle-funding-community-share" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-downside">Downside exposure (optional)</label>
+              <input id="solution-lifecycle-funding-downside" type="text" inputmode="decimal" maxlength="20">
+              <label for="solution-lifecycle-funding-rationale">Rationale</label>
+              <textarea id="solution-lifecycle-funding-rationale" required maxlength="4000"></textarea>
+              <label for="solution-lifecycle-funding-evidence">Evidence references (JSON array)</label>
+              <textarea id="solution-lifecycle-funding-evidence" required maxlength="65536" spellcheck="false">[]</textarea>
+              <label for="solution-lifecycle-funding-tranches">Proposed tranches (JSON array)</label>
+              <textarea id="solution-lifecycle-funding-tranches" required maxlength="65536" spellcheck="false">[]</textarea>
+              <label><input id="solution-lifecycle-funding-acknowledgement" type="checkbox" required> I understand this records a draft only; it cannot submit, approve, or release funds.</label>
+              <button id="solution-lifecycle-funding-submit" type="submit">Create funding draft</button>
+              <p id="solution-lifecycle-funding-proposal-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <div class="toolbar">
             <button id="solution-lifecycle-funding-load" type="button">Load funding status</button>
           </div>
@@ -1131,6 +1184,13 @@
       const solutionLifecycleFundingStatus = document.querySelector("#solution-lifecycle-funding-status");
       const solutionLifecycleFundingRows = document.querySelector("#solution-lifecycle-funding-rows");
       const solutionLifecycleFundingMore = document.querySelector("#solution-lifecycle-funding-more");
+      const solutionLifecycleFundingProposal = document.querySelector("#solution-lifecycle-funding-proposal");
+      const solutionLifecycleFundingTargetsLoad = document.querySelector("#solution-lifecycle-funding-targets-load");
+      const solutionLifecycleFundingTargetsMore = document.querySelector("#solution-lifecycle-funding-targets-more");
+      const solutionLifecycleFundingTargetsStatus = document.querySelector("#solution-lifecycle-funding-targets-status");
+      const solutionLifecycleFundingProposalForm = document.querySelector("#solution-lifecycle-funding-proposal-form");
+      const solutionLifecycleFundingSolution = document.querySelector("#solution-lifecycle-funding-solution");
+      const solutionLifecycleFundingProposalStatus = document.querySelector("#solution-lifecycle-funding-proposal-status");
       const solutionLifecycleProjection = document.querySelector("#solution-lifecycle-projection");
       const solutionLifecycleProjectionLoad = document.querySelector("#solution-lifecycle-projection-load");
       const solutionLifecycleProjectionStatus = document.querySelector("#solution-lifecycle-projection-status");
@@ -1182,6 +1242,9 @@
       let solutionLifecycleExperimentsOffset = 0;
       let solutionLifecycleFundingRequestVersion = 0;
       let solutionLifecycleFundingOffset = 0;
+      let solutionLifecycleFundingTargetsRequestVersion = 0;
+      let solutionLifecycleFundingTargetsOffset = 0;
+      let solutionLifecyclePendingFundingProposal = null;
       let solutionLifecycleProjectionRequestVersion = 0;
       let solutionLifecycleProjectionOffset = 0;
       let solutionLifecycleLearningSourcesRequestVersion = 0;
@@ -2725,6 +2788,163 @@
         }
         article.append(heading, details);
         solutionLifecycleFundingRows.append(article);
+      }
+
+      async function loadSolutionLifecycleFundingTargets(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleFundingTargetsRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)) {
+          solutionLifecycleFundingTargetsStatus.textContent = "A location read grant is required to load funding targets.";
+          return;
+        }
+        const offset = append ? solutionLifecycleFundingTargetsOffset : 0;
+        solutionLifecycleFundingTargetsLoad.disabled = true;
+        solutionLifecycleFundingTargetsMore.disabled = true;
+        solutionLifecycleFundingTargetsStatus.textContent = "Loading exact-location-origin solutions…";
+        if (!append) {
+          solutionLifecycleFundingSolution.replaceChildren();
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Choose a location-origin solution";
+          solutionLifecycleFundingSolution.append(placeholder);
+          solutionLifecycleFundingTargetsMore.hidden = true;
+        }
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding/targets?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your current location read grant is no longer valid.");
+            }
+            throw new Error(result.error || "Funding targets could not be loaded.");
+          }
+          if (requestVersion !== solutionLifecycleFundingTargetsRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          for (const solution of Array.isArray(result.solutions) ? result.solutions : []) {
+            if (typeof solution.solution_id !== "string"
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(solution.solution_id)) continue;
+            const option = document.createElement("option");
+            option.value = solution.solution_id;
+            option.textContent = `${solution.solution_name || "Location-origin solution"} · ${solution.current_stage || "stage unavailable"}`;
+            solutionLifecycleFundingSolution.append(option);
+          }
+          solutionLifecycleFundingTargetsOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleFundingTargetsMore.hidden = result.has_more !== true
+            || solutionLifecycleFundingTargetsOffset <= offset;
+          solutionLifecycleFundingTargetsStatus.textContent = solutionLifecycleFundingSolution.options.length > 1
+            ? `${solutionLifecycleFundingSolution.options.length - 1} eligible location-origin solution${solutionLifecycleFundingSolution.options.length === 2 ? "" : "s"} loaded.`
+            : "No location-origin solutions are available for a funding draft.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleFundingTargetsRequestVersion) return;
+          solutionLifecycleFundingTargetsStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleFundingTargetsRequestVersion) {
+            solutionLifecycleFundingTargetsLoad.disabled = false;
+            solutionLifecycleFundingTargetsMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitSolutionLifecycleFundingProposal(event) {
+        event.preventDefault();
+        const locationId = solutionLifecycleLocation.value;
+        const solutionId = solutionLifecycleFundingSolution.value;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)
+            || !solutionId) {
+          solutionLifecycleFundingProposalStatus.textContent = "A current location read/create grant and an eligible solution are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleFundingProposalStatus.textContent = "Refresh the operator session before creating a funding draft.";
+          return;
+        }
+        let evidence;
+        let tranches;
+        try {
+          evidence = JSON.parse(document.querySelector("#solution-lifecycle-funding-evidence").value);
+          tranches = JSON.parse(document.querySelector("#solution-lifecycle-funding-tranches").value);
+        } catch {
+          solutionLifecycleFundingProposalStatus.textContent = "Evidence and tranches must be valid JSON.";
+          return;
+        }
+        if (!Array.isArray(evidence) || !Array.isArray(tranches)) {
+          solutionLifecycleFundingProposalStatus.textContent = "Evidence and tranches must each be JSON arrays.";
+          return;
+        }
+        const amountValue = selector => {
+          const value = document.querySelector(selector).value.trim();
+          return value === "" ? null : value;
+        };
+        const requestedAmount = amountValue("#solution-lifecycle-funding-amount");
+        if (requestedAmount === null) {
+          solutionLifecycleFundingProposalStatus.textContent = "Enter a requested amount.";
+          return;
+        }
+        const request = {
+          capital_stage: document.querySelector("#solution-lifecycle-funding-stage").value,
+          funding_instrument: document.querySelector("#solution-lifecycle-funding-instrument").value,
+          requested_amount: requestedAmount,
+          minimum_viable_amount: amountValue("#solution-lifecycle-funding-minimum"),
+          maximum_authorized_amount: amountValue("#solution-lifecycle-funding-maximum"),
+          currency: document.querySelector("#solution-lifecycle-funding-currency").value.trim(),
+          risk_adjusted_expected_value: amountValue("#solution-lifecycle-funding-risk-value"),
+          public_goods_value: amountValue("#solution-lifecycle-funding-public-value"),
+          community_share: amountValue("#solution-lifecycle-funding-community-share"),
+          downside_exposure: amountValue("#solution-lifecycle-funding-downside"),
+          rationale: document.querySelector("#solution-lifecycle-funding-rationale").value,
+          evidence,
+          tranches
+        };
+        const fingerprint = JSON.stringify({ locationId, solutionId, ...request });
+        if (!solutionLifecyclePendingFundingProposal
+            || solutionLifecyclePendingFundingProposal.fingerprint !== fingerprint) {
+          solutionLifecyclePendingFundingProposal = {
+            fingerprint,
+            request_id: crypto.randomUUID()
+          };
+        }
+        const submit = document.querySelector("#solution-lifecycle-funding-submit");
+        submit.disabled = true;
+        solutionLifecycleFundingProposalStatus.textContent = "Creating a private draft; no funds will be submitted or released.";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/funding`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({
+                ...request,
+                request_id: solutionLifecyclePendingFundingProposal.request_id
+              })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location create grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The funding draft could not be created.");
+          solutionLifecyclePendingFundingProposal = null;
+          solutionLifecycleFundingProposalForm.reset();
+          solutionLifecycleFundingProposalStatus.textContent = result.replayed
+            ? "The original funding draft was confirmed after retry. It remains a draft."
+            : `Funding draft created with ${Number(result.tranche_count) || 0} proposed tranches. It has not been submitted or approved.`;
+          await Promise.all([loadSolutionLifecycleFunding(), loadSolutionLifecycleSummary()]);
+        } catch (error) {
+          solutionLifecycleFundingProposalStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          submit.disabled = false;
+        }
       }
 
       async function loadSolutionLifecycleFunding(append = false) {
@@ -4808,6 +5028,8 @@
             }
             solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+              || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleFundingProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleRetirementProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
@@ -8085,6 +8307,20 @@
         solutionLifecycleFundingMore.hidden = true;
         solutionLifecycleFundingLoad.disabled = false;
         solutionLifecycleFundingMore.disabled = false;
+        solutionLifecycleFundingTargetsRequestVersion += 1;
+        solutionLifecycleFundingTargetsOffset = 0;
+        solutionLifecycleFundingTargetsStatus.textContent = "";
+        solutionLifecycleFundingTargetsMore.hidden = true;
+        solutionLifecycleFundingTargetsLoad.disabled = false;
+        solutionLifecycleFundingTargetsMore.disabled = false;
+        solutionLifecycleFundingSolution.replaceChildren();
+        const fundingSolutionPlaceholder = document.createElement("option");
+        fundingSolutionPlaceholder.value = "";
+        fundingSolutionPlaceholder.textContent = "Load eligible solutions, then choose one";
+        solutionLifecycleFundingSolution.append(fundingSolutionPlaceholder);
+        solutionLifecyclePendingFundingProposal = null;
+        solutionLifecycleFundingProposalForm.reset();
+        solutionLifecycleFundingProposalStatus.textContent = "";
         solutionLifecycleProjectionRequestVersion += 1;
         solutionLifecycleProjectionOffset = 0;
         solutionLifecycleProjectionRows.replaceChildren();
@@ -8102,6 +8338,8 @@
         solutionLifecycleLearningProposalStatus.textContent = "";
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+          || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleFundingProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleRetirementSourcesRequestVersion += 1;
         solutionLifecycleRetirementSourcesOffset = 0;
@@ -8129,6 +8367,9 @@
       solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true));
       solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding());
       solutionLifecycleFundingMore.addEventListener("click", () => loadSolutionLifecycleFunding(true));
+      solutionLifecycleFundingTargetsLoad.addEventListener("click", () => loadSolutionLifecycleFundingTargets());
+      solutionLifecycleFundingTargetsMore.addEventListener("click", () => loadSolutionLifecycleFundingTargets(true));
+      solutionLifecycleFundingProposalForm.addEventListener("submit", submitSolutionLifecycleFundingProposal);
       solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection());
       solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true));
       solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection());

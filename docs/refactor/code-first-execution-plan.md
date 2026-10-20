@@ -3,29 +3,28 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-035 now has private
-location-origin experiment review detail and an independently attributed result
-action at `GET` and `POST
-/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`.
-Migration 487 requires exact signed review scope and a current human binding;
-the reviewer must differ from both experiment owner and protocol approver. The
-bounded detail exposes protocol, latest analysis, and at most 100 observations
-only to that reviewer, with no unit or party identities. Result, experiment
-outcome, and an immutable retry receipt are atomic; review does not advance
-solution stage. The console renders private evidence as text and adds an
-acknowledged review form with CSRF/no-store requests and stable retry IDs. The
-combined Gateway, console, route-policy, and migration selection passes 74
-tests; Ruff, Python compilation, and inline JavaScript parsing pass. Disposable
-PostgreSQL 16 applies/replays migrations 483–487 and passes ten experiment
-review groups plus the previous evaluation, gate-review, and transition
-acceptance groups. Candidate and legacy databases are untouched; migration 487
-is not rolled out. CAP-035 remains prepared pending populated parity, live
-OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 732
-complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared
-across 66 rows. Evidence: [contract](solution-lifecycle-kernel-read-contract.md),
-[migration](../schemas/postgres/487_location_solution_experiment_review.sql),
-[console](../apps/operator-console/index.html), and
-[disposable acceptance](builds/2026-10-20-recovery/cap-035-solution-experiment-review-disposable.json).
+**Latest implementation slice — 20 October 2026:** CAP-035 now has exact-location
+funding target reads and a draft-only proposal action at `GET
+/operator/api/solution-lifecycle/{location_id}/funding/targets` and `POST
+/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/funding`.
+Migration 488 requires exact signed read/create grants and an active human
+binding. It validates location-origin solutions and bounded proposal fields,
+then atomically inserts a draft case, proposed tranches, and an immutable retry
+receipt. Changed-payload retries, cross-location/global targets, and tranche
+sums above the request ceiling fail closed. The console requires acknowledgement
+and uses CSRF, same-origin/no-store requests, and stable request IDs. No submit,
+approval, release, or lifecycle transition is available. The focused Gateway,
+route-policy, console, and migration selection passes 189 tests; Ruff, Python
+compilation, and inline JavaScript parsing pass. Disposable PostgreSQL 16
+applies/replays migration 488 and verifies scope, grants, bounds, retries, ACLs,
+draft-only states, and unchanged solution stage. Candidate and legacy databases
+are untouched; migration 488 is not rolled out. CAP-035 remains prepared pending
+populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review.
+Checklist: 733 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared across 66 rows. See the [write contract](solution-lifecycle-kernel-write-contract.md),
+[migration](../schemas/postgres/488_location_solution_funding_proposals.sql),
+[focused tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py),
+and [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json).
 
 **Previous implementation slice — 20 October 2026:** CAP-025 now has a
 location-scoped reviewer console under the exact `stakeholder_identity:review`

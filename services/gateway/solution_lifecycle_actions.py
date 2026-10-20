@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import re
+from decimal import Decimal, InvalidOperation
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -44,6 +46,33 @@ EXPERIMENT_OUTCOMES = frozenset({
     "inconclusive",
     "requires_replication",
 })
+FUNDING_CAPITAL_STAGES = frozenset({
+    "discovery", "experiment", "pilot", "replication", "scale", "maintenance",
+})
+FUNDING_INSTRUMENTS = frozenset({
+    "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind",
+})
+_MAX_FUNDING_AMOUNT = Decimal("9999999999999.99")
+
+
+def _normalize_funding_amount(value, field: str, *, required: bool = False) -> str | None:
+    if value is None and not required:
+        return None
+    if isinstance(value, bool):
+        raise SolutionLifecycleActionInvalid(f"{field} must be a finite amount with cent precision")
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid(
+            f"{field} must be a finite amount with cent precision"
+        ) from exc
+    if not amount.is_finite():
+        raise SolutionLifecycleActionInvalid(f"{field} must be a finite amount")
+    if abs(amount) > _MAX_FUNDING_AMOUNT:
+        raise SolutionLifecycleActionInvalid(f"{field} is outside the supported amount range")
+    if amount != amount.quantize(Decimal("0.01")):
+        raise SolutionLifecycleActionInvalid(f"{field} must use no more than two decimal places")
+    return format(amount, ".2f")
 
 
 def _connection_factory() -> Callable:
@@ -260,6 +289,140 @@ def review_location_solution_experiment(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution experiment review returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def propose_location_solution_funding(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    request_id: str,
+    capital_stage: str,
+    funding_instrument: str,
+    requested_amount,
+    minimum_viable_amount,
+    maximum_authorized_amount,
+    currency: str,
+    risk_adjusted_expected_value,
+    public_goods_value,
+    community_share,
+    downside_exposure,
+    rationale: str,
+    evidence: list,
+    tranches: list,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an exact-location funding draft and proposed tranches only."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    if capital_stage not in FUNDING_CAPITAL_STAGES:
+        raise SolutionLifecycleActionInvalid("Funding capital stage is invalid")
+    if funding_instrument not in FUNDING_INSTRUMENTS:
+        raise SolutionLifecycleActionInvalid("Funding instrument is invalid")
+    amounts = (
+        _normalize_funding_amount(requested_amount, "Requested amount", required=True),
+        _normalize_funding_amount(minimum_viable_amount, "Minimum viable amount"),
+        _normalize_funding_amount(maximum_authorized_amount, "Maximum authorized amount"),
+        _normalize_funding_amount(risk_adjusted_expected_value, "Risk-adjusted expected value"),
+        _normalize_funding_amount(public_goods_value, "Public-goods value"),
+        _normalize_funding_amount(community_share, "Community share"),
+        _normalize_funding_amount(downside_exposure, "Downside exposure"),
+    )
+    requested = Decimal(amounts[0])
+    minimum = Decimal(amounts[1]) if amounts[1] is not None else None
+    maximum = Decimal(amounts[2]) if amounts[2] is not None else None
+    if requested < 0:
+        raise SolutionLifecycleActionInvalid("Requested amount must be nonnegative")
+    if minimum is not None and minimum < 0:
+        raise SolutionLifecycleActionInvalid("Minimum viable amount must be nonnegative")
+    if maximum is not None and maximum < requested:
+        raise SolutionLifecycleActionInvalid("Maximum authorized amount cannot be below the request")
+    if minimum is not None and maximum is not None and minimum > maximum:
+        raise SolutionLifecycleActionInvalid("Minimum viable amount cannot exceed the maximum")
+    if not isinstance(currency, str) or re.fullmatch(r"[A-Za-z0-9._-]{2,10}", currency) is None:
+        raise SolutionLifecycleActionInvalid("Currency must be a 2 to 10 character code")
+    if not isinstance(rationale, str) or not rationale.strip() or len(rationale) > 4000:
+        raise SolutionLifecycleActionInvalid("Funding rationale must contain 1 to 4000 characters")
+    if not isinstance(evidence, list) or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid("Funding evidence must be a list of at most 100 items")
+    if not isinstance(tranches, list) or len(tranches) > 50:
+        raise SolutionLifecycleActionInvalid("Funding tranches must be a list of at most 50 items")
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+        tranche_parts = []
+        tranche_total = Decimal("0")
+        tranche_ceiling = maximum if maximum is not None else requested
+        for tranche in tranches:
+            if not isinstance(tranche, dict) or set(tranche) != {"amount", "milestone_conditions"}:
+                raise SolutionLifecycleActionInvalid("Each funding tranche requires amount and milestone_conditions")
+            amount = _normalize_funding_amount(
+                tranche["amount"], "Tranche amount", required=True
+            )
+            if Decimal(amount) < 0:
+                raise SolutionLifecycleActionInvalid("Tranche amount must be nonnegative")
+            conditions = tranche["milestone_conditions"]
+            if not isinstance(conditions, dict):
+                raise SolutionLifecycleActionInvalid("Tranche milestone conditions must be a JSON object")
+            encoded_conditions = json.dumps(
+                conditions, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+            )
+            if len(encoded_conditions.encode("utf-8")) > 8192:
+                raise SolutionLifecycleActionInvalid("Tranche milestone conditions exceed 8 KiB")
+            tranche_parts.append(
+                f'{{"amount":{amount},"milestone_conditions":{encoded_conditions}}}'
+            )
+            tranche_total += Decimal(amount)
+        encoded_tranches = "[" + ",".join(tranche_parts) + "]"
+    except SolutionLifecycleActionInvalid:
+        raise
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Funding proposal values must contain JSON data") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536 or len(encoded_tranches.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Funding evidence and tranches must fit within 64 KiB")
+    if tranche_total > tranche_ceiling:
+        raise SolutionLifecycleActionInvalid("Proposed tranche total exceeds the funding case ceiling")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.propose_location_solution_funding(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text,
+                           %s::numeric, %s::numeric, %s::numeric, %s::text,
+                           %s::numeric, %s::numeric, %s::numeric, %s::numeric,
+                           %s::text, %s::jsonb, %s::jsonb
+                       )""",
+                (
+                    location_id, solution_id, request_id, capital_stage,
+                    funding_instrument, *amounts[:3], currency, *amounts[3:],
+                    rationale, encoded_evidence, encoded_tranches,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Funding proposal returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

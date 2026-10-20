@@ -215,6 +215,49 @@ def test_experiment_result_review_uses_private_text_detail_csrf_and_stable_retry
     assert "does not advance the solution stage" in review
 
 
+def test_funding_draft_form_is_create_grant_gated_and_excludes_approval_actions():
+    source = CONSOLE.read_text(encoding="utf-8")
+    html = source.split('<section id="solution-lifecycle-funding-proposal"', 1)[1].split("</section>", 1)[0]
+    assert 'id="solution-lifecycle-funding-proposal" hidden' in source
+    assert "This creates a private draft and optional proposed tranches only" in html
+    assert "does not submit, approve, release funds, or advance the solution stage" in html
+    for field in (
+        "solution-lifecycle-funding-amount",
+        "solution-lifecycle-funding-rationale",
+        "solution-lifecycle-funding-evidence",
+        "solution-lifecycle-funding-tranches",
+        "solution-lifecycle-funding-acknowledgement",
+    ):
+        assert f'id="{field}"' in html
+    assert "Approve funding" not in html and "Release tranche" not in html
+
+
+def test_funding_targets_and_draft_submit_use_location_scope_csrf_and_stable_retry():
+    source = CONSOLE.read_text(encoding="utf-8")
+    targets = _function(
+        source,
+        "async function loadSolutionLifecycleFundingTargets(",
+        "async function submitSolutionLifecycleFundingProposal(",
+    )
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleFundingProposal(",
+        "async function loadSolutionLifecycleFunding(",
+    )
+    assert "/funding/targets?${params}" in targets
+    assert 'credentials: "same-origin"' in targets and 'cache: "no-store"' in targets
+    assert "solution.solution_id" in targets and "option.textContent" in targets
+    assert "locationId !== solutionLifecycleLocation.value" in targets
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert 'method: "POST"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "solutionLifecyclePendingFundingProposal.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingFundingProposal.request_id" in submit
+    assert 'cache: "no-store"' in submit and 'credentials: "same-origin"' in submit
+    assert "It has not been submitted or approved." in submit
+    assert "innerHTML" not in targets + submit
+
+
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
     reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleSupplementalRecord(")

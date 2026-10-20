@@ -11,6 +11,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         SolutionLifecycleActionInvalid,
         approve_location_solution_gate,
         approve_location_solution_retirement,
+        propose_location_solution_funding,
         propose_location_solution_learning,
         propose_location_solution_retirement,
         record_location_solution_gate_evaluation,
@@ -28,6 +29,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         list_location_solution_adoption,
         list_location_solution_experiments,
         list_location_solution_funding,
+        list_location_solution_funding_targets,
         list_location_solution_gates,
         list_location_solution_learning,
         list_location_solution_replications,
@@ -1187,6 +1189,155 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/targets")
+    async def location_solution_funding_targets(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_funding_targets,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution-lifecycle read grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding targets unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution funding targets unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/funding"
+    )
+    async def propose_solution_funding(
+        request: Request, location_id: str, solution_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "capital_stage", "funding_instrument", "requested_amount",
+            "minimum_viable_amount", "maximum_authorized_amount", "currency",
+            "risk_adjusted_expected_value", "public_goods_value", "community_share",
+            "downside_exposure", "rationale", "evidence", "tranches",
+        }
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Solution funding proposal fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                propose_location_solution_funding,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                solution_id,
+                payload["request_id"],
+                payload["capital_stage"],
+                payload["funding_instrument"],
+                payload["requested_amount"],
+                payload["minimum_viable_amount"],
+                payload["maximum_authorized_amount"],
+                payload["currency"],
+                payload["risk_adjusted_expected_value"],
+                payload["public_goods_value"],
+                payload["community_share"],
+                payload["downside_exposure"],
+                payload["rationale"],
+                payload["evidence"],
+                payload["tranches"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active human with a current location solution-lifecycle create grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Location-origin solution was not found"},
+                    headers=headers,
+                )
+            if code in {"22023", "22003"}:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Solution funding proposal is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Funding proposal conflicts with an existing request"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding proposal unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution funding proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/gates")
     async def location_solution_lifecycle_gates(
