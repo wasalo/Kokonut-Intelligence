@@ -24,7 +24,7 @@ def test_solution_lifecycle_panel_requires_exact_scoped_read_grant():
     assert panel is not None
     assert "Read-only aggregate lifecycle counts" in panel.group()
     assert 'scope.resource === "solution_lifecycle" && scope.action === "read"' in source
-    assert "solutionLifecycleLocations = new Set(solutionLifecycleLocationIds)" in source
+    assert "solutionLifecycleLocations = new Set(solutionLifecycleReadLocationIds)" in source
     assert 'solutionLifecycle.hidden = false' in source
     assert "No lifecycle state was changed" in source
 
@@ -287,6 +287,65 @@ def test_retirement_proposal_submit_is_bounded_csrf_idempotent_and_draft_only():
     assert 'solutionLifecycleRetirementProposalForm.addEventListener("submit", submitSolutionLifecycleRetirementProposal)' in source
     assert 'solutionLifecycleRetirementSourcesLoad.addEventListener("click", () => loadSolutionLifecycleRetirementSources())' in source
     assert "innerHTML" not in submit
+
+
+def test_retirement_review_console_uses_review_grants_and_private_text_rendering():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-retirement-review".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "solutionLifecycleReviewLocations = new Set(solutionLifecycleReviewLocationIds)" in source
+    assert "...solutionLifecycleReadLocationIds, ...solutionLifecycleReviewLocationIds" in source
+    assert source.index('id="solution-lifecycle-location"') < source.index('id="solution-lifecycle-read-surfaces"')
+    assert "solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)" in source
+    assert "solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)" in source
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleRetirementReviewQueue(",
+        "async function loadSolutionLifecycleRetirementReviewDetail(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in queue
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/review?${params}`' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleRetirementReviewItems(",
+        "async function loadSolutionLifecycleRetirementReviewQueue(",
+    )
+    assert "heading.textContent" in renderer and "button.textContent" in renderer
+    assert "is_self_authored" in renderer and "proposer_attributed" in renderer
+    assert "innerHTML" not in renderer
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleRetirementReviewDetail(",
+        "function lockSolutionLifecycleRetirementApproval(",
+    )
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/review/${encodeURIComponent(retirementId)}`' in detail
+    assert 'solutionLifecycleRetirementReviewEvidence.textContent = JSON.stringify' in detail
+    assert "result.is_self_authored === true" in detail
+    assert "result.proposer_attributed !== true" in detail
+    assert "innerHTML" not in detail
+
+
+def test_retirement_review_approval_is_confirmed_csrf_protected_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    approve = _function(
+        source,
+        "async function approveSolutionLifecycleRetirement(",
+        "function resetSolutionLifecycleLearningSources(",
+    )
+    assert "detail.is_self_authored === true" in approve
+    assert "detail.proposer_attributed !== true" in approve
+    assert 'solutionLifecycleReviewLocations.has(locationId)' in approve
+    assert "solutionLifecycleRetirementReviewConfirm.checked" in approve
+    assert "solutionLifecyclePendingRetirementApproval.request_id" in approve
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/${encodeURIComponent(detail.retirement_id)}/approve`' in approve
+    assert 'method: "POST"' in approve
+    assert 'credentials: "same-origin"' in approve
+    assert 'cache: "no-store"' in approve
+    assert '"X-CSRF-Token": csrf' in approve
+    assert 'body: JSON.stringify({ request_id: requestId })' in approve
+    assert "does not schedule or execute the retirement" in approve
+    assert 'solutionLifecycleRetirementReviewApprove.addEventListener("click", approveSolutionLifecycleRetirement)' in source
 
 
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():

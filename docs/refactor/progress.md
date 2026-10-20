@@ -1,3 +1,30 @@
+### CAP-035 retirement review inbox and approval console — 20 October 2026
+
+Added a private, paged review inbox and proposal detail route under exact
+`solution_lifecycle:review` location grants and signed operator context. A
+separate non-login reviewer role can read only the allowlisted location grant,
+active-person binding, and proposal columns needed by its security-definer
+functions; runtime cannot read retirement rows directly and Directus cannot
+execute the review functions. Queue/detail responses omit proposer identity and
+expose attribution and self-authorship only as booleans. The console renders
+proposal narratives and evidence as text, blocks self-review, requires explicit
+acknowledgement and CSRF, and retains a request ID for an uncertain approval
+retry. Approval remains an independent human decision and does not execute a
+retirement. Migration 482 also rejects a location-origin superseded retirement
+whose replacement is not a distinct solution from the same canonical location.
+
+The focused Gateway, operator-console, and route-policy selection passes 122
+tests, including Node.js syntax validation. Ruff, compilation, and diff checks
+pass. Disposable PostgreSQL 16 applies/replays migration 482 after the ordered
+predecessors and passes seven grouped review, role-boundary, and replacement
+scope checks. Candidate and legacy databases are untouched; migration 482 is
+not rolled out. CAP-035 remains prepared pending broader lifecycle parity,
+populated fixture comparison, live OIDC/browser, universal ACL/RLS, recovery,
+and MAN-CAP-035 owner review. Checklist: 727 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/482_location_solution_retirement_review_queue.sql);
+[evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-review-disposable.json).
+
 ### CAP-035 location-origin retirement proposal console — 20 October 2026
 
 The lifecycle console now loads bounded retirement proposal choices from a

@@ -69,7 +69,8 @@ class _Cursor:
         self.connection.operations.append((" ".join(query.split()), params))
 
     def fetchone(self):
-        return (self.connection.row,)
+        row = self.connection.row
+        return row if isinstance(row, tuple) else (row,)
 
     def fetchall(self):
         return self.connection.rows
@@ -342,6 +343,191 @@ def test_http_retirement_candidates_are_no_store_and_operator_authenticated(monk
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["location_id"] == LOCATION_ID
+
+
+def test_retirement_review_queue_uses_signed_review_scope_and_bounded_page():
+    columns = (
+        "retirement_id", "solution_id", "solution_name", "retirement_type",
+        "retirement_status", "created_at", "proposer_attributed", "is_self_authored",
+    )
+    row = (
+        "d0000000-0000-4000-8000-000000000001",
+        "c0000000-0000-4000-8000-000000000001",
+        "Soil cover", "unsafe", "proposed", "2026-10-20T12:00:00Z", True, False,
+    )
+    connection = _Connection(rows=[row, row, row], columns=columns)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.list_location_solution_retirement_review_queue(
+            OPERATOR_ID, LOCATION_ID, limit="2", offset="4",
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "review",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "list_location_solution_retirement_review_queue" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 3, 4)
+    assert result["retirements"] == [dict(zip(columns, row)), dict(zip(columns, row))]
+    assert result["has_more"] is True and result["next_offset"] == 6
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), ("2.0", 0), (2, -1), (2, 10001)])
+def test_retirement_review_queue_rejects_invalid_page_before_database_access(limit, offset):
+    with pytest.raises(reads.SolutionLifecycleReadInvalid):
+        reads.list_location_solution_retirement_review_queue(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page opened a connection"),
+        )
+
+
+def test_retirement_review_queue_context_denial_rolls_back_without_query():
+    connection = _Connection()
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.list_location_solution_retirement_review_queue(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+
+    assert not any("list_location_solution_retirement_review_queue" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
+def test_retirement_review_detail_returns_private_proposal_only_after_review_context():
+    columns = (
+        "retirement_id", "solution_name", "solution_type", "current_stage",
+        "solution_status", "retirement_type", "retirement_status", "trigger_reason",
+        "evidence_refs", "migration_plan", "replacement_solution_name", "created_at",
+        "proposer_attributed", "is_self_authored",
+    )
+    row = (
+        "d0000000-0000-4000-8000-000000000001", "Soil cover", "practice", "testing",
+        "active", "unsafe", "proposed", "Observed erosion after planting",
+        [{"source": "case-42"}], "Pause rollout and restore cover", None,
+        "2026-10-20T12:00:00Z", True, False,
+    )
+    connection = _Connection(row=row, columns=columns)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.get_location_solution_retirement_review_detail(
+            OPERATOR_ID, LOCATION_ID, "d0000000-0000-4000-8000-000000000001",
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "review",
+    }]
+    assert "get_location_solution_retirement_review_detail" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, "d0000000-0000-4000-8000-000000000001")
+    assert result["trigger_reason"] == row[7]
+    assert result["evidence_refs"] == row[8]
+    assert result["is_self_authored"] is False
+    assert "created_by_party_id" not in result and "proposer_party_id" not in result
+    assert connection.rolled_back and connection.closed
+
+
+def test_http_retirement_review_routes_are_no_store_and_oidc_gated(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_retirement_review_queue",
+        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "retirements": []},
+    )
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
+        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "is_self_authored": False},
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        queue = client.get(f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirements/review")
+        detail = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirements/review/"
+            "d0000000-0000-4000-8000-000000000001"
+        )
+
+    assert queue.status_code == detail.status_code == 200
+    assert queue.headers["cache-control"] == detail.headers["cache-control"] == "no-store"
+    assert queue.headers["vary"] == detail.headers["vary"] == "Cookie"
+
+
+def test_http_retirement_review_detail_maps_missing_item_to_not_found(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    def missing(*_args, **_kwargs):
+        raise reads.SolutionLifecycleReviewNotFound("missing")
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_retirement_review_detail",
+        missing,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirements/review/"
+            "d0000000-0000-4000-8000-000000000001"
+        )
+
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_gate_list_uses_signed_context_bounded_page_and_returns_no_raw_evidence():

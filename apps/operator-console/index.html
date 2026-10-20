@@ -580,11 +580,15 @@
           <button id="sequential-evidence-timeline-more" class="secondary" type="button" hidden>Load more evidence</button>
         </section>
         <section id="solution-lifecycle" hidden aria-labelledby="solution-lifecycle-heading">
-          <h2 id="solution-lifecycle-heading">Solution lifecycle overview</h2>
-          <p class="muted">Read-only aggregate lifecycle counts for solutions explicitly originated at or linked to the granted location. Names, row IDs, narratives, evidence, funding amounts, and identities are omitted. Counts do not approve gates, release funding, or activate adoption.</p>
+          <h2 id="solution-lifecycle-heading">Solution lifecycle</h2>
           <div class="toolbar">
             <label for="solution-lifecycle-location">Granted location</label>
             <select id="solution-lifecycle-location"></select>
+          </div>
+          <div id="solution-lifecycle-read-surfaces">
+          <h3>Lifecycle status</h3>
+          <p class="muted">Read-only aggregate lifecycle counts for solutions explicitly originated at or linked to the granted location. Names, row IDs, narratives, evidence, funding amounts, and identities are omitted. Counts do not approve gates, release funding, or activate adoption.</p>
+          <div class="toolbar">
             <button id="solution-lifecycle-refresh" type="button">Refresh lifecycle summary</button>
           </div>
           <p id="solution-lifecycle-status" class="muted" role="status" aria-live="polite"></p>
@@ -631,6 +635,7 @@
           <p id="solution-lifecycle-projection-status" class="muted" role="status" aria-live="polite"></p>
           <div id="solution-lifecycle-projection-rows"></div>
           <button id="solution-lifecycle-projection-more" class="secondary" type="button" hidden>Load more records</button>
+          </div>
           <section id="solution-lifecycle-learning-proposal" hidden aria-labelledby="solution-lifecycle-learning-proposal-heading">
             <h3 id="solution-lifecycle-learning-proposal-heading">Propose learning from a reviewed replication</h3>
             <p class="muted">Requires both location read and create grants. This submits a learning record in proposed status for independent review; it does not accept, reject, or apply learning.</p>
@@ -732,6 +737,32 @@
               </div>
             </form>
             <p id="solution-lifecycle-retirement-proposal-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
+          <section id="solution-lifecycle-retirement-review" hidden aria-labelledby="solution-lifecycle-retirement-review-heading">
+            <h3 id="solution-lifecycle-retirement-review-heading">Retirement review inbox</h3>
+            <p class="muted">Requires the exact location review grant and an active human identity binding. Proposal details may contain private evidence; they are shown as text, never as clickable links. Approval changes the proposal to approved but does not schedule or execute a retirement. Self-authored and unattributed proposals cannot be approved.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-retirement-review-load" type="button">Load pending reviews</button>
+              <button id="solution-lifecycle-retirement-review-more" class="secondary" type="button" hidden>Load more reviews</button>
+            </div>
+            <p id="solution-lifecycle-retirement-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="solution-lifecycle-retirement-review-queue"></div>
+            <section id="solution-lifecycle-retirement-review-detail" hidden aria-labelledby="solution-lifecycle-retirement-review-detail-heading">
+              <h4 id="solution-lifecycle-retirement-review-detail-heading">Selected proposal</h4>
+              <p id="solution-lifecycle-retirement-review-detail-status" class="muted" role="status" aria-live="polite"></p>
+              <dl id="solution-lifecycle-retirement-review-metadata"></dl>
+              <h5>Trigger reason</h5>
+              <pre id="solution-lifecycle-retirement-review-trigger"></pre>
+              <h5>Evidence references</h5>
+              <pre id="solution-lifecycle-retirement-review-evidence"></pre>
+              <h5>Migration or remedy plan</h5>
+              <pre id="solution-lifecycle-retirement-review-plan"></pre>
+              <label><input id="solution-lifecycle-retirement-review-confirm" type="checkbox"> I have reviewed the proposal and evidence. This approves the proposal only; it does not execute the retirement.</label>
+              <div class="toolbar">
+                <button id="solution-lifecycle-retirement-review-approve" type="button" disabled>Approve proposal</button>
+              </div>
+              <p id="solution-lifecycle-retirement-review-approval-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
           </section>
         </section>
         <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
@@ -1084,6 +1115,7 @@
       let sequentialEvidenceTimelineOffset = 0;
       const solutionLifecycle = document.querySelector("#solution-lifecycle");
       const solutionLifecycleLocation = document.querySelector("#solution-lifecycle-location");
+      const solutionLifecycleReadSurfaces = document.querySelector("#solution-lifecycle-read-surfaces");
       const solutionLifecycleStatus = document.querySelector("#solution-lifecycle-status");
       const solutionLifecycleOverview = document.querySelector("#solution-lifecycle-overview");
       const solutionLifecycleCountGroups = document.querySelector("#solution-lifecycle-count-groups");
@@ -1125,8 +1157,23 @@
       const solutionLifecycleRetirementSubmit = document.querySelector("#solution-lifecycle-retirement-submit");
       const solutionLifecycleRetirementReset = document.querySelector("#solution-lifecycle-retirement-reset");
       const solutionLifecycleRetirementProposalStatus = document.querySelector("#solution-lifecycle-retirement-proposal-status");
+      const solutionLifecycleRetirementReview = document.querySelector("#solution-lifecycle-retirement-review");
+      const solutionLifecycleRetirementReviewLoad = document.querySelector("#solution-lifecycle-retirement-review-load");
+      const solutionLifecycleRetirementReviewMore = document.querySelector("#solution-lifecycle-retirement-review-more");
+      const solutionLifecycleRetirementReviewStatus = document.querySelector("#solution-lifecycle-retirement-review-status");
+      const solutionLifecycleRetirementReviewQueue = document.querySelector("#solution-lifecycle-retirement-review-queue");
+      const solutionLifecycleRetirementReviewDetail = document.querySelector("#solution-lifecycle-retirement-review-detail");
+      const solutionLifecycleRetirementReviewDetailStatus = document.querySelector("#solution-lifecycle-retirement-review-detail-status");
+      const solutionLifecycleRetirementReviewMetadata = document.querySelector("#solution-lifecycle-retirement-review-metadata");
+      const solutionLifecycleRetirementReviewTrigger = document.querySelector("#solution-lifecycle-retirement-review-trigger");
+      const solutionLifecycleRetirementReviewEvidence = document.querySelector("#solution-lifecycle-retirement-review-evidence");
+      const solutionLifecycleRetirementReviewPlan = document.querySelector("#solution-lifecycle-retirement-review-plan");
+      const solutionLifecycleRetirementReviewConfirm = document.querySelector("#solution-lifecycle-retirement-review-confirm");
+      const solutionLifecycleRetirementReviewApprove = document.querySelector("#solution-lifecycle-retirement-review-approve");
+      const solutionLifecycleRetirementReviewApprovalStatus = document.querySelector("#solution-lifecycle-retirement-review-approval-status");
       let solutionLifecycleLocations = new Set();
       let solutionLifecycleCreateLocations = new Set();
+      let solutionLifecycleReviewLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
       let solutionLifecycleGatesOffset = 0;
@@ -1142,6 +1189,11 @@
       let solutionLifecycleRetirementSourcesRequestVersion = 0;
       let solutionLifecycleRetirementSourcesOffset = 0;
       let solutionLifecyclePendingRetirementProposal = null;
+      let solutionLifecycleRetirementReviewRequestVersion = 0;
+      let solutionLifecycleRetirementReviewOffset = 0;
+      let solutionLifecycleRetirementReviewDetailVersion = 0;
+      let solutionLifecycleRetirementReviewDetailRecord = null;
+      let solutionLifecyclePendingRetirementApproval = null;
       const solutionLifecycleSupplementalViews = Object.freeze({
         adoption: {
           route: "adoption", responseKey: "programs", title: "Adoption program",
@@ -2254,11 +2306,16 @@
         }
         solutionLifecycleRetirementSubmit.disabled = submitting;
         solutionLifecycleRetirementReset.disabled = locked;
-        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingLearningProposal);
+        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingLearningProposal)
+          || Boolean(solutionLifecyclePendingRetirementApproval);
       }
 
       async function submitSolutionLifecycleRetirementProposal(event) {
         event.preventDefault();
+        if (solutionLifecyclePendingRetirementApproval) {
+          solutionLifecycleRetirementProposalStatus.textContent = "Resolve the pending retirement approval before submitting another lifecycle mutation.";
+          return;
+        }
         if (solutionLifecyclePendingLearningProposal) {
           solutionLifecycleRetirementProposalStatus.textContent = "Resolve the pending learning proposal before submitting another lifecycle mutation.";
           return;
@@ -2351,6 +2408,273 @@
             : error.message;
         } finally {
           lockSolutionLifecycleRetirementProposalForRetry();
+        }
+      }
+
+      function resetSolutionLifecycleRetirementReview() {
+        solutionLifecycleRetirementReviewQueue.replaceChildren();
+        solutionLifecycleRetirementReviewDetail.hidden = true;
+        solutionLifecycleRetirementReviewMetadata.replaceChildren();
+        solutionLifecycleRetirementReviewTrigger.textContent = "";
+        solutionLifecycleRetirementReviewEvidence.textContent = "";
+        solutionLifecycleRetirementReviewPlan.textContent = "";
+        solutionLifecycleRetirementReviewConfirm.checked = false;
+        solutionLifecycleRetirementReviewDetailRecord = null;
+        solutionLifecycleRetirementReviewDetailStatus.textContent = "";
+        solutionLifecycleRetirementReviewApprovalStatus.textContent = "";
+        solutionLifecycleRetirementReviewApprove.disabled = true;
+      }
+
+      function appendSolutionLifecycleRetirementReviewItems(items) {
+        for (const item of items) {
+          if (typeof item.retirement_id !== "string"
+              || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.retirement_id)) continue;
+          const article = document.createElement("article");
+          const heading = document.createElement("h4");
+          heading.textContent = `${item.solution_name || "Location-origin solution"} · ${item.retirement_type || "retirement"}`;
+          const summary = document.createElement("p");
+          summary.textContent = `${item.retirement_status || "pending"} · submitted ${item.created_at || "time unavailable"}`;
+          const eligibility = document.createElement("p");
+          eligibility.textContent = item.is_self_authored === true
+            ? "This is your proposal and requires a different reviewer."
+            : item.proposer_attributed === false
+              ? "This proposal has no recorded proposer and cannot be approved."
+              : "Open the proposal detail to review its trigger, evidence, and remedy plan.";
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = "Review proposal details";
+          button.disabled = Boolean(solutionLifecyclePendingRetirementApproval);
+          button.addEventListener("click", () => loadSolutionLifecycleRetirementReviewDetail(item.retirement_id));
+          article.append(heading, summary, eligibility, button);
+          solutionLifecycleRetirementReviewQueue.append(article);
+        }
+      }
+
+      async function loadSolutionLifecycleRetirementReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleRetirementReviewRequestVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)) {
+          resetSolutionLifecycleRetirementReview();
+          solutionLifecycleRetirementReviewMore.hidden = true;
+          solutionLifecycleRetirementReviewStatus.textContent = "An exact location review grant is required to load pending proposals.";
+          return;
+        }
+        const offset = append ? solutionLifecycleRetirementReviewOffset : 0;
+        solutionLifecycleRetirementReviewLoad.disabled = true;
+        solutionLifecycleRetirementReviewMore.disabled = true;
+        if (!append) {
+          resetSolutionLifecycleRetirementReview();
+          solutionLifecycleRetirementReviewMore.hidden = true;
+        }
+        solutionLifecycleRetirementReviewStatus.textContent = "Loading pending retirement reviews…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/review?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, human identity binding, or location review grant is no longer valid.");
+            }
+            throw new Error("Pending retirement proposals could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleRetirementReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const items = Array.isArray(result.retirements) ? result.retirements : [];
+          appendSolutionLifecycleRetirementReviewItems(items);
+          solutionLifecycleRetirementReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleRetirementReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleRetirementReviewOffset <= offset;
+          const loaded = solutionLifecycleRetirementReviewQueue.querySelectorAll("article").length;
+          solutionLifecycleRetirementReviewStatus.textContent = loaded
+            ? `${loaded} pending retirement proposal${loaded === 1 ? "" : "s"} in the loaded page${loaded === 1 ? "" : "s"}.`
+            : result.has_more === true
+              ? "No pending proposals on this page. Load more to continue."
+              : "There are no pending location-origin retirement proposals.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleRetirementReviewRequestVersion) return;
+          solutionLifecycleRetirementReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleRetirementReviewRequestVersion) {
+            const locked = Boolean(solutionLifecyclePendingRetirementApproval);
+            solutionLifecycleRetirementReviewLoad.disabled = locked;
+            solutionLifecycleRetirementReviewMore.disabled = locked;
+          }
+        }
+      }
+
+      async function loadSolutionLifecycleRetirementReviewDetail(retirementId) {
+        const locationId = solutionLifecycleLocation.value;
+        if (solutionLifecyclePendingRetirementApproval) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "Retry or resolve the pending approval before changing review items.";
+          return;
+        }
+        if (!solutionLifecycleReviewLocations.has(locationId)
+            || typeof retirementId !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(retirementId)) {
+          solutionLifecycleRetirementReviewDetailStatus.textContent = "An exact location review grant and valid pending proposal are required.";
+          return;
+        }
+        const requestVersion = ++solutionLifecycleRetirementReviewDetailVersion;
+        solutionLifecycleRetirementReviewDetail.hidden = false;
+        solutionLifecycleRetirementReviewDetailStatus.textContent = "Loading private proposal detail…";
+        solutionLifecycleRetirementReviewMetadata.replaceChildren();
+        solutionLifecycleRetirementReviewTrigger.textContent = "";
+        solutionLifecycleRetirementReviewEvidence.textContent = "";
+        solutionLifecycleRetirementReviewPlan.textContent = "";
+        solutionLifecycleRetirementReviewConfirm.checked = false;
+        solutionLifecycleRetirementReviewDetailRecord = null;
+        lockSolutionLifecycleRetirementApproval();
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/review/${encodeURIComponent(retirementId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, human identity binding, or location review grant is no longer valid.");
+            }
+            if (response.status === 404) throw new Error("This proposal is no longer pending or is outside the selected location.");
+            throw new Error("Proposal detail could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleRetirementReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          solutionLifecycleRetirementReviewDetailRecord = result;
+          for (const [label, value] of [
+            ["Solution", result.solution_name],
+            ["Solution type", result.solution_type],
+            ["Current stage", result.current_stage],
+            ["Solution status", result.solution_status],
+            ["Retirement type", result.retirement_type],
+            ["Proposal status", result.retirement_status],
+            ["Submitted", result.created_at],
+            ["Proposer attribution", result.proposer_attributed === true ? "Present" : "Missing"],
+            ["Authored by current reviewer", result.is_self_authored === true ? "Yes" : "No"],
+            ["Replacement solution", result.replacement_solution_name]
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value === null || value === undefined ? "—" : String(value);
+            solutionLifecycleRetirementReviewMetadata.append(term, description);
+          }
+          solutionLifecycleRetirementReviewTrigger.textContent = typeof result.trigger_reason === "string"
+            ? result.trigger_reason
+            : "—";
+          solutionLifecycleRetirementReviewEvidence.textContent = JSON.stringify(result.evidence_refs ?? null, null, 2);
+          solutionLifecycleRetirementReviewPlan.textContent = typeof result.migration_plan === "string"
+            ? result.migration_plan
+            : "—";
+          solutionLifecycleRetirementReviewDetailStatus.textContent = result.is_self_authored === true
+            ? "You submitted this proposal. Independent review by another active human reviewer is required."
+            : result.proposer_attributed !== true
+              ? "This proposal has no recorded proposer and cannot be approved."
+              : "Review the proposal details and evidence before deciding.";
+          lockSolutionLifecycleRetirementApproval();
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleRetirementReviewDetailVersion) return;
+          solutionLifecycleRetirementReviewDetailStatus.textContent = error.message;
+          solutionLifecycleRetirementReviewDetailRecord = null;
+          lockSolutionLifecycleRetirementApproval();
+        }
+      }
+
+      function lockSolutionLifecycleRetirementApproval(submitting = false) {
+        const detail = solutionLifecycleRetirementReviewDetailRecord;
+        const blocked = !detail || detail.is_self_authored === true || detail.proposer_attributed !== true;
+        solutionLifecycleRetirementReviewConfirm.disabled = Boolean(solutionLifecyclePendingRetirementApproval) || blocked;
+        solutionLifecycleRetirementReviewApprove.disabled = submitting || blocked
+          || !solutionLifecycleRetirementReviewConfirm.checked;
+        const locked = Boolean(solutionLifecyclePendingRetirementApproval);
+        solutionLifecycleRetirementReviewLoad.disabled = locked;
+        solutionLifecycleRetirementReviewMore.disabled = locked;
+        for (const button of solutionLifecycleRetirementReviewQueue.querySelectorAll("button")) {
+          button.disabled = locked;
+        }
+        solutionLifecycleLocation.disabled = locked
+          || Boolean(solutionLifecyclePendingLearningProposal)
+          || Boolean(solutionLifecyclePendingRetirementProposal)
+          || Boolean(solutionLifecyclePendingRetirementApproval);
+      }
+
+      async function approveSolutionLifecycleRetirement(event) {
+        event.preventDefault();
+        const detail = solutionLifecycleRetirementReviewDetailRecord;
+        const locationId = solutionLifecycleLocation.value;
+        if (solutionLifecyclePendingLearningProposal || solutionLifecyclePendingRetirementProposal) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "Resolve the pending proposal request before approving a retirement.";
+          return;
+        }
+        if (!detail || !solutionLifecycleReviewLocations.has(locationId)
+            || detail.is_self_authored === true || detail.proposer_attributed !== true) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "A pending, attributed proposal and a different reviewer with an exact location review grant are required.";
+          return;
+        }
+        if (!solutionLifecycleRetirementReviewConfirm.checked) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "Confirm that you reviewed the proposal and understand approval does not execute the retirement.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "Refresh the operator session before approving a retirement.";
+          return;
+        }
+        if (solutionLifecyclePendingRetirementApproval
+            && solutionLifecyclePendingRetirementApproval.retirement_id !== detail.retirement_id) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "Retry the same pending approval before changing review items.";
+          return;
+        }
+        if (!solutionLifecyclePendingRetirementApproval) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleRetirementReviewApprovalStatus.textContent = "A secure browser context is required to approve a retirement.";
+            return;
+          }
+          solutionLifecyclePendingRetirementApproval = {
+            retirement_id: detail.retirement_id,
+            request_id: requestId
+          };
+        }
+        const requestId = solutionLifecyclePendingRetirementApproval.request_id;
+        lockSolutionLifecycleRetirementApproval(true);
+        solutionLifecycleRetirementReviewApprovalStatus.textContent = "Submitting independent approval…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirements/${encodeURIComponent(detail.retirement_id)}/approve`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingRetirementApproval = null;
+            throw new Error("Your session, human identity binding, or location review grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingRetirementApproval = null;
+            throw new Error(result.error || "The retirement proposal could not be approved.");
+          }
+          solutionLifecyclePendingRetirementApproval = null;
+          solutionLifecycleRetirementReviewDetail.hidden = true;
+          solutionLifecycleRetirementReviewDetailRecord = null;
+          await loadSolutionLifecycleRetirementReviewQueue();
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = "The proposal is approved. This does not schedule or execute the retirement.";
+        } catch (error) {
+          solutionLifecycleRetirementReviewApprovalStatus.textContent = solutionLifecyclePendingRetirementApproval
+            ? `${error.message} The result may be uncertain; retry this same approval to reuse its request ID.`
+            : error.message;
+        } finally {
+          lockSolutionLifecycleRetirementApproval();
         }
       }
 
@@ -2447,11 +2771,16 @@
         }
         solutionLifecycleLearningSubmit.disabled = submitting;
         solutionLifecycleLearningReset.disabled = locked;
-        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingRetirementProposal);
+        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingRetirementProposal)
+          || Boolean(solutionLifecyclePendingRetirementApproval);
       }
 
       async function submitSolutionLifecycleLearningProposal(event) {
         event.preventDefault();
+        if (solutionLifecyclePendingRetirementApproval) {
+          solutionLifecycleLearningProposalStatus.textContent = "Resolve the pending retirement approval before submitting another lifecycle mutation.";
+          return;
+        }
         if (solutionLifecyclePendingRetirementProposal) {
           solutionLifecycleLearningProposalStatus.textContent = "Resolve the pending retirement proposal before submitting another lifecycle mutation.";
           return;
@@ -3510,12 +3839,21 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           sequentialEvidenceLocations = new Set(sequentialEvidenceLocationIds);
-          const solutionLifecycleLocationIds = [...new Set((data.scopes || [])
+          const solutionLifecycleReadLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "read")
             .map((scope) => scope.location_id)
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
-          solutionLifecycleLocations = new Set(solutionLifecycleLocationIds);
+          const solutionLifecycleReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "review")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          const solutionLifecycleLocationIds = [...new Set([
+            ...solutionLifecycleReadLocationIds, ...solutionLifecycleReviewLocationIds
+          ])];
+          solutionLifecycleLocations = new Set(solutionLifecycleReadLocationIds);
+          solutionLifecycleReviewLocations = new Set(solutionLifecycleReviewLocationIds);
           solutionLifecycleCreateLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "create")
             .map((scope) => scope.location_id)
@@ -3800,10 +4138,12 @@
               option.textContent = locationId;
               solutionLifecycleLocation.append(option);
             }
+            solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleRetirementProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
             await loadSolutionLifecycleSummary();
             hasAuthorizedSurface = true;
@@ -7092,6 +7432,7 @@
         solutionLifecyclePendingLearningProposal = null;
         solutionLifecycleLearningProposalForm.reset();
         solutionLifecycleLearningProposalStatus.textContent = "";
+        solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleRetirementSourcesRequestVersion += 1;
@@ -7105,6 +7446,13 @@
         solutionLifecycleRetirementProposalStatus.textContent = "";
         solutionLifecycleRetirementProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleRetirementReviewRequestVersion += 1;
+        solutionLifecycleRetirementReviewDetailVersion += 1;
+        solutionLifecycleRetirementReviewOffset = 0;
+        resetSolutionLifecycleRetirementReview();
+        solutionLifecycleRetirementReviewStatus.textContent = "";
+        solutionLifecycleRetirementReviewMore.hidden = true;
+        solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         loadSolutionLifecycleSummary();
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
@@ -7123,6 +7471,10 @@
       solutionLifecycleRetirementSourcesMore.addEventListener("click", () => loadSolutionLifecycleRetirementSources(true));
       solutionLifecycleRetirementProposalForm.addEventListener("submit", submitSolutionLifecycleRetirementProposal);
       solutionLifecycleRetirementType.addEventListener("change", updateSolutionLifecycleRetirementReplacementVisibility);
+      solutionLifecycleRetirementReviewLoad.addEventListener("click", () => loadSolutionLifecycleRetirementReviewQueue());
+      solutionLifecycleRetirementReviewMore.addEventListener("click", () => loadSolutionLifecycleRetirementReviewQueue(true));
+      solutionLifecycleRetirementReviewApprove.addEventListener("click", approveSolutionLifecycleRetirement);
+      solutionLifecycleRetirementReviewConfirm.addEventListener("change", () => lockSolutionLifecycleRetirementApproval());
       updateSolutionLifecycleRetirementReplacementVisibility();
       document.querySelector("#solution-lifecycle-learning-reset").addEventListener("click", () => {
         if (solutionLifecyclePendingLearningProposal) {
@@ -7143,7 +7495,8 @@
         solutionLifecycleRetirementProposalStatus.textContent = "Proposal form cleared; no retirement was submitted.";
       });
       window.addEventListener("beforeunload", (event) => {
-        if (solutionLifecyclePendingLearningProposal || solutionLifecyclePendingRetirementProposal) {
+        if (solutionLifecyclePendingLearningProposal || solutionLifecyclePendingRetirementProposal
+            || solutionLifecyclePendingRetirementApproval) {
           event.preventDefault();
           event.returnValue = "";
         }

@@ -3,7 +3,8 @@
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
 reads, independently reviewed retirement and learning proposal actions, and
-the operator-console status and proposal views are prepared; not owner-accepted.
+the operator-console status, proposal, and private retirement-review views are
+prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -16,8 +17,9 @@ the operator-console status and proposal views are prepared; not owner-accepted.
 `474_solution_retirement_independent_review.sql` and
 `475_location_solution_retirement_review.sql` and
 `476_location_solution_retirement_proposal.sql`, and
-`477_location_solution_learning_proposal.sql`, and
-`481_location_solution_retirement_candidates.sql`.
+`477_location_solution_learning_proposal.sql`,
+`481_location_solution_retirement_candidates.sql`, and
+`482_location_solution_retirement_review_queue.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -30,20 +32,25 @@ the operator-console status and proposal views are prepared; not owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/retirement-candidates`, and
 `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`,
 `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`, and
-`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`.
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`,
+`GET /operator/api/solution-lifecycle/{location_id}/retirements/review`, and
+`GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement
 and learning proposals require exact `solution_lifecycle:create`; approval
-requires exact `solution_lifecycle:review`. Mutations use signed operator
-tenant context checked in Gateway and PostgreSQL.
+requires exact `solution_lifecycle:review`; retirement review reads also require
+an active human party binding. Mutations use signed operator tenant context
+checked in Gateway and PostgreSQL.
 
 ## Purpose and boundary
 
 The legacy innovation services already implement solution discovery, stage
 gates, experiments, funding decisions, adoption, replication, scale gates,
 learning, and retirement. This slice adds optional-Kernel-compatible,
-location-scoped Gateway reads and a limited retirement-review action. The reads
-do not mutate lifecycle state. The action records an independent retirement
-approval but does not execute migration, sunset, or retirement of a solution.
+location-scoped Gateway reads, retirement proposal/review routes, and a limited
+retirement-review action. The reads do not mutate lifecycle state. The action records an independent retirement
+approval but does not execute migration, sunset, or retirement of a solution. The
+review inbox exposes the pending proposal context needed for that decision only to
+operators with the exact review grant.
 The proposal action creates a `proposed` record only for an exact location-origin
 solution and an active OIDC-to-person binding; an independent reviewer must
 approve it separately before later lifecycle execution.
@@ -174,7 +181,14 @@ tables directly; Directus cannot execute the action.
 Migration 477 uses `kokonut_solution_learning_proposal_owner`; it receives only
 the source columns and tenant-check relations needed to validate a reviewed
 replication and write a draft learning record, with no learning-record update
-or receipt update/delete privileges.
+or receipt update/delete privileges. Migration 482 adds the separate non-login
+`kokonut_solution_reviewer` role. It receives only proposal detail columns,
+active-person attribution columns, and the tenant-grant relations consulted by
+the security-invoker grant helper. Its functions return only pending exact-origin
+proposals under signed review context; runtime cannot read retirement tables
+directly and Directus cannot execute the functions. Migration 482 also installs
+a trigger that rejects approval of a location-origin superseded retirement
+when the replacement is absent, identical, or not from the same location.
 
 ## Operator console
 
@@ -228,17 +242,23 @@ stable request ID for unchanged retries are used. The existing action creates a
 proposal for independent review. The console does not approve, schedule, or
 execute retirements.
 
+
+A separate retirement-review panel appears only for an exact location
+`solution_lifecycle:review` grant. It pages pending location-origin proposals
+and fetches private detail through dedicated review functions. The response
+contains bounded trigger reason, evidence references, remedy plan, and fixed
+solution labels; proposer identity is never returned, only attribution and
+self-authorship booleans. The console renders all values as text, shows a
+self-review warning, and disables approval for self-authored or unattributed
+proposals. Approval requires an active session, explicit acknowledgement, and
+CSRF-protected no-store request. An uncertain result retains its request ID for
+an unchanged retry. A success message states that approval does not schedule or
+execute the retirement. Review reads and approval remain separate from the
+ordinary location-read views.
+
 ## Verification and remaining parity
 
-The current retirement-source and proposal-form slice passes 176 focused
-Gateway/action/console/route-policy/migration tests; Ruff, Python compilation,
-and diff checks pass. Disposable PostgreSQL 16 applies and replays migration
-481 and passes nine grouped checks for exact-origin candidate selection,
-signed context, grants, pagination, privacy, and runtime/Directus boundaries.
-Evidence is recorded in
-`builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json`.
-The test database is removed after the run; candidate and legacy databases are
-untouched and migration 481 is not rolled out.
+The retirement-candidate/proposal slice passes 176 focused tests; disposable PostgreSQL 16 applies/replays migration 481 and passes nine scope, grant, pagination, privacy, and role-boundary groups. Evidence is recorded in `builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json`. The review inbox/detail/approval-console slice passes 122 focused tests including Node.js syntax, with Ruff, compilation, and diff checks. Disposable PostgreSQL 16 applies/replays migration 482 after the ordered predecessors and passes seven grouped review, grant, privacy, privilege, and replacement-scope checks. Evidence is recorded in `builds/2026-10-20-recovery/cap-035-solution-retirement-review-disposable.json`. Both disposable containers are removed after their runs; candidate and legacy databases are untouched and migrations 481–482 are not rolled out.
 
 The summary, gate, experiment, funding, adoption, scale-gate, replication,
 learning, retirement, and independent-review source checks and their

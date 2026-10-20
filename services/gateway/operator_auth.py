@@ -815,6 +815,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_retirement_review_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/retirements/review",
+        path,
+    )
+    if solution_lifecycle_retirement_review_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_retirement_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_retirement_review_detail_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/retirements/review/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if solution_lifecycle_retirement_review_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_retirement_review_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_retirement_proposal_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/solutions/([0-9a-fA-F-]{36})/retirements",
         path,
