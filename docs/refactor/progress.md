@@ -1,3 +1,18 @@
+### CAP-035 solution-lifecycle console summary — 20 October 2026
+
+The operator console now shows the CAP-035 aggregate solution total and fixed
+lifecycle status-count groups for locations with the exact
+`solution_lifecycle:read` session grant. The groups cover stages, gates,
+experiments, funding decisions, adoption, readiness, scale gates, learning, and
+retirement; details are collapsed and no row-level or mutation controls are
+present. Focused console/Gateway/route-policy checks pass 89 tests, including
+inline JavaScript syntax validation; Ruff and capability validation pass. No
+database was used. CAP-035 remains prepared pending workflow/detail parity,
+populated fixture comparison, live OIDC/browser, broader ACL/RLS, recovery,
+and owner acceptance. Checklist: 711 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+
 ### CAP-036 sequential-evidence console reads — 19 October 2026
 
 The operator console now shows the CAP-036 aggregate summary and ordered event

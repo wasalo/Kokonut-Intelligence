@@ -578,6 +578,19 @@
           </div>
           <button id="sequential-evidence-timeline-more" class="secondary" type="button" hidden>Load more evidence</button>
         </section>
+        <section id="solution-lifecycle" hidden aria-labelledby="solution-lifecycle-heading">
+          <h2 id="solution-lifecycle-heading">Solution lifecycle overview</h2>
+          <p class="muted">Read-only aggregate lifecycle counts for solutions explicitly originated at or linked to the granted location. Names, row IDs, narratives, evidence, funding amounts, and identities are omitted. Counts do not approve gates, release funding, or activate adoption.</p>
+          <div class="toolbar">
+            <label for="solution-lifecycle-location">Granted location</label>
+            <select id="solution-lifecycle-location"></select>
+            <button id="solution-lifecycle-refresh" type="button">Refresh lifecycle summary</button>
+          </div>
+          <p id="solution-lifecycle-status" class="muted" role="status" aria-live="polite"></p>
+          <h3>Linked solutions</h3>
+          <dl id="solution-lifecycle-overview"></dl>
+          <div id="solution-lifecycle-count-groups"></div>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -626,7 +639,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, sequential evidence, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -787,6 +800,13 @@
       let sequentialEvidenceSummaryRequestVersion = 0;
       let sequentialEvidenceTimelineRequestVersion = 0;
       let sequentialEvidenceTimelineOffset = 0;
+      const solutionLifecycle = document.querySelector("#solution-lifecycle");
+      const solutionLifecycleLocation = document.querySelector("#solution-lifecycle-location");
+      const solutionLifecycleStatus = document.querySelector("#solution-lifecycle-status");
+      const solutionLifecycleOverview = document.querySelector("#solution-lifecycle-overview");
+      const solutionLifecycleCountGroups = document.querySelector("#solution-lifecycle-count-groups");
+      let solutionLifecycleLocations = new Set();
+      let solutionLifecycleSummaryRequestVersion = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1223,6 +1243,121 @@
         await Promise.all([loadSequentialEvidenceSummary(), loadSequentialEvidenceTimeline()]);
       }
 
+      function renderSolutionLifecycleSummary(summary) {
+        solutionLifecycleOverview.replaceChildren();
+        solutionLifecycleCountGroups.replaceChildren();
+        const totalTerm = document.createElement("dt");
+        const totalValue = document.createElement("dd");
+        totalTerm.textContent = "Solutions";
+        totalValue.textContent = typeof summary.solution_count === "number"
+          && Number.isFinite(summary.solution_count) ? summary.solution_count.toLocaleString() : "—";
+        solutionLifecycleOverview.append(totalTerm, totalValue);
+        const groups = [
+          ["Solution stage", "stage_counts", [
+            ["discovered", "Discovered"], ["triaged", "Triaged"], ["framed", "Framed"],
+            ["experiment_ready", "Experiment ready"], ["testing", "Testing"], ["validated", "Validated"],
+            ["investment_ready", "Investment ready"], ["funded", "Funded"], ["pilot_active", "Pilot active"],
+            ["adoption_ready", "Adoption ready"], ["adopting", "Adopting"], ["scaled", "Scaled"],
+            ["maintained", "Maintained"], ["paused", "Paused"], ["superseded", "Superseded"],
+            ["retired", "Retired"], ["failed", "Failed"]
+          ]],
+          ["Solution status", "solution_status_counts", [
+            ["active", "Active"], ["paused", "Paused"], ["retired", "Retired"], ["superseded", "Superseded"]
+          ]],
+          ["Stage gates", "stage_gate_status_counts", [
+            ["draft", "Draft"], ["ready", "Ready"], ["approved", "Approved"], ["failed", "Failed"], ["retired", "Retired"]
+          ]],
+          ["Latest gate evaluations", "latest_gate_evaluation_counts", [["passed", "Passed"], ["failed", "Failed"]]],
+          ["Experiments", "experiment_status_counts", [
+            ["draft", "Draft"], ["submitted", "Submitted"], ["protocol_approved", "Protocol approved"],
+            ["baseline_ready", "Baseline ready"], ["active", "Active"], ["paused", "Paused"],
+            ["completed", "Completed"], ["results_review", "Results review"], ["validated", "Validated"],
+            ["invalidated", "Invalidated"], ["inconclusive", "Inconclusive"], ["requires_replication", "Requires replication"]
+          ]],
+          ["Reviewed experiment outcomes", "experiment_result_counts", [
+            ["validated", "Validated"], ["invalidated", "Invalidated"], ["inconclusive", "Inconclusive"],
+            ["requires_replication", "Requires replication"]
+          ]],
+          ["Replications", "replication_status_counts", [
+            ["proposed", "Proposed"], ["approved", "Approved"], ["active", "Active"],
+            ["completed", "Completed"], ["failed", "Failed"]
+          ]],
+          ["Funding decisions", "funding_decision_counts", [
+            ["draft", "Draft"], ["submitted", "Submitted"], ["approved", "Approved"],
+            ["rejected", "Rejected"], ["closed", "Closed"]
+          ]],
+          ["Adoption programs", "adoption_program_status_counts", [
+            ["draft", "Draft"], ["community_review", "Community review"], ["enablement_ready", "Enablement ready"],
+            ["launch", "Launch"], ["onboarding", "Onboarding"], ["active", "Active"],
+            ["paused", "Paused"], ["assessed", "Assessed"], ["expand", "Expand"],
+            ["redesign", "Redesign"], ["retired", "Retired"]
+          ]],
+          ["Configuration approvals", "configuration_approval_counts", [
+            ["draft", "Draft"], ["submitted", "Submitted"], ["approved", "Approved"], ["rejected", "Rejected"]
+          ]],
+          ["Adopter readiness", "adopter_readiness_counts", [
+            ["not_ready", "Not ready"], ["remediating", "Remediating"], ["ready", "Ready"], ["expired", "Expired"]
+          ]],
+          ["Scale gates", "scale_gate_status_counts", [
+            ["pending", "Pending"], ["passed", "Passed"], ["failed", "Failed"], ["waived", "Waived"]
+          ]],
+          ["Learning decisions", "learning_decision_counts", [
+            ["proposed", "Proposed"], ["accepted", "Accepted"], ["rejected", "Rejected"], ["applied", "Applied"]
+          ]],
+          ["Retirements", "retirement_status_counts", [
+            ["proposed", "Proposed"], ["impact_review", "Impact review"], ["approved", "Approved"],
+            ["migration", "Migration"], ["sunset", "Sunset"], ["completed", "Completed"], ["rejected", "Rejected"]
+          ]]
+        ];
+        for (const [title, key, fields] of groups) {
+          const details = document.createElement("details");
+          const heading = document.createElement("summary");
+          const counts = document.createElement("dl");
+          heading.textContent = title;
+          for (const [field, label] of fields) {
+            const value = summary[key]?.[field];
+            if (typeof value !== "number" || !Number.isFinite(value)) continue;
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value.toLocaleString();
+            counts.append(term, description);
+          }
+          details.append(heading, counts);
+          solutionLifecycleCountGroups.append(details);
+        }
+      }
+
+      async function loadSolutionLifecycleSummary() {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleSummaryRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)) return;
+        solutionLifecycleStatus.textContent = "Loading aggregate lifecycle summary…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Solution lifecycle reads are unavailable for this location.");
+            throw new Error("The solution lifecycle summary could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleSummaryRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          renderSolutionLifecycleSummary(result);
+          solutionLifecycleStatus.textContent = "Aggregate, location-linked lifecycle counts. No lifecycle state was changed.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleSummaryRequestVersion) return;
+          solutionLifecycleOverview.replaceChildren();
+          solutionLifecycleCountGroups.replaceChildren();
+          solutionLifecycleStatus.textContent = error.message;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1254,6 +1389,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           sequentialEvidenceLocations = new Set(sequentialEvidenceLocationIds);
+          const solutionLifecycleLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          solutionLifecycleLocations = new Set(solutionLifecycleLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -1470,6 +1611,17 @@
             }
             sequentialEvidence.hidden = false;
             await loadSequentialEvidence();
+            hasAuthorizedSurface = true;
+          }
+          if (solutionLifecycleLocationIds.length) {
+            for (const locationId of solutionLifecycleLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              solutionLifecycleLocation.append(option);
+            }
+            solutionLifecycle.hidden = false;
+            await loadSolutionLifecycleSummary();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -4619,6 +4771,8 @@
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
+      document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
+      solutionLifecycleLocation.addEventListener("change", loadSolutionLifecycleSummary);
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

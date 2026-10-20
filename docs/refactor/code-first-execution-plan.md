@@ -1,7 +1,21 @@
 # Code-first refactor execution plan
 
-**Updated:** 19 October 2026
+**Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
+
+**Latest implementation slice — 20 October 2026:** CAP-035 now has a
+read-only operator-console overview for its location-scoped lifecycle summary,
+visible only with exact `solution_lifecycle:read`. It displays the solution
+total and fixed aggregate status groups in collapsed sections; it exposes no
+row detail and adds no mutation controls. The focused console/Gateway/route-
+policy selection passes 89 tests, including JavaScript syntax validation; Ruff
+and capability checks pass. No database was used. CAP-035 remains prepared
+pending detail/workflow parity, populated fixtures, live OIDC/browser, broader
+ACL/RLS, recovery, and owner acceptance. Checklist: 711 complete / 24 open;
+capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence:
+[contract](solution-lifecycle-kernel-read-contract.md),
+[console](../apps/operator-console/index.html), and
+[console checks](../tests/test_operator_console_solution_lifecycle.py).
 
 **Previous implementation slice — 19 October 2026:** the operator console now
 surfaces CAP-037's existing summary, demand, and capacity-period GET routes for
@@ -18,7 +32,7 @@ matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
 contract](operating-pilot-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
 [console checks](../tests/test_operator_console_operating_pilot.py).
 
-**Latest implementation slice — 19 October 2026:** CAP-036 now has an
+**Previous implementation slice — 19 October 2026:** CAP-036 now has an
 operator-console panel for the existing sequential evidence summary and ordered
 event timeline, gated by exact `sequential_evidence:read` location grants. It
 uses fixed summary/row allowlists, same-origin no-store reads, stale-location

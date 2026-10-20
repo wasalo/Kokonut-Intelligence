@@ -174,6 +174,18 @@ the source columns and tenant-check relations needed to validate a reviewed
 replication and write a draft learning record, with no learning-record update
 or receipt update/delete privileges.
 
+## Operator console
+
+The operator console exposes a read-only lifecycle summary when the signed
+session includes an exact `solution_lifecycle:read` location grant. It displays
+the aggregate solution total and fixed status-count groups through the
+summary route; no solution names, IDs, narratives, evidence, funding amounts,
+or identities are rendered. Groups are collapsed by default. Requests use the
+same-origin session, disable caching, and discard stale responses after a
+location change. No proposal, approval, funding, gate, or adoption action is
+available in this panel, and this source check does not constitute live
+OIDC/browser acceptance.
+
 ## Verification and remaining parity
 
 The summary, gate, experiment, funding, adoption, scale-gate, replication,
