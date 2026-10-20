@@ -108,7 +108,6 @@ def cmd_live_summary(args):
 def cmd_consensus(args):
     from services.delphi.facilitator import Facilitator
     f = Facilitator(conn=_get_conn())
-    study = f.get_study(args.study_id)
     # Return current consensus snapshots via live summary items
     summary = f.get_live_summary(args.study_id)
     print(_json({"study_id": args.study_id, "items": summary["items"]}))
@@ -162,11 +161,16 @@ def cmd_calibrate_panel(args):
 
 def cmd_list_studies(args):
     conn = _get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM delphi_study ORDER BY created_at DESC LIMIT 50")
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.close()
+    try:
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT * FROM delphi_study ORDER BY created_at DESC LIMIT 50")
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+        finally:
+            cur.close()
+    finally:
+        conn.close()
     for row in rows:
         print(_json(dict(zip(cols, row))))
 

@@ -338,6 +338,243 @@ def test_forecast_catalogue_closes_connection_when_query_fails(monkeypatch) -> N
     assert connection.closed is True
 
 
+def test_database_backed_analytics_emission_factor_output_matches_with_stubbed_query(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.analytics import carbon_balance
+    from services.analytics import cli as analytics_cli
+
+    rows = [{"factor_key": "synthetic_factor", "value": 1.25, "unit": "kg_co2e"}]
+    query_connections = []
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fake_list_emission_factors(connection):
+        query_connections.append(connection)
+        return rows
+
+    monkeypatch.setattr(analytics_cli, "get_connection", make_connection)
+    monkeypatch.setattr(carbon_balance, "list_emission_factors", fake_list_emission_factors)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.analytics.cli", "--emission-factors"]
+        analytics_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["analytics", "--", "--emission-factors"])
+
+    assert unified.exit_code == 0, unified.output
+    assert json.loads(unified.output) == json.loads(standalone_output) == rows
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert query_connections == connections
+    assert unified.stderr == ""
+
+
+def test_database_backed_crisp_weights_output_matches_with_stubbed_query(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.crisp import scoring_engine
+
+    crisp_cli = importlib.import_module("services.crisp.cli")
+    weights = {"climate": 0.3, "soil": 0.7}
+    query_calls = []
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fake_query_location_weights(connection, location_id):
+        query_calls.append((connection, location_id))
+        return weights
+
+    monkeypatch.setattr(crisp_cli, "get_db", make_connection)
+    monkeypatch.setattr(scoring_engine, "_query_location_weights", fake_query_location_weights)
+    arguments = ["--weights", "--location-id", "synthetic-location"]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.crisp.cli", *arguments]
+        crisp_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["crisp", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    expected = {"location_id": "synthetic-location", "weights": weights}
+    assert json.loads(unified.output) == json.loads(standalone_output) == expected
+    assert query_calls == [
+        (connections[0], "synthetic-location"),
+        (connections[1], "synthetic-location"),
+    ]
+    assert all(connection.closed for connection in connections)
+    assert unified.stderr == ""
+
+
+def test_crisp_weights_closes_connection_when_query_fails(monkeypatch) -> None:
+    from services.crisp import scoring_engine
+
+    crisp_cli = importlib.import_module("services.crisp.cli")
+
+    class FakeConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(crisp_cli, "get_db", lambda: connection)
+
+    def fail_query(*_args, **_kwargs):
+        raise RuntimeError("synthetic CRISP weight failure")
+
+    monkeypatch.setattr(scoring_engine, "_query_location_weights", fail_query)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.crisp.cli", "--weights", "--location-id", "synthetic-location"]
+        with pytest.raises(RuntimeError, match="synthetic CRISP weight failure"):
+            crisp_cli.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.closed is True
+
+
+def test_database_backed_delphi_study_list_matches_and_closes_connection(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.delphi import cli as delphi_cli
+
+    rows = [("synthetic-study", "Delphi fixture", "open")]
+    connections = []
+
+    class FakeCursor:
+        description = [("id",), ("title",), ("status",)]
+        query = ""
+        closed = False
+
+        def execute(self, query):
+            self.query = query
+
+        def fetchall(self):
+            return rows
+
+        def close(self):
+            self.closed = True
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(delphi_cli, "_get_conn", make_connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.delphi.cli", "list-studies"]
+        delphi_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["delphi", "--", "list-studies"])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == {"id": "synthetic-study", "title": "Delphi fixture", "status": "open"}
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(connection.fake_cursor.closed for connection in connections)
+    assert all("FROM delphi_study" in connection.fake_cursor.query for connection in connections)
+    assert unified.stderr == ""
+
+
+def test_delphi_study_list_closes_cursor_and_connection_when_query_fails(monkeypatch) -> None:
+    from services.delphi import cli as delphi_cli
+
+    class FakeCursor:
+        closed = False
+
+        def execute(self, _query):
+            raise RuntimeError("synthetic Delphi study query failure")
+
+        def close(self):
+            self.closed = True
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(delphi_cli, "_get_conn", lambda: connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.delphi.cli", "list-studies"]
+        with pytest.raises(RuntimeError, match="synthetic Delphi study query failure"):
+            delphi_cli.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.fake_cursor.closed is True
+    assert connection.closed is True
+
+
 def test_database_backed_capability_list_output_matches_with_stubbed_query(monkeypatch, capsys) -> None:
     from typer.testing import CliRunner
 

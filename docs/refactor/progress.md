@@ -1,22 +1,24 @@
 ### CAP-039 expanded unified-CLI success parity — 20 October 2026
 
 Expanded standalone/unified output comparisons to seven offline invocations and
-twenty-one read-only database-backed commands across 27 mounted groups. Queries
+twenty-four read-only database-backed commands across 30 mounted groups. Queries
 are replaced by synthetic results; exit status, parsed filters, and JSON output
 match. No database or provider is contacted. The governance proposal, role,
 link, tactical, and tension read CLIs close owned connections after successful
 and failing service calls; focused mocked failures verify cleanup. Grievance
 health, identity-resolution queue, representation distribution, and trust
 timeline reads also verify successful connection cleanup. The local attestation
-schema catalogue is offline; metric and forecast catalogue paths use fake DB
-cursors. Forecast list now closes its connection if the query fails. The
-selection passes 44 tests, including 28 successful-output invocations and the
+schema catalogue is offline; metric, forecast, analytics, CRISP, and Delphi
+catalogue paths use fake DB cursors or stubbed service calls. Forecast and CRISP
+close their connections if queries fail; Delphi closes its cursor and connection
+on either outcome. The selection passes 98 tests across CLI parity, CLI
+contracts, and Delphi service coverage, including 31 successful-output invocations and the
 native Typer tree comparison. Standalone/unified command trees and leaf
 parameters match for `kernel`, `dao`, and `treasury`; shell-completion toggles
 remain intentionally disabled under the unified root. CAP-039 remains
-deployed, not accepted: 10 mounted groups still need successful-path/output
+deployed, not accepted: seven mounted groups still need successful-path/output
 and dependency classification, and privileged operator-action boundaries and
-MAN-CAP-039 review remain open. Checklist: 793 complete / 24 open; matrix:
+MAN-CAP-039 review remain open. Checklist: 794 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [CLI contract](unified-cli-kernel-contract.md),
 [tests](../../tests/test_unified_cli_success_contract.py), and

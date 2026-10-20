@@ -2,12 +2,12 @@
   "capability": "CAP-039",
   "check": "offline-success-output-parity",
   "date": "2026-10-20",
-  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
+  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 44,
-    "new_success_path_cases": 28,
-    "database_backed_cases_with_stubbed_query": 21,
+    "tests_passed": 98,
+    "new_success_path_cases": 31,
+    "database_backed_cases_with_stubbed_query": 24,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -193,10 +193,30 @@
       "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
       "output": "Formatted scenario catalogue",
       "database_behavior": "Standalone and unified output match; connection closes after success and query failure."
+    },
+    {
+      "name": "analytics",
+      "arguments": ["--emission-factors"],
+      "dependencies": ["PostgreSQL read through context-managed connection; query stubbed"],
+      "output": "JSON GHG emission-factor rows"
+    },
+    {
+      "name": "crisp",
+      "arguments": ["--weights", "--location-id", "synthetic-location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON normalized location weights",
+      "database_behavior": "Standalone and unified filters/output match; the owned fake connection closes after success and failure."
+    },
+    {
+      "name": "delphi",
+      "arguments": ["list-studies"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "One JSON study row per line",
+      "database_behavior": "Standalone and unified output match; cursor and owned connection close after success and query failure."
     }
   ],
   "limitations": [
-    "Successful parity is covered for seven offline command invocations and twenty-one PostgreSQL-backed commands whose service queries were stubbed, across 27 mounted groups.",
+    "Successful parity is covered for seven offline command invocations and twenty-four PostgreSQL-backed commands whose service queries were stubbed, across 30 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

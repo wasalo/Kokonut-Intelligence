@@ -16,10 +16,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
+
+from services.common.cli import print_json
 
 from ..ingestion.base import get_db
-from services.common.cli import print_json
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut Intelligence CRISP Risk Scoring")
@@ -132,8 +133,10 @@ def main() -> None:
             parser.error("--weights requires --location-id")
         from .scoring_engine import _query_location_weights
         conn = get_db()
-        weights = _query_location_weights(conn, args.location_id)
-        conn.close()
+        try:
+            weights = _query_location_weights(conn, args.location_id)
+        finally:
+            conn.close()
         print_json({"location_id": args.location_id, "weights": weights})
         return
 
