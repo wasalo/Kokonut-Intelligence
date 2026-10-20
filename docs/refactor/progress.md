@@ -11647,3 +11647,25 @@ prepared, not accepted. Checklist: 697 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/469_location_scoped_solution_adoption.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json).
+
+### CAP-035 location-scoped scale-gate status — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/scale-gates` under the
+exact location `solution_lifecycle:read` grant and signed tenant context.
+Migration 470 lists only location-targeted gates for solutions originated in or
+explicitly linked to that location. The response shows gate type/status and
+whether an approver reference exists, plus its timestamp; it omits requirements,
+thresholds, measurements, metric keys/units, evidence, and reviewer identity.
+Ninety focused Gateway, route-policy, and migration metadata tests pass.
+Disposable PostgreSQL 16 applies/replays migrations 459 and 466–470 and passes
+seven grouped checks, including approved/unapproved gates, location/scope
+exclusion, narrowed source columns, preservation of the migration-459 aggregate,
+and runtime/Directus boundaries. Ruff, compilation, capability validation,
+runtime SQL inventory, repository inventory, and diff checks pass. Candidate and
+legacy databases remain untouched; migration 470 is not rolled out. Gate
+mutation/evaluation, populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, and MAN-CAP-035 review remain open. CAP-035 remains prepared, not
+accepted. Checklist: 698 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
+[disposable evidence](builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json).
