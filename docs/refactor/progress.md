@@ -1,3 +1,20 @@
+### CAP-030 management summary operator-console read — 20 October 2026
+
+The operator console now renders CAP-030's location workload summary for
+operators with an exact `management_workflow:read` grant. Its fixed 17-field
+allowlist covers work lifecycle, open urgency, overdue/SLA, claims,
+escalations, and latest event time. Task content, assignees/claimants, notes,
+and escalation reasons remain excluded; no assignment or lifecycle action is
+exposed. Same-origin no-store reads and stale-location guards are in place.
+The focused console, Gateway, and route-policy selection passes 15 tests,
+including JavaScript syntax validation; Ruff and capability-matrix validation
+pass. Candidate and legacy databases remain untouched; migration 454 is not
+rolled out. CAP-030 remains prepared pending assignment/transition and SLA/
+escalation parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
+MAN-CAP-030 owner review. Checklist: 716 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. [Read contract](management-work-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_management_work.py).
+
 ### CAP-031 planning budget operator-console read — 20 October 2026
 
 The operator console now shows bounded location budget summaries under exact

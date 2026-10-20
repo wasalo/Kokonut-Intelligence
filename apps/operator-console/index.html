@@ -661,6 +661,17 @@
           </div>
           <button id="planning-budget-more" class="secondary" type="button" hidden>Load more budgets</button>
         </section>
+        <section id="management-work-summary" hidden aria-labelledby="management-work-summary-heading">
+          <h2 id="management-work-summary-heading">Management workflow overview</h2>
+          <p class="muted">Read-only counts for work items, urgency, due dates, claims, escalations, and latest activity at the granted location. Task content, assignees, claimants, notes, and escalation reasons are excluded. This view does not assign work or change lifecycle state.</p>
+          <div class="toolbar">
+            <label for="management-work-location">Granted location</label>
+            <select id="management-work-location"></select>
+            <button id="management-work-refresh" type="button">Refresh workload</button>
+          </div>
+          <p id="management-work-status" class="muted" role="status" aria-live="polite"></p>
+          <dl id="management-work-counts"></dl>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -709,7 +720,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -912,6 +923,12 @@
       let planningBudgetLocations = new Set();
       let planningBudgetRequestVersion = 0;
       let planningBudgetOffset = 0;
+      const managementWorkSummary = document.querySelector("#management-work-summary");
+      const managementWorkLocation = document.querySelector("#management-work-location");
+      const managementWorkStatus = document.querySelector("#management-work-status");
+      const managementWorkCounts = document.querySelector("#management-work-counts");
+      let managementWorkLocations = new Set();
+      let managementWorkRequestVersion = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1797,6 +1814,69 @@
         }
       }
 
+      function renderManagementWorkSummary(summary) {
+        managementWorkCounts.replaceChildren();
+        for (const [field, label] of [
+          ["work_item_count", "Location work items"],
+          ["open_work_item_count", "Open work items"],
+          ["draft_count", "Draft"],
+          ["assigned_count", "Assigned"],
+          ["in_progress_count", "In progress"],
+          ["blocked_count", "Blocked"],
+          ["done_count", "Done"],
+          ["cancelled_count", "Cancelled"],
+          ["high_priority_open_count", "Open high-priority items"],
+          ["critical_priority_open_count", "Open critical-priority items"],
+          ["overdue_count", "Overdue open items"],
+          ["sla_breached_count", "Open items past SLA"],
+          ["pending_claim_count", "Pending claims"],
+          ["accepted_claim_count", "Accepted claims"],
+          ["open_escalation_count", "Open escalations"],
+          ["resolved_escalation_count", "Resolved escalations"],
+          ["latest_work_event_at", "Latest work event"]
+        ]) {
+          const value = summary[field];
+          if (value !== null && value !== undefined
+              && typeof value !== "number" && typeof value !== "string") continue;
+          const term = document.createElement("dt");
+          const valueElement = document.createElement("dd");
+          term.textContent = label;
+          valueElement.textContent = typeof value === "number" && Number.isFinite(value)
+            ? value.toLocaleString()
+            : value === null || value === undefined ? "—" : value;
+          managementWorkCounts.append(term, valueElement);
+        }
+      }
+
+      async function loadManagementWorkSummary() {
+        const locationId = managementWorkLocation.value;
+        const requestVersion = ++managementWorkRequestVersion;
+        if (!managementWorkLocations.has(locationId)) return;
+        managementWorkStatus.textContent = "Loading management workload…";
+        try {
+          const response = await fetch(
+            `/operator/api/management/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Management workflow summaries are unavailable for this location.");
+            throw new Error("The management workload could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== managementWorkRequestVersion
+              || locationId !== managementWorkLocation.value) return;
+          renderManagementWorkSummary(result);
+          managementWorkStatus.textContent = "Read-only counts for exactly location-assigned work. No work state was changed.";
+        } catch (error) {
+          if (requestVersion !== managementWorkRequestVersion) return;
+          managementWorkCounts.replaceChildren();
+          managementWorkStatus.textContent = error.message;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1858,6 +1938,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           planningBudgetLocations = new Set(planningBudgetLocationIds);
+          const managementWorkLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "management_workflow" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          managementWorkLocations = new Set(managementWorkLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2129,6 +2215,17 @@
             }
             planningBudgetSummary.hidden = false;
             await loadPlanningBudgetSummaries();
+            hasAuthorizedSurface = true;
+          }
+          if (managementWorkLocationIds.length) {
+            for (const locationId of managementWorkLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              managementWorkLocation.append(option);
+            }
+            managementWorkSummary.hidden = false;
+            await loadManagementWorkSummary();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5291,6 +5388,8 @@
       document.querySelector("#planning-budget-refresh").addEventListener("click", () => loadPlanningBudgetSummaries());
       planningBudgetLocation.addEventListener("change", () => loadPlanningBudgetSummaries());
       planningBudgetMore.addEventListener("click", () => loadPlanningBudgetSummaries(true));
+      document.querySelector("#management-work-refresh").addEventListener("click", loadManagementWorkSummary);
+      managementWorkLocation.addEventListener("change", loadManagementWorkSummary);
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

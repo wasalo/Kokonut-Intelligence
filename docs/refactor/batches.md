@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 715 checklist items complete and 24
-open (739 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (20 October 2026):** 716 checklist items complete and 24
+open (740 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1586,3 +1586,7 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
 ### CAP-031 planning budget operator-console read — 20 October 2026
 
 - [x] Surface bounded location budget summaries in the operator console under exact `planning_budget:read` grants. The view shows plan lifecycle, native currency/period, objective presence, planned totals, verified same-currency expenses and variance, foreign-currency counts, and scenario counts. It does not convert currencies or render plan/transaction IDs, labels, categories, assumptions, vendors, or evidence. Same-origin no-store requests, stale-location guards, and 25-row paging are in place. The focused console, Gateway, and route-policy selection passes 22 tests, including inline JavaScript syntax; Ruff and matrix validation pass. Candidate and legacy databases remain untouched; migration 455 is not rolled out. CAP-031 remains partial pending budget lifecycle, objectives/KPIs, portfolio, revenue/cash-flow, S&OP, populated parity, live OIDC/browser, broader ACL/RLS, and MAN-CAP-031 review ([read contract](planning-budget-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_planning_budget.py)). Checklist: 715 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
+
+### CAP-030 management summary operator-console read — 20 October 2026
+
+- [x] Surface the location management-work summary in the operator console under exact `management_workflow:read` grants. The panel renders a fixed 17-field allowlist of workload, status, urgency, due/SLA, claim, escalation, and latest-event aggregates; task content and actor identities remain out of view. Same-origin no-store reads and stale-location guards are used; no assignment or lifecycle actions are exposed. The focused console, Gateway, and route-policy selection passes 15 tests, including inline JavaScript syntax; Ruff and matrix validation pass. No candidate or legacy database was contacted and migration 454 is not rolled out. CAP-030 remains prepared pending workflow parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and MAN-CAP-030 review ([read contract](management-work-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_management_work.py)). Checklist: 716 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
