@@ -1,20 +1,19 @@
 ### CAP-039 successful offline and native unified-CLI parity — 20 October 2026
 
-Added real non-help output comparisons for six offline invocations across five
-mounted groups plus the database-backed `capability-map list --status active`
-path with its query function replaced by a synthetic result. All seven
-standalone/unified invocations return matching status and output. The
-capability-map service receives the parsed filters, but its database behavior
-is not claimed. The synthetic form manifest reports `database_write: false`;
-preview says it did not publish; audit status leaves the missing journal absent.
-The run sets an
+Added real non-help output comparisons for six offline invocations and six
+read-only database-backed commands across 11 mounted groups. The database
+queries are replaced by synthetic results; standalone/unified status, parsed
+filters, and JSON output match, and the stakeholder fake connection closes.
+These checks do not claim database query behavior or authorization. The
+synthetic form manifest reports `database_write: false`; preview says it did
+not publish; audit status leaves the missing journal absent. The run sets an
 unavailable SOPS identity and closed loopback PostgreSQL URL; no database or
-provider is contacted. The focused selection passes 17 tests (seven successful-
+provider is contacted. The focused selection passes 22 tests (12 successful-
 output cases, a native command-tree comparison, and the existing unified CLI
 contract tests). The
 standalone/unified command trees and leaf parameters match for `kernel`, `dao`,
 and `treasury`; shell-completion toggles are intentionally disabled under the
-unified root. CAP-039 remains deployed, not accepted: 31 mounted groups still
+unified root. CAP-039 remains deployed, not accepted: 26 mounted groups still
 need successful-path/output and dependency classification, and privileged
 operator-action boundaries and MAN-CAP-039 review remain open. Checklist:
 789 complete / 24 open; matrix: 31 baseline-retained,

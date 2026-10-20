@@ -62,16 +62,21 @@ mounted unified command using the same arguments. It covers:
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
 | `capability-map` | `list --status active` | PostgreSQL read through the capability-map service; the query is stubbed in this test | JSON capability rows |
+| `stakeholders` | `list --party-type organization` | PostgreSQL read; connection and query are stubbed in this test | JSON party rows |
+| `strategy-map` | `list --perspective financial` | PostgreSQL read through strategy-map service; query is stubbed in this test | JSON strategy rows |
+| `value-stream-defs` | `list --stakeholder farmer` | PostgreSQL read through value-stream service; query is stubbed in this test | JSON value-stream rows |
+| `vision-mission` | `current --entity-type organization` | PostgreSQL read through vision/mission service; query is stubbed in this test | JSON current statement rows |
+| `technology-roadmap` | `list --entity-type location` | PostgreSQL read through roadmap service; query is stubbed in this test | JSON roadmap rows |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Six successful offline command invocations across five mounted
-groups and one database-backed command with a stubbed query match their
-standalone output in the expanded unified CLI selection (17 tests including
-the native Typer command-tree comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
+real service. Six successful offline invocations and six PostgreSQL-backed
+read invocations with stubbed query functions match their standalone output
+across 11 mounted groups (22 tests including the native Typer command-tree
+comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
 The native Typer command tree is also compared between standalone and unified
@@ -81,18 +86,18 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 17-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 22-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The `capability-map list` success path also exercises its real parser,
-forwarded arguments, and JSON renderer from both entry points. Its query
-function is replaced by a synthetic result; the test proves the expected
-`guild_key`, `capability_type`, and `status` arguments but does not claim
-database behavior or authorization.
+The six database-backed success paths exercise their real parsers, forwarding,
+and JSON renderers from both entry points with synthetic query results. The
+stakeholder command also uses a fake connection and proves it closes the
+connection. The cases confirm parsed filters reach the expected service calls;
+they do not claim database query behavior or authorization.
 
 This closes successful output parity only for these six offline command
-invocations across five mounted groups plus one stubbed database-backed path.
-The other 31 mounted groups still need command-specific success-path checks and
+invocations across five mounted groups plus six stubbed database-backed paths.
+The other 26 mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 

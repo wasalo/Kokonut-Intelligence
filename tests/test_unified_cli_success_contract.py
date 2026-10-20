@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import subprocess
@@ -177,4 +178,99 @@ def test_database_backed_capability_list_output_matches_with_stubbed_query(monke
         {"guild_key": None, "capability_type": None, "status": "active"},
         {"guild_key": None, "capability_type": None, "status": "active"},
     ]
+    assert unified.stderr == ""
+
+
+@pytest.mark.parametrize(
+    ("group", "module_path", "arguments", "query_name", "expected_kwargs"),
+    [
+        (
+            "stakeholders",
+            "services.analytics.cli_stakeholders",
+            ["list", "--party-type", "organization"],
+            "list_parties",
+            {"party_type": "organization", "status": None},
+        ),
+        (
+            "strategy-map",
+            "services.analytics.cli_strategy_map",
+            ["list", "--perspective", "financial"],
+            "list_strategy_entries",
+            {"perspective": "financial", "strategic_theme": None, "status": None},
+        ),
+        (
+            "value-stream-defs",
+            "services.analytics.cli_value_stream_defs",
+            ["list", "--stakeholder", "farmer"],
+            "list_streams",
+            {"stakeholder_type": "farmer", "status": "active"},
+        ),
+        (
+            "vision-mission",
+            "services.analytics.cli_vision_mission",
+            ["current", "--entity-type", "organization"],
+            "get_current_statements",
+            {"entity_type": "organization"},
+        ),
+        (
+            "technology-roadmap",
+            "services.analytics.cli_technology_roadmap",
+            ["list", "--entity-type", "location"],
+            "list_roadmaps",
+            {"status": None, "entity_type": "location"},
+        ),
+    ],
+)
+def test_database_backed_read_cli_output_matches_with_stubbed_query(
+    group: str,
+    module_path: str,
+    arguments: list[str],
+    query_name: str,
+    expected_kwargs: dict[str, object],
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    cli_module = importlib.import_module(module_path)
+    query_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+    rows = [{"id": "synthetic-row", "label": "Parity fixture"}]
+
+    def fake_query(*args, **kwargs):
+        query_calls.append((args, kwargs))
+        return rows
+
+    monkeypatch.setattr(cli_module, query_name, fake_query)
+    connection = None
+    if group == "stakeholders":
+        class FakeConnection:
+            closed = False
+
+            def close(self) -> None:
+                self.closed = True
+
+        connection = FakeConnection()
+        monkeypatch.setattr(cli_module, "get_db", lambda: connection)
+
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = [module_path, *arguments]
+        cli_module.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, [group, "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert json.loads(unified.output) == json.loads(standalone_output) == rows
+    assert len(query_calls) == 2
+    if connection is not None:
+        assert query_calls[0][0] == (connection,)
+        assert connection.closed is True
+    else:
+        assert query_calls[0][0] == ()
+    assert query_calls[0][1] == query_calls[1][1] == expected_kwargs
     assert unified.stderr == ""

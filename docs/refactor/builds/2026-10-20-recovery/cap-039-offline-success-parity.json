@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 17,
-    "new_success_path_cases": 7,
-    "database_backed_cases_with_stubbed_query": 1,
+    "tests_passed": 22,
+    "new_success_path_cases": 12,
+    "database_backed_cases_with_stubbed_query": 6,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -60,10 +60,41 @@
       "dependencies": ["PostgreSQL read via capability-map service function; stubbed in this check"],
       "output": "JSON capability rows",
       "database_behavior": "The parser, service call arguments, unified forwarding, and JSON rendering were exercised; the query function was replaced with a synthetic result."
+    },
+    {
+      "name": "stakeholders",
+      "arguments": ["list", "--party-type", "organization"],
+      "dependencies": ["PostgreSQL read via stakeholder service; connection and query stubbed in this check"],
+      "output": "JSON party rows",
+      "database_behavior": "The parser, connection lifecycle, service call arguments, unified forwarding, and JSON rendering were exercised; no database was contacted."
+    },
+    {
+      "name": "strategy-map",
+      "arguments": ["list", "--perspective", "financial"],
+      "dependencies": ["PostgreSQL read via strategy-map service; stubbed in this check"],
+      "output": "JSON strategy rows"
+    },
+    {
+      "name": "value-stream-defs",
+      "arguments": ["list", "--stakeholder", "farmer"],
+      "dependencies": ["PostgreSQL read via value-stream service; stubbed in this check"],
+      "output": "JSON value-stream rows"
+    },
+    {
+      "name": "vision-mission",
+      "arguments": ["current", "--entity-type", "organization"],
+      "dependencies": ["PostgreSQL read via vision/mission service; stubbed in this check"],
+      "output": "JSON current statement rows"
+    },
+    {
+      "name": "technology-roadmap",
+      "arguments": ["list", "--entity-type", "location"],
+      "dependencies": ["PostgreSQL read via roadmap service; stubbed in this check"],
+      "output": "JSON roadmap rows"
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations across five groups and one database-backed command with its query stubbed.",
+    "Successful parity is covered for six offline command invocations and six PostgreSQL-backed commands whose service queries were stubbed, across 11 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }
