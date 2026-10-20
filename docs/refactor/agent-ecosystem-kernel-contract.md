@@ -73,6 +73,41 @@ run without decrypting `.env.sops`.
   identity, and inserts are not covered. It is not treated as a least-privilege
   agent boundary.
 
+## Location-scoped human review slice
+
+Migration 521 adds a bounded Gateway review queue and decision action for
+location summaries. The route requires OIDC, the exact `ai_summary:review`
+location grant, and signed transaction-bound operator context. The console
+renders only granted locations, uses same-origin no-store reads, CSRF-protected
+decisions, and stable request IDs. Approval changes `draft` or `submitted` to
+`verified` only; it does not publish. Rejection remains available when content
+or source-table metadata blocks approval. An append-only private decision
+receipt and the existing lifecycle trigger record the human decision and actor.
+Runtime and Directus lose direct summary `UPDATE` and cannot read the review
+receipt table; normal agent draft inserts remain available.
+
+This is a prepared first review surface, not proof of reviewer independence or
+complete evidence provenance. Existing agent writers leave `ai_summary.created_by`
+NULL and do not persist an authenticated run identity. Therefore the queue can
+neither establish who requested a draft nor reject same-requester review. The
+displayed `source_tables` are provenance hints, not linked source records; a
+reviewer must inspect underlying evidence before verifying. The Gateway and
+console disclose these limits. Do not treat the review endpoint as closing
+MAN-CAP-038 until authenticated agent-run attribution, reviewer-separation
+policy, source-record parity, and populated/live acceptance are addressed.
+
+Migration 521 has been applied and replayed on a new disposable PostgreSQL 16
+container only; candidate and legacy databases remain untouched. Eight grouped
+database acceptance checks pass. The focused Gateway, route-policy, console,
+and migration selection passes 67 tests; the broader 23-file CAP-038 selection
+passes 249 tests with nine pre-existing PostgreSQL-dependent skips. Ruff,
+Python compilation, and inline JavaScript syntax checks pass. See the
+[migration](../../schemas/postgres/521_location_scoped_ai_summary_review.sql),
+[Gateway tests](../../tests/test_gateway_ai_summary_review.py),
+[console checks](../../tests/test_operator_console_ai_summary_review.py), and
+[source evidence](builds/2026-10-20-recovery/cap-038-ai-summary-review-source.json),
+[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-review-disposable.json).
+
 ## Verification and limits
 
 Focused source tests cover all current catalogue write declarations, defensive

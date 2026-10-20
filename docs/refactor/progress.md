@@ -1,3 +1,32 @@
+### CAP-038 location-scoped AI-summary human review — 20 October 2026
+
+Migration 521 and the operator console add a prepared reviewer path for
+location-scoped AI-summary drafts. OIDC requests require the exact
+`ai_summary:review` location grant; the Gateway establishes signed transaction
+context and PostgreSQL rechecks it before returning bounded drafts or recording
+a decision. Approval moves a draft to `verified` only, rejection is separate,
+and append-only receipts plus the lifecycle trigger record the human actor.
+Runtime and Directus lose direct AI-summary updates and cannot read the private
+review history. The console is hidden without the exact grant, uses same-origin
+no-store reads, CSRF-protected writes, safe text rendering, and stable retry IDs.
+
+The focused Gateway, route-policy, console, and migration selection passes 67
+tests; the broader 23-file CAP-038 selection passes 249 tests with nine
+pre-existing PostgreSQL-dependent skips. Ruff, Python compilation, and inline
+JavaScript syntax checks pass.
+Disposable PostgreSQL 16 applies/replays migration 521 and passes eight grouped
+checks. Candidate and legacy databases remain untouched; migration 521 is not
+rolled out. Existing agent writers do not record authenticated run identity, so
+reviewer independence cannot be proven; table names are provenance hints, not
+linked source evidence. These limits, populated parity, live OIDC/browser,
+runtime recovery, and MAN-CAP-038 remain open. Checklist: 783 complete / 24
+open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+Evidence: [contract](agent-ecosystem-kernel-contract.md),
+[migration](../schemas/postgres/521_location_scoped_ai_summary_review.sql),
+[Gateway tests](../tests/test_gateway_ai_summary_review.py),
+[console tests](../tests/test_operator_console_ai_summary_review.py), and
+[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-review-disposable.json).
+
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
 
 Migration 520 adds an immutable consent policy to every submitted adoption

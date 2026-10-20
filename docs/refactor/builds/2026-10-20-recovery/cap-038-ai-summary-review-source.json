@@ -1,0 +1,23 @@
+{
+  "recorded_at": "2026-10-20",
+  "capability": "CAP-038",
+  "scope": "Location-scoped AI-summary review service, OIDC route policy, operator console, migration metadata, and agent regressions.",
+  "verification": {
+    "test_files": 23,
+    "passed": 249,
+    "skipped": 9,
+    "skip_note": "The nine pre-existing agent database-trigger checks require a configured PostgreSQL database; disposable migration acceptance is recorded separately.",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "66 rows valid; 31 baseline-retained, 7 deployed, 28 prepared",
+    "runtime_sql_inventory": "current",
+    "diff_check": "passed",
+    "candidate_or_legacy_database_used": false,
+    "model_provider_contacted": false
+  },
+  "acceptance_limits": [
+    "Source-level review cannot prove reviewer independence while agent-run identities are unauthenticated and not stored.",
+    "The displayed source_tables values are provenance hints, not links to inspected source records.",
+    "Live OIDC/browser behavior, populated task parity, recovery, and MAN-CAP-038 acceptance remain open."
+  ]
+}
