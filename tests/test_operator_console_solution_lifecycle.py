@@ -1699,6 +1699,58 @@ def test_configuration_draft_submission_and_independent_review_console_contract(
     assert "Retry the unchanged configuration review before changing locations." in location_change
 
 
+def test_adoption_program_submission_and_review_console_contract():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "solution-lifecycle-adoption-program-submit",
+        "solution-lifecycle-adoption-program-drafts-load",
+        "solution-lifecycle-adoption-program-review",
+        "solution-lifecycle-adoption-program-review-load",
+    ):
+        assert f'id="{element_id}"' in source
+    assert 'solutionLifecycleAdoptionProgramSubmit.hidden = !hasSolutionLifecycleSubmit' in source
+    assert 'solutionLifecycleAdoptionProgramReview.hidden = !hasSolutionLifecycleReview' in source
+
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleAdoptionProgramDraft(",
+        "async function loadSolutionLifecycleAdoptionProgramDrafts(",
+    )
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in submit
+    assert "solutionLifecyclePendingAdoptionProgramSubmissions" in submit
+    assert "/adoption/programs/${encodeURIComponent(draft.program_id)}/submit" in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+
+    review = _function(
+        source,
+        "async function submitSolutionLifecycleAdoptionProgramReview(",
+        "async function loadSolutionLifecycleAdoptionProgramReviewQueue(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in review
+    assert "solutionLifecyclePendingAdoptionProgramReviews" in review
+    assert "/adoption/programs/${encodeURIComponent(program.program_id)}/review" in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "innerHTML" not in submit + review
+
+    reviewer = _function(
+        source,
+        "function appendSolutionLifecycleAdoptionProgramReview(",
+        "async function submitSolutionLifecycleAdoptionProgramReview(",
+    )
+    assert '"enablement_ready"' in reviewer and '"redesign"' in reviewer
+    assert "textContent" in reviewer
+    assert "distinct from the proposal creator and submitter" in reviewer
+
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "Retry the unchanged adoption-program submission before changing locations." in location_change
+    assert "Retry the unchanged adoption-program decision before changing locations." in location_change
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

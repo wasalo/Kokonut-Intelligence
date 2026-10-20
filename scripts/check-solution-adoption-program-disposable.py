@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise exact-location adoption-program workflows through migrations 513-517."""
+"""Exercise exact-location adoption-program workflows through migration 518."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ WRITE_BOUNDARY_MIGRATION = ROOT / "schemas/postgres/514_location_solution_adopti
 PREPARATION_MIGRATION = ROOT / "schemas/postgres/515_location_solution_adoption_preparation.sql"
 READINESS_MIGRATION = ROOT / "schemas/postgres/516_location_solution_adoption_readiness_review.sql"
 CONFIGURATION_MIGRATION = ROOT / "schemas/postgres/517_location_solution_configuration_draft_review.sql"
+PROGRAM_REVIEW_MIGRATION = ROOT / "schemas/postgres/518_location_solution_adoption_program_review.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -86,6 +87,7 @@ CREATE TABLE public.location_organization_share (
 CREATE TABLE public.solution (
     id UUID PRIMARY KEY,
     canonical_key TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL DEFAULT 'Synthetic solution',
     originating_scope_type TEXT NOT NULL,
     originating_scope_id UUID NOT NULL,
     current_stage TEXT NOT NULL,
@@ -103,6 +105,10 @@ CREATE TABLE public.solution_adoption_program (
     created_by_party_id UUID REFERENCES public.party(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE public.test_adoption_program_ids (
+    test_key TEXT PRIMARY KEY,
+    program_id UUID NOT NULL
 );
 CREATE TABLE public.solution_adopter_readiness (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -137,6 +143,7 @@ CREATE TABLE public.solution_configuration (
 );
 GRANT INSERT, UPDATE, DELETE ON public.solution_adoption_program
     TO kokonut_runtime, kokonut_directus_runtime;
+GRANT SELECT, INSERT, UPDATE ON public.test_adoption_program_ids TO kokonut_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
     ON public.solution_adopter_readiness, public.solution_configuration
     TO PUBLIC, kokonut_runtime, kokonut_directus_runtime;
@@ -247,6 +254,8 @@ BEGIN
     IF pilot_created.program_status <> 'draft' OR pilot_created.replayed THEN
         RAISE EXCEPTION 'pilot-active solution did not receive a draft before adoption readiness';
     END IF;
+    INSERT INTO public.test_adoption_program_ids (test_key, program_id)
+    VALUES ('eligible', created.program_id), ('pilot', pilot_created.program_id);
 
     denied := FALSE;
     BEGIN
@@ -327,6 +336,193 @@ BEGIN
            AND rolcanlogin
     ) THEN
         RAISE EXCEPTION 'function owner unexpectedly has LOGIN';
+    END IF;
+END $$;
+"""
+
+PROGRAM_REVIEW_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE first_program UUID; second_program UUID; submitted RECORD; replay RECORD;
+        own_draft RECORD; own_queue BIGINT; caught BOOLEAN := FALSE; draft_count BIGINT;
+BEGIN
+    SELECT program_id INTO first_program FROM public.test_adoption_program_ids WHERE test_key = 'eligible';
+    SELECT program_id INTO second_program FROM public.test_adoption_program_ids WHERE test_key = 'pilot';
+    SELECT count(*) INTO draft_count FROM kokonut_security.location_solution_adoption_program_drafts(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF draft_count <> 2 THEN RAISE EXCEPTION 'creator draft list did not return only the two own drafts'; END IF;
+
+    SELECT * INTO submitted FROM kokonut_security.submit_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000081', TRUE
+    );
+    IF submitted.program_status <> 'community_review' OR submitted.replayed THEN
+        RAISE EXCEPTION 'submission did not enter community review';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.submit_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000081', TRUE
+    );
+    IF NOT replay.replayed OR replay.submitted_at <> submitted.submitted_at THEN
+        RAISE EXCEPTION 'exact program submission retry did not replay';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_adoption_program(
+            'b0000000-0000-4000-8000-000000000001', first_program,
+            'ab000000-0000-4000-8000-000000000081', FALSE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed submission retry was accepted'; END IF;
+
+    SELECT * INTO submitted FROM kokonut_security.submit_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', second_program,
+        'ab000000-0000-4000-8000-000000000082', TRUE
+    );
+    IF submitted.program_status <> 'community_review' THEN
+        RAISE EXCEPTION 'second program did not enter community review';
+    END IF;
+    SELECT count(*) INTO draft_count FROM kokonut_security.location_solution_adoption_program_drafts(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF draft_count <> 0 THEN RAISE EXCEPTION 'submitted programs remained in creator draft list'; END IF;
+    SELECT count(*) INTO own_queue FROM kokonut_security.location_solution_adoption_program_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF own_queue <> 0 THEN RAISE EXCEPTION 'proposal creator saw their own programs in review queue'; END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_adoption_program(
+            'b0000000-0000-4000-8000-000000000001', first_program,
+            'ab000000-0000-4000-8000-000000000083', 'enablement_ready', 'Self review.', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'proposal creator self-review was accepted'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+-- Even the narrowly privileged function owner cannot change the lifecycle state
+-- without a receipt from the matching independent review function.
+SET ROLE kokonut_solution_adoption_program_manager;
+BEGIN;
+DO $$
+DECLARE caught BOOLEAN := FALSE; metadata_caught BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE public.solution_adoption_program SET status = 'enablement_ready'
+         WHERE solution_id = 'c0000000-0000-4000-8000-000000000041'
+           AND status = 'community_review';
+    EXCEPTION WHEN check_violation THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'manager role bypassed independent review receipt'; END IF;
+    BEGIN
+        UPDATE public.solution_adoption_program SET submitted_at = pg_catalog.clock_timestamp()
+         WHERE solution_id = 'c0000000-0000-4000-8000-000000000041'
+           AND status = 'community_review';
+    EXCEPTION WHEN check_violation THEN metadata_caught := TRUE;
+    END;
+    IF NOT metadata_caught THEN RAISE EXCEPTION 'manager role changed immutable submission metadata'; END IF;
+END $$;
+ROLLBACK;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000043', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE first_program UUID; second_program UUID; queued RECORD; approved RECORD;
+        approved_retry RECORD; redesigned RECORD; queue_count BIGINT; caught BOOLEAN := FALSE;
+        submit_read_denied BOOLEAN := FALSE; review_read_denied BOOLEAN := FALSE;
+BEGIN
+    SELECT program_id INTO first_program FROM public.test_adoption_program_ids WHERE test_key = 'eligible';
+    SELECT program_id INTO second_program FROM public.test_adoption_program_ids WHERE test_key = 'pilot';
+    SELECT * INTO queued FROM kokonut_security.location_solution_adoption_program_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF queued.program_id IS NULL OR queued.adoption_pathway <> 'Community-led training and field support'
+       OR queued.local_adaptation_policy <> 'Preserve safety invariants.' THEN
+        RAISE EXCEPTION 'review queue did not return safe program detail';
+    END IF;
+    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF queue_count <> 2 THEN RAISE EXCEPTION 'review queue omitted an eligible proposal'; END IF;
+
+    SELECT * INTO approved FROM kokonut_security.review_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000084', 'enablement_ready',
+        'Pathway preserves the safety invariants.', TRUE
+    );
+    IF approved.program_status <> 'enablement_ready' OR approved.replayed THEN
+        RAISE EXCEPTION 'independent approval did not set enablement_ready';
+    END IF;
+    SELECT * INTO approved_retry FROM kokonut_security.review_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000084', 'enablement_ready',
+        'Pathway preserves the safety invariants.', TRUE
+    );
+    IF NOT approved_retry.replayed OR approved_retry.reviewed_at <> approved.reviewed_at THEN
+        RAISE EXCEPTION 'exact decision retry did not replay';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_adoption_program(
+            'b0000000-0000-4000-8000-000000000001', first_program,
+            'ab000000-0000-4000-8000-000000000084', 'enablement_ready',
+            'Changed review note.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed decision request reuse was accepted'; END IF;
+
+    SELECT * INTO redesigned FROM kokonut_security.review_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', second_program,
+        'ab000000-0000-4000-8000-000000000085', 'redesign',
+        'Add explicit maintenance and support responsibilities.', TRUE
+    );
+    IF redesigned.program_status <> 'redesign' OR redesigned.replayed THEN
+        RAISE EXCEPTION 'redesign decision did not preserve the program for follow-up';
+    END IF;
+    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF queue_count <> 0 THEN RAISE EXCEPTION 'decided programs remained in review queue'; END IF;
+    BEGIN PERFORM 1 FROM public.solution_adoption_program_submission_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN submit_read_denied := TRUE; END;
+    BEGIN PERFORM 1 FROM public.solution_adoption_program_review_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN review_read_denied := TRUE; END;
+    IF NOT submit_read_denied OR NOT review_read_denied THEN
+        RAISE EXCEPTION 'runtime can read private program workflow receipts';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF (SELECT current_stage FROM public.solution
+         WHERE id = 'c0000000-0000-4000-8000-000000000041') <> 'adoption_ready'
+       OR (SELECT current_stage FROM public.solution
+         WHERE id = 'c0000000-0000-4000-8000-000000000043') <> 'pilot_active' THEN
+        RAISE EXCEPTION 'program decision changed a solution lifecycle stage';
+    END IF;
+    IF pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_adoption_program_review_receipt', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_program_review_receipt', 'SELECT') THEN
+        RAISE EXCEPTION 'runtime or Directus retains private review-receipt access';
+    END IF;
+    IF pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.review_location_solution_adoption_program(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
+        'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can execute adoption-program review';
     END IF;
 END $$;
 """
@@ -842,7 +1038,7 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name],
+        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name, PROGRAM_REVIEW_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -869,6 +1065,17 @@ def main() -> int:
             "review queue excludes the proposer; independent human approval and rejection use immutable receipts and exact retries",
             "unreviewed direct approval fails the database trigger; shared runtime and Directus cannot write or read private receipts",
             "migration 517 applies and replays idempotently",
+            "migration 518 applies and replays idempotently",
+            "only the draft creator can submit under exact location submit scope",
+            "program submission is retry-safe and transitions only to community_review",
+            "the creator sees only their own drafts and cannot self-review",
+            "review queue returns bounded proposal details without proposer identity",
+            "independent active human can approve enablement readiness or request redesign",
+            "decision retries replay exactly and changed input reuse fails closed",
+            "direct status transition fails without the matching immutable review receipt",
+            "submission metadata cannot be edited outside its lifecycle transition",
+            "runtime and Directus cannot access private submission or review receipts",
+            "program decision does not change solution stage or launch adoption",
         ],
     }
     try:
@@ -897,12 +1104,16 @@ def main() -> int:
         configuration_text = CONFIGURATION_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, configuration_text)
         psql(docker, container, configuration_text)
+        program_review_text = PROGRAM_REVIEW_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, program_review_text)
+        psql(docker, container, program_review_text)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, READINESS_ACCEPTANCE)
         psql(docker, container, CONFIGURATION_ACCEPTANCE)
+        psql(docker, container, PROGRAM_REVIEW_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 26
-        print("PASS: migrations 513–517 apply/replay, adoption preparation, readiness and configuration review, retries, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 36
+        print("PASS: migrations 513–518 apply/replay, adoption preparation, readiness, configuration and program review, retries, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

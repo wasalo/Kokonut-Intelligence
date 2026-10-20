@@ -1093,3 +1093,37 @@ Before applying migration 517 in an environment, disable the associated routes
 and console forms if rollout is rolled back. After application, preserve the
 additive schema and use a separately reviewed forward migration for any data or
 schema changes; do not edit or reverse migration 517.
+
+### Adoption-program submission and independent review
+
+Migration 518 completes the program-level review gate without combining it with
+readiness, local configuration approval, participant consent, launch, or solution
+stage transition. The Gateway routes are:
+
+- `GET .../adoption/programs/drafts` and
+  `POST .../adoption/programs/{program_id}/submit` require exact
+  `solution_lifecycle:submit`; the draft list contains only the active human
+  creator's own drafts. Submission requires that same bound person and an active
+  exact-origin solution, then moves the program from `draft` to
+  `community_review`.
+- `GET .../adoption/programs/review-queue` and
+  `POST .../adoption/programs/{program_id}/review` require exact
+  `solution_lifecycle:review`. The bounded queue excludes the proposer and does
+  not disclose proposer identity. A different active human records either
+  `enablement_ready` or `redesign` with a reason.
+
+Submission and decision writes have private immutable retry receipts. A database
+trigger rejects direct status writes unless the exact matching receipt exists;
+shared runtime and Directus roles have no program DML or private receipt access.
+`enablement_ready` approves the program pathway only: the existing stage gate
+still requires independently reviewed location readiness and configuration.
+The `redesign` outcome preserves the reviewed record; a revised pathway is
+proposed as a new draft. Participant consent, event capture, downstream
+program revision, populated legacy parity, and launch remain separate work.
+
+Disposable PostgreSQL 16 applies and replays migrations 513–518 and checks
+creator-only submission, exact grants, idempotency and collision handling,
+self-review denial, decision outcomes, direct status trigger enforcement,
+receipt privacy, and unchanged solution stage. The candidate and legacy
+databases were not touched; migration 518 is not rolled out. Evidence is in
+[`cap-035-adoption-program-disposable.json`](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json).

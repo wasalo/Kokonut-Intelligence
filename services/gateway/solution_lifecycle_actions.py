@@ -447,6 +447,206 @@ def create_location_solution_adoption_program(
         connection.close()
 
 
+def submit_location_solution_adoption_program(
+    operator_id: str,
+    location_id: str,
+    program_id: str,
+    request_id: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit a creator-owned adoption-program draft for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    program_id = _normalize_uuid(program_id, "adoption program")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Adoption program submission requires acknowledgement that review does not launch adoption"
+        )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="submit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.submit_location_solution_adoption_program(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, program_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Adoption program submission returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def _get_location_solution_adoption_program_page(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int,
+    offset: int,
+    action: str,
+    function_name: str,
+    response_key: str,
+    connection_factory: Callable | None = None,
+) -> dict:
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 25:
+        raise SolutionLifecycleActionInvalid("Adoption program page size must be between 1 and 25")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise SolutionLifecycleActionInvalid("Adoption program page offset is invalid")
+    page_functions = {
+        "location_solution_adoption_program_drafts": (
+            "drafts", "submit",
+        ),
+        "location_solution_adoption_program_review_queue": (
+            "programs", "review",
+        ),
+    }
+    if function_name not in page_functions:
+        raise SolutionLifecycleActionInvalid("Adoption program page is invalid")
+    response_key, action = page_functions[function_name]
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(connection, operator_id=operator_id, location_id=location_id,
+                                    resource="solution_lifecycle", action=action)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM kokonut_security."
+                + function_name
+                + "(%s::uuid, %s::integer, %s::integer)",
+                (location_id, limit + 1, offset),
+            )
+            rows = cursor.fetchall()
+            columns = [description[0] for description in cursor.description]
+        items = [dict(zip(columns, row, strict=False)) for row in rows[:limit]]
+        has_more = len(rows) > limit
+        connection.commit()
+        return {
+            response_key: items,
+            "has_more": has_more,
+            "next_offset": offset + len(items) if has_more else None,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def get_location_solution_adoption_program_drafts(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 10,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List only the caller's own exact-location unsubmitted program drafts."""
+    return _get_location_solution_adoption_program_page(
+        operator_id, location_id, limit=limit, offset=offset, action="submit",
+        function_name="location_solution_adoption_program_drafts",
+        response_key="drafts", connection_factory=connection_factory,
+    )
+
+
+def get_location_solution_adoption_program_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 10,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List bounded submitted program details while excluding self-authored work."""
+    return _get_location_solution_adoption_program_page(
+        operator_id, location_id, limit=limit, offset=offset, action="review",
+        function_name="location_solution_adoption_program_review_queue",
+        response_key="programs", connection_factory=connection_factory,
+    )
+
+
+def review_location_solution_adoption_program(
+    operator_id: str,
+    location_id: str,
+    program_id: str,
+    request_id: str,
+    decision: str,
+    review_note: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record an independent approval or redesign decision for one program."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    program_id = _normalize_uuid(program_id, "adoption program")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(decision, str) or decision not in {"enablement_ready", "redesign"}:
+        raise SolutionLifecycleActionInvalid("Adoption program review decision is invalid")
+    if not isinstance(review_note, str) or not 1 <= len(review_note.strip()) <= 2000:
+        raise SolutionLifecycleActionInvalid(
+            "Adoption program review note must contain 1 to 2,000 characters"
+        )
+    if "\x00" in review_note:
+        raise SolutionLifecycleActionInvalid("Adoption program review note cannot contain a null character")
+    try:
+        if len(review_note.encode("utf-8")) > 4000:
+            raise SolutionLifecycleActionInvalid("Adoption program review note must fit within 4 KiB")
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Adoption program review note must be valid UTF-8 text") from exc
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Adoption program review requires acknowledgement that readiness and launch remain separate"
+        )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_adoption_program(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (location_id, program_id, request_id, decision, review_note.strip(), acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Adoption program review returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def submit_location_solution_adopter_readiness(
     operator_id: str,
     location_id: str,

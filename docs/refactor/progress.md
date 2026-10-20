@@ -12784,3 +12784,18 @@ and 28 prepared across 66 rows. See the [audit](solution-lifecycle-source-route-
 [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/515_location_solution_adoption_preparation.sql),
 [checker](../../scripts/check-solution-adoption-program-disposable.py), and
 [console tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 adoption-program submit and independent review — 20 October 2026
+
+Migration 518 adds creator-only exact-location submission into `community_review`
+and a separate active-human review decision to `enablement_ready` or `redesign`.
+The bounded reviewer queue omits proposer identity and excludes self-review.
+Private immutable receipts and a database trigger protect both transitions;
+runtime and Directus cannot write program rows or read receipts. The operator
+console has separate exact submit/review surfaces with CSRF, no-store, paging,
+and stable retry IDs. The focused Gateway/route-policy/console selection passes
+89 tests. Disposable PostgreSQL 16 applies/replays migrations 513–518 and passes
+36 grouped workflow, lifecycle-separation, and ACL checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy
+remain untouched; migration 518 is not rolled out. CAP-035 remains prepared.
+Checklist: 770 complete / 24 open; capability matrix remains 31 baseline-retained,
+7 deployed, and 28 prepared across 66 rows.

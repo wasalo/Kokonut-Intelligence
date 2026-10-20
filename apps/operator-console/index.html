@@ -839,6 +839,26 @@
                 <p id="solution-lifecycle-adoption-create-status" class="muted" role="status" aria-live="polite"></p>
               </form>
             </section>
+            <section id="solution-lifecycle-adoption-program-submit" hidden aria-labelledby="solution-lifecycle-adoption-program-submit-heading">
+              <h4 id="solution-lifecycle-adoption-program-submit-heading">Submit your adoption-program drafts</h4>
+              <p class="muted">Only the human who created an exact-location draft can submit it. Submission starts independent community review; it does not assess readiness, approve configuration, collect consent, or launch adoption.</p>
+              <div class="toolbar">
+                <button id="solution-lifecycle-adoption-program-drafts-load" type="button">Load my drafts</button>
+                <button id="solution-lifecycle-adoption-program-drafts-more" class="secondary" type="button" hidden>Load more drafts</button>
+              </div>
+              <p id="solution-lifecycle-adoption-program-drafts-status" class="muted" role="status" aria-live="polite"></p>
+              <div id="solution-lifecycle-adoption-program-drafts-rows"></div>
+            </section>
+            <section id="solution-lifecycle-adoption-program-review" hidden aria-labelledby="solution-lifecycle-adoption-program-review-heading">
+              <h4 id="solution-lifecycle-adoption-program-review-heading">Review submitted adoption programs</h4>
+              <p class="muted">Reviewers cannot review their own proposals. An enablement-ready decision only approves this program pathway; adoption readiness, configuration approval, participant consent, and lifecycle transition remain separate.</p>
+              <div class="toolbar">
+                <button id="solution-lifecycle-adoption-program-review-load" type="button">Load review queue</button>
+                <button id="solution-lifecycle-adoption-program-review-more" class="secondary" type="button" hidden>Load more reviews</button>
+              </div>
+              <p id="solution-lifecycle-adoption-program-review-status" class="muted" role="status" aria-live="polite"></p>
+              <div id="solution-lifecycle-adoption-program-review-rows"></div>
+            </section>
             <section id="solution-lifecycle-configuration-create" hidden aria-labelledby="solution-lifecycle-configuration-create-heading">
               <h4 id="solution-lifecycle-configuration-create-heading">Propose a location configuration</h4>
               <p class="muted">Choose an active solution originating at this location in pilot-active or adoption-ready stage. Configuration proposals are versioned drafts. Submit them for review separately; a different active human must approve or reject them. Approval does not start adoption.</p>
@@ -1736,6 +1756,16 @@
       const solutionLifecycleProjectionMore = document.querySelector("#solution-lifecycle-projection-more");
       const solutionLifecycleAdoptionCreate = document.querySelector("#solution-lifecycle-adoption-create");
       const solutionLifecycleAdoptionProgramCreate = document.querySelector("#solution-lifecycle-adoption-program-create");
+      const solutionLifecycleAdoptionProgramSubmit = document.querySelector("#solution-lifecycle-adoption-program-submit");
+      const solutionLifecycleAdoptionProgramDraftsLoad = document.querySelector("#solution-lifecycle-adoption-program-drafts-load");
+      const solutionLifecycleAdoptionProgramDraftsMore = document.querySelector("#solution-lifecycle-adoption-program-drafts-more");
+      const solutionLifecycleAdoptionProgramDraftsStatus = document.querySelector("#solution-lifecycle-adoption-program-drafts-status");
+      const solutionLifecycleAdoptionProgramDraftsRows = document.querySelector("#solution-lifecycle-adoption-program-drafts-rows");
+      const solutionLifecycleAdoptionProgramReview = document.querySelector("#solution-lifecycle-adoption-program-review");
+      const solutionLifecycleAdoptionProgramReviewLoad = document.querySelector("#solution-lifecycle-adoption-program-review-load");
+      const solutionLifecycleAdoptionProgramReviewMore = document.querySelector("#solution-lifecycle-adoption-program-review-more");
+      const solutionLifecycleAdoptionProgramReviewStatus = document.querySelector("#solution-lifecycle-adoption-program-review-status");
+      const solutionLifecycleAdoptionProgramReviewRows = document.querySelector("#solution-lifecycle-adoption-program-review-rows");
       const solutionLifecycleReadinessAssessment = document.querySelector("#solution-lifecycle-readiness-assessment");
       const solutionLifecycleReadinessAssessmentForm = document.querySelector("#solution-lifecycle-readiness-assessment-form");
       const solutionLifecycleReadinessSolution = document.querySelector("#solution-lifecycle-readiness-solution");
@@ -1781,6 +1811,13 @@
       let solutionLifecyclePendingConfigurationCreate = null;
       const solutionLifecyclePendingConfigurationSubmissions = new Map();
       const solutionLifecyclePendingConfigurationReviews = new Map();
+      const solutionLifecycleAdoptionProgramPageSize = 25;
+      let solutionLifecycleAdoptionProgramDraftsOffset = 0;
+      let solutionLifecycleAdoptionProgramDraftsRequestVersion = 0;
+      let solutionLifecycleAdoptionProgramReviewOffset = 0;
+      let solutionLifecycleAdoptionProgramReviewRequestVersion = 0;
+      const solutionLifecyclePendingAdoptionProgramSubmissions = new Map();
+      const solutionLifecyclePendingAdoptionProgramReviews = new Map();
       let solutionLifecycleAdoptionTargetsOffset = 0;
       let solutionLifecycleAdoptionTargetsRequestVersion = 0;
       let solutionLifecyclePendingAdoptionCreate = null;
@@ -6435,6 +6472,9 @@
           solutionLifecycleAdoptionCreateStatus.textContent = result.replayed === true
             ? "The original adoption-program draft was confirmed. Readiness, configuration approval, and launch remain separate."
             : "Adoption-program draft created. Readiness, configuration approval, participant events, and launch remain separate.";
+          if (solutionLifecycleSubmitLocations.has(locationId)) {
+            await loadSolutionLifecycleAdoptionProgramDrafts();
+          }
           await loadSolutionLifecycleSummary();
           if (solutionLifecycleProjection.value === "adoption") await loadSolutionLifecycleProjection();
         } catch (error) {
@@ -6457,6 +6497,315 @@
           throw new Error(`${label} must be a JSON object.`);
         }
         return value;
+      }
+
+      function appendSolutionLifecycleAdoptionProgramDraft(draft) {
+        const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!draft || !validId.test(draft.program_id || "")) return;
+        const article = document.createElement("article");
+        article.className = "review-card";
+        const heading = document.createElement("h5");
+        heading.textContent = `${draft.solution_name || "Location solution"} · draft`;
+        const pathway = document.createElement("p");
+        pathway.textContent = `Adoption pathway: ${draft.adoption_pathway || "Unavailable"}`;
+        const policy = document.createElement("p");
+        policy.textContent = `Local adaptation policy: ${draft.local_adaptation_policy || "None recorded"}`;
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(acknowledgement, document.createTextNode(" I am the draft creator; submission requests review only and does not launch adoption."));
+        const submit = document.createElement("button");
+        submit.type = "button";
+        submit.textContent = "Submit for independent review";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        article.append(heading, pathway, policy, acknowledgementLabel, submit, status);
+        submit.addEventListener("click", () => submitSolutionLifecycleAdoptionProgramDraft(
+          draft, acknowledgement, submit, status,
+        ));
+        solutionLifecycleAdoptionProgramDraftsRows.append(article);
+      }
+
+      async function submitSolutionLifecycleAdoptionProgramDraft(draft, acknowledgement, submit, status) {
+        const locationId = solutionLifecycleLocation.value;
+        if (!solutionLifecycleSubmitLocations.has(locationId) || !acknowledgement.checked) {
+          status.textContent = "A current exact location submit grant and acknowledgement are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          status.textContent = "Refresh the operator session before submitting this adoption program.";
+          return;
+        }
+        const payload = { acknowledged: true };
+        const fingerprint = JSON.stringify({ location_id: locationId, program_id: draft.program_id, ...payload });
+        let pending = solutionLifecyclePendingAdoptionProgramSubmissions.get(draft.program_id);
+        if (pending && pending.fingerprint !== fingerprint) {
+          status.textContent = "The prior result may be uncertain. Retry the unchanged submission before changing it.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            status.textContent = "A secure browser context is required to submit this adoption program.";
+            return;
+          }
+          pending = { fingerprint, request_id: requestId, location_id: locationId };
+          solutionLifecyclePendingAdoptionProgramSubmissions.set(draft.program_id, pending);
+        }
+        submit.disabled = true;
+        status.textContent = "Submitting the draft for independent community review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/programs/${encodeURIComponent(draft.program_id)}/submit`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingAdoptionProgramSubmissions.delete(draft.program_id);
+            throw new Error("Your session or exact location submit grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingAdoptionProgramSubmissions.delete(draft.program_id);
+            throw new Error(result.error || "The adoption program could not be submitted.");
+          }
+          solutionLifecyclePendingAdoptionProgramSubmissions.delete(draft.program_id);
+          status.textContent = result.replayed === true
+            ? "The original submission was confirmed."
+            : "Submitted for independent review. Readiness, configuration approval, consent, and launch remain separate.";
+          await loadSolutionLifecycleAdoptionProgramDrafts();
+          await loadSolutionLifecycleSummary();
+        } catch (error) {
+          status.textContent = solutionLifecyclePendingAdoptionProgramSubmissions.has(draft.program_id)
+            ? `${error.message} Retry unchanged to reuse the request ID.`
+            : error.message;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      async function loadSolutionLifecycleAdoptionProgramDrafts(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleAdoptionProgramDraftsRequestVersion;
+        if (!solutionLifecycleSubmitLocations.has(locationId)) {
+          solutionLifecycleAdoptionProgramDraftsRows.replaceChildren();
+          solutionLifecycleAdoptionProgramDraftsStatus.textContent = "An exact location submit grant is required.";
+          solutionLifecycleAdoptionProgramDraftsMore.hidden = true;
+          return;
+        }
+        const offset = append ? solutionLifecycleAdoptionProgramDraftsOffset : 0;
+        if (!append) {
+          solutionLifecycleAdoptionProgramDraftsRows.replaceChildren();
+          solutionLifecycleAdoptionProgramDraftsOffset = 0;
+        }
+        solutionLifecycleAdoptionProgramDraftsLoad.disabled = true;
+        solutionLifecycleAdoptionProgramDraftsMore.disabled = true;
+        solutionLifecycleAdoptionProgramDraftsStatus.textContent = "Loading your unsubmitted adoption-program drafts…";
+        try {
+          const params = new URLSearchParams({ limit: String(solutionLifecycleAdoptionProgramPageSize), offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/programs/drafts?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Adoption program drafts could not be loaded.");
+          if (requestVersion !== solutionLifecycleAdoptionProgramDraftsRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const drafts = Array.isArray(result.drafts) ? result.drafts : [];
+          for (const draft of drafts) appendSolutionLifecycleAdoptionProgramDraft(draft);
+          solutionLifecycleAdoptionProgramDraftsOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
+          solutionLifecycleAdoptionProgramDraftsMore.hidden = result.has_more !== true
+            || solutionLifecycleAdoptionProgramDraftsOffset <= offset;
+          solutionLifecycleAdoptionProgramDraftsStatus.textContent = drafts.length
+            ? `${drafts.length} unsubmitted draft${drafts.length === 1 ? "" : "s"} loaded.`
+            : "No unsubmitted adoption-program drafts.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleAdoptionProgramDraftsRequestVersion) {
+            solutionLifecycleAdoptionProgramDraftsStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleAdoptionProgramDraftsRequestVersion) {
+            solutionLifecycleAdoptionProgramDraftsLoad.disabled = false;
+            solutionLifecycleAdoptionProgramDraftsMore.disabled = false;
+          }
+        }
+      }
+
+      function appendSolutionLifecycleAdoptionProgramReview(program) {
+        const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!program || !validId.test(program.program_id || "")) return;
+        const article = document.createElement("article");
+        article.className = "review-card";
+        const heading = document.createElement("h5");
+        heading.textContent = `${program.solution_name || "Location solution"} · submitted for review`;
+        const pathway = document.createElement("p");
+        pathway.textContent = `Adoption pathway: ${program.adoption_pathway || "Unavailable"}`;
+        const policy = document.createElement("p");
+        policy.textContent = `Local adaptation policy: ${program.local_adaptation_policy || "None recorded"}`;
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const decisionLabel = document.createElement("label");
+        decisionLabel.textContent = "Decision";
+        const decision = document.createElement("select");
+        decision.required = true;
+        for (const [value, label] of [["enablement_ready", "Approve program pathway"], ["redesign", "Request redesign"]]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          decision.append(option);
+        }
+        decisionLabel.append(decision);
+        const noteLabel = document.createElement("label");
+        noteLabel.textContent = "Independent review note";
+        const note = document.createElement("textarea");
+        note.required = true;
+        note.maxLength = 2000;
+        note.rows = 3;
+        noteLabel.append(note);
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(acknowledgement, document.createTextNode(" I am an active human reviewer distinct from the proposal creator and submitter."));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record program decision";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(decisionLabel, noteLabel, acknowledgementLabel, submit, status);
+        article.append(heading, pathway, policy, form);
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          submitSolutionLifecycleAdoptionProgramReview(
+            program, decision, note, acknowledgement, submit, status,
+          );
+        });
+        solutionLifecycleAdoptionProgramReviewRows.append(article);
+      }
+
+      async function submitSolutionLifecycleAdoptionProgramReview(
+        program, decision, note, acknowledgement, submit, status,
+      ) {
+        const locationId = solutionLifecycleLocation.value;
+        if (!solutionLifecycleReviewLocations.has(locationId)
+            || !acknowledgement.checked || !note.value.trim()) {
+          status.textContent = "An exact location review grant, a reason, and independent-review acknowledgement are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          status.textContent = "Refresh the operator session before recording this program review.";
+          return;
+        }
+        const payload = { decision: decision.value, review_note: note.value.trim(), acknowledged: true };
+        const fingerprint = JSON.stringify({ location_id: locationId, program_id: program.program_id, ...payload });
+        let pending = solutionLifecyclePendingAdoptionProgramReviews.get(program.program_id);
+        if (pending && pending.fingerprint !== fingerprint) {
+          status.textContent = "The prior result may be uncertain. Retry the unchanged decision before changing it.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            status.textContent = "A secure browser context is required to record this program review.";
+            return;
+          }
+          pending = { fingerprint, request_id: requestId, location_id: locationId };
+          solutionLifecyclePendingAdoptionProgramReviews.set(program.program_id, pending);
+        }
+        submit.disabled = true;
+        status.textContent = "Recording independent adoption-program review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/programs/${encodeURIComponent(program.program_id)}/review`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingAdoptionProgramReviews.delete(program.program_id);
+            throw new Error("Your session or exact location review grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingAdoptionProgramReviews.delete(program.program_id);
+            throw new Error(result.error || "The adoption program decision could not be recorded.");
+          }
+          solutionLifecyclePendingAdoptionProgramReviews.delete(program.program_id);
+          status.textContent = result.replayed === true
+            ? "The original independent decision was confirmed."
+            : result.program_status === "enablement_ready"
+              ? "Program pathway approved. Readiness, configuration approval, consent, and adoption launch remain separate."
+              : "Redesign requested. This proposal remains recorded; create a new draft for a revised pathway.";
+          await loadSolutionLifecycleAdoptionProgramReviewQueue();
+          await loadSolutionLifecycleSummary();
+        } catch (error) {
+          status.textContent = solutionLifecyclePendingAdoptionProgramReviews.has(program.program_id)
+            ? `${error.message} Retry unchanged to reuse the request ID.`
+            : error.message;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      async function loadSolutionLifecycleAdoptionProgramReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleAdoptionProgramReviewRequestVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleAdoptionProgramReviewRows.replaceChildren();
+          solutionLifecycleAdoptionProgramReviewStatus.textContent = "An exact location review grant is required.";
+          solutionLifecycleAdoptionProgramReviewMore.hidden = true;
+          return;
+        }
+        const offset = append ? solutionLifecycleAdoptionProgramReviewOffset : 0;
+        if (!append) {
+          solutionLifecycleAdoptionProgramReviewRows.replaceChildren();
+          solutionLifecycleAdoptionProgramReviewOffset = 0;
+        }
+        solutionLifecycleAdoptionProgramReviewLoad.disabled = true;
+        solutionLifecycleAdoptionProgramReviewMore.disabled = true;
+        solutionLifecycleAdoptionProgramReviewStatus.textContent = "Loading programs for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: String(solutionLifecycleAdoptionProgramPageSize), offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/programs/review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Adoption program review queue could not be loaded.");
+          if (requestVersion !== solutionLifecycleAdoptionProgramReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const programs = Array.isArray(result.programs) ? result.programs : [];
+          for (const program of programs) appendSolutionLifecycleAdoptionProgramReview(program);
+          solutionLifecycleAdoptionProgramReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000 ? result.next_offset : offset;
+          solutionLifecycleAdoptionProgramReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleAdoptionProgramReviewOffset <= offset;
+          solutionLifecycleAdoptionProgramReviewStatus.textContent = programs.length
+            ? `${programs.length} program${programs.length === 1 ? "" : "s"} waiting for independent review.`
+            : "No adoption programs are waiting for your independent review.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleAdoptionProgramReviewRequestVersion) {
+            solutionLifecycleAdoptionProgramReviewStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleAdoptionProgramReviewRequestVersion) {
+            solutionLifecycleAdoptionProgramReviewLoad.disabled = false;
+            solutionLifecycleAdoptionProgramReviewMore.disabled = false;
+          }
+        }
       }
 
       async function submitSolutionLifecycleConfigurationDraft(event) {
@@ -10779,6 +11128,8 @@
             solutionLifecycleConfigurationCreate.hidden = !hasSolutionLifecycleCreate;
             solutionLifecycleConfigurationDrafts.hidden = !hasSolutionLifecycleSubmit;
             solutionLifecycleConfigurationReview.hidden = !hasSolutionLifecycleReview;
+            solutionLifecycleAdoptionProgramSubmit.hidden = !hasSolutionLifecycleSubmit;
+            solutionLifecycleAdoptionProgramReview.hidden = !hasSolutionLifecycleReview;
             solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate;
             solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview;
             solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -14091,6 +14442,22 @@
           solutionLifecycleConfigurationReviewStatus.textContent = "Retry the unchanged configuration review before changing locations.";
           return;
         }
+        const pendingAdoptionProgramSubmission = [...solutionLifecyclePendingAdoptionProgramSubmissions.values()].find(
+          (pending) => pending.location_id !== solutionLifecycleLocation.value,
+        );
+        const pendingAdoptionProgramReview = [...solutionLifecyclePendingAdoptionProgramReviews.values()].find(
+          (pending) => pending.location_id !== solutionLifecycleLocation.value,
+        );
+        if (pendingAdoptionProgramSubmission) {
+          solutionLifecycleLocation.value = pendingAdoptionProgramSubmission.location_id;
+          solutionLifecycleAdoptionProgramDraftsStatus.textContent = "Retry the unchanged adoption-program submission before changing locations.";
+          return;
+        }
+        if (pendingAdoptionProgramReview) {
+          solutionLifecycleLocation.value = pendingAdoptionProgramReview.location_id;
+          solutionLifecycleAdoptionProgramReviewStatus.textContent = "Retry the unchanged adoption-program decision before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingAdoptionCreate
             && solutionLifecycleLocation.value !== solutionLifecyclePendingAdoptionCreate.locationId) {
           solutionLifecycleLocation.value = solutionLifecyclePendingAdoptionCreate.locationId;
@@ -14161,6 +14528,20 @@
         solutionLifecycleAdoptionTargetsMore.disabled = false;
         solutionLifecycleAdoptionCreateForm.reset();
         solutionLifecycleAdoptionCreateStatus.textContent = "";
+        solutionLifecycleAdoptionProgramDraftsRequestVersion += 1;
+        solutionLifecycleAdoptionProgramDraftsOffset = 0;
+        solutionLifecycleAdoptionProgramDraftsRows.replaceChildren();
+        solutionLifecycleAdoptionProgramDraftsStatus.textContent = "";
+        solutionLifecycleAdoptionProgramDraftsMore.hidden = true;
+        solutionLifecycleAdoptionProgramDraftsLoad.disabled = false;
+        solutionLifecycleAdoptionProgramDraftsMore.disabled = false;
+        solutionLifecycleAdoptionProgramReviewRequestVersion += 1;
+        solutionLifecycleAdoptionProgramReviewOffset = 0;
+        solutionLifecycleAdoptionProgramReviewRows.replaceChildren();
+        solutionLifecycleAdoptionProgramReviewStatus.textContent = "";
+        solutionLifecycleAdoptionProgramReviewMore.hidden = true;
+        solutionLifecycleAdoptionProgramReviewLoad.disabled = false;
+        solutionLifecycleAdoptionProgramReviewMore.disabled = false;
         solutionLifecycleConfigurationCreateForm.reset();
         solutionLifecyclePendingConfigurationCreate = null;
         solutionLifecycleConfigurationCreateStatus.textContent = "";
@@ -14370,6 +14751,8 @@
         solutionLifecycleConfigurationCreate.hidden = !hasSolutionLifecycleCreate;
         solutionLifecycleConfigurationDrafts.hidden = !hasSolutionLifecycleSubmit;
         solutionLifecycleConfigurationReview.hidden = !hasSolutionLifecycleReview;
+        solutionLifecycleAdoptionProgramSubmit.hidden = !hasSolutionLifecycleSubmit;
+        solutionLifecycleAdoptionProgramReview.hidden = !hasSolutionLifecycleReview;
         solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate;
         solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview;
         solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -14477,6 +14860,10 @@
       solutionLifecycleAdoptionTargetsLoad.addEventListener("click", () => loadSolutionLifecycleAdoptionTargets());
       solutionLifecycleAdoptionTargetsMore.addEventListener("click", () => loadSolutionLifecycleAdoptionTargets(true));
       solutionLifecycleAdoptionCreateForm.addEventListener("submit", submitSolutionLifecycleAdoptionProgram);
+      solutionLifecycleAdoptionProgramDraftsLoad.addEventListener("click", () => loadSolutionLifecycleAdoptionProgramDrafts());
+      solutionLifecycleAdoptionProgramDraftsMore.addEventListener("click", () => loadSolutionLifecycleAdoptionProgramDrafts(true));
+      solutionLifecycleAdoptionProgramReviewLoad.addEventListener("click", () => loadSolutionLifecycleAdoptionProgramReviewQueue());
+      solutionLifecycleAdoptionProgramReviewMore.addEventListener("click", () => loadSolutionLifecycleAdoptionProgramReviewQueue(true));
       solutionLifecycleConfigurationCreateForm.addEventListener("submit", submitSolutionLifecycleConfigurationDraft);
       solutionLifecycleConfigurationDraftsLoad.addEventListener("click", () => loadSolutionLifecycleConfigurationDrafts());
       solutionLifecycleConfigurationDraftsMore.addEventListener("click", () => loadSolutionLifecycleConfigurationDrafts(true));

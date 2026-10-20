@@ -24,6 +24,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         create_location_solution_experiment,
         create_location_solution_gate,
         get_location_solution_adopter_readiness_review_queue,
+        get_location_solution_adoption_program_drafts,
+        get_location_solution_adoption_program_review_queue,
         get_location_solution_configuration_drafts,
         get_location_solution_configuration_review_queue,
         propose_location_solution_funding,
@@ -34,6 +36,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         record_location_solution_experiment_observation,
         record_location_solution_gate_evaluation,
         review_location_solution_adopter_readiness,
+        review_location_solution_adoption_program,
         review_location_solution_configuration,
         review_location_solution_experiment,
         review_location_solution_learning,
@@ -42,6 +45,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         review_location_solution_scale_gate_assessment,
         start_location_solution_experiment,
         submit_location_solution_adopter_readiness,
+        submit_location_solution_adoption_program,
         submit_location_solution_configuration,
         submit_location_solution_experiment_protocol,
         submit_location_solution_funding,
@@ -1527,6 +1531,154 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             status_code=200 if result.get("replayed") else 201,
             headers=headers,
         )
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/drafts")
+    async def location_solution_adoption_program_drafts(
+        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_adoption_program_drafts,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=int(limit),
+                offset=int(offset),
+            )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"error": "Adoption program draft page is invalid"}, headers=headers)
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle submit access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle submit grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program drafts unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution adoption program drafts unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/submit")
+    async def submit_solution_adoption_program(request: Request, location_id: str, program_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {"request_id", "acknowledged"}:
+            return JSONResponse(status_code=400, content={"error": "Adoption program submission fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                submit_location_solution_adoption_program,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                program_id,
+                payload["request_id"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle submit access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle submit grant is required"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Adoption program submission input is invalid"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Exact-location adoption program not found"}, headers=headers)
+            if code in {"23505", "55000", "40001", "23514"}:
+                return JSONResponse(status_code=409, content={"error": "Adoption program is no longer eligible; refresh the lifecycle view"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program submission unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution adoption program submission unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/programs/review-queue")
+    async def location_solution_adoption_program_review_queue(
+        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_adoption_program_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=int(limit),
+                offset=int(offset),
+            )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"error": "Adoption program review page is invalid"}, headers=headers)
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution adoption program review queue unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/review")
+    async def review_solution_adoption_program(request: Request, location_id: str, program_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {
+            "request_id", "decision", "review_note", "acknowledged",
+        }:
+            return JSONResponse(status_code=400, content={"error": "Adoption program review fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                review_location_solution_adoption_program,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                program_id,
+                payload["request_id"],
+                payload["decision"],
+                payload["review_note"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current independent location review grant is required"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Adoption program review input is invalid"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Exact-location adoption program not found"}, headers=headers)
+            if code in {"23505", "55000", "40001", "23514"}:
+                return JSONResponse(status_code=409, content={"error": "Adoption program is no longer eligible; refresh the review queue"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption program review unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution adoption program review unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
     @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/readiness")
     async def submit_solution_adopter_readiness(request: Request, location_id: str):
