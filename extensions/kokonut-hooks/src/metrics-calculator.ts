@@ -10,6 +10,7 @@
  * (migration 353) so Python and TypeScript share one implementation;
  * this module reads the view rather than re-implementing the SQL.
  */
+import { errorClass } from './error-safety.js';
 
 // Database client set by the hook initialization
 let db: any;
@@ -155,7 +156,7 @@ export async function batchCalculateNoi(locationId?: string): Promise<NoiCalcula
       await storeNoiSnapshot(result);
       results.push(result);
     } catch (error) {
-      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}:`, error);
+      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}: ${errorClass(error)}`);
     }
   }
 

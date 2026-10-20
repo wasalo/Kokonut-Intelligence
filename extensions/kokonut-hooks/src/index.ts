@@ -45,6 +45,7 @@ import {
   STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
 import { validateTenantReferences } from './tenant-validation.js';
+import { errorClass } from './error-safety.js';
 import {
   authorizeDirectusCreate,
   authorizeDirectusRead,
@@ -205,7 +206,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
         database, collection, recordId, fromStatus, toStatus, userId, undefined, notes
       );
     } catch (error) {
-      console.error(`[Kokonut] Failed to log workflow transition for ${collection}:`, error);
+      console.error(`[Kokonut] Failed to log workflow transition for ${collection}: ${errorClass(error)}`);
     }
   }
 
@@ -614,7 +615,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       const results = await batchCalculateNoi();
       console.log(`[Kokonut] NOI reconciled for ${results.length} crop cycles`);
     } catch (error) {
-      console.error('[Kokonut] NOI reconciliation failed:', error);
+      console.error(`[Kokonut] NOI reconciliation failed: ${errorClass(error)}`);
     }
   });
 
@@ -637,7 +638,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
 
       console.log(`[Kokonut] Weekly snapshots created for ${activities.length} locations`);
     } catch (error) {
-      console.error('[Kokonut] Weekly snapshots failed:', error);
+      console.error(`[Kokonut] Weekly snapshots failed: ${errorClass(error)}`);
     }
   });
 });
@@ -649,6 +650,6 @@ async function recalculateNoi(cropCycleId: string | undefined) {
     await storeNoiSnapshot(calc);
     console.log(`[Kokonut] NOI recalculated for crop cycle: ${cropCycleId}`);
   } catch (error) {
-    console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}:`, error);
+    console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}: ${errorClass(error)}`);
   }
 }

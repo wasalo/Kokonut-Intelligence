@@ -222,6 +222,14 @@ stopped. Sanitized results are retained in
 
 ## Current disposition
 
+The optional hook extension now bounds its failure logs to exception class
+names for role lookup, workflow-history logging, NOI calculations, and both
+scheduled callbacks. Raw exception objects and their messages are no longer
+written by those handlers. Four focused Vitest checks and TypeScript type
+checking pass. This improves log hygiene without changing hook failure,
+schedule, or retry behavior; it does not establish hook output parity, runtime
+identity, or schedule ownership.
+
 The owner selected organization/location grants and source now maps the
 authenticated Directus external subject to a Kokonut operator. In the pinned
 image, the synthetic Field Worker sees a Field Note in its granted location
