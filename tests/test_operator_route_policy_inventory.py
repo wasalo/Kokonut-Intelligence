@@ -212,6 +212,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirements",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirement-candidates",
+    ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
         "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirements/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/approve",
     ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),

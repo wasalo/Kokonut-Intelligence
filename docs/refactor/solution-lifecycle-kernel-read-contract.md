@@ -3,7 +3,7 @@
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
 reads, independently reviewed retirement and learning proposal actions, and
-the operator-console status views are prepared; not owner-accepted.
+the operator-console status and proposal views are prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -16,7 +16,8 @@ the operator-console status views are prepared; not owner-accepted.
 `474_solution_retirement_independent_review.sql` and
 `475_location_solution_retirement_review.sql` and
 `476_location_solution_retirement_proposal.sql`, and
-`477_location_solution_learning_proposal.sql`.
+`477_location_solution_learning_proposal.sql`, and
+`481_location_solution_retirement_candidates.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -25,7 +26,8 @@ the operator-console status views are prepared; not owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/scale-gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications`,
 `GET /operator/api/solution-lifecycle/{location_id}/learning`,
-`GET /operator/api/solution-lifecycle/{location_id}/retirements`, and
+`GET /operator/api/solution-lifecycle/{location_id}/retirements`,
+`GET /operator/api/solution-lifecycle/{location_id}/retirement-candidates`, and
 `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`,
 `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`, and
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`.
@@ -214,7 +216,29 @@ if the response is uncertain. The action creates a `proposed` record that needs
 independent human review; the console cannot approve, reject, or apply it. Source
 checks do not constitute live OIDC/browser acceptance.
 
+The console also offers a retirement-proposal form when the session has both
+exact location `solution_lifecycle:read` and `solution_lifecycle:create` grants.
+The source selector calls the bounded retirement-candidate read, which returns
+only solutions whose canonical origin is the selected location. A location link
+alone does not make a shared solution eligible. The form accepts the existing
+retirement type allowlist, bounded trigger reason, evidence references, and
+remedy plan; `superseded` requires a different location-origin replacement.
+Same-origin no-store requests, CSRF protection, explicit acknowledgement, and a
+stable request ID for unchanged retries are used. The existing action creates a
+proposal for independent review. The console does not approve, schedule, or
+execute retirements.
+
 ## Verification and remaining parity
+
+The current retirement-source and proposal-form slice passes 176 focused
+Gateway/action/console/route-policy/migration tests; Ruff, Python compilation,
+and diff checks pass. Disposable PostgreSQL 16 applies and replays migration
+481 and passes nine grouped checks for exact-origin candidate selection,
+signed context, grants, pagination, privacy, and runtime/Directus boundaries.
+Evidence is recorded in
+`builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json`.
+The test database is removed after the run; candidate and legacy databases are
+untouched and migration 481 is not rolled out.
 
 The summary, gate, experiment, funding, adoption, scale-gate, replication,
 learning, retirement, and independent-review source checks and their
@@ -238,7 +262,12 @@ location-visible replacement validation, and atomic append-only idempotent
 receipt. The function explicitly supplies retirement ID, `proposed` status, and
 timestamp for legacy schemas that do not have column defaults. A separate
 non-login proposal owner has no retirement update or approval-attribution
-privileges. The focused
+privileges. Migration 481 adds only the candidate-list function to the existing
+read-only solution reader. That function has column SELECT access to solution ID,
+name, type, stage, status, and canonical origin fields; runtime can execute it,
+Directus cannot, and candidate/legacy rollout remains separate. The route/form
+can be disabled before rollout; after application, retain the additive function
+and ACLs until a separate ordered retirement migration is approved. The focused
 Gateway, route-policy, and migration-metadata selection passes 137 tests.
 Disposable PostgreSQL 16 applies/replays migrations 459 and 466–476 and passes
 five proposal acceptance groups. Evidence is in

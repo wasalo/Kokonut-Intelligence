@@ -168,7 +168,7 @@ def test_supplemental_projection_routes_and_result_keys_are_fixed_allowlists():
 
 def test_supplemental_projection_reader_uses_same_origin_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function resetSolutionLifecycleLearningSources(")
+    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function resetSolutionLifecycleRetirementSources(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/${view.route}?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -236,6 +236,57 @@ def test_learning_proposal_submit_is_create_scoped_draft_only_csrf_and_retry_sta
     assert "decision_status" not in submit and "approve" not in submit and "accept" not in submit
     assert "lockSolutionLifecycleLearningProposalForRetry(true)" in submit
     assert "solutionLifecycleLocation.disabled = locked" in source
+
+
+def test_retirement_proposal_sources_are_both_grant_gated_exact_origin_and_paged():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-retirement-proposal".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert 'solutionLifecycleRetirementProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert "|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)" in source
+    reader = _function(
+        source,
+        "async function loadSolutionLifecycleRetirementSources(",
+        "function updateSolutionLifecycleRetirementReplacementVisibility(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "solutionLifecycleCreateLocations.has(locationId)" in reader
+    assert 'new URLSearchParams({ limit: "50", offset: String(offset) })' in reader
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/retirement-candidates?${params}`' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "record.solution_id" in reader
+    assert "option.textContent = label" in reader
+    assert "requestVersion !== solutionLifecycleRetirementSourcesRequestVersion" in reader
+
+
+def test_retirement_proposal_submit_is_bounded_csrf_idempotent_and_draft_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleRetirementProposal(",
+        "function resetSolutionLifecycleLearningSources(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert "solutionLifecycleLocations.has(locationId)" in submit
+    assert '"#solution-lifecycle-retirement-confirm"' in submit
+    assert "retirementType === \"superseded\"" in submit
+    assert "if (retirementType === \"superseded\") proposal.replacement_solution_id = replacementId" in submit
+    assert "replacementId === solutionId" in submit
+    assert "retirementEvidenceLines()" in submit
+    assert "solutionLifecyclePendingRetirementProposal.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingRetirementProposal.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/retirements`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "body: JSON.stringify({ ...proposal, request_id: requestId })" in submit
+    assert "requires independent human review" in submit
+    assert "solutionLifecyclePendingLearningProposal" in submit
+    assert 'solutionLifecycleRetirementProposalForm.addEventListener("submit", submitSolutionLifecycleRetirementProposal)' in source
+    assert 'solutionLifecycleRetirementSourcesLoad.addEventListener("click", () => loadSolutionLifecycleRetirementSources())' in source
+    assert "innerHTML" not in submit
 
 
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():

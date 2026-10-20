@@ -244,6 +244,106 @@ def test_http_projection_maps_tenant_denial_to_forbidden(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_retirement_candidates_are_exact_origin_bounded_and_keep_safe_fields():
+    columns = (
+        "solution_id", "solution_name", "solution_type", "current_stage", "solution_status",
+    )
+    row = (
+        "c0000000-0000-4000-8000-000000000001", "Soil cover", "practice",
+        "testing", "active",
+    )
+    connection = _Connection(rows=[row, row, row], columns=columns)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.list_location_solution_retirement_candidates(
+            OPERATOR_ID, LOCATION_ID, limit="2", offset="5",
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "read",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "list_location_solution_retirement_candidates" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 3, 5)
+    assert result["solutions"] == [dict(zip(columns, row)), dict(zip(columns, row))]
+    assert result["has_more"] is True and result["next_offset"] == 7
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), ("2.0", 0), (2, -1), (2, 10001)])
+def test_retirement_candidates_reject_invalid_page_before_database_access(limit, offset):
+    with pytest.raises(reads.SolutionLifecycleReadInvalid):
+        reads.list_location_solution_retirement_candidates(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page opened a connection"),
+        )
+
+
+def test_retirement_candidates_context_denial_rolls_back_without_projection_call():
+    connection = _Connection()
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.list_location_solution_retirement_candidates(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+
+    assert not any("list_location_solution_retirement_candidates" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
+def test_http_retirement_candidates_are_no_store_and_operator_authenticated(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_retirement_candidates",
+        lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "solutions": []},
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/solution-lifecycle/{LOCATION_ID}/retirement-candidates"
+        )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["location_id"] == LOCATION_ID
+
+
 def test_gate_list_uses_signed_context_bounded_page_and_returns_no_raw_evidence():
     columns = (
         "solution_id", "solution_name", "solution_type", "current_stage",

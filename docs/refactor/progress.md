@@ -1,3 +1,25 @@
+### CAP-035 location-origin retirement proposal console — 20 October 2026
+
+The lifecycle console now loads bounded retirement proposal choices from a
+location-origin-only source. Migration 481 returns fixed solution labels only
+when canonical origin exactly matches the selected location; a shared location
+link is not enough. The route rechecks signed tenant context and exact
+`solution_lifecycle:read`, uses bounded pages, and grants the runtime only
+function execution while denying Directus. The proposal form requires both
+location read and create grants, validates the reason, evidence references,
+remedy plan, and superseded replacement, then submits through the existing
+CSRF-protected action with an unchanged-retry request ID. It creates a proposal
+for independent human review; it cannot approve, schedule, or execute a
+retirement. The focused CAP-035 Gateway/action/console/route-policy/migration
+selection passes 176 tests; Ruff, Python compilation, and diff checks pass.
+Disposable PostgreSQL 16 applies/replays migration 481 and passes nine grouped
+scope, grant, pagination, privacy, and role-boundary checks. Candidate and legacy
+databases are untouched; migration 481 is not rolled out. CAP-035 remains
+prepared pending workflow and populated-data parity, live OIDC/browser
+acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance.
+Checklist: 726 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/481_location_solution_retirement_candidates.sql); [evidence](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
+
 ### CAP-035 learning-proposal operator form — 20 October 2026
 
 The lifecycle console now lets operators propose learning from a completed,

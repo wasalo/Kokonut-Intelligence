@@ -3,7 +3,26 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-025 now has a
+**Latest implementation slice — 20 October 2026:** CAP-035 now has a bounded
+location-origin retirement-candidate route and console proposal form. Migration
+481 returns fixed labels only for solutions whose canonical origin is exactly
+the selected location, under signed tenant context and exact read grant; shared
+location links do not qualify. The form requires both exact read and create
+grants, validates evidence, remedy plan, and superseded replacement, and posts
+to the existing CSRF-protected action with retry-stable request IDs. It creates
+only a proposed retirement for independent review. The focused CAP-035 Gateway,
+action, console, route-policy, and migration selection passes 176 tests; Ruff,
+Python compilation, and diff checks pass. Disposable PostgreSQL 16 applies and
+replays migration 481 with nine grouped checks. Candidate and legacy databases
+are untouched; migration 481 is not rolled out. CAP-035 remains prepared pending
+workflow and populated-data parity, live OIDC/browser, broader ACL/RLS, recovery,
+and owner acceptance. Checklist: 726 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows. Evidence:
+[contract](solution-lifecycle-kernel-read-contract.md), [migration](../schemas/postgres/481_location_solution_retirement_candidates.sql),
+[console](../apps/operator-console/index.html), and
+[disposable acceptance](builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json).
+
+**Previous implementation slice — 20 October 2026:** CAP-025 now has a
 location-scoped reviewer console under the exact `stakeholder_identity:review`
 grant. It uses the consent-aware pending queue, withholds source identifiers and
 raw feedback, disables decisions when names are unavailable, and submits fixed
