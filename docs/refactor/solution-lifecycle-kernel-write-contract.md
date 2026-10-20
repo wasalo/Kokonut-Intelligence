@@ -411,6 +411,18 @@ Migration 500 passed disposable PostgreSQL 16 apply/replay and nine grouped
 application, scope, identity, idempotency, lifecycle, and privilege checks;
 candidate and legacy were untouched.
 
+## Legacy retirement-helper boundary
+
+The old `solution_scale.propose_retirement` and
+`solution_scale.approve_retirement` helpers no longer write directly to shared
+tables. They fail before opening a connection and direct operators to the
+location-scoped Gateway proposal and independent approval routes backed by
+migrations 476 and 475. The Gateway routes preserve the proposal/review
+capability with signed location grants, active human attribution, independent
+review, bounded evidence/plan fields, and immutable retry receipts. Remaining
+retirement execution, sunset, and post-retirement workflows stay open; this
+change only closes the unscoped legacy write path.
+
 The focused Gateway, route-policy, console, solution-application, and migration
 selection passes 94 tests; the database-backed solution-scale test is skipped
 because no permitted local PostgreSQL connection was available. Ruff, Python compilation,

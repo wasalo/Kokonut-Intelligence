@@ -4,36 +4,36 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 893,
-    "execution_sites": 4378,
+    "execution_sites": 4375,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 4049,
+    "sites_without_worker_operation_refs": 4046,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
-      "INSERT": 674,
+      "INSERT": 673,
       "RELEASE": 12,
       "ROLLBACK": 8,
       "SAVEPOINT": 7,
-      "SELECT": 2665,
+      "SELECT": 2664,
       "SET": 302,
       "UNKNOWN": 192,
-      "UPDATE": 444,
+      "UPDATE": 443,
       "WITH": 26
     },
     "statement_groups": {
-      "read_candidate": 2665,
+      "read_candidate": 2664,
       "schema_change": 1,
       "transaction_or_session": 329,
       "unknown_requires_manual_review": 192,
       "with_requires_manual_review": 26,
-      "write_candidate": 1165
+      "write_candidate": 1163
     },
     "expression_kinds": {
       "composed": 16,
       "composed_or_variable": 263,
       "fstring": 283,
-      "literal": 3816
+      "literal": 3813
     },
     "relation_candidates": 1142,
     "sites_without_relation_candidates": 736,
@@ -469,10 +469,10 @@
     },
     "innovation": {
       "source_files": 6,
-      "execution_sites": 48,
+      "execution_sites": 45,
       "statement_groups": {
-        "read_candidate": 16,
-        "write_candidate": 32
+        "read_candidate": 15,
+        "write_candidate": 30
       },
       "candidate_relation_names": 21,
       "sites_without_relation_candidates": 0,
@@ -1678,7 +1678,7 @@
     "solution_lifecycle_event": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/innovation/solution_lifecycle.py"]},
     "solution_link": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/innovation/solution_lifecycle.py"]},
     "solution_replication": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/innovation/solution_experiments.py"]},
-    "solution_retirement": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/innovation/solution_lifecycle.py","services/innovation/solution_scale.py"]},
+    "solution_retirement": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/innovation/solution_lifecycle.py"]},
     "solution_scale_gate": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/innovation/solution_lifecycle.py","services/innovation/solution_scale.py"]},
     "solution_stage_gate": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/innovation/solution_lifecycle.py"]},
     "sow_change_request": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/export/reports/operations.py"]},
@@ -5328,9 +5328,6 @@
     {"id": "services/innovation/solution_scale.py:32:8","source": "services/innovation/solution_scale.py","line": 32,"column": 8,"scope": "evaluate_gate","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["solution_scale_gate"],"static_sql_sha256": "ac8ec6e5ae3907e31bc327d5870566049613974072426496fd3331b0c00190ea","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/innovation/solution_scale.py:45:8","source": "services/innovation/solution_scale.py","line": 45,"column": 8,"scope": "evaluate_gate","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["solution_scale_gate"],"static_sql_sha256": "6ba4c520dfdb1febc04f0731aaf1bfe1f430378780ebe40a23584f4042c512f7","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/innovation/solution_scale.py:58:8","source": "services/innovation/solution_scale.py","line": 58,"column": 8,"scope": "record_learning","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["solution_learning_record"],"static_sql_sha256": "acf507b8fc911b4c80c4bb7023cc0bdcc8b0a85e6e8d79657bf9cb69ca6d398f","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/innovation/solution_scale.py:78:8","source": "services/innovation/solution_scale.py","line": 78,"column": 8,"scope": "propose_retirement","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["solution_retirement"],"static_sql_sha256": "2bcff35471fd7eb8705f9534cc789fe6da7594e328261326913ee9bb5c9d836d","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/innovation/solution_scale.py:88:8","source": "services/innovation/solution_scale.py","line": 88,"column": 8,"scope": "approve_retirement","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["solution_retirement"],"static_sql_sha256": "91b41c359a181dcd35c226b9248db02848677a2e29251538ac6ac93a2bb7e1b2","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/innovation/solution_scale.py:108:8","source": "services/innovation/solution_scale.py","line": 108,"column": 8,"scope": "approve_retirement","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["solution_retirement"],"static_sql_sha256": "9a9218370918e53ec1e9776e04a492d5f5fefb6c9f024a397a35197eaff398fd","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/iri/resolver.py:56:4","source": "services/iri/resolver.py","line": 56,"column": 4,"scope": "generate_iri","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "7777e5a3756a7392842fa336ce691eedcc2019062a5b8a05187ac0a797272d8d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/iri/resolver.py:64:12","source": "services/iri/resolver.py","line": 64,"column": 12,"scope": "generate_iri","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_public_farm_summary"],"static_sql_sha256": "15be709307325e13903a5b37bd6eabfc636ef5600337a4bc44a83e790bdf982d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/iri/resolver.py:88:8","source": "services/iri/resolver.py","line": 88,"column": 8,"scope": "generate_iri","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["iri_registry"],"static_sql_sha256": "f0d94f0a4931e6b0d76dd4d201615993172fa20408dbe6db56844f42401b409f","operation_refs": [],"statement_group": "read_candidate"},

@@ -12,12 +12,12 @@ PARTY_ID = "b0000000-0000-0000-0000-000000002712"
 PROPOSER_ID = "b0000000-0000-0000-0000-000000002713"
 
 
-def test_scale_requires_evidence_and_learning_can_be_applied():
+def test_scale_requires_evidence_and_learning_application_uses_gateway():
     try:
         conn = get_db()
     except Exception as exc:  # pragma: no cover
         pytest.skip(f"no database available: {exc}")
-    solution_id = learning_id = retirement_id = replacement_id = None
+    solution_id = learning_id = None
     try:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
@@ -41,22 +41,11 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
         learning_id = str(learning["id"])
         with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
             solution_scale.apply_learning(conn, learning_id, "solution-v2", PARTY_ID)
-        replacement_id = str(uuid.uuid4())
-        with conn.cursor() as cur:
-            cur.execute("INSERT INTO solution (id, canonical_key, name, solution_type, problem_statement) VALUES (%s::uuid, %s, 'Replacement', 'practice', 'Safer approach')", (replacement_id, f"replacement-{uuid.uuid4().hex[:8]}"))
-        retirement = solution_scale.propose_retirement(conn, solution_id, "superseded", "A safer validated version exists", evidence_refs=[{"source":"review"}], migration_plan="Migrate adopters to the replacement", replacement_solution_id=replacement_id, created_by_party_id=PROPOSER_ID)
-        retirement_id = str(retirement["id"])
-        with pytest.raises(ValueError, match="independent reviewer"):
-            solution_scale.approve_retirement(conn, retirement_id, PROPOSER_ID)
-        approved = solution_scale.approve_retirement(conn, retirement_id, PARTY_ID)
-        assert approved["status"] == "approved"
     finally:
         conn.rollback()
         with conn.cursor() as cur:
             if solution_id:
                 cur.execute("DELETE FROM solution WHERE id = %s::uuid", (solution_id,))
-            if replacement_id:
-                cur.execute("DELETE FROM solution WHERE id = %s::uuid", (replacement_id,))
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PROPOSER_ID,))
         conn.commit()
@@ -82,6 +71,28 @@ def test_retirement_proposal_requires_attributed_proposer_before_database_access
         solution_scale.propose_retirement(
             mock_conn, "solution-id", "unsafe", "Evidence withdrawn"
         )
+    mock_conn.cursor.assert_not_called()
+
+
+def test_legacy_retirement_proposal_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_scale.propose_retirement(
+            mock_conn,
+            "solution-id",
+            "unsafe",
+            "Evidence withdrawn",
+            evidence_refs=[{"source": "review"}],
+            migration_plan="Preserve active deployments",
+            created_by_party_id=PROPOSER_ID,
+        )
+    mock_conn.cursor.assert_not_called()
+
+
+def test_legacy_retirement_approval_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_scale.approve_retirement(mock_conn, "retirement-id", PARTY_ID)
     mock_conn.cursor.assert_not_called()
 
 

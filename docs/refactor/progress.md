@@ -12432,3 +12432,20 @@ review. Checklist: 746 complete / 24 open; matrix: 31 baseline-retained,
 [migration](../schemas/postgres/500_location_solution_learning_application.sql);
 [Gateway tests](../tests/test_gateway_solution_learning_application.py);
 [disposable checker](../../scripts/check-solution-learning-application-disposable.py).
+
+### CAP-035 fail-closed legacy retirement helpers — 20 October 2026
+
+The legacy `solution_scale.propose_retirement` and
+`solution_scale.approve_retirement` methods now fail before database access.
+Retirement proposal and independent approval remain available through the
+location-scoped Gateway actions and bounded functions from migrations 476 and
+475. This removes duplicate shared-role writes without changing lifecycle
+state. Focused legacy-service, Gateway-action/proposal, and route-policy tests
+pass (29 passed, 1 database-backed skip); Ruff, Python compilation, and the
+refreshed runtime SQL inventory pass. No migration, database, or provider was
+used. Retirement execution, sunset, post-retirement review, populated parity,
+live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance
+remain open. Checklist: 747 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
+[service](../services/innovation/solution_scale.py);
+[tests](../tests/test_solution_scale.py).
