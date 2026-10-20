@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–507 are additive and are
+**Status:** prepared implementation contract; migrations 488–508 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -149,6 +149,35 @@ experiment-draft chain and checks owner-only submission, exact scope, current
 eligibility, retries and collisions, duplicate submission denial, no approval or
 stage change, and private receipt/function privilege boundaries. Candidate and
 legacy databases remain untouched; migration 507 has not been rolled out.
+
+## Independent experiment protocol review
+
+`GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review`
+and the matching `POST` require signed exact-location
+`solution_lifecycle:review` context. The detail function exposes only a bounded
+protocol projection and booleans indicating whether the current reviewer is the
+protocol owner or submitter; party identities and raw receipt rows remain
+private. The protocol must be submitted through the Kernel at that exact
+location for an active location-origin solution that remains in
+`experiment_ready` or `testing`.
+
+Approval requires explicit acknowledgement, an enabled operator bound to an
+active human, and a reviewer different from both the protocol owner and
+attributed submitter. PostgreSQL rechecks the exact grant, origin, solution
+stage, status, and submission receipt under row locks. One private immutable
+receipt provides exact retry replay and rejects request-ID reuse. Approval
+changes the experiment status and approval attribution only; it does not record
+participant consent, start the experiment, or change the solution stage.
+Directus cannot execute the functions or access receipts, and runtime cannot
+read, forge, edit, or delete receipt rows. The legacy direct
+`solution_experiments.approve_protocol` helper fails before database access.
+
+The console uses exact location review grants, text-only rendering, conflict
+blocking, a loaded-location guard, acknowledgement, CSRF/no-store requests, and
+a stable retry ID. Disposable PostgreSQL 16 applies/replays migration 508 and
+checks exact scope, reviewer independence, identity privacy, retries and
+collisions, lifecycle isolation, and role boundaries. Candidate and legacy
+databases remain untouched; migration 508 has not been rolled out.
 
 ## Funding draft proposal
 
@@ -743,11 +772,11 @@ untouched; migration 503 is not rolled out.
 
 Focused Gateway, route-policy, console, and migration checks cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
-state boundary, separately authorized submission, private reviewer reads, and
-independent funding, tranche, replication review, replication activation,
+state boundary, separately authorized submission, private protocol review and
+independent approval, funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–507 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–508 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -758,6 +787,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–507. After application, do not edit or reverse them; disable the routes and
+488–508. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

@@ -333,6 +333,59 @@ def get_location_solution_experiment_review(
             connection.close()
 
 
+def get_location_solution_experiment_protocol_review(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return a submitted exact-origin protocol to an authorized human reviewer."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.location_solution_experiment_protocol_review(
+                           %s::uuid, %s::uuid
+                       )""",
+                (location_id, experiment_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise SolutionLifecycleReviewNotFound(
+                    "Submitted exact-location experiment protocol was not found"
+                )
+            result = _mapping(cursor, row)
+        size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
+        if size > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution experiment protocol review detail exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
 def list_location_solution_experiments(
     operator_id: str,
     location_id: str,

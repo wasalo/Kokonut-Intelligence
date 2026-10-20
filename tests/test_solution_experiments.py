@@ -52,13 +52,13 @@ def test_validated_experiment_can_create_replication():
         conn.commit()
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE solution_experiment SET status = 'submitted' "
+                "UPDATE solution_experiment SET status = 'protocol_approved', "
+                "approved_by_party_id = %s::uuid, approved_at = NOW(), updated_at = NOW() "
                 "WHERE id = %s::uuid AND status = 'draft' RETURNING id",
-                (experiment_id,),
+                (PARTY_ID, experiment_id),
             )
             assert cur.fetchone() is not None
         conn.commit()
-        solution_experiments.approve_protocol(conn, experiment_id, PARTY_ID)
         solution_experiments.start_experiment(conn, experiment_id, PARTY_ID)
         solution_experiments.record_observation(conn, experiment_id, "water_reliability", 80, "baseline", recorded_by_party_id=PARTY_ID)
         solution_experiments.record_observation(conn, experiment_id, "water_reliability", 95, "treatment", recorded_by_party_id=PARTY_ID)
@@ -85,14 +85,12 @@ def test_clean_helper_converts_uuids():
     assert cleaned["id"] == str(mock_uuid)
 
 
-def test_approve_protocol_rejects_non_submitted():
+def test_legacy_experiment_approval_fails_before_database_access():
     mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_cursor.fetchone.return_value = None
-    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
-    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
-    with pytest.raises(ValueError, match="only submitted"):
+    with pytest.raises(RuntimeError, match="location-scoped Solution Lifecycle Gateway"):
         solution_experiments.approve_protocol(mock_conn, "exp-id", "party-id")
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
 
 
 def test_legacy_experiment_creation_fails_before_database_access():

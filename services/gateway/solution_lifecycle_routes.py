@@ -11,6 +11,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         SolutionLifecycleActionInvalid,
         activate_location_solution_replication,
         apply_location_solution_learning,
+        approve_location_solution_experiment_protocol,
         approve_location_solution_funding,
         approve_location_solution_funding_tranche,
         approve_location_solution_gate,
@@ -42,6 +43,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         SolutionLifecycleResponseTooLarge,
         SolutionLifecycleReviewNotFound,
         get_location_solution_adoption_event_summary,
+        get_location_solution_experiment_protocol_review,
         get_location_solution_experiment_review,
         get_location_solution_funding_review_detail,
         get_location_solution_funding_tranche_review_detail,
@@ -824,6 +826,144 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution lifecycle summary unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review"
+    )
+    async def review_solution_experiment_protocol_detail(
+        request: Request, location_id: str, experiment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_experiment_protocol_review,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                experiment_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle review access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReviewNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Submitted exact-location experiment protocol not found"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Submitted exact-location experiment protocol not found"},
+                    headers=headers,
+                )
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle review grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Experiment protocol review detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Experiment protocol review detail unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review"
+    )
+    async def approve_solution_experiment_protocol(
+        request: Request, location_id: str, experiment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {"request_id", "acknowledged"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Protocol approval fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                approve_location_solution_experiment_protocol,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                experiment_id,
+                payload["request_id"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle review access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active review grant and independent human reviewer are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Submitted exact-location experiment protocol not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Protocol approval request is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The protocol is no longer eligible for approval; refresh and retry"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Experiment protocol approval unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Experiment protocol approval unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

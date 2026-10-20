@@ -36,14 +36,11 @@ def submit_protocol(conn, experiment_id: str) -> Dict[str, Any]:
 
 
 def approve_protocol(conn, experiment_id: str, approved_by_party_id: str) -> Dict[str, Any]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("UPDATE solution_experiment SET status = 'protocol_approved', approved_by_party_id = %s::uuid, approved_at = NOW(), updated_at = NOW() WHERE id = %s::uuid AND status = 'submitted' RETURNING *", (approved_by_party_id, experiment_id))
-        row = cur.fetchone()
-        if not row:
-            conn.rollback()
-            raise ValueError("only submitted experiment protocols can be approved")
-        conn.commit()
-        return _clean(row)
+    del conn, experiment_id, approved_by_party_id
+    raise RuntimeError(
+        "Direct experiment approval is disabled; review and approve protocols through the "
+        "location-scoped Solution Lifecycle Gateway"
+    )
 
 
 def start_experiment(conn, experiment_id: str, started_by_party_id: str) -> Dict[str, Any]:

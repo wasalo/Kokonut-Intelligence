@@ -313,6 +313,37 @@ def test_experiment_submission_form_is_submit_grant_gated_and_separate_from_appr
     assert "innerHTML" not in form
 
 
+def test_experiment_protocol_review_is_separately_grant_gated_and_independent():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(experiment)",
+        "function createSolutionLifecycleExperimentSubmissionForm(",
+    )
+    review = _function(
+        source,
+        "function createSolutionLifecycleExperimentProtocolReviewPanel(",
+        "function createSolutionLifecycleExperimentReviewPanel(",
+    )
+    assert 'experiment.experiment_status === "submitted"' in renderer
+    assert "solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentProtocolReviewPanel(experiment.experiment_id)" in renderer
+    assert "result.protocol || {}" in review and "protocol.textContent" in review
+    assert "result.owner_is_reviewer === true" in review
+    assert "result.submitter_is_reviewer === true" in review
+    assert "approve.disabled = conflict" in review
+    assert "form.protocolReviewReady" in review
+    assert "form.protocolReviewLocationId = locationId" in review
+    assert "form.protocolReviewLocationId !== locationId" in review
+    assert "form.pendingProtocolApprovalRequestId" in review
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/protocol-review`' in review
+    assert 'credentials: "same-origin"' in review and 'cache: "no-store"' in review
+    assert 'method: "POST"' in review and '"X-CSRF-Token": csrf' in review
+    assert "does not establish participant consent or start the experiment" in review
+    assert "Approval does not establish participant consent or start the experiment." in review
+    assert "innerHTML" not in review
+
+
 def test_experiment_result_review_uses_private_text_detail_csrf_and_stable_retry():
     source = CONSOLE.read_text(encoding="utf-8")
     review = _function(
