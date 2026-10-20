@@ -535,6 +535,59 @@ def approve_location_solution_funding(
         connection.close()
 
 
+def approve_location_solution_funding_tranche(
+    operator_id: str,
+    location_id: str,
+    funding_case_id: str,
+    tranche_id: str,
+    request_id: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Independently approve one proposed tranche without releasing funds."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    funding_case_id = _normalize_uuid(funding_case_id, "funding case")
+    tranche_id = _normalize_uuid(tranche_id, "tranche")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Funding tranche approval requires explicit acknowledgement"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.approve_location_solution_funding_tranche(
+                           %s::uuid, %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, funding_case_id, tranche_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Funding tranche approval returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def transition_location_solution_gate(
     operator_id: str,
     location_id: str,

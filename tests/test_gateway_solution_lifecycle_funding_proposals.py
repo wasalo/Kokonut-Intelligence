@@ -39,6 +39,13 @@ APPROVAL_RESULT = {
     "approved_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
 }
+TRANCHE_RESULT = {
+    "funding_case_id": str(uuid4()),
+    "tranche_id": str(uuid4()),
+    "tranche_status": "approved",
+    "approved_at": "2026-10-20T12:00:00+00:00",
+    "replayed": False,
+}
 PROPOSAL = {
     "capital_stage": "pilot",
     "funding_instrument": "community_fund",
@@ -263,6 +270,53 @@ def test_funding_approval_requires_literal_acknowledgement_before_database(ackno
         )
 
 
+def test_funding_tranche_approval_sets_exact_review_context_and_commits():
+    connection = _Connection(TRANCHE_RESULT)
+    contexts = []
+    with patch.object(
+        actions,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    ):
+        result = actions.approve_location_solution_funding_tranche(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            TRANCHE_RESULT["tranche_id"],
+            REQUEST_ID,
+            True,
+            connection_factory=lambda: connection,
+        )
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "review",
+    })]
+    query, params = connection.operations[-1]
+    assert "kokonut_security.approve_location_solution_funding_tranche" in query
+    assert params == (
+        LOCATION_ID, RESULT["funding_case_id"], TRANCHE_RESULT["tranche_id"],
+        REQUEST_ID, True,
+    )
+    assert result == TRANCHE_RESULT
+    assert connection.committed and connection.closed and not connection.rolled_back
+
+
+@pytest.mark.parametrize("acknowledged", [False, None, 1, "true"])
+def test_funding_tranche_approval_requires_literal_acknowledgement_before_database(acknowledged):
+    with pytest.raises(actions.SolutionLifecycleActionInvalid, match="acknowledgement"):
+        actions.approve_location_solution_funding_tranche(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            TRANCHE_RESULT["tranche_id"],
+            REQUEST_ID,
+            acknowledged,
+            connection_factory=lambda: pytest.fail("missing acknowledgement must fail before DB"),
+        )
+
+
 def test_funding_target_read_uses_same_connection_and_signed_read_context():
     row = {
         "solution_id": SOLUTION_ID,
@@ -361,6 +415,45 @@ def test_funding_review_detail_is_exact_grant_context_read_only_and_private():
     assert connection.closed and connection.rolled_back and not connection.committed
 
 
+def test_funding_tranche_review_detail_uses_exact_grant_read_only_context():
+    row = {
+        "funding_case_id": RESULT["funding_case_id"],
+        "tranche_id": TRANCHE_RESULT["tranche_id"],
+        "case_decision_status": "approved",
+        "case_submitter_attributed": True,
+        "is_self_authored": False,
+        "is_case_approver": False,
+        "tranche_status": "proposed",
+        "tranche_amount": "300.00",
+        "milestone_conditions": {"step": "review"},
+        "eligible_for_independent_approval": True,
+    }
+    connection = _Connection(row=row)
+    contexts = []
+    with patch.object(
+        reads,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    ):
+        result = reads.get_location_solution_funding_tranche_review_detail(
+            OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"],
+            TRANCHE_RESULT["tranche_id"], connection_factory=lambda: connection,
+        )
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "review",
+    })]
+    assert connection.operations[0][0] == "SET TRANSACTION READ ONLY"
+    assert "kokonut_security.get_location_solution_funding_tranche_review_detail" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (
+        LOCATION_ID, RESULT["funding_case_id"], TRANCHE_RESULT["tranche_id"]
+    )
+    assert result == row
+    assert connection.closed and connection.rolled_back and not connection.committed
+
+
 @pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), (1, -1), (1, 10001), (True, 0)])
 def test_funding_review_queue_invalid_page_fails_before_database(limit, offset):
     with pytest.raises(reads.SolutionLifecycleReadInvalid):
@@ -386,6 +479,11 @@ def test_funding_routes_have_exact_read_and_create_location_policies():
         f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
         f"{RESULT['funding_case_id']}/approve"
     )
+    tranche_review_path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/{RESULT['funding_case_id']}"
+        f"/tranches/{TRANCHE_RESULT['tranche_id']}/review"
+    )
+    tranche_approve_path = tranche_review_path.removesuffix("/review") + "/approve"
     assert auth_route_policy("GET", target_path, enabled=True) == {
         "resource": "solution_lifecycle", "action": "read", "public": False,
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
@@ -411,11 +509,17 @@ def test_funding_routes_have_exact_read_and_create_location_policies():
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
     }
     assert auth_route_policy("GET", approval_path, enabled=True) is None
+    for method, path in (("GET", tranche_review_path), ("POST", tranche_approve_path)):
+        assert auth_route_policy(method, path, enabled=True) == {
+            "resource": "solution_lifecycle", "action": "review", "public": False,
+            "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+        }
 
 
 def _app(
     provider, monkeypatch, proposal_action, submission_action=None,
     review_queue_action=None, review_detail_action=None, approval_action=None,
+    tranche_detail_action=None, tranche_approval_action=None,
 ):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
@@ -430,6 +534,11 @@ def _app(
         "get_location_solution_funding_review_detail",
         review_detail_action or (lambda *_a, **_k: {"funding_case_id": RESULT["funding_case_id"]}),
     )
+    monkeypatch.setattr(
+        reads,
+        "get_location_solution_funding_tranche_review_detail",
+        tranche_detail_action or (lambda *_a, **_k: TRANCHE_RESULT),
+    )
     monkeypatch.setattr(actions, "propose_location_solution_funding", proposal_action)
     monkeypatch.setattr(
         actions,
@@ -440,6 +549,11 @@ def _app(
         actions,
         "approve_location_solution_funding",
         approval_action or (lambda *_args, **_kwargs: APPROVAL_RESULT),
+    )
+    monkeypatch.setattr(
+        actions,
+        "approve_location_solution_funding_tranche",
+        tranche_approval_action or (lambda *_args, **_kwargs: TRANCHE_RESULT),
     )
     app = FastAPI()
     router = APIRouter()
@@ -569,6 +683,55 @@ def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):
         response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_funding_tranche_review_and_approval_routes_are_private_and_exact(monkeypatch):
+    detail = {
+        "funding_case_id": RESULT["funding_case_id"],
+        "tranche_id": TRANCHE_RESULT["tranche_id"],
+        "tranche_status": "proposed",
+        "eligible_for_independent_approval": True,
+    }
+    calls = []
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        tranche_detail_action=lambda *args: calls.append(("detail", args)) or detail,
+        tranche_approval_action=lambda *args: calls.append(("approve", args)) or TRANCHE_RESULT,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    base = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/tranches/{TRANCHE_RESULT['tranche_id']}"
+    )
+    with TestClient(app) as client:
+        detail_response = client.get(f"{base}/review")
+        approval_response = client.post(
+            f"{base}/approve", json={"request_id": REQUEST_ID, "acknowledged": True}
+        )
+        malformed = client.post(
+            f"{base}/approve", json={"request_id": REQUEST_ID, "acknowledged": True, "amount": 300}
+        )
+    assert detail_response.status_code == 200
+    assert detail_response.json() == detail
+    assert detail_response.headers["cache-control"] == "no-store"
+    assert approval_response.status_code == 201
+    assert approval_response.json() == TRANCHE_RESULT
+    assert approval_response.headers["cache-control"] == "no-store"
+    assert malformed.status_code == 400
+    assert calls == [
+        ("detail", (OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], TRANCHE_RESULT["tranche_id"])),
+        ("approve", (
+            OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"],
+            TRANCHE_RESULT["tranche_id"], REQUEST_ID, True,
+        )),
+    ]
 
 
 def test_funding_review_routes_are_private_no_store_and_call_review_readers(monkeypatch):

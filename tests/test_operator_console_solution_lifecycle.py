@@ -372,7 +372,7 @@ def test_funding_case_approval_is_acknowledged_review_granted_and_retry_stable()
 
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleFundingReviewCase(")
+    reader = _function(source, "async function loadSolutionLifecycleFunding(", "async function loadSolutionLifecycleFundingTrancheReviewDetail(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -391,7 +391,7 @@ def test_funding_renderer_omits_amounts_terms_evidence_and_party_details():
     panel = re.search(r'<h3>Funding and tranche status</h3>(.*?)</section>', source, re.DOTALL)
     assert panel is not None
     assert "amounts, milestone terms, rationale, evidence" in panel.group(1)
-    renderer = _function(source, "function appendSolutionLifecycleFundingCase(", "async function loadSolutionLifecycleFunding(")
+    renderer = _function(source, "function appendSolutionLifecycleFundingCase(", "async function loadSolutionLifecycleFundingTargets(")
     for field in (
         "solution_name", "solution_type", "current_stage", "solution_status", "capital_stage",
         "funding_instrument", "currency", "decision_status", "case_created_at", "case_approved_at",
@@ -399,10 +399,12 @@ def test_funding_renderer_omits_amounts_terms_evidence_and_party_details():
     ):
         assert f"fundingCase.{field}" in renderer
     for private_field in (
-        "funding_case_id", "tranche_id", "requested_amount", "authorized_amount", "amount",
+        "requested_amount", "authorized_amount", "amount",
         "milestone", "rationale", "evidence", "submitted_by", "approved_by", "party_id",
     ):
         assert f"fundingCase.{private_field}" not in renderer
+    assert '["Funding case ID"' not in renderer
+    assert '["Tranche ID"' not in renderer
     assert "No tranche recorded" in renderer
     assert "textContent" in renderer
     assert "innerHTML" not in renderer
@@ -646,6 +648,62 @@ def test_console_ids_are_unique_and_refresh_controls_are_wired():
     assert 'solutionLifecycleLearningProposalForm.addEventListener("submit", submitSolutionLifecycleLearningProposal)' in source
     assert 'document.querySelector("#solution-lifecycle-learning-reset").addEventListener("click"' in source
     assert 'document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary)' in source
+
+
+def test_funding_tranche_review_is_review_grant_gated_and_private():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleFundingCase(",
+        "async function loadSolutionLifecycleFundingTargets(",
+    )
+    assert 'solutionLifecycleReviewLocations.has(locationId)' in renderer
+    assert 'fundingCase.decision_status === "approved"' in renderer
+    assert 'fundingCase.tranche_status === "proposed"' in renderer
+    assert "fundingCase.funding_case_id" in renderer and "fundingCase.tranche_id" in renderer
+    assert 'review.textContent = "Review proposed tranche"' in renderer
+    assert "loadSolutionLifecycleFundingTrancheReviewDetail(" in renderer
+    assert "innerHTML" not in renderer
+
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleFundingTrancheReviewDetail(",
+        "async function approveSolutionLifecycleFundingTranche(",
+    )
+    assert "/tranches/${encodeURIComponent(trancheId)}/review`" in detail
+    assert 'credentials: "same-origin"' in detail and 'cache: "no-store"' in detail
+    assert "solutionLifecycleReviewLocations.has(locationId)" in detail
+    assert "requestVersion !== solutionLifecycleFundingTrancheReviewDetailVersion" in detail
+    assert "locationId !== solutionLifecycleLocation.value" in detail
+    assert "result.milestone_conditions" in detail and ".textContent = JSON.stringify" in detail
+    assert "result.eligible_for_independent_approval === true" in detail
+    assert 'result.case_decision_status === "approved"' in detail
+    assert 'result.tranche_status === "proposed"' in detail
+    assert "globalThis.crypto?.randomUUID?.()" in detail
+    assert "innerHTML" not in detail
+
+
+def test_funding_tranche_approval_is_acknowledged_csrf_protected_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    approve = _function(
+        source,
+        "async function approveSolutionLifecycleFundingTranche(",
+        "function appendSolutionLifecycleFundingReviewCase(",
+    )
+    assert "solutionLifecycleReviewLocations.has(pending.locationId)" in approve
+    assert "solutionLifecycleFundingTrancheApprovalAcknowledge.checked" in approve
+    assert "pending.requestId" in approve
+    assert "/tranches/${encodeURIComponent(pending.trancheId)}/approve`" in approve
+    assert 'method: "POST"' in approve
+    assert 'credentials: "same-origin"' in approve
+    assert 'cache: "no-store"' in approve
+    assert '"X-CSRF-Token": csrf' in approve
+    assert "response.status < 500" in approve
+    assert "Retrying will reuse the same request ID" in approve
+    assert "No money was released" in approve and "solution stage did not change" in approve
+    assert 'solutionLifecycleFundingTrancheApprovalSubmit.addEventListener("click", approveSolutionLifecycleFundingTranche)' in source
+    assert 'solutionLifecycleFundingTrancheApprovalAcknowledge.addEventListener("change"' in source
+    assert "innerHTML" not in approve
 
 
 def test_inline_javascript_parses_when_node_is_available():

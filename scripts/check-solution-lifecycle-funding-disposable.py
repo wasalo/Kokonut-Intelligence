@@ -18,7 +18,8 @@ PROPOSAL_MIGRATION = ROOT / "schemas/postgres/488_location_solution_funding_prop
 SUBMISSION_MIGRATION = ROOT / "schemas/postgres/489_location_solution_funding_submission.sql"
 REVIEW_MIGRATION = ROOT / "schemas/postgres/490_location_solution_funding_review.sql"
 APPROVAL_MIGRATION = ROOT / "schemas/postgres/491_location_solution_funding_approval.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json"
+TRANCHE_APPROVAL_MIGRATION = ROOT / "schemas/postgres/492_location_solution_funding_tranche_review.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiments_disposable", EXPERIMENT_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution lifecycle fixtures")
@@ -913,13 +914,271 @@ BEGIN
 END $$;
 """
 
+FUNDING_TRANCHE_REVIEW_FIXTURE = r"""
+INSERT INTO public.operator_identity (id, enabled)
+VALUES ('a0000000-0000-4000-8000-000000000003', true);
+INSERT INTO public.party (id, display_name, party_type, status)
+VALUES ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'Synthetic tranche reviewer', 'person', 'active');
+INSERT INTO public.operator_governance_party_binding (operator_id, party_id)
+VALUES ('a0000000-0000-4000-8000-000000000003',
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd');
+INSERT INTO public.operator_scope_grant
+    (id, operator_id, location_id, resource, action, organization_id, revoked_at)
+VALUES (
+    'a1000000-0000-4000-8000-000000000008',
+    'a0000000-0000-4000-8000-000000000003',
+    'b0000000-0000-4000-8000-000000000001',
+    'solution_lifecycle', 'review', NULL, NULL
+);
+INSERT INTO public.solution_funding_tranche
+    (id, funding_case_id, tranche_number, amount, milestone_conditions, status)
+VALUES (
+    'f3100000-0000-4000-8000-000000000004',
+    'f3000000-0000-4000-8000-000000000001', 1, 25.00,
+    '{"private_condition":"case must be approved first"}', 'proposed'
+);
+"""
+
+FUNDING_TRANCHE_APPROVAL_ACCEPTANCE = r"""
+SELECT receipt.funding_case_id AS tranche_approval_case_id,
+       (SELECT tranche.id FROM public.solution_funding_tranche AS tranche
+         WHERE tranche.funding_case_id = receipt.funding_case_id
+         ORDER BY tranche.tranche_number LIMIT 1) AS tranche_approval_first_id,
+       (SELECT tranche.id FROM public.solution_funding_tranche AS tranche
+         WHERE tranche.funding_case_id = receipt.funding_case_id
+         ORDER BY tranche.tranche_number OFFSET 1 LIMIT 1) AS tranche_approval_second_id
+  FROM public.solution_funding_submission_receipt AS receipt
+ WHERE receipt.request_id = 'ab000000-0000-4000-8000-000000000301' \gset
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+SELECT set_config('kokonut.tranche_approval_case_id', :'tranche_approval_case_id', true);
+SELECT set_config('kokonut.tranche_approval_first_id', :'tranche_approval_first_id', true);
+SELECT set_config('kokonut.tranche_approval_second_id', :'tranche_approval_second_id', true);
+DO $$
+DECLARE
+    approval_case_id uuid := current_setting('kokonut.tranche_approval_case_id')::uuid;
+    first_tranche_id uuid := current_setting('kokonut.tranche_approval_first_id')::uuid;
+    second_tranche_id uuid := current_setting('kokonut.tranche_approval_second_id')::uuid;
+    first_approval record;
+    replay record;
+    tranche_detail record;
+    denied boolean := false;
+    signature text;
+BEGIN
+    SELECT * INTO tranche_detail
+      FROM kokonut_security.get_location_solution_funding_tranche_review_detail(
+        'b0000000-0000-4000-8000-000000000001', approval_case_id,
+        first_tranche_id
+      );
+    IF tranche_detail.funding_case_id <> approval_case_id
+       OR tranche_detail.tranche_status <> 'proposed'
+       OR tranche_detail.case_decision_status <> 'approved'
+       OR tranche_detail.eligible_for_independent_approval IS DISTINCT FROM TRUE
+       OR tranche_detail.case_submitter_attributed IS DISTINCT FROM TRUE
+       OR tranche_detail.is_self_authored IS DISTINCT FROM FALSE
+       OR tranche_detail.is_case_approver IS DISTINCT FROM FALSE
+       OR tranche_detail.tranche_amount <> 300.00
+       OR tranche_detail.milestone_conditions->>'step' <> 'review' THEN
+        RAISE EXCEPTION 'tranche review detail omitted required terms or exposed an ineligible action';
+    END IF;
+    SELECT pg_catalog.pg_get_function_result(
+      'kokonut_security.get_location_solution_funding_tranche_review_detail(uuid,uuid,uuid)'::regprocedure
+    ) INTO signature;
+    IF signature ~* 'party_id|operator_id|reviewer' THEN
+        RAISE EXCEPTION 'tranche review detail signature exposes reviewer identity';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.get_location_solution_funding_tranche_review_detail(
+          'b0000000-0000-4000-8000-000000000002', approval_case_id,
+          first_tranche_id
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'tranche review detail accepted mismatched signed location'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001',
+          'f3000000-0000-4000-8000-000000000001',
+          'f3100000-0000-4000-8000-000000000004',
+          'ab000000-0000-4000-8000-000000000506', TRUE
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'proposed tranche on an unapproved funding case was approved'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001',
+          'f3000000-0000-4000-8000-000000000003',
+          'f3100000-0000-4000-8000-000000000003',
+          'ab000000-0000-4000-8000-000000000507', TRUE
+        );
+    EXCEPTION WHEN no_data_found THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'cross-location tranche was approved'; END IF;
+
+    -- The original submitter has review scope but is still barred from tranche approval.
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001', approval_case_id,
+          first_tranche_id,
+          'ab000000-0000-4000-8000-000000000501', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'funding submitter approved a tranche'; END IF;
+
+    -- The case approver must also be distinct from the tranche reviewer.
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001', approval_case_id,
+          first_tranche_id,
+          'ab000000-0000-4000-8000-000000000502', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'funding case approver also approved its tranche'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    SELECT * INTO first_approval
+      FROM kokonut_security.approve_location_solution_funding_tranche(
+        'b0000000-0000-4000-8000-000000000001', approval_case_id,
+        first_tranche_id,
+        'ab000000-0000-4000-8000-000000000503', TRUE
+      );
+    IF first_approval.funding_case_id <> approval_case_id
+       OR first_approval.tranche_id <> first_tranche_id
+       OR first_approval.tranche_status <> 'approved'
+       OR first_approval.approved_at IS NULL OR first_approval.replayed THEN
+        RAISE EXCEPTION 'independent tranche approval result is invalid';
+    END IF;
+    SELECT * INTO replay
+      FROM kokonut_security.approve_location_solution_funding_tranche(
+        'b0000000-0000-4000-8000-000000000001', approval_case_id,
+        first_tranche_id,
+        'ab000000-0000-4000-8000-000000000503', TRUE
+      );
+    IF NOT replay.replayed OR replay.approved_at <> first_approval.approved_at THEN
+        RAISE EXCEPTION 'exact tranche approval retry did not return its original receipt';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001', approval_case_id,
+          second_tranche_id,
+          'ab000000-0000-4000-8000-000000000503', TRUE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'tranche approval request ID collision was accepted'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001', approval_case_id,
+          first_tranche_id,
+          'ab000000-0000-4000-8000-000000000504', TRUE
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'already-approved tranche accepted a second request'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding_tranche(
+          'b0000000-0000-4000-8000-000000000001', approval_case_id,
+          second_tranche_id,
+          'ab000000-0000-4000-8000-000000000505', FALSE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'tranche approval without acknowledgement succeeded'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_case;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read funding cases'; END IF;
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_tranche;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read funding tranches'; END IF;
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_tranche_approval_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read tranche approval receipts'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+DECLARE
+    approved_count integer;
+    proposed_count integer;
+    case_status text;
+    case_reviewer uuid;
+    tranche_reviewer uuid;
+    stage text;
+BEGIN
+    SELECT count(*) FILTER (WHERE status = 'approved')::INTEGER,
+           count(*) FILTER (WHERE status = 'proposed')::INTEGER
+      INTO approved_count, proposed_count
+      FROM public.solution_funding_tranche
+     WHERE funding_case_id = (SELECT funding_case_id
+       FROM public.solution_funding_submission_receipt
+       WHERE request_id = 'ab000000-0000-4000-8000-000000000301');
+    SELECT decision_status, approved_by_party_id INTO case_status, case_reviewer
+      FROM public.solution_funding_case
+     WHERE id = (SELECT funding_case_id
+       FROM public.solution_funding_submission_receipt
+       WHERE request_id = 'ab000000-0000-4000-8000-000000000301');
+    SELECT approved_by_party_id INTO tranche_reviewer
+      FROM public.solution_funding_tranche AS tranche
+      JOIN public.solution_funding_submission_receipt AS receipt
+        ON receipt.funding_case_id = tranche.funding_case_id
+     WHERE receipt.request_id = 'ab000000-0000-4000-8000-000000000301'
+       AND tranche.tranche_number = 1;
+    SELECT current_stage INTO stage FROM public.solution
+     WHERE id = 'c0000000-0000-4000-8000-000000000001';
+    IF approved_count <> 1 OR proposed_count <> 1 OR case_status <> 'approved'
+       OR case_reviewer <> 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1'
+       OR tranche_reviewer <> 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+       OR stage <> 'testing'
+       OR (SELECT count(*) FROM public.solution_funding_tranche_approval_receipt) <> 1
+       OR has_table_privilege('kokonut_runtime',
+         'public.solution_funding_tranche_approval_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_solution_funding_tranche_approver',
+         'public.solution_funding_tranche_approval_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_tranche_approver',
+         'public.solution_funding_tranche_approval_receipt', 'DELETE')
+       OR has_column_privilege('kokonut_solution_funding_tranche_approver',
+         'public.solution_funding_tranche', 'released_at', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_funding_tranche_approver',
+         'public.solution_funding_tranche', 'released_by_party_id', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_tranche_approver',
+         'public.solution_funding_case', 'UPDATE')
+       OR has_function_privilege('kokonut_directus_runtime',
+         'kokonut_security.approve_location_solution_funding_tranche(uuid,uuid,uuid,uuid,boolean)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+         'kokonut_security.get_location_solution_funding_tranche_review_detail(uuid,uuid,uuid)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'tranche approval effects, stage separation, or role boundary failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-solution-funding-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": APPROVAL_MIGRATION.name,
+        "migration": TRANCHE_APPROVAL_MIGRATION.name,
+        "case_approval_migration": APPROVAL_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -953,6 +1212,13 @@ def main() -> int:
         "approval retries replay exact receipts; request collisions, legacy unattributed cases, duplicate decisions, and mismatched grants fail closed",
         "only the funding case decision and reviewer attribution change; proposed tranches and solution stage remain unchanged",
         "runtime can call the bounded approval function but cannot read cases or receipts directly; Directus cannot execute; approver cannot update tranche state or receipts",
+            "migration 492 provisions a non-login tranche approver with bounded private term reads and only tranche decision columns",
+            "tranche review requires exact signed location review scope and returns milestone terms plus eligibility without reviewer identities",
+            "tranche approval requires an approved case, proposed tranche, explicit acknowledgement, and reviewer distinct from case submitter and approver",
+            "tranche approval retries replay exactly; mismatched location, request collision, duplicate approval, and missing acknowledgement fail closed",
+            "tranche approval rejects a still-submitted case and a cross-location tranche",
+            "approval changes only tranche decision and reviewer attribution; one other tranche remains proposed, release columns and solution stage remain unchanged",
+            "runtime cannot read private tranche tables or receipts; Directus cannot execute; tranche approver cannot release funds or update/delete receipts",
         ],
     }
     try:
@@ -992,14 +1258,20 @@ def main() -> int:
         psql(docker, container, migration_491)
         psql(docker, container, migration_491)
         psql(docker, container, FUNDING_APPROVAL_ACCEPTANCE)
+        psql(docker, container, FUNDING_TRANCHE_REVIEW_FIXTURE)
+        migration_492 = TRANCHE_APPROVAL_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, migration_492)
+        psql(docker, container, migration_492)
+        psql(docker, container, FUNDING_TRANCHE_APPROVAL_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["assertions_passed"] = 9
         evidence["proposal_assertions_passed"] = 7
         evidence["submission_assertions_passed"] = 7
         evidence["review_assertions_passed"] = 7
         evidence["approval_assertions_passed"] = 8
-        evidence["approval_migration"] = APPROVAL_MIGRATION.name
-        print("PASS: migrations 459/466/467/468/488/489/490/491 apply, migrations 468/488/489/490/491 replay, funding projections, draft proposals, submission, private review, and independent approval acceptances passed")
+        evidence["tranche_approval_assertions_passed"] = 9
+        evidence["tranche_approval_migration"] = TRANCHE_APPROVAL_MIGRATION.name
+        print("PASS: migrations 459/466/467/468/488/489/490/491/492 apply, migrations 468/488/489/490/491/492 replay, funding projections, draft proposals, submission, private review, and independent case/tranche approvals passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

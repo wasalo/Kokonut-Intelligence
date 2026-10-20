@@ -38,6 +38,7 @@ _PARAMETER_SAMPLES = {
     "gate_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
     "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
     "funding_case_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed",
+    "tranche_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -229,6 +230,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     (
         "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed/approve",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed/tranches/ffffffff-ffff-4fff-8fff-ffffffffffff/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed/tranches/ffffffff-ffff-4fff-8fff-ffffffffffff/approve",
     ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",

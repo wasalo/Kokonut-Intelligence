@@ -4,27 +4,26 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
 **Latest implementation slice — 20 October 2026:** CAP-035 now has a
-separate exact-location funding-draft submission action at `POST
-/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/submit`.
-Migration 489 requires signed `solution_lifecycle:submit`, an active human
-binding, explicit acknowledgement, and a draft receipt created by the same
-operator and party for an exact location-origin solution. It changes only the
-case from `draft` to `submitted` and writes a private immutable retry receipt;
-tranches remain proposed, and approval, release, and solution-stage transition
-remain separate. The console gates the second step on the submit grant and a
-separate acknowledgement. The focused Gateway, route-policy, console, and
-migration selection passes 196 tests; Ruff, compilation, and inline JavaScript
-parsing pass. Disposable PostgreSQL 16 applies/replays migrations 488–489 and
-verifies retries, collisions, duplicate rejection, grants, role boundaries,
-unchanged tranche status, and unchanged solution stage. Candidate and legacy
-databases are untouched; migration 489 is not rolled out. CAP-035 remains
-prepared pending populated parity, live OIDC/browser, broader ACL/RLS, recovery,
-and owner review. Checklist: 734 complete / 24 open; matrix: 31
-baseline-retained, 7 deployed, 28 prepared across 66 rows. See the [write
+separate exact-location funding tranche review and approval. Migration 492
+requires an approved funding case, a proposed tranche, explicit acknowledgement,
+signed `solution_lifecycle:review`, and an active reviewer distinct from the
+case submitter and case approver. It records only the tranche decision and
+reviewer attribution with an immutable retry receipt; no funds are released and
+the solution stage does not change. The console provides a text-only review of
+bounded milestone terms and CSRF-protected approval with a stable retry ID. The
+focused Gateway, route-policy, console, and migration selection passes 117
+tests; Ruff, Python compilation, inline JavaScript syntax, capability-matrix
+validation, and runtime SQL inventory checks pass. Disposable PostgreSQL 16
+applies/replays migration 492 and verifies reviewer independence, scope, retries,
+role boundaries, unchanged release state, and unchanged stage. Candidate and
+legacy databases remain untouched; migration 492 is not rolled out. CAP-035
+remains prepared pending populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, and owner review. Checklist: 737 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. See the [write
 contract](solution-lifecycle-kernel-write-contract.md),
-[migration](../schemas/postgres/489_location_solution_funding_submission.sql),
-[focused tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py),
-and [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json).
+[migration](../schemas/postgres/492_location_solution_funding_tranche_review.sql),
+[focused tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py), and
+[disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-tranche-approval-disposable.json).
 
 **Previous implementation slice — 20 October 2026:** CAP-025 now has a
 location-scoped reviewer console under the exact `stakeholder_identity:review`

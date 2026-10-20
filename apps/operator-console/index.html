@@ -855,6 +855,22 @@
                 <p id="solution-lifecycle-funding-review-approval-status" class="muted" role="status" aria-live="polite"></p>
               </section>
             </section>
+            <section id="solution-lifecycle-funding-tranche-review-detail" hidden aria-labelledby="solution-lifecycle-funding-tranche-review-heading">
+              <h4 id="solution-lifecycle-funding-tranche-review-heading">Funding tranche review</h4>
+              <p id="solution-lifecycle-funding-tranche-review-status" class="muted" role="status" aria-live="polite"></p>
+              <dl id="solution-lifecycle-funding-tranche-review-metadata"></dl>
+              <h5>Milestone conditions</h5>
+              <pre id="solution-lifecycle-funding-tranche-review-conditions"></pre>
+              <section id="solution-lifecycle-funding-tranche-review-approval" hidden aria-labelledby="solution-lifecycle-funding-tranche-approval-heading">
+                <h5 id="solution-lifecycle-funding-tranche-approval-heading">Independent tranche decision</h5>
+                <p class="muted">Approval changes only this tranche's status and reviewer attribution. It does not release money or change the solution stage.</p>
+                <label><input id="solution-lifecycle-funding-tranche-approval-acknowledgement" type="checkbox"> I reviewed the approved case and milestone conditions and independently approve this tranche only.</label>
+                <div class="toolbar">
+                  <button id="solution-lifecycle-funding-tranche-approval-submit" type="button" disabled>Approve tranche</button>
+                </div>
+                <p id="solution-lifecycle-funding-tranche-approval-status" class="muted" role="status" aria-live="polite"></p>
+              </section>
+            </section>
           </section>
         </section>
         <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
@@ -1250,6 +1266,14 @@
       const solutionLifecycleFundingReviewApprovalAcknowledge = document.querySelector("#solution-lifecycle-funding-review-approval-acknowledgement");
       const solutionLifecycleFundingReviewApprovalSubmit = document.querySelector("#solution-lifecycle-funding-review-approval-submit");
       const solutionLifecycleFundingReviewApprovalStatus = document.querySelector("#solution-lifecycle-funding-review-approval-status");
+      const solutionLifecycleFundingTrancheReviewDetail = document.querySelector("#solution-lifecycle-funding-tranche-review-detail");
+      const solutionLifecycleFundingTrancheReviewStatus = document.querySelector("#solution-lifecycle-funding-tranche-review-status");
+      const solutionLifecycleFundingTrancheReviewMetadata = document.querySelector("#solution-lifecycle-funding-tranche-review-metadata");
+      const solutionLifecycleFundingTrancheReviewConditions = document.querySelector("#solution-lifecycle-funding-tranche-review-conditions");
+      const solutionLifecycleFundingTrancheReviewApproval = document.querySelector("#solution-lifecycle-funding-tranche-review-approval");
+      const solutionLifecycleFundingTrancheApprovalAcknowledge = document.querySelector("#solution-lifecycle-funding-tranche-approval-acknowledgement");
+      const solutionLifecycleFundingTrancheApprovalSubmit = document.querySelector("#solution-lifecycle-funding-tranche-approval-submit");
+      const solutionLifecycleFundingTrancheApprovalStatus = document.querySelector("#solution-lifecycle-funding-tranche-approval-status");
       const solutionLifecycleProjection = document.querySelector("#solution-lifecycle-projection");
       const solutionLifecycleProjectionLoad = document.querySelector("#solution-lifecycle-projection-load");
       const solutionLifecycleProjectionStatus = document.querySelector("#solution-lifecycle-projection-status");
@@ -1306,10 +1330,12 @@
       let solutionLifecycleFundingTargetsOffset = 0;
       let solutionLifecycleFundingReviewRequestVersion = 0;
       let solutionLifecycleFundingReviewDetailVersion = 0;
+      let solutionLifecycleFundingTrancheReviewDetailVersion = 0;
       let solutionLifecycleFundingReviewOffset = 0;
       let solutionLifecyclePendingFundingProposal = null;
       let solutionLifecyclePendingFundingSubmission = null;
       let solutionLifecyclePendingFundingApproval = null;
+      let solutionLifecyclePendingFundingTrancheApproval = null;
       let solutionLifecycleProjectionRequestVersion = 0;
       let solutionLifecycleProjectionOffset = 0;
       let solutionLifecycleLearningSourcesRequestVersion = 0;
@@ -2825,7 +2851,7 @@
         }
       }
 
-      function appendSolutionLifecycleFundingCase(fundingCase) {
+      function appendSolutionLifecycleFundingCase(fundingCase, locationId) {
         const article = document.createElement("article");
         const heading = document.createElement("h4");
         const details = document.createElement("dl");
@@ -2852,6 +2878,22 @@
           details.append(term, description);
         }
         article.append(heading, details);
+        const isUuid = value => typeof value === "string"
+          && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+        if (solutionLifecycleReviewLocations.has(locationId)
+            && fundingCase.decision_status === "approved"
+            && fundingCase.tranche_status === "proposed"
+            && isUuid(fundingCase.funding_case_id)
+            && isUuid(fundingCase.tranche_id)) {
+          const review = document.createElement("button");
+          review.type = "button";
+          review.className = "secondary";
+          review.textContent = "Review proposed tranche";
+          review.addEventListener("click", () => loadSolutionLifecycleFundingTrancheReviewDetail(
+            locationId, fundingCase.funding_case_id, fundingCase.tranche_id
+          ));
+          article.append(review);
+        }
         solutionLifecycleFundingRows.append(article);
       }
 
@@ -3110,7 +3152,7 @@
           if (requestVersion !== solutionLifecycleFundingRequestVersion
               || locationId !== solutionLifecycleLocation.value) return;
           const cases = Array.isArray(result.funding) ? result.funding : [];
-          for (const fundingCase of cases) appendSolutionLifecycleFundingCase(fundingCase);
+          for (const fundingCase of cases) appendSolutionLifecycleFundingCase(fundingCase, locationId);
           solutionLifecycleFundingOffset = Number.isInteger(result.next_offset)
             && result.next_offset > offset && result.next_offset <= 10000
             ? result.next_offset
@@ -3128,6 +3170,160 @@
             solutionLifecycleFundingLoad.disabled = false;
             solutionLifecycleFundingMore.disabled = false;
           }
+        }
+      }
+
+      async function loadSolutionLifecycleFundingTrancheReviewDetail(locationId, fundingCaseId, trancheId) {
+        const requestVersion = ++solutionLifecycleFundingTrancheReviewDetailVersion;
+        if (locationId !== solutionLifecycleLocation.value
+            || !solutionLifecycleReviewLocations.has(locationId)) return;
+        solutionLifecycleFundingTrancheReviewDetail.hidden = false;
+        solutionLifecycleFundingTrancheReviewStatus.textContent = "Loading private tranche terms…";
+        solutionLifecycleFundingTrancheReviewMetadata.replaceChildren();
+        solutionLifecycleFundingTrancheReviewConditions.textContent = "";
+        solutionLifecycleFundingTrancheReviewApproval.hidden = true;
+        solutionLifecycleFundingTrancheApprovalAcknowledge.checked = false;
+        solutionLifecycleFundingTrancheApprovalSubmit.disabled = true;
+        solutionLifecycleFundingTrancheApprovalStatus.textContent = "";
+        solutionLifecycleFundingTrancheReviewDetail.dataset.locationId = locationId;
+        solutionLifecycleFundingTrancheReviewDetail.dataset.fundingCaseId = fundingCaseId;
+        solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId = trancheId;
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding/${encodeURIComponent(fundingCaseId)}/tranches/${encodeURIComponent(trancheId)}/review`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your current exact location review grant is no longer valid.");
+            }
+            throw new Error(result.error || "Private tranche terms could not be loaded.");
+          }
+          if (requestVersion !== solutionLifecycleFundingTrancheReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value
+              || solutionLifecycleFundingTrancheReviewDetail.dataset.fundingCaseId !== fundingCaseId
+              || solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId !== trancheId) return;
+          for (const [label, value] of [
+            ["Solution", result.solution_name],
+            ["Funding case decision", result.case_decision_status],
+            ["Currency", result.case_currency],
+            ["Tranche number", result.tranche_number],
+            ["Tranche amount", result.tranche_amount],
+            ["Tranche status", result.tranche_status],
+            ["Tranche approved", result.tranche_approved_at],
+            ["Submission attribution", result.case_submitter_attributed === true ? "Recorded" : "Unavailable"],
+            ["Same person as submitter", result.is_self_authored === true ? "Yes; approval blocked" : "No, or identity unavailable"],
+            ["Same person as case approver", result.is_case_approver === true ? "Yes; approval blocked" : "No, or identity unavailable"]
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value === null || value === undefined ? "—" : String(value);
+            solutionLifecycleFundingTrancheReviewMetadata.append(term, description);
+          }
+          solutionLifecycleFundingTrancheReviewConditions.textContent = JSON.stringify(
+            result.milestone_conditions ?? {}, null, 2
+          );
+          const eligible = result.eligible_for_independent_approval === true
+            && result.case_decision_status === "approved"
+            && result.tranche_status === "proposed";
+          if (!eligible) {
+            if (solutionLifecyclePendingFundingTrancheApproval?.trancheId === trancheId) {
+              solutionLifecyclePendingFundingTrancheApproval = null;
+            }
+            solutionLifecycleFundingTrancheReviewStatus.textContent = "Private terms loaded. Approval is blocked until the case is approved and this proposed tranche has an independent eligible reviewer.";
+            return;
+          }
+          if (!solutionLifecyclePendingFundingTrancheApproval
+              || solutionLifecyclePendingFundingTrancheApproval.locationId !== locationId
+              || solutionLifecyclePendingFundingTrancheApproval.fundingCaseId !== fundingCaseId
+              || solutionLifecyclePendingFundingTrancheApproval.trancheId !== trancheId) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            solutionLifecyclePendingFundingTrancheApproval = requestId
+              ? { locationId, fundingCaseId, trancheId, requestId }
+              : null;
+          }
+          solutionLifecycleFundingTrancheReviewApproval.hidden = false;
+          solutionLifecycleFundingTrancheApprovalSubmit.disabled =
+            !solutionLifecyclePendingFundingTrancheApproval
+            || !solutionLifecycleFundingTrancheApprovalAcknowledge.checked;
+          solutionLifecycleFundingTrancheReviewStatus.textContent = solutionLifecyclePendingFundingTrancheApproval
+            ? "Private tranche terms loaded. Independent tranche approval is available."
+            : "Private tranche terms loaded. Secure request IDs are unavailable; refresh this browser session before approving.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleFundingTrancheReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          solutionLifecycleFundingTrancheReviewStatus.textContent = error.message;
+        }
+      }
+
+      async function approveSolutionLifecycleFundingTranche() {
+        const pending = solutionLifecyclePendingFundingTrancheApproval;
+        if (!pending
+            || pending.locationId !== solutionLifecycleLocation.value
+            || !solutionLifecycleReviewLocations.has(pending.locationId)
+            || solutionLifecycleFundingTrancheReviewApproval.hidden
+            || !solutionLifecycleFundingTrancheApprovalAcknowledge.checked
+            || solutionLifecycleFundingTrancheReviewDetail.dataset.fundingCaseId !== pending.fundingCaseId
+            || solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId !== pending.trancheId) {
+          solutionLifecycleFundingTrancheApprovalStatus.textContent = "A current exact location review grant and explicit acknowledgement are required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleFundingTrancheApprovalStatus.textContent = "Refresh the operator session before recording this decision.";
+          return;
+        }
+        solutionLifecycleFundingTrancheApprovalSubmit.disabled = true;
+        solutionLifecycleFundingTrancheApprovalStatus.textContent = "Recording the independent tranche decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(pending.locationId)}/funding/${encodeURIComponent(pending.fundingCaseId)}/tranches/${encodeURIComponent(pending.trancheId)}/approve`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify({ request_id: pending.requestId, acknowledged: true })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (pending.locationId !== solutionLifecycleLocation.value
+              || solutionLifecyclePendingFundingTrancheApproval !== pending
+              || solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId !== pending.trancheId) return;
+          if (!response.ok) {
+            if (response.status < 500 && solutionLifecyclePendingFundingTrancheApproval === pending) {
+              solutionLifecyclePendingFundingTrancheApproval = null;
+            }
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your current exact location review grant or independent reviewer eligibility is no longer valid.");
+            }
+            throw new Error(result.error || "The tranche decision could not be recorded.");
+          }
+          solutionLifecyclePendingFundingTrancheApproval = null;
+          solutionLifecycleFundingTrancheReviewApproval.hidden = true;
+          solutionLifecycleFundingTrancheApprovalAcknowledge.checked = false;
+          await loadSolutionLifecycleFunding();
+          if (pending.locationId !== solutionLifecycleLocation.value
+              || solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId !== pending.trancheId) return;
+          solutionLifecycleFundingTrancheReviewStatus.textContent = result.replayed === true
+            ? "The independent tranche approval was already recorded. No money was released and the solution stage did not change."
+            : "Tranche approved. No money was released and the solution stage did not change.";
+        } catch (error) {
+          if (pending.locationId !== solutionLifecycleLocation.value
+              || solutionLifecycleFundingTrancheReviewDetail.dataset.trancheId !== pending.trancheId) return;
+          const retryNote = solutionLifecyclePendingFundingTrancheApproval === pending
+            ? "Retrying will reuse the same request ID."
+            : "Reload tranche details after correcting the issue to start a new request.";
+          solutionLifecycleFundingTrancheApprovalStatus.textContent = `${error.message} ${retryNote}`;
+          solutionLifecycleFundingTrancheApprovalSubmit.disabled =
+            !solutionLifecyclePendingFundingTrancheApproval
+            || !solutionLifecycleFundingTrancheApprovalAcknowledge.checked;
         }
       }
 
@@ -8733,6 +8929,19 @@
         solutionLifecycleFundingReviewApproval.removeAttribute("data-location-id");
         solutionLifecycleFundingReviewApproval.removeAttribute("data-funding-case-id");
         solutionLifecyclePendingFundingApproval = null;
+        solutionLifecycleFundingTrancheReviewDetailVersion += 1;
+        solutionLifecycleFundingTrancheReviewDetail.hidden = true;
+        solutionLifecycleFundingTrancheReviewStatus.textContent = "";
+        solutionLifecycleFundingTrancheReviewMetadata.replaceChildren();
+        solutionLifecycleFundingTrancheReviewConditions.textContent = "";
+        solutionLifecycleFundingTrancheReviewApproval.hidden = true;
+        solutionLifecycleFundingTrancheApprovalAcknowledge.checked = false;
+        solutionLifecycleFundingTrancheApprovalSubmit.disabled = true;
+        solutionLifecycleFundingTrancheApprovalStatus.textContent = "";
+        solutionLifecycleFundingTrancheReviewDetail.removeAttribute("data-location-id");
+        solutionLifecycleFundingTrancheReviewDetail.removeAttribute("data-funding-case-id");
+        solutionLifecycleFundingTrancheReviewDetail.removeAttribute("data-tranche-id");
+        solutionLifecyclePendingFundingTrancheApproval = null;
         solutionLifecycleFundingSolution.replaceChildren();
         const fundingSolutionPlaceholder = document.createElement("option");
         fundingSolutionPlaceholder.value = "";
@@ -8805,6 +9014,12 @@
           || !solutionLifecyclePendingFundingApproval;
       });
       solutionLifecycleFundingReviewApprovalSubmit.addEventListener("click", approveSolutionLifecycleFundingCase);
+      solutionLifecycleFundingTrancheApprovalAcknowledge.addEventListener("change", () => {
+        solutionLifecycleFundingTrancheApprovalSubmit.disabled =
+          !solutionLifecycleFundingTrancheApprovalAcknowledge.checked
+          || !solutionLifecyclePendingFundingTrancheApproval;
+      });
+      solutionLifecycleFundingTrancheApprovalSubmit.addEventListener("click", approveSolutionLifecycleFundingTranche);
       solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection());
       solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true));
       solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection());

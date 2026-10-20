@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–491 are additive and are
+**Status:** prepared implementation contract; migrations 488–492 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -149,19 +149,26 @@ action only for a submitted case with a recorded submitter that is not
 self-authored. CSRF, same-origin/no-store requests, stale-case guards, and a
 stable request ID cover uncertain retries.
 
+## Independent funding tranche approval
+
+`GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/review` requires an exact signed `solution_lifecycle:review` grant and returns bounded tranche terms for the exact location-origin solution. The response includes milestone conditions and eligibility booleans, not reviewer identities. `POST /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/tranches/{tranche_id}/approve` accepts only a UUID `request_id` and literal `acknowledged: true`.
+
+Migration 492 rechecks the signed location and active review grant, locks the case/tranche rows, and requires an approved case with a proposed tranche. The bound human reviewer must differ from both the attributed case submitter and case approver. The transaction changes only `solution_funding_tranche.status`, `approved_by_party_id`, and `approved_at`, then appends an immutable receipt. Exact retries replay that receipt; changed request reuse and duplicate approval fail closed. The action does not update release fields, create disbursement records, or change the solution stage.
+
+The dedicated non-login tranche approver role can read only the columns needed to verify scope, identity, case state, and tranche terms. It can update only tranche decision columns; narrow `UPDATE(id)` grants on related rows support row locking inside the bounded functions. It can insert/read its receipt, but cannot update or delete it. Runtime can call those functions but cannot read funding tables or receipts directly. Directus cannot execute the functions. The console offers tranche review only for approved cases with proposed tranches and an exact review grant; private milestone terms are rendered as text, while approval uses explicit acknowledgement, CSRF, no-store, same-origin requests, and a stable request ID.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
-independent funding case approval. Disposable PostgreSQL 16 applies and replays
-migrations 488–491 and checks location-origin targeting, create/submit/review
-authorization, private receipts, tranche ceilings, atomic writes,+self-authorship, legacy unattributed records, approval retries and collisions,
-role boundaries, unchanged proposed tranche states, and unchanged solution
-stage. The checker uses synthetic rows only; candidate and legacy databases are
+independent funding case and tranche approval. Disposable PostgreSQL 16 applies and replays
+migrations 488–492 and checks location-origin targeting, create/submit/review
+authorization, private receipts, tranche ceilings, atomic writes, self-authorship, legacy unattributed records, approval retries and collisions,
+role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, and unchanged solution stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–491. After application, do not edit or reverse them; disable the routes and
+488–492. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.
