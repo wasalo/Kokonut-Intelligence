@@ -294,6 +294,34 @@ def test_experiment_analysis_is_grant_gated_advisory_and_retry_safe():
     assert "innerHTML" not in form
 
 
+def test_experiment_completion_requires_transition_and_analysis_grants_and_preserves_review():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(experiment)",
+        "function createSolutionLifecycleExperimentObservationForm(experiment)",
+    )
+    form = _function(
+        source,
+        "function createSolutionLifecycleExperimentCompletionForm(experiment)",
+        "function createSolutionLifecycleExperimentSubmissionForm(experiment)",
+    )
+    assert 'experiment.experiment_status === "active"' in renderer
+    assert "solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "solutionLifecycleAnalyzeLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentCompletionForm(experiment)" in renderer
+    assert "solutionLifecyclePendingExperimentCompletions.get(experimentId)" in form
+    assert "solutionLifecyclePendingExperimentCompletions.set(experimentId, pending)" in form
+    assert 'experiments/${encodeURIComponent(experimentId)}/complete' in form
+    assert 'method: "POST"' in form and 'cache: "no-store"' in form
+    assert 'credentials: "same-origin"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "transition/analyze grant" in form
+    assert "protocol stopping boundary" in form
+    assert "independent human must still review and record the result" in form
+    assert "innerHTML" not in form
+
+
 def test_experiment_protocol_draft_form_is_read_create_gated_and_preserves_separation():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(

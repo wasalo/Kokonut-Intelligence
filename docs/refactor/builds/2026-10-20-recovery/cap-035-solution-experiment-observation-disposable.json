@@ -1,7 +1,10 @@
 {
   "result": "passed",
   "migration": "510_location_solution_experiment_observation_capture.sql",
-  "additional_migration": "511_location_solution_experiment_sequential_analysis.sql",
+  "additional_migrations": [
+    "511_location_solution_experiment_sequential_analysis.sql",
+    "512_location_solution_experiment_completion.sql"
+  ],
   "database_target": "new disposable PostgreSQL 16 container",
   "candidate_or_legacy_modified": false,
   "checks": [
@@ -18,7 +21,10 @@
     "analysis source lineage uses only currently consent-eligible observations and exact location scope",
     "current consent withdrawal hides the derived analysis from reviewer and analyst reads",
     "runtime and Directus cannot read or mutate analysis runs, source maps, or receipts",
-    "analysis remains advisory and leaves experiment and solution lifecycle state unchanged"
+    "analysis remains advisory and leaves experiment and solution lifecycle state unchanged",
+    "only current terminal analyses for every primary metric can complete data collection",
+    "completion is exact-retry safe and does not create or review a result",
+    "runtime and Directus cannot read or mutate completion receipts directly"
   ],
-  "acceptance_groups_passed": 17
+  "acceptance_groups_passed": 20
 }

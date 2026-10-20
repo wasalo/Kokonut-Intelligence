@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PRIOR_CHECK = ROOT / "scripts/check-solution-experiment-start-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/510_location_solution_experiment_observation_capture.sql"
 ANALYSIS_MIGRATION = ROOT / "schemas/postgres/511_location_solution_experiment_sequential_analysis.sql"
+COMPLETION_MIGRATION = ROOT / "schemas/postgres/512_location_solution_experiment_completion.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiment_start_disposable", PRIOR_CHECK)
 if spec is None or spec.loader is None:
@@ -482,7 +483,8 @@ ANALYSIS_GRANT = r"""
 INSERT INTO public.operator_scope_grant
     (id, operator_id, location_id, resource, action, organization_id, revoked_at)
 VALUES
-    ('a6000000-0000-4000-8000-000000000085', 'a0000000-0000-4000-8000-000000000041', 'b0000000-0000-4000-8000-000000000001', 'solution_lifecycle', 'analyze', NULL, NULL)
+    ('a6000000-0000-4000-8000-000000000085', 'a0000000-0000-4000-8000-000000000041', 'b0000000-0000-4000-8000-000000000001', 'solution_lifecycle', 'analyze', NULL, NULL),
+    ('a6000000-0000-4000-8000-000000000086', 'a0000000-0000-4000-8000-000000000041', 'b0000000-0000-4000-8000-000000000001', 'solution_lifecycle', 'transition', NULL, NULL)
 ON CONFLICT (id) DO NOTHING;
 """
 
@@ -511,7 +513,7 @@ INSERT INTO public.solution_experiment (
     'No measurable difference from current practice.', 'v1',
     'Synthetic baseline sample.', 'Synthetic treatment sample.',
     'Compare paired field units.', 'One synthetic field unit.',
-    '{"minimum_sample":4}', '["soil.organic_matter"]', '["water.retention"]',
+    '{"minimum_sample":4}', '["soil.organic_matter","water.retention"]', '[]',
     '{"benefit_direction_by_metric":{"soil.organic_matter":"higher","water.retention":"lower"},"benefit_threshold":0,"posterior_threshold":0.9,"safety_event_limit":1}',
     'Return to baseline after review.', '{"synthetic":true}',
     '{"participant_consent_required":true,"purpose":"Participation in the synthetic experiment.","consent_version":"v1"}',
@@ -534,9 +536,20 @@ SELECT set_config('kokonut.actor_type', 'operator', TRUE);
 SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
 DO $$
 DECLARE i INTEGER; arm_value TEXT; measured NUMERIC; captured RECORD;
-        first_run RECORD; replay RECORD; denied BOOLEAN := FALSE;
-        direct_read_denied BOOLEAN := FALSE;
+        first_run RECORD; replay RECORD; completed RECORD; completion_replay RECORD;
+        denied BOOLEAN := FALSE; direct_read_denied BOOLEAN := FALSE;
+        completion_direct_denied BOOLEAN := FALSE; experiment_value UUID;
 BEGIN
+    experiment_value := '__INCOMPLETE_EXPERIMENT_ID__'::UUID;
+    denied := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.complete_location_solution_experiment(
+            'b0000000-0000-4000-8000-000000000001', experiment_value,
+            'ab000000-0000-4000-8000-000000000212', TRUE
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := TRUE; END;
+    IF NOT denied THEN RAISE EXCEPTION 'experiment without terminal primary analyses was completed'; END IF;
+
     FOR i IN 1..16 LOOP
         arm_value := CASE WHEN (i - 1) % 8 < 4 THEN 'baseline' ELSE 'treatment' END;
         IF i <= 8 THEN
@@ -617,6 +630,30 @@ BEGIN
         PERFORM count(*) FROM public.solution_experiment_analysis_run;
     EXCEPTION WHEN insufficient_privilege THEN direct_read_denied := TRUE; END;
     IF NOT direct_read_denied THEN RAISE EXCEPTION 'runtime direct analysis table read was allowed'; END IF;
+
+    SELECT * INTO completed FROM kokonut_security.complete_location_solution_experiment(
+        'b0000000-0000-4000-8000-000000000001', first_run.experiment_id,
+        'ab000000-0000-4000-8000-000000000211', TRUE
+    );
+    IF completed.status <> 'completed'
+       OR completed.completion_basis <> 'sequential_threshold'
+       OR completed.replayed THEN
+        RAISE EXCEPTION 'experiment did not complete at its current approved primary-metric boundaries';
+    END IF;
+    SELECT * INTO completion_replay FROM kokonut_security.complete_location_solution_experiment(
+        'b0000000-0000-4000-8000-000000000001', first_run.experiment_id,
+        'ab000000-0000-4000-8000-000000000211', TRUE
+    );
+    IF NOT completion_replay.replayed
+       OR completion_replay.completed_at <> completed.completed_at THEN
+        RAISE EXCEPTION 'completion retry did not replay the immutable receipt';
+    END IF;
+    BEGIN
+        PERFORM count(*) FROM public.solution_experiment_completion_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN completion_direct_denied := TRUE; END;
+    IF NOT completion_direct_denied THEN
+        RAISE EXCEPTION 'runtime direct completion-receipt read was allowed';
+    END IF;
 END $$;
 COMMIT;
 RESET ROLE;
@@ -670,26 +707,51 @@ END $$;
 COMMIT;
 RESET ROLE;
 
-SET ROLE kokonut_runtime;
+SET ROLE kokonut_solution_experiment_analyst;
 BEGIN;
 SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', TRUE);
 SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
 SELECT set_config('kokonut.actor_type', 'operator', TRUE);
 SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
 DO $$
-DECLARE denied BOOLEAN := FALSE; experiment_value UUID;
+DECLARE visible_count INTEGER;
 BEGIN
-    experiment_value := '__EXPERIMENT_ID__'::UUID;
-    BEGIN
-        PERFORM * FROM kokonut_security.analyze_location_solution_experiment(
-            'b0000000-0000-4000-8000-000000000001', experiment_value,
-            'ab000000-0000-4000-8000-000000000209', 'soil.organic_matter', TRUE
-        );
-    EXCEPTION WHEN insufficient_privilege THEN denied := TRUE; END;
-    IF NOT denied THEN RAISE EXCEPTION 'withdrawn analysis was replayed to the analyst'; END IF;
+    SELECT count(*)::INTEGER INTO visible_count
+      FROM public.solution_experiment_analysis_run
+     WHERE experiment_id = '__EXPERIMENT_ID__'::UUID;
+    IF visible_count <> 0 THEN RAISE EXCEPTION 'withdrawn analysis remained visible to the analyst'; END IF;
 END $$;
 COMMIT;
 RESET ROLE;
+
+DO $$
+DECLARE completed_status TEXT; result_count INTEGER;
+BEGIN
+    SELECT experiment.status INTO completed_status
+      FROM public.solution_experiment AS experiment
+     WHERE experiment.id = '__EXPERIMENT_ID__'::UUID;
+    SELECT count(*)::INTEGER INTO result_count
+      FROM public.solution_experiment_result AS result
+     WHERE result.experiment_id = '__EXPERIMENT_ID__'::UUID;
+    IF completed_status IS DISTINCT FROM 'completed' OR result_count <> 0 THEN
+        RAISE EXCEPTION 'completion changed result-review state or did not complete data collection';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF has_table_privilege('kokonut_runtime', 'public.solution_experiment_completion_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_experiment_completion_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_experiment_completion_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.solution_experiment_completion_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.solution_experiment_completion_receipt', 'INSERT')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.complete_location_solution_experiment(uuid,uuid,uuid,boolean)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.complete_location_solution_experiment(uuid,uuid,uuid,boolean)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'runtime/Directus completion function or receipt boundary is incorrect';
+    END IF;
+END $$;
 """
 
 
@@ -699,7 +761,7 @@ def main() -> int:
     evidence: dict[str, object] = {
         "result": "failed",
         "migration": MIGRATION.name,
-        "additional_migration": ANALYSIS_MIGRATION.name,
+        "additional_migrations": [ANALYSIS_MIGRATION.name, COMPLETION_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -717,6 +779,9 @@ def main() -> int:
             "current consent withdrawal hides the derived analysis from reviewer and analyst reads",
             "runtime and Directus cannot read or mutate analysis runs, source maps, or receipts",
             "analysis remains advisory and leaves experiment and solution lifecycle state unchanged",
+            "only current terminal analyses for every primary metric can complete data collection",
+            "completion is exact-retry safe and does not create or review a result",
+            "runtime and Directus cannot read or mutate completion receipts directly",
         ],
     }
     try:
@@ -795,14 +860,18 @@ def main() -> int:
         )
         psql(docker, container, analysis_migration_text)
         psql(docker, container, analysis_migration_text)
+        completion_migration_text = COMPLETION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, completion_migration_text)
+        psql(docker, container, completion_migration_text)
         psql(
             docker,
             container,
-            ANALYSIS_ACCEPTANCE.replace("__EXPERIMENT_ID__", ANALYSIS_EXPERIMENT_ID),
+            ANALYSIS_ACCEPTANCE.replace("__EXPERIMENT_ID__", ANALYSIS_EXPERIMENT_ID)
+                .replace("__INCOMPLETE_EXPERIMENT_ID__", experiment_id),
         )
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 17
-        print("PASS: migrations 510 and 511 apply/replay; consent-aware capture, directional analysis, source-lineage withdrawal, retry, and ACL checks passed")
+        evidence["acceptance_groups_passed"] = 20
+        print("PASS: migrations 510–512 apply/replay; consent-aware capture, directional analysis, stopping-boundary completion, withdrawal, retry, and ACL checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

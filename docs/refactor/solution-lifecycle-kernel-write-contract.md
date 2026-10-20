@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–511 are additive and are
+**Status:** prepared implementation contract; migrations 488–512 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -283,6 +283,32 @@ databases remain untouched; migration 511 has not been rolled out. Before
 rollout, disable the route and console form. After application, preserve
 lineage and receipts and use a reviewed forward migration rather than editing
 or reversing the ordered migration.
+
+## Protocol-bound experiment completion
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/complete`
+requires signed exact-location `solution_lifecycle:transition`, an active human
+binding, an active exact-origin experiment, explicit acknowledgement, and an
+additional current `solution_lifecycle:analyze` grant for source verification.
+PostgreSQL requires a current-consent analysis for every primary metric and
+checks its protocol digest, decision, and source-observation count/digest against
+the current repeatable-read snapshot. No caller-supplied outcome or stopping
+threshold is accepted. Benefit and futility decisions must meet the protocol
+sample minimum. Safety-stop and elapsed-duration decisions may close collection
+before that minimum; a continuing or insufficient-data decision cannot.
+
+Completion sets only the experiment status and completion timestamp, with a
+private immutable receipt containing the protocol and analysis digests. Exact
+retries return the original completion. It does not create a result, validate
+findings, or change the solution stage; independent human result review remains
+required. Runtime and Directus cannot read or mutate completion receipts. The
+console requires exact transition and analyze grants, acknowledgement,
+CSRF/no-store, and a stable retry ID. Disposable PostgreSQL 16 applies/replays
+migrations 510–512 and checks stopping eligibility, early-stop exceptions,
+retry behavior, result-review separation, consent revocation, and role limits.
+Candidate and legacy databases remain untouched; migration 512 is not rolled
+out. Once applied, keep the receipt and use a reviewed forward migration rather
+than editing or reversing the ordered schema.
 
 ## Funding draft proposal
 
@@ -881,7 +907,7 @@ state boundary, separately authorized submission, private protocol review and
 independent approval, funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–511 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–512 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -892,6 +918,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–511. After application, do not edit or reverse them; disable the routes and
+488–512. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.
