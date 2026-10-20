@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 461 on disposable PostgreSQL 16."""
+"""Exercise operating-pilot summary and demand migrations on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -12,8 +12,9 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = ROOT / "schemas/postgres/461_location_scoped_operating_pilot_summary.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-037-operating-pilot-disposable.json"
+SUMMARY_MIGRATION = ROOT / "schemas/postgres/461_location_scoped_operating_pilot_summary.sql"
+DEMAND_MIGRATION = ROOT / "schemas/postgres/479_location_operating_pilot_demand_signals.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -65,8 +66,11 @@ CREATE TABLE public.operating_capacity_profile (
     notes text
 );
 CREATE TABLE public.operating_demand_signal (
-    id uuid PRIMARY KEY, scope_type text NOT NULL, scope_id uuid NOT NULL, status text NOT NULL,
-    required_hours numeric NOT NULL, period_start date NOT NULL, period_end date NOT NULL
+    id uuid PRIMARY KEY, scope_type text NOT NULL, scope_id uuid NOT NULL,
+    work_type text NOT NULL, period_start date NOT NULL, period_end date NOT NULL,
+    required_hours numeric NOT NULL, priority text NOT NULL, source text NOT NULL,
+    source_ref uuid, description text, status text NOT NULL,
+    created_by_party_id uuid, created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.work_item (
     id uuid PRIMARY KEY, location_id uuid, status text NOT NULL, allocation_status text NOT NULL
@@ -178,11 +182,15 @@ VALUES
  ('d0000000-0000-4000-8000-000000000003', 'adelphi', 'e9000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000004', CURRENT_DATE - 2, CURRENT_DATE + 2, 'approved', 80, 4, 4),
  ('d0000000-0000-4000-8000-000000000004', 'internal', 'f0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000005', CURRENT_DATE - 2, CURRENT_DATE + 2, 'approved', 100, 10, 10),
  ('d0000000-0000-4000-8000-000000000006', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', CURRENT_DATE + 3, CURRENT_DATE + 9, 'approved', 500, 10, 10);
-INSERT INTO public.operating_demand_signal VALUES
- ('d1000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'submitted', 12, CURRENT_DATE - 2, CURRENT_DATE + 2),
- ('d1000000-0000-4000-8000-000000000002', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'approved', 8, CURRENT_DATE - 2, CURRENT_DATE + 2),
- ('d1000000-0000-4000-8000-000000000003', 'adelphi', 'e9000000-0000-4000-8000-000000000002', 'approved', 50, CURRENT_DATE - 2, CURRENT_DATE + 2),
- ('d1000000-0000-4000-8000-000000000004', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'approved', 900, CURRENT_DATE + 3, CURRENT_DATE + 9);
+INSERT INTO public.operating_demand_signal
+    (id, scope_type, scope_id, work_type, period_start, period_end, required_hours,
+     priority, source, source_ref, description, status, created_by_party_id, created_at)
+VALUES
+ ('d1000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'harvest', CURRENT_DATE - 2, CURRENT_DATE + 2, 12, 'high', 'planning', 'd2000000-0000-4000-8000-000000000001', 'PRIVATE demand narrative', 'submitted', 'd3000000-0000-4000-8000-000000000001', '2026-10-01 00:00:00+00'),
+ ('d1000000-0000-4000-8000-000000000002', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'irrigation', CURRENT_DATE - 2, CURRENT_DATE + 2, 8, 'medium', 'planning', 'd2000000-0000-4000-8000-000000000002', 'PRIVATE demand narrative', 'approved', 'd3000000-0000-4000-8000-000000000002', '2026-10-02 00:00:00+00'),
+ ('d1000000-0000-4000-8000-000000000003', 'adelphi', 'e9000000-0000-4000-8000-000000000002', 'other-farm', CURRENT_DATE - 2, CURRENT_DATE + 2, 50, 'critical', 'planning', 'd2000000-0000-4000-8000-000000000003', 'PRIVATE other farm', 'approved', 'd3000000-0000-4000-8000-000000000003', '2026-10-03 00:00:00+00'),
+ ('d1000000-0000-4000-8000-000000000004', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'tree-care', CURRENT_DATE + 3, CURRENT_DATE + 9, 900, 'low', 'planning', 'd2000000-0000-4000-8000-000000000004', 'PRIVATE future narrative', 'draft', 'd3000000-0000-4000-8000-000000000004', '2026-10-03 00:00:00+00'),
+ ('d1000000-0000-4000-8000-000000000005', 'internal', 'f0000000-0000-4000-8000-000000000001', 'internal-only', CURRENT_DATE - 2, CURRENT_DATE + 2, 1000, 'critical', 'planning', 'd2000000-0000-4000-8000-000000000005', 'PRIVATE internal narrative', 'approved', 'd3000000-0000-4000-8000-000000000005', '2026-10-04 00:00:00+00');
 INSERT INTO public.work_item VALUES
  ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'assigned', 'open'),
  ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'in_progress', 'claimed'),
@@ -225,7 +233,8 @@ SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001',
 SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
 SELECT set_config('kokonut.actor_type', 'operator', true);
 DO $$
-DECLARE summary jsonb; denied boolean := false;
+DECLARE summary jsonb; demand_first jsonb; demand_second jsonb;
+        denied boolean := false; invalid_page boolean := false;
 BEGIN
     summary := kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000001'
@@ -259,16 +268,59 @@ BEGIN
     IF summary::text ~* '(claimant|coachee|PRIVATE|notes|evidence|party_id)' THEN
         RAISE EXCEPTION 'aggregate projection leaked private operating records';
     END IF;
+    demand_first := kokonut_security.location_operating_pilot_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 2, 0
+    );
+    demand_second := kokonut_security.location_operating_pilot_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 2, 2
+    );
+    IF demand_first->>'scope_configured' <> 'true'
+       OR (demand_first->>'limit')::int <> 2
+       OR (demand_first->>'offset')::int <> 0
+       OR jsonb_array_length(demand_first->'items') <> 2
+       OR demand_first->>'has_more' <> 'true'
+       OR (demand_first->>'next_offset')::int <> 2
+       OR demand_first->'items'->0->>'work_type' <> 'harvest'
+       OR demand_first->'items'->1->>'work_type' <> 'irrigation'
+       OR jsonb_array_length(demand_second->'items') <> 1
+       OR demand_second->>'has_more' <> 'false'
+       OR demand_second->'next_offset' <> 'null'::jsonb
+       OR demand_second->'items'->0->>'work_type' <> 'tree-care' THEN
+        RAISE EXCEPTION 'demand page, ordering, or active farm scope mismatch: %, %',
+            demand_first, demand_second;
+    END IF;
+    IF (SELECT count(*) FROM jsonb_object_keys(demand_first->'items'->0)) <> 6
+       OR (demand_first::text || demand_second::text) ~*
+          '(PRIVATE|demand narrative|source_ref|created_by_party_id|party_id|d1000000|d2000000|d3000000)' THEN
+        RAISE EXCEPTION 'demand page exposed non-allowlisted operating data';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_demand_signals(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_page := true;
+    END;
+    IF NOT invalid_page THEN RAISE EXCEPTION 'unbounded demand page was accepted'; END IF;
     BEGIN PERFORM kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000002'
     ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'cross-location context was accepted'; END IF;
+    denied := false;
+    BEGIN PERFORM kokonut_security.location_operating_pilot_demand_signals(
+        'b0000000-0000-4000-8000-000000000002', 10, 0
+    ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'cross-location demand context was accepted'; END IF;
     PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
     denied := false;
     BEGIN PERFORM kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000001'
     ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'operator without tenant membership was accepted'; END IF;
+    denied := false;
+    BEGIN PERFORM kokonut_security.location_operating_pilot_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 10, 0
+    ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without tenant membership read demand'; END IF;
     denied := false;
     BEGIN PERFORM 1 FROM public.operating_capacity_profile;
     EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
@@ -281,10 +333,15 @@ DO $$
 BEGIN
     IF NOT has_function_privilege('kokonut_runtime',
        'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.location_operating_pilot_demand_signals(uuid,integer,integer)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_function_privilege('kokonut_directus_runtime',
-          'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE') THEN
+          'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.location_operating_pilot_demand_signals(uuid,integer,integer)', 'EXECUTE') THEN
         RAISE EXCEPTION 'runtime/Directus operating pilot privilege boundary failed';
     END IF;
     IF has_table_privilege('kokonut_operating_pilot_reader', 'public.party', 'SELECT')
@@ -301,8 +358,17 @@ BEGIN
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_competency_profile', 'evidence', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request', 'description', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_coaching_session', 'notes', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'decision_reason', 'SELECT') THEN
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'decision_reason', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source_ref', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_by_party_id', 'SELECT') THEN
         RAISE EXCEPTION 'reader has access to private operating-pilot content';
+    END IF;
+    IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'work_type', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'priority', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_at', 'SELECT') THEN
+        RAISE EXCEPTION 'reader is missing only the demand fields needed for the projection';
     END IF;
 END $$;
 """
@@ -361,15 +427,16 @@ def main() -> int:
     container = f"kokonut-operating-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migrations": [SUMMARY_MIGRATION.name, DEMAND_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migration 461 applies and replays on disposable PostgreSQL 16",
+            "migrations 461 and 479 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
             "other locations/internal scope and private coaching are excluded; small sensitive cohorts are suppressed",
+            "demand pages are bounded and exclude IDs, narratives, source references, creators, other farms, and internal scope",
             "clean role fixture confirms no direct runtime/Directus table grants are introduced; reader has only required columns and no identity, private-content, or write access",
         ],
     }
@@ -378,15 +445,18 @@ def main() -> int:
              "-e", "POSTGRES_PASSWORD=local-only-disposable", "postgres:16"])
         wait_ready(container, docker)
         psql(docker, container, FIXTURE)
-        migration = MIGRATION.read_text(encoding="utf-8")
-        psql(docker, container, migration)
-        psql(docker, container, migration)
+        summary_migration = SUMMARY_MIGRATION.read_text(encoding="utf-8")
+        demand_migration = DEMAND_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, summary_migration)
+        psql(docker, container, summary_migration)
+        psql(docker, container, demand_migration)
+        psql(docker, container, demand_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertions_passed"] = 7
+        evidence["assertions_passed"] = 11
         evidence["preexisting_runtime_or_directus_grants_assessed"] = False
-        print("PASS: migration 461 applies/replays and all seven disposable PostgreSQL assertions passed")
+        print("PASS: migrations 461/479 apply/replay and all eleven disposable PostgreSQL assertions passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

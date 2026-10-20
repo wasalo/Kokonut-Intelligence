@@ -11826,3 +11826,34 @@ baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel
 [tests](../../tests/test_gateway_solution_lifecycle_actions.py);
 [disposable checker](../scripts/check-solution-retirement-approval-disposable.py);
 [evidence](builds/2026-10-19-recovery/solution-retirement-approval-disposable.json)).
+
+### CAP-037 bounded operating-demand page — 19 October 2026
+
+Added `GET /operator/api/operating-pilot/{location_id}/demand-signals` under
+the existing exact `operating_pilot:read` grant and signed location context.
+Migration 479 rechecks the grant and maps active Adelphi pilot scopes through
+active farms to the exact location. The bounded page exposes work type, period,
+required hours, priority, and status; IDs, descriptions, source references,
+creator identity, and internal organization scope remain private. It includes
+draft and historical/future rows for authorized reviewers without changing
+their review state. The dedicated non-login reader receives only the extra
+`work_type` and `priority` columns required for the projection; record IDs and
+timestamps are not granted to the reader.
+
+The focused Gateway and exact route-policy selection passes 21 tests; the
+migration-runner selection passes 33 tests. Ruff, Python compilation,
+capability validation, repository/runtime SQL inventory checks, and disposable
+PostgreSQL 16 migration apply/replay pass. The disposable fixture passed 11
+acceptance groups for active farm mapping, tenant grants, pagination, privacy,
+and runtime/Directus/reader boundaries. The checker initially had an invalid
+JSON-object-length assertion; it was corrected to count object keys and the
+complete run then passed. Candidate and legacy databases were not contacted;
+migration 479 is not rolled out. CAP-037 remains prepared pending populated
+location mapping and legacy parity, the remaining capacity/claim/competency/
+learning/coaching/resource workflows, audience review, live OIDC/browser,
+broader ACL/RLS, recovery, and MAN-CAP-037 owner acceptance. Checklist:
+707 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+[Contract](operating-pilot-kernel-read-contract.md);
+[migration](../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
+[tests](../tests/test_gateway_operating_pilot_reads.py);
+[disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json).

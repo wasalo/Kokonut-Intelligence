@@ -3,6 +3,24 @@
 **Updated:** 19 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Latest implementation slice — 19 October 2026:** CAP-037 now has a bounded
+location-scoped demand page at
+`GET /operator/api/operating-pilot/{location_id}/demand-signals`. Migration 479
+rechecks the signed `operating_pilot:read` grant and active Adelphi
+farm-to-location mapping. It exposes work type, period, required hours,
+priority, and status only; demand IDs, descriptions, source references,
+creator identity, and internal-scope data remain private. Pages are capped at
+50 rows. The focused Gateway and exact route-policy selection passes 21 tests;
+the migration-runner selection passes 33 tests. Ruff, compilation, capability
+validation, repository/runtime SQL inventory checks, and disposable PostgreSQL
+16 migration apply/replay with 11 authorization/privacy groups pass. Candidate
+and legacy databases are untouched; migration 479 is not rolled out. CAP-037 remains
+prepared pending populated location mapping and legacy parity, remaining item
+workflows, audience review, live OIDC/browser, broader ACL/RLS, recovery, and
+owner acceptance. Evidence: [contract](operating-pilot-kernel-read-contract.md),
+[migration](../schemas/postgres/479_location_operating_pilot_demand_signals.sql),
+and [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json).
+
 **Latest implementation slice — 19 October 2026:** CAP-036 now has a redacted location-scoped event timeline at `GET /operator/api/sequential-evidence/{location_id}/events`. Migration 478 pages stable evidence and posterior sequence metadata for the three known location-bound subject lineages; private narratives, source identifiers, evidence values, likelihoods, probabilities, and identities stay inside PostgreSQL. The focused Gateway/route-policy selection passes 23 tests, Ruff and compilation pass, and disposable PostgreSQL 16 migration apply/replay passes eight acceptance groups. Candidate and legacy databases remain untouched; migration 478 is not rolled out. CAP-036 remains prepared pending complete source-type lineage, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 706 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read contract](sequential-decision-kernel-read-contract.md), [migration](../schemas/postgres/478_location_sequential_evidence_timeline.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json).
 
 **Latest implementation slice — 19 October 2026:** CAP-035 now has a location-scoped learning proposal action at `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`. Migration 477 validates a completed, actively reviewed replication, exact location and solution lineage, a signed create grant, active proposer attribution, bounded lesson fields, and an idempotency receipt. Proposals remain `proposed`; runtime has no direct table access and Directus cannot execute the function. The focused Gateway/route-policy selection passes 16 tests; Ruff, compilation, and disposable PostgreSQL 16 apply/replay checks pass, including nine acceptance groups. Candidate and legacy databases remain untouched; migration 477 is not rolled out. CAP-035 remains prepared pending remaining lifecycle workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner review. Checklist: 705 complete / 24 open; capability matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [learning proposal contract](solution-lifecycle-kernel-read-contract.md), [migration](../schemas/postgres/477_location_solution_learning_proposal.sql), and [disposable acceptance](builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json).
