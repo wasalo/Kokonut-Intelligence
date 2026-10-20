@@ -531,6 +531,55 @@ def test_learning_proposal_submit_is_create_scoped_draft_only_csrf_and_retry_sta
     assert "solutionLifecycleLocation.disabled = locked" in source
 
 
+def test_replication_proposal_sources_require_both_grants_and_reviewed_validation():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-replication-proposal".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert 'solutionLifecycleReplicationProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+    reader = _function(
+        source,
+        "async function loadSolutionLifecycleReplicationSources(",
+        "function lockSolutionLifecycleReplicationProposal(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "solutionLifecycleCreateLocations.has(locationId)" in reader
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments?${params}`' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert 'record.solution_status !== "active"' in reader
+    assert 'record.experiment_status !== "validated"' in reader
+    assert 'record.latest_result_outcome !== "validated"' in reader
+    assert "record.latest_result_reviewed_at" in reader
+    assert 'option.value = record.experiment_id' in reader
+
+
+def test_replication_proposal_submit_is_draft_only_csrf_bounded_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleReplicationProposal(",
+        "async function loadSolutionLifecycleLearningSources(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert "solutionLifecycleLocations.has(locationId)" in submit
+    assert "solutionLifecycleReplicationConfirm.checked" in submit
+    assert "JSON.parse(protocolText)" in submit
+    assert "protocolText).length > 65536" in submit
+    assert "solutionLifecyclePendingReplicationProposal.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingReplicationProposal.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'body: JSON.stringify({ ...proposal, request_id: requestId })' in submit
+    assert "proposed for independent human review" in submit
+    assert "lockSolutionLifecycleReplicationProposal(true)" in submit
+    assert "approved" not in submit and "activate" not in submit and "completed" not in submit
+    assert 'solutionLifecycleReplicationProposalForm.addEventListener("submit", submitSolutionLifecycleReplicationProposal)' in source
+
+
 def test_retirement_proposal_sources_are_both_grant_gated_exact_origin_and_paged():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="solution-lifecycle-retirement-proposal".*?</section>', source, re.DOTALL)

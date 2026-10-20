@@ -12338,3 +12338,34 @@ Checklist: 738 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/493_location_solution_adoption_event_summary.sql);
 [evidence](builds/2026-10-20-recovery/cap-035-solution-adoption-event-summary-disposable.json).
+
+### CAP-035 location-scoped replication proposal — 20 October 2026
+
+Added `POST /operator/api/solution-lifecycle/{location_id}/replications` for
+draft-only replication proposals. Migration 494 requires the exact signed
+location create grant, an active human binding, and an active solution visible
+at the target by exact location origin or explicit location link. A validated
+source experiment must have an actively reviewed validated result whose
+reviewer is distinct from the experiment owner and protocol approver. The
+append-only receipt makes exact retries idempotent and rejects changed-input
+reuse. Proposals remain `proposed`; there
+is no approval, activation, completion, evidence, result, maturity, or lifecycle
+stage mutation in this action. The operator console offers only active solutions
+with validated, reviewed experiments under both read and create grants and uses
+CSRF, same-origin/no-store requests, and stable request IDs.
+
+The focused Gateway, route-policy, console, and migration selection passes 85
+tests. Ruff, Python compilation, and inline JavaScript parsing pass. Disposable
+PostgreSQL 16 applies and replays migration 494 and passes nine grouped checks
+for authorization, source/target lineage, attribution, idempotency, draft-only
+state, unchanged stage, and privilege boundaries, including a distinct target
+context within the source location. Candidate and legacy databases remain
+untouched; migration 494 is not rolled out. CAP-035 remains prepared
+pending remaining review/activation workflows, populated fixture parity, live
+OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review.
+Checklist: 739 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
+[migration](../schemas/postgres/494_location_solution_replication_proposal.sql);
+[tests](../tests/test_gateway_solution_replication_proposals.py);
+[disposable check](../../scripts/check-solution-replication-proposal-disposable.py);
+[evidence](builds/2026-10-20-recovery/cap-035-solution-replication-proposal-disposable.json).

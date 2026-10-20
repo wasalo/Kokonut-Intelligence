@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–492 are additive and are
+**Status:** prepared implementation contract; migrations 488–494 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -156,6 +156,48 @@ stable request ID cover uncertain retries.
 Migration 492 rechecks the signed location and active review grant, locks the case/tranche rows, and requires an approved case with a proposed tranche. The bound human reviewer must differ from both the attributed case submitter and case approver. The transaction changes only `solution_funding_tranche.status`, `approved_by_party_id`, and `approved_at`, then appends an immutable receipt. Exact retries replay that receipt; changed request reuse and duplicate approval fail closed. The action does not update release fields, create disbursement records, or change the solution stage.
 
 The dedicated non-login tranche approver role can read only the columns needed to verify scope, identity, case state, and tranche terms. It can update only tranche decision columns; narrow `UPDATE(id)` grants on related rows support row locking inside the bounded functions. It can insert/read its receipt, but cannot update or delete it. Runtime can call those functions but cannot read funding tables or receipts directly. Directus cannot execute the functions. The console offers tranche review only for approved cases with proposed tranches and an exact review grant; private milestone terms are rendered as text, while approval uses explicit acknowledgement, CSRF, no-store, same-origin requests, and a stable request ID.
+
+## Location-scoped replication proposal
+
+`POST /operator/api/solution-lifecycle/{location_id}/replications` requires
+signed `solution_lifecycle:create` context at the exact location, an active
+create grant, and an active OIDC-to-person binding. Migration 494 independently
+rechecks those conditions. The selected source experiment must have
+`status='validated'`, a reviewed `validated` result, and an active human result
+reviewer distinct from the experiment owner and protocol approver. Its solution
+must be active and visible at the target location either by originating there
+or through an explicit location link. The required target context can describe
+a distinct deployment context within the same farm or a linked deployment
+elsewhere; the proposal remains discoverable in the location replication read.
+
+The body contains a UUID `request_id`, `source_experiment_id`, a required target
+context of at most 2,000 characters, optional adaptation text of at most 4,000
+characters, and a JSON object replication protocol limited to 64 KiB. The
+function creates one `solution_replication` with `status='proposed'`, exact
+location target scope, empty evidence, and null result, maturity, and reviewer.
+The proposal and append-only receipt commit atomically. Exact retries return the
+same receipt; changed input under the same operator/request ID, invalid source
+lineage, missing grant, or missing active human binding fails closed.
+
+The response includes only receipt and replication IDs, proposed status,
+creation time, and replay status. It does not echo target narratives or
+protocol. The operation does not approve, activate, review, complete, or add
+evidence to the replication and does not change solution lifecycle stage. The
+dedicated proposer role has only the source reads, proposal inserts, and
+append-only receipt access needed by the function; it cannot update replication
+review or outcome fields. Runtime can invoke the bounded function but cannot
+read replication or receipt rows directly, and Directus cannot execute it. The
+console offers active solutions with validated, reviewed experiments under both
+exact read and create grants, then submits through CSRF-protected same-origin no-store requests with
+stable request IDs for uncertain retries.
+
+Disposable PostgreSQL 16 acceptance applies and replays migration 494 after
+the prior solution lifecycle fixtures and verifies exact location scope,
+validated source and exact location visibility, human attribution, changed-input
+retry rejection, draft-only state, unchanged solution stage, and role boundaries.
+It uses synthetic rows only; candidate and legacy databases are untouched.
+Before rollout, disable the route and console panel while retaining migration
+494. After application, use a reviewed forward migration for any schema change.
 
 ### Acceptance and rollback
 

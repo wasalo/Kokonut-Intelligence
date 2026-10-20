@@ -15,6 +15,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         approve_location_solution_retirement,
         propose_location_solution_funding,
         propose_location_solution_learning,
+        propose_location_solution_replication,
         propose_location_solution_retirement,
         record_location_solution_gate_evaluation,
         review_location_solution_experiment,
@@ -850,6 +851,91 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution learning proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers
+        )
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/replications")
+    async def propose_solution_replication(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "source_experiment_id", "target_context", "replication_protocol"
+        }
+        optional_fields = {"adaptation_required"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(required_fields | optional_fields)
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Replication proposal fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                propose_location_solution_replication,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                payload["source_experiment_id"],
+                payload["request_id"],
+                payload["target_context"],
+                payload.get("adaptation_required"),
+                payload["replication_protocol"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle create access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle create grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Validated source experiment not found for this location"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Replication proposal input is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Replication proposal conflicts with current state"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution replication proposal unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution replication proposal unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(

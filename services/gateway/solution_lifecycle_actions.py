@@ -889,3 +889,81 @@ def propose_location_solution_learning(
         raise
     finally:
         connection.close()
+
+
+def propose_location_solution_replication(
+    operator_id: str,
+    location_id: str,
+    source_experiment_id: str,
+    request_id: str,
+    target_context: str,
+    adaptation_required: str | None,
+    replication_protocol: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create a draft replication proposal from a validated source experiment."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    source_experiment_id = _normalize_uuid(source_experiment_id, "source experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(target_context, str) or not target_context.strip() or len(target_context) > 2000:
+        raise SolutionLifecycleActionInvalid(
+            "Replication target context is required and limited to 2,000 characters"
+        )
+    if adaptation_required is not None and (
+        not isinstance(adaptation_required, str)
+        or not adaptation_required.strip()
+        or len(adaptation_required) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Replication adaptation is optional and limited to 4,000 characters"
+        )
+    if not isinstance(replication_protocol, dict):
+        raise SolutionLifecycleActionInvalid("Replication protocol must be a JSON object")
+    try:
+        encoded_protocol = json.dumps(
+            replication_protocol, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Replication protocol must contain JSON values") from exc
+    if len(encoded_protocol.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Replication protocol exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.propose_location_solution_replication(
+                           %s::uuid, %s::uuid, %s::uuid, %s, %s, %s::jsonb
+                       )""",
+                (
+                    location_id,
+                    source_experiment_id,
+                    request_id,
+                    target_context,
+                    adaptation_required,
+                    encoded_protocol,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution replication proposal returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
