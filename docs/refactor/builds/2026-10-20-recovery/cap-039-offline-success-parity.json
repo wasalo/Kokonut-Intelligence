@@ -5,8 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 16,
-    "new_success_path_cases": 6,
+    "tests_passed": 17,
+    "new_success_path_cases": 7,
+    "database_backed_cases_with_stubbed_query": 1,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -52,10 +53,17 @@
       "arguments": ["--list-modules"],
       "dependencies": ["local Python module registry"],
       "output": "sorted systems module names and descriptions"
+    },
+    {
+      "name": "capability-map",
+      "arguments": ["list", "--status", "active"],
+      "dependencies": ["PostgreSQL read via capability-map service function; stubbed in this check"],
+      "output": "JSON capability rows",
+      "database_behavior": "The parser, service call arguments, unified forwarding, and JSON rendering were exercised; the query function was replaced with a synthetic result."
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations across five mounted groups only.",
-    "Other mounted legacy commands, database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
+    "Successful parity is covered for six offline command invocations across five groups and one database-backed command with its query stubbed.",
+    "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

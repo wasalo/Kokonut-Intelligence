@@ -141,3 +141,40 @@ def test_systems_module_catalogue_output_matches_standalone_cli() -> None:
     assert unified.stdout == standalone.stdout
     assert "causal_loops" in unified.stdout
     assert unified.stderr == standalone.stderr == ""
+
+
+def test_database_backed_capability_list_output_matches_with_stubbed_query(monkeypatch, capsys) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.analytics import cli_capability_map
+
+    calls: list[dict[str, object]] = []
+    result_rows = [{"id": "synthetic-capability", "name": "Soil monitoring", "status": "active"}]
+
+    def fake_list_capabilities(*, guild_key, capability_type, status):
+        calls.append({"guild_key": guild_key, "capability_type": capability_type, "status": status})
+        return result_rows
+
+    monkeypatch.setattr(cli_capability_map, "list_capabilities", fake_list_capabilities)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.analytics.cli_capability_map", "list", "--status", "active"]
+        cli_capability_map.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["capability-map", "--", "list", "--status", "active"],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert json.loads(unified.output) == json.loads(standalone_output)
+    assert json.loads(unified.output) == result_rows
+    assert calls == [
+        {"guild_key": None, "capability_type": None, "status": "active"},
+        {"guild_key": None, "capability_type": None, "status": "active"},
+    ]
+    assert unified.stderr == ""
