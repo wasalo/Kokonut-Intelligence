@@ -1,23 +1,20 @@
-### CAP-039 successful offline and native unified-CLI parity — 20 October 2026
+### CAP-039 expanded unified-CLI success parity — 20 October 2026
 
-Added real non-help output comparisons for six offline invocations and eleven
-read-only database-backed commands across 16 mounted groups. The database
-queries are replaced by synthetic results; standalone/unified status, parsed
-filters, and JSON output match, and the stakeholder fake connection closes.
-These checks do not claim database query behavior or authorization. The
-synthetic form manifest reports `database_write: false`; preview says it did
-not publish; audit status leaves the missing journal absent. The run sets an
-unavailable SOPS identity and closed loopback PostgreSQL URL; no database or
-provider is contacted. The focused selection passes 28 tests (17 successful-
-output cases, a native command-tree comparison, and the existing unified CLI
-contract tests). The
-standalone/unified command trees and leaf parameters match for `kernel`, `dao`,
-and `treasury`; shell-completion toggles are intentionally disabled under the
-unified root. CAP-039 remains deployed, not accepted: 21 mounted groups still
-need successful-path/output and dependency classification, and privileged
-operator-action boundaries and MAN-CAP-039 review remain open. Checklist:
-790 complete / 24 open; matrix: 31 baseline-retained,
-7 deployed, and 28 prepared across 66 rows. See the [CLI contract](unified-cli-kernel-contract.md),
+Expanded standalone/unified output comparisons to six offline invocations and
+fifteen read-only database-backed commands across 20 mounted groups. Queries
+are replaced by synthetic results; exit status, parsed filters, and JSON output
+match. No database or provider is contacted. The governance proposal, role,
+link, tactical, and tension read CLIs close owned connections after successful
+and failing service calls; focused mocked failures verify cleanup. The
+selection passes 36 tests, including 21 successful-output invocations and the
+native Typer tree comparison. Standalone/unified command trees and leaf
+parameters match for `kernel`, `dao`, and `treasury`; shell-completion toggles
+remain intentionally disabled under the unified root. CAP-039 remains
+deployed, not accepted: 17 mounted groups still need successful-path/output
+and dependency classification, and privileged operator-action boundaries and
+MAN-CAP-039 review remain open. Checklist: 791 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
+[CLI contract](unified-cli-kernel-contract.md),
 [tests](../../tests/test_unified_cli_success_contract.py), and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 

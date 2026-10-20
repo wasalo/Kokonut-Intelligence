@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 28,
-    "new_success_path_cases": 17,
-    "database_backed_cases_with_stubbed_query": 11,
+    "tests_passed": 36,
+    "new_success_path_cases": 21,
+    "database_backed_cases_with_stubbed_query": 15,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -122,10 +122,38 @@
       "arguments": ["list-plans", "--stakeholder-party-id", "synthetic-party", "--status", "active"],
       "dependencies": ["PostgreSQL read; connection and query stubbed in this check"],
       "output": "JSON engagement plan rows"
+    },
+    {
+      "name": "governance",
+      "arguments": ["circle-list", "--status", "active", "--scope-type", "location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON governance circle rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-links",
+      "arguments": ["list", "--source-circle-id", "synthetic-source", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON cross-circle link rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-tactical",
+      "arguments": ["session-list", "--circle-id", "synthetic-circle", "--status", "active"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON tactical session rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "governance-tensions",
+      "arguments": ["list", "--circle-id", "synthetic-circle", "--status", "submitted", "--overdue-only"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON tension health rows",
+      "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations and eleven PostgreSQL-backed commands whose service queries were stubbed, across 16 mounted groups.",
+    "Successful parity is covered for six offline command invocations and fifteen PostgreSQL-backed commands whose service queries were stubbed, across 20 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

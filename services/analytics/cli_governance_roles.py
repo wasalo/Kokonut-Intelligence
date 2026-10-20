@@ -27,6 +27,16 @@ def _out(value):
     print_json(value)
 
 
+def _run_with_connection(operation) -> None:
+    """Own and close the database connection for one CLI read command."""
+    conn = _connection()
+    try:
+        result = operation(conn)
+    finally:
+        conn.close()
+    _out(result)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut governance circles and roles")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -48,7 +58,9 @@ def main() -> None:
     listing = sub.add_parser("circle-list")
     listing.add_argument("--status")
     listing.add_argument("--scope-type")
-    listing.set_defaults(func=lambda a: _out(list_circles(_connection(), status=a.status, scope_type=a.scope_type)))
+    listing.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_circles(conn, status=a.status, scope_type=a.scope_type)
+    ))
 
     role = sub.add_parser("role-create")
     role.add_argument("circle_id")
@@ -63,7 +75,9 @@ def main() -> None:
     roles = sub.add_parser("role-list")
     roles.add_argument("--circle-id")
     roles.add_argument("--status")
-    roles.set_defaults(func=lambda a: _out(list_roles(_connection(), circle_id=a.circle_id, status=a.status)))
+    roles.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_roles(conn, circle_id=a.circle_id, status=a.status)
+    ))
 
     accountability = sub.add_parser("accountability-add")
     accountability.add_argument("role_id")
@@ -78,7 +92,9 @@ def main() -> None:
 
     accountabilities = sub.add_parser("accountability-list")
     accountabilities.add_argument("role_id")
-    accountabilities.set_defaults(func=lambda a: _out(list_accountabilities(_connection(), a.role_id)))
+    accountabilities.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_accountabilities(conn, a.role_id)
+    ))
 
     domain = sub.add_parser("domain-add")
     domain.add_argument("role_id")
@@ -98,7 +114,9 @@ def main() -> None:
 
     domains = sub.add_parser("domain-list")
     domains.add_argument("role_id")
-    domains.set_defaults(func=lambda a: _out(list_domains(_connection(), a.role_id)))
+    domains.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_domains(conn, a.role_id)
+    ))
 
     policy = sub.add_parser("policy-add")
     policy.add_argument("role_id")
@@ -134,7 +152,9 @@ def main() -> None:
     assignments.add_argument("--role-id")
     assignments.add_argument("--party-id")
     assignments.add_argument("--status")
-    assignments.set_defaults(func=lambda a: _out(list_assignments(_connection(), role_id=a.role_id, party_id=a.party_id, status=a.status)))
+    assignments.set_defaults(func=lambda a: _run_with_connection(
+        lambda conn: list_assignments(conn, role_id=a.role_id, party_id=a.party_id, status=a.status)
+    ))
 
     args = parser.parse_args()
     args.func(args)

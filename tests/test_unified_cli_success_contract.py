@@ -332,6 +332,47 @@ def test_database_backed_read_cli_output_matches_with_stubbed_query(
             ("<connection>",),
             {"stakeholder_party_id": "synthetic-party", "status": "active"},
         ),
+        (
+            "governance",
+            "services.analytics.cli_governance_roles",
+            ["circle-list", "--status", "active", "--scope-type", "location"],
+            "list_circles",
+            "_connection",
+            ("<connection>",),
+            {"status": "active", "scope_type": "location"},
+        ),
+        (
+            "governance-links",
+            "services.analytics.cli_governance_links",
+            ["list", "--source-circle-id", "synthetic-source", "--status", "active"],
+            "list_links",
+            "_connection",
+            ("<connection>",),
+            {
+                "source_circle_id": "synthetic-source",
+                "target_circle_id": None,
+                "party_id": None,
+                "status": "active",
+            },
+        ),
+        (
+            "governance-tactical",
+            "services.analytics.cli_governance_tactical",
+            ["session-list", "--circle-id", "synthetic-circle", "--status", "active"],
+            "list_sessions",
+            "_connection",
+            ("<connection>",),
+            {"circle_id": "synthetic-circle", "status": "active"},
+        ),
+        (
+            "governance-tensions",
+            "services.analytics.cli_governance_tensions",
+            ["list", "--circle-id", "synthetic-circle", "--status", "submitted", "--overdue-only"],
+            "list_tensions",
+            "_connection",
+            ("<connection>",),
+            {"circle_id": "synthetic-circle", "status": "submitted", "overdue_only": True},
+        ),
     ],
 )
 def test_governance_read_cli_output_matches_and_closes_connections(
@@ -430,6 +471,63 @@ def test_governance_proposal_cli_closes_connection_when_query_fails(monkeypatch)
         ]
         with pytest.raises(RuntimeError, match="synthetic read failure"):
             cli_governance_proposals.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.closed is True
+
+
+@pytest.mark.parametrize(
+    ("module_path", "arguments", "query_name"),
+    [
+        (
+            "services.analytics.cli_governance_roles",
+            ["circle-list", "--status", "active"],
+            "list_circles",
+        ),
+        (
+            "services.analytics.cli_governance_links",
+            ["list", "--status", "active"],
+            "list_links",
+        ),
+        (
+            "services.analytics.cli_governance_tactical",
+            ["session-list", "--status", "active"],
+            "list_sessions",
+        ),
+        (
+            "services.analytics.cli_governance_tensions",
+            ["list", "--status", "submitted"],
+            "list_tensions",
+        ),
+    ],
+)
+def test_governance_cli_closes_connection_when_read_fails(
+    module_path: str,
+    arguments: list[str],
+    query_name: str,
+    monkeypatch,
+) -> None:
+    cli_module = importlib.import_module(module_path)
+
+    class FakeConnection:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(cli_module, "_connection", lambda: connection)
+
+    def fail_query(*_args, **_kwargs):
+        raise RuntimeError("synthetic read failure")
+
+    monkeypatch.setattr(cli_module, query_name, fail_query)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = [module_path, *arguments]
+        with pytest.raises(RuntimeError, match="synthetic read failure"):
+            cli_module.main()
     finally:
         sys.argv = original_argv
 
