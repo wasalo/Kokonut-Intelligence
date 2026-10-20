@@ -1436,6 +1436,7 @@
       let solutionLifecycleReplicationReviewDetailRecord = null;
       let solutionLifecyclePendingReplicationReview = null;
       let solutionLifecycleReplicationReviewSubmitting = false;
+      let solutionLifecyclePendingReplicationActivation = null;
       let solutionLifecycleRetirementSourcesRequestVersion = 0;
       let solutionLifecycleRetirementSourcesOffset = 0;
       let solutionLifecyclePendingRetirementProposal = null;
@@ -3715,7 +3716,131 @@
           ));
           article.append(detailButton, detailStatus);
         }
+        if (view.route === "replications"
+            && solutionLifecycleTransitionLocations.has(locationId)
+            && typeof record.replication_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.replication_id)
+            && (record.replication_status === "approved"
+              || (record.replication_status === "active"
+                && solutionLifecyclePendingReplicationActivation?.locationId === locationId
+                && solutionLifecyclePendingReplicationActivation?.replicationId === record.replication_id))) {
+          article.append(createSolutionLifecycleReplicationActivationForm(record, locationId));
+        }
         solutionLifecycleProjectionRows.append(article);
+      }
+
+      function createSolutionLifecycleReplicationActivationForm(record, locationId) {
+        const form = document.createElement("form");
+        form.className = "form-grid";
+        const label = document.createElement("label");
+        const acknowledge = document.createElement("input");
+        acknowledge.type = "checkbox";
+        acknowledge.required = true;
+        const pending = solutionLifecyclePendingReplicationActivation;
+        if (pending?.locationId === locationId && pending?.replicationId === record.replication_id) {
+          acknowledge.checked = true;
+        }
+        label.append(acknowledge, document.createTextNode(" I am starting this independently approved replication at the selected location."));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = record.replication_status === "active"
+          ? "Confirm start result"
+          : "Start approved replication";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        if (pending?.locationId === locationId && pending?.replicationId === record.replication_id) {
+          status.textContent = "A prior response was uncertain. Retry to confirm the original start.";
+        }
+        form.append(label, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (solutionLifecycleLocation.value !== locationId
+              || !solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleTransitionLocations.has(locationId)) {
+            status.textContent = "An exact location read grant and transition grant are required.";
+            return;
+          }
+          if (!acknowledge.checked) {
+            status.textContent = "Confirm that you are starting the approved replication.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before starting replication.";
+            return;
+          }
+          if (solutionLifecyclePendingReplicationActivation
+              && (solutionLifecyclePendingReplicationActivation.locationId !== locationId
+                || solutionLifecyclePendingReplicationActivation.replicationId !== record.replication_id)) {
+            status.textContent = "Resolve the pending start request before starting another replication.";
+            return;
+          }
+          if (!solutionLifecyclePendingReplicationActivation) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to start replication.";
+              return;
+            }
+            solutionLifecyclePendingReplicationActivation = {
+              locationId,
+              replicationId: record.replication_id,
+              requestId
+            };
+          }
+          const request = solutionLifecyclePendingReplicationActivation;
+          submit.disabled = true;
+          status.textContent = "Starting the approved replication…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(record.replication_id)}/start`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf
+                },
+                body: JSON.stringify({ request_id: request.requestId, acknowledged: true })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              if (response.status < 500) solutionLifecyclePendingReplicationActivation = null;
+              const explanation = response.status < 500
+                ? `${result.error || "The replication could not be started."} Refresh status before trying again.`
+                : result.error || "The replication could not be started.";
+              if (response.status === 401 || response.status === 403) {
+                status.textContent = "Your session, human identity, or location transition grant is no longer valid. Refresh status before trying again.";
+                return;
+              }
+              if (response.status < 500) {
+                status.textContent = explanation;
+                return;
+              }
+              throw new Error(explanation);
+            }
+            solutionLifecyclePendingReplicationActivation = null;
+            status.textContent = result.replayed === true
+              ? "The original replication start was confirmed."
+              : "Replication started. Its outcome, evidence, and solution stage are unchanged.";
+            if (solutionLifecycleLocation.value === locationId
+                && solutionLifecycleProjection.value === "replications") {
+              await loadSolutionLifecycleProjection();
+            }
+            await loadSolutionLifecycleSummary();
+          } catch (error) {
+            status.textContent = solutionLifecyclePendingReplicationActivation
+              ? `${error.message} Retry this same request to confirm its result.`
+              : error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       async function loadSolutionLifecycleAdoptionEventSummary(
@@ -9489,6 +9614,11 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingReplicationActivation) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingReplicationActivation.locationId;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending replication start request before changing locations.";
+          return;
+        }
         solutionLifecycleGatesRequestVersion += 1;
         solutionLifecycleGatesOffset = 0;
         solutionLifecycleGateRows.replaceChildren();

@@ -1,8 +1,9 @@
 # Solution lifecycle Kernel read contract
 
 **Status:** CAP-035 location-scoped reads and gated actions are prepared,
-including migration 494 replication proposals and migration 495 independent
-review. They have not been owner-accepted.
+including migration 494 replication proposals, migration 495 independent
+review, and migration 496 controlled activation. They have not been
+owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -22,7 +23,8 @@ review. They have not been owner-accepted.
 `487_location_solution_experiment_review.sql`, and
 `493_location_solution_adoption_event_summary.sql`,
 `494_location_solution_replication_proposal.sql`, and
-`495_location_solution_replication_review.sql`.
+`495_location_solution_replication_review.sql`, and
+`496_location_solution_replication_activation.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -44,12 +46,15 @@ review. They have not been owner-accepted.
 `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications/review`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`, and
-`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`.
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`, and
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/start`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact `solution_lifecycle:create`;
-approval requires exact `solution_lifecycle:review`; retirement review reads and
-gate evaluations also require an active human party binding. Mutations use signed
-operator tenant context checked in Gateway and PostgreSQL.
+review requires exact `solution_lifecycle:review`; replication activation
+requires exact `solution_lifecycle:transition`; retirement review reads, gate
+evaluations, and replication review/activation also require an active human
+party binding. Mutations use signed operator tenant context checked in Gateway
+and PostgreSQL.
 Experiment review detail and result submission require exact
 `solution_lifecycle:review` scope and an active human binding; the result
 reviewer must differ from both the experiment owner and protocol approver.

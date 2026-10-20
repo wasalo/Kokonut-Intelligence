@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "496_location_solution_replication_activation.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 496 applies and replays after migration 495",
+    "only an approved, exact-location, attributed proposal with current validated source lineage can start",
+    "exact retries replay and request-key collisions fail closed",
+    "rejected proposals and operators without transition grants cannot start",
+    "direct reviewer-role status changes and elevated proposal-role active inserts are rejected by the trigger",
+    "activation records actor/time atomically without result, evidence, maturity, completion, or solution-stage changes",
+    "runtime has function-only activation access; Directus cannot execute it or read receipts"
+  ],
+  "acceptance_groups_passed": 10
+}

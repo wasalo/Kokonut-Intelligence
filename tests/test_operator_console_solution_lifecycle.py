@@ -824,6 +824,47 @@ def test_funding_tranche_approval_is_acknowledged_csrf_protected_and_retry_stabl
     assert "innerHTML" not in approve
 
 
+def test_replication_activation_is_transition_grant_gated_acknowledged_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleSupplementalRecord(",
+        "async function loadSolutionLifecycleAdoptionEventSummary(",
+    )
+    assert 'view.route === "replications"' in renderer
+    assert 'solutionLifecycleTransitionLocations.has(locationId)' in renderer
+    assert 'record.replication_status === "approved"' in renderer
+    assert 'record.replication_status === "active"' in renderer
+    assert "createSolutionLifecycleReplicationActivationForm(record, locationId)" in renderer
+    assert "innerHTML" not in renderer
+
+    action = _function(
+        source,
+        "function createSolutionLifecycleReplicationActivationForm(",
+        "async function loadSolutionLifecycleAdoptionEventSummary(",
+    )
+    assert "solutionLifecycleTransitionLocations.has(locationId)" in action
+    assert 'method: "POST"' in action
+    assert "/replications/${encodeURIComponent(record.replication_id)}/start`" in action
+    assert 'credentials: "same-origin"' in action
+    assert 'cache: "no-store"' in action
+    assert '"X-CSRF-Token": csrf' in action
+    assert "request.requestId" in action
+    assert "acknowledged: true" in action
+    assert "Retry this same request" in action
+    assert "solutionLifecyclePendingReplicationActivation" in action
+    assert "solution stage are unchanged" in action
+    assert "textContent" in action
+    assert "innerHTML" not in action
+
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "Resolve the pending replication start request" in location_change
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–495 are additive and are
+**Status:** prepared implementation contract; migrations 488–496 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -243,18 +243,48 @@ replication/solution lifecycle state. The 97-test focused Gateway, proposal,
 console, route-policy, and migration selection passes. Candidate and legacy
 databases are untouched; migration 495 is not rolled out.
 
+## Independent replication activation
+
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/start`
+requires signed exact-location `solution_lifecycle:transition` context and a
+literal `acknowledged: true` with a UUID `request_id`. Migration 496 rechecks
+the current transition grant, active operator identity, active human-party
+binding, exact location target, independent approval receipt, and current
+validated source experiment/result and solution visibility. A reviewed result
+whose reviewer is also the experiment owner or protocol approver is not
+eligible.
+
+The database atomically changes only `status` from `approved` to `active` and
+sets `started_at` and `started_by_party_id`, with an append-only idempotency
+receipt. Exact retries replay the original result; request-key reuse with
+different input fails. A new table trigger blocks direct lifecycle edits and
+rejects elevated proposal-role inserts that try to start a replication; the
+proposal role may still create a proposed draft. Runtime can call only the
+bounded activation function and cannot read the receipt. Directus cannot call
+the function. Activation does not set outcome, evidence, maturity, or
+completion fields, and it does not advance the solution stage.
+
+The console shows Start only for an approved replication when the exact
+location transition grant is present. It uses explicit acknowledgement,
+CSRF-protected same-origin no-store requests, and retains one request ID for
+uncertain retries. The focused Gateway, proposal, review, console, route-policy,
+and migration selection passes 108 tests. Disposable PostgreSQL 16 applies and
+replays migration 496 and passes ten grouped activation, trigger, retry,
+lineage, and privilege checks. Candidate and legacy databases are untouched;
+migration 496 is not rolled out.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
-independent funding, tranche, and replication review. Disposable PostgreSQL 16 applies and replays
-migrations 488–495 and checks location-origin targeting, create/submit/review
+independent funding, tranche, replication review, and replication activation. Disposable PostgreSQL 16 applies and replays
+migrations 488–496 and checks location-origin targeting, create/submit/review/transition
 authorization, private receipts, tranche ceilings, atomic writes, self-authorship, legacy unattributed records, approval retries and collisions,
 role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, independent replication review, immutable review receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–495. After application, do not edit or reverse them; disable the routes and
+488–496. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

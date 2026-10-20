@@ -1038,3 +1038,52 @@ def review_location_solution_replication(
         raise
     finally:
         connection.close()
+
+
+def activate_location_solution_replication(
+    operator_id: str,
+    location_id: str,
+    replication_id: str,
+    request_id: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Start one approved replication under an exact location transition grant."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    replication_id = _normalize_uuid(replication_id, "replication")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Replication activation acknowledgement is required")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="transition",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.activate_location_solution_replication(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, replication_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution replication activation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
