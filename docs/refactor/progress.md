@@ -1,3 +1,23 @@
+### CAP-035 solution experiment status read — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/experiments` as a
+bounded, read-only status projection. It requires the exact location
+`solution_lifecycle:read` grant and signed tenant context, and includes only
+protocol version, experiment lifecycle state, metric-key counts, timestamps,
+and the latest result with a non-null review timestamp for solutions originated
+in or explicitly linked to that location. Rows without `reviewed_at` remain
+suppressed. Protocol narratives, metric names/values,
+observations, raw results, evidence, adverse-event details, and party identities
+are omitted. The 30-test Gateway/route-policy selection passes with Ruff and
+Python compilation; the combined Gateway, route-policy, and migration metadata selection passes 63 tests. A disposable PostgreSQL 16 run applies/replays migrations
+459, 466, and 467 and passes eight grouped scope, pagination, privacy, context,
+grant, unreviewed-result suppression, and privilege assertions. Candidate and legacy databases remain
+untouched; migration 467 is not rolled out. Experiment evidence review and write
+parity, other lifecycle item workflows, populated fixture parity, live
+OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
+Checklist: 695 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/467_location_scoped_solution_experiments.sql); [disposable check](../scripts/check-solution-lifecycle-experiments-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json)).
+
 ### CAP-065 Gateway canvas block editing and version history — 19 October 2026
 
 Migration 464 and the Gateway now support exact-location, `draft`-only block
