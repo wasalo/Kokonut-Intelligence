@@ -12086,3 +12086,22 @@ parity, RLS, post-review consent disposition, populated parity, and MAN-CAP-025
 remain open. Checklist: 720 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows. [Contract](stakeholder-identity-kernel-contract.md);
 [console tests](../tests/test_operator_console_stakeholder_identity.py).
+
+### CAP-035 location-linked stage-gate console read — 20 October 2026
+
+The location-scoped solution-lifecycle panel now includes a paginated stage-gate
+view backed by the existing exact-grant `/gates` route. It presents fixed
+solution labels, current/from/to stages, structural requirement thresholds, gate
+status, and latest evaluation result/time. It omits IDs, evidence payloads, and
+reviewer identities, and offers no evaluate/approve/write controls. The read
+uses same-origin no-store requests, location stale-response guards, bounded
+pages, and text nodes.
+
+The focused console, Gateway read/action, and route-policy selection passes 99
+tests; Ruff, Node.js syntax, matrix validation, and diff checks pass. No
+migration or database rollout was required. Remaining CAP-035 work includes
+other item details and governed write/review parity, populated fixture
+comparison, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner
+review. Checklist: 721 complete / 24 open; matrix: 31 baseline-retained, 7
+deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
+[console tests](../tests/test_operator_console_solution_lifecycle.py).

@@ -590,6 +590,14 @@
           <h3>Linked solutions</h3>
           <dl id="solution-lifecycle-overview"></dl>
           <div id="solution-lifecycle-count-groups"></div>
+          <h3>Location-linked stage gates</h3>
+          <p class="muted">Gate requirements are shown only as bounded structural threshold values. Evaluation state is informational and does not approve a transition. Evidence payloads and reviewer identities are excluded.</p>
+          <div class="toolbar">
+            <button id="solution-lifecycle-gates-load" type="button">Load gate status</button>
+          </div>
+          <p id="solution-lifecycle-gates-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="solution-lifecycle-gate-rows"></div>
+          <button id="solution-lifecycle-gates-more" class="secondary" type="button" hidden>Load more gates</button>
         </section>
         <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
           <h2 id="coordination-summary-heading">Coordination overview</h2>
@@ -944,8 +952,14 @@
       const solutionLifecycleStatus = document.querySelector("#solution-lifecycle-status");
       const solutionLifecycleOverview = document.querySelector("#solution-lifecycle-overview");
       const solutionLifecycleCountGroups = document.querySelector("#solution-lifecycle-count-groups");
+      const solutionLifecycleGatesLoad = document.querySelector("#solution-lifecycle-gates-load");
+      const solutionLifecycleGatesStatus = document.querySelector("#solution-lifecycle-gates-status");
+      const solutionLifecycleGateRows = document.querySelector("#solution-lifecycle-gate-rows");
+      const solutionLifecycleGatesMore = document.querySelector("#solution-lifecycle-gates-more");
       let solutionLifecycleLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
+      let solutionLifecycleGatesRequestVersion = 0;
+      let solutionLifecycleGatesOffset = 0;
       const coordinationSummary = document.querySelector("#coordination-summary");
       const coordinationSummaryLocation = document.querySelector("#coordination-summary-location");
       const coordinationSummaryStatus = document.querySelector("#coordination-summary-status");
@@ -1575,6 +1589,83 @@
           solutionLifecycleOverview.replaceChildren();
           solutionLifecycleCountGroups.replaceChildren();
           solutionLifecycleStatus.textContent = error.message;
+        }
+      }
+
+      function appendSolutionLifecycleGate(gate) {
+        const article = document.createElement("article");
+        const heading = document.createElement("h4");
+        const details = document.createElement("dl");
+        heading.textContent = gate.solution_name || "Location-linked solution";
+        for (const [label, value] of [
+          ["Solution type", gate.solution_type],
+          ["Current stage", gate.current_stage],
+          ["Solution status", gate.solution_status],
+          ["Gate transition", `${gate.from_stage ?? "—"} → ${gate.to_stage ?? "—"}`],
+          ["Required evidence maturity", gate.required_evidence_maturity],
+          ["Required experiment count", gate.required_experiment_count],
+          ["Human approval required", gate.requires_human_approval === true ? "Yes" : gate.requires_human_approval === false ? "No" : "—"],
+          ["Gate status", gate.gate_status],
+          ["Gate created", gate.gate_created_at],
+          ["Latest structural evaluation", gate.latest_evaluation_passed === true ? "Passed" : gate.latest_evaluation_passed === false ? "Failed" : "Not evaluated"],
+          ["Latest evaluation time", gate.latest_evaluated_at]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        article.append(heading, details);
+        solutionLifecycleGateRows.append(article);
+      }
+
+      async function loadSolutionLifecycleGates(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleGatesRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)) return;
+        const offset = append ? solutionLifecycleGatesOffset : 0;
+        solutionLifecycleGatesStatus.textContent = "Loading location-linked stage-gate status…";
+        solutionLifecycleGatesLoad.disabled = true;
+        solutionLifecycleGatesMore.disabled = true;
+        if (!append) {
+          solutionLifecycleGateRows.replaceChildren();
+          solutionLifecycleGatesMore.hidden = true;
+        }
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location solution-lifecycle grant is no longer valid. Reload the console to refresh access.");
+            }
+            throw new Error("Stage-gate status could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleGatesRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const gates = Array.isArray(result.gates) ? result.gates : [];
+          for (const gate of gates) appendSolutionLifecycleGate(gate);
+          solutionLifecycleGatesOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleGatesMore.hidden = result.has_more !== true
+            || solutionLifecycleGatesOffset <= offset;
+          solutionLifecycleGatesStatus.textContent = solutionLifecycleGateRows.children.length
+            ? `${solutionLifecycleGateRows.children.length} location-linked stage gate${solutionLifecycleGateRows.children.length === 1 ? "" : "s"} shown. No gate or solution state was changed.`
+            : "No location-linked stage gates are available for this location.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleGatesRequestVersion) return;
+          solutionLifecycleGatesStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleGatesRequestVersion) {
+            solutionLifecycleGatesLoad.disabled = false;
+            solutionLifecycleGatesMore.disabled = false;
+          }
         }
       }
 
@@ -6081,7 +6172,18 @@
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
-      solutionLifecycleLocation.addEventListener("change", loadSolutionLifecycleSummary);
+      solutionLifecycleLocation.addEventListener("change", () => {
+        solutionLifecycleGatesRequestVersion += 1;
+        solutionLifecycleGatesOffset = 0;
+        solutionLifecycleGateRows.replaceChildren();
+        solutionLifecycleGatesStatus.textContent = "";
+        solutionLifecycleGatesMore.hidden = true;
+        solutionLifecycleGatesLoad.disabled = false;
+        solutionLifecycleGatesMore.disabled = false;
+        loadSolutionLifecycleSummary();
+      });
+      solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
+      solutionLifecycleGatesMore.addEventListener("click", () => loadSolutionLifecycleGates(true));
       document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
       coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
       document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());

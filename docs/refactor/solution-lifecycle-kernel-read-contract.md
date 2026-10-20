@@ -180,11 +180,15 @@ The operator console exposes a read-only lifecycle summary when the signed
 session includes an exact `solution_lifecycle:read` location grant. It displays
 the aggregate solution total and fixed status-count groups through the
 summary route; no solution names, IDs, narratives, evidence, funding amounts,
-or identities are rendered. Groups are collapsed by default. Requests use the
+or identities are rendered in the overview. Groups are collapsed by default.
+The same panel can load a bounded page of location-linked stage gates through
+the existing `/gates` route. It shows fixed solution labels, stage transition,
+structural requirement thresholds, gate status, and latest evaluation result/time;
+it omits evidence payloads and reviewer identities. The evaluation is
+informational and the panel cannot approve or change a gate. Requests use the
 same-origin session, disable caching, and discard stale responses after a
-location change. No proposal, approval, funding, gate, or adoption action is
-available in this panel, and this source check does not constitute live
-OIDC/browser acceptance.
+location change. No lifecycle mutation is available, and source checks do not
+constitute live OIDC/browser acceptance.
 
 ## Verification and remaining parity
 

@@ -41,6 +41,39 @@ def test_summary_uses_same_origin_no_store_route_and_discards_stale_location_res
     assert "innerHTML" not in reader
 
 
+def test_gate_reader_uses_location_scope_no_store_paging_and_stale_guards():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(source, "async function loadSolutionLifecycleGates(", "function renderCoordinationSummary(")
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "requestVersion !== solutionLifecycleGatesRequestVersion" in reader
+    assert "locationId !== solutionLifecycleLocation.value" in reader
+    assert "next_offset" in reader and "result.has_more" in reader
+    assert 'method: "POST"' not in reader
+    assert "innerHTML" not in reader
+
+
+def test_gate_panel_displays_only_fixed_non_mutating_status_fields():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<h3>Location-linked stage gates</h3>(.*?)</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "does not approve a transition" in panel.group(1)
+    renderer = _function(source, "function appendSolutionLifecycleGate(", "async function loadSolutionLifecycleGates(")
+    for field in (
+        "solution_name", "solution_type", "current_stage", "solution_status", "from_stage", "to_stage",
+        "required_evidence_maturity", "required_experiment_count", "requires_human_approval",
+        "gate_status", "gate_created_at", "latest_evaluation_passed", "latest_evaluated_at",
+    ):
+        assert f"gate.{field}" in renderer
+    for private_field in ("gate_id", "solution_id", "evidence", "reviewer", "raw"):
+        assert f"gate.{private_field}" not in renderer
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+
+
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():
     source = CONSOLE.read_text(encoding="utf-8")
     renderer = _function(source, "function renderSolutionLifecycleSummary(summary)", "async function loadSolutionLifecycleSummary()")
@@ -63,7 +96,10 @@ def test_console_ids_are_unique_and_refresh_controls_are_wired():
     ids = re.findall(r'\bid="([^"]+)"', source)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
-    assert 'solutionLifecycleLocation.addEventListener("change", loadSolutionLifecycleSummary)' in source
+    assert 'solutionLifecycleLocation.addEventListener("change", () =>' in source
+    assert "loadSolutionLifecycleSummary();" in source
+    assert 'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())' in source
+    assert 'solutionLifecycleGatesMore.addEventListener("click", () => loadSolutionLifecycleGates(true))' in source
     assert 'document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary)' in source
 
 

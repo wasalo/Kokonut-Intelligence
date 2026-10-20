@@ -1950,3 +1950,23 @@ RLS, post-review consent disposition, and owner acceptance. Checklist: 720
 complete / 24 open; the matrix remains 66 rows (31 baseline-retained, 7
 deployed, 28 prepared). [Contract](stakeholder-identity-kernel-contract.md);
 [tests](../tests/test_operator_console_stakeholder_identity.py).
+
+### CAP-035 location-linked stage-gate console read — 20 October 2026
+
+Extended the existing CAP-035 console with a paged read of the already
+protected `/operator/api/solution-lifecycle/{location_id}/gates` route. The
+view uses the exact location `solution_lifecycle:read` scope, same-origin
+no-store requests, bounded 25-row pages, stale-response rejection on location
+change, and text-only DOM rendering. It shows solution labels, stage transition,
+structural evidence/experiment thresholds, gate status, and the latest
+structural evaluation result/time. It omits row IDs, evidence payloads, and
+reviewer identities; it cannot evaluate, approve, or mutate a gate.
+
+The focused CAP-035 console, Gateway read/action, and route-policy selection
+passes 99 tests with Ruff and inline JavaScript syntax checks. No database or
+migration was needed, and candidate/legacy state was untouched. CAP-035 stays
+prepared pending remaining item-level workflows and write/review parity,
+populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and owner
+acceptance. Checklist: 721 complete / 24 open; matrix remains 66 rows (31
+baseline-retained, 7 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).
