@@ -1174,6 +1174,7 @@
       let solutionLifecycleLocations = new Set();
       let solutionLifecycleCreateLocations = new Set();
       let solutionLifecycleReviewLocations = new Set();
+      let solutionLifecycleTransitionLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
       let solutionLifecycleGatesOffset = 0;
@@ -1900,11 +1901,21 @@
         }
         article.append(heading, details);
         if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
-            && gate.requires_human_approval === true
             && gate.latest_evaluation_passed === true
             && typeof gate.gate_id === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gate.gate_id)) {
-          article.append(createSolutionLifecycleGateReviewPanel(gate.gate_id));
+          article.append(createSolutionLifecycleGateReviewPanel(
+            gate.gate_id,
+            gate.requires_human_approval === true
+          ));
+        }
+        if (solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)
+            && gate.gate_status === "approved"
+            && gate.latest_evaluation_passed === true
+            && ["validated", "funded", "adoption_ready", "scaled"].includes(gate.to_stage)
+            && typeof gate.gate_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gate.gate_id)) {
+          article.append(createSolutionLifecycleGateTransitionForm(gate.gate_id, gate.to_stage));
         }
         if (solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)
             && ["draft", "ready"].includes(gate.gate_status)
@@ -2040,6 +2051,142 @@
         return form;
       }
 
+      function createSolutionLifecycleGateTransitionForm(gateId, targetStage) {
+        const form = document.createElement("form");
+        form.className = "form-grid";
+        const heading = document.createElement("h5");
+        heading.textContent = `Advance solution to ${targetStage}`;
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "This gate is approved and has a passing latest evaluation. The server rechecks evidence maturity, validated experiments, and any funding, adoption, or scale prerequisites before changing the stage.";
+        const rationaleLabel = document.createElement("label");
+        rationaleLabel.textContent = "Transition rationale";
+        const rationale = document.createElement("textarea");
+        rationale.required = true;
+        rationale.minLength = 10;
+        rationale.maxLength = 4000;
+        rationaleLabel.append(rationale);
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Transition evidence references (JSON array)";
+        const evidence = document.createElement("textarea");
+        evidence.required = true;
+        evidence.maxLength = 65536;
+        evidence.spellcheck = false;
+        evidence.placeholder = '[{"uri":"https://…","description":"Reviewed source"}]';
+        evidenceLabel.append(evidence);
+        const rollbackLabel = document.createElement("label");
+        rollbackLabel.textContent = "Rollback plan (optional)";
+        const rollbackPlan = document.createElement("textarea");
+        rollbackPlan.maxLength = 4000;
+        rollbackLabel.append(rollbackPlan);
+        const acknowledgeLabel = document.createElement("label");
+        const acknowledge = document.createElement("input");
+        acknowledge.type = "checkbox";
+        acknowledge.required = true;
+        acknowledgeLabel.append(acknowledge, document.createTextNode(
+          " I reviewed the approved gate and authorize this separate stage transition."
+        ));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record stage transition";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(heading, explanation, rationaleLabel, evidenceLabel, rollbackLabel,
+          acknowledgeLabel, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleTransitionLocations.has(locationId)) {
+            status.textContent = "Current read and transition grants for this location are required.";
+            return;
+          }
+          if (!acknowledge.checked) {
+            status.textContent = "Confirm that you reviewed the approved gate before advancing the stage.";
+            return;
+          }
+          let evidenceValue;
+          try {
+            evidenceValue = JSON.parse(evidence.value);
+          } catch (_error) {
+            status.textContent = "Evidence references must be valid JSON.";
+            return;
+          }
+          if (!Array.isArray(evidenceValue) || evidenceValue.length < 1 || evidenceValue.length > 100) {
+            status.textContent = "Evidence must be a nonempty JSON array with at most 100 items.";
+            return;
+          }
+          const rationaleValue = rationale.value.trim();
+          const rollbackValue = rollbackPlan.value || null;
+          if (rationaleValue.length < 10 || rationaleValue.length > 4000
+              || (rollbackValue !== null && rollbackValue.length > 4000)) {
+            status.textContent = "Provide a rationale from 10 to 4000 characters and a rollback plan of at most 4000 characters.";
+            return;
+          }
+          const fingerprint = JSON.stringify({
+            rationale: rationaleValue,
+            evidence: evidenceValue,
+            rollback_plan: rollbackValue
+          });
+          if (form.pendingTransition?.fingerprint !== fingerprint) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to record this transition.";
+              return;
+            }
+            form.pendingTransition = { fingerprint, request_id: requestId };
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before recording this transition.";
+            return;
+          }
+          submit.disabled = true;
+          status.textContent = "Checking gate and lifecycle prerequisites…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/transition`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf
+                },
+                body: JSON.stringify({
+                  request_id: form.pendingTransition.request_id,
+                  rationale: rationaleValue,
+                  evidence: evidenceValue,
+                  rollback_plan: rollbackValue
+                })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              form.pendingTransition = null;
+              throw new Error(result.error || "A current transition grant is required.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) form.pendingTransition = null;
+              throw new Error(result.error || "The lifecycle transition could not be recorded.");
+            }
+            status.textContent = result.replayed === true
+              ? `The ${result.to_stage || targetStage} transition was already recorded.`
+              : `Solution advanced from ${result.from_stage || "the prior stage"} to ${result.to_stage || targetStage}.`;
+            await Promise.all([loadSolutionLifecycleGates(), loadSolutionLifecycleSummary()]);
+          } catch (error) {
+            status.textContent = error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
+      }
+
       async function loadSolutionLifecycleGates(append = false) {
         const locationId = solutionLifecycleLocation.value;
         const requestVersion = ++solutionLifecycleGatesRequestVersion;
@@ -2089,14 +2236,16 @@
         }
       }
 
-      function createSolutionLifecycleGateReviewPanel(gateId) {
+      function createSolutionLifecycleGateReviewPanel(gateId, requiresHumanApproval) {
         const panel = document.createElement("section");
         panel.className = "form-grid";
         const heading = document.createElement("h5");
         heading.textContent = "Independent gate review";
         const explanation = document.createElement("p");
         explanation.className = "muted";
-        explanation.textContent = "Review the latest passing evaluation and evidence. Approval requires a different active person from the evaluator and does not advance the solution stage.";
+        explanation.textContent = requiresHumanApproval
+          ? "Review the latest passing evaluation and evidence. Approval requires a different active person from the evaluator and does not advance the solution stage."
+          : "Review the latest passing evaluation and evidence. This gate does not require a second reviewer; confirmation does not advance the solution stage.";
         const openButton = document.createElement("button");
         openButton.type = "button";
         openButton.textContent = "Review evaluation evidence";
@@ -2122,7 +2271,9 @@
         acknowledge.required = true;
         acknowledgeLabel.append(
           acknowledge,
-          document.createTextNode(" I reviewed this passing evaluation and approve the gate.")
+          document.createTextNode(requiresHumanApproval
+            ? " I reviewed this passing evaluation and approve the gate."
+            : " I reviewed this passing evaluation and confirm the gate.")
         );
         const approve = document.createElement("button");
         approve.type = "submit";
@@ -2155,6 +2306,16 @@
             }
             if (!response.ok) throw new Error(result.error || "Gate evaluation detail could not be loaded.");
             if (locationId !== solutionLifecycleLocation.value) return;
+            const requiresIndependentReview = result.requires_human_approval === true;
+            explanation.textContent = requiresIndependentReview
+              ? "Review the latest passing evaluation and evidence. Approval requires a different active person from the evaluator and does not advance the solution stage."
+              : "Review the latest passing evaluation and evidence. This gate does not require a second reviewer; confirmation does not advance the solution stage.";
+            acknowledgeLabel.replaceChildren(
+              acknowledge,
+              document.createTextNode(requiresIndependentReview
+                ? " I reviewed this passing evaluation and approve the gate."
+                : " I reviewed this passing evaluation and confirm the gate.")
+            );
             summary.replaceChildren();
             for (const [label, value] of [
               ["Transition", `${result.from_stage ?? "—"} → ${result.to_stage ?? "—"}`],
@@ -2170,12 +2331,17 @@
             }
             observed.textContent = JSON.stringify(result.observed ?? {}, null, 2);
             evidence.textContent = JSON.stringify(result.evidence ?? [], null, 2);
+            approve.textContent = requiresIndependentReview
+              ? "Approve gate"
+              : "Confirm gate";
             detail.hidden = false;
             approval.hidden = result.evaluation_passed !== true
               || !["draft", "ready"].includes(result.gate_status);
             status.textContent = approval.hidden
               ? "Approval requires a latest passing evaluation on a draft or ready gate."
-              : "Evidence loaded under the review grant. The database enforces evaluator/reviewer independence.";
+              : requiresIndependentReview
+                ? "Evidence loaded under the review grant. The database enforces evaluator/reviewer independence."
+                : "Evidence loaded under the review grant. This gate does not require a second reviewer.";
           } catch (error) {
             status.textContent = error.message;
           } finally {
@@ -2231,9 +2397,10 @@
               if (response.status < 500) approval.pendingRequestId = null;
               throw new Error(result.error || "Gate approval could not be recorded.");
             }
+            const recordedAction = requiresIndependentReview ? "approval" : "confirmation";
             approvalStatus.textContent = result.replayed === true
-              ? "This approval was already recorded. The solution stage remains unchanged."
-              : "Gate approved. The solution stage remains unchanged until a separate governed transition.";
+              ? `This gate ${recordedAction} was already recorded. The solution stage remains unchanged.`
+              : `Gate ${recordedAction} recorded. The solution stage remains unchanged until a separate governed transition.`;
             await loadSolutionLifecycleGates();
           } catch (error) {
             approvalStatus.textContent = error.message;
@@ -4147,6 +4314,11 @@
           ])];
           solutionLifecycleLocations = new Set(solutionLifecycleReadLocationIds);
           solutionLifecycleReviewLocations = new Set(solutionLifecycleReviewLocationIds);
+          solutionLifecycleTransitionLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "transition")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
           solutionLifecycleCreateLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "create")
             .map((scope) => scope.location_id)

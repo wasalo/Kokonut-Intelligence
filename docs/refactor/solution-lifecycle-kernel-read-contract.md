@@ -353,34 +353,75 @@ evaluator identity is intentionally withheld.
 
 `POST
 /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve` uses the
-same review scope. PostgreSQL requires the gate to remain draft/ready and
-explicitly require human approval, the latest evaluation to pass, and the active
-reviewer party to differ from the evaluator. Approval updates gate status and
-attribution with an append-only
-request receipt in the same transaction; identical retries return the original
-approval and request-key collisions fail closed. Approval does not advance the
-solution's lifecycle stage. Gate evaluation remains a separate
-`solution_lifecycle:create` action.
+same review scope. PostgreSQL requires the gate to remain draft/ready and the
+latest evaluation to pass. If the gate requires human approval, the active
+reviewer party must differ from the evaluator; otherwise an active operator can
+confirm the gate without a second reviewer, preserving the legacy behavior.
+Migration 485 applies this conditional independence rule. Approval updates gate
+status and attribution with an append-only request receipt in the same
+transaction; identical retries return the original approval and request-key
+collisions fail closed. Approval does not advance the solution's lifecycle
+stage. Gate evaluation remains a separate `solution_lifecycle:create` action.
 
 The review and approver functions have separate non-login owners with narrow
 source-column access. The runtime can execute the bounded functions but cannot
 read evaluation or approval-receipt tables directly; Directus cannot execute
 them. The console renders reviewed evidence as text, requires explicit human
-acknowledgement for approval, and does not offer a lifecycle transition.
-Migration 484 has been applied and replayed only on disposable PostgreSQL 16;
-the focused Gateway, console, route-policy, and migration-metadata selection
-passes 82 tests. Evidence is recorded in
+acknowledgement for approval. Review and approval remain separate from
+lifecycle advancement; migration 486 adds the distinct transition action
+described below.
+Migrations 484 and 485 have been applied and replayed only on disposable
+PostgreSQL 16; the focused Gateway, console, route-policy, and
+migration-metadata selection passes 82 tests. Evidence is recorded in
 `builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json`.
 Candidate and legacy databases are untouched, and migration 484 is not rolled
 out.
 
+## CAP-035 gated stage transition (migration 486)
+
+`POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/transition`
+accepts exactly `request_id`, `rationale`, `evidence`, and `rollback_plan`. It
+requires signed operator context and an exact `solution_lifecycle:transition`
+location grant, plus a current active person binding. The gate must belong to a
+solution canonically originated at that exact location; its `from_stage` must
+match the current solution stage, its target must be one of the supported
+promotion gates, its status must already be approved, and the latest evaluation
+must pass. The configured positive minimum number of passing evaluations is
+rechecked at transition time. A gate requiring human approval must still carry
+an approver distinct from the latest evaluator.
+
+The function rechecks the legacy promotion prerequisites: evidence maturity and
+validated experiment count; an approved funding case for `funded`; an approved
+location adoption configuration and assessed-ready adopter for `adoption_ready`;
+and all satisfied, approved scale gates for `scaled`. The stage update, lifecycle
+event with actor/approver attribution, and immutable request receipt commit in
+one transaction. Exact retries return the original event; changed-payload or
+cross-location request reuse fails closed. The private transition receipt and
+lifecycle event are not directly readable by runtime or Directus; runtime can
+execute only the bounded function, and Directus cannot execute it.
+
+The console displays a transition form only for an approved gate with a latest
+passing evaluation, a supported promotion target, and the exact location
+transition grant. It requires rationale, a nonempty bounded evidence array,
+optional rollback plan, explicit acknowledgement, CSRF, same-origin no-store
+requests, and a stable request ID for an unchanged retry. The database remains
+authoritative for gate freshness and every promotion prerequisite.
+
+Migration 486 and its disposable PostgreSQL 16 acceptance have not been rolled
+out to candidate or legacy. The focused Gateway, console, and route-policy
+selection passes 35 tests. The ordered disposable runner applies and replays
+migrations 483–486 and checks independent review, non-human compatibility,
+prerequisites, atomicity, retry/collision behavior, and direct-table/Directus
+boundaries. Evidence is recorded in
+`builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json`.
+
 ## Rollback
 
 Before migration rollout, remove a route registration, route-policy entry, read
-or action service, migration source, and tests together. If migrations 483 or
-484 have been applied, disable the corresponding evaluation, review, or approval
-routes and console panels, but retain the ordered migrations, roles, and ACLs
-until separately reviewed forward migrations remove them. Do not edit or reverse
+or action service, migration source, and tests together. If migrations 483–486
+have been applied, disable the corresponding evaluation, review, approval, or
+transition routes and console panels, but retain the ordered migrations, roles,
+and ACLs until separately reviewed forward migrations remove them. Do not edit or reverse
 an applied migration; any schema rollback requires a separately reviewed
 forward migration after checking for location links, evaluation evidence,
-approval receipts, and dependent data created since rollout.
+approval receipts, lifecycle events, and dependent data created since rollout.

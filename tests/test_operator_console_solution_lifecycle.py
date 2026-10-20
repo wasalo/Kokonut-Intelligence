@@ -102,7 +102,8 @@ def test_gate_evidence_and_approval_require_review_grant_and_remain_separate():
     assert 'solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)' in renderer
     assert 'gate.requires_human_approval === true' in renderer
     assert "gate.latest_evaluation_passed === true" in renderer
-    assert "createSolutionLifecycleGateReviewPanel(gate.gate_id)" in renderer
+    assert "createSolutionLifecycleGateReviewPanel(" in renderer
+    assert "gate.gate_id," in renderer
     assert "solutionLifecycleReviewLocations.has(locationId)" in review
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/review`' in review
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/approve`' in review
@@ -111,9 +112,34 @@ def test_gate_evidence_and_approval_require_review_grant_and_remain_separate():
     assert "approval.pendingRequestId" in review
     assert "acknowledge.checked" in review
     assert "different active person from the evaluator" in review
+    assert "This gate does not require a second reviewer" in review
+    assert 'const requiresIndependentReview = result.requires_human_approval === true' in review
+    assert 'approve.textContent = requiresIndependentReview' in review
     assert "The solution stage remains unchanged" in review
     assert "result.evaluated_by_party_id" not in review
     assert "innerHTML" not in review
+
+
+def test_gate_transition_requires_approved_passing_gate_and_exact_transition_grant():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendSolutionLifecycleGate(", "async function loadSolutionLifecycleGates(")
+    form = _function(source, "function createSolutionLifecycleGateTransitionForm(", "async function loadSolutionLifecycleGates(")
+    assert "solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert 'gate.gate_status === "approved"' in renderer
+    assert "gate.latest_evaluation_passed === true" in renderer
+    assert '["validated", "funded", "adoption_ready", "scaled"].includes(gate.to_stage)' in renderer
+    assert "createSolutionLifecycleGateTransitionForm(gate.gate_id, gate.to_stage)" in renderer
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "transition"' in source
+    assert 'solutionLifecycleTransitionLocations = new Set' in source
+    assert "Evidence references must be valid JSON." in form
+    assert "form.pendingTransition?.fingerprint !== fingerprint" in form
+    assert "form.pendingTransition.request_id" in form
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/transition`' in form
+    assert 'method: "POST"' in form and 'cache: "no-store"' in form
+    assert 'credentials: "same-origin"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "loadSolutionLifecycleGates(), loadSolutionLifecycleSummary()" in form
+    assert "innerHTML" not in form
 
 
 def test_experiment_reader_uses_location_scope_no_store_paging_and_stale_guards():

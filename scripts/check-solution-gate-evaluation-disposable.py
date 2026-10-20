@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 483 on isolated PostgreSQL 16 fixtures."""
+"""Exercise migrations 483–486 on isolated PostgreSQL 16 fixtures."""
 
 from __future__ import annotations
 
@@ -15,7 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 GATE_CHECK = ROOT / "scripts/check-solution-lifecycle-gates-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/483_location_solution_gate_evaluation.sql"
 REVIEW_MIGRATION = ROOT / "schemas/postgres/484_location_solution_gate_review.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json"
+COMPATIBILITY_MIGRATION = ROOT / "schemas/postgres/485_solution_gate_nonhuman_approval_compatibility.sql"
+TRANSITION_MIGRATION = ROOT / "schemas/postgres/486_location_solution_gate_transition.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-gate-transition-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_gates_disposable", GATE_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution gate fixtures")
@@ -60,7 +62,29 @@ ALTER TABLE public.solution_gate_evaluation
     ALTER COLUMN evaluated_at SET DEFAULT now();
 ALTER TABLE public.solution_stage_gate
     ADD COLUMN approved_by_party_id uuid,
-    ADD COLUMN approved_at timestamptz;
+    ADD COLUMN approved_at timestamptz,
+    ADD COLUMN minimum_evaluation_count integer NOT NULL DEFAULT 1
+        CHECK (minimum_evaluation_count > 0);
+ALTER TABLE public.solution
+    ADD COLUMN evidence_maturity integer,
+    ADD COLUMN retired_at timestamptz,
+    ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE public.solution_adopter_readiness ADD COLUMN assessed_by_party_id uuid;
+ALTER TABLE public.solution_configuration ADD COLUMN approved_by_party_id uuid;
+ALTER TABLE public.solution_scale_gate ADD COLUMN approved_by_party_id uuid;
+ALTER TABLE public.solution_funding_case ADD COLUMN approved_by_party_id uuid;
+CREATE TABLE public.solution_lifecycle_event (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    solution_id uuid NOT NULL REFERENCES public.solution(id),
+    from_stage text,
+    to_stage text NOT NULL,
+    rationale text NOT NULL,
+    evidence jsonb NOT NULL DEFAULT '[]',
+    rollback_plan text,
+    actor_party_id uuid REFERENCES public.party(id),
+    approved_by_party_id uuid REFERENCES public.party(id),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
 UPDATE public.location
    SET organization_id = 'f0000000-0000-4000-8000-000000000001'
  WHERE id = 'b0000000-0000-4000-8000-000000000002';
@@ -107,7 +131,11 @@ VALUES
     ('a1000000-0000-4000-8000-000000000008',
      'a0000000-0000-4000-8000-000000000002',
      'b0000000-0000-4000-8000-000000000002',
-     'solution_lifecycle', 'review', 'f0000000-0000-4000-8000-000000000001', NULL);
+     'solution_lifecycle', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+    ('a1000000-0000-4000-8000-000000000009',
+     'a0000000-0000-4000-8000-000000000002',
+     'b0000000-0000-4000-8000-000000000001',
+     'solution_lifecycle', 'transition', 'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.party (id, display_name, party_type, status)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Synthetic evaluator', 'person', 'active'),
        ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Synthetic independent reviewer', 'person', 'active');
@@ -127,13 +155,13 @@ INSERT INTO public.solution_stage_gate
      requires_human_approval, created_at)
 VALUES ('e0000000-0000-4000-8000-000000000003',
         'c0000000-0000-4000-8000-000000000001',
-        'draft', 'testing', 'adoption_ready', true, now()),
+        'draft', 'testing', 'validated', true, now()),
        ('e0000000-0000-4000-8000-000000000004',
         'c0000000-0000-4000-8000-000000000001',
-        'draft', 'testing', 'adoption_ready', true, now()),
+        'draft', 'testing', 'validated', true, now()),
        ('e0000000-0000-4000-8000-000000000005',
         'c0000000-0000-4000-8000-000000000001',
-        'draft', 'testing', 'adoption_ready', false, now());
+        'draft', 'testing', 'validated', false, now());
 INSERT INTO public.solution_gate_evaluation
     (id, gate_id, passed, evaluated_at, observed, evidence,
      evaluated_by_party_id)
@@ -324,6 +352,166 @@ BEGIN
 END $$;
 """
 
+TRANSITION_PREP = r"""
+UPDATE public.solution_gate_evaluation
+   SET passed = true
+ WHERE id = 'e1000000-0000-4000-8000-000000000004';
+UPDATE public.solution_stage_gate
+   SET status = 'approved',
+       approved_by_party_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+ WHERE id = 'e0000000-0000-4000-8000-000000000004';
+"""
+
+NONHUMAN_TRANSITION_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE result record;
+BEGIN
+    SELECT * INTO result FROM kokonut_security.transition_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000005',
+        'ad000000-0000-4000-8000-000000000005',
+        'Legacy-compatible approved gate transition',
+        '[{"source":"reviewed-evidence"}]'::jsonb,
+        NULL
+    );
+    IF result.replayed OR result.to_stage <> 'validated' THEN
+        RAISE EXCEPTION 'non-human-review gate did not retain its approved transition behavior';
+    END IF;
+END $$;
+ROLLBACK;
+RESET ROLE;
+"""
+
+TRANSITION_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE
+    result record;
+    retry_result record;
+    denied boolean := false;
+BEGIN
+    -- A gate approved by its own evaluator cannot be used to advance a stage.
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.transition_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000004',
+            'ad000000-0000-4000-8000-000000000004',
+            'Attempt a self-approved transition',
+            '[{"source":"reviewed-evidence"}]'::jsonb,
+            NULL
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'self-approved human gate advanced a solution'; END IF;
+
+    SELECT * INTO result FROM kokonut_security.transition_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003',
+        'ad000000-0000-4000-8000-000000000003',
+        'Evidence supports the validated stage',
+        '[{"source":"reviewed-field-record"}]'::jsonb,
+        'Return to testing if outcomes regress'
+    );
+    IF result.replayed OR result.from_stage <> 'testing'
+       OR result.to_stage <> 'validated' OR result.solution_status <> 'active'
+       OR result.lifecycle_event_id IS NULL OR result.transitioned_at IS NULL THEN
+        RAISE EXCEPTION 'first approved gate transition returned the wrong lifecycle result';
+    END IF;
+
+    SELECT * INTO retry_result FROM kokonut_security.transition_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003',
+        'ad000000-0000-4000-8000-000000000003',
+        'Evidence supports the validated stage',
+        '[{"source":"reviewed-field-record"}]'::jsonb,
+        'Return to testing if outcomes regress'
+    );
+    IF NOT retry_result.replayed
+       OR retry_result.lifecycle_event_id <> result.lifecycle_event_id THEN
+        RAISE EXCEPTION 'identical transition retry did not return the original lifecycle event';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.transition_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000003',
+            'ad000000-0000-4000-8000-000000000003',
+            'Changed rationale for the same request',
+            '[{"source":"reviewed-field-record"}]'::jsonb,
+            'Return to testing if outcomes regress'
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'changed transition payload reused a request ID'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.transition_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000002',
+            'e0000000-0000-4000-8000-000000000003',
+            'ad000000-0000-4000-8000-000000000006',
+            'Evidence supports the validated stage',
+            '[{"source":"reviewed-field-record"}]'::jsonb,
+            NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'mismatched tenant context advanced a location solution'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_gate_transition_submission_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read transition receipts'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_lifecycle_event;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read lifecycle event evidence'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+DECLARE event_count integer; receipt_count integer; current_stage text;
+BEGIN
+    SELECT solution.current_stage INTO current_stage
+      FROM public.solution AS solution
+     WHERE solution.id = 'c0000000-0000-4000-8000-000000000001';
+    SELECT count(*) INTO event_count FROM public.solution_lifecycle_event
+     WHERE solution_id = 'c0000000-0000-4000-8000-000000000001';
+    SELECT count(*) INTO receipt_count FROM public.solution_gate_transition_submission_receipt
+     WHERE solution_id = 'c0000000-0000-4000-8000-000000000001';
+    IF current_stage <> 'validated' OR event_count <> 1 OR receipt_count <> 1 THEN
+        RAISE EXCEPTION 'stage, lifecycle event, and idempotency receipt were not atomic';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.transition_location_solution_gate(uuid,uuid,uuid,text,jsonb,text)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.transition_location_solution_gate(uuid,uuid,uuid,text,jsonb,text)', 'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_gate_transition_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.solution_gate_transition_submission_receipt', 'SELECT')
+       OR has_column_privilege('kokonut_solution_gate_transitioner', 'public.solution_stage_gate', 'status', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_gate_transitioner', 'public.solution_gate_transition_submission_receipt', 'payload_digest', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_gate_transitioner', 'public.solution_lifecycle_event', 'DELETE') THEN
+        RAISE EXCEPTION 'transition function or least-privilege role boundary failed';
+    END IF;
+END $$;
+"""
+
 GATE_REVIEW_ACCEPTANCE = r"""
 SET ROLE kokonut_runtime;
 BEGIN;
@@ -395,16 +583,6 @@ BEGIN
     EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'gate with a failed latest evaluation was approved'; END IF;
 
-    denied := false;
-    BEGIN
-        PERFORM * FROM kokonut_security.approve_location_solution_gate(
-            'b0000000-0000-4000-8000-000000000001',
-            'e0000000-0000-4000-8000-000000000005',
-            'ac000000-0000-4000-8000-000000000005'
-        );
-    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
-    IF NOT denied THEN RAISE EXCEPTION 'gate without human-approval requirement was approved'; END IF;
-
     SELECT * INTO first_approval FROM kokonut_security.approve_location_solution_gate(
         'b0000000-0000-4000-8000-000000000001',
         'e0000000-0000-4000-8000-000000000003',
@@ -434,6 +612,25 @@ BEGIN
         );
     EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'approval request ID replayed across locations'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    SELECT * INTO first_approval FROM kokonut_security.approve_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000005',
+        'ac000000-0000-4000-8000-000000000005'
+    );
+    IF first_approval.replayed OR first_approval.gate_status <> 'approved' THEN
+        RAISE EXCEPTION 'gate without independent-review requirement did not preserve legacy approval behavior';
+    END IF;
+    SELECT * INTO retry_approval FROM kokonut_security.approve_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000005',
+        'ac000000-0000-4000-8000-000000000005'
+    );
+    IF NOT retry_approval.replayed THEN
+        RAISE EXCEPTION 'gate without independent-review requirement did not preserve approval retry';
+    END IF;
 
     denied := false;
     BEGIN PERFORM 1 FROM public.solution_gate_approval_submission_receipt;
@@ -473,11 +670,11 @@ def main() -> int:
     container = f"kokonut-gate-eval-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": REVIEW_MIGRATION.name,
+        "migration": TRANSITION_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 483 and 484 apply and replay after the location-scoped gate read",
+            "migrations 483 through 485 apply and replay after the location-scoped gate read",
             "signed exact location context, create grant, active human attribution, and exact-origin gate lineage are enforced",
             "bounded pass/fail observations and evidence are appended under a non-login evaluator owner",
             "same request retries return the original result while changed input collisions fail closed",
@@ -485,10 +682,15 @@ def main() -> int:
             "evaluation receipts are append-only and the action does not approve the gate",
             "private evaluation evidence is visible only under exact review scope and an active human binding",
             "migration 484 exposes bounded private review detail without evaluator identity",
-            "approval requires an explicitly human-reviewed draft/ready gate and a latest passing evaluation by a distinct human reviewer",
+            "gates requiring human approval require a latest passing evaluation and a distinct active human reviewer",
+            "gates without an independent-review requirement preserve their legacy approval and retry path",
             "gate approval leaves solution stage transition separate",
             "approval retries are atomic and idempotent, with exact scope, grant, and non-login role boundaries",
             "approval receipts are atomic/idempotent and runtime/Directus cannot access source or receipt tables directly",
+            "only an approved passing promotion gate advances the exact location-origin solution after legacy prerequisites pass",
+            "human-required gate approval remains distinct from the latest evaluator at transition time",
+            "stage update, attributed lifecycle event, and immutable idempotency receipt are atomic and retries return the original event",
+            "non-human-review gates preserve their compatibility path and Directus/runtime cannot access private source or receipt tables directly",
         ],
     }
     try:
@@ -497,6 +699,7 @@ def main() -> int:
             "-e", "POSTGRES_PASSWORD=local-only-disposable", "postgres:16",
         ], check=True, text=True, capture_output=True)
         wait_ready(container, docker)
+        psql(docker, container, "CREATE EXTENSION IF NOT EXISTS pgcrypto;")
         psql(docker, container, gate_check.FIXTURE)
         psql(docker, container, summary_check.MIGRATION.read_text(encoding="utf-8"))
         # The gate acceptance fixture includes the summary acceptance seed rows
@@ -514,11 +717,21 @@ def main() -> int:
         review_migration = REVIEW_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, review_migration)
         psql(docker, container, review_migration)
+        compatibility_migration = COMPATIBILITY_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, compatibility_migration)
+        psql(docker, container, compatibility_migration)
         psql(docker, container, GATE_REVIEW_ACCEPTANCE)
+        psql(docker, container, TRANSITION_PREP)
+        transition_migration = TRANSITION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, transition_migration)
+        psql(docker, container, transition_migration)
+        psql(docker, container, NONHUMAN_TRANSITION_ACCEPTANCE)
+        psql(docker, container, TRANSITION_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["acceptance_groups_passed"] = 8
         evidence["approval_acceptance_groups_passed"] = 7
-        print("PASS: migrations 459, 466, 483, and 484 apply; 466, 483, and 484 replay; gate-evaluation and independent-review groups passed")
+        evidence["transition_acceptance_groups_passed"] = 7
+        print("PASS: migrations 459, 466, and 483–486 apply; 466, 483–486 replay; gate evaluation, independent review, and lifecycle transition acceptance passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

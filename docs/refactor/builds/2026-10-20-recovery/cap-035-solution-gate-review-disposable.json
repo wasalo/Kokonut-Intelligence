@@ -1,10 +1,10 @@
 {
   "result": "passed",
-  "migration": "484_location_solution_gate_review.sql",
+  "migration": "485_solution_gate_nonhuman_approval_compatibility.sql",
   "database_target": "new disposable PostgreSQL 16 container",
   "candidate_or_legacy_modified": false,
   "checks": [
-    "migrations 483 and 484 apply and replay after the location-scoped gate read",
+    "migrations 483 through 485 apply and replay after the location-scoped gate read",
     "signed exact location context, create grant, active human attribution, and exact-origin gate lineage are enforced",
     "bounded pass/fail observations and evidence are appended under a non-login evaluator owner",
     "same request retries return the original result while changed input collisions fail closed",
@@ -12,7 +12,8 @@
     "evaluation receipts are append-only and the action does not approve the gate",
     "private evaluation evidence is visible only under exact review scope and an active human binding",
     "migration 484 exposes bounded private review detail without evaluator identity",
-    "approval requires an explicitly human-reviewed draft/ready gate and a latest passing evaluation by a distinct human reviewer",
+    "gates requiring human approval require a latest passing evaluation and a distinct active human reviewer",
+    "gates without an independent-review requirement preserve their legacy approval and retry path",
     "gate approval leaves solution stage transition separate",
     "approval retries are atomic and idempotent, with exact scope, grant, and non-login role boundaries",
     "approval receipts are atomic/idempotent and runtime/Directus cannot access source or receipt tables directly"

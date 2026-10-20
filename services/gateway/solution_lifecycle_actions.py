@@ -177,6 +177,86 @@ def approve_location_solution_gate(
         connection.close()
 
 
+def transition_location_solution_gate(
+    operator_id: str,
+    location_id: str,
+    gate_id: str,
+    request_id: str,
+    rationale: str,
+    evidence: list,
+    rollback_plan: str | None = None,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Advance a location-origin solution through an approved passing gate."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    gate_id = _normalize_uuid(gate_id, "gate")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(rationale, str) or not 10 <= len(rationale.strip()) <= 4000:
+        raise SolutionLifecycleActionInvalid(
+            "Transition rationale must contain between 10 and 4000 characters"
+        )
+    if not isinstance(evidence, list) or not evidence or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid(
+            "Transition evidence must be a nonempty list of at most 100 items"
+        )
+    if rollback_plan is not None and (
+        not isinstance(rollback_plan, str) or len(rollback_plan) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Transition rollback plan must be at most 4000 characters"
+        )
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid(
+            "Transition evidence must contain JSON values"
+        ) from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Transition evidence exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="transition",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.transition_location_solution_gate(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::jsonb, %s::text
+                       )""",
+                (
+                    location_id,
+                    gate_id,
+                    request_id,
+                    rationale.strip(),
+                    encoded_evidence,
+                    rollback_plan,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution gate transition returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def approve_location_solution_retirement(
     operator_id: str,
     location_id: str,
