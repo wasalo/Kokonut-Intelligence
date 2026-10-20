@@ -765,6 +765,27 @@ back before deployment, disable the route and console form while retaining the
 additive migration; do not reverse an applied migration or re-enable the legacy
 writer.
 
+## Legacy readiness and configuration write boundary
+
+The legacy `solution_adoption.assess_readiness` and
+`solution_adoption.approve_configuration` helpers now fail before database
+access. The former could write `readiness_status='ready'` from caller-supplied
+levels without location authorization or independent review; the latter could
+insert a configuration directly as `approved` with caller-selected identity.
+Migration 514 revokes table- and column-level `INSERT`, `UPDATE`, `DELETE`, and
+`TRUNCATE` privileges on `solution_adopter_readiness` and
+`solution_configuration` from `kokonut_runtime`, `kokonut_directus_runtime`,
+and `PUBLIC`, preserving SELECT access for existing bounded reads and
+transition checks.
+
+These writes remain unavailable until location-scoped readiness proposal/review
+and configuration draft/approval actions are implemented. A future action must
+keep assessment inputs distinct from approval, derive actor identity from the
+active operator binding, and ensure that only an independently reviewed ready
+assessment and approved location configuration can satisfy the existing
+adoption-stage transition prerequisite. Do not restore shared-role DML or the
+legacy helpers as a shortcut.
+
 ## Adoption-event consent boundary
 
 The legacy `solution_adoption.record_event` helper no longer accepts

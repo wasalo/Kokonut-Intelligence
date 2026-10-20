@@ -29,13 +29,23 @@ def test_legacy_record_event_fails_closed_before_database_access(consent_checked
     mock_conn.commit.assert_not_called()
 
 
-def test_assess_readiness_status_logic():
+def test_legacy_assess_readiness_fails_before_database_access():
     mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-    mock_cursor.fetchone.return_value = {"id": "test", "readiness_status": "ready"}
-    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
-    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
-    result = solution_adoption.assess_readiness(
-        mock_conn, "sol-id", "loc", "scope-id", 0.9, 0.5
-    )
-    assert result["readiness_status"] == "ready"
+    with pytest.raises(RuntimeError, match="location-scoped proposal and independent review"):
+        solution_adoption.assess_readiness(
+            mock_conn, "sol-id", "location", "scope-id", 0.9, 0.5
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()
+
+
+def test_legacy_approve_configuration_fails_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(RuntimeError, match="location-scoped draft and independent review"):
+        solution_adoption.approve_configuration(
+            mock_conn, "sol-id", "location", "scope-id", {}, {}
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+    mock_conn.rollback.assert_not_called()

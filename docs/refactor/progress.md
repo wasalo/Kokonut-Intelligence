@@ -12723,3 +12723,24 @@ contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/p
 [Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
 [console tests](../tests/test_operator_console_solution_lifecycle.py), and
 [disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
+
+### CAP-035 retirement of unscoped readiness/configuration writers — 20 October 2026
+
+The legacy readiness helper could promote caller-supplied levels directly to
+`ready`, and the configuration helper inserted caller-supplied rows already
+marked `approved`. Both now fail before database access. Migration 514 revokes
+runtime and Directus table/column writes on `solution_adopter_readiness` and
+`solution_configuration`, including inherited `PUBLIC` DML grants, while
+preserving SELECT access for bounded reads and transition prerequisites.
+Location-scoped readiness submission/review and configuration draft/approval
+are not implemented yet, so these mutations remain disabled rather than
+bypassing the human review boundary.
+
+All five focused `tests/test_solution_adoption.py` cases pass; Ruff and Python
+compilation pass. Disposable PostgreSQL 16 applies/replays migration 514 and
+passes five grouped privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-write-boundary-disposable.json)).
+Candidate and legacy databases remain untouched. CAP-035 remains prepared.
+Checklist: 768 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/514_location_solution_adoption_write_boundary.sql),
+[tests](../tests/test_solution_adoption.py), and [disposable checker](../../scripts/check-solution-adoption-write-boundary-disposable.py).
