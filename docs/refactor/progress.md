@@ -1,3 +1,31 @@
+### CAP-035 private funding submission review reads — 20 October 2026
+
+Added an exact-location, read-only funding review queue and private detail route
+under signed `solution_lifecycle:review`. Migration 490 uses a dedicated
+non-login reviewer role with column-scoped reads; runtime can call only the
+bounded functions, while Directus cannot execute them. The queue includes only
+submitted, unapproved, exact location-origin requests and omits narrative and
+person IDs. Detail returns bounded rationale, evidence, and proposed tranche
+terms. Self-authorship and submitter attribution are labeled; historical
+unattributed submissions stay unattributed. No funding approval, tranche
+approval, release, or stage transition is implemented in this slice.
+
+The focused migration, Gateway, route-policy, and console selection passes 100
+tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. The
+runtime SQL inventory is refreshed. Disposable
+PostgreSQL 16 applies/replays migration 490 after ordered migrations 488–489
+and verifies exact review grants, missing-grant and mismatched-location denial,
+self-authorship, legacy unattributed detail, proposed tranche state, runtime
+table denial, and Directus function denial. Candidate and legacy databases are
+untouched; migration 490 is not rolled out. CAP-035 remains prepared pending
+other workflow parity, populated fixture comparison, live OIDC/browser,
+broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 735
+complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared
+across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md);
+[migration](../schemas/postgres/490_location_solution_funding_review.sql);
+[tests](../tests/test_gateway_solution_lifecycle_funding_proposals.py);
+[disposable evidence](builds/2026-10-20-recovery/cap-035-solution-funding-review-disposable.json).
+
 ### CAP-035 funding draft submission — 20 October 2026
 
 Added a separate exact-location submit action for funding drafts. Migration 489 requires signed `solution_lifecycle:submit`, an active human operator binding, explicit acknowledgement, and a draft created by the same operator and party for the exact location-origin solution. It atomically changes only the case from `draft` to `submitted` and writes a private immutable retry receipt; proposed tranches remain proposed, and approval, release, and solution-stage transition remain separate. The console gates this second step on the submit grant and a separate acknowledgement.

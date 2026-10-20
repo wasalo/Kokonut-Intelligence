@@ -286,6 +286,58 @@ def test_funding_submission_is_separately_grant_gated_acknowledged_and_retry_sta
     assert "innerHTML" not in submit
 
 
+def test_funding_review_inbox_is_separately_review_grant_gated_and_read_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(
+        r'<section id="solution-lifecycle-funding-review".*?</section>\s*</section>',
+        source,
+        re.DOTALL,
+    )
+    assert panel is not None
+    assert 'solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)' in source
+    assert "Submitted request amounts, rationale, evidence, and tranche terms are private" in panel.group()
+    assert "cannot approve a funding case" in panel.group()
+    assert 'id="solution-lifecycle-funding-review-queue"' in panel.group()
+    assert 'id="solution-lifecycle-funding-review-detail"' in panel.group()
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "review"' in source
+
+
+def test_funding_review_reader_and_detail_use_review_scope_no_store_and_stale_guards():
+    source = CONSOLE.read_text(encoding="utf-8")
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleFundingReviewQueue(",
+        "async function loadSolutionLifecycleFundingReviewDetail(",
+    )
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleFundingReviewDetail(",
+        "function appendSolutionLifecycleSupplementalRecord(",
+    )
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleFundingReviewCase(",
+        "async function loadSolutionLifecycleFundingReviewQueue(",
+    )
+    assert "/funding/review?${params}" in queue
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    assert "solutionLifecycleReviewLocations.has(locationId)" in queue
+    assert "requestVersion !== solutionLifecycleFundingReviewRequestVersion" in queue
+    assert "locationId !== solutionLifecycleLocation.value" in queue
+    assert "result.funding_cases" in queue and "result.next_offset" in queue
+    assert "/funding/${encodeURIComponent(fundingCaseId)}/review" in detail
+    assert 'credentials: "same-origin"' in detail and 'cache: "no-store"' in detail
+    assert "solutionLifecycleReviewLocations.has(locationId)" in detail
+    assert "requestVersion !== solutionLifecycleFundingReviewDetailVersion" in detail
+    assert "locationId !== solutionLifecycleLocation.value" in detail
+    for field in ("requested_amount", "rationale", "evidence", "tranches", "submitter_attributed", "is_self_authored"):
+        assert f"fundingCase.{field}" in renderer or f"result.{field}" in detail
+    assert "textContent" in renderer and "textContent" in detail
+    assert "innerHTML" not in queue + detail + renderer
+    assert 'method: "POST"' not in queue + detail
+
+
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
     reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleSupplementalRecord(")

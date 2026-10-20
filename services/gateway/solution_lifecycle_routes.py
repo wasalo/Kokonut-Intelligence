@@ -24,12 +24,14 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         SolutionLifecycleResponseTooLarge,
         SolutionLifecycleReviewNotFound,
         get_location_solution_experiment_review,
+        get_location_solution_funding_review_detail,
         get_location_solution_gate_review,
         get_location_solution_lifecycle_summary,
         get_location_solution_retirement_review_detail,
         list_location_solution_adoption,
         list_location_solution_experiments,
         list_location_solution_funding,
+        list_location_solution_funding_review_queue,
         list_location_solution_funding_targets,
         list_location_solution_gates,
         list_location_solution_learning,
@@ -1237,6 +1239,109 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution funding targets unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/funding/review")
+    async def location_solution_funding_review_queue(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_funding_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle review access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact-location solution lifecycle review grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution funding review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review"
+    )
+    async def location_solution_funding_review_detail(
+        request: Request, location_id: str, funding_case_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_funding_review_detail,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                funding_case_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle review access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleReviewNotFound:
+            return JSONResponse(status_code=404, content={"error": "Funding review case not found"}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact-location solution lifecycle review grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Funding review case not found"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding review detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution funding review detail unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

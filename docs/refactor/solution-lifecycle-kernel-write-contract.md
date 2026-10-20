@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migration 488 is additive and is
+**Status:** prepared implementation contract; migrations 488–490 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -101,17 +101,41 @@ needed for this transition. Runtime can execute the bounded function but cannot
 read its receipt; Directus cannot execute it. Submission is not independent
 approval; that remains a separate review action.
 
+## Funding submission review reads
+
+`GET /operator/api/solution-lifecycle/{location_id}/funding/review` and
+`GET /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/review`
+require an exact `solution_lifecycle:review` grant and signed tenant context.
+PostgreSQL rechecks the signed location and active human binding. The queue
+contains only submitted, unapproved requests whose solution origin is exactly
+the granted location. It returns bounded financial labels and self-authorship
+and submitter-attribution booleans, but no person IDs or rationale. Detail reads
+return bounded case terms, rationale, evidence, and proposed tranche terms as
+private reviewer data; the Gateway uses read-only transactions and no-store
+responses.
+
+A separate non-login reviewer function owner has only the column grants needed
+for these projections. The runtime can execute the bounded functions but cannot
+read funding cases, tranches, or submission receipts directly; Directus cannot
+execute either review function. Legacy submitted cases without recorded
+submitter attribution remain visible as unattributed, with no inferred identity.
+The review surface is read-only: it has no funding or tranche approval,
+disbursement, or stage-transition action. Any later approval path must remain
+separate, require an independent active human, and fail closed for self-authored
+or unattributed submissions.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
-state boundary, and separately authorized submission. Disposable PostgreSQL 16
-applies and replays migrations 488 and 489 and checks location-origin targeting,
-create/submit authorization, private receipts, tranche ceilings, atomic writes,
-state conflicts, and unchanged solution stage. The checker uses synthetic rows
-only; candidate and legacy databases are not involved.
+state boundary, separately authorized submission, and private reviewer reads.
+Disposable PostgreSQL 16 applies and replays migrations 488–490 and checks
+location-origin targeting, create/submit/review authorization, private receipts,
+tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
+read-only state boundaries, and unchanged solution stage. The checker uses
+synthetic rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488 and 489. After application, do not edit or reverse them; disable the routes
-and use a separately reviewed forward migration if their schema objects must
-be removed.
+488–490. After application, do not edit or reverse them; disable the routes and
+use a separately reviewed forward migration if their schema objects must be
+removed.

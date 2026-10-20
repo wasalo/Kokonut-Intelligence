@@ -805,6 +805,33 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_funding_review_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/funding/review", path
+    )
+    if solution_lifecycle_funding_review_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_funding_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_funding_review_detail_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/funding/([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if solution_lifecycle_funding_review_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_funding_review_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_funding_proposal_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/solutions/([0-9a-fA-F-]{36})/funding",
         path,

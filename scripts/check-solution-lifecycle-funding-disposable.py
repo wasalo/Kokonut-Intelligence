@@ -16,7 +16,8 @@ EXPERIMENT_CHECK = ROOT / "scripts/check-solution-lifecycle-experiments-disposab
 MIGRATION = ROOT / "schemas/postgres/468_location_scoped_solution_funding.sql"
 PROPOSAL_MIGRATION = ROOT / "schemas/postgres/488_location_solution_funding_proposals.sql"
 SUBMISSION_MIGRATION = ROOT / "schemas/postgres/489_location_solution_funding_submission.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json"
+REVIEW_MIGRATION = ROOT / "schemas/postgres/490_location_solution_funding_review.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-review-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiments_disposable", EXPERIMENT_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution lifecycle fixtures")
@@ -579,13 +580,167 @@ BEGIN
 END $$;
 """
 
+FUNDING_REVIEW_FIXTURE = r"""
+INSERT INTO public.party (id, display_name, party_type, status)
+VALUES ('cccccccc-cccc-4ccc-8ccc-ccccccccccc1', 'Synthetic funding reviewer', 'person', 'active');
+INSERT INTO public.operator_governance_party_binding (operator_id, party_id)
+VALUES ('a0000000-0000-4000-8000-000000000002',
+        'cccccccc-cccc-4ccc-8ccc-ccccccccccc1');
+INSERT INTO public.operator_scope_grant
+    (id, operator_id, location_id, resource, action, organization_id, revoked_at)
+VALUES (
+    'a1000000-0000-4000-8000-000000000006',
+    'a0000000-0000-4000-8000-000000000002',
+    'b0000000-0000-4000-8000-000000000001',
+    'solution_lifecycle', 'review', NULL, NULL
+), (
+    'a1000000-0000-4000-8000-000000000007',
+    'a0000000-0000-4000-8000-000000000001',
+    'b0000000-0000-4000-8000-000000000001',
+    'solution_lifecycle', 'review', NULL, NULL
+);
+"""
+
+FUNDING_REVIEW_ACCEPTANCE = r"""
+SELECT funding_case_id AS review_case_id
+  FROM public.solution_funding_submission_receipt
+ WHERE request_id = 'ab000000-0000-4000-8000-000000000301' \gset
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+SELECT set_config('kokonut.review_case_id', :'review_case_id', true);
+DO $$
+DECLARE
+    review_case_id uuid := current_setting('kokonut.review_case_id')::uuid;
+    current_case record;
+    legacy_case record;
+    self_review record;
+    seen integer;
+    denied boolean := false;
+    function_result text;
+BEGIN
+    SELECT count(*) INTO seen FROM kokonut_security.list_location_solution_funding_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 10, 0
+    );
+    IF seen <> 2 THEN
+        RAISE EXCEPTION 'funding review queue expected exactly the current and legacy submitted cases, got %', seen;
+    END IF;
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.list_location_solution_funding_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 52, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'unbounded funding review page was accepted'; END IF;
+    SELECT * INTO current_case
+      FROM kokonut_security.get_location_solution_funding_review_detail(
+          'b0000000-0000-4000-8000-000000000001', review_case_id
+      );
+    IF current_case.decision_status <> 'submitted'
+       OR current_case.submitter_attributed IS DISTINCT FROM TRUE
+       OR current_case.is_self_authored IS DISTINCT FROM FALSE
+       OR current_case.rationale <> 'Synthetic draft only'
+       OR pg_catalog.jsonb_array_length(current_case.evidence) <> 1
+       OR pg_catalog.jsonb_array_length(current_case.tranches) <> 2
+       OR current_case.tranches->0->>'status' <> 'proposed'
+       OR current_case.tranches->1->>'status' <> 'proposed' THEN
+        RAISE EXCEPTION 'submitted funding review detail or proposed tranche projection is invalid';
+    END IF;
+    SELECT * INTO legacy_case
+      FROM kokonut_security.get_location_solution_funding_review_detail(
+          'b0000000-0000-4000-8000-000000000001',
+          'f3000000-0000-4000-8000-000000000001'
+      );
+    IF legacy_case.submitter_attributed IS DISTINCT FROM FALSE
+       OR legacy_case.is_self_authored IS DISTINCT FROM FALSE
+       OR legacy_case.submitted_at IS NOT NULL THEN
+        RAISE EXCEPTION 'legacy unattributed submission was mislabeled as attributed';
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    SELECT * INTO self_review
+      FROM kokonut_security.get_location_solution_funding_review_detail(
+          'b0000000-0000-4000-8000-000000000001', review_case_id
+      );
+    IF self_review.is_self_authored IS DISTINCT FROM TRUE THEN
+        RAISE EXCEPTION 'funding request authored by reviewer was not identified as self-authored';
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.list_location_solution_funding_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 10, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without an exact review grant read the funding queue'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.list_location_solution_funding_review_queue(
+            'b0000000-0000-4000-8000-000000000002', 10, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'review queue accepted mismatched signed location context'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_case;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read private funding cases'; END IF;
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_submission_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read private funding submission receipts'; END IF;
+    SELECT pg_catalog.pg_get_function_result(
+        'kokonut_security.get_location_solution_funding_review_detail(uuid,uuid)'::regprocedure
+    ) INTO function_result;
+    IF function_result ~* '(submitter_party_id|approved_by_party_id|released_by_party_id|operator_id)' THEN
+        RAISE EXCEPTION 'funding review detail result exposes submitter or operator identity columns';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.list_location_solution_funding_review_queue(uuid,integer,integer)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.get_location_solution_funding_review_detail(uuid,uuid)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.list_location_solution_funding_review_queue(uuid,integer,integer)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.get_location_solution_funding_review_detail(uuid,uuid)', 'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_funding_case', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_funding_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_case', 'SELECT')
+       OR has_table_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_case', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_case', 'rationale', 'SELECT')
+       OR NOT has_column_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_tranche', 'milestone_conditions', 'SELECT')
+       OR has_column_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_tranche', 'released_by_party_id', 'SELECT')
+       OR has_column_privilege('kokonut_solution_funding_reviewer',
+          'public.solution_funding_tranche', 'approved_by_party_id', 'SELECT') THEN
+        RAISE EXCEPTION 'funding reviewer function or table privilege boundary failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-solution-funding-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": SUBMISSION_MIGRATION.name,
+        "migration": REVIEW_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -607,6 +762,13 @@ def main() -> int:
             "submission changes only draft to submitted and preserves proposed tranches and solution stage",
             "submission request retries replay exactly; changed request reuse and duplicate submission fail closed",
             "runtime and Directus cannot access submission receipts or the direct submitter role",
+            "migration 490 provisions a non-login reviewer owner with only private funding read columns and no write or role membership",
+            "review reads require the exact signed location, solution_lifecycle:review, an active human binding, and bounded pagination/detail payloads",
+            "review queue includes only submitted, unapproved exact location-origin cases and omits narratives and identity columns",
+            "review detail includes bounded rationale, evidence, and proposed tranche terms while preserving legacy unattributed submissions as unattributed",
+            "self-authored cases are identified and remain read-only; no case/tranche approval, release, or lifecycle stage transition is present",
+            "runtime can call the bounded reads but cannot directly read private funding tables or receipts; Directus cannot call the functions",
+            "review page bounds and missing exact review grants fail closed",
         ],
     }
     try:
@@ -637,11 +799,17 @@ def main() -> int:
         psql(docker, container, migration_489)
         psql(docker, container, migration_489)
         psql(docker, container, FUNDING_SUBMISSION_ACCEPTANCE)
+        psql(docker, container, FUNDING_REVIEW_FIXTURE)
+        migration_490 = REVIEW_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, migration_490)
+        psql(docker, container, migration_490)
+        psql(docker, container, FUNDING_REVIEW_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["assertions_passed"] = 9
         evidence["proposal_assertions_passed"] = 7
         evidence["submission_assertions_passed"] = 7
-        print("PASS: migrations 459/466/467/468/488/489 apply, migrations 468/488/489 replay, funding projections, draft proposals, and submission acceptances passed")
+        evidence["review_assertions_passed"] = 7
+        print("PASS: migrations 459/466/467/468/488/489/490 apply, migrations 468/488/489/490 replay, funding projections, draft proposals, submission, and private review acceptances passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"
