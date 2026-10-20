@@ -19,14 +19,18 @@ rationale, evidence, or participant identities. Five additional paged status
 views cover adoption programs, scale gates, replications, learning, and
 retirements under the same exact location grant; fixed fields omit IDs,
 narratives, evidence, and person-level details, and adoption cohort counts
-remain hidden below the database threshold. The combined CAP-025/CAP-035
-console, Gateway read/action, and route-policy selection passes 139 tests;
-Ruff, inline JavaScript parsing, capability validation, inventory refresh, and
-diff checks pass. No database, migration, candidate, or legacy system was
+remain hidden below the database threshold. The console also allows operators
+with both exact read and create grants to propose learning from a completed,
+reviewed replication. It uses the existing bounded action, explicit confirmation,
+CSRF/no-store requests, and retry-stable request IDs; new records remain proposed
+for independent review, with no decision or application controls. The combined
+CAP-025/CAP-035 console, Gateway, action, and route-policy selection passes 166
+tests; Ruff, inline JavaScript parsing, capability validation, inventory refresh,
+and diff checks pass. No database, migration, candidate, or legacy system was
 used.
 CAP-025 and CAP-035 remain prepared pending their remaining source/workflow
 parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and
-owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
+owner acceptance. Checklist: 725 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. Evidence:
 [CAP-025 contract](stakeholder-identity-kernel-contract.md),
 [CAP-035 contract](solution-lifecycle-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
@@ -2003,6 +2007,27 @@ remains prepared pending remaining workflow and populated-fixture parity, live
 OIDC/browser acceptance, broader ACL/RLS, recovery, and owner acceptance.
 Checklist: 724 complete / 24 open; matrix: 66 rows (31 baseline-retained, 7
 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 learning-proposal operator form — 20 October 2026
+
+The CAP-035 console now supports proposing a learning record from a completed,
+actively reviewed replication. The form is available only where the operator has
+both exact location `solution_lifecycle:read` and `solution_lifecycle:create`
+grants, and it uses the existing Gateway read and write routes. It enforces the
+route's fixed lesson, confidence, transferability, and reference bounds; requires
+nonempty evidence and an explicit acknowledgement; and submits same-origin,
+no-store, CSRF-protected requests. An unchanged retry reuses its request ID if
+the prior response was uncertain. The operation creates a `proposed` record
+requiring independent review. The form has no approve, reject, or apply controls.
+
+The combined CAP-025/CAP-035 console, Gateway, action, and route-policy selection
+passes 166 tests; Ruff and inline JavaScript parsing pass. No migration or
+database was needed, and candidate/legacy state remains untouched. CAP-035 stays
+prepared pending remaining lifecycle parity, populated fixtures, live OIDC/browser,
+broader ACL/RLS, recovery, and owner acceptance. Checklist: 725 complete / 24
+open; the matrix remains 66 rows (31 baseline-retained, 7 deployed, 28 prepared).
+[Contract](solution-lifecycle-kernel-read-contract.md); [console](../apps/operator-console/index.html);
 [tests](../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 experiment status console read — 20 October 2026

@@ -201,8 +201,18 @@ that count remains withheld below the five-reference threshold. Identifiers,
 raw references, narratives, evidence, measurements, and person-level details
 are not rendered. All reads are same-origin and no-store, limited to 25 rows per
 page, and stale responses are discarded when the location or selected view
-changes. No lifecycle mutation is available, and source checks do not
-constitute live OIDC/browser acceptance.
+changes.
+
+The console also offers a learning-proposal form only when the signed session
+has both exact location `solution_lifecycle:read` and `solution_lifecycle:create`
+grants. It selects sources from the existing bounded replication read and
+filters to completed replications with an active review. The form sends only the
+allowlisted fields accepted by the existing learning-proposal action, requires
+bounded nonempty evidence and explicit acknowledgement, and uses same-origin,
+no-store, CSRF-protected POSTs. It retains the request ID for an unchanged retry
+if the response is uncertain. The action creates a `proposed` record that needs
+independent human review; the console cannot approve, reject, or apply it. Source
+checks do not constitute live OIDC/browser acceptance.
 
 ## Verification and remaining parity
 

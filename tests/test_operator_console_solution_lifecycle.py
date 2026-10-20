@@ -43,7 +43,7 @@ def test_summary_uses_same_origin_no_store_route_and_discards_stale_location_res
 
 def test_gate_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleGates(", "function renderCoordinationSummary(")
+    reader = _function(source, "async function loadSolutionLifecycleGates(", "function appendSolutionLifecycleExperiment(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -76,7 +76,7 @@ def test_gate_panel_displays_only_fixed_non_mutating_status_fields():
 
 def test_experiment_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleExperiments(", "function renderCoordinationSummary(")
+    reader = _function(source, "async function loadSolutionLifecycleExperiments(", "function appendSolutionLifecycleFundingCase(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -112,7 +112,7 @@ def test_experiment_renderer_limits_result_visibility_to_reviewed_enum_and_metad
 
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function renderCoordinationSummary(")
+    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleSupplementalRecord(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -168,7 +168,7 @@ def test_supplemental_projection_routes_and_result_keys_are_fixed_allowlists():
 
 def test_supplemental_projection_reader_uses_same_origin_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function renderCoordinationSummary(")
+    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function resetSolutionLifecycleLearningSources(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/${view.route}?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -196,6 +196,46 @@ def test_supplemental_renderer_uses_fixed_view_fields_and_hides_small_adoption_c
     assert "Object.entries" not in renderer
     assert "textContent" in renderer
     assert "innerHTML" not in renderer
+
+
+def test_learning_proposal_source_loader_requires_both_grants_and_filters_reviewed_completion():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-learning-proposal".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert 'solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+    reader = _function(source, "async function loadSolutionLifecycleLearningSources(", "function learningReferenceLines(")
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "solutionLifecycleCreateLocations.has(locationId)" in reader
+    assert 'new URLSearchParams({ limit: "50", offset: String(offset) })' in reader
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications?${params}`' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert 'record.replication_status !== "completed"' in reader
+    assert "record.has_review !== true" in reader
+    assert 'option.value = record.replication_id' in reader
+    assert "option.textContent" in reader
+    assert "replication_id}" not in reader
+
+
+def test_learning_proposal_submit_is_create_scoped_draft_only_csrf_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(source, "async function submitSolutionLifecycleLearningProposal(", "function renderCoordinationSummary(")
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "create"' in source
+    assert '"#solution-lifecycle-learning-confirm"' in submit
+    assert "solutionLifecyclePendingLearningProposal.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingLearningProposal.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(replicationId)}/learning`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'body: JSON.stringify({ ...proposal, request_id: requestId })' in submit
+    assert "proposed and requires independent human review" in submit
+    assert "decision_status" not in submit and "approve" not in submit and "accept" not in submit
+    assert "lockSolutionLifecycleLearningProposalForRetry(true)" in submit
+    assert "solutionLifecycleLocation.disabled = locked" in source
 
 
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():
@@ -231,6 +271,10 @@ def test_console_ids_are_unique_and_refresh_controls_are_wired():
     assert 'solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection())' in source
     assert 'solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true))' in source
     assert 'solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection())' in source
+    assert 'solutionLifecycleLearningSourcesLoad.addEventListener("click", () => loadSolutionLifecycleLearningSources())' in source
+    assert 'solutionLifecycleLearningSourcesMore.addEventListener("click", () => loadSolutionLifecycleLearningSources(true))' in source
+    assert 'solutionLifecycleLearningProposalForm.addEventListener("submit", submitSolutionLifecycleLearningProposal)' in source
+    assert 'document.querySelector("#solution-lifecycle-learning-reset").addEventListener("click"' in source
     assert 'document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary)' in source
 
 

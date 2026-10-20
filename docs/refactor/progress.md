@@ -1,3 +1,22 @@
+### CAP-035 learning-proposal operator form — 20 October 2026
+
+The lifecycle console now lets operators propose learning from a completed,
+actively reviewed replication. It requires both exact location read and create
+grants, loads sources through the existing bounded replication route, and sends
+proposals through the existing Gateway action. The form applies allowlisted
+fields and input bounds, requires evidence and explicit acknowledgement, and uses
+same-origin, no-store, CSRF-protected requests. An unchanged retry reuses its
+request ID after an uncertain response. Records remain `proposed` for independent
+review; no decision or application controls are available.
+
+The combined CAP-025/CAP-035 console, Gateway, action, and route-policy selection
+passes 166 tests; Ruff and inline JavaScript parsing pass. No migration or
+database was needed; candidate and legacy state were untouched. CAP-035 remains
+prepared pending remaining lifecycle parity, populated fixtures, live OIDC/browser,
+broader ACL/RLS, recovery, and owner acceptance. Checklist: 725 complete / 24
+open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+
 ### CAP-035 supplemental lifecycle status console — 20 October 2026
 
 The operator console now pages adoption-program, scale-gate, replication,

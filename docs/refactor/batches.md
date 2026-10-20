@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 19 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 20 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 724 checklist items complete and 24
-open (748 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (20 October 2026):** 725 checklist items complete and 24
+open (749 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1554,6 +1554,7 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
   - [x] Add the CAP-035 experiment status console using the existing exact-grant `/experiments` read. It pages location-linked experiments and displays fixed lifecycle metadata plus only the latest reviewed outcome; protocol narratives, metric names/values, observations, adverse-event details, evidence, and reviewer identities remain excluded. The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy selection passes 134 tests with Ruff and inline JavaScript syntax. No database or migration was needed; candidate and legacy remain untouched. Experiment evidence/review workflows, other lifecycle details and writes, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 remain open ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_operator_console_solution_lifecycle.py)).
   - [x] Add the CAP-035 funding/tranche status console using the existing exact-grant `/funding` read. The view pages location-linked case/tranche labels, currency, and timestamps, while omitting all amounts, milestone terms, rationale, evidence, and submitter/approver/releaser identities; no approval or release actions are exposed. The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy selection passes 136 tests; Ruff and JavaScript syntax pass. No migration or database was needed. Other lifecycle detail/write workflows, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 remain open ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_operator_console_solution_lifecycle.py)).
   - [x] Add paged status panels for adoption programs, scale gates, replications, learning records, and retirements from the existing exact-grant reads. The fixed views use same-origin no-store requests, 25-row pagination, stale-location/view guards, and text-only rendering. They omit identifiers, evidence, narratives, and person-level details; the adoption count stays suppressed below the database's five-reference threshold. The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy selection passes 139 tests; Ruff and inline JavaScript parsing pass. No migration or database was needed and candidate/legacy remain untouched. CAP-035 stays prepared; populated parity, live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance remain open ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_operator_console_solution_lifecycle.py)). Checklist: 724 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+  - [x] Add a location-scoped CAP-035 learning-proposal form using the existing `/replications` read and `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning` action. The panel requires both exact read and create grants, offers only completed replications with an active review, applies the Gateway allowlists and bounds, uses explicit acknowledgement, CSRF/no-store same-origin requests, and keeps one request ID stable for an unchanged retry. It creates only `proposed` learning records; no approve, reject, or apply action is exposed. The combined CAP-025/CAP-035 console, Gateway, action, and route-policy selection passes 166 tests; Ruff and inline JavaScript parsing pass. No migration or database was needed and candidate/legacy remain untouched. CAP-035 remains prepared pending other workflow parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance ([contract](solution-lifecycle-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py)).
 
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
 

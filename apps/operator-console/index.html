@@ -630,6 +630,62 @@
           <p id="solution-lifecycle-projection-status" class="muted" role="status" aria-live="polite"></p>
           <div id="solution-lifecycle-projection-rows"></div>
           <button id="solution-lifecycle-projection-more" class="secondary" type="button" hidden>Load more records</button>
+          <section id="solution-lifecycle-learning-proposal" hidden aria-labelledby="solution-lifecycle-learning-proposal-heading">
+            <h3 id="solution-lifecycle-learning-proposal-heading">Propose learning from a reviewed replication</h3>
+            <p class="muted">Requires both location read and create grants. This submits a learning record in proposed status for independent review; it does not accept, reject, or apply learning.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-learning-sources-load" type="button">Load eligible replications</button>
+              <button id="solution-lifecycle-learning-sources-more" class="secondary" type="button" hidden>Load more sources</button>
+            </div>
+            <p id="solution-lifecycle-learning-sources-status" class="muted" role="status" aria-live="polite"></p>
+            <form id="solution-lifecycle-learning-proposal-form" class="stacked-form">
+              <label for="solution-lifecycle-learning-replication">Completed, reviewed replication</label>
+              <select id="solution-lifecycle-learning-replication" required>
+                <option value="">Load eligible replications, then choose a source</option>
+              </select>
+              <label for="solution-lifecycle-learning-type">Lesson type</label>
+              <select id="solution-lifecycle-learning-type" required>
+                <option value="validated_assumption">Validated assumption</option>
+                <option value="invalidated_assumption">Invalidated assumption</option>
+                <option value="implementation">Implementation</option>
+                <option value="adoption">Adoption</option>
+                <option value="safety">Safety</option>
+                <option value="economic">Economic</option>
+                <option value="equity">Equity</option>
+                <option value="context_transfer">Context transfer</option>
+              </select>
+              <label for="solution-lifecycle-learning-finding">Finding</label>
+              <textarea id="solution-lifecycle-learning-finding" maxlength="4000" required></textarea>
+              <label for="solution-lifecycle-learning-confidence">Confidence</label>
+              <select id="solution-lifecycle-learning-confidence" required>
+                <option value="moderate">Moderate</option>
+                <option value="high">High</option>
+                <option value="low">Low</option>
+                <option value="insufficient_evidence">Insufficient evidence</option>
+              </select>
+              <label for="solution-lifecycle-learning-transferability">Transferability</label>
+              <select id="solution-lifecycle-learning-transferability" required>
+                <option value="unknown">Unknown</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <label for="solution-lifecycle-learning-assumptions">Affected assumption references (one per line, optional)</label>
+              <textarea id="solution-lifecycle-learning-assumptions" maxlength="64000"></textarea>
+              <label for="solution-lifecycle-learning-metrics">Affected metric references (one per line, optional)</label>
+              <textarea id="solution-lifecycle-learning-metrics" maxlength="64000"></textarea>
+              <label for="solution-lifecycle-learning-recommendation">Recommended follow-up</label>
+              <textarea id="solution-lifecycle-learning-recommendation" maxlength="4000" required></textarea>
+              <label for="solution-lifecycle-learning-evidence">Evidence references (one URL or reference per line)</label>
+              <textarea id="solution-lifecycle-learning-evidence" maxlength="64000" required></textarea>
+              <label><input id="solution-lifecycle-learning-confirm" type="checkbox" required> I confirm this creates a proposed record that needs separate human review.</label>
+              <div class="toolbar">
+                <button id="solution-lifecycle-learning-submit" type="submit">Submit learning proposal</button>
+                <button id="solution-lifecycle-learning-reset" class="secondary" type="button">Clear proposal form</button>
+              </div>
+            </form>
+            <p id="solution-lifecycle-learning-proposal-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
         </section>
         <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
           <h2 id="coordination-summary-heading">Coordination overview</h2>
@@ -1001,7 +1057,17 @@
       const solutionLifecycleProjectionStatus = document.querySelector("#solution-lifecycle-projection-status");
       const solutionLifecycleProjectionRows = document.querySelector("#solution-lifecycle-projection-rows");
       const solutionLifecycleProjectionMore = document.querySelector("#solution-lifecycle-projection-more");
+      const solutionLifecycleLearningProposal = document.querySelector("#solution-lifecycle-learning-proposal");
+      const solutionLifecycleLearningSourcesLoad = document.querySelector("#solution-lifecycle-learning-sources-load");
+      const solutionLifecycleLearningSourcesMore = document.querySelector("#solution-lifecycle-learning-sources-more");
+      const solutionLifecycleLearningSourcesStatus = document.querySelector("#solution-lifecycle-learning-sources-status");
+      const solutionLifecycleLearningProposalForm = document.querySelector("#solution-lifecycle-learning-proposal-form");
+      const solutionLifecycleLearningReplication = document.querySelector("#solution-lifecycle-learning-replication");
+      const solutionLifecycleLearningSubmit = document.querySelector("#solution-lifecycle-learning-submit");
+      const solutionLifecycleLearningReset = document.querySelector("#solution-lifecycle-learning-reset");
+      const solutionLifecycleLearningProposalStatus = document.querySelector("#solution-lifecycle-learning-proposal-status");
       let solutionLifecycleLocations = new Set();
+      let solutionLifecycleCreateLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
       let solutionLifecycleGatesOffset = 0;
@@ -1011,6 +1077,9 @@
       let solutionLifecycleFundingOffset = 0;
       let solutionLifecycleProjectionRequestVersion = 0;
       let solutionLifecycleProjectionOffset = 0;
+      let solutionLifecycleLearningSourcesRequestVersion = 0;
+      let solutionLifecycleLearningSourcesOffset = 0;
+      let solutionLifecyclePendingLearningProposal = null;
       const solutionLifecycleSupplementalViews = Object.freeze({
         adoption: {
           route: "adoption", responseKey: "programs", title: "Adoption program",
@@ -2015,6 +2084,191 @@
         }
       }
 
+      function resetSolutionLifecycleLearningSources() {
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Load eligible replications, then choose a source";
+        solutionLifecycleLearningReplication.replaceChildren(placeholder);
+      }
+
+      async function loadSolutionLifecycleLearningSources(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleLearningSourcesRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)) {
+          resetSolutionLifecycleLearningSources();
+          solutionLifecycleLearningSourcesMore.hidden = true;
+          solutionLifecycleLearningSourcesStatus.textContent = "Both location read and create grants are required to load learning-proposal sources.";
+          return;
+        }
+        const offset = append ? solutionLifecycleLearningSourcesOffset : 0;
+        solutionLifecycleLearningSourcesLoad.disabled = true;
+        solutionLifecycleLearningSourcesMore.disabled = true;
+        if (!append) {
+          resetSolutionLifecycleLearningSources();
+          solutionLifecycleLearningSourcesMore.hidden = true;
+        }
+        solutionLifecycleLearningSourcesStatus.textContent = "Loading completed, reviewed replications…";
+        try {
+          const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location solution-lifecycle grant is no longer valid. Reload the console to refresh access.");
+            }
+            throw new Error("Eligible learning sources could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleLearningSourcesRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const records = Array.isArray(result.replications) ? result.replications : [];
+          for (const record of records) {
+            if (record.replication_status !== "completed" || record.has_review !== true
+                || typeof record.replication_id !== "string"
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.replication_id)
+                || [...solutionLifecycleLearningReplication.options].some((option) => option.value === record.replication_id)) continue;
+            const option = document.createElement("option");
+            option.value = record.replication_id;
+            option.textContent = `${record.solution_name || "Location-linked solution"} · completed and reviewed${record.replication_created_at ? ` · ${record.replication_created_at}` : ""}`;
+            solutionLifecycleLearningReplication.append(option);
+          }
+          solutionLifecycleLearningSourcesOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleLearningSourcesMore.hidden = result.has_more !== true
+            || solutionLifecycleLearningSourcesOffset <= offset;
+          const eligibleCount = Math.max(0, solutionLifecycleLearningReplication.options.length - 1);
+          solutionLifecycleLearningSourcesStatus.textContent = eligibleCount
+            ? `${eligibleCount} completed, reviewed source${eligibleCount === 1 ? "" : "s"} available. Record IDs are used only as form values.`
+            : result.has_more === true
+              ? "No eligible sources on this page. Load more to continue."
+              : "No completed, reviewed replications are available for this location.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleLearningSourcesRequestVersion) return;
+          solutionLifecycleLearningSourcesStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleLearningSourcesRequestVersion) {
+            solutionLifecycleLearningSourcesLoad.disabled = false;
+            solutionLifecycleLearningSourcesMore.disabled = false;
+          }
+        }
+      }
+
+      function learningReferenceLines(selector, name, required = false) {
+        const values = document.querySelector(selector).value
+          .split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+        if ((required && values.length === 0) || values.length > 100) {
+          throw new Error(`${name} must contain ${required ? "one or more" : "at most 100"} nonempty lines.`);
+        }
+        if (new TextEncoder().encode(JSON.stringify(values)).length > 65536) {
+          throw new Error(`${name} exceeds the 64 KiB limit.`);
+        }
+        return values;
+      }
+
+      function lockSolutionLifecycleLearningProposalForRetry(submitting = false) {
+        const locked = Boolean(solutionLifecyclePendingLearningProposal);
+        for (const field of solutionLifecycleLearningProposalForm.querySelectorAll("input, select, textarea")) {
+          field.disabled = locked;
+        }
+        solutionLifecycleLearningSubmit.disabled = submitting;
+        solutionLifecycleLearningReset.disabled = locked;
+        solutionLifecycleLocation.disabled = locked;
+      }
+
+      async function submitSolutionLifecycleLearningProposal(event) {
+        event.preventDefault();
+        const locationId = solutionLifecycleLocation.value;
+        const replicationId = solutionLifecycleLearningReplication.value;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)
+            || !replicationId) {
+          solutionLifecycleLearningProposalStatus.textContent = "Select a completed, reviewed replication and a location with both read and create grants.";
+          return;
+        }
+        if (!document.querySelector("#solution-lifecycle-learning-confirm").checked) {
+          solutionLifecycleLearningProposalStatus.textContent = "Confirm that this creates a proposal requiring separate human review.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleLearningProposalStatus.textContent = "Refresh the operator session before submitting a learning proposal.";
+          return;
+        }
+        let proposal;
+        try {
+          const evidenceRefs = learningReferenceLines("#solution-lifecycle-learning-evidence", "Evidence references", true);
+          proposal = {
+            lesson_type: document.querySelector("#solution-lifecycle-learning-type").value,
+            finding: document.querySelector("#solution-lifecycle-learning-finding").value.trim(),
+            confidence: document.querySelector("#solution-lifecycle-learning-confidence").value,
+            transferability: document.querySelector("#solution-lifecycle-learning-transferability").value,
+            affected_assumptions: learningReferenceLines("#solution-lifecycle-learning-assumptions", "Affected assumptions"),
+            affected_metrics: learningReferenceLines("#solution-lifecycle-learning-metrics", "Affected metrics"),
+            recommended_action: document.querySelector("#solution-lifecycle-learning-recommendation").value.trim(),
+            evidence: evidenceRefs.map((source) => ({ source }))
+          };
+          if (!proposal.finding || proposal.finding.length > 4000
+              || !proposal.recommended_action || proposal.recommended_action.length > 4000) {
+            throw new Error("Finding and recommended follow-up are required and limited to 4,000 characters each.");
+          }
+        } catch (error) {
+          solutionLifecycleLearningProposalStatus.textContent = error.message;
+          return;
+        }
+        const fingerprint = JSON.stringify({ replication_id: replicationId, ...proposal });
+        if (solutionLifecyclePendingLearningProposal
+            && solutionLifecyclePendingLearningProposal.fingerprint !== fingerprint) {
+          solutionLifecycleLearningProposalStatus.textContent = "The prior response may be uncertain. Retry the exact same proposal or clear the form before changing it.";
+          return;
+        }
+        if (!solutionLifecyclePendingLearningProposal) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleLearningProposalStatus.textContent = "A secure browser context is required to submit a learning proposal.";
+            return;
+          }
+          solutionLifecyclePendingLearningProposal = { fingerprint, request_id: requestId };
+        }
+        const requestId = solutionLifecyclePendingLearningProposal.request_id;
+        lockSolutionLifecycleLearningProposalForRetry(true);
+        solutionLifecycleLearningProposalStatus.textContent = "Submitting proposed learning record…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(replicationId)}/learning`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...proposal, request_id: requestId })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingLearningProposal = null;
+            throw new Error("Your session or location solution-lifecycle create grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingLearningProposal = null;
+            throw new Error(result.error || "The learning proposal could not be submitted.");
+          }
+          solutionLifecyclePendingLearningProposal = null;
+          solutionLifecycleLearningProposalForm.reset();
+          solutionLifecycleLearningProposalStatus.textContent = "The learning record is proposed and requires independent human review. No decision or application was made.";
+        } catch (error) {
+          solutionLifecycleLearningProposalStatus.textContent = solutionLifecyclePendingLearningProposal
+            ? `${error.message} The result may be uncertain; retry the unchanged proposal to reuse its request ID.`
+            : error.message;
+        } finally {
+          lockSolutionLifecycleLearningProposalForRetry();
+        }
+      }
+
       function renderCoordinationSummary(summary) {
         coordinationSummaryCounts.replaceChildren();
         for (const [field, label] of [
@@ -2988,6 +3242,11 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           solutionLifecycleLocations = new Set(solutionLifecycleLocationIds);
+          solutionLifecycleCreateLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "create")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
           const coordinationLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "coordination" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -3267,6 +3526,8 @@
               option.textContent = locationId;
               solutionLifecycleLocation.append(option);
             }
+            solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+              || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
             await loadSolutionLifecycleSummary();
             hasAuthorizedSurface = true;
@@ -6547,6 +6808,16 @@
         solutionLifecycleProjectionMore.hidden = true;
         solutionLifecycleProjectionLoad.disabled = false;
         solutionLifecycleProjectionMore.disabled = false;
+        solutionLifecycleLearningSourcesRequestVersion += 1;
+        solutionLifecycleLearningSourcesOffset = 0;
+        resetSolutionLifecycleLearningSources();
+        solutionLifecycleLearningSourcesStatus.textContent = "";
+        solutionLifecycleLearningSourcesMore.hidden = true;
+        solutionLifecyclePendingLearningProposal = null;
+        solutionLifecycleLearningProposalForm.reset();
+        solutionLifecycleLearningProposalStatus.textContent = "";
+        solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+          || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         loadSolutionLifecycleSummary();
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
@@ -6558,6 +6829,24 @@
       solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection());
       solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true));
       solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection());
+      solutionLifecycleLearningSourcesLoad.addEventListener("click", () => loadSolutionLifecycleLearningSources());
+      solutionLifecycleLearningSourcesMore.addEventListener("click", () => loadSolutionLifecycleLearningSources(true));
+      solutionLifecycleLearningProposalForm.addEventListener("submit", submitSolutionLifecycleLearningProposal);
+      document.querySelector("#solution-lifecycle-learning-reset").addEventListener("click", () => {
+        if (solutionLifecyclePendingLearningProposal) {
+          solutionLifecycleLearningProposalStatus.textContent = "A request may already have reached the server. Retry the unchanged proposal before clearing it.";
+          return;
+        }
+        solutionLifecyclePendingLearningProposal = null;
+        solutionLifecycleLearningProposalForm.reset();
+        solutionLifecycleLearningProposalStatus.textContent = "Proposal form cleared; no learning record was submitted.";
+      });
+      window.addEventListener("beforeunload", (event) => {
+        if (solutionLifecyclePendingLearningProposal) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
       document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
       coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
       document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());
