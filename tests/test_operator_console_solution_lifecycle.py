@@ -285,6 +285,34 @@ def test_experiment_result_review_form_is_exact_grant_and_pending_state_gated():
     assert "createSolutionLifecycleExperimentReviewPanel(experiment.experiment_id)" in renderer
 
 
+def test_experiment_submission_form_is_submit_grant_gated_and_separate_from_approval():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(",
+        "function createSolutionLifecycleExperimentSubmissionForm(",
+    )
+    assert 'experiment.experiment_status === "draft"' in renderer
+    assert "solutionLifecycleSubmitLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentSubmissionForm(experiment)" in renderer
+
+    form = _function(
+        source,
+        "function createSolutionLifecycleExperimentSubmissionForm(",
+        "function createSolutionLifecycleExperimentReviewPanel(",
+    )
+    assert "Only the active human who owns this draft can submit it" in form
+    assert "does not approve the protocol" in form
+    assert "solutionLifecycleLocations.has(locationId)" in form
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in form
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experiment.experiment_id)}/submit`' in form
+    assert "form.pendingExperimentSubmissionRequestId" in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert 'cache: "no-store"' in form and 'credentials: "same-origin"' in form
+    assert "await Promise.all([loadSolutionLifecycleExperiments(), loadSolutionLifecycleSummary()])" in form
+    assert "innerHTML" not in form
+
+
 def test_experiment_result_review_uses_private_text_detail_csrf_and_stable_retry():
     source = CONSOLE.read_text(encoding="utf-8")
     review = _function(

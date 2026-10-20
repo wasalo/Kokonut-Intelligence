@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "507_location_solution_experiment_submission.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 507 applies and replays after the ordered experiment-draft chain",
+    "submission requires a signed exact-location submit grant and an active human",
+    "only the active protocol owner can submit an eligible active location-origin draft",
+    "submission changes draft to submitted without approval or solution-stage mutation",
+    "exact request retries replay the immutable receipt and collisions are rejected",
+    "new request IDs cannot resubmit a submitted experiment",
+    "runtime and Directus cannot read, forge, edit, or delete private receipts",
+    "Directus cannot execute submission and the non-login submitter has bounded update access"
+  ],
+  "acceptance_groups_passed": 8
+}

@@ -472,6 +472,57 @@ def create_location_solution_experiment(
         connection.close()
 
 
+def submit_location_solution_experiment_protocol(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    request_id: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit an owner-authored experiment draft for separate protocol review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Experiment submission requires explicit acknowledgement"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="submit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.submit_location_solution_experiment_protocol(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, experiment_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Experiment protocol submission returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def _mapping(cursor, row) -> dict:
     return dict(zip((column.name for column in (cursor.description or ())), row))
 

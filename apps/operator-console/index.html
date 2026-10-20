@@ -3732,6 +3732,12 @@
           details.append(term, description);
         }
         article.append(heading, details);
+        if (experiment.experiment_status === "draft"
+            && solutionLifecycleSubmitLocations.has(solutionLifecycleLocation.value)
+            && typeof experiment.experiment_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
+          article.append(createSolutionLifecycleExperimentSubmissionForm(experiment));
+        }
         if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
             && experiment.experiment_status === "completed"
             && !experiment.latest_result_reviewed_at
@@ -3740,6 +3746,87 @@
           article.append(createSolutionLifecycleExperimentReviewPanel(experiment.experiment_id));
         }
         solutionLifecycleExperimentRows.append(article);
+      }
+
+      function createSolutionLifecycleExperimentSubmissionForm(experiment) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const heading = document.createElement("h5");
+        heading.textContent = "Submit protocol draft for independent review";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "Only the active human who owns this draft can submit it. Submission does not approve the protocol, establish participant consent, collect observations, or start the experiment.";
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(
+          acknowledgement,
+          document.createTextNode(" I confirm this protocol draft is ready for separate human review.")
+        );
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Submit protocol draft";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(heading, explanation, acknowledgementLabel, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleSubmitLocations.has(locationId)) {
+            status.textContent = "Current exact location read and submit grants are required.";
+            return;
+          }
+          if (!acknowledgement.checked) {
+            status.textContent = "Confirm the protocol submission acknowledgement to continue.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before submitting this protocol.";
+            return;
+          }
+          if (!form.pendingExperimentSubmissionRequestId) {
+            form.pendingExperimentSubmissionRequestId = globalThis.crypto?.randomUUID?.();
+          }
+          if (!form.pendingExperimentSubmissionRequestId) {
+            status.textContent = "A secure browser context is required to submit this protocol.";
+            return;
+          }
+          submit.disabled = true;
+          status.textContent = "Submitting the draft for independent protocol review…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experiment.experiment_id)}/submit`,
+              {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({
+                  request_id: form.pendingExperimentSubmissionRequestId,
+                  acknowledged: true
+                })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, submit grant, or protocol ownership is no longer valid.");
+            }
+            if (!response.ok) throw new Error(result.error || "The protocol could not be submitted.");
+            form.pendingExperimentSubmissionRequestId = null;
+            status.textContent = result.replayed === true
+              ? "The original protocol submission was confirmed after retry. It is still awaiting independent approval."
+              : "Protocol submitted for independent review. It has not been approved or started.";
+            await Promise.all([loadSolutionLifecycleExperiments(), loadSolutionLifecycleSummary()]);
+          } catch (error) {
+            status.textContent = `${error.message} Retrying reuses the same request ID.`;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       function createSolutionLifecycleExperimentReviewPanel(experimentId) {

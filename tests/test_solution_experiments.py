@@ -50,7 +50,14 @@ def test_validated_experiment_can_create_replication():
             )
             experiment_id = str(cur.fetchone()[0])
         conn.commit()
-        solution_experiments.submit_protocol(conn, experiment_id)
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE solution_experiment SET status = 'submitted' "
+                "WHERE id = %s::uuid AND status = 'draft' RETURNING id",
+                (experiment_id,),
+            )
+            assert cur.fetchone() is not None
+        conn.commit()
         solution_experiments.approve_protocol(conn, experiment_id, PARTY_ID)
         solution_experiments.start_experiment(conn, experiment_id, PARTY_ID)
         solution_experiments.record_observation(conn, experiment_id, "water_reliability", 80, "baseline", recorded_by_party_id=PARTY_ID)
@@ -95,5 +102,13 @@ def test_legacy_experiment_creation_fails_before_database_access():
             mock_conn, "solution-id", "hypothesis", "baseline", "treatment",
             "unit", "rollback", owner_party_id=PARTY_ID,
         )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_experiment_submission_fails_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(RuntimeError, match="location-scoped Solution Lifecycle Gateway"):
+        solution_experiments.submit_protocol(mock_conn, "experiment-id")
     mock_conn.cursor.assert_not_called()
     mock_conn.commit.assert_not_called()

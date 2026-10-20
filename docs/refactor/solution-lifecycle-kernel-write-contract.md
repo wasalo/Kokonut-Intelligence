@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–506 are additive and are
+**Status:** prepared implementation contract; migrations 488–507 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -114,6 +114,41 @@ bound to the original payload. Disposable PostgreSQL 16 applies/replays migratio
 origin/stage eligibility, payload validation, exact retries, draft-only state,
 protocol immutability, and role boundaries. Candidate and legacy databases are
 untouched; migration 506 has not been rolled out.
+
+## Location-origin experiment protocol submission
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/submit`
+submits an owner-authored experiment draft for independent protocol review. It
+requires signed exact-location `solution_lifecycle:submit` context, an enabled
+operator with an active human-party binding, an experiment for an active
+location-origin solution whose canonical origin equals the requested location,
+and a current solution stage of `experiment_ready` or `testing`. The active
+bound human must equal the experiment's `owner_party_id`; another operator or
+human cannot submit the draft.
+
+The strict request contains only `request_id` and explicit `acknowledged: true`.
+The database function rechecks the current grant, human binding, owner, origin,
+stage, and `draft` status. It atomically changes only the experiment status to
+`submitted`, updates its timestamp, and writes a private append-only receipt
+containing operator, human, location, solution, experiment, request ID, and
+payload digest. An exact retry returns the original submission timestamp even
+after a later lifecycle action; changed input under the same operator/request
+ID fails. A second request ID cannot submit an already-submitted experiment.
+Runtime can execute the bounded function but cannot access receipts directly;
+Directus cannot execute it or read/write its receipts.
+
+The console shows the form only to operators with exact location read and submit
+grants. It requires a human acknowledgement, same-origin CSRF, no-store requests,
+and a stable ID for retries. Submission does not approve the protocol, establish
+participant consent, collect observations, start the experiment, analyze results,
+complete it, or change the solution stage. The legacy direct
+`solution_experiments.submit_protocol` helper fails before database access.
+
+Disposable PostgreSQL 16 applies and replays migration 507 after the ordered
+experiment-draft chain and checks owner-only submission, exact scope, current
+eligibility, retries and collisions, duplicate submission denial, no approval or
+stage change, and private receipt/function privilege boundaries. Candidate and
+legacy databases remain untouched; migration 507 has not been rolled out.
 
 ## Funding draft proposal
 
@@ -712,7 +747,7 @@ state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–506 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–507 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -723,6 +758,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–506. After application, do not edit or reverse them; disable the routes and
+488–507. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

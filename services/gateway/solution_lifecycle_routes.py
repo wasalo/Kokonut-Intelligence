@@ -29,6 +29,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         review_location_solution_replication,
         review_location_solution_replication_completion,
         review_location_solution_scale_gate_assessment,
+        submit_location_solution_experiment_protocol,
         submit_location_solution_funding,
         submit_location_solution_scale_gate_assessment,
         transition_location_solution_gate,
@@ -343,6 +344,87 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             status_code=200 if result.get("replayed") else 201,
             headers=headers,
         )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/submit"
+    )
+    async def submit_solution_experiment_protocol(
+        request: Request, location_id: str, experiment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {"request_id", "acknowledged"}
+        if (
+            not isinstance(payload, dict)
+            or set(payload) != required_fields
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Experiment submission fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                submit_location_solution_experiment_protocol,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                experiment_id,
+                payload["request_id"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle submit access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active location submit grant and protocol owner identity are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Exact-location experiment protocol not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Experiment submission input is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The experiment is no longer an eligible draft; refresh and retry"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Experiment protocol submission unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Experiment protocol submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations"

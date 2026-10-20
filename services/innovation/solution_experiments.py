@@ -28,7 +28,11 @@ def create_experiment(conn, solution_id: str, hypothesis: str, baseline_definiti
 
 
 def submit_protocol(conn, experiment_id: str) -> Dict[str, Any]:
-    return _transition(conn, experiment_id, "submitted", "draft")
+    del conn, experiment_id
+    raise RuntimeError(
+        "Direct experiment submission is disabled; submit protocols through the "
+        "location-scoped Solution Lifecycle Gateway"
+    )
 
 
 def approve_protocol(conn, experiment_id: str, approved_by_party_id: str) -> Dict[str, Any]:
