@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 40,
-    "new_success_path_cases": 25,
-    "database_backed_cases_with_stubbed_query": 19,
+    "tests_passed": 44,
+    "new_success_path_cases": 28,
+    "database_backed_cases_with_stubbed_query": 21,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -174,10 +174,29 @@
       "arguments": ["timeline", "synthetic-party"],
       "dependencies": ["PostgreSQL read; connection and query stubbed"],
       "output": "JSON trust evidence timeline rows"
+    },
+    {
+      "name": "attestation",
+      "arguments": ["schema", "list"],
+      "dependencies": ["Local schema registry; no database, chain, or signer"],
+      "output": "Formatted registered schema definitions"
+    },
+    {
+      "name": "metrics",
+      "arguments": ["--list", "--json"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "JSON metric-definition rows"
+    },
+    {
+      "name": "forecast",
+      "arguments": ["--list"],
+      "dependencies": ["PostgreSQL read; connection and cursor stubbed"],
+      "output": "Formatted scenario catalogue",
+      "database_behavior": "Standalone and unified output match; connection closes after success and query failure."
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations and nineteen PostgreSQL-backed commands whose service queries were stubbed, across 24 mounted groups.",
+    "Successful parity is covered for seven offline command invocations and twenty-one PostgreSQL-backed commands whose service queries were stubbed, across 27 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

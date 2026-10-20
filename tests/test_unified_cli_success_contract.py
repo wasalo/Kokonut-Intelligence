@@ -144,6 +144,200 @@ def test_systems_module_catalogue_output_matches_standalone_cli() -> None:
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_offline_attestation_schema_catalogue_output_matches_standalone() -> None:
+    environment = _environment()
+
+    standalone = _run(
+        ["-m", "services.attestation.cli", "schema", "list"],
+        environment,
+    )
+    unified = _run(
+        ["-m", "services.cli", "attestation", "--", "schema", "list"],
+        environment,
+    )
+
+    assert standalone.returncode == unified.returncode == 0
+    assert unified.stdout == standalone.stdout
+    assert "kokonut-mrv" in unified.stdout
+    assert unified.stderr == standalone.stderr == ""
+
+
+def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.ingestion import base as ingestion_base
+    from services.metrics import cli as metrics_cli
+
+    rows = [{
+        "metric_key": "soil_carbon",
+        "display_name": "Soil carbon",
+        "description": "Synthetic metric.",
+        "formula": "fixture",
+        "unit": "t/ha",
+        "data_type": "numeric",
+        "update_frequency": "annual",
+        "active": True,
+        "version": "1.0",
+    }]
+    connections = []
+
+    class FakeCursor:
+        query = ""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query):
+            self.query = query
+
+        def fetchall(self):
+            return rows
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(ingestion_base, "get_db", make_connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.metrics.cli", "--list", "--json"]
+        metrics_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["metrics", "--", "--list", "--json"])
+
+    assert unified.exit_code == 0, unified.output
+    assert json.loads(unified.output) == json.loads(standalone_output) == rows
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all("FROM metric_definition" in connection.fake_cursor.query for connection in connections)
+    assert all("ORDER BY metric_key" in connection.fake_cursor.query for connection in connections)
+    assert unified.stderr == ""
+
+
+def test_database_backed_forecast_catalogue_output_matches_with_stubbed_cursor(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.forecast import cli as forecast_cli
+    from services.ingestion import base as ingestion_base
+
+    rows = [("synthetic-scenario", "Baseline fixture", "farm", "active", "synthetic-location")]
+    connections = []
+
+    class FakeCursor:
+        query = ""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query):
+            self.query = query
+
+        def fetchall(self):
+            return rows
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(ingestion_base, "get_db", make_connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.forecast.cli", "--list"]
+        forecast_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["forecast", "--", "--list"])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert "Baseline fixture" in unified.output
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all("FROM forecast_scenario" in connection.fake_cursor.query for connection in connections)
+    assert unified.stderr == ""
+
+
+def test_forecast_catalogue_closes_connection_when_query_fails(monkeypatch) -> None:
+    from services.forecast import cli as forecast_cli
+    from services.ingestion import base as ingestion_base
+
+    class FakeCursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, _query):
+            raise RuntimeError("synthetic forecast catalogue failure")
+
+    class FakeConnection:
+        closed = False
+
+        def cursor(self):
+            return FakeCursor()
+
+        def close(self):
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(ingestion_base, "get_db", lambda: connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.forecast.cli", "--list"]
+        with pytest.raises(RuntimeError, match="synthetic forecast catalogue failure"):
+            forecast_cli.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.closed is True
+
+
 def test_database_backed_capability_list_output_matches_with_stubbed_query(monkeypatch, capsys) -> None:
     from typer.testing import CliRunner
 

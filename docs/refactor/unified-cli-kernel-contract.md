@@ -61,6 +61,7 @@ mounted unified command using the same arguments. It covers:
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
+| `attestation` | `schema list` | Local schema registry; no database, chain, or signer | Formatted registered schema definitions |
 | `capability-map` | `list --status active` | PostgreSQL read through the capability-map service; the query is stubbed in this test | JSON capability rows |
 | `stakeholders` | `list --party-type organization` | PostgreSQL read; connection and query are stubbed in this test | JSON party rows |
 | `strategy-map` | `list --perspective financial` | PostgreSQL read through strategy-map service; query is stubbed in this test | JSON strategy rows |
@@ -80,15 +81,17 @@ mounted unified command using the same arguments. It covers:
 | `stakeholder-identity` | `queue` | PostgreSQL read; connection and query are stubbed | JSON identity-resolution queue rows |
 | `stakeholder-representation` | `distribution-summary --scope-type location --scope-id <synthetic-location>` | PostgreSQL read; connection and query are stubbed | JSON distribution summary rows |
 | `stakeholder-trust` | `timeline <synthetic-party>` | PostgreSQL read; connection and query are stubbed | JSON trust evidence rows |
+| `metrics` | `--list --json` | PostgreSQL read; connection and cursor are stubbed | JSON metric-definition rows |
+| `forecast` | `--list` | PostgreSQL read; connection and cursor are stubbed | Formatted scenario catalogue |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Six successful offline invocations and nineteen PostgreSQL-backed
+real service. Seven successful offline invocations and twenty-one PostgreSQL-backed
 read invocations with stubbed query functions match their standalone output
-across 24 mounted groups (40 tests including the native Typer command-tree
+across 27 mounted groups (44 tests including error-path cleanup and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -99,21 +102,22 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 40-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 44-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The nineteen database-backed success paths exercise their real parsers, forwarding,
-and JSON renderers from both entry points with synthetic query results. The
+The twenty-one database-backed success paths exercise their real parsers,
+forwarding, and JSON or text output paths from both entry points with synthetic results. The
 connection-taking commands use fake connections and prove they close them.
 The governance proposal, role, link, tactical, and tension read CLIs close their
 connections after both successful and failing service calls. The stakeholder
 grievance, identity, representation, and trust read paths also close their
-connections on success. The cases confirm parsed filters reach expected
+connections on success. The forecast catalogue closes its connection after
+both successful and failing reads. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
-This closes successful output parity only for these six offline command
-invocations across five mounted groups plus nineteen stubbed database-backed
-paths. The other 13 mounted groups still need command-specific success-path checks and
+This closes successful output parity only for these seven offline command
+invocations across six mounted groups plus twenty-one stubbed database-backed
+paths. The other 10 mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 
