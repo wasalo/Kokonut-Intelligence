@@ -50,6 +50,17 @@ approved location readiness/configuration prerequisite. The experiment test
 fixture now sets its starting stage directly as fixture data rather than
 calling the legacy writer.
 
+`solution_lifecycle.create_solution` now fails before database access. Migration
+504 adds `POST /operator/api/solution-lifecycle/{location_id}/solutions`, which
+creates one discovered solution with an immutable exact location origin, active
+human attribution, opening lifecycle event, and private idempotency receipt.
+The console exposes it only under exact location read/create grants. The
+operation creates neither a cross-location link nor a custom stage gate.
+`solution_lifecycle.add_link` and `create_gate` also now fail before database
+access: links need a reviewed network/location sharing policy, and gate
+definitions need a location-scoped configuration/review contract. Their
+capabilities remain open; shutting the unscoped helper does not claim parity.
+
 Other legacy direct mutation helpers already fail closed:
 
 | Legacy helper | Scoped path |
@@ -60,6 +71,9 @@ Other legacy direct mutation helpers already fail closed:
 | `solution_adoption.record_event` | No write route yet; the helper is now fail-closed until policy-backed participant and consent linkage is implemented. |
 | `solution_lifecycle.approve_gate`, `evaluate_gate` | Exact-location human review/approval and evidence-backed evaluation actions remain available through the Gateway. |
 | `solution_lifecycle.transition` | Shared-role writer retired. Gate-backed promotion transitions remain available through migration 486; retirement uses migration 502. |
+| `solution_lifecycle.create_solution` | Exact-location discovered-solution creation is available through migration 504; the legacy shared-role helper is retired. |
+| `solution_lifecycle.add_link` | No link-management route yet; legacy writer is retired pending explicit sharing policy. |
+| `solution_lifecycle.create_gate` | No gate-definition route yet; legacy writer is retired pending scoped configuration and review policy. |
 
 ## Remaining source-to-route effects
 
@@ -69,8 +83,9 @@ mark CAP-035 complete or claim universal tenant isolation while they remain.
 | Legacy module and effect | Current Gateway coverage | Remaining work |
 | --- | --- | --- |
 | `solution_lifecycle.transition` for non-promotion stages | Migration 503 provides a bounded exact-origin target read and a signed exact-location action for nonterminal, non-promotion stages. It requires an active human binding, explicit acknowledgement, rationale/evidence, expected-stage compare-and-set, and an atomic immutable retry receipt. `adopting` rechecks approved location readiness/configuration; `superseded` and `retired` remain on the reviewed retirement workflow. | Compare behavior against populated legacy fixtures; complete live OIDC/browser acceptance, broader ACL/RLS review, recovery acceptance, and remaining source-to-route parity. |
-| `solution_lifecycle.create_solution`, `add_link` | Location reads, gate evaluation/review/approval, and gate-backed promotion transitions exist; no matching scoped solution-create or link-management write was found in the audited route module. | Define location-origin creation and explicit network/location link policy, then add a bounded route or retire the old helper after callers migrate. |
-| `solution_lifecycle.create_gate` | Evaluation, review/approval, and gate-backed promotion transition paths exist; no matching gate-creation path was found. | Move gate definition to an authorized, auditable location-scoped operation before disabling the legacy writer. |
+| `solution_lifecycle.create_solution` | Migration 504 adds exact-location discovered creation with signed create grant, active human attribution, an opening lifecycle event, bounded inputs, and an immutable retry receipt. | Compare created records against populated legacy fixtures; complete live OIDC/browser acceptance, ACL/RLS review, and recovery acceptance. |
+| `solution_lifecycle.add_link` | No link-management route. The direct helper now fails before database access. | Define reviewed network/location sharing, owner authority, revocation, and lineage rules before adding a route. |
+| `solution_lifecycle.create_gate` | No gate-definition route. The direct helper now fails before database access. | Define location-scoped gate versioning, activation, and independent review before adding a route. |
 | `solution_experiments.create_experiment`, `submit_protocol`, `approve_protocol`, `start_experiment`, `record_observation`, `complete_experiment`, `analyze_sequentially` | Experiment status/review reads and independent result review exist; replication proposal/activation/completion are separate. | Port protocol drafting/review, observation collection, analysis, and completion with location scope, consent/evidence rules, and atomic retry semantics; then retire direct writers. |
 | `solution_experiments.review_result`, `create_replication` | Scoped independent result review and replication proposal paths exist. | Retire legacy writes after call sites/tests move, and preserve reviewer separation and validated-source checks. |
 | `solution_adoption.create_program`, `assess_readiness`, `approve_configuration` | Location-scoped adoption summaries and aggregate adoption-event summaries are reads only. `record_event` now fails closed and has no replacement write route. | Add scoped program/readiness/configuration writes and a consent-aware event route. Configure policy on the program, bind event references to canonical participant identity, and validate current consent at write time. |
@@ -83,11 +98,11 @@ establish universal database ACL/RLS boundaries. CAP-035 remains prepared.
 
 ## Verification and rollback
 
-The focused Gateway/route-policy/console selection covers migration 503's
-route contracts; the disposable PostgreSQL 16 checker applies and replays 503
-after the CAP-035 chain and exercises exact scope, human binding, stage bounds,
-stale-state rejection, retries, atomicity, adoption readiness, and role
-boundaries. Candidate and legacy databases were untouched, and migration 503
-has not been rolled out. To roll back the feature before rollout, disable the
-two routes and console panel while retaining the additive migration; do not edit
-or reverse an applied migration.
+The focused Gateway/route-policy/console selection covers migration 503 and
+504 route contracts; disposable PostgreSQL 16 checkers apply and replay both
+migrations after the CAP-035 chain. Migration 504 acceptance exercises exact
+scope, active human attribution, input validation, opening-event atomicity,
+exact retry replay, changed-payload rejection, and receipt privacy. Candidate
+and legacy databases were untouched; migrations 503 and 504 have not been
+rolled out. Before rollout, disable the new route and console form while
+retaining the additive migration; do not edit or reverse an applied migration.

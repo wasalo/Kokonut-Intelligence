@@ -6,7 +6,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.ingestion.base import get_db
-from services.innovation import solution_adoption, solution_lifecycle
+from services.innovation import solution_adoption
+from tests.solution_lifecycle_fixtures import create_solution_fixture, fixture_key
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002711"
 
@@ -23,7 +24,7 @@ def test_adoption_requires_readiness_and_consent_for_use():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Adoption Lead')", (PARTY_ID,))
         conn.commit()
-        solution = solution_lifecycle.create_solution(conn, f"adoption-{uuid.uuid4().hex[:8]}", "Water practice", "practice", "Water access", owner_party_id=PARTY_ID)
+        solution = create_solution_fixture(conn, fixture_key("adoption"), "Water practice", "practice", "Water access", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
         program = solution_adoption.create_program(conn, solution_id, "location", adopter_id, "cooperative enablement", local_adaptation_policy="Keep water safety invariants")
         program_id = str(program["id"])

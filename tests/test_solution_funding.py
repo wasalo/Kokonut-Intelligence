@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.ingestion.base import get_db
-from services.innovation import solution_funding, solution_lifecycle
-
+from services.innovation import solution_funding
+from tests.solution_lifecycle_fixtures import create_solution_fixture, fixture_key
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002710"
 
@@ -23,7 +23,7 @@ def test_funding_release_requires_milestone_evidence():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Funding Reviewer')", (PARTY_ID,))
         conn.commit()
-        solution = solution_lifecycle.create_solution(conn, f"funding-{uuid.uuid4().hex[:8]}", "Field protocol", "practice", "A field problem", owner_party_id=PARTY_ID)
+        solution = create_solution_fixture(conn, fixture_key("funding"), "Field protocol", "practice", "A field problem", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
         case = solution_funding.create_case(conn, solution_id, "experiment", "grant", 1000, "Fund a bounded experiment", evidence=[{"source":"field-need"}])
         case_id = str(case["id"])

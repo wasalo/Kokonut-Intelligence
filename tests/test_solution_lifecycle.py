@@ -37,6 +37,34 @@ def test_promotion_gates_constant():
     assert "scaled" in solution_lifecycle.PROMOTION_GATES
 
 
+def test_legacy_solution_create_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
+        solution_lifecycle.create_solution(
+            mock_conn, "local-key", "A practice", "practice", "A field need"
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_solution_link_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="location-scoped sharing workflow"):
+        solution_lifecycle.add_link(
+            mock_conn, "solution-id", "location", "location-id", "supports"
+        )
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
+def test_legacy_stage_gate_create_fails_closed_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="location-scoped Gateway grant"):
+        solution_lifecycle.create_gate(mock_conn, "solution-id", "testing", "validated")
+    mock_conn.cursor.assert_not_called()
+    mock_conn.commit.assert_not_called()
+
+
 def test_legacy_gate_approval_fails_closed_before_database_access():
     mock_conn = MagicMock()
     with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):

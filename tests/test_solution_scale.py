@@ -7,6 +7,7 @@ import pytest
 
 from services.ingestion.base import get_db
 from services.innovation import solution_lifecycle, solution_scale
+from tests.solution_lifecycle_fixtures import create_gate_fixture, create_solution_fixture, fixture_key
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002712"
 PROPOSER_ID = "b0000000-0000-0000-0000-000000002713"
@@ -25,14 +26,14 @@ def test_legacy_learning_and_stage_gate_writes_fail_closed():
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Scale Reviewer')", (PARTY_ID,))
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Retirement Proposer')", (PROPOSER_ID,))
         conn.commit()
-        solution = solution_lifecycle.create_solution(conn, f"scale-{uuid.uuid4().hex[:8]}", "Validated practice", "practice", "A recurring problem", owner_party_id=PARTY_ID)
+        solution = create_solution_fixture(conn, fixture_key("scale"), "Validated practice", "practice", "A recurring problem", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
-        lifecycle_gate = solution_lifecycle.create_gate(conn, solution_id, "discovered", "scaled")
+        gate_id = create_gate_fixture(conn, solution_id, "discovered", "scaled")
         with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
-            solution_lifecycle.approve_gate(conn, str(lifecycle_gate["id"]), PARTY_ID)
+            solution_lifecycle.approve_gate(conn, gate_id, PARTY_ID)
         with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):
             solution_lifecycle.evaluate_gate(
-                conn, str(lifecycle_gate["id"]), True, PARTY_ID,
+                conn, gate_id, True, PARTY_ID,
                 evidence=[{"source": "review"}],
             )
         with pytest.raises(ValueError, match="authenticated location-scoped Gateway grant"):

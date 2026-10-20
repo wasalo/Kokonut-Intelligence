@@ -3,19 +3,9 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-035's legacy direct
-stage-transition writer now fails before database access for all valid
-non-retirement stages. Migration 486 remains the exact-location path for gate-backed promotions;
-scoped transitions to other lifecycle stages remain open. Retirement uses
-migration 502's separate workflow. The experiment test now prepares its initial lifecycle stage as
-fixture data. Focused tests pass (17 passed, 2 database-backed cases
-deselected); Ruff, compilation, capability validation, and refreshed SQL
-inventory checks pass. No database or migration was used. Checklist: 754
-complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. See
-the [source audit](solution-lifecycle-source-route-audit.md) and [write
-contract](solution-lifecycle-kernel-write-contract.md).
+**Latest implementation slice — 20 October 2026:** CAP-035 now supports exact-location solution discovery creation through migration 504 and the operator console. The bounded function creates a discovered record with fixed origin, bound-human attribution, opening lifecycle event, and private exact-retry receipt. Direct legacy creation, link, and gate-definition helpers fail before database access. Link sharing and custom gate authoring remain open pending explicit ownership/review policy. The focused selection passes 123 tests with four database-backed skips; Ruff, Python compilation, migration metadata, and runtime SQL inventory checks pass. Disposable PostgreSQL 16 applies/replays migration 504 and passes nine groups. Candidate and legacy remain untouched; migration 504 is not rolled out. Checklist: 756 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. See the [write contract](solution-lifecycle-kernel-write-contract.md), [source audit](solution-lifecycle-source-route-audit.md), and [disposable evidence](builds/2026-10-20-recovery/cap-035-solution-create-disposable.json).
 
-**Latest code-first audit slice — 20 October 2026:** CAP-036 repository source-lineage inventory is complete. A source checker confirms that one generic helper is the only SQL writer and has no production callers, and that migrations 460/478 use the same three exact location lineages. Unknown subjects remain excluded. This check did not inspect any database; populated/archived corpus mapping and output parity remain open, along with live ZITADEL/browser, broader ACL/RLS, recovery, and MAN-CAP-036 acceptance. See the [lineage inventory](sequential-evidence-subject-lineage-inventory.md), [checker](../scripts/check-sequential-subject-lineage.py), and [evidence](builds/2026-10-20-recovery/cap-036-subject-lineage-source-audit.json). The checklist is 754 complete / 24 open; the capability matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
+**Latest code-first audit slice — 20 October 2026:** CAP-036 repository source-lineage inventory is complete. A source checker confirms that one generic helper is the only SQL writer and has no production callers, and that migrations 460/478 use the same three exact location lineages. Unknown subjects remain excluded. This check did not inspect any database; populated/archived corpus mapping and output parity remain open, along with live ZITADEL/browser, broader ACL/RLS, recovery, and MAN-CAP-036 acceptance. See the [lineage inventory](sequential-evidence-subject-lineage-inventory.md), [checker](../scripts/check-sequential-subject-lineage.py), and [evidence](builds/2026-10-20-recovery/cap-036-subject-lineage-source-audit.json). The checklist is 756 complete / 24 open; the capability matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
 
 **Latest implementation slice — 20 October 2026:** CAP-035 now has an exact-
 location Gateway path for non-promotion lifecycle stage transitions. Migration

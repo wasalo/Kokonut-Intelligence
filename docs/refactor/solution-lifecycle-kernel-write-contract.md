@@ -1,11 +1,44 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–502 are additive and are
+**Status:** prepared implementation contract; migrations 488–504 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
 solution lifecycle. Existing CLI and Directus workflows remain legacy adapters;
 the Gateway path is the Kernel-owned interface.
+
+## Location-origin solution creation
+
+`POST /operator/api/solution-lifecycle/{location_id}/solutions` creates one
+discovered solution with `originating_scope_type='location'` and the exact
+requested location ID. It requires a signed `solution_lifecycle:create` grant,
+an active operator-to-person binding, explicit acknowledgement, a bounded
+opening rationale, and at most 100 JSON evidence references. The canonical key
+is globally unique; a collision returns a generic conflict without revealing
+the existing record. The operation assigns the bound person as creator and
+leaves `owner_party_id` unset for a separately governed ownership decision.
+
+The solution, discovered opening lifecycle event, and private receipt commit
+atomically. Request IDs are operator-scoped: exact retries return the original
+creation receipt, while changed input under the same ID fails. Creation does
+not add a `solution_link`, publish the solution to other locations, configure a
+stage gate, or advance lifecycle state. The console form is hidden unless the
+operator has both exact location read and create grants; it uses acknowledgement,
+CSRF, same-origin no-store requests, and stable request IDs.
+
+The non-login function owner has column-scoped access only to the active human
+binding, solution insert, opening event, and private receipt fields needed by
+the operation. Runtime can execute the function but cannot read the receipt
+directly; Directus cannot execute it. The legacy
+`solution_lifecycle.create_solution` helper now fails before database access.
+`add_link` and `create_gate` likewise fail closed until reviewed sharing and
+gate-definition policies have dedicated routes.
+
+Disposable PostgreSQL 16 acceptance applies and replays migration 504 after the
+CAP-035 chain. It verifies exact-location grants, active-human attribution,
+input validation, origin, opening-event atomicity, exact retries, changed-input
+rejection, and private receipt access. Candidate and legacy databases remain
+untouched; migration 504 has not been rolled out.
 
 ## Funding draft proposal
 
@@ -604,7 +637,7 @@ state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–502 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–504 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -615,6 +648,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–503. After application, do not edit or reverse them; disable the routes and
+488–504. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

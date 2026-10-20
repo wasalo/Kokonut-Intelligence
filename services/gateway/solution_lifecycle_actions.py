@@ -66,6 +66,13 @@ FUNDING_INSTRUMENTS = frozenset({
     "grant", "budget", "bounty", "loan", "investment", "community_fund", "in_kind",
 })
 _MAX_FUNDING_AMOUNT = Decimal("9999999999999.99")
+SOLUTION_TYPES = frozenset({
+    "practice", "policy", "technology", "service", "governance",
+    "business_model", "ecological_intervention", "data_product", "other",
+})
+SOLUTION_RISK_CLASSES = frozenset({"low", "medium", "high", "critical"})
+SOLUTION_REVERSIBILITY = frozenset({"high", "medium", "low", "unknown"})
+_SOLUTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{1,159}$")
 
 
 def _normalize_funding_amount(value, field: str, *, required: bool = False) -> str | None:
@@ -99,6 +106,122 @@ def _normalize_uuid(value: str, field: str) -> str:
         return str(UUID(str(value)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise SolutionLifecycleActionInvalid(f"Invalid {field} identifier") from exc
+
+
+def create_location_solution(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    canonical_key: str,
+    name: str,
+    solution_type: str,
+    problem_statement: str,
+    rationale: str,
+    evidence: list,
+    *,
+    theory_of_change: str | None = None,
+    baseline_alternative: str | None = None,
+    risk_class: str = "medium",
+    reversibility: str = "medium",
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create a discovered solution whose canonical origin is one granted location."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(canonical_key, str):
+        raise SolutionLifecycleActionInvalid("Canonical key must be text")
+    canonical_key = canonical_key.strip()
+    if not _SOLUTION_KEY_RE.fullmatch(canonical_key):
+        raise SolutionLifecycleActionInvalid(
+            "Canonical key must be 2 to 160 lowercase letters, digits, dots, underscores, colons, or hyphens"
+        )
+    if not isinstance(name, str) or not 1 <= len(name.strip()) <= 255 or "\x00" in name:
+        raise SolutionLifecycleActionInvalid("Solution name must contain 1 to 255 characters")
+    name = name.strip()
+    if not isinstance(solution_type, str) or solution_type not in SOLUTION_TYPES:
+        raise SolutionLifecycleActionInvalid("Invalid solution type")
+    if (
+        not isinstance(problem_statement, str)
+        or not 1 <= len(problem_statement.strip()) <= 8000
+        or "\x00" in problem_statement
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Problem statement must contain 1 to 8000 characters"
+        )
+    problem_statement = problem_statement.strip()
+    if theory_of_change is not None and (
+        not isinstance(theory_of_change, str)
+        or len(theory_of_change) > 4000
+        or "\x00" in theory_of_change
+    ):
+        raise SolutionLifecycleActionInvalid("Theory of change must be at most 4000 characters")
+    if baseline_alternative is not None and (
+        not isinstance(baseline_alternative, str)
+        or len(baseline_alternative) > 4000
+        or "\x00" in baseline_alternative
+    ):
+        raise SolutionLifecycleActionInvalid("Baseline alternative must be at most 4000 characters")
+    if not isinstance(risk_class, str) or risk_class not in SOLUTION_RISK_CLASSES:
+        raise SolutionLifecycleActionInvalid("Invalid solution risk class")
+    if not isinstance(reversibility, str) or reversibility not in SOLUTION_REVERSIBILITY:
+        raise SolutionLifecycleActionInvalid("Invalid solution reversibility")
+    if not isinstance(rationale, str) or not 10 <= len(rationale.strip()) <= 4000 or "\x00" in rationale:
+        raise SolutionLifecycleActionInvalid(
+            "Creation rationale must contain between 10 and 4000 characters"
+        )
+    rationale = rationale.strip()
+    if not isinstance(evidence, list) or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid("Creation evidence must be a list of at most 100 items")
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Creation evidence must contain JSON values") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Creation evidence exceeds the 64 KiB limit")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Solution creation requires explicit acknowledgement")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.create_location_solution(
+                           %s::uuid, %s::uuid, %s::text, %s::text, %s::text,
+                           %s::text, %s::text, %s::text, %s::text, %s::text,
+                           %s::text, %s::jsonb, %s::boolean
+                       )""",
+                (
+                    location_id, request_id, canonical_key, name, solution_type,
+                    problem_statement, theory_of_change, baseline_alternative,
+                    risk_class, reversibility, rationale, encoded_evidence,
+                    acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Location solution creation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
 
 
 def _mapping(cursor, row) -> dict:

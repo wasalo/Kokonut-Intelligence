@@ -1216,6 +1216,31 @@ def test_retirement_migration_sunset_and_post_review_are_scoped_acknowledged_and
     assert "|| solutionLifecyclePendingRetirementTransition)" in source
 
 
+def test_location_solution_creation_is_exact_grant_gated_acknowledged_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-create".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "location-originated discovery" in panel.group(0)
+    assert "does not create cross-location links or stage gates" in panel.group(0)
+    assert 'solutionLifecycleCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleCreate(",
+        "function appendSolutionLifecycleGate(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "create"' in source
+    assert '"#solution-lifecycle-create-confirm"' in submit
+    assert "solutionLifecyclePendingCreate.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingCreate.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "innerHTML" not in submit
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

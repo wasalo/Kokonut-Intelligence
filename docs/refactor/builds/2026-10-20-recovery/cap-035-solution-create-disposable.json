@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "504_location_solution_create.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 504 applies and replays after the ordered CAP-035 lifecycle chain",
+    "solution creation requires a signed exact-location create grant and active human binding",
+    "created solutions carry a location origin and attributed discovered lifecycle event",
+    "exact retries replay; changed requests, cross-location requests, missing grants, and invalid keys fail",
+    "runtime can execute the bounded function but cannot read receipts; Directus cannot execute it or read receipts",
+    "solution, opening event, and private retry receipt are atomic and exact-once"
+  ],
+  "acceptance_groups_passed": 9
+}
