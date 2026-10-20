@@ -7,6 +7,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.solution_lifecycle_actions import (
+        SolutionLifecycleActionInvalid,
+        approve_location_solution_retirement,
+    )
     from services.gateway.solution_lifecycle_reads import (
         SolutionLifecycleReadInvalid,
         SolutionLifecycleResponseTooLarge,
@@ -310,6 +314,70 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution retirement read unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve"
+    )
+    async def approve_solution_retirement(
+        request: Request, location_id: str, retirement_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {"request_id"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Retirement approval must contain only request_id"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                approve_location_solution_retirement,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                retirement_id,
+                payload["request_id"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle review is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle review grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Retirement not found"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Retirement approval request is invalid"}, headers=headers)
+            if code in {"23505", "23514", "40001", "55000"}:
+                return JSONResponse(status_code=409, content={"error": "Retirement state conflicts with approval"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement approval unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution retirement approval unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -1,8 +1,9 @@
 # Solution lifecycle Kernel read contract
 
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
-scale-gate, replication, reviewed-replication learning, and exact-origin
-retirement read slices prepared; not owner-accepted.
+scale-gate, replication, reviewed-replication learning, exact-origin retirement
+reads, and the first independently reviewed retirement action are prepared; not
+owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -12,7 +13,8 @@ retirement read slices prepared; not owner-accepted.
 `471_location_scoped_solution_replications.sql`,
 `472_location_scoped_solution_learning.sql`, and
 `473_location_scoped_solution_retirements.sql` plus
-`474_solution_retirement_independent_review.sql`.
+`474_solution_retirement_independent_review.sql` and
+`475_location_solution_retirement_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -20,19 +22,23 @@ retirement read slices prepared; not owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/adoption`,
 `GET /operator/api/solution-lifecycle/{location_id}/scale-gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications`,
-`GET /operator/api/solution-lifecycle/{location_id}/learning`, and
-`GET /operator/api/solution-lifecycle/{location_id}/retirements`.
-**Authorization:** exact `solution_lifecycle:read` location grant plus signed
-operator tenant context, checked in both Gateway and PostgreSQL.
+`GET /operator/api/solution-lifecycle/{location_id}/learning`,
+`GET /operator/api/solution-lifecycle/{location_id}/retirements`, and
+`POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`.
+**Authorization:** reads require exact `solution_lifecycle:read`; retirement
+approval requires exact `solution_lifecycle:review`. Both use signed operator
+tenant context checked in Gateway and PostgreSQL.
 
 ## Purpose and boundary
 
 The legacy innovation services already implement solution discovery, stage
 gates, experiments, funding decisions, adoption, replication, scale gates,
-learning, and retirement. This slice adds an optional-Kernel-compatible,
-read-only Gateway projection for operators. It does not replace those domain
-services, change transition rules, approve gates, release funding, activate
-adoption, or retire a solution.
+learning, and retirement. This slice adds optional-Kernel-compatible,
+location-scoped Gateway reads and a limited retirement-review action. The reads
+do not mutate lifecycle state. The action records an independent retirement
+approval but does not execute migration, sunset, or retirement of a solution.
+These routes do not replace the domain services, change stage-transition rules,
+approve gates, release funding, or activate adoption.
 
 Canonical `solution` records can be network-wide. The projection includes a
 solution only when it is explicitly originated in the requested location or
@@ -102,7 +108,21 @@ The learning route returns a bounded page only for records linked to a human-rev
 
 The retirements route returns bounded retirement metadata only for solutions originated at the exact requested location. It shows retirement type/status, whether a human approval reference exists, and approval/effective/post-review/creation timestamps. It omits trigger reasons, evidence, affected users, dependencies, replacement links, migration/remedy plans, residual risk, and party identities. It does not include solutions that are merely linked to the location: `solution_retirement` has no target-scope column, so a shared solution's global retirement state must not be inferred as location-specific. This read does not propose, approve, schedule, or execute a retirement.
 
-Migration 474 adds a database trigger and service preflight so a newly approved retirement has a recorded proposer, an independent reviewer, and immutable proposer/reviewer attribution. Approval without proposer attribution and self-approval fail closed. The migration does not rewrite or validate historical rows at install time; legacy approvals remain untouched and require separate review before they are changed. No Gateway approval route is added by this integrity slice.
+Migration 474 adds a database trigger and service preflight so a newly approved retirement has a recorded proposer, an independent reviewer, and immutable proposer/reviewer attribution. Approval without proposer attribution and self-approval fail closed. The migration does not rewrite or validate historical rows at install time; legacy approvals remain untouched and require separate review before they are changed.
+
+Migration 475 adds the first bounded Kernel approval action. The Gateway accepts
+only a request UUID, establishes signed `solution_lifecycle:review` context, and
+calls `kokonut_security.approve_location_solution_retirement`. PostgreSQL checks
+the exact location-originated solution (a location link alone is insufficient),
+an active exact review grant, and an active OIDC operator-to-person binding. The
+reviewer must differ from the recorded proposer. The retirement must remain
+proposed or in impact review and include nonempty evidence, a migration plan,
+and a distinct replacement for `superseded` decisions. The status update and
+append-only idempotent review receipt are one transaction. The action returns
+only the receipt ID, retirement ID/status, approval timestamp, and retry flag;
+request-key reuse across decisions is rejected. A dedicated non-login owner has
+only the source columns and tenant-checking relations it needs, can insert but
+cannot update/delete receipts, and is not directly callable by Directus.
 
 ## Database boundary
 
@@ -115,7 +135,13 @@ function nor table access. The reader has no identity-table access and no write
 privileges. Migrations 466–473 add bounded gate, experiment, funding, adoption,
 scale-gate, replication, learning, and retirement functions under the same
 reader role and exact signed-location grant checks. Migration 474 adds the
-retirement independent-review trigger.
+retirement independent-review trigger. Migration 475 assigns the write function
+to a separate non-login `kokonut_solution_action_owner`; it receives narrow
+source-column access, minimum tenant-check relations, and UPDATE only on the
+retirement approval fields plus identity columns needed to lock active human
+bindings. It can SELECT/INSERT receipts but cannot update or delete them.
+Runtime can execute the bounded function but cannot access source or receipt
+tables directly; Directus cannot execute the action.
 
 ## Verification and remaining parity
 
@@ -132,8 +158,11 @@ disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json`, and
 `builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json`.
 `builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json`.
-Candidate and legacy databases are untouched; migrations 459 and 466–474 have not been
-rolled out. This is not parity acceptance. Remaining work includes
+`builds/2026-10-19-recovery/solution-retirement-approval-disposable.json` records
+migration 475 apply/replay and five PostgreSQL 16 acceptance groups. The 125-test
+Gateway, route-policy, and migration-metadata selection passes. Candidate and
+legacy databases are untouched; migrations 459 and 466–475 have not been rolled
+out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,
 funding/tranche and adoption event detail, populated legacy-to-Kernel fixture

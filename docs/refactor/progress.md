@@ -11756,3 +11756,33 @@ complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/474_solution_retirement_independent_review.sql);
 [disposable evidence](builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json).
+
+### CAP-035 independently reviewed retirement approval — 19 October 2026
+
+Added `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`
+as the first bounded Kernel retirement write. The request accepts only an
+idempotency UUID; the Gateway sets signed `solution_lifecycle:review` tenant
+context, and migration 475 rechecks exact location-origin lineage, the active
+location grant, and an active OIDC-to-person binding. The reviewer must be
+independent of the proposer. Evidence, a migration plan, and a distinct
+replacement for superseded decisions are required. The status update and
+append-only review receipt are atomic; retries return the same receipt. The
+dedicated non-login action owner can read only required source columns, update
+only approval columns, and select/insert receipts without update/delete access.
+Runtime has no direct source/receipt table access, and Directus cannot execute
+the action.
+
+The focused Gateway, route-policy, and migration-metadata selection passes 125
+tests. Disposable PostgreSQL 16 applies/replays migrations 459 and 466–475 and
+passes five acceptance groups for authorization, identity binding, independent
+review/prerequisites, idempotency/atomicity, and role boundaries. Ruff,
+compilation, and `git diff --check` pass. Candidate and legacy databases are
+untouched; migration 475 is not rolled out. CAP-035 remains prepared pending
+populated parity, live OIDC/browser acceptance, broader ACL/RLS, recovery, and
+MAN-CAP-035 owner review. Checklist: 703 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md);
+[route](../../services/gateway/solution_lifecycle_routes.py); [action](../../services/gateway/solution_lifecycle_actions.py);
+[migration](../../schemas/postgres/475_location_solution_retirement_review.sql);
+[tests](../../tests/test_gateway_solution_lifecycle_actions.py);
+[disposable checker](../scripts/check-solution-retirement-approval-disposable.py);
+[evidence](builds/2026-10-19-recovery/solution-retirement-approval-disposable.json)).
