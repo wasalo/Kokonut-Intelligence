@@ -1,18 +1,21 @@
 # Solution lifecycle Kernel read contract
 
-**Status:** CAP-035 location-scoped summary, gate-item, experiment-status, funding-status, and adoption-status and scale-gate read slices prepared; not owner-accepted.
+**Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
+scale-gate, and replication read slices prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
-`468_location_scoped_solution_funding.sql`, and
-`469_location_scoped_solution_adoption.sql`, and
-`470_location_scoped_solution_scale_gates.sql`.
+`468_location_scoped_solution_funding.sql`,
+`469_location_scoped_solution_adoption.sql`,
+`470_location_scoped_solution_scale_gates.sql`, and
+`471_location_scoped_solution_replications.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
-`GET /operator/api/solution-lifecycle/{location_id}/gates`, and
+`GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
-`GET /operator/api/solution-lifecycle/{location_id}/funding`, and
-`GET /operator/api/solution-lifecycle/{location_id}/adoption`, and
-`GET /operator/api/solution-lifecycle/{location_id}/scale-gates`.
+`GET /operator/api/solution-lifecycle/{location_id}/funding`,
+`GET /operator/api/solution-lifecycle/{location_id}/adoption`,
+`GET /operator/api/solution-lifecycle/{location_id}/scale-gates`, and
+`GET /operator/api/solution-lifecycle/{location_id}/replications`.
 **Authorization:** exact `solution_lifecycle:read` location grant plus signed
 operator tenant context, checked in both Gateway and PostgreSQL.
 
@@ -87,6 +90,8 @@ The adoption route returns a bounded page of programs whose target is the exact 
 
 The scale-gates route returns a bounded page of gates whose scope is exactly the requested location and whose solution originates there or has an explicit location link. It includes solution/gate IDs and labels, gate type/status, a boolean indicating whether an approver reference exists, and the nullable approval timestamp. It omits free-text requirements, configured thresholds, measured values, metric keys, units, evidence, and approver identity. The non-login reader has column access to `approved_by_party_id` only to derive the boolean; neither that value nor party details are returned. Pages follow the same bounds and response cap. This read does not evaluate, waive, approve, or mutate a scale gate.
 
+The replications route returns a bounded page only when both the solution lineage and replication target match the exact requested location. It shows solution/replication IDs and labels, replication state/result, evidence-maturity level, whether a reviewer reference exists, and creation/completion timestamps. It omits the source experiment ID, target context, similarity, adaptation plan, replication protocol, raw evidence, and reviewer identity. The non-login reader has column access to the reviewer reference solely to derive the boolean. Pages use the shared limits and response cap. The route does not approve, start, complete, or otherwise change a replication.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -95,21 +100,21 @@ the projection. The function rechecks actor type, signed location context, and
 the exact `solution_lifecycle:read` grant. Runtime can execute the bounded
 function but cannot select the solution tables directly; Directus has neither
 function nor table access. The reader has no identity-table access and no write
-privileges. Migrations 466–470 add bounded gate, experiment, funding, adoption, and
-scale-gate functions under the same reader role and exact signed-location grant checks.
+privileges. Migrations 466–471 add bounded gate, experiment, funding, adoption, scale-gate,
+and replication functions under the same reader role and exact signed-location grant checks.
 
 ## Verification and remaining parity
 
-The summary, gate, experiment, funding, adoption, and scale-gate source checks
-and their
+The summary, gate, experiment, funding, adoption, scale-gate, and replication source checks and their
 disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json`, and
 `builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json`, and
-`builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json`. Candidate
-and legacy databases are untouched; migrations 459 and 466–470 have not been
+`builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json`, and
+`builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json`. Candidate
+and legacy databases are untouched; migrations 459 and 466–471 have not been
 rolled out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,

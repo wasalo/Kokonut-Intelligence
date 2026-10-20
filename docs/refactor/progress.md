@@ -11669,3 +11669,25 @@ accepted. Checklist: 698 complete / 24 open; matrix: 31 baseline-retained,
 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/470_location_scoped_solution_scale_gates.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-scale-gates-disposable.json).
+
+### CAP-035 location-targeted replication status — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/replications` under
+the exact location `solution_lifecycle:read` grant and signed tenant context.
+Migration 471 requires both exact location target scope and an originating or
+explicit location-linked solution. The response shows status/result, evidence
+maturity, review presence, and timestamps; source experiment IDs, narratives,
+adaptation plans, protocol, evidence, and reviewer identity are omitted. The 99
+test Gateway, route-policy, and migration metadata selection passes. Disposable
+PostgreSQL 16 applies/replays migrations 459 and 466–471 and passes seven grouped
+checks, including target/solution lineage, summary compatibility after source
+column narrowing, and runtime/Directus boundaries. Ruff, compilation,
+capability validation, runtime SQL inventory, repository inventory, and diff
+checks pass. Candidate and legacy databases remain untouched; migration 471 is
+not rolled out. Replication creation/review workflows, detailed evidence,
+populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035
+review remain open. CAP-035 remains prepared, not accepted. Checklist: 699
+complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
+[Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/471_location_scoped_solution_replications.sql);
+[disposable evidence](builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json).

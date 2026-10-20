@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "471_location_scoped_solution_replications.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, 468, 469, 470, and 471 apply; migration 471 replays",
+    "only location-targeted replication rows for exact origin/link solutions are returned",
+    "status, result, evidence maturity, review presence, and timestamps are mapped",
+    "source IDs, target narratives, adaptation plans, protocol, evidence, and reviewer identities are omitted",
+    "pagination, signed context, exact grant, and stable read-only function are enforced",
+    "the migration-459 aggregate continues to work after source columns are narrowed",
+    "runtime can execute the function, while runtime and Directus cannot read the source table"
+  ],
+  "acceptance_groups_passed": 7
+}
