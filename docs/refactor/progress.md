@@ -1,3 +1,20 @@
+### CAP-033 business canvas operator-console read — 20 October 2026
+
+The operator console now lists stored canvases for locations with an exact
+`business_planning:read` grant. It uses the existing bounded, signed-context
+Gateway projection and renders fixed metadata and the nine canvas blocks as
+text. Same-origin no-store requests, stale-location guards, and bounded
+25-row pagination protect the read flow. The panel exposes no raw imports,
+actor/source identifiers, edits, or lifecycle actions. The focused console,
+Gateway, and route-policy selection passes 21 tests, including JavaScript
+syntax validation; Ruff and capability-matrix validation pass. No candidate or
+legacy database was contacted and no migration was applied. CAP-033 remains
+prepared pending generated-pitch and assembled-plan parity, populated fixtures,
+live OIDC/browser acceptance, broader ACL/RLS, and MAN-CAP-033 owner review.
+Checklist: 713 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared. [Read contract](business-planning-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_business_planning.py).
+
 ### CAP-034 coordination summary console — 20 October 2026
 
 The operator console now displays CAP-034's 19 coordination counters for a

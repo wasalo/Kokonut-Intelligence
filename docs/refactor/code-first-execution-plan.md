@@ -3,18 +3,19 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-034 now has a
-read-only coordination overview in the operator console, gated by exact
-`coordination:read` location grants. The view renders the 19 fixed aggregate
-counters with same-origin no-store requests and stale-location response guards;
-no alliance actions are exposed. The focused console/Gateway/route-policy set
-passes 15 tests, including JavaScript syntax validation; Ruff and capability
-checks pass. No database was used. CAP-034 remains prepared pending populated
-parity, live OIDC/browser, trigger/worker recovery, broader ACL/RLS, and owner
-review. Checklist: 712 complete / 24 open; matrix: 31 baseline-retained,
-7 deployed, 28 prepared. Evidence: [contract](coordination-kernel-read-contract.md),
+**Latest implementation slice — 20 October 2026:** CAP-033 now has a
+read-only business-canvas browser in the operator console, gated by exact
+`business_planning:read` location grants. It displays bounded canvas metadata
+and the nine governed content blocks using fixed fields and text nodes, with
+same-origin no-store reads, stale-location guards, and 25-row pagination. It
+adds no edit or lifecycle actions. The focused console/Gateway/route-policy set
+passes 21 tests, including JavaScript syntax validation; Ruff and capability
+checks pass. No database was used. CAP-033 remains prepared pending generated
+pitch and assembled-plan parity, populated fixtures, live OIDC/browser, broader
+ACL/RLS, and MAN-CAP-033 review. Checklist: 713 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read contract](business-planning-kernel-read-contract.md),
 [console](../apps/operator-console/index.html), and
-[console checks](../tests/test_operator_console_coordination.py).
+[console checks](../tests/test_operator_console_business_planning.py).
 
 **Previous implementation slice — 20 October 2026:** CAP-035 now has a
 read-only operator-console overview for its location-scoped lifecycle summary,

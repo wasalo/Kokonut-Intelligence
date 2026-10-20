@@ -602,6 +602,28 @@
           <p id="coordination-summary-status" class="muted" role="status" aria-live="polite"></p>
           <dl id="coordination-summary-counts"></dl>
         </section>
+        <section id="business-planning-canvases" hidden aria-labelledby="business-planning-canvases-heading">
+          <h2 id="business-planning-canvases-heading">Business model canvases</h2>
+          <p class="muted">Read-only canvases for locations with an active business-planning read grant. Content blocks are shown as text; this view does not edit, verify, submit, or publish a canvas. Raw imports, actor identities, and organization-level canvases are excluded.</p>
+          <div class="toolbar">
+            <label for="business-planning-location">Granted location</label>
+            <select id="business-planning-location"></select>
+            <button id="business-planning-refresh" type="button">Refresh canvases</button>
+          </div>
+          <p id="business-planning-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Canvas</th><th>Lifecycle</th><th>Fiscal year</th><th>Version</th><th>Updated</th><th></th></tr></thead>
+              <tbody id="business-planning-rows"></tbody>
+            </table>
+          </div>
+          <button id="business-planning-more" class="secondary" type="button" hidden>Load more canvases</button>
+          <section id="business-planning-detail" hidden aria-labelledby="business-planning-detail-heading">
+            <h3 id="business-planning-detail-heading">Canvas details</h3>
+            <dl id="business-planning-metadata"></dl>
+            <div id="business-planning-blocks"></div>
+          </section>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -650,7 +672,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business-planning, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -824,6 +846,18 @@
       const coordinationSummaryCounts = document.querySelector("#coordination-summary-counts");
       let coordinationSummaryLocations = new Set();
       let coordinationSummaryRequestVersion = 0;
+      const businessPlanningCanvases = document.querySelector("#business-planning-canvases");
+      const businessPlanningLocation = document.querySelector("#business-planning-location");
+      const businessPlanningStatus = document.querySelector("#business-planning-status");
+      const businessPlanningRows = document.querySelector("#business-planning-rows");
+      const businessPlanningMore = document.querySelector("#business-planning-more");
+      const businessPlanningDetail = document.querySelector("#business-planning-detail");
+      const businessPlanningMetadata = document.querySelector("#business-planning-metadata");
+      const businessPlanningBlocks = document.querySelector("#business-planning-blocks");
+      let businessPlanningLocations = new Set();
+      let businessPlanningRequestVersion = 0;
+      let businessPlanningOffset = 0;
+      const businessPlanningCanvasesById = new Map();
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1437,6 +1471,119 @@
         }
       }
 
+      function renderBusinessPlanningCanvas(canvas) {
+        businessPlanningMetadata.replaceChildren();
+        businessPlanningBlocks.replaceChildren();
+        document.querySelector("#business-planning-detail-heading").textContent =
+          `Canvas details: ${String(canvas.canvas_name || "Untitled canvas")}`;
+        for (const [field, label] of [
+          ["canvas_name", "Canvas name"],
+          ["canvas_description", "Description"],
+          ["lifecycle_status", "Lifecycle status"],
+          ["fiscal_year", "Fiscal year"],
+          ["schema_version", "Schema version"],
+          ["version", "Version"],
+          ["health_score", "Health score"],
+          ["tags", "Tags"],
+          ["updated_at", "Last updated"]
+        ]) {
+          const value = canvas[field];
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = Array.isArray(value)
+            ? value.map((item) => String(item)).join(", ")
+            : value === null || value === undefined ? "—" : String(value);
+          businessPlanningMetadata.append(term, description);
+        }
+        for (const [field, label] of [
+          ["key_partners", "Key partners"],
+          ["key_activities", "Key activities"],
+          ["key_resources", "Key resources"],
+          ["value_propositions", "Value propositions"],
+          ["customer_relationships", "Customer relationships"],
+          ["channels", "Channels"],
+          ["customer_segments", "Customer segments"],
+          ["revenue_streams", "Revenue streams"],
+          ["cost_structure", "Cost structure"]
+        ]) {
+          const section = document.createElement("section");
+          const heading = document.createElement("h4");
+          const content = document.createElement("pre");
+          heading.textContent = label;
+          content.textContent = JSON.stringify((canvas.content || {})[field] ?? null, null, 2);
+          section.append(heading, content);
+          businessPlanningBlocks.append(section);
+        }
+        businessPlanningDetail.hidden = false;
+      }
+
+      async function loadBusinessPlanningCanvases(append = false) {
+        const locationId = businessPlanningLocation.value;
+        const requestVersion = ++businessPlanningRequestVersion;
+        if (!businessPlanningLocations.has(locationId)) return;
+        const offset = append ? businessPlanningOffset : 0;
+        businessPlanningStatus.textContent = "Loading location canvases…";
+        businessPlanningMore.disabled = true;
+        if (!append) {
+          businessPlanningRows.replaceChildren();
+          businessPlanningCanvasesById.clear();
+          businessPlanningDetail.hidden = true;
+          businessPlanningMetadata.replaceChildren();
+          businessPlanningBlocks.replaceChildren();
+        }
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/business-planning/${encodeURIComponent(locationId)}/canvases?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Business-planning canvas reads are unavailable for this location.");
+            throw new Error("The business-planning canvases could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== businessPlanningRequestVersion
+              || locationId !== businessPlanningLocation.value) return;
+          const canvases = Array.isArray(result.canvases) ? result.canvases : [];
+          for (const canvas of canvases) {
+            if (typeof canvas.canvas_id !== "string" || businessPlanningCanvasesById.has(canvas.canvas_id)) continue;
+            businessPlanningCanvasesById.set(canvas.canvas_id, canvas);
+            const row = document.createElement("tr");
+            for (const value of [canvas.canvas_name, canvas.lifecycle_status, canvas.fiscal_year, canvas.version, canvas.updated_at]) {
+              const cell = document.createElement("td");
+              cell.textContent = value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            const actionCell = document.createElement("td");
+            const view = document.createElement("button");
+            view.type = "button";
+            view.className = "secondary";
+            view.textContent = "View canvas";
+            view.addEventListener("click", () => renderBusinessPlanningCanvas(canvas));
+            actionCell.append(view);
+            row.append(actionCell);
+            businessPlanningRows.append(row);
+          }
+          const nextOffset = result.next_offset;
+          businessPlanningOffset = Number.isInteger(nextOffset) && nextOffset > offset && nextOffset <= 10000
+            ? nextOffset
+            : offset;
+          businessPlanningMore.hidden = result.has_more !== true || businessPlanningOffset <= offset;
+          businessPlanningStatus.textContent = businessPlanningRows.children.length
+            ? `${businessPlanningRows.children.length} canvas${businessPlanningRows.children.length === 1 ? "" : "es"} shown. Canvas content remains in its current governed lifecycle state.`
+            : "No canvases are stored for this location.";
+        } catch (error) {
+          if (requestVersion !== businessPlanningRequestVersion) return;
+          businessPlanningStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === businessPlanningRequestVersion) businessPlanningMore.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1480,6 +1627,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           coordinationSummaryLocations = new Set(coordinationLocationIds);
+          const businessPlanningLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "business_planning" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          businessPlanningLocations = new Set(businessPlanningLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -1718,6 +1871,17 @@
             }
             coordinationSummary.hidden = false;
             await loadCoordinationSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (businessPlanningLocationIds.length) {
+            for (const locationId of businessPlanningLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              businessPlanningLocation.append(option);
+            }
+            businessPlanningCanvases.hidden = false;
+            await loadBusinessPlanningCanvases();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -4871,6 +5035,9 @@
       solutionLifecycleLocation.addEventListener("change", loadSolutionLifecycleSummary);
       document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
       coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
+      document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());
+      businessPlanningLocation.addEventListener("change", () => loadBusinessPlanningCanvases());
+      businessPlanningMore.addEventListener("click", () => loadBusinessPlanningCanvases(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();
