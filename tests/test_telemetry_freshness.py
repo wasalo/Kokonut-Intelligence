@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 SEED = Path("schemas/seeds/077_telemetry_infrastructure.sql")
 ALERT_MIGRATION = Path("schemas/postgres/341_freshness_alert_durability.sql")
@@ -48,6 +50,39 @@ def test_freshness_persists_delivery_attempts() -> None:
     content = Path("services/ingestion/data_freshness.py").read_text()
     assert "_persist_delivery_attempt" in content
     assert 'attempt["error"]' in content
+
+
+def test_freshness_help_does_not_open_database(monkeypatch, capsys) -> None:
+    from services.ingestion import data_freshness
+
+    monkeypatch.setattr(data_freshness, "get_db", lambda: pytest.fail("help opened database"))
+
+    data_freshness.main([])
+
+    assert "--check" in capsys.readouterr().out
+
+
+def test_freshness_source_requires_check_before_database(monkeypatch, capsys) -> None:
+    from services.ingestion import data_freshness
+
+    monkeypatch.setattr(data_freshness, "get_db", lambda: pytest.fail("invalid input opened database"))
+
+    with pytest.raises(SystemExit) as exc_info:
+        data_freshness.main(["--source", "weather"])
+
+    assert exc_info.value.code == 2
+    assert "--source requires --check" in capsys.readouterr().err
+
+
+def test_freshness_check_and_summary_are_mutually_exclusive(monkeypatch) -> None:
+    from services.ingestion import data_freshness
+
+    monkeypatch.setattr(data_freshness, "get_db", lambda: pytest.fail("invalid input opened database"))
+
+    with pytest.raises(SystemExit) as exc_info:
+        data_freshness.main(["--check", "--summary"])
+
+    assert exc_info.value.code == 2
 
 
 def test_webhook_response_is_closed_after_success(monkeypatch) -> None:

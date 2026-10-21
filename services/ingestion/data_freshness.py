@@ -560,14 +560,21 @@ def get_freshness_summary(conn) -> List[Dict[str, Any]]:
     return rows
 
 
-if __name__ == "__main__":
+def main(argv: Optional[List[str]] = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Data freshness monitoring")
-    parser.add_argument("--check", action="store_true", help="Run freshness check")
-    parser.add_argument("--summary", action="store_true", help="Show freshness summary")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--check", action="store_true", help="Run freshness check")
+    action.add_argument("--summary", action="store_true", help="Show freshness summary")
     parser.add_argument("--source", help="Limit to specific source")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.source and not args.check:
+        parser.error("--source requires --check")
+    if not args.check and not args.summary:
+        parser.print_help()
+        return
 
     conn = get_db()
     try:
@@ -581,3 +588,7 @@ if __name__ == "__main__":
             parser.print_help()
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    main()
