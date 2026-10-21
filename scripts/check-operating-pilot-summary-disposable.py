@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SUMMARY_MIGRATION = ROOT / "schemas/postgres/461_location_scoped_operating_pilot_summary.sql"
 DEMAND_MIGRATION = ROOT / "schemas/postgres/479_location_operating_pilot_demand_signals.sql"
 CAPACITY_MIGRATION = ROOT / "schemas/postgres/480_location_operating_pilot_capacity_periods.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json"
+WORK_CLAIMS_MIGRATION = ROOT / "schemas/postgres/526_location_operating_pilot_work_claims.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-037-operating-pilot-work-claims-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -74,7 +75,8 @@ CREATE TABLE public.operating_demand_signal (
     created_by_party_id uuid, created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.work_item (
-    id uuid PRIMARY KEY, location_id uuid, status text NOT NULL, allocation_status text NOT NULL
+    id uuid PRIMARY KEY, location_id uuid, status text NOT NULL, allocation_status text NOT NULL,
+    work_type text NOT NULL, title text, description text
 );
 CREATE TABLE public.work_item_claim (
     id uuid PRIMARY KEY, work_item_id uuid NOT NULL, claimant_party_id uuid NOT NULL,
@@ -192,15 +194,18 @@ VALUES
  ('d1000000-0000-4000-8000-000000000003', 'adelphi', 'e9000000-0000-4000-8000-000000000002', 'other-farm', CURRENT_DATE - 2, CURRENT_DATE + 2, 50, 'critical', 'planning', 'd2000000-0000-4000-8000-000000000003', 'PRIVATE other farm', 'approved', 'd3000000-0000-4000-8000-000000000003', '2026-10-03 00:00:00+00'),
  ('d1000000-0000-4000-8000-000000000004', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'tree-care', CURRENT_DATE + 3, CURRENT_DATE + 9, 900, 'low', 'planning', 'd2000000-0000-4000-8000-000000000004', 'PRIVATE future narrative', 'draft', 'd3000000-0000-4000-8000-000000000004', '2026-10-03 00:00:00+00'),
  ('d1000000-0000-4000-8000-000000000005', 'internal', 'f0000000-0000-4000-8000-000000000001', 'internal-only', CURRENT_DATE - 2, CURRENT_DATE + 2, 1000, 'critical', 'planning', 'd2000000-0000-4000-8000-000000000005', 'PRIVATE internal narrative', 'approved', 'd3000000-0000-4000-8000-000000000005', '2026-10-04 00:00:00+00');
-INSERT INTO public.work_item VALUES
- ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'assigned', 'open'),
- ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'in_progress', 'claimed'),
- ('e0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000002', 'assigned', 'open');
+INSERT INTO public.work_item (id, location_id, status, allocation_status, work_type) VALUES
+ ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'assigned', 'open', 'harvest'),
+ ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'in_progress', 'claimed', 'harvest'),
+ ('e0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000002', 'assigned', 'open', 'harvest'),
+ ('e0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000001', 'assigned', 'open', 'PRIVATE custom category');
 INSERT INTO public.work_item_claim (id, work_item_id, claimant_party_id, status) VALUES
  ('e1000000-0000-4000-8000-000000000001', 'e0000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', 'proposed'),
  ('e1000000-0000-4000-8000-000000000002', 'e0000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000002', 'accepted'),
  ('e1000000-0000-4000-8000-000000000004', 'e0000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000003', 'rejected'),
- ('e1000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000003', 'e2000000-0000-4000-8000-000000000004', 'proposed');
+ ('e1000000-0000-4000-8000-000000000003', 'e0000000-0000-4000-8000-000000000003', 'e2000000-0000-4000-8000-000000000004', 'proposed'),
+ ('e1000000-0000-4000-8000-000000000005', 'e0000000-0000-4000-8000-000000000004', 'e2000000-0000-4000-8000-000000000005', 'proposed'),
+ ('e1000000-0000-4000-8000-000000000006', 'e0000000-0000-4000-8000-000000000004', 'e2000000-0000-4000-8000-000000000006', 'withdrawn');
 INSERT INTO public.operating_competency_profile
     (id, party_id, governance_role_id, status, current_level, target_level)
 VALUES
@@ -236,13 +241,15 @@ SELECT set_config('kokonut.actor_type', 'operator', true);
 DO $$
 DECLARE summary jsonb; demand_first jsonb; demand_second jsonb;
         capacity_first jsonb; capacity_second jsonb;
+        claims_first jsonb; claims_second jsonb;
         denied boolean := false; invalid_page boolean := false;
         invalid_capacity_page boolean := false;
+        invalid_claims_page boolean := false;
 BEGIN
     summary := kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000001'
     );
-    IF (summary->'work_claims'->>'proposed')::int <> 1
+    IF (summary->'work_claims'->>'proposed')::int <> 2
        OR (summary->'work_claims'->>'accepted')::int <> 1
        OR (summary->'work_claims'->>'rejected')::int <> 1 THEN
         RAISE EXCEPTION 'work claim aggregate mismatch: %', summary->'work_claims';
@@ -256,8 +263,9 @@ BEGIN
        OR (summary->'capacity_profiles'->>'committed_hours')::numeric <> 12
        OR (summary->'demand_signals'->>'as_of_date')::date <> CURRENT_DATE
        OR (summary->'demand_signals'->>'required_hours')::numeric <> 20
-       OR (summary->'work_items'->>'total')::int <> 2
-       OR (summary->'work_claims'->>'proposed')::int <> 1
+       OR (summary->'work_items'->>'total')::int <> 3
+       OR (summary->'work_items'->>'open')::int <> 2
+       OR (summary->'work_claims'->>'proposed')::int <> 2
        OR (summary->'work_claims'->>'accepted')::int <> 1
        OR (summary->'work_claims'->>'rejected')::int <> 1
        OR (summary->'competency_reviews'->>'submitted')::int <> 1
@@ -331,6 +339,44 @@ BEGIN
        '(party_id|notes|self_reported|d0000000-0000-4000-8000-00000000000[1-6])' THEN
         RAISE EXCEPTION 'capacity page exposed private profile, identity, or out-of-scope rows';
     END IF;
+    claims_first := kokonut_security.location_operating_pilot_work_claims(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    claims_second := kokonut_security.location_operating_pilot_work_claims(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    IF claims_first->>'scope_configured' <> 'true'
+       OR claims_first->>'limit' <> '1'
+       OR claims_first->>'offset' <> '0'
+       OR jsonb_array_length(claims_first->'items') <> 1
+       OR claims_first->>'has_more' <> 'true'
+       OR claims_first->>'next_offset' <> '1'
+       OR claims_first->'items'->0->>'work_type' <> 'harvest'
+       OR claims_first->'items'->0->>'suppressed' <> 'false'
+       OR claims_first->'items'->0->>'claim_count' <> '3'
+       OR claims_second->'items'->0->>'work_type' <> 'other'
+       OR claims_second->'items'->0->>'suppressed' <> 'true'
+       OR claims_second->'items'->0->'claim_count' <> 'null'::jsonb
+       OR claims_second->>'has_more' <> 'false'
+       OR claims_second->'next_offset' <> 'null'::jsonb THEN
+        RAISE EXCEPTION 'work-claim aggregation, small-cohort suppression, or paging mismatch: %, %',
+            claims_first, claims_second;
+    END IF;
+    IF (SELECT count(*) FROM jsonb_object_keys(claims_first->'items'->0)) <> 3
+       OR (claims_first::text || claims_second::text) ~*
+          '(claimant|party_id|PRIVATE|custom category|e0000000|e1000000|e2000000|accepted|rejected|withdrawn)' THEN
+        RAISE EXCEPTION 'work-claim page exposed an ID, free-text category, claim state, or identity: %, %',
+            claims_first, claims_second;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_work_claims(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_claims_page := true;
+    END;
+    IF NOT invalid_claims_page THEN
+        RAISE EXCEPTION 'unbounded work-claim page was accepted';
+    END IF;
     BEGIN
         PERFORM kokonut_security.location_operating_pilot_capacity_periods(
             'b0000000-0000-4000-8000-000000000001', 51, 0
@@ -361,6 +407,11 @@ BEGIN
         'b0000000-0000-4000-8000-000000000002', 10, 0
     ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'cross-location capacity context was accepted'; END IF;
+    denied := false;
+    BEGIN PERFORM kokonut_security.location_operating_pilot_work_claims(
+        'b0000000-0000-4000-8000-000000000002', 10, 0
+    ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'cross-location work-claim context was accepted'; END IF;
     PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
     denied := false;
     BEGIN PERFORM kokonut_security.location_operating_pilot_summary(
@@ -378,6 +429,11 @@ BEGIN
     ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'operator without tenant membership read capacity'; END IF;
     denied := false;
+    BEGIN PERFORM kokonut_security.location_operating_pilot_work_claims(
+        'b0000000-0000-4000-8000-000000000001', 10, 0
+    ); EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without tenant membership read work claims'; END IF;
+    denied := false;
     BEGIN PERFORM 1 FROM public.operating_capacity_profile;
     EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'runtime can read operating capacity directly'; END IF;
@@ -393,6 +449,8 @@ BEGIN
           'kokonut_security.location_operating_pilot_demand_signals(uuid,integer,integer)', 'EXECUTE')
        OR NOT has_function_privilege('kokonut_runtime',
           'kokonut_security.location_operating_pilot_capacity_periods(uuid,integer,integer)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.location_operating_pilot_work_claims(uuid,integer,integer)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'SELECT')
@@ -401,11 +459,19 @@ BEGIN
        OR has_function_privilege('kokonut_directus_runtime',
           'kokonut_security.location_operating_pilot_demand_signals(uuid,integer,integer)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
-          'kokonut_security.location_operating_pilot_capacity_periods(uuid,integer,integer)', 'EXECUTE') THEN
+          'kokonut_security.location_operating_pilot_capacity_periods(uuid,integer,integer)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.location_operating_pilot_work_claims(uuid,integer,integer)', 'EXECUTE') THEN
         RAISE EXCEPTION 'runtime/Directus operating pilot privilege boundary failed';
     END IF;
     IF has_table_privilege('kokonut_operating_pilot_reader', 'public.party', 'SELECT')
-       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE') THEN
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'INSERT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'DELETE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'INSERT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'DELETE') THEN
         RAISE EXCEPTION 'operating pilot reader has identity or mutation privileges';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.farm', 'id', 'SELECT')
@@ -429,6 +495,13 @@ BEGIN
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'priority', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_at', 'SELECT') THEN
         RAISE EXCEPTION 'reader is missing only the demand fields needed for the projection';
+    END IF;
+    IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'work_type', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'title', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'description', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.work_item', 'work_type', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.work_item', 'work_type', 'SELECT') THEN
+        RAISE EXCEPTION 'work-claim reader column grants exceed or miss the projection boundary';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'period_start', 'SELECT')
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'period_end', 'SELECT')
@@ -455,7 +528,9 @@ BEGIN
                   'd0000000-0000-4000-8000-000000000005');
     DELETE FROM public.work_item_claim
      WHERE id IN ('e1000000-0000-4000-8000-000000000002',
-                  'e1000000-0000-4000-8000-000000000004');
+                  'e1000000-0000-4000-8000-000000000004',
+                  'e1000000-0000-4000-8000-000000000005',
+                  'e1000000-0000-4000-8000-000000000006');
     DELETE FROM public.operating_competency_profile
      WHERE id IN ('f0000000-0000-4000-8000-000000000002',
                   'f0000000-0000-4000-8000-000000000003');
@@ -495,11 +570,12 @@ def main() -> int:
     container = f"kokonut-operating-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [SUMMARY_MIGRATION.name, DEMAND_MIGRATION.name, CAPACITY_MIGRATION.name],
+        "migrations": [SUMMARY_MIGRATION.name, DEMAND_MIGRATION.name,
+                       CAPACITY_MIGRATION.name, WORK_CLAIMS_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, and 480 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, and 526 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -507,6 +583,8 @@ def main() -> int:
             "demand pages are bounded and exclude IDs, narratives, source references, creators, other farms, and internal scope",
             "capacity periods aggregate only submitted/approved active-farm profiles, hide hours below three people, and exclude identities/notes/out-of-scope rows",
             "capacity pages enforce bounds, deterministic paging, exact tenant grant, and runtime-function-only access",
+            "work-claim pages aggregate by fixed safe work-type bucket, suppress counts below three claimants, and exclude IDs, free text, claim states, and identities",
+            "work-claim pages enforce bounded deterministic paging, exact tenant scope, and runtime-function-only access",
             "clean role fixture confirms no direct runtime/Directus table grants are introduced; reader has only required columns and no identity, private-content, or write access",
         ],
     }
@@ -518,18 +596,21 @@ def main() -> int:
         summary_migration = SUMMARY_MIGRATION.read_text(encoding="utf-8")
         demand_migration = DEMAND_MIGRATION.read_text(encoding="utf-8")
         capacity_migration = CAPACITY_MIGRATION.read_text(encoding="utf-8")
+        work_claims_migration = WORK_CLAIMS_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, summary_migration)
         psql(docker, container, summary_migration)
         psql(docker, container, demand_migration)
         psql(docker, container, demand_migration)
         psql(docker, container, capacity_migration)
         psql(docker, container, capacity_migration)
+        psql(docker, container, work_claims_migration)
+        psql(docker, container, work_claims_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertions_passed"] = 13
+        evidence["assertions_passed"] = 16
         evidence["preexisting_runtime_or_directus_grants_assessed"] = False
-        print("PASS: migrations 461/479/480 apply/replay and all thirteen disposable PostgreSQL assertions passed")
+        print("PASS: migrations 461/479/480/526 apply/replay and all sixteen disposable PostgreSQL assertions passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

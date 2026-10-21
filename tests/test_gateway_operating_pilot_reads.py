@@ -280,6 +280,72 @@ def test_capacity_page_tenant_denial_rolls_back_without_calling_projection():
     assert connection.rolled_back and connection.closed
 
 
+def test_work_claim_page_uses_exact_context_read_only_transaction_and_bounds():
+    page = {
+        "scope_configured": True,
+        "limit": 2,
+        "offset": 4,
+        "items": [{"work_type": "harvest", "suppressed": False, "claim_count": 5}],
+        "has_more": False,
+        "next_offset": None,
+    }
+    connection = _Connection(page)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.get_location_operating_pilot_work_claims(
+            OPERATOR_ID, LOCATION_ID, limit=2, offset=4,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "read",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_operating_pilot_work_claims" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 2, 4)
+    assert result == {"location_id": LOCATION_ID, **page}
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [
+    (0, 0), (51, 0), (True, 0), (25, -1), (25, 10001), (25, False),
+])
+def test_work_claim_page_invalid_bounds_fail_before_database_access(limit, offset):
+    with pytest.raises(reads.OperatingPilotReadInvalid):
+        reads.get_location_operating_pilot_work_claims(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page must fail before DB access"),
+        )
+
+
+def test_work_claim_page_tenant_denial_rolls_back_without_calling_projection():
+    connection = _Connection({})
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.get_location_operating_pilot_work_claims(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+    assert not any("location_operating_pilot_work_claims" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
 def test_projection_contract_is_aggregate_and_excludes_personal_fields():
     assert "capacity_profiles" in SUMMARY
     assert "work_claims" in SUMMARY
@@ -328,6 +394,18 @@ def test_route_policy_requires_exact_location_operating_pilot_read_grant():
     }
     assert auth_route_policy("POST", capacity_path, enabled=True) is None
     assert auth_route_policy("GET", capacity_path + "/extra", enabled=True) is None
+
+    claims_path = f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims"
+    assert auth_route_policy("GET", claims_path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", claims_path, enabled=True) is None
+    assert auth_route_policy("GET", claims_path + "/extra", enabled=True) is None
 
 
 def test_http_projection_is_no_store_and_operator_authenticated(monkeypatch):
@@ -486,5 +564,60 @@ def test_http_capacity_page_fails_closed_when_oidc_is_disabled(monkeypatch):
     app.include_router(router)
     with TestClient(app) as client:
         response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-periods")
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_http_work_claim_page_is_no_store_scoped_and_bounded(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    calls = []
+    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_work_claims",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(router, object(), run_in_threadpool,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims?limit=7&offset=14"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == page
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+
+
+def test_http_work_claim_page_fails_closed_when_oidc_is_disabled(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_work_claims",
+        lambda *_args, **_kwargs: pytest.fail("disabled OIDC must not query work claims"),
+    )
+    app = FastAPI()
+    router = APIRouter()
+    register_operating_pilot_routes(router, None, lambda *_args: None,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims")
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"

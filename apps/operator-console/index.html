@@ -569,7 +569,7 @@
         </section>
         <section id="operating-pilot" hidden aria-labelledby="operating-pilot-heading">
           <h2 id="operating-pilot-heading">Operating pilot overview</h2>
-          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, and aggregate capacity periods. Capacity hours remain hidden when fewer than three people contribute to a period.</p>
+          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, aggregate capacity periods, and work-claim activity. Person-linked totals remain hidden when fewer than three people contribute.</p>
           <div class="toolbar">
             <label for="operating-pilot-location">Granted location</label>
             <select id="operating-pilot-location"></select>
@@ -596,6 +596,16 @@
             </table>
           </div>
           <button id="operating-pilot-capacity-more" class="secondary" type="button" hidden>Load more capacity periods</button>
+          <h3>Work-claim activity</h3>
+          <p class="muted">Counts are grouped into fixed work-type categories. Individual claims, participants, evidence, and review actions are not shown.</p>
+          <p id="operating-pilot-work-claims-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work type</th><th>Claims</th></tr></thead>
+              <tbody id="operating-pilot-work-claims-rows"></tbody>
+            </table>
+          </div>
+          <button id="operating-pilot-work-claims-more" class="secondary" type="button" hidden>Load more work types</button>
         </section>
         <section id="sequential-evidence" hidden aria-labelledby="sequential-evidence-heading">
           <h2 id="sequential-evidence-heading">Sequential evidence</h2>
@@ -1721,12 +1731,17 @@
       const operatingPilotCapacityStatus = document.querySelector("#operating-pilot-capacity-status");
       const operatingPilotCapacityRows = document.querySelector("#operating-pilot-capacity-rows");
       const operatingPilotCapacityMore = document.querySelector("#operating-pilot-capacity-more");
+      const operatingPilotWorkClaimsStatus = document.querySelector("#operating-pilot-work-claims-status");
+      const operatingPilotWorkClaimsRows = document.querySelector("#operating-pilot-work-claims-rows");
+      const operatingPilotWorkClaimsMore = document.querySelector("#operating-pilot-work-claims-more");
       let operatingPilotLocations = new Set();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
+      let operatingPilotWorkClaimsRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
+      let operatingPilotWorkClaimsOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -2530,11 +2545,55 @@
         }
       }
 
+      async function loadOperatingPilotWorkClaims(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotWorkClaimsRequestVersion;
+        if (!operatingPilotLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotWorkClaimsOffset = 0;
+          operatingPilotWorkClaimsRows.replaceChildren();
+        }
+        const offset = append ? operatingPilotWorkClaimsOffset : 0;
+        operatingPilotWorkClaimsMore.disabled = true;
+        operatingPilotWorkClaimsStatus.textContent = "Loading work-claim activity…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-claims?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotWorkClaimsRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotRow(operatingPilotWorkClaimsRows, [
+              item.work_type,
+              item.suppressed === true ? "Suppressed (<3 contributors)" : item.claim_count
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotWorkClaimsMore.hidden = !canContinue;
+          operatingPilotWorkClaimsOffset = canContinue ? nextOffset : 0;
+          operatingPilotWorkClaimsStatus.textContent = canContinue
+            ? "Showing a bounded page of aggregate work-claim activity."
+            : operatingPilotWorkClaimsRows.childElementCount ? "Work-claim activity loaded." : "No work-claim activity is available.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotWorkClaimsRequestVersion) return;
+          operatingPilotWorkClaimsMore.hidden = true;
+          operatingPilotWorkClaimsStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotWorkClaimsRequestVersion) operatingPilotWorkClaimsMore.disabled = false;
+        }
+      }
+
       async function loadOperatingPilot() {
         await Promise.all([
           loadOperatingPilotSummary(),
           loadOperatingPilotDemand(),
-          loadOperatingPilotCapacity()
+          loadOperatingPilotCapacity(),
+          loadOperatingPilotWorkClaims()
         ]);
       }
 
@@ -15267,6 +15326,7 @@
       operatingPilotLocation.addEventListener("change", loadOperatingPilot);
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
+      operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));

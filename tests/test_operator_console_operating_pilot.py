@@ -23,6 +23,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     panel = re.search(r'<section id="operating-pilot".*?</section>\s*</section>', source, re.DOTALL)
     assert panel is not None
     assert "Read-only, location-scoped summary" in panel.group()
+    assert "Work-claim activity" in panel.group()
     assert 'scope.resource === "operating_pilot" && scope.action === "read"' in source
     assert "operatingPilotLocations = new Set(operatingPilotLocationIds)" in source
     assert 'operatingPilot.hidden = false' in source
@@ -34,10 +35,12 @@ def test_summary_and_pages_use_protected_no_store_routes_and_safe_text_rendering
     summary = _function(source, "async function loadOperatingPilotSummary()", "async function loadOperatingPilotDemand(")
     demand = _function(source, "async function loadOperatingPilotDemand(append = false)", "async function loadOperatingPilotCapacity(")
     capacity = _function(source, "async function loadOperatingPilotCapacity(append = false)", "async function loadOperatingPilot()")
+    claims = _function(source, "async function loadOperatingPilotWorkClaims(append = false)", "async function loadOperatingPilot()")
     assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/summary`' in summary
     assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals?${params}`' in demand
     assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/capacity-periods?${params}`' in capacity
-    for reader in (summary, demand, capacity):
+    assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-claims?${params}`' in claims
+    for reader in (summary, demand, capacity, claims):
         assert 'credentials: "same-origin"' in reader
         assert 'cache: "no-store"' in reader
         assert "operatingPilotLocations.has(locationId)" in reader
@@ -52,6 +55,19 @@ def test_capacity_cohort_suppression_never_renders_hour_totals():
     assert 'const suppression = item.suppressed === true' in capacity
     assert capacity.count('suppression ? "Suppressed (<3 contributors)" : item.') == 3
     assert 'addOperatingPilotMetric("Current-period capacity", "Suppressed (<3 contributors)")' in source
+
+
+def test_work_claim_cohort_suppression_never_renders_individual_claim_data():
+    source = CONSOLE.read_text(encoding="utf-8")
+    claims = _function(
+        source,
+        "async function loadOperatingPilotWorkClaims(append = false)",
+        "async function loadOperatingPilot()",
+    )
+    assert 'item.suppressed === true ? "Suppressed (<3 contributors)" : item.claim_count' in claims
+    assert "item.work_type" in claims
+    for private_field in ("claim_id", "work_item_id", "claimant_party_id", "decision_reason"):
+        assert private_field not in claims
 
 
 def test_summary_renders_only_fixed_aggregate_allowlists():
@@ -75,8 +91,9 @@ def test_location_changes_and_load_more_are_wired_with_bounded_paging():
     assert 'operatingPilotLocation.addEventListener("change", loadOperatingPilot)' in source
     assert 'operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true))' in source
     assert 'operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true))' in source
+    assert 'operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true))' in source
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in source
-    assert source.count("nextOffset <= 10000") >= 2
+    assert source.count("nextOffset <= 10000") >= 3
     ids = re.findall(r'\bid="([^"]+)"', source)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
