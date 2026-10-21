@@ -58,6 +58,7 @@ mounted unified command using the same arguments. It covers:
 | --- | --- | --- | --- |
 | `agents` | `list` | Local task catalogue; no database or provider | Newline-delimited registered task keys |
 | `ingestion` | `--list` | Local static registry; no database or provider | Sorted tool names and descriptions |
+| `ingestion` | `device_manager --list --location-id <synthetic-location-uuid>`; `device_manager --health --device-id <synthetic-device> --location-id <synthetic-location-uuid>` | PostgreSQL device reads through the mounted module; connection and cursor are synthetic | JSON location-scoped device inventory or health record |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -103,10 +104,11 @@ For each row, the regression invokes both `python -m <legacy-module>` and
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Nine successful offline invocations, twenty-nine other
-PostgreSQL-backed read invocations with stubbed query functions, one operator
-inventory read, one tenant-preflight invocation with a synthetic aggregate
-service report, two synthetic report-generation paths (single and automatic
+real service. Nine successful offline invocations, thirty-four other
+PostgreSQL-backed read invocations with stubbed query functions (including
+ingestion status and location-scoped device reads), one operator inventory
+read, one tenant-preflight invocation with a synthetic aggregate service
+report, two synthetic report-generation paths (single and automatic
 batch), and three operator write invocations with fake connections match
 standalone output across all 37 mounted groups (157 tests including
 operator identity/revocation safety, Delphi, and media service suites,
@@ -124,7 +126,7 @@ database or chain/provider command. These checks run with the offline output
 parity cases in a 157-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The thirty query-backed success paths (including the operator inventory),
+The thirty-five query-backed success paths (including the operator inventory),
 one aggregate-service-stubbed tenant-preflight path, two synthetic report-
 generation paths (single and automatic batch), and three fake-connection
 operator writes exercise their real parsers, forwarding, and JSON or text output

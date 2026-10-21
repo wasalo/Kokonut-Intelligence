@@ -2352,3 +2352,16 @@ populated-data behavior and authorization remain open. Checklist: 825 complete
 / 25 open (850 total); capability classifications remain 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json`.
+
+
+### CAP-039 location-scoped device read CLI parity — 21 October 2026
+
+Standalone and unified `device_manager --list` and `--health` now match on
+synthetic result rows. Both operations bind the exact location; missing or
+malformed location scope fails before database setup; successful reads close
+resources. Ten focused tests, Ruff, and compilation pass. No database or
+provider was contacted. Registration writes, populated-data parity, and
+authorization remain open. Checklist: 826 complete / 25 open (851 total);
+capability classifications remain 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json`.

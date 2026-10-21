@@ -13215,3 +13215,17 @@ complete / 25 open (850 total);
 capability matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28
 prepared ([implementation](../../services/ingestion/status.py); [test](../../tests/test_ingestion_status_error_redaction.py);
 [evidence](builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json)).
+
+
+### CAP-039 location-scoped device read CLI parity — 21 October 2026
+
+`device_manager --list` and `--health` now have standalone/unified parity
+checks with synthetic results. Both commands bind the exact location scope;
+missing or malformed location IDs fail before database setup in either CLI;
+successful reads close cursors and connections. Ten focused tests pass with
+Ruff and Python compilation. No database or provider was contacted. This does
+not verify populated data, device registration writes, or authorization.
+Checklist: 826 complete / 25 open (851 total); capability matrix remains 66
+rows: 31 baseline-retained, 7 deployed, and 28 prepared ([contract](unified-cli-kernel-contract.md);
+[test](../../tests/test_device_manager_cli_contract.py);
+[evidence](builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json)).

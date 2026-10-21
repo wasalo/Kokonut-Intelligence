@@ -4015,3 +4015,11 @@ reads close fake connections after query failure. Nine focused tests, Ruff,
 and compilation pass; no database or provider was contacted. This is a mocked
 read-path contract, not populated-data or authorization
 acceptance ([evidence](builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json)).
+
+**CAP-039 device manager read CLI parity — 21 October 2026:** standalone and
+unified `device_manager --list` and `--health` outputs match using synthetic
+query results. Both SQL operations bind the requested location, invalid scope
+fails before DB setup, and successful paths close their resources. Ten focused
+tests, Ruff, and compilation pass; no database/provider was contacted. Device
+registration writes, populated-data parity, and authorization remain open
+([evidence](builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json)).
