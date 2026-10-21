@@ -4091,3 +4091,12 @@ No database/provider was contacted. Live authorization, provider output, and
 worker recovery remain open. Checklist: 834 complete / 25 open; matrix remains
 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-manual-run-contract.json)).
+
+**CAP-039 remote-sensing write cursor cleanup — 21 October 2026:** status
+updates and provider-attempt inserts now close cursors when SQL execution
+fails, without taking transaction control from the caller. Two synthetic
+regressions pass in the 89-test fetcher/scheduler/automation selection with
+Ruff and compilation; no database/provider was contacted. Live write behavior
+and worker recovery remain open. Checklist: 835 complete / 25 open; capability
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-write-cursor-cleanup.json)).

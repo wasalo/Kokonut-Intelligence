@@ -13339,3 +13339,14 @@ contacted. Live authorization, provider output parity, and worker recovery
 remain open. Checklist: 834 complete / 25 open (859 total); matrix remains 66
 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-manual-run-contract.json)).
+
+### CAP-039 remote-sensing write cursor cleanup — 21 October 2026
+
+The status-update and provider-attempt write helpers now close their cursors
+when SQL execution fails. They do not commit or roll back, preserving transaction
+ownership in the fetcher caller. Two synthetic failure cases pass in the 89-test
+fetcher/scheduler/automation selection; Ruff and Python compilation pass. No
+database/provider was contacted. Live write behavior and worker recovery remain
+open. Checklist: 835 complete / 25 open (860 total); matrix remains 66 rows:
+31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_write_cursor_cleanup.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-write-cursor-cleanup.json)).

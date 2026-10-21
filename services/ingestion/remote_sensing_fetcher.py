@@ -197,42 +197,44 @@ def _update_job_status(
 ) -> None:
     """Update job run status."""
     cur = conn.cursor()
-    updates = []
-    params = []
-    if status is not None:
-        updates.append("status = %s")
-        params.append(status)
-    if last_run_at is not None:
-        updates.append("last_run_at = %s")
-        params.append(last_run_at)
-    if last_run_status is not None:
-        updates.append("last_run_status = %s")
-        params.append(last_run_status)
-    if observations_fetched is not None:
-        updates.append("observations_fetched = observations_fetched + %s")
-        params.append(observations_fetched)
-    if next_run_at is not None:
-        updates.append("next_run_at = %s")
-        params.append(next_run_at)
-    if lease_owner is not None:
-        updates.extend(["lease_owner = NULL", "lease_expires_at = NULL"])
-    if error_class is not None:
-        updates.append("last_error_class = %s")
-        params.append(error_class)
-    if error_message is not None:
-        updates.append("last_error = %s")
-        params.append(error_message[:2000])
-    updates.append("updated_at = NOW()")
-    params.append(job_id)
-    where = "id = %s"
-    if lease_owner is not None:
-        where += " AND lease_owner = %s"
-        params.append(lease_owner)
-    cur.execute(
-        f"UPDATE remote_sensing_job SET {', '.join(updates)} WHERE {where}",
-        params,
-    )
-    cur.close()
+    try:
+        updates = []
+        params = []
+        if status is not None:
+            updates.append("status = %s")
+            params.append(status)
+        if last_run_at is not None:
+            updates.append("last_run_at = %s")
+            params.append(last_run_at)
+        if last_run_status is not None:
+            updates.append("last_run_status = %s")
+            params.append(last_run_status)
+        if observations_fetched is not None:
+            updates.append("observations_fetched = observations_fetched + %s")
+            params.append(observations_fetched)
+        if next_run_at is not None:
+            updates.append("next_run_at = %s")
+            params.append(next_run_at)
+        if lease_owner is not None:
+            updates.extend(["lease_owner = NULL", "lease_expires_at = NULL"])
+        if error_class is not None:
+            updates.append("last_error_class = %s")
+            params.append(error_class)
+        if error_message is not None:
+            updates.append("last_error = %s")
+            params.append(error_message[:2000])
+        updates.append("updated_at = NOW()")
+        params.append(job_id)
+        where = "id = %s"
+        if lease_owner is not None:
+            where += " AND lease_owner = %s"
+            params.append(lease_owner)
+        cur.execute(
+            f"UPDATE remote_sensing_job SET {', '.join(updates)} WHERE {where}",
+            params,
+        )
+    finally:
+        cur.close()
 
 
 def _compute_next_run(cadence_days: int) -> datetime:
@@ -295,28 +297,30 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
 def _record_provider_attempt(conn, job_id: str, attempt: Dict[str, Any]) -> None:
     """Persist one provider attempt; this is intentionally append-only."""
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO remote_sensing_provider_attempt
-            (job_id, provider, attempt_number, outcome, retryable, observations,
-             error_message, started_at, finished_at, fallback_used, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-        """,
-        (
-            job_id,
-            attempt["provider"],
-            attempt["attempt_number"],
-            attempt["outcome"],
-            attempt.get("retryable"),
-            attempt.get("observations", 0),
-            attempt.get("message"),
-            attempt["started_at"],
-            attempt["finished_at"],
-            attempt.get("fallback_used", False),
-            json.dumps(attempt.get("metadata", {})),
-        ),
-    )
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO remote_sensing_provider_attempt
+                (job_id, provider, attempt_number, outcome, retryable, observations,
+                 error_message, started_at, finished_at, fallback_used, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            """,
+            (
+                job_id,
+                attempt["provider"],
+                attempt["attempt_number"],
+                attempt["outcome"],
+                attempt.get("retryable"),
+                attempt.get("observations", 0),
+                attempt.get("message"),
+                attempt["started_at"],
+                attempt["finished_at"],
+                attempt.get("fallback_used", False),
+                json.dumps(attempt.get("metadata", {})),
+            ),
+        )
+    finally:
+        cur.close()
 
 
 def fetch_job(conn, job: Dict[str, Any], *, location_id: str) -> Dict[str, Any]:
