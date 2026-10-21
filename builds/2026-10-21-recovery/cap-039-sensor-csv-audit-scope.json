@@ -1,0 +1,32 @@
+{
+  "capability": "CAP-039",
+  "slice": "sensor CSV tenant-scoped audit writes",
+  "date": "2026-10-21",
+  "implementation": "services/ingestion/sensor_ingester.py",
+  "tests": [
+    "tests/test_sensor_ingester_csv_audit_scope.py",
+    "tests/test_sensor_ingester_error_redaction.py",
+    "tests/test_sensor_ingester_cli_parity.py",
+    "tests/test_sensor_ingester.py"
+  ],
+  "commands": [
+    "python3 -m pytest tests/test_sensor_ingester_csv_audit_scope.py tests/test_sensor_ingester_error_redaction.py tests/test_sensor_ingester_cli_parity.py tests/test_sensor_ingester.py -q",
+    "ruff check services/ingestion/sensor_ingester.py tests/test_sensor_ingester_csv_audit_scope.py tests/test_sensor_ingester_error_redaction.py",
+    "python3 -m py_compile services/ingestion/sensor_ingester.py tests/test_sensor_ingester_csv_audit_scope.py tests/test_sensor_ingester_error_redaction.py"
+  ],
+  "results": {
+    "pytest": "27 passed",
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "verified": [
+    "Missing-field, invalid-timestamp, rejected-reading, successful, and failed-processing CSV audits pass the caller-owned connection and canonical location ID.",
+    "Synthetic rejected and successful CSV cases create only one connection, use the same connection for audit writes, and close it after the batch.",
+    "Failure details remain redacted to safe fixed messages or exception class names."
+  ],
+  "external_effects": "CSV files were synthetic temporary fixtures; database writes and sensor projection were mocked. No database or provider was contacted.",
+  "limitations": [
+    "No live PostgreSQL transaction or tenant authorization was exercised.",
+    "This does not establish full CSV ingestion parity with legacy data."
+  ]
+}

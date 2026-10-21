@@ -292,6 +292,7 @@ def run_csv(file_path: str, location_id: str | None = None):
                     target_table="sensor_reading", target_id=None, operation="insert",
                     payload_hash=hash_payload(row), status="failed", error_message="missing required fields",
                     validation_status="rejected", validation_errors=["missing required fields"],
+                    db=db, location_id=location_id,
                 )
                 logger.warning("  ✗ Row %d: missing required fields (device_id, reading_date, value)", i + 1)
                 continue
@@ -305,6 +306,7 @@ def run_csv(file_path: str, location_id: str | None = None):
                     target_table="sensor_reading", target_id=None, operation="insert",
                     payload_hash=hash_payload(row), status="failed", error_message="invalid timestamp",
                     validation_status="rejected", validation_errors=["invalid timestamp"],
+                    db=db, location_id=location_id,
                 )
                 logger.warning("  ✗ Row %d: invalid timestamp", i + 1)
                 continue
@@ -336,6 +338,7 @@ def run_csv(file_path: str, location_id: str | None = None):
                     payload_hash=hash_payload(row), status="failed", error_message="; ".join(validation.errors),
                     validation_status="rejected", validation_errors=validation.errors,
                     validation_warnings=validation.warnings, dedupe_key=validation.dedupe_key,
+                    db=db, location_id=location_id,
                 )
                 continue
             quality = "suspect" if validation.status == "suspect" else "good"
@@ -364,6 +367,8 @@ def run_csv(file_path: str, location_id: str | None = None):
                     validation_status=validation.status,
                     validation_warnings=validation.warnings,
                     dedupe_key=validation.dedupe_key,
+                    db=db,
+                    location_id=location_id,
                 )
 
                 bus = _get_event_bus(conn=db)
@@ -398,6 +403,8 @@ def run_csv(file_path: str, location_id: str | None = None):
                     payload_hash=hash_payload(row),
                     status="failed",
                     error_message=f"row processing failed ({type(e).__name__})",
+                    db=db,
+                    location_id=location_id,
                 )
                 logger.error("  ✗ Row %d processing failed (%s)", i + 1, type(e).__name__)
 

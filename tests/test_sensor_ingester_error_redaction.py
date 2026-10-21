@@ -61,6 +61,8 @@ def test_csv_invalid_timestamp_is_not_copied_to_logs_or_audit(tmp_path, monkeypa
     audit.assert_called_once()
     assert audit.call_args.kwargs["error_message"] == "invalid timestamp"
     assert audit.call_args.kwargs["validation_errors"] == ["invalid timestamp"]
+    assert audit.call_args.kwargs["db"] is connection
+    assert audit.call_args.kwargs["location_id"] == LOCATION_ID
     assert SECRET not in str(audit.call_args)
     assert SECRET not in str(logger.warning.call_args)
     connection.commit.assert_called_once()
@@ -105,6 +107,8 @@ def test_csv_processing_exception_is_redacted_in_audit_and_log(tmp_path, monkeyp
 
     audit.assert_called_once()
     assert audit.call_args.kwargs["error_message"] == "row processing failed (RuntimeError)"
+    assert audit.call_args.kwargs["db"] is connection
+    assert audit.call_args.kwargs["location_id"] == LOCATION_ID
     assert SECRET not in str(audit.call_args)
     assert SECRET not in str(logger.error.call_args)
     assert "RuntimeError" in str(logger.error.call_args)
