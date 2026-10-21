@@ -8,6 +8,7 @@ import ast
 import json
 import re
 import sys
+from itertools import product
 from pathlib import Path
 
 from report_generator_inventory import ROOT
@@ -1000,6 +1001,302 @@ def _query_argument(call: ast.Call) -> ast.AST | None:
     return first
 
 
+def _query_parameter_argument(call: ast.Call) -> ast.AST | None:
+    offset = 2 if isinstance(call.func, ast.Name) and call.func.id == "query" else 1
+    if len(call.args) > offset:
+        return call.args[offset]
+    return next(
+        (keyword.value for keyword in call.keywords if keyword.arg in {"params", "parameters"}),
+        None,
+    )
+
+
+def _list_append_state(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    name: str,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+    parents: dict[ast.AST, ast.AST],
+    *,
+    require_string_items: bool,
+) -> tuple[list[str] | int, list[tuple[tuple[tuple[int, int], ...], str | None]]] | None:
+    """Resolve one local literal list plus simple append operations before a query."""
+    candidates = [(line, value) for line, value in assignments.get(name, []) if line < before]
+    if not candidates:
+        return None
+    initial_line, initial = candidates[-1]
+    if not isinstance(initial, (ast.List, ast.Tuple)) or any(
+        isinstance(item, ast.Starred) for item in initial.elts
+    ):
+        return None
+    if require_string_items:
+        initial_values = [
+            _string_value(item, assignments, initial_line) for item in initial.elts
+        ]
+        if any(item is None for item in initial_values):
+            return None
+        initial_state: list[str] | int = [item for item in initial_values if item is not None]
+    else:
+        initial_state = len(initial.elts)
+
+    mutations: list[tuple[tuple[int, int] | tuple[()], str | None]] = []
+    for node in ast.walk(function):
+        line = getattr(node, "lineno", -1)
+        if not initial_line < line < before:
+            continue
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            value = node.value
+            if isinstance(value, ast.Name) and value.id == name:
+                # A second reference can mutate the same list without a
+                # receiver named `name`; do not claim a complete append trace.
+                return None
+            if any(isinstance(target, ast.Name) and target.id == name for target in targets):
+                return None
+            if any(
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == name
+                for target in targets
+            ):
+                return None
+        if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name) and node.target.id == name:
+            return None
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if not isinstance(node.func.value, ast.Name) or node.func.value.id != name:
+            continue
+        if node.func.attr != "append" or len(node.args) != 1 or node.keywords:
+            return None
+        branch_path = _simple_branch_path(node, parents)
+        if branch_path is None:
+            return None
+        appended_value = None
+        if require_string_items:
+            appended_value = _string_value(node.args[0], assignments, node.lineno)
+            if appended_value is None:
+                return None
+        normalized_path = (branch_path,) if branch_path else ()
+        mutations.append((normalized_path, appended_value))
+
+    for reference in ast.walk(function):
+        if not isinstance(reference, ast.Name) or reference.id != name:
+            continue
+        if not initial_line < reference.lineno < before:
+            continue
+        parent = parents.get(reference)
+        if isinstance(parent, ast.Attribute) and parent.value is reference:
+            # The call receiver is validated above and must be append().
+            continue
+        if require_string_items and isinstance(parent, ast.IfExp) and parent.test is reference:
+            continue
+        if (
+            require_string_items
+            and isinstance(parent, ast.Call)
+            and parent.args
+            and parent.args[0] is reference
+            and isinstance(parent.func, ast.Attribute)
+            and parent.func.attr == "join"
+            and isinstance(parent.func.value, ast.Constant)
+            and isinstance(parent.func.value.value, str)
+        ):
+            continue
+        # Aliases, copies, escapes to other calls, and unexpected reads can
+        # hide mutations from this deliberately narrow append trace.
+        return None
+
+    return initial_state, mutations
+
+
+def _join_list_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for candidate in ast.walk(node):
+        if (
+            isinstance(candidate, ast.Call)
+            and isinstance(candidate.func, ast.Attribute)
+            and candidate.func.attr == "join"
+            and isinstance(candidate.func.value, ast.Constant)
+            and isinstance(candidate.func.value.value, str)
+            and len(candidate.args) == 1
+            and isinstance(candidate.args[0], ast.Name)
+        ):
+            names.add(candidate.args[0].id)
+    return names
+
+
+def _resolve_query_string_fragment(
+    node: ast.AST,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+    list_values: dict[str, list[str]],
+    visited: frozenset[str] = frozenset(),
+) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        if node.id in visited:
+            return None
+        candidates = [(line, value) for line, value in assignments.get(node.id, []) if line < before]
+        return (
+            _resolve_query_string_fragment(
+                candidates[-1][1], assignments, before, list_values, visited | {node.id}
+            )
+            if candidates
+            else None
+        )
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _resolve_query_string_fragment(node.left, assignments, before, list_values, visited)
+        right = _resolve_query_string_fragment(node.right, assignments, before, list_values, visited)
+        return left + right if left is not None and right is not None else None
+    if isinstance(node, ast.IfExp) and isinstance(node.test, ast.Name):
+        values = list_values.get(node.test.id)
+        if values is None:
+            return None
+        branch = node.body if values else node.orelse
+        return _resolve_query_string_fragment(branch, assignments, before, list_values, visited)
+    if isinstance(node, ast.Call):
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "join"
+            and isinstance(node.func.value, ast.Constant)
+            and isinstance(node.func.value.value, str)
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Name)
+        ):
+            values = list_values.get(node.args[0].id)
+            return node.func.value.value.join(values) if values is not None else None
+    if isinstance(node, ast.JoinedStr):
+        parts: list[str] = []
+        for value in node.values:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                parts.append(value.value)
+            elif isinstance(value, ast.FormattedValue) and value.conversion == -1 and value.format_spec is None:
+                part = _resolve_query_string_fragment(
+                    value.value, assignments, before, list_values, visited
+                )
+                if part is None:
+                    return None
+                parts.append(part)
+            else:
+                return None
+        return "".join(parts)
+    return None
+
+
+def _optional_filter_list_query_variants(
+    sql_node: ast.AST | None,
+    call: ast.Call,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[list[str], dict] | None:
+    """Resolve simple optional SQL-fragment and parameter-list appends together."""
+    if not isinstance(sql_node, ast.JoinedStr):
+        return None
+    parameter_node = _query_parameter_argument(call)
+    if not isinstance(parameter_node, ast.Name):
+        return None
+
+    parents = {
+        child: parent
+        for parent in ast.walk(function)
+        for child in ast.iter_child_nodes(parent)
+    }
+    sql_list_names: set[str] = set()
+    for value in sql_node.values:
+        if not isinstance(value, ast.FormattedValue):
+            continue
+        expression = value.value
+        if isinstance(expression, ast.Name):
+            candidates = [
+                assigned
+                for line, assigned in assignments.get(expression.id, [])
+                if line < call.lineno
+            ]
+            if candidates:
+                sql_list_names.update(_join_list_names(candidates[-1]))
+    if len(sql_list_names) != 1:
+        return None
+    sql_list_name = next(iter(sql_list_names))
+
+    sql_state = _list_append_state(
+        function,
+        sql_list_name,
+        assignments,
+        call.lineno,
+        parents,
+        require_string_items=True,
+    )
+    parameter_state = _list_append_state(
+        function,
+        parameter_node.id,
+        assignments,
+        call.lineno,
+        parents,
+        require_string_items=False,
+    )
+    if sql_state is None or parameter_state is None:
+        return None
+    sql_initial, sql_mutations = sql_state
+    parameter_initial, parameter_mutations = parameter_state
+    if not isinstance(sql_initial, list) or not isinstance(parameter_initial, int):
+        return None
+    if not any(path for path, _ in [*sql_mutations, *parameter_mutations]):
+        return None
+
+    guard_lines = sorted(
+        {
+            line
+            for path, _value in [*sql_mutations, *parameter_mutations]
+            for line, _branch in path
+        }
+    )
+    if len(guard_lines) > 6:
+        return None
+
+    variants: list[dict] = []
+    sql_variants: list[str] = []
+    for selected_branches in product((0, 1), repeat=len(guard_lines)):
+        choices = dict(zip(guard_lines, selected_branches, strict=True))
+
+        def selected(path: tuple[tuple[int, int], ...] | tuple[()]) -> bool:
+            return all(choices[line] == branch for line, branch in path)
+
+        sql_list = list(sql_initial)
+        for path, appended in sql_mutations:
+            if selected(path) and appended is not None:
+                sql_list.append(appended)
+        parameter_count = parameter_initial + sum(
+            selected(path) for path, _value in parameter_mutations
+        )
+        resolved_sql = _resolve_query_string_fragment(
+            sql_node,
+            assignments,
+            call.lineno,
+            {sql_list_name: sql_list},
+        )
+        if resolved_sql is None:
+            return None
+        placeholder_count, named_binds = _sql_bind_counts(resolved_sql)
+        if named_binds:
+            return None
+        variants.append(
+            {
+                "conditions": [
+                    {"line": line, "branch": choices[line]} for line in guard_lines
+                ],
+                "placeholder_count": placeholder_count,
+                "supplied_count": parameter_count,
+                "mismatch": placeholder_count != parameter_count,
+            }
+        )
+        sql_variants.append(resolved_sql)
+
+    return sql_variants, {
+        "mismatch": any(variant["mismatch"] for variant in variants),
+        "variants": variants,
+    }
+
+
 def _query_calls(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     module_tree: ast.Module | None = None,
@@ -1040,13 +1337,21 @@ def _query_calls(
                     (path, _string_value(value, assignments, line))
                     for path, line, value in conditional_sql_variants
                 ]
-        positional_arity = _positional_bind_arity(
-            sql,
-            node,
-            assignments,
-            function,
-            conditional_sql_variants or None,
+        optional_filter_variants = _optional_filter_list_query_variants(
+            sql_node, node, assignments, function
         )
+        if optional_filter_variants:
+            sql_variants, positional_arity = optional_filter_variants
+            sql = sql_variants[-1]
+            sql_variant_paths = [(None, value) for value in sql_variants]
+        else:
+            positional_arity = _positional_bind_arity(
+                sql,
+                node,
+                assignments,
+                function,
+                conditional_sql_variants or None,
+            )
         named_bind_contract = _named_bind_contract(
             sql,
             sql_node,
@@ -1141,6 +1446,10 @@ def _query_calls(
             or not parameter_paths
             or any(path in parameter_paths for path in scoped_sql_paths)
         )
+        if optional_filter_variants:
+            # The generic optional-filter solver checks bind counts across each
+            # guard combination, but does not certify tenant-scope correlation.
+            correlated_location_binding = False
         queries.append(
             {
                 "line": node.lineno,

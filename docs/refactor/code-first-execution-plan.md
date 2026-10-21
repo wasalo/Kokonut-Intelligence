@@ -3,6 +3,17 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 optional helper filter-list SQL and bind contracts — 21 October 2026:**
+the static helper analyzer now enumerates simple paired clause-list and
+parameter-list appends across all guard combinations, bounded to six guards.
+It resolves five report-to-helper memberships, bringing coverage to 141/175
+static SQL sites and 127 positional plus two named bind contracts, with zero
+mismatches. Thirty-four SQL sites remain unresolved. The 37-test focused
+query/helper/source suite passes with Ruff, compilation, all three inventory
+freshness checks, matrix validation, and diff checks. The resolver does not
+certify tenant-scope correlation; nested/dynamic mutations, PostgreSQL
+execution, and populated output parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-optional-filter-list-bind-contract.json)).
+
 **CAP-066 literal module SQL constants in helper closure — 21 October 2026:**
 the query analyzer resolves a unique literal module-level SQL string only when
 it precedes the function and no local binding shadows it. Five helper query

@@ -456,6 +456,103 @@ def generate(conn):
     assert dynamic["queries"][0]["sql_source"] == "dynamic_or_unresolved"
 
 
+def test_classifier_correlates_optional_sql_fragment_and_parameter_appends():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, first_id=None, second_id=None):
+    clauses = []
+    params = []
+    if first_id:
+        clauses.append("first_id = %s")
+        params.append(first_id)
+    if second_id:
+        clauses.append("second_id = %s")
+        params.append(second_id)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM sample{where}", params)
+''',
+        "generate",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["positional_bind_arity"]["mismatch"] is False
+    assert len(query["positional_bind_arity"]["variants"]) == 4
+    assert {
+        (variant["placeholder_count"], variant["supplied_count"])
+        for variant in query["positional_bind_arity"]["variants"]
+    } == {(0, 0), (1, 1), (2, 2)}
+
+
+def test_classifier_detects_optional_sql_and_parameter_guard_mismatch():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, first_id=None, second_id=None):
+    clauses = []
+    params = []
+    if first_id:
+        clauses.append("first_id = %s")
+    if second_id:
+        params.append(second_id)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM sample{where}", params)
+''',
+        "generate",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["positional_bind_arity"]["mismatch"] is True
+    assert any(variant["mismatch"] for variant in query["positional_bind_arity"]["variants"])
+
+
+def test_classifier_leaves_nested_optional_list_mutations_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, first_id=None, include_filter=False):
+    clauses = []
+    params = []
+    if first_id:
+        if include_filter:
+            clauses.append("first_id = %s")
+            params.append(first_id)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM sample{where}", params)
+''',
+        "generate",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "dynamic_or_unresolved"
+    assert query["positional_bind_arity"] is None
+
+
+def test_classifier_leaves_aliased_parameter_list_mutations_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, first_id=None):
+    clauses = []
+    params = []
+    aliases = list(params)
+    if first_id:
+        clauses.append("first_id = %s")
+        params.append(first_id)
+        aliases.append(first_id)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM sample{where}", params)
+''',
+        "generate",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "dynamic_or_unresolved"
+    assert query["positional_bind_arity"] is None
+
+
 def test_classifier_correlates_named_binds_with_condition_list_and_mapping_branches():
     analysis = analyze_function_source(
         '''

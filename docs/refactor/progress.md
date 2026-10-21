@@ -1,3 +1,21 @@
+### CAP-066 optional helper filter-list SQL and bind contracts — 21 October 2026
+
+The helper-query analyzer now resolves bounded optional filters built by
+parallel local list appends: SQL clauses and positional parameters are evaluated
+over every simple guard combination, up to six guards. This resolves five
+report-to-helper memberships: strategy execution and kernel queries in the
+business-plan report, capability-map queries in capability assessment and
+dashboard reports, and the strategy-execution report query. Across 175 helper
+memberships, 141 SQL sites are static and 34 remain unresolved; 127 positional
+and two named contracts have zero mismatches. The generic resolver does not
+certify tenant-scope correlation, and nested/dynamic mutations remain
+unresolved. The focused query/helper/source suite passes 37 tests; Ruff,
+compilation, all three generated inventory checks, capability-matrix
+validation, and diff checks pass. No database, provider, migration, candidate,
+or legacy stack was used. Checklist: 885 complete / 24 open (909 total); matrix
+remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows
+([evidence](builds/2026-10-21-recovery/cap-066-optional-filter-list-bind-contract.json)).
+
 ### CAP-066 literal module SQL constants in helper closure — 21 October 2026
 
 The static report analyzer now resolves only unique literal module-level

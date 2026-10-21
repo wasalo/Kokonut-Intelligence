@@ -7,9 +7,9 @@
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
     "helper_query_sites_with_location_scope_signal": 67,
-    "helper_query_sites_with_static_sql_source": 136,
-    "helper_query_sites_with_unresolved_sql_source": 39,
-    "helper_query_sites_with_static_positional_arity": 122,
+    "helper_query_sites_with_static_sql_source": 141,
+    "helper_query_sites_with_unresolved_sql_source": 34,
+    "helper_query_sites_with_static_positional_arity": 127,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 2,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -1236,9 +1236,167 @@
           "source_file": "services/analytics/strategy_execution.py",
           "callable": "dashboard",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_strategy_kernel_execution"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 3,
+                "supplied_count": 3,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -1255,9 +1413,167 @@
           "source_file": "services/analytics/strategy_kernel.py",
           "callable": "list_strategy_plans",
           "line": 126,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "strategy_plan"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 0
+                  },
+                  {
+                    "line": 118,
+                    "branch": 0
+                  },
+                  {
+                    "line": 121,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 3,
+                "supplied_count": 3,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 0
+                  },
+                  {
+                    "line": 118,
+                    "branch": 0
+                  },
+                  {
+                    "line": 121,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 0
+                  },
+                  {
+                    "line": 118,
+                    "branch": 1
+                  },
+                  {
+                    "line": 121,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 0
+                  },
+                  {
+                    "line": 118,
+                    "branch": 1
+                  },
+                  {
+                    "line": 121,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 1
+                  },
+                  {
+                    "line": 118,
+                    "branch": 0
+                  },
+                  {
+                    "line": 121,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 1
+                  },
+                  {
+                    "line": 118,
+                    "branch": 0
+                  },
+                  {
+                    "line": 121,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 1
+                  },
+                  {
+                    "line": 118,
+                    "branch": 1
+                  },
+                  {
+                    "line": 121,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 115,
+                    "branch": 1
+                  },
+                  {
+                    "line": 118,
+                    "branch": 1
+                  },
+                  {
+                    "line": 121,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -1649,9 +1965,9 @@
       ],
       "helper_query_site_count": 27,
       "helper_query_sites_with_location_scope_signal": 7,
-      "helper_query_sites_with_static_sql_source": 16,
-      "helper_query_sites_with_unresolved_sql_source": 11,
-      "helper_query_sites_with_static_positional_arity": 13,
+      "helper_query_sites_with_static_sql_source": 18,
+      "helper_query_sites_with_unresolved_sql_source": 9,
+      "helper_query_sites_with_static_positional_arity": 15,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 2,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -1737,9 +2053,37 @@
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_capability_dashboard",
           "line": 284,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_capability_dashboard"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditions": [
+                  {
+                    "line": 278,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 278,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -1826,9 +2170,9 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 3,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 3,
+      "helper_query_sites_with_static_sql_source": 4,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 4,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -1914,9 +2258,37 @@
           "source_file": "services/analytics/capability_map.py",
           "callable": "get_capability_dashboard",
           "line": 284,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_capability_dashboard"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditions": [
+                  {
+                    "line": 278,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 278,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -2003,9 +2375,9 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 3,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 3,
+      "helper_query_sites_with_static_sql_source": 4,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 4,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -8055,9 +8427,167 @@
           "source_file": "services/analytics/strategy_execution.py",
           "callable": "dashboard",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_strategy_kernel_execution"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 3,
+                "supplied_count": 3,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 0
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 2,
+                "supplied_count": 2,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 0
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 0
+                  }
+                ],
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditions": [
+                  {
+                    "line": 19,
+                    "branch": 1
+                  },
+                  {
+                    "line": 22,
+                    "branch": 1
+                  },
+                  {
+                    "line": 25,
+                    "branch": 1
+                  }
+                ],
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -8094,9 +8624,9 @@
       ],
       "helper_query_site_count": 3,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 2,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_static_sql_source": 3,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 3,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,

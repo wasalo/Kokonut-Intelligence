@@ -135,3 +135,22 @@ def test_reachable_helper_queries_resolve_literal_module_sql_constants():
     assert all(site["bound_location_scope_signal"] for site in listing_queries)
     assert all(site["positional_bind_arity"]["mismatch"] is False for site in marketplace_queries)
 
+
+def test_reachable_helper_queries_correlate_optional_filter_bind_variants():
+    inventory = build_inventory()
+    for report_type in {"business_plan", "strategy_execution"}:
+        report = next(
+            item for item in inventory["reports"] if item["report_type"] == report_type
+        )
+        queries = [
+            site
+            for site in report["reachable_helper_query_sites"]
+            if site["source_file"] == "services/analytics/strategy_execution.py"
+            and site["callable"] == "dashboard"
+        ]
+
+        assert len(queries) == 1
+        assert queries[0]["sql_source"] == "static_or_resolved"
+        assert queries[0]["positional_bind_arity"]["mismatch"] is False
+        assert len(queries[0]["positional_bind_arity"]["variants"]) == 8
+
