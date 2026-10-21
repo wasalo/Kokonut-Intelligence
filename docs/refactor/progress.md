@@ -1,3 +1,17 @@
+### CAP-039 mock-sensor count preflight — 21 October 2026
+
+Mock-sensor generation now rejects zero, negative, non-integer, and boolean
+reading counts before opening PostgreSQL. Standalone and unified CLI paths
+reject zero and negative values before dispatch; the direct generator also
+validates its Python argument. The focused mock-sensor CLI, cleanup, insertion
+redaction, and unified dispatcher selection passes 23 tests; Ruff and Python
+compilation pass. Database access is guarded by fail-on-access stubs. This
+closes an input-validation defect only; it does not establish provider parity,
+schedule transfer, or populated-data acceptance. Checklist: 916 complete / 24
+open (940 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence:
+[mock-sensor count preflight](builds/2026-10-21-recovery/cap-039-mock-sensor-count-preflight.json).
+
 ### CAP-038 agent draft-write boundary inventory — 21 October 2026
 
 A generated source inventory now pins three literal direct DML sites in

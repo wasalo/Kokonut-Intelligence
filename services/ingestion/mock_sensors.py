@@ -246,8 +246,14 @@ def generate_reading(sensor: dict, timestamp: datetime, inject_anomaly: bool = F
     return round(reading, 2)
 
 
+def _validate_reading_count(count: int) -> None:
+    if not isinstance(count, int) or isinstance(count, bool) or count <= 0:
+        raise ValueError("--count must be a positive integer")
+
+
 def generate_data(count: int = 96, inject_anomalies: bool = False):
     """Generate sensor readings for all active sensors."""
+    _validate_reading_count(count)
     db = get_db()
     try:
         sensors = []
@@ -406,6 +412,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.setup:
         setup_sensors()
     elif args.generate:
+        try:
+            _validate_reading_count(args.count)
+        except ValueError as exc:
+            parser.error(str(exc))
         generate_data(count=args.count, inject_anomalies=args.anomalies)
     elif args.cleanup:
         cleanup()

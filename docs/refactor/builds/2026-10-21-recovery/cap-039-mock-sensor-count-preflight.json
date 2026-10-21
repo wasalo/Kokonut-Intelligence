@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-039",
+  "date": "2026-10-21",
+  "change": "Mock sensor generation rejects non-positive or non-integer reading counts before database access.",
+  "validation": {
+    "cli_cases": [
+      "standalone --generate --count 0",
+      "standalone --generate --count -1",
+      "unified ingestion mock_sensors --generate --count 0",
+      "unified ingestion mock_sensors --generate --count -1"
+    ],
+    "direct_function_cases": [
+      0,
+      -1,
+      1.5,
+      true
+    ],
+    "database_access": "rejected by a fail-on-access stub",
+    "focused_tests": "23 passed",
+    "ruff": "passed",
+    "python_compilation": "passed"
+  },
+  "scope": "Offline CLI/input validation only; no database, provider, candidate, or legacy service was accessed. Does not close provider or populated parity acceptance."
+}
