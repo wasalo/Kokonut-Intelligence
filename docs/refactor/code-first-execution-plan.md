@@ -2405,3 +2405,15 @@ or provider was contacted. Provider retrieval and persistence remain open.
 Checklist: 829 complete / 25 open (854 total); capability classifications
 remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json`.
+
+
+### CAP-039 remote-sensing CSV CLI parity — 21 October 2026
+
+Standalone and unified remote-sensing CSV imports now match in location-scoped
+and explicit `--all-locations` modes using a temporary CSV and synthetic plot
+mapping. Canonical/ClickHouse writes are stubbed; logs, commit, and cleanup
+match. Two focused tests, Ruff, and Python compilation pass. No database or
+provider was contacted. Live storage and aggregate authorization remain open.
+Checklist: 830 complete / 25 open (855 total); capability classifications
+remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json`.

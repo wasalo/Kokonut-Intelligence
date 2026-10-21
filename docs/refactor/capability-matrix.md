@@ -4047,3 +4047,11 @@ forwarding with stubbed operations; conflicting selectors fail before DB
 setup. Eight focused tests, Ruff, and compilation pass; no database/provider
 was contacted. Provider retrieval and persistence remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json)).
+
+**CAP-039 remote-sensing CSV parity — 21 October 2026:** single-location and
+explicit aggregate CSV modes match across standalone/unified entrypoints with
+synthetic plot mapping and stubbed persistence. The location query is scoped,
+aggregate mode requires `--all-locations`, and the checks verify logs and
+cleanup. Two focused tests pass with Ruff and compilation; no database/provider
+was contacted. Live writes and aggregate-operation authorization remain open
+([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json)).

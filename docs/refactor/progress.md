@@ -13273,3 +13273,17 @@ Provider retrieval and persistence remain open. Checklist: 829 complete / 25
 open (854 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared ([test](../../tests/test_climate_data_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json)).
+
+
+### CAP-039 remote-sensing CSV CLI parity — 21 October 2026
+
+Standalone and unified `remote_sensing` imports now match for one-location
+and explicit `--all-locations` modes using a temporary CSV, synthetic plot
+mapping, and stubbed writes. The single-location query constrains plots to its
+location; aggregate scope is selected explicitly. Logs, commit behavior, and
+cleanup match. Two focused tests pass with Ruff and Python compilation; no
+database/provider was contacted. Live storage and aggregate-import
+authorization remain open. Checklist: 830 complete / 25 open (855 total);
+matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_remote_sensing_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json)).
