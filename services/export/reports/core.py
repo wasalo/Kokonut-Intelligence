@@ -58,6 +58,7 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
             SELECT quantity, unit, crop_cycle_id
             FROM harvest_event
             WHERE location_id = %s
+              AND status IN ('verified', 'published')
               AND (%s::date IS NULL OR harvest_date >= %s::date)
               AND (%s::date IS NULL OR harvest_date <= %s::date)
         ), unit_totals AS (

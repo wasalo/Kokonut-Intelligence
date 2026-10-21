@@ -13606,3 +13606,17 @@ there. Populated report parity and MAN-CAP-066 owner acceptance remain open
 [test](../../tests/test_crop_noi_report.py);
 [disposable check](../../scripts/check-crop-cycle-noi-view-disposable.py);
 [evidence](builds/2026-10-21-recovery/cap-066-crop-noi-view-disposable.json)).
+
+
+### CAP-066 farm-summary harvest lifecycle filter — 21 October 2026
+
+The per-location farm summary now includes only verified or published harvest
+rows before computing counts, averages, and native-unit totals. Draft,
+submitted, and rejected events are excluded, matching the lifecycle rule in the
+canonical crop-NOI view. Focused report tests pass with Ruff and Python
+compilation; source/runtime SQL inventories are current. No migration,
+database, candidate, or legacy service was used. Populated output parity,
+tenant scope, live OIDC/browser, and MAN-CAP-066 acceptance remain open.
+Checklist: 864 complete / 24 open (888 total); matrix classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
+docs/refactor/builds/2026-10-21-recovery/cap-066-farm-harvest-lifecycle.json.

@@ -166,7 +166,7 @@ def test_farm_summary_returns_zeroes_when_no_activity_is_published():
     }
 
 
-def test_farm_harvest_summary_keeps_mixed_units_separate():
+def test_farm_harvest_summary_filters_governed_rows_and_keeps_mixed_units_separate():
     connection = FarmSummaryConnection(
         [],
         {
@@ -189,6 +189,7 @@ def test_farm_harvest_summary_keeps_mixed_units_separate():
     query = next(
         sql for sql, _params in connection.cursor_instance.statements if "FROM harvest_event" in sql
     )
+    assert "status IN ('verified', 'published')" in query
     assert "COUNT(DISTINCT unit) <= 1" in query
     assert "jsonb_object_agg(unit, total_quantity)" in query
 

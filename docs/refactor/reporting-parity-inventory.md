@@ -195,6 +195,12 @@ legacy-output parity or report-owner acceptance. The source check and
 disposable PostgreSQL evidence are recorded in
 [`batches.md`](batches.md#cap-066-crop-noi-source-alignment--21-october-2026).
 
+The per-location farm summary applies the same `verified`/`published`
+eligibility to harvest events. Draft, submitted, and rejected rows are excluded
+before unit totals and harvest counts are aggregated; this matches the lifecycle
+filter used by `v_crop_cycle_noi`. Focused source-level evidence is recorded in
+[`batches.md`](batches.md#cap-066-farm-summary-harvest-lifecycle-filter--21-october-2026).
+
 ## Safe next slices
 
 1. Read-only inventory of the populated archived dashboard/report definitions:
