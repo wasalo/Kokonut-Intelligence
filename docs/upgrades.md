@@ -25,6 +25,12 @@ verified encrypted checkpoint, builds images, applies migrations, applies
 idempotent reference setup, restarts Compose services, runs health checks, and
 executes `verify-platform.sh`.
 
+Before applying any pending PostgreSQL schema migrations, the migration runner
+creates locked `NOLOGIN` placeholders for optional runtime, worker, and
+Directus roles referenced by migration ACL statements. Existing roles are
+preserved, and the Directus provisioning command can promote its placeholder to
+the configured least-privilege login after schema replay.
+
 Pilot data is not loaded by default. Metric recomputation remains a separate,
 operator-controlled action.
 

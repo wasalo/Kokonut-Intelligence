@@ -56,9 +56,9 @@ if [[ "$START_DATABASE" == "true" ]]; then
     compose up -d --wait "$DB_SERVICE"
 fi
 
-# These optional deployment identities are referenced by REVOKE statements in
-# signed-worker migrations. Fresh schema replay must have the locked role names
-# even when the deployment has not enabled their logins yet.
+# These optional deployment identities are referenced by migration REVOKE
+# statements. Fresh schema replay needs their locked names even when deployment
+# profiles have not enabled their logins yet.
 compose exec -T "$DB_SERVICE" \
     psql -X -U kokonut -d postgres -v ON_ERROR_STOP=1 \
     < "$SCRIPT_DIR/bootstrap-optional-roles.sql"

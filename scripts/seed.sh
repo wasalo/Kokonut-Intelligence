@@ -48,9 +48,9 @@ wait_for_postgres
 echo "PostgreSQL is ready."
 
 if [ "$REFERENCE_ONLY" = "false" ]; then
-    # Migration revocations reference optional worker/runtime roles. Bootstrap
-    # locked placeholders before replay so fresh deployments and CI seed runs
-    # share the same role prerequisites as the clean-bootstrap check.
+    # Migration revocations reference optional worker/runtime/Directus roles.
+    # Bootstrap locked placeholders before replay so fresh deployments and CI
+    # seed runs share the same prerequisites as the clean-bootstrap check.
     echo "Bootstrapping optional PostgreSQL role placeholders..."
     psql_exec "$SCRIPT_DIR/bootstrap-optional-roles.sql"
 

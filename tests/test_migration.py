@@ -29,6 +29,51 @@ def _sql_file(path: Path, content: str = "SELECT 1;") -> Path:
     return path
 
 
+def test_clean_bootstrap_declares_locked_directus_role_for_migration_replay():
+    bootstrap = Path(__file__).parents[1] / "scripts" / "bootstrap-optional-roles.sql"
+    source = bootstrap.read_text()
+
+    assert "rolname = 'kokonut_directus_runtime'" in source
+    assert "CREATE ROLE kokonut_directus_runtime NOLOGIN NOINHERIT NOSUPERUSER " in source
+    assert "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS" in source
+    assert "rolname = 'kokonut_worker_login'" in source
+    assert "rolname = 'kokonut_runtime'" in source
+
+
+def test_schema_migrate_bootstraps_optional_roles_before_applying(monkeypatch, capsys):
+    files = [{"id": "schema:475_location_solution_retirement_review.sql", "kind": "schema"}]
+    operations = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_psql", lambda statement: operations.append(("bootstrap", statement)))
+    monkeypatch.setattr(cli, "_apply_files", lambda pending: operations.append(("apply", pending)))
+
+    cli.cmd_migrate(schemas_only=True)
+
+    assert [operation for operation, _value in operations] == ["bootstrap", "apply"]
+    assert "kokonut_directus_runtime" in operations[0][1]
+    assert "NOLOGIN" in operations[0][1]
+    assert "Applying 1 migration(s)" in capsys.readouterr().out
+
+
+def test_schema_migration_dry_run_does_not_bootstrap_or_apply(monkeypatch, capsys):
+    files = [{"id": "schema:475_location_solution_retirement_review.sql", "kind": "schema"}]
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(
+        cli,
+        "_bootstrap_optional_roles",
+        lambda: pytest.fail("dry-run must not mutate global role state"),
+    )
+    monkeypatch.setattr(
+        cli,
+        "_apply_files",
+        lambda _pending: pytest.fail("dry-run must not apply migrations"),
+    )
+
+    cli.cmd_migrate(dry_run=True, schemas_only=True)
+
+    assert "Would apply 1 migration(s)" in capsys.readouterr().out
+
+
 def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path, monkeypatch):
     schemas = tmp_path / "postgres"
     seeds = tmp_path / "seeds"

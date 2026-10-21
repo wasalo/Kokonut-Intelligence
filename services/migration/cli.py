@@ -658,6 +658,16 @@ def _load_state(*, include_seeds: bool = True) -> tuple[list[dict], dict[str, di
     return files, applied
 
 
+def _bootstrap_optional_roles() -> None:
+    """Create locked optional-role placeholders required by schema REVOKEs."""
+    bootstrap_path = PROJECT_DIR / "scripts" / "bootstrap-optional-roles.sql"
+    try:
+        bootstrap_sql = bootstrap_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise MigrationError("optional database role bootstrap is unavailable") from exc
+    _psql(bootstrap_sql)
+
+
 def cmd_status() -> None:
     files, applied = _load_state()
     print(f"{'Migration ID':<55} {'Status':<12} {'Checksum'}")
@@ -707,6 +717,8 @@ def cmd_migrate(
     if not pending:
         print("All migrations already applied.")
         return
+    if not dry_run and any(item.get("kind") == "schema" for item in pending):
+        _bootstrap_optional_roles()
     action = "Would apply" if dry_run else "Applying"
     print(f"{action} {len(pending)} migration(s)...")
     for item in pending:
