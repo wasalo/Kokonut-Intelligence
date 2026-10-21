@@ -4203,3 +4203,14 @@ unverified. Checklist: 845 complete / 25 open (870 total); classifications
 remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([tests](../tests/test_price_attestation_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 GIS import CLI entrypoint — 21 October 2026:** the GIS
+import module now has a callable parser/main used by unified dispatch.
+Standalone/unified file/target arguments and help match; missing file and
+invalid-target invocations fail before import. Six CLI cases pass within the
+40-test GIS/geospatial selection, with Ruff and compilation. The importer was
+stubbed; no file or database was accessed. This confirms parser dispatch only,
+not populated spatial-data parity. Checklist: 846 complete / 25 open (871
+total); classifications remain 31 baseline-retained, 7 deployed, and 28
+prepared ([tests](../tests/test_gis_import_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).

@@ -562,8 +562,12 @@ def run(file_path: str, target: str = "location"):
     logger.info("Done: %d success, %d errors", success, errors)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GIS boundary data ingestion")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="gis_import.py",
+        description="GIS boundary data ingestion",
+    )
     parser.add_argument("--file", required=True, help="Path to GeoJSON, CSV, or KML file")
     parser.add_argument(
         "--target",
@@ -571,5 +575,14 @@ if __name__ == "__main__":
         choices=["location", "farm", "plot"],
         help="Target table (default: location)",
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run a GIS boundary import."""
+    args = build_parser().parse_args(argv)
     run(file_path=args.file, target=args.target)
+
+
+if __name__ == "__main__":
+    main()

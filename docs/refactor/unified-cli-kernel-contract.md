@@ -75,6 +75,9 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `data_freshness --summary` | PostgreSQL summary-view rows are synthetic | Matching standalone/unified JSON; cursor/connection close on execute or fetch failure; global operator boundary remains unverified |
 | `ingestion` | `data_freshness --check --source weather` | Freshness checker is stubbed; no query or write runs | Matching standalone/unified JSON dispatch; `--source` requires `--check` |
 | `ingestion` | `anomaly_detector --list-rules` | PostgreSQL rule rows are synthetic | Matching standalone/unified log output; query is global, location selectors rejected; operator authorization remains open |
+| `ingestion` | `market_data --source world_bank --commodity COFFEE --month 6 --year 2026` or `--source seed --commodity COFFEE` | Ingestion `run()` is stubbed; no provider or database is accessed | Exact argument forwarding and standalone/unified help output match; invalid source/date filters fail before ingestion |
+| `ingestion` | `price_attestation --commodity coffee --price 2.5 --source world_bank`; `--run-daily`; incomplete/help invocation | Connection and attestation operations are synthetic; incomplete invocation does not open PostgreSQL | Matching standalone/unified arguments and help; manual/daily paths close their connections |
+| `ingestion` | `gis_import --file <synthetic-geojson> --target plot` | Import `run()` is stubbed; file parsing and database effects do not run | Exact standalone/unified argument forwarding and help output match; missing file/invalid target reject before import |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -181,10 +184,11 @@ deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
 Every mounted group now has at least one successful output-parity path. This
-selection covers nine offline invocations across eight groups, thirty
+selection covers nine offline invocations across eight groups, forty-five
 stubbed database-query paths (including the operator inventory), one
-aggregate-service path, two synthetic report-generation paths, and three
-fake-connection operator writes. Identity
+aggregate-service path, two synthetic report-generation paths, three
+fake-connection operator writes, and the market-data, price-attestation, and
+GIS-import parser/dispatch paths. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,

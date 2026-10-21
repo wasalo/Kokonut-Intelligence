@@ -2590,3 +2590,13 @@ price/Oracle selection, with 62 ingestion-help/unified CLI checks, Ruff, and
 compilation. Database writes and EAS access were stubbed; no database or chain
 was contacted. Populated source parity and on-chain attestation remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 GIS import CLI entrypoint — 21 October 2026
+
+`gis_import` now exposes a callable parser and `main()`. Standalone/unified
+argument forwarding and help match; missing file and invalid target inputs fail
+before the import function runs. Six CLI cases pass within the 40-test
+GIS/geospatial selection with Ruff and compilation. The importer was stubbed;
+no file, database, or provider was accessed. Actual GIS fixture parsing and
+import semantics remain covered separately
+([evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).

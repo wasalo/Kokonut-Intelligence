@@ -13479,3 +13479,15 @@ Checklist: 845 complete / 25 open (870 total); matrix remains 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_price_attestation_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 GIS import CLI entrypoint — 21 October 2026
+
+`gis_import` now exposes a callable parser and `main()` for unified dispatch.
+Standalone and unified commands forward synthetic file/target arguments
+identically and render the same help output. Missing file and invalid target
+inputs fail before the import function runs. Six CLI cases pass in the 40-test
+GIS/geospatial selection with Ruff and compilation. The import function was
+stubbed; no file, database, or provider was accessed. Checklist: 846 complete /
+25 open (871 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared ([test](../../tests/test_gis_import_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).
