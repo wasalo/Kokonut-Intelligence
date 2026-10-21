@@ -76,7 +76,7 @@ class FeedbackSynthesisAgent(SynthesisAgent):
     summary_type = "stakeholder_feedback"
     read_collection = "stakeholder_feedback"
     model_version = "feedback-agent-v1"
-    source_tables = ["stakeholder_feedback", "stakeholder_feedback_review"]
+    source_tables = ["stakeholder_feedback"]
 
     def synthesize(self, conn, location_id=None):
         return synthesize_feedback(conn, location_id)

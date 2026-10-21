@@ -1,3 +1,14 @@
+### CAP-038 synthesis source-label alignment — 20 October 2026
+
+The source declarations for the bio-factory and stakeholder-feedback agents
+now omit two tables their query paths do not use. A focused regression pins
+both metadata lists. The combined agent, AI-summary, and Gateway draft
+selection passes 91 tests with nine PostgreSQL-dependent skips; Ruff and
+compilation pass, and no database or provider was contacted. This removes
+false source labels but does not prove row-level lineage or establish
+MAN-CAP-038 acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-source-metadata-query-alignment.json)).
+
 ### ARM64/QEMU current-source software refresh — 20 October 2026
 
 The current `1e5bf08a` source builds as `linux/arm64`; its image reports

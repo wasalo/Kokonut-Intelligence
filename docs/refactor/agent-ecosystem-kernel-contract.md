@@ -68,6 +68,9 @@ run without decrypting `.env.sops`.
   successful write. The shared helper also validates that its static source
   table metadata contains between one and 20 lowercase
   SQL identifiers, matching the database draft function's shape limits.
+  A source-code audit removed two stale labels for tables the bio-factory and
+  stakeholder-feedback synthesis paths do not query. Source-table names remain
+  hints only; they are not linked row-level evidence.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log

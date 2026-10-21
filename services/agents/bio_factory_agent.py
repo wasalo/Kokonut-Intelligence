@@ -223,7 +223,7 @@ class BioFactorySynthesisAgent(SynthesisAgent):
     summary_type = "bio_factory"
     read_collection = "bio_factory_batch"
     model_version = "bio-factory-agent-v1"
-    source_tables = ["bio_factory_batch", "bio_input_provenance", "bio_recipe_library", "bio_factory_quality_test", "bio_ingredient_composition_reference", "bio_regional_input_availability"]
+    source_tables = ["bio_factory_batch", "bio_input_provenance", "bio_recipe_library", "bio_factory_quality_test", "bio_regional_input_availability"]
 
     def synthesize(self, conn, location_id=None):
         return synthesize_bio_factory(conn, location_id)
