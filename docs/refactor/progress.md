@@ -13174,10 +13174,11 @@ baseline-retained, 7 deployed, and 28 prepared ([implementation](../../services/
 
 ### CAP-047 freshness CLI offline preflight — 20 October 2026
 
-Data-freshness help now returns without loading secret-bearing database
-configuration; `--source` requires `--check`, and `--check` and `--summary`
-cannot be combined. The 37-test freshness suite passes, including four mocked
-preflight regressions and a fresh-process import check. Ruff, Python
+Data-freshness help through both standalone and unified ingestion CLIs now
+returns without loading secret-bearing database configuration; `--source`
+requires `--check`, and `--check` and `--summary` cannot be combined. The
+37-test freshness suite passes, including four mocked preflight regressions and
+a fresh-process entrypoint parity check. Ruff, Python
 compilation, and diff checks pass. No database, provider, candidate, or legacy
 service was contacted. This does not close production alert routing, retention
 ownership, or MAN-CAP-047. Checklist: 823 complete / 25 open (848

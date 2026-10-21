@@ -138,10 +138,11 @@ nested object/array schemas remain undefined ([catalogue evidence](builds/2026-1
 
 **Latest code-first audit slice — 20 October 2026:** The optional Directus parity inventory now includes a deterministic source report for literal permission declarations. It counts 175 declared rule rows, of which 125 use wildcard fields and 50 use explicit field lists; it identifies 28 wildcard Auditor declarations, confirms zero literal `farm_activity` permission insertions, and records four permission updates plus one deletion. The generated JSON is freshness-checked in CI, and parser regressions cover quoted delimiters and SQL comments. This is not effective deployed permission state and does not alter role access; conditional seed logic, later mutations, custom policies, relation parity, hook effects, and runtime acceptance remain open. See the [parity inventory](directus-parity-inventory.md), [checker](../scripts/directus_permission_inventory.py), [tests](../tests/test_directus_permission_inventory.py), and [source report](builds/2026-10-20-recovery/directus-permission-source-inventory.json).
 
-**CAP-047 offline CLI preflight — 20 October 2026:** data-freshness help and
-invalid argument combinations now return before secret-bearing database
-configuration is imported. The 37-test freshness suite, Ruff, Python
-compilation, and diff checks pass, including a fresh-process import check. This
+**CAP-047 offline CLI preflight — 20 October 2026:** standalone and unified
+data-freshness help and invalid argument combinations now return before
+secret-bearing database configuration is imported. The 37-test freshness
+suite, Ruff, Python compilation, and diff checks pass, including a fresh-
+process entrypoint parity check. This
 closes only avoidable secret loading and connection attempts from help/invalid
 CLI invocations; it does not establish runtime recovery,
 provider delivery, retention, or MAN-CAP-047 acceptance

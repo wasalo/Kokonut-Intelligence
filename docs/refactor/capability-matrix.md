@@ -3992,10 +3992,11 @@ aggregation source. The focused combined agent/summary/Gateway selection passes
 aligns metadata only and does not establish row-level provenance or close
 MAN-CAP-038 ([evidence](builds/2026-10-20-recovery/cap-038-wellbeing-source-metadata.json)).
 
-**CAP-047 freshness CLI preflight — 20 October 2026:** data-freshness help and
-invalid argument combinations now return before loading secret-bearing
-database configuration. The 37-test freshness suite, Ruff, compilation, and
-diff checks pass, including a fresh-process import check. This is an offline
+**CAP-047 freshness CLI preflight — 20 October 2026:** standalone and unified
+data-freshness help and invalid argument combinations now return before
+loading secret-bearing database configuration. The 37-test freshness suite,
+Ruff, compilation, and diff checks pass, including a fresh-process import
+check. This is an offline
 CLI usability boundary only; it does not
 change alert routing, retention, runtime recovery, or MAN-CAP-047 acceptance
 ([evidence](builds/2026-10-20-recovery/freshness-cli-offline-preflight.json)).
