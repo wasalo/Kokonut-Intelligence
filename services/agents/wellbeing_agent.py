@@ -108,6 +108,12 @@ class WellbeingSynthesisAgent(SynthesisAgent):
         "participatory_action_record",
         "stakeholder_feedback",
     ]
+    source_reference_views = {
+        "cultural_context_record": "v_public_cultural_context_summary",
+        "wellbeing_metric_observation": "v_public_wellbeing_metric_summary",
+        "participatory_action_record": "v_public_participatory_governance_summary",
+        "stakeholder_feedback": "v_public_stakeholder_feedback_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_wellbeing(conn, location_id)

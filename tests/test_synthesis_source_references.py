@@ -7,9 +7,11 @@ from typing import Any
 import pytest
 
 from services.agents.commons_agent import CommonsSynthesisAgent
+from services.agents.feedback_agent import FeedbackSynthesisAgent
 from services.agents.gnh_agent import GnhSynthesisAgent
 from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
+from services.agents.wellbeing_agent import WellbeingSynthesisAgent
 from services.agents.worker_draft import _validate_source_references
 
 AGENTS = [
@@ -17,6 +19,8 @@ AGENTS = [
     GnhSynthesisAgent,
     ResilienceSynthesisAgent,
     OpenSourceCapitalistSynthesisAgent,
+    WellbeingSynthesisAgent,
+    FeedbackSynthesisAgent,
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 
@@ -94,3 +98,12 @@ def test_global_catalogue_sources_are_not_registered_as_location_manifests() -> 
     assert "network_scaling_target" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "open_source_impact_artifact" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "green_paper_publication_review" not in ResilienceSynthesisAgent.source_reference_views
+
+
+def test_feedback_sources_use_only_consent_approved_published_views() -> None:
+    assert WellbeingSynthesisAgent.source_reference_views["stakeholder_feedback"] == (
+        "v_public_stakeholder_feedback_summary"
+    )
+    assert FeedbackSynthesisAgent.source_reference_views == {
+        "stakeholder_feedback": "v_public_stakeholder_feedback_summary"
+    }

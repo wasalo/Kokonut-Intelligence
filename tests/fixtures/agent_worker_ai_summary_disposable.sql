@@ -177,6 +177,44 @@ BEGIN
 END;
 $$;
 
+CREATE TABLE public.cultural_context_record (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
+    consent_given BOOLEAN NOT NULL, is_public BOOLEAN NOT NULL
+);
+CREATE TABLE public.wellbeing_metric_observation (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.participatory_action_record (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.stakeholder_feedback (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
+    consent_given BOOLEAN NOT NULL, is_public BOOLEAN NOT NULL
+);
+CREATE VIEW public.v_public_cultural_context_summary AS
+    SELECT id, location_id, 'Synthetic public culture'::TEXT AS public_summary
+    FROM public.cultural_context_record
+    WHERE status = 'published' AND consent_given AND is_public;
+CREATE VIEW public.v_public_wellbeing_metric_summary AS
+    SELECT id, location_id, 'Synthetic public wellbeing'::TEXT AS public_summary
+    FROM public.wellbeing_metric_observation WHERE status = 'published';
+CREATE VIEW public.v_public_participatory_governance_summary AS
+    SELECT id, location_id, 'Synthetic public participation'::TEXT AS public_summary
+    FROM public.participatory_action_record WHERE status = 'published';
+CREATE VIEW public.v_public_stakeholder_feedback_summary AS
+    SELECT id, location_id, 'Synthetic consented public feedback'::TEXT AS public_summary
+    FROM public.stakeholder_feedback
+    WHERE status = 'published' AND consent_given AND is_public;
+INSERT INTO public.cultural_context_record VALUES
+    ('e0000000-0000-4000-8000-000000000601', 'a0000000-0000-0000-0000-000000000001', 'published', TRUE, TRUE);
+INSERT INTO public.wellbeing_metric_observation VALUES
+    ('e0000000-0000-4000-8000-000000000602', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.participatory_action_record VALUES
+    ('e0000000-0000-4000-8000-000000000603', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.stakeholder_feedback VALUES
+    ('e0000000-0000-4000-8000-000000000604', 'a0000000-0000-0000-0000-000000000001', 'published', TRUE, TRUE),
+    ('e0000000-0000-4000-8000-000000000605', 'a0000000-0000-0000-0000-000000000001', 'published', FALSE, FALSE);
+
 DO $$
 DECLARE
     source_table TEXT;

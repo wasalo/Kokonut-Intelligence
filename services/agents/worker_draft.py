@@ -60,6 +60,10 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "farm_launch_unit_economics",
         "adoption_barrier_assessment",
         "perpetual_value_stress_test",
+        "cultural_context_record",
+        "wellbeing_metric_observation",
+        "participatory_action_record",
+        "stakeholder_feedback",
     }
 )
 
