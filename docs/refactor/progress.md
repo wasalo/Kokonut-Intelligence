@@ -13691,9 +13691,11 @@ network-wide catalogues, explicitly omit location filters, or mix global
 measures with farm-filtered rows. Automatic per-farm runs save them without a
 location assignment. The expanded selection passes 121 tests with seven
 database-dependent skips; Ruff, compilation, report/runtime inventories, and
-capability-matrix validation pass. No database or migration was used. This
-prevents false farm attribution but does not prove tenant authorization or
-populated parity
+capability-matrix validation pass. A static inventory regression now requires
+locationless query findings to have an explicit network-only contract or a
+known multi-location adapter; its inventory/CLI selection passes 109 tests. No
+database or migration was used. This prevents false farm attribution but does
+not prove tenant authorization or populated parity
 ([evidence](builds/2026-10-21-recovery/cap-066-helper-backed-network-report-scopes.json)).
-Checklist: 869 complete / 24 open (893 total); matrix: 31 baseline-retained,
+Checklist: 870 complete / 24 open (894 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from pathlib import Path
@@ -43,3 +44,43 @@ def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):
 
     output.write_text(first + " ", encoding="utf-8")
     assert main(["--check", str(output)]) == 1
+
+
+def _static_set_assignment(tree: ast.Module, name: str) -> frozenset[str]:
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            continue
+        if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+            if isinstance(node.value.func, ast.Name) and node.value.func.id == "frozenset":
+                return frozenset(ast.literal_eval(node.value.args[0]))
+    raise AssertionError(f"Could not statically read {name} from the report CLI")
+
+
+def test_locationless_report_queries_have_explicit_network_or_multi_location_policy():
+    direct_scope = json.loads((ROOT / "docs/refactor/report-generator-query-scope-inventory.json").read_text())
+    helper_scope = json.loads((ROOT / "docs/refactor/report-generator-helper-scope-inventory.json").read_text())
+    cli_tree = ast.parse((ROOT / "services/export/report_generator.py").read_text())
+    network_only = _static_set_assignment(cli_tree, "NETWORK_SCOPE_ONLY_REPORTS")
+    multi_location = _static_set_assignment(cli_tree, "MULTI_LOCATION_REPORTS")
+
+    direct_without_location = {
+        report["report_type"]
+        for report in direct_scope["reports"]
+        if report["classification"] == "no_bound_location_scope_visible"
+    }
+    helper_without_location = {
+        report["report_type"]
+        for report in helper_scope["reports"]
+        if report["classification"] == "no_location_scope_signal_in_resolved_helper_queries"
+    }
+
+    assert direct_without_location - network_only == {"business_plan"}
+    assert "business_plan" in multi_location
+    assert helper_without_location - network_only == {
+        "algorithmic_redistribution",
+        "anti_capture_governance",
+        "business_model_canvas",
+        "redistribution_policy",
+        "state_of_kokonut",
+        "value_stream_map",
+    }

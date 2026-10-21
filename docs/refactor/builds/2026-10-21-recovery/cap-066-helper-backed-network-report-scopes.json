@@ -29,5 +29,10 @@
   "database_or_provider_used": false,
   "migration_added_or_applied": false,
   "candidate_or_legacy_database_touched": false,
-  "tenant_authorization_or_farm_level_parity_claimed": false
+  "tenant_authorization_or_farm_level_parity_claimed": false,
+  "scope_inventory_contract_command": "python3 -m pytest tests/test_report_generator_inventory.py tests/test_report_generator_cli.py -q",
+  "scope_inventory_contract_tests": {
+    "passed": 109,
+    "skipped": 0
+  }
 }
