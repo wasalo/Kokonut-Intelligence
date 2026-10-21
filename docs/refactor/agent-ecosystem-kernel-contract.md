@@ -62,7 +62,8 @@ run without decrypting `.env.sops`.
   incomplete/empty persisted content, invalid source-table metadata, or an
   invalid model-version label; callers cannot bypass the runner's validation
   by invoking the low-level write helper directly. These checks still create
-  drafts only and do not approve or publish them.
+  drafts only and do not approve or publish them. The shared helper closes its
+  cursor before commit and also closes it if insert/fetch fails.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log

@@ -9,6 +9,14 @@ contacted and no migration was added. This does not establish CLI
 operator authentication, database authorization, tenant scope, or MAN-CAP-038
 acceptance ([implementation](../../services/agents/ai_summary.py); [tests](../../tests/test_ai_summary_cli_lifecycle.py); [evidence](builds/2026-10-20-recovery/cap-038-ai-summary-cli-lifecycle.json)).
 
+### CAP-038 shared agent draft cursor cleanup — 20 October 2026
+
+The shared synthesis-agent draft helper now closes its cursor on insert or
+fetch failure and closes it before committing a successful draft. The focused
+agent-base and AI-summary regression selection passes 29 tests, including
+injected insert and fetch failures that confirm no commit occurs. Ruff and Python
+compilation pass; no database or provider was contacted ([implementation](../../services/agents/base.py); [test](../../tests/test_agents_base.py); [evidence](builds/2026-10-20-recovery/cap-038-agent-draft-cursor-lifecycle.json)).
+
 ### CAP-039 expanded unified-CLI success parity — 20 October 2026
 
 Expanded standalone/unified output comparisons across all 37 mounted groups: nine

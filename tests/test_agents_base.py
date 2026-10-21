@@ -13,22 +13,40 @@ SCORECARD_ID = "a0000000-0000-4000-8000-000000000002"
 
 
 class _FakeCursor:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        execute_error: Exception | None = None,
+        fetch_error: Exception | None = None,
+    ) -> None:
         self.executed: tuple | None = None
+        self.execute_error = execute_error
+        self.fetch_error = fetch_error
+        self.closed = False
 
     def execute(self, sql: str, params: tuple) -> None:
+        if self.execute_error is not None:
+            raise self.execute_error
         self.executed = (sql, params)
 
     def fetchone(self) -> list[str]:
+        if self.fetch_error is not None:
+            raise self.fetch_error
         return ["stored-id"]
 
     def close(self) -> None:
-        pass
+        self.closed = True
 
 
 class _FakeConn:
-    def __init__(self) -> None:
-        self.cursor_obj = _FakeCursor()
+    def __init__(
+        self,
+        execute_error: Exception | None = None,
+        fetch_error: Exception | None = None,
+    ) -> None:
+        self.cursor_obj = _FakeCursor(
+            execute_error=execute_error,
+            fetch_error=fetch_error,
+        )
         self.committed = False
         self.closed = False
 
@@ -76,6 +94,27 @@ def test_run_store_inserts_draft_and_commits():
     assert "INSERT INTO ai_summary" in sql
     assert params[2] == "dummy"  # summary_type
     assert params[4] == ["dummy_table"]  # source_tables
+    assert conn.cursor_obj.closed is True
+
+
+@pytest.mark.parametrize("failure_stage", ["insert", "fetch"])
+def test_store_summary_closes_cursor_and_does_not_commit_on_persistence_failure(
+    failure_stage: str,
+):
+    error = RuntimeError(f"synthetic {failure_stage} failure")
+    conn = _FakeConn(
+        execute_error=error if failure_stage == "insert" else None,
+        fetch_error=error if failure_stage == "fetch" else None,
+    )
+
+    with pytest.raises(RuntimeError, match=f"synthetic {failure_stage} failure"):
+        _DummyAgent().store_summary(
+            conn,
+            {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+        )
+
+    assert conn.cursor_obj.closed is True
+    assert conn.committed is False
 
 
 def test_store_summary_rejects_missing_synthesis_before_cursor_access():

@@ -83,26 +83,28 @@ class SynthesisAgent:
         # Location-optional agents fall back to a sentinel subject id.
         subject_id = location_id or "00000000-0000-0000-0000-000000000000"
         cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO ai_summary
-                (id, subject_type, subject_id, summary_type, content,
-                 source_tables, model_version, status)
-            VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
-            RETURNING id
-            """,
-            (
-                summary_id,
-                subject_id,
-                self.summary_type,
-                summary["synthesis"],
-                self.source_tables,
-                version,
-            ),
-        )
-        stored_id = str(cur.fetchone()[0])
+        try:
+            cur.execute(
+                """
+                INSERT INTO ai_summary
+                    (id, subject_type, subject_id, summary_type, content,
+                     source_tables, model_version, status)
+                VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
+                RETURNING id
+                """,
+                (
+                    summary_id,
+                    subject_id,
+                    self.summary_type,
+                    summary["synthesis"],
+                    self.source_tables,
+                    version,
+                ),
+            )
+            stored_id = str(cur.fetchone()[0])
+        finally:
+            cur.close()
         conn.commit()
-        cur.close()
         return stored_id
 
     def run(self, location_id: Optional[str] = None, store: bool = False) -> dict[str, Any]:
