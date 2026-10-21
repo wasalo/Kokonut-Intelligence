@@ -82,8 +82,14 @@ class SynthesisAgent:
         conn: Any,
         summary: dict[str, Any],
         model_version: Optional[str] = None,
+        request_id: Optional[str] = None,
     ) -> str:
-        """Store a draft ``ai_summary`` for human review (no publication)."""
+        """Store a draft through the exact-location signed worker adapter.
+
+        ``conn`` remains in the signature for source compatibility, but is not
+        used to write. Draft storage has its own authenticated connection and
+        retry receipt.
+        """
         validate_task_capabilities(self.task_key)
         errors = validate_output(self.task_key, {"summary": summary})
         if errors:
@@ -108,35 +114,29 @@ class SynthesisAgent:
         if not isinstance(version, str) or not version.strip():
             raise ValueError("Invalid agent draft: model_version must be a non-empty string")
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-        summary_id = str(uuid.uuid4())
-        # Location-optional agents fall back to a sentinel subject id.
-        subject_id = location_id or "00000000-0000-0000-0000-000000000000"
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                """
-                INSERT INTO ai_summary
-                    (id, subject_type, subject_id, summary_type, content,
-                     source_tables, model_version, status)
-                VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
-                RETURNING id
-                """,
-                (
-                    summary_id,
-                    subject_id,
-                    self.summary_type,
-                    summary["synthesis"],
-                    source_tables,
-                    version,
-                ),
-            )
-            stored_id = str(cur.fetchone()[0])
-        finally:
-            cur.close()
-        conn.commit()
-        return stored_id
+        if location_id is None:
+            raise ValueError("Agent draft storage requires an exact location_id")
+        stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
+        from services.agents.worker_draft import create_worker_ai_summary_draft
 
-    def run(self, location_id: Optional[str] = None, store: bool = False) -> dict[str, Any]:
+        result = create_worker_ai_summary_draft(
+            location_id,
+            self.summary_type,
+            stable_request_id,
+            {
+                "content": synthesis,
+                "source_tables": source_tables,
+                "model_version": version,
+            },
+        )
+        return result["summary_id"]
+
+    def run(
+        self,
+        location_id: Optional[str] = None,
+        store: bool = False,
+        request_id: Optional[str] = None,
+    ) -> dict[str, Any]:
         """Run the agent: synthesize, optionally store a draft, and validate."""
         validate_task_capabilities(self.task_key)
         inputs = {"store": store}
@@ -145,6 +145,15 @@ class SynthesisAgent:
         errors = validate_task_inputs(self.task_key, inputs)
         if errors:
             raise ValueError("; ".join(errors))
+        if store:
+            if location_id is None:
+                raise ValueError("Agent draft storage requires an exact location_id")
+            stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
+            from services.agents.worker_cli import run_worker_synthesis
+
+            return run_worker_synthesis(self, location_id, stable_request_id)
+        if request_id is not None:
+            raise ValueError("request_id is only valid when storing an agent draft")
         assert_agent_action_allowed("read", self.read_collection, {"location_id": location_id})
         conn = get_db()
         try:
@@ -153,8 +162,6 @@ class SynthesisAgent:
             errors = validate_output(self.task_key, output)
             if errors:
                 raise ValueError("; ".join(errors))
-            if store:
-                output["ai_summary_id"] = self.store_summary(conn, summary)
         finally:
             conn.close()
         return output
@@ -196,6 +203,29 @@ def agent_cli(agent: SynthesisAgent, description: str = "", location_required: b
         description=description or f"Run the Kokonut {agent.summary_type} synthesis agent"
     )
     parser.add_argument("--location-id", required=location_required, help="Location UUID")
-    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
+    parser.add_argument(
+        "--store",
+        action="store_true",
+        help="Store a location-scoped draft through the signed agent-summary worker",
+    )
+    parser.add_argument(
+        "--request-id",
+        help="Stable UUID to reuse when retrying --store (generated when omitted)",
+    )
     args = parser.parse_args()
-    print_json(agent.run(args.location_id, store=args.store))
+    result = agent.run(
+        args.location_id, store=args.store, request_id=args.request_id
+    )
+    if args.store:
+        # Stored synthesis can include private farm and participant context.
+        # Return only the durable receipt from CLI output.
+        print_json(
+            {
+                "ai_summary_id": result.get("ai_summary_id"),
+                "request_id": result.get("request_id"),
+                "resulting_status": "draft",
+                "replayed": bool(result.get("replayed")),
+            }
+        )
+    else:
+        print_json(result)

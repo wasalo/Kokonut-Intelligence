@@ -85,19 +85,20 @@ run without decrypting `.env.sops`.
   retaining a callable setter would invite code to mistake an arbitrary session
   value for a trusted agent principal. Current production code has no callers.
   Signed worker context and authenticated operator context remain the supported
-  identity patterns; legacy/background agent writers still lack an authenticated
-  run identity and database least privilege.
-- The current source inventory identifies one literal direct DML site in
-  `services/agents`: the generic legacy `SynthesisAgent` draft insert. The
-  standalone AI-summary helper and one-shot CLI now persist through the signed
-  worker adapter; the legacy agent-action write and global-read helpers fail
-  before database access because their caller-supplied `agent_id` and unscoped
-  query do not authenticate a principal. The inventory pins one authenticated
-  Gateway draft call and four signed-worker summary calls (lookup, create,
-  source-reference attach, and read), with no calls to `set_agent_context()` or
-  `audit_agent_action()`. It records source locations and table names, not SQL
-  text or runtime values; dynamic SQL may be missed. This is source coverage,
-  not proof of role privileges or runtime reachability
+  identity patterns; the shared synthesis draft writer now records the worker
+  principal, while the source-query code still needs runtime least-privilege
+  and populated task-parity acceptance.
+- The current source inventory identifies no literal direct DML site in
+  `services/agents`. The standalone AI-summary helper and shared synthesis
+  agents persist through the signed worker adapter; the legacy agent-action
+  write and global-read helpers fail before database access because their
+  caller-supplied `agent_id` and unscoped query do not authenticate a principal.
+  The inventory pins one authenticated Gateway draft call and four signed-worker
+  summary calls (lookup, create, source-reference attach, and read), with no
+  calls to `set_agent_context()` or `audit_agent_action()`. It records source
+  locations and table names, not SQL text or runtime values; dynamic SQL may be
+  missed. This is source coverage, not proof of role privileges or runtime
+  reachability
   ([inventory](agent-write-boundary-inventory.json);
   [checker](../../scripts/agent_write_boundary_inventory.py)).
 
@@ -168,19 +169,25 @@ worker adapter; legacy/background writers still lack row-level manifests.
 
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
 role that may switch only to the bounded worker execution role. A one-shot
-`services.agents.worker_cli` now exercises this path for the four deterministic
-AI-summary types: it checks the stable request receipt first, runs source
-queries inside a read-only transaction using the required runtime database
-identity, and creates the draft plus
-source manifest through the separate signed worker connection. Compose exposes
-the dedicated DSN and high-entropy credential only to the opt-in
-`agent-summary-worker` service. An operator still needs to provision the runtime
-password, worker login/password, worker credential, and service DSN; migrations 529/530 are not rolled
-out to the candidate. Existing synthesis CLIs still use their legacy draft
-writer, and other agent tasks are not yet wired to this worker. The database
-acceptance uses a synthetic operator-context stub for its review step;
-production worker identity is exercised with migration 405's signed worker
-context. See the
+`services.agents.worker_cli` exercises this path for the four deterministic
+AI-summary types and the ten registered shared synthesis tasks. Shared
+`SynthesisAgent` storage delegates to the signed adapter instead of writing
+`ai_summary` directly. The worker checks the stable request receipt before
+source queries, runs reads inside a bounded read-only transaction using the
+runtime database identity, and creates the draft through the separate signed
+worker connection. Generic synthesis tasks currently persist table-name hints
+but do not yet attach row-level source manifests; the deterministic AI-summary
+path attaches the bounded manifest. On replay, generic task callers receive the
+stored draft text and receipt rather than regenerating the task's full structured
+output. Compose exposes the dedicated DSN and high-entropy credential only to
+the opt-in `agent-summary-worker` service. An operator still needs to provision
+the runtime password, worker login/password, worker credential, and service DSN;
+migrations 529/530 are not rolled out to the candidate. Stored shared-agent CLI
+output is reduced to the draft ID, request ID, status, and replay flag. For
+example, run a task through the isolated profile with
+`--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
+uses a synthetic operator-context stub for its review step; production worker
+identity is exercised with migration 405's signed worker context. See the
 [worker adapter](../../services/agents/worker_draft.py),
 [migration 529](../../schemas/postgres/529_signed_agent_ai_summary_drafts.sql),
 [migration 530](../../schemas/postgres/530_signed_agent_ai_summary_source_references.sql),

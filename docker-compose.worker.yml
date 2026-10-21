@@ -91,11 +91,15 @@ services:
     profiles:
       - worker
 
-  # One-shot AI-summary generation is isolated from the shared supervisor so
-  # its signed-worker credential is never inherited by event/scheduler handlers.
+  # One-shot AI-summary and registered synthesis-agent runs are isolated from
+  # the shared supervisor, so their signed-worker credential is never inherited
+  # by event/scheduler handlers.
   # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
   #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID
   #   --summary-type combined --request-id UUID
+  # Shared synthesis task example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile agent-summary-worker \
+  #     run --rm agent-summary-worker --task-key feedback_synthesis --location-id UUID --request-id UUID
   agent-summary-worker:
     build:
       context: .
@@ -112,8 +116,8 @@ services:
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
-      PG_USER: ${PG_USER:-kokonut}
-      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"

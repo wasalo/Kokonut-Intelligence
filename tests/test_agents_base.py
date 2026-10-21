@@ -86,35 +86,35 @@ def test_run_synthesizes_and_closes_connection():
     assert conn.closed is True
 
 
-def test_run_store_inserts_draft_and_commits():
-    out, conn = _run_with_fakes(store=True)
+def test_run_store_delegates_to_signed_worker_with_stable_request_id():
+    stable_request_id = "a0000000-0000-4000-8000-000000000004"
+    with mock.patch(
+        "services.agents.worker_cli.run_worker_synthesis",
+        return_value={"ai_summary_id": "stored-id", "request_id": stable_request_id},
+    ) as run_worker:
+        out = _DummyAgent().run(LOCATION_ID, store=True, request_id=stable_request_id)
     assert out["ai_summary_id"] == "stored-id"
-    assert conn.committed is True
-    sql, params = conn.cursor_obj.executed
-    assert "INSERT INTO ai_summary" in sql
-    assert params[2] == "dummy"  # summary_type
-    assert params[4] == ["dummy_table"]  # source_tables
-    assert conn.cursor_obj.closed is True
+    run_worker.assert_called_once()
+    assert run_worker.call_args.args[1:] == (LOCATION_ID, stable_request_id)
 
 
-@pytest.mark.parametrize("failure_stage", ["insert", "fetch"])
-def test_store_summary_closes_cursor_and_does_not_commit_on_persistence_failure(
-    failure_stage: str,
-):
-    error = RuntimeError(f"synthetic {failure_stage} failure")
-    conn = _FakeConn(
-        execute_error=error if failure_stage == "insert" else None,
-        fetch_error=error if failure_stage == "fetch" else None,
-    )
-
-    with pytest.raises(RuntimeError, match=f"synthetic {failure_stage} failure"):
-        _DummyAgent().store_summary(
-            conn,
-            {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-        )
-
-    assert conn.cursor_obj.closed is True
+def test_store_summary_propagates_worker_failure_without_using_legacy_connection():
+    error = RuntimeError("synthetic worker failure")
+    conn = _FakeConn()
+    with mock.patch(
+        "services.agents.worker_draft.create_worker_ai_summary_draft",
+        side_effect=error,
+    ) as write_draft:
+        with pytest.raises(RuntimeError, match="synthetic worker failure"):
+            _DummyAgent().store_summary(
+                conn,
+                {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                request_id="a0000000-0000-4000-8000-000000000003",
+            )
+    write_draft.assert_called_once()
+    assert conn.cursor_obj.executed is None
     assert conn.committed is False
+    assert conn.closed is False
 
 
 def test_store_summary_rejects_missing_synthesis_before_cursor_access():
@@ -178,17 +178,16 @@ def test_store_summary_rejects_invalid_source_table_metadata_before_cursor_acces
     assert conn.committed is False
 
 
-def test_run_uses_sentinel_subject_id_for_locationless_summary():
+def test_run_rejects_locationless_storage_before_worker_access():
     class _LocationlessDummyAgent(_DummyAgent):
         task_key = "financial_resilience_synthesis"
 
-    conn = _FakeConn()
-    with mock.patch("services.agents.base.get_db", return_value=conn):
-        with mock.patch("services.agents.base.assert_agent_action_allowed"):
-            with mock.patch("services.agents.base.validate_output", return_value=[]):
-                _LocationlessDummyAgent().run(store=True)
-    _, params = conn.cursor_obj.executed
-    assert params[1] == "00000000-0000-0000-0000-000000000000"
+    with mock.patch(
+        "services.agents.worker_cli.run_worker_synthesis",
+        side_effect=AssertionError("worker must not run without location scope"),
+    ):
+        with pytest.raises(ValueError, match="requires an exact location_id"):
+            _LocationlessDummyAgent().run(store=True)
 
 
 def test_run_raises_on_validation_errors():
@@ -205,20 +204,17 @@ def test_run_raises_on_validation_errors():
     assert conn.closed is True
 
 
-def test_run_does_not_store_invalid_draft_output():
-    conn = _FakeConn()
-    with mock.patch("services.agents.base.get_db", return_value=conn):
-        with mock.patch("services.agents.base.assert_agent_action_allowed"):
-            with mock.patch("services.agents.base.validate_output", return_value=["bad field"]):
-                try:
-                    _DummyAgent().run(LOCATION_ID, store=True)
-                except ValueError as exc:
-                    assert "bad field" in str(exc)
-                else:
-                    raise AssertionError("expected ValueError")
-    assert conn.cursor_obj.executed is None
-    assert conn.committed is False
-    assert conn.closed is True
+def test_run_store_delegates_before_opening_shared_database():
+    with mock.patch(
+        "services.agents.base.get_db",
+        side_effect=AssertionError("base runner must delegate to worker"),
+    ):
+        with mock.patch(
+            "services.agents.worker_cli.run_worker_synthesis",
+            return_value={"ai_summary_id": "stored-id"},
+        ) as run_worker:
+            assert _DummyAgent().run(LOCATION_ID, store=True)["ai_summary_id"] == "stored-id"
+    run_worker.assert_called_once()
 
 
 def test_run_fetch_validates_and_closes():
@@ -271,3 +267,30 @@ def test_agent_cli_builds_parser():
             assert exc.code == 0
         else:
             raise AssertionError("expected SystemExit from argparse --help")
+
+
+def test_agent_cli_redacts_content_after_storing_draft():
+    agent = _DummyAgent()
+    agent.run = mock.Mock(
+        return_value={
+            "summary": {"synthesis": "private farm content"},
+            "ai_summary_id": "saved-id",
+            "request_id": "a0000000-0000-4000-8000-000000000005",
+            "replayed": False,
+        }
+    )
+    with mock.patch(
+        "sys.argv",
+        ["prog", "--location-id", LOCATION_ID, "--store"],
+    ):
+        with mock.patch("services.agents.base.print_json") as print_json:
+            agent_cli(agent)
+
+    print_json.assert_called_once_with(
+        {
+            "ai_summary_id": "saved-id",
+            "request_id": "a0000000-0000-4000-8000-000000000005",
+            "resulting_status": "draft",
+            "replayed": False,
+        }
+    )
