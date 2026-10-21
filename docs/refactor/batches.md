@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 20 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 21 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 822 checklist items complete and 25
-open (847 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 832 checklist items complete and 25
+open (857 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1714,6 +1714,8 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
   - [x] Compare `sensor_ingester --list` and `--calibration` through standalone/unified entrypoints with synthetic query results. Both bind exact location scope, produce identical log output, and close resources; missing or malformed location on inventory listing fails before database setup in both entrypoints. Also verify single-reading, CSV, and scheduled-driver argument forwarding with operation functions stubbed. Nine focused checks pass with Ruff and compilation; no database or provider was contacted ([test](../../tests/test_sensor_ingester_cli_parity.py); [contract](unified-cli-kernel-contract.md); [evidence](builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json)). Ingestion effects/output and scheduled-driver runtime acceptance remain open.
   - [x] Compare all six `climate_data` operation selectors (`worldclim`, `ncep`, `modis`, `smap`, `sentinel1`, and `all`) across standalone/unified CLIs with operation functions stubbed; verify JSON receipts, canonical location forwarding, connection cleanup, and rejection of conflicting selectors before database setup. Eight focused checks pass with Ruff and compilation; no database or provider was contacted ([test](../../tests/test_climate_data_cli_parity.py); [evidence](builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json)). Provider retrieval and persistence remain unverified.
   - [x] Compare `remote_sensing` CSV imports in single-location and explicit `--all-locations` modes across standalone/unified entrypoints using a temporary synthetic CSV, fake plot mapping, and stubbed persistence. Verify location-filtered plot lookup in the single-location mode, explicit aggregate scope, matching logs, commit, and cleanup. Two focused checks pass; no database/provider was contacted ([test](../../tests/test_remote_sensing_cli_parity.py); [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json)). Live database effects and authorization for aggregate import remain open.
+  - [x] Compare the location-scoped `remote_sensing_fetcher --list-jobs` output across both CLIs using synthetic query results; verify bound location scope, resource cleanup, and rejection of missing/malformed scope before DB setup. Five focused checks pass with Ruff and compilation; no database/provider was contacted ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py); [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json)). Job creation, execution, and worker recovery remain open.
+  - [x] Make remote-sensing job creation reject non-positive cadence before DB setup in alignment with the existing `cadence_days > 0` schema constraint. Standalone/unified insert arguments and receipt match; insertion failure rolls back and closes cursor/connection. Six create-path checks (11 total in the job-list/create CLI file) pass with Ruff and compilation using fakes only; no database/provider was contacted ([implementation](../../services/ingestion/remote_sensing_fetcher.py); [test](../../tests/test_remote_sensing_fetcher_cli_parity.py); [schema](../../schemas/postgres/077_telemetry_infrastructure.sql); [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json)). Live DB and operator authorization remain open.
   - [ ] Obtain owner acceptance for the operator administration model and verify the selected local database principal; review global-list privacy, grantor authority on direct grants/membership changes, and whether caller-supplied disablement attribution is acceptable or must be session-authenticated. Checklist: 811 complete / 24 open.
   - [x] Preflight non-help parser rejection for all 37 mounted groups using an intentionally invalid option, an unavailable SOPS key, and a closed loopback database port. All 37 return argparse usage/error output with exit code 2 before secret or database setup. This exposed the ingestion wrapper's prior unknown-option help-success behavior; it now rejects unknown top-level options while preserving no-argument help and `--list`. Nine focused CLI tests pass. Valid command output, provider/database behavior, and authorization parity remain open ([evidence](builds/2026-10-19-recovery/cap-039-invalid-argument-preflight.json)).
 

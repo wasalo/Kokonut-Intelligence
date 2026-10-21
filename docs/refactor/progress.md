@@ -13287,3 +13287,29 @@ authorization remain open. Checklist: 830 complete / 25 open (855 total);
 matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_remote_sensing_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json)).
+
+
+### CAP-039 remote-sensing job list CLI parity — 21 October 2026
+
+The fetcher job list now has standalone/unified JSON parity using synthetic
+query rows. Its SQL binds the exact location, and the command rejects missing
+or malformed scope before database setup. Cursor and connection cleanup pass.
+Five focused tests pass with Ruff and Python compilation; no database or
+provider was contacted. Job creation, execution, and worker recovery remain
+open. Checklist: 831 complete / 25 open (856 total); matrix remains 66 rows:
+31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json)).
+
+
+### CAP-039 remote-sensing job creation contract — 21 October 2026
+
+Remote-sensing scheduled-job creation now rejects zero or negative cadence
+before database setup, matching the existing schema constraint. Standalone and
+unified insert parameters and JSON receipts match; insert failure rolls back,
+and cursor/connection cleanup is explicit. The combined fetcher and scheduler
+contract selection passes 38 tests; Ruff and Python compilation pass. All
+database interactions are synthetic, and no provider was contacted. Provider
+execution, job recovery, and operator authorization remain open. Checklist:
+832 complete / 25 open (857 total); matrix remains 66 rows: 31 baseline-
+retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json)).

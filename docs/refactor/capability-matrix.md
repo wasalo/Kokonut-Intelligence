@@ -4055,3 +4055,20 @@ aggregate mode requires `--all-locations`, and the checks verify logs and
 cleanup. Two focused tests pass with Ruff and compilation; no database/provider
 was contacted. Live writes and aggregate-operation authorization remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json)).
+
+**CAP-039 remote-sensing job-list read — 21 October 2026:** the location-scoped
+fetch-job list now has standalone/unified JSON parity with synthetic rows,
+bound location SQL, cleanup, and missing/invalid scope preflight. Five focused
+tests, Ruff, and compilation pass; no database/provider was contacted. Job
+creation, provider execution, and worker recovery remain open
+([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json)).
+
+**CAP-039 remote-sensing job creation — 21 October 2026:** job creation now
+validates positive cadence before database setup and keeps the insert in a
+rollback-safe transaction with explicit cursor cleanup. Standalone/unified
+arguments and JSON receipts match. The combined fetcher/scheduler selection
+passes 38 tests with Ruff and Python compilation; all DB behavior is synthetic
+and no provider was contacted. Provider execution, lease/retry recovery, live
+authorization, and MAN-CAP-039 review remain open. Checklist: 832 complete /
+25 open; capability classifications remain 31 baseline-retained, 7 deployed,
+and 28 prepared ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json)).

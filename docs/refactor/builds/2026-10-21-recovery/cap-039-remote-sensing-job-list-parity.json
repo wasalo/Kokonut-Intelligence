@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "96c50b68fd4bcad0f22a05e8adf060ba5f3c660d",
+  "scope": "Remote-sensing scheduled-job list standalone/unified parity and location preflight",
+  "invocation": "remote_sensing_fetcher --list-jobs --location-id <synthetic-location-uuid>",
+  "verification": {
+    "focused_tests": "5 passed",
+    "coverage": [
+      "standalone and unified JSON output is byte-for-byte equal for synthetic rows",
+      "the job-list SQL binds the exact location UUID",
+      "successful reads close the cursor and connection",
+      "missing or malformed location scope is rejected before database setup in both CLIs"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; query rows and connection were synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: remote-sensing job inventory preserves standalone/unified output and exact location scoping without initializing imagery providers.",
+  "limitations": [
+    "This verifies one synthetic read path, not populated data or database authorization.",
+    "Job creation, execution, provider calls, and worker recovery remain unverified by this check."
+  ]
+}

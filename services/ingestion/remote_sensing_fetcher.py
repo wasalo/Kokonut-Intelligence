@@ -474,6 +474,8 @@ def main(argv: list[str] | None = None) -> None:
         return
     if sum(explicit_operations) > 1:
         parser.error("choose exactly one of --run-jobs, --list-jobs, or --job-id")
+    if not any(explicit_operations) and args.cadence_days < 1:
+        parser.error("--cadence-days must be a positive integer when creating a job")
 
     if args.run_jobs and not 1 <= args.limit <= MAX_RUN_BATCH_SIZE:
         parser.error(f"--limit must be between 1 and {MAX_RUN_BATCH_SIZE}")
@@ -501,17 +503,23 @@ def main(argv: list[str] | None = None) -> None:
                 print(f"Job {args.job_id} not found")
         else:
             cur = conn.cursor()
-            cur.execute(
-                """
-                INSERT INTO remote_sensing_job (location_id, provider, cadence_days, status)
-                VALUES (%s, %s, %s, 'active')
-                RETURNING id
-            """,
-                (location_id, args.provider, args.cadence_days),
-            )
-            job_id = str(cur.fetchone()[0])
-            conn.commit()
-            print(json.dumps({"job_id": job_id, "status": "created"}))
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO remote_sensing_job (location_id, provider, cadence_days, status)
+                    VALUES (%s, %s, %s, 'active')
+                    RETURNING id
+                    """,
+                    (location_id, args.provider, args.cadence_days),
+                )
+                job_id = str(cur.fetchone()[0])
+                conn.commit()
+                print(json.dumps({"job_id": job_id, "status": "created"}))
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                cur.close()
     finally:
         conn.close()
 

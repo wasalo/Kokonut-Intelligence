@@ -67,6 +67,8 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `sensor_ingester --driver-instance-id <synthetic-instance-uuid> --location-id <synthetic-location-uuid>` | Scheduled driver function is stubbed; provider and database effects are not run | No stdout; exact standalone/unified argument forwarding |
 | `ingestion` | `climate_data --worldclim`, `--ncep`, `--modis`, `--smap`, `--sentinel1`, or `--all`, each with `--location-id <synthetic-location-uuid>` | Dataset functions are stubbed; PostgreSQL connections are synthetic | Matching standalone/unified JSON receipts; conflicting selectors fail before DB setup |
 | `ingestion` | `remote_sensing --file <synthetic-csv> --location-id <synthetic-location-uuid>` or `--all-locations` | Plot mapping is synthetic; canonical/ClickHouse writes are stubbed | Matching logged import summary; aggregate scope requires the explicit flag |
+| `ingestion` | `remote_sensing_fetcher --list-jobs --location-id <synthetic-location-uuid>` | PostgreSQL job inventory read through the mounted module; cursor and connection are synthetic | JSON location-scoped job rows; missing/malformed location rejected before DB setup |
+| `ingestion` | `remote_sensing_fetcher --location-id <synthetic-location-uuid> --provider copernicus --cadence-days 14` | PostgreSQL insert is synthetic | JSON job receipt; invalid cadence rejected before DB setup; insert rollback and cursor cleanup covered |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -112,12 +114,13 @@ For each row, the regression invokes both `python -m <legacy-module>` and
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Nine successful offline invocations, thirty-six other
+real service. Nine successful offline invocations, thirty-seven other
 PostgreSQL-backed read invocations with stubbed query functions (including
 ingestion status and location-scoped device reads), one operator inventory
 read, one tenant-preflight invocation with a synthetic aggregate service
 report, two synthetic report-generation paths (single and automatic
-batch), three operator write invocations, one device registration write,
+batch), three operator write invocations, one device registration write, one
+remote-sensing scheduled-job creation write,
 three sensor write/driver argument-forwarding invocations, six climate
 operation-selection variants, and two remote-sensing CSV scope modes with
 stubbed persistence functions match
@@ -137,7 +140,7 @@ database or chain/provider command. These checks run with the offline output
 parity cases in a 157-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The thirty-seven query-backed success paths (including the operator inventory),
+The thirty-eight query-backed success paths (including the operator inventory),
 one aggregate-service-stubbed tenant-preflight path, two synthetic report-
 generation paths (single and automatic batch), and three fake-connection
 operator writes exercise their real parsers, forwarding, and JSON or text output

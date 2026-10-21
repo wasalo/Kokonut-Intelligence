@@ -2417,3 +2417,28 @@ provider was contacted. Live storage and aggregate authorization remain open.
 Checklist: 830 complete / 25 open (855 total); capability classifications
 remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-remote-sensing-csv-cli-parity.json`.
+
+
+### CAP-039 remote-sensing job list CLI parity — 21 October 2026
+
+The location-scoped fetcher job list now matches through both CLIs with
+synthetic query rows; it binds the location and closes its cursor/connection.
+Missing or malformed scope fails before database setup. Five focused tests,
+Ruff, and Python compilation pass; no database/provider was contacted. Job
+creation, provider execution, and worker recovery remain open. Checklist: 831
+complete / 25 open (856 total); capability classifications remain 66 rows:
+31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json`.
+
+
+### CAP-039 remote-sensing job creation contract — 21 October 2026
+
+The fetcher rejects non-positive cadence before database setup, matching the
+existing schema constraint, and commits job creation as one rollback-safe
+transaction with explicit cursor cleanup. Standalone/unified insert arguments
+and JSON receipts match. The focused fetcher and scheduler selection passes 38
+tests; Ruff and compilation pass. Only synthetic database objects were used;
+no provider was contacted. Provider execution, persisted job recovery, and
+operator authorization remain open. The checklist is 832 complete / 25 open
+(857 total); the 66-row matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared. See [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json).
