@@ -480,9 +480,10 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
     locations = [dict(r) for r in cur.fetchall()]
     cur.close()
 
-    # Network-level reserve health.
-    net_health = srh.reserve_health(conn)
-    reserves = net_health["reserves"]
+    # Network reserve health can contain records across farms, so only attach
+    # it to an unassigned network snapshot.
+    net_health = srh.reserve_health(conn) if location_ids is None else None
+    reserves = net_health["reserves"] if net_health else []
 
     per_location = []
     for loc in locations:
@@ -506,6 +507,13 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         if isinstance(r.get("adequacy", {}).get("adequacy_pct"), (int, float)) and r["adequacy"]["adequacy_pct"] >= 100
     ]
     fundability_pct = round((len(adequate) / len(reserves)) * 100, 2) if reserves else None
+    limitations = [
+        "Reserve health is monitor + propose only; release decisions require human approval via decision_policy.requires_approval / agents/safety.py. No automatic on-chain drawdown.",
+        "Seed-vault biodiversity proxy uses distinct tree species + crop lines held; it is a resilience indicator, not a physical logistics system.",
+        "Pilot reserves are seeded targets; held_quantity for derived reserves is computed from existing pilot tables and may be zero where source rows are absent.",
+    ]
+    if net_health is None:
+        limitations.append("Network-wide reserve balances and fundability are omitted from selected-location snapshots.")
 
     return {
         "report_type": "strategic_reserve",
@@ -513,20 +521,20 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         "selected_location_ids": location_ids,
         "period_start": period_start,
         "period_end": period_end,
-        "reserve_count": net_health["reserve_count"],
+        "reserve_count": net_health["reserve_count"] if net_health else None,
         "reserves": reserves,
-        "fundability_signal": {
-            "adequately_funded_reserves": len(adequate),
-            "total_reserves": len(reserves),
-            "fundability_pct": fundability_pct,
-            "note": "Reserve adequacy reduces perceived risk and supports funding-round due diligence (strategic-reserve investment-incentive parallel).",
-        },
+        "fundability_signal": (
+            {
+                "adequately_funded_reserves": len(adequate),
+                "total_reserves": len(reserves),
+                "fundability_pct": fundability_pct,
+                "note": "Reserve adequacy reduces perceived risk and supports funding-round due diligence (strategic-reserve investment-incentive parallel).",
+            }
+            if net_health
+            else None
+        ),
         "locations": per_location,
-        "limitations": [
-            "Reserve health is monitor + propose only; release decisions require human approval via decision_policy.requires_approval / agents/safety.py. No automatic on-chain drawdown.",
-            "Seed-vault biodiversity proxy uses distinct tree species + crop lines held; it is a resilience indicator, not a physical logistics system.",
-            "Pilot reserves are seeded targets; held_quantity for derived reserves is computed from existing pilot tables and may be zero where source rows are absent.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 

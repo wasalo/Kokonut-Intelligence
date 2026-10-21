@@ -13713,3 +13713,17 @@ and scope-mixing issue, not tenant authorization or populated parity
 ([evidence](builds/2026-10-21-recovery/cap-066-scaling-economics-scope.json)).
 Checklist: 871 complete / 24 open (895 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 strategic reserve snapshot scope — 21 October 2026
+
+A farm-scoped strategic reserve report no longer calls the network reserve-health
+aggregate or exposes its reserve count/fundability signal. It retains only the
+selected farm's seed-vault section. Network reserve health remains available in
+unassigned network runs. The focused selection passes 123 tests with Ruff,
+compilation, current report/runtime inventories, and matrix validation; no
+database or migration was used. This prevents network balances from being
+misrepresented as farm data, but does not establish authorization or populated
+parity ([evidence](builds/2026-10-21-recovery/cap-066-strategic-reserve-scope.json)).
+Checklist: 872 complete / 24 open (896 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

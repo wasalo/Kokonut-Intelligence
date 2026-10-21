@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 871 checklist items complete and 24
-open (895 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 872 checklist items complete and 24
+open (896 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1812,3 +1812,8 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-066 scaling economics scope split — 21 October 2026
 
 - [x] Separate farm launch economics from network scaling targets. A farm-scoped run now queries only that location's economics and omits network-wide target rows and totals; a network-scoped run includes both datasets and stores `location_id=null`. The CLI now accepts a network request and `--all` for this report. The focused scaling, report CLI, and scope-inventory selection passes 119 tests; Ruff, compilation, four inventories, and matrix validation pass. No database, migration, candidate, legacy stack, or provider was used. Rollback is a source revert; no persisted data changed. This preserves both report scopes without attaching network totals to a farm snapshot; it does not establish authorization or populated output parity ([implementation](../../services/export/reports/commons/scaling.py); [CLI scope](../../services/export/report_generator.py); [tests](../../tests/test_open_source_capitalist_scaling.py); [evidence](builds/2026-10-21-recovery/cap-066-scaling-economics-scope.json)). Checklist: 871 complete / 24 open (895 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 strategic reserve snapshot scope — 21 October 2026
+
+- [x] Keep cross-location reserve health and its fundability signal out of selected-farm snapshots. Farm reports now include only the selected location's seed-vault section; network reserve rows/counts/fundability are null or empty there and are calculated only for an unassigned network run. The focused reserve, report-redaction, CLI, and scope-inventory selection passes 123 tests; Ruff, compilation, four inventories, and matrix validation pass. No database, migration, candidate, legacy stack, or provider was used. Rollback is a source revert with no persisted-state changes. This separates report scope but does not prove tenant authorization or populated parity ([implementation](../../services/export/reports/state.py); [tests](../../tests/test_strategic_reserve.py); [evidence](builds/2026-10-21-recovery/cap-066-strategic-reserve-scope.json)). Checklist: 872 complete / 24 open (896 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

@@ -583,7 +583,7 @@
       "report_type": "capital_provider_utility",
       "callable": "generate_capital_provider_utility",
       "source_file": "services/export/reports/state.py",
-      "source_line": 534,
+      "source_line": 542,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 2,
@@ -592,7 +592,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 537,
+          "line": 545,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -608,7 +608,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 539,
+          "line": 547,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
