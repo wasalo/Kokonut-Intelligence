@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 898,
-    "execution_sites": 4478,
+    "execution_sites": 4477,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 333,
-    "sites_without_worker_operation_refs": 4145,
+    "sites_without_worker_operation_refs": 4144,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -16,7 +16,7 @@
       "ROLLBACK": 10,
       "SAVEPOINT": 9,
       "SELECT": 2702,
-      "SET": 384,
+      "SET": 383,
       "UNKNOWN": 195,
       "UPDATE": 433,
       "WITH": 27
@@ -24,7 +24,7 @@
     "statement_groups": {
       "read_candidate": 2702,
       "schema_change": 1,
-      "transaction_or_session": 419,
+      "transaction_or_session": 418,
       "unknown_requires_manual_review": 195,
       "with_requires_manual_review": 27,
       "write_candidate": 1134
@@ -33,10 +33,10 @@
       "composed": 17,
       "composed_or_variable": 268,
       "fstring": 287,
-      "literal": 3906
+      "literal": 3905
     },
     "relation_candidates": 1162,
-    "sites_without_relation_candidates": 838,
+    "sites_without_relation_candidates": 837,
     "service_packages": 67
   },
   "service_packages": {
@@ -65,14 +65,13 @@
     },
     "agents": {
       "source_files": 26,
-      "execution_sites": 61,
+      "execution_sites": 60,
       "statement_groups": {
         "read_candidate": 57,
-        "transaction_or_session": 1,
         "write_candidate": 3
       },
       "candidate_relation_names": 52,
-      "sites_without_relation_candidates": 4,
+      "sites_without_relation_candidates": 3,
       "non_literal_sites": 31,
       "sites_with_worker_operation_refs": 0
     },
@@ -2166,7 +2165,6 @@
     {"id": "services/agents/resilience_agent.py:39:4","source": "services/agents/resilience_agent.py","line": 39,"column": 4,"scope": "synthesize_resilience","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["v_public_risk_mitigation_summary"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/resilience_agent.py:54:4","source": "services/agents/resilience_agent.py","line": 54,"column": 4,"scope": "synthesize_resilience","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["v_public_scaling_roadmap_summary"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/resilience_agent.py:68:4","source": "services/agents/resilience_agent.py","line": 68,"column": 4,"scope": "synthesize_resilience","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_public_green_paper_publication_status"],"static_sql_sha256": "1cece44f5b15ac2444a7f439eca123e2355f7421235c00c560d7e380379c4929","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/agents/safety.py:19:4","source": "services/agents/safety.py","line": 19,"column": 4,"scope": "set_agent_context","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "64b8a77e0570545003f97a7a71b3beca43ec7afbb594b2d5194b0c5852dbdec9","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/wellbeing_agent.py:16:4","source": "services/agents/wellbeing_agent.py","line": 16,"column": 4,"scope": "synthesize_wellbeing","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_public_cultural_context_summary"],"static_sql_sha256": "30bfdfc554ac0caf760516a90bc0b078bfe6292c32d6ca595d7971cca3bd703d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/wellbeing_agent.py:28:4","source": "services/agents/wellbeing_agent.py","line": 28,"column": 4,"scope": "synthesize_wellbeing","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_public_wellbeing_metric_summary"],"static_sql_sha256": "d3b09191eb43511afa3a2f5d844f895c0e9d39e252e1c27676c68a9c9ba07a81","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/wellbeing_agent.py:41:4","source": "services/agents/wellbeing_agent.py","line": 41,"column": 4,"scope": "synthesize_wellbeing","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_public_participatory_governance_summary"],"static_sql_sha256": "9af074d58d74e00de65bb7dae7583e5a27e34085613cca318ef305603e29c6ca","operation_refs": [],"statement_group": "read_candidate"},

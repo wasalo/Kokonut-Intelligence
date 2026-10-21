@@ -96,9 +96,14 @@ def test_agent_can_read_stakeholder_records() -> None:
     assert decision.allowed is True
 
 
-def test_set_agent_context_exists() -> None:
-    """set_agent_context helper is importable and callable."""
-    assert callable(set_agent_context)
+def test_set_agent_context_fails_closed_without_touching_connection() -> None:
+    """The legacy transaction marker must not impersonate an agent identity."""
+    class UntouchedConnection:
+        def execute(self, *_args, **_kwargs):
+            raise AssertionError("legacy helper must not issue SQL")
+
+    with pytest.raises(RuntimeError, match="caller-controlled"):
+        set_agent_context(UntouchedConnection(), "agent-123")
 
 
 # ---------------------------------------------------------------------------
@@ -292,4 +297,4 @@ if __name__ == "__main__":
     test_payload_hash_is_stable()
     test_blocks_agent_publish_status()
     test_high_risk_action_requires_human_approval()
-    test_set_agent_context_exists()
+    test_set_agent_context_fails_closed_without_touching_connection()

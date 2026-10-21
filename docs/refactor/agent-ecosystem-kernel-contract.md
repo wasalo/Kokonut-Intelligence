@@ -80,6 +80,13 @@ run without decrypting `.env.sops`.
   only when `app.agent_id` is set; that setting is not a database-authenticated
   identity, and inserts are not covered. It is not treated as a least-privilege
   agent boundary.
+- The legacy Python `set_agent_context()` helper now fails closed before it
+  issues SQL. `SET LOCAL app.agent_id` cannot authenticate the caller, so
+  retaining a callable setter would invite code to mistake an arbitrary session
+  value for a trusted agent principal. Current production code has no callers.
+  Signed worker context and authenticated operator context remain the supported
+  identity patterns; legacy/background agent writers still lack an authenticated
+  run identity and database least privilege.
 
 ## Location-scoped AI-summary draft and human-review slice
 

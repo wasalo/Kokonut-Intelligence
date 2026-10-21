@@ -149,6 +149,12 @@ database-authenticated principal, and it does not block inserts. It therefore
 does not establish a least-privilege database boundary for agents. That remains
 an open Kernel acceptance gate.
 
+The Python `set_agent_context()` compatibility helper is disabled and raises
+before executing SQL. A caller-controlled `SET LOCAL app.agent_id` value cannot
+establish agent identity. Use an authenticated operator path or a signed worker
+context; neither pattern currently authenticates the legacy/background agent
+writers, so their runtime identity and database privileges remain open work.
+
 ```python
 @dataclass(frozen=True)
 class SafetyDecision:

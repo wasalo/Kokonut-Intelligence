@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "batch": "CAP-038 legacy agent context fail-closed",
+  "date": "2026-10-21",
+  "implementation": {
+    "file": "services/agents/safety.py",
+    "behavior": "set_agent_context() raises before issuing SQL; it no longer writes the caller-controlled app.agent_id setting.",
+    "production_callers_found": 0,
+    "migration_changed": false
+  },
+  "verification": {
+    "focused_test": "PG_HOST=127.0.0.1 PG_PORT=1 python3 -m pytest tests/test_agent_safety.py -k set_agent_context_fails_closed -q",
+    "focused_test_result": "1 passed, 18 deselected",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "runtime_sql_inventory": "current",
+    "diff_check": "passed",
+    "database_used": false,
+    "provider_used": false,
+    "candidate_or_legacy_touched": false
+  },
+  "limitations": [
+    "Migration 350 remains unchanged.",
+    "This does not authenticate legacy/background agent runtime identities.",
+    "Database least privilege, tenant isolation, Directus parity, populated task/provider parity, recovery, and owner acceptance remain open."
+  ]
+}

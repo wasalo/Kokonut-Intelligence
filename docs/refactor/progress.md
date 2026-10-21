@@ -1,3 +1,16 @@
+### CAP-038 fail-closed legacy agent context — 21 October 2026
+
+The legacy `set_agent_context()` helper no longer executes `SET LOCAL
+app.agent_id`; it raises before touching the connection because that value is
+caller-controlled and cannot authenticate an agent. The repository has no
+production callers of the helper. Focused regression, Ruff, and Python
+compilation checks pass; no database, candidate, legacy stack, or provider was
+used. Migration 350 remains unchanged. Legacy/background agent writes still
+lack authenticated run identity and database least privilege, and broader
+tenant isolation remains open. Checklist: 895 complete / 24 open (919 total);
+matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
+Evidence: [legacy context fail-closed](builds/2026-10-21-recovery/cap-038-legacy-agent-context-fail-closed.json).
+
 ### CAP-066 branch-correlated location scope in helper returns — 21 October 2026
 
 The report query analyzer now follows literal filter/bind pairs returned by a

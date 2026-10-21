@@ -9,14 +9,21 @@ from typing import Any, Optional
 
 
 def set_agent_context(conn, agent_id: str) -> None:
-    """Set the agent ID for the current transaction, enabling DB-level safety checks.
+    """Reject the legacy, caller-controlled database agent marker.
 
-    Must be called within an active transaction. Uses SET LOCAL so the setting
-    is scoped to the current transaction and automatically cleared on commit/rollback.
-    When this setting is present, DB-level triggers on governed tables will block
-    status escalation to 'verified' or 'published'.
+    ``SET LOCAL app.agent_id`` is a transaction setting supplied by the caller,
+    not an authenticated principal. It must not be used as an agent identity or
+    as an authorization boundary. Agent persistence needs a signed worker
+    context or an authenticated operator flow instead.
+
+    The arguments remain in the signature so legacy imports fail with a clear
+    error instead of silently accepting an unauthenticated identity.
     """
-    conn.execute(conn.text("SET LOCAL app.agent_id = :agent_id"), {"agent_id": agent_id})
+    del conn, agent_id
+    raise RuntimeError(
+        "set_agent_context() is disabled: app.agent_id is caller-controlled, "
+        "not an authenticated identity; use signed worker or operator context"
+    )
 
 HIGH_RISK_ACTIONS = {
     "verify",
