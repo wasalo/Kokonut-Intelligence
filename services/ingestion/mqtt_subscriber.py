@@ -37,7 +37,34 @@ SENSOR_TOPIC = "sensors/+/+/readings"  # sensors/{location_id}/{sensor_type}/rea
 
 # Default config
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
-DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "8883"))
+
+
+def _validated_port(value: object) -> int:
+    """Convert a broker port and enforce the valid TCP destination range."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("port must be an integer from 1 to 65535") from None
+    if isinstance(value, bool) or not 1 <= port <= 65535:
+        raise ValueError("port must be an integer from 1 to 65535")
+    return port
+
+
+def _parse_port(value: str) -> int:
+    """Adapt port validation to argparse's user-facing error type."""
+    try:
+        return _validated_port(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
+
+
+_PORT_SETTING = os.environ.get("MQTT_BROKER_PORT", "8883")
+try:
+    DEFAULT_PORT: int | str = _validated_port(_PORT_SETTING)
+except ValueError:
+    # Keep module import and --help usable; argparse reports the bad setting
+    # when an operation tries to use this configured default.
+    DEFAULT_PORT = _PORT_SETTING
 DEFAULT_KEEPALIVE = 60
 DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
 DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
@@ -88,7 +115,7 @@ class MQTTSensorSubscriber:
         client_key: str = DEFAULT_CLIENT_KEY,
     ):
         self.broker = broker
-        self.port = port
+        self.port = _validated_port(port)
         self.username = username
         self.password = password
         self.ca_cert = ca_cert
@@ -467,7 +494,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="MQTT sensor subscriber",
     )
     parser.add_argument("--broker", default=DEFAULT_BROKER, help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="MQTT broker port")
+    parser.add_argument(
+        "--port",
+        type=_parse_port,
+        default=os.environ.get("MQTT_BROKER_PORT", str(DEFAULT_PORT)),
+        help="MQTT broker port (1-65535)",
+    )
     return parser
 
 

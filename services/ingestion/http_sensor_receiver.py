@@ -358,8 +358,19 @@ def build_parser() -> argparse.ArgumentParser:
         description="HTTP sensor receiver",
     )
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
-    parser.add_argument("--port", type=int, default=8056, help="Bind port")
+    parser.add_argument("--port", type=_parse_port, default=8056, help="Bind port")
     return parser
+
+
+def _parse_port(value: str) -> int:
+    """Reject invalid bind ports during argument parsing, before server startup."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("port must be an integer from 1 to 65535") from None
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be an integer from 1 to 65535")
+    return port
 
 
 def main(argv: list[str] | None = None) -> None:

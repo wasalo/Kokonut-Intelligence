@@ -45,6 +45,24 @@ def test_non_integer_port_fails_before_server_start(monkeypatch, unified: bool) 
     assert error.value.code == 2
 
 
+@pytest.mark.parametrize("port", ["0", "-1", "65536"])
+@pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
+def test_out_of_range_port_fails_before_server_start(
+    monkeypatch, port: str, unified: bool
+) -> None:
+    monkeypatch.setattr(
+        http_sensor_receiver, "run", lambda **_kwargs: pytest.fail("server must not start")
+    )
+
+    with pytest.raises(SystemExit) as error:
+        if unified:
+            ingestion_cli.main(["http_sensor_receiver", "--port", port])
+        else:
+            http_sensor_receiver.main(["--port", port])
+
+    assert error.value.code == 2
+
+
 def test_standalone_and_unified_help_output_matches(capsys) -> None:
     with pytest.raises(SystemExit) as standalone_exit:
         http_sensor_receiver.main(["--help"])
