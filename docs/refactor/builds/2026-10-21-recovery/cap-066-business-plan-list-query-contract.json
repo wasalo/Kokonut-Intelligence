@@ -1,0 +1,35 @@
+{
+  "task": "CAP-066 business-plan financial-plan listing query contract",
+  "date": "2026-10-21",
+  "source_file": "services/planning/budget.py",
+  "callable": "list_plans",
+  "change": "Replaced dynamic filter-list SQL and the generic _rows wrapper call with one fixed, parameterized query. Organization scope is required; status remains optional, and an empty status remains equivalent to no status filter.",
+  "bind_contract": {
+    "placeholder_count": 3,
+    "supplied_count": 3,
+    "mismatch": false,
+    "values": ["organization_id", "status_or_null", "status_or_null"]
+  },
+  "report_helper_membership": "business_plan",
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_planning_budget.py::test_list_plans_uses_static_sql_and_treats_empty_status_as_unfiltered tests/test_report_generator_helper_scope_inventory.py -q",
+    "focused_tests_passed": 13,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "source_query_helper_inventory_checks": "passed",
+    "runtime_sql_inventory_check": "passed",
+    "capability_matrix_validation": "passed",
+    "helper_inventory": {
+      "memberships": 175,
+      "static_sql_sites": 169,
+      "unresolved_sql_sites": 6,
+      "positional_bind_contracts": 149,
+      "named_bind_contracts": 8,
+      "bind_mismatches": 0
+    }
+  },
+  "scope_boundary": "The organization predicate is not a location-scope signal and is not proof of authorization, tenant isolation, PostgreSQL execution, or populated report parity.",
+  "database_or_provider_used": false,
+  "candidate_or_legacy_changed": false,
+  "rollback": "Revert the budget query and tests, generated inventories, progress and checklist entries, and this evidence. No persisted data changed."
+}

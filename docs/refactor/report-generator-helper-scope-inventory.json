@@ -7,9 +7,9 @@
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
     "helper_query_sites_with_location_scope_signal": 78,
-    "helper_query_sites_with_static_sql_source": 168,
-    "helper_query_sites_with_unresolved_sql_source": 7,
-    "helper_query_sites_with_static_positional_arity": 148,
+    "helper_query_sites_with_static_sql_source": 169,
+    "helper_query_sites_with_unresolved_sql_source": 6,
+    "helper_query_sites_with_static_positional_arity": 149,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 8,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -876,7 +876,6 @@
         "services/export/business_plan.py:generate_business_plan",
         "services/forecast/reference_class.py:apply_reference_class",
         "services/planning/budget.py:list_plans",
-        "services/planning/model.py:_rows",
         "services/planning/sandop.py:_coerce_uuid",
         "services/planning/sandop.py:_rows",
         "services/planning/sandop.py:cockpit"
@@ -1126,12 +1125,6 @@
           "caller": "services/planning/sandop.py:cockpit",
           "callee": "services/planning/sandop.py:_rows",
           "line": 55,
-          "depth": 4
-        },
-        {
-          "caller": "services/planning/budget.py:list_plans",
-          "callee": "services/planning/model.py:_rows",
-          "line": 93,
           "depth": 4
         },
         {
@@ -2291,12 +2284,18 @@
           ]
         },
         {
-          "source_file": "services/planning/model.py",
-          "callable": "_rows",
-          "line": 94,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "source_file": "services/planning/budget.py",
+          "callable": "list_plans",
+          "line": 88,
+          "relations": [
+            "financial_plan"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 3,
+            "supplied_count": 3,
+            "mismatch": false
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -2305,8 +2304,7 @@
               "generate_business_plan_report",
               "services/export/business_plan.py:generate_business_plan",
               "services/export/business_plan.py:_financial",
-              "services/planning/budget.py:list_plans",
-              "services/planning/model.py:_rows"
+              "services/planning/budget.py:list_plans"
             ]
           ]
         },
@@ -2390,9 +2388,9 @@
       ],
       "helper_query_site_count": 27,
       "helper_query_sites_with_location_scope_signal": 10,
-      "helper_query_sites_with_static_sql_source": 26,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 21,
+      "helper_query_sites_with_static_sql_source": 27,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 22,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 4,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,

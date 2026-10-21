@@ -1,3 +1,18 @@
+### CAP-066 business-plan financial-list query contract — 21 October 2026
+
+`planning.budget.list_plans` now uses fixed SQL with bound organization and
+optional status values, replacing the generated filter and generic `_rows`
+wrapper call. An empty status remains unfiltered. The business-plan helper
+inventory verifies three placeholders and three values with no mismatch; the
+organization predicate is not a location-scope signal. Focused planning/helper
+checks pass (13 tests); Ruff, compilation, three report inventories, runtime SQL
+inventory, capability-matrix validation, and diff checks pass. Across 175
+helper memberships, 169 SQL sites are static, six unresolved, and 149
+positional plus eight named contracts have zero mismatches. No PostgreSQL query
+ran, and no tenant authorization or populated parity is claimed. Checklist: 892
+complete / 24 open (916 total); matrix remains 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-business-plan-list-query-contract.json)).
+
 ### CAP-066 static value-stream query contracts — 21 October 2026
 
 The WIP, lifecycle lead-time, and first-time-through queries now use explicit

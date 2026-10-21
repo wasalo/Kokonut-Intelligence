@@ -210,6 +210,25 @@ def test_reachable_helper_query_wrapper_uses_all_literal_local_callsites():
     ] == [(29, 1, 1), (43, 1, 1), (55, 1, 1)]
 
 
+def test_business_plan_listing_query_has_static_positional_bind_contract():
+    inventory = build_inventory()
+    report = next(item for item in inventory["reports"] if item["report_type"] == "business_plan")
+    query = next(
+        site
+        for site in report["reachable_helper_query_sites"]
+        if site["source_file"] == "services/planning/budget.py"
+        and site["callable"] == "list_plans"
+    )
+
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["positional_bind_arity"] == {
+        "placeholder_count": 3,
+        "supplied_count": 3,
+        "mismatch": False,
+    }
+    assert query["bound_location_scope_signal"] is False
+
+
 def test_reachable_helper_inventory_resolves_fail_closed_org_location_filter_pairs():
     inventory = build_inventory()
     targets = {
