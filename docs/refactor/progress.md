@@ -13244,3 +13244,19 @@ complete / 25 open (852 total); matrix remains 66 rows: 31 baseline-retained,
 7 deployed, and 28 prepared ([implementation](../../services/ingestion/device_manager.py);
 [tests](../../tests/test_device_manager.py);
 [evidence](builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json)).
+
+
+### CAP-039 sensor inventory CLI parity — 21 October 2026
+
+Standalone and unified `sensor_ingester --list` and `--calibration` now emit
+matching synthetic output. Both reads bind the requested location and close
+their resources. Missing or malformed location scope on inventory listing
+fails before database setup in either CLI. Nine focused tests pass with Ruff
+and Python compilation; no database or provider was contacted. Single-reading,
+CSV, and scheduled-driver argument forwarding also matches with stubbed
+operations; their effects/output and scheduled-driver runtime remain open.
+Checklist: 828 complete / 25
+open (853 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared ([test](../../tests/test_sensor_ingester_cli_parity.py);
+[contract](unified-cli-kernel-contract.md);
+[evidence](builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json)).

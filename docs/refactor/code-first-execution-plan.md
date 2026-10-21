@@ -2379,3 +2379,17 @@ not verified. Checklist: 827 complete / 25 open (852 total); capability
 classifications remain 66 rows: 31 baseline-retained, 7 deployed, and 28
 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json`.
+
+
+### CAP-039 sensor inventory CLI parity — 21 October 2026
+
+Standalone and unified `sensor_ingester --list` and `--calibration` now match
+on synthetic output, bind exact location scope, and close resources. Missing
+or malformed scope on inventory listing fails before DB setup in both CLIs.
+Nine focused tests pass with Ruff and Python compilation. No database or
+provider was contacted. Single-reading, CSV, and scheduled-driver argument
+forwarding also matches with stubbed operations; sensor effects/output and
+scheduled-driver runtime remain open.
+Checklist: 828 complete / 25 open (853 total); capability classifications
+remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json`.

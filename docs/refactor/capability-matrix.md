@@ -4031,3 +4031,12 @@ argument and output parity passes; the focused device-manager service/CLI
 selection passes 29 tests, Ruff, and compilation with mocked database
 interactions. This does not verify live PostgreSQL or authorization
 ([evidence](builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json)).
+
+**CAP-039 sensor inventory CLI parity — 21 October 2026:** standalone and
+unified sensor inventory/calibration reads produce matching synthetic output,
+bind the selected location, and close their cursors/connections. Missing or
+malformed scope on inventory listing fails before DB setup. Nine focused tests,
+Ruff, and compilation pass; no database/provider was contacted. Single-reading,
+CSV, and scheduled-driver forwarding are checked with stubbed operations;
+ingestion effects/output and scheduled-driver runtime remain open
+([evidence](builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json)).
