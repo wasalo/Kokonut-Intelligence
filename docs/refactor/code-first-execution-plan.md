@@ -16,6 +16,12 @@ full schema replay was not ARM64, whose database acceptance remains through
 migration 434, and QEMU does not certify Raspberry Pi hardware. See the
 [bootstrap replay](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json)
 and [ARM64 smoke](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json).
+The ARM64 Gateway was also run against a fresh schema-524 PostgreSQL database
+on the internal disposable network: it reported `aarch64`, health returned
+200, and an anonymous protected write returned 401. The temporary containers,
+volume, network, and image were removed, and the candidate remained healthy.
+This verifies the QEMU app against the current schema but not ARM64 PostgreSQL
+or physical Pi behavior ([integration evidence](builds/2026-10-20-recovery/arm64-gateway-schema-524-runtime.json)).
 
 **Latest CAP-038 implementation slice — 20 October 2026:** Migrations 521–524
 provide location-scoped AI-summary review, authenticated draft creation, and

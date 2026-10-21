@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-20",
+  "scope": "Current-source ARM64 Gateway runtime against current PostgreSQL schema under QEMU",
+  "source_revision": "c6aab4ea",
+  "app": {
+    "image": "kokonut-kernel-arm64-schema-524-c6aab4ea:local",
+    "image_id": "sha256:ae9cfa4577c978ade52c355cc30a66cfb74691a4bb3a5ddf71eabbdb447bd9d6",
+    "platform": "linux/arm64",
+    "runtime_architecture": "aarch64",
+    "target": "kernel",
+    "process": "services.gateway.cli --serve --port 8099",
+    "features": {
+      "clickhouse": false,
+      "directus": false,
+      "grpc": false,
+      "metabase": false,
+      "mqtt": false,
+      "prefect": false
+    }
+  },
+  "database": {
+    "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "schema_migrations_applied": 515,
+    "schema_migrations_pending": 0,
+    "latest_migration": "schema:524_ai_summary_global_source_references.sql",
+    "seeds_applied": false,
+    "farm_data_loaded": false
+  },
+  "isolation": {
+    "compose_project": "kokonut-arm64-app-schema-524-20261020",
+    "network": "internal-only private bridge",
+    "host_ports_published": false,
+    "external_network_or_provider_calls": false,
+    "synthetic_credentials_only": true,
+    "sops_or_repository_secrets_used": false,
+    "candidate_or_legacy_targeted": false
+  },
+  "runtime_checks": {
+    "gateway_health_status": 200,
+    "anonymous_post_api_data_stream_post_status": 401,
+    "docker_health": "healthy"
+  },
+  "cleanup": {
+    "temporary_app_container_removed": true,
+    "temporary_database_container_removed": true,
+    "temporary_volume_removed": true,
+    "temporary_network_removed": true,
+    "temporary_image_removed": true,
+    "candidate_app_database_proxy_metabase": "remained healthy"
+  },
+  "result": "PASS: the current ARM64 Gateway ran against a fresh database with all 515 current schema migrations and preserved anonymous write denial.",
+  "limitations": [
+    "The Gateway ran as linux/arm64 under QEMU; this is not physical Raspberry Pi acceptance or a performance benchmark.",
+    "PostgreSQL ran natively as linux/amd64; this does not advance ARM64 database schema replay beyond the earlier migration-434 run.",
+    "Only the Gateway process was started; scheduler/event workers, optional services, providers, populated data, 24-hour recovery, power failure, and scale were not exercised."
+  ]
+}

@@ -19,6 +19,16 @@ This does not advance ARM64 database schema replay: its latest recorded
 migration remains 434. That database replay and physical-device acceptance are
 still open ([evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json)).
 
+**Cross-architecture schema integration (20 October 2026):** the current
+ARM64 Gateway was started under QEMU against a fresh native AMD64 PostgreSQL 16
+database with all 515 current schemas through migration 524. The app reported
+`aarch64`, Docker marked it healthy, `/health` returned 200, and an anonymous
+Data Stream write returned 401. The Compose network was internal-only with no
+published ports, seeds, or farm data. Temporary resources were removed. This
+confirms application/schema compatibility across the tested architectures; it
+does not verify ARM64 PostgreSQL or Raspberry Pi hardware
+([evidence](builds/2026-10-20-recovery/arm64-gateway-schema-524-runtime.json)).
+
 ## Current planner status — 16 October 2026
 
 The base candidate Compose file retains its AMD64-only PostGIS digest for the

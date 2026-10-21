@@ -14,6 +14,15 @@ network, credentials, database, or writable image filesystem. Full schema replay
 was native AMD64; ARM64 database replay remains at migration 434, and this is not
 physical Raspberry Pi acceptance ([bootstrap evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json);
 [ARM64 smoke](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json)).
+The ARM64 Gateway was then run against a fresh database containing the same
+515 schema migrations under an internal-only Docker network. It reported
+`aarch64`, passed `/health` with 200, and returned 401 for an anonymous
+Data Stream write. The native AMD64 PostgreSQL ledger contained 515 applied,
+zero pending, through migration 524. Temporary app/database containers,
+volume, network, and image were removed; the active candidate services remained
+healthy. This closes only the ARM64 Gateway/current-schema software integration
+check; ARM64 PostgreSQL replay and physical Pi acceptance remain open
+([evidence](builds/2026-10-20-recovery/arm64-gateway-schema-524-runtime.json)).
 
 ### CAP-039 report CLI parity and failure boundaries — 20 October 2026
 
