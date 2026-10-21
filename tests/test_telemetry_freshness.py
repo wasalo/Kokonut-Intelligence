@@ -73,8 +73,11 @@ def test_freshness_help_import_does_not_load_secret_bearing_database_config() ->
             (
                 "import sys; "
                 "from services.ingestion import data_freshness; "
+                "from services.ingestion.cli import main as ingestion_main; "
                 "assert 'services.ingestion.base' not in sys.modules; "
-                "data_freshness.main([])"
+                "data_freshness.main([]); "
+                "ingestion_main(['data_freshness']); "
+                "assert 'services.ingestion.base' not in sys.modules"
             ),
         ],
         check=True,
@@ -82,7 +85,7 @@ def test_freshness_help_import_does_not_load_secret_bearing_database_config() ->
         text=True,
     )
 
-    assert "--check" in result.stdout
+    assert result.stdout.count("Data freshness monitoring") == 2
 
 
 def test_freshness_source_requires_check_before_database(monkeypatch, capsys) -> None:
