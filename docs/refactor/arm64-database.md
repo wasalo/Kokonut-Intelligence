@@ -2,6 +2,24 @@
 
 ## Current-source checks — 20 October 2026
 
+For a clean ordered replay without consuming a Docker address pool, use
+`docker-compose.schema-bootstrap.yml` with the repository's
+`scripts/verify-clean-bootstrap.sh`. It starts only a pinned PostgreSQL 16
+service with `network_mode: none`, no host port, and a temporary named volume;
+the migration runner executes `psql` through `docker compose exec`. Example:
+
+```sh
+source scripts/load-secrets.sh
+export KOKONUT_BOOTSTRAP_COMPOSE_FILE=docker-compose.schema-bootstrap.yml
+export KOKONUT_BOOTSTRAP_COMPOSE_PROJECT=kokonut-schema-bootstrap
+export KOKONUT_BOOTSTRAP_START_DATABASE=true
+export KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true
+./scripts/verify-clean-bootstrap.sh
+```
+
+Use a unique project name for concurrent runs. The removal flag drops the
+temporary database volume and Compose resources when the script exits.
+
 The current source at `c6aab4ea` builds as a `linux/arm64` Kernel image. Under
 QEMU, a network-disabled and read-only container reported `aarch64`, imported
 the Gateway and Python SDK, loaded all 18 JobSpecs, imported the migration CLI,

@@ -1,0 +1,21 @@
+# Disposable PostgreSQL target for ordered schema replay only.
+# No network or host port is needed: migrations run through `docker compose exec`.
+services:
+  database:
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    restart: "no"
+    network_mode: none
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - schema-bootstrap-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = postgres && pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  schema-bootstrap-data:
