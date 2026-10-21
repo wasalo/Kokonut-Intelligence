@@ -351,8 +351,21 @@ def run(chain: str = None):
         db.close()
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="EAS attestation ingestion")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="eas_indexer.py",
+        description="EAS attestation ingestion",
+    )
     parser.add_argument("--chain", choices=["optimism", "base", "celo"])
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run the EAS attestation indexer for the optional chain."""
+    args = build_parser().parse_args(argv)
     run(chain=args.chain)
+
+
+if __name__ == "__main__":
+    main()

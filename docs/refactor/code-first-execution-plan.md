@@ -2617,3 +2617,11 @@ before subscriber startup. Five CLI cases pass in the 91-test MQTT/IoT/outbox
 selection with Ruff and compilation. Subscriber startup was stubbed, so no
 broker or database was contacted
 ([evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 EAS indexer CLI entrypoint — 21 October 2026
+
+The EAS indexer now exposes a callable parser and `main()`. Standalone/unified
+chain arguments and help match; unsupported chain choices fail before indexer
+execution. Five CLI cases pass in the 41-test EAS recovery/redaction/outbox
+selection with Ruff and compilation. The indexer was stubbed; no chain or
+database was contacted ([evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).

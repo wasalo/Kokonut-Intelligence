@@ -13514,3 +13514,14 @@ stubbed; no broker or database was contacted. Checklist: 848 complete / 25 open
 (873 total); the matrix remains 66 rows: 31 baseline-retained, 7 deployed, and
 28 prepared ([test](../../tests/test_mqtt_subscriber_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 EAS indexer CLI entrypoint — 21 October 2026
+
+`eas_indexer` now exposes a callable parser and `main()` for unified dispatch.
+Standalone/unified chain arguments and help match; unsupported chains fail
+before indexer execution. Five CLI cases pass within the 41-test EAS
+recovery/redaction/outbox selection with Ruff and compilation. The indexer call
+was stubbed; no chain or database was contacted. Checklist: 849 complete / 25
+open (874 total); the matrix remains 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared ([test](../../tests/test_eas_indexer_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).

@@ -4236,3 +4236,14 @@ Checklist: 848 complete / 25 open (873 total); classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared
 ([tests](../tests/test_mqtt_subscriber_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 EAS indexer CLI entrypoint — 21 October 2026:** the EAS
+indexer now has a callable parser/main. Standalone/unified chain arguments and
+help match; unsupported chains fail before dispatch. Five CLI cases pass in the
+41-test recovery/redaction/outbox selection with Ruff and compilation. The
+indexer was stubbed; no chain or database was contacted. This is command
+dispatch coverage and does not prove live EAS ingestion or cursor recovery.
+Checklist: 849 complete / 25 open (874 total); classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_eas_indexer_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).
