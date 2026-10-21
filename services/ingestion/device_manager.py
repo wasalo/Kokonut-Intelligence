@@ -55,59 +55,58 @@ def register_device(
     """
     location_id = _canonical_location_id(location_id)
     cur = conn.cursor()
+    try:
+        # Get sensor type ID.
+        cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type,))
+        row = cur.fetchone()
+        if not row:
+            raise ValueError(f"Unknown sensor type: {sensor_type}")
+        sensor_type_id = str(row[0])
 
-    # Get sensor type ID
-    cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type,))
-    row = cur.fetchone()
-    if not row:
-        raise ValueError(f"Unknown sensor type: {sensor_type}")
-    sensor_type_id = str(row[0])
+        cur.execute("""
+            INSERT INTO sensor_device
+                (name, slug, sensor_type_id, location_id, protocol, manufacturer, model, serial_number, status, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active', %s)
+            ON CONFLICT (slug) DO UPDATE SET
+                name = EXCLUDED.name,
+                sensor_type_id = EXCLUDED.sensor_type_id,
+                protocol = EXCLUDED.protocol,
+                manufacturer = EXCLUDED.manufacturer,
+                model = EXCLUDED.model,
+                serial_number = EXCLUDED.serial_number,
+                status = 'active',
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
+            WHERE sensor_device.location_id = EXCLUDED.location_id
+            RETURNING id
+        """, (
+            name or f"Sensor {device_id}",
+            device_id,
+            sensor_type_id,
+            location_id,
+            protocol,
+            manufacturer,
+            model,
+            serial_number,
+            json.dumps(metadata or {}),
+        ))
+        inserted = cur.fetchone()
+        if not inserted:
+            raise ValueError("Device slug is already assigned to a different location")
+        device_id_db = str(inserted[0])
 
-    cur.execute("""
-        INSERT INTO sensor_device
-            (name, slug, sensor_type_id, location_id, protocol, manufacturer, model, serial_number, status, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'active', %s)
-        ON CONFLICT (slug) DO UPDATE SET
-            name = EXCLUDED.name,
-            sensor_type_id = EXCLUDED.sensor_type_id,
-            protocol = EXCLUDED.protocol,
-            manufacturer = EXCLUDED.manufacturer,
-            model = EXCLUDED.model,
-            serial_number = EXCLUDED.serial_number,
-            status = 'active',
-            metadata = EXCLUDED.metadata,
-            updated_at = NOW()
-        WHERE sensor_device.location_id = EXCLUDED.location_id
-        RETURNING id
-    """, (
-        name or f"Sensor {device_id}",
-        device_id,
-        sensor_type_id,
-        location_id,
-        protocol,
-        manufacturer,
-        model,
-        serial_number,
-        json.dumps(metadata or {}),
-    ))
-    inserted = cur.fetchone()
-    if not inserted:
+        # Keep the device and its initial health row in one transaction.
+        cur.execute("""
+            INSERT INTO sensor_device_health (device_id, last_seen_at, status)
+            VALUES (%s, NOW(), 'unknown')
+            ON CONFLICT (device_id) DO NOTHING
+        """, (device_id_db,))
+        conn.commit()
+    except Exception:
         conn.rollback()
+        raise
+    finally:
         cur.close()
-        raise ValueError("Device slug is already assigned to a different location")
-    device_id_db = str(inserted[0])
-    conn.commit()
-    cur.close()
-
-    # Initialize device health
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO sensor_device_health (device_id, last_seen_at, status)
-        VALUES (%s, NOW(), 'unknown')
-        ON CONFLICT (device_id) DO NOTHING
-    """, (device_id_db,))
-    conn.commit()
-    cur.close()
 
     logger.info("Registered device: %s (id=%s, type=%s)", device_id, device_id_db[:8], sensor_type)
     return device_id_db

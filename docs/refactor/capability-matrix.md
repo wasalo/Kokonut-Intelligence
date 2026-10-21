@@ -4023,3 +4023,11 @@ fails before DB setup, and successful paths close their resources. Ten focused
 tests, Ruff, and compilation pass; no database/provider was contacted. Device
 registration writes, populated-data parity, and authorization remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json)).
+
+**CAP-039 device registration transaction — 21 October 2026:** device
+registration now commits the device and initial health row together, and rolls
+back when health initialization fails. Standalone/unified registration
+argument and output parity passes; the focused device-manager service/CLI
+selection passes 29 tests, Ruff, and compilation with mocked database
+interactions. This does not verify live PostgreSQL or authorization
+([evidence](builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json)).

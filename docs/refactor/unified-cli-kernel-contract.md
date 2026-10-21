@@ -59,6 +59,7 @@ mounted unified command using the same arguments. It covers:
 | `agents` | `list` | Local task catalogue; no database or provider | Newline-delimited registered task keys |
 | `ingestion` | `--list` | Local static registry; no database or provider | Sorted tool names and descriptions |
 | `ingestion` | `device_manager --list --location-id <synthetic-location-uuid>`; `device_manager --health --device-id <synthetic-device> --location-id <synthetic-location-uuid>` | PostgreSQL device reads through the mounted module; connection and cursor are synthetic | JSON location-scoped device inventory or health record |
+| `ingestion` | `device_manager --register --device-id <synthetic-device> --sensor-type <synthetic-type> --location-id <synthetic-location-uuid>` | PostgreSQL registration transaction is mocked | JSON registered-device receipt; device and initial health row commit atomically |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -109,7 +110,8 @@ PostgreSQL-backed read invocations with stubbed query functions (including
 ingestion status and location-scoped device reads), one operator inventory
 read, one tenant-preflight invocation with a synthetic aggregate service
 report, two synthetic report-generation paths (single and automatic
-batch), and three operator write invocations with fake connections match
+batch), three operator write invocations, and one device registration write
+with fake connections match
 standalone output across all 37 mounted groups (157 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree

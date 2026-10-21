@@ -20,6 +20,10 @@ def test_device_manager_register_device_unknown_type():
     with pytest.raises(ValueError, match="Unknown sensor type"):
         register_device(conn, "sensor001", "nonexistent_type", LOCATION_ID)
 
+    conn.rollback.assert_called_once()
+    conn.commit.assert_not_called()
+    cur.close.assert_called_once()
+
 
 def test_device_manager_register_device_success():
     from services.ingestion.device_manager import register_device
@@ -36,7 +40,11 @@ def test_device_manager_register_device_success():
     result = register_device(conn, "sensor001", "air_temperature", LOCATION_ID)
 
     assert result == "device-id-001"
-    assert conn.commit.called
+    conn.commit.assert_called_once()
+    conn.rollback.assert_not_called()
+    conn.cursor.assert_called_once()
+    cur.close.assert_called_once()
+    assert cur.execute.call_count == 3
 
 
 def test_device_manager_register_rejects_slug_conflict_from_another_location():
@@ -57,6 +65,27 @@ def test_device_manager_register_rejects_slug_conflict_from_another_location():
     assert "WHERE sensor_device.location_id = EXCLUDED.location_id" in conflict_sql
     conn.rollback.assert_called_once()
     conn.commit.assert_not_called()
+    cur.close.assert_called_once()
+
+
+def test_device_manager_register_rolls_back_when_health_initialization_fails():
+    from services.ingestion.device_manager import register_device
+
+    conn = MagicMock()
+    cur = MagicMock()
+    conn.cursor.return_value = cur
+    cur.fetchone.side_effect = [
+        ("type-id-001",),
+        ("device-id-001",),
+    ]
+    cur.execute.side_effect = [None, None, RuntimeError("health insert failed")]
+
+    with pytest.raises(RuntimeError, match="health insert failed"):
+        register_device(conn, "sensor001", "air_temperature", LOCATION_ID)
+
+    conn.rollback.assert_called_once()
+    conn.commit.assert_not_called()
+    cur.close.assert_called_once()
 
 
 def test_device_manager_register_rejects_invalid_location_before_cursor():

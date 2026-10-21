@@ -2365,3 +2365,17 @@ authorization remain open. Checklist: 826 complete / 25 open (851 total);
 capability classifications remain 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json`.
+
+
+### CAP-039 device registration transaction boundary — 21 October 2026
+
+`device_manager --register` now returns identical output and receives
+identical arguments through standalone and unified entrypoints. Device insert
+and initial health-row creation share one transaction; an injected health-row
+failure rolls back the insert and closes the cursor. The 29-test
+device-manager service/CLI selection, Ruff, and Python compilation pass using
+mocked database interactions. Live PostgreSQL and operator authorization are
+not verified. Checklist: 827 complete / 25 open (852 total); capability
+classifications remain 66 rows: 31 baseline-retained, 7 deployed, and 28
+prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json`.

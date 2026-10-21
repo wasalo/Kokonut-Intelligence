@@ -121,6 +121,58 @@ def test_device_read_cli_output_and_location_filter_match(
     assert unified.stderr == ""
 
 
+def test_device_register_cli_forwards_arguments_and_matches_output(monkeypatch, capsys):
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    location_id = "12345678-1234-5678-1234-567812345678"
+    connections = []
+    register_calls = []
+
+    def make_connection():
+        connection = _Connection([])
+        connections.append(connection)
+        return connection
+
+    def fake_register(conn, device_id, sensor_type, requested_location, name, protocol):
+        register_calls.append(
+            (conn, device_id, sensor_type, requested_location, name, protocol)
+        )
+        return "synthetic-device-id"
+
+    monkeypatch.setattr(device_manager, "get_db", make_connection)
+    monkeypatch.setattr(device_manager, "register_device", fake_register)
+    arguments = [
+        "--register",
+        "--device-id",
+        "soil-01",
+        "--sensor-type",
+        "soil_moisture",
+        "--location-id",
+        location_id,
+    ]
+
+    device_manager.main(arguments)
+    standalone_output = capsys.readouterr().out
+    unified = CliRunner().invoke(
+        unified_cli.app, ["ingestion", "--", "device_manager", *arguments]
+    )
+
+    assert unified.exit_code == 0, unified.output
+    expected = {"device_id": "synthetic-device-id", "status": "registered"}
+    assert json.loads(unified.output) == json.loads(standalone_output) == expected
+    assert len(register_calls) == 2
+    for connection, device_id, sensor_type, requested_location, name, protocol in register_calls:
+        assert device_id == "soil-01"
+        assert sensor_type == "soil_moisture"
+        assert requested_location == location_id
+        assert name is None
+        assert protocol == "mqtt"
+        assert connection.closed
+    assert unified.stderr == ""
+
+
 @pytest.mark.parametrize("entrypoint", ["standalone", "unified"])
 @pytest.mark.parametrize("location_id", [None, "not-a-uuid"])
 @pytest.mark.parametrize(

@@ -13229,3 +13229,18 @@ Checklist: 826 complete / 25 open (851 total); capability matrix remains 66
 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([contract](unified-cli-kernel-contract.md);
 [test](../../tests/test_device_manager_cli_contract.py);
 [evidence](builds/2026-10-21-recovery/cap-039-device-manager-read-cli.json)).
+
+
+### CAP-039 device registration transaction boundary — 21 October 2026
+
+The `device_manager --register` command now forwards identical arguments and
+returns identical output through standalone and unified CLI entrypoints. Device
+creation and its initial health row share one transaction; a health insert
+failure rolls back the device row, and the cursor closes on failure. The
+focused device-manager service/CLI selection passes 29 tests with Ruff and
+Python compilation. All database interactions were mocked. This does not
+establish live PostgreSQL behavior or operator authorization. Checklist: 827
+complete / 25 open (852 total); matrix remains 66 rows: 31 baseline-retained,
+7 deployed, and 28 prepared ([implementation](../../services/ingestion/device_manager.py);
+[tests](../../tests/test_device_manager.py);
+[evidence](builds/2026-10-21-recovery/cap-039-device-manager-registration-atomicity.json)).
