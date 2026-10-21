@@ -1,5 +1,24 @@
 # ARM64 Kernel candidate profile
 
+## Current-source checks — 20 October 2026
+
+The current source at `c6aab4ea` builds as a `linux/arm64` Kernel image. Under
+QEMU, a network-disabled and read-only container reported `aarch64`, imported
+the Gateway and Python SDK, loaded all 18 JobSpecs, imported the migration CLI,
+rendered migration CLI help without database credentials, and constructed a
+synthetic RPC snapshot. No database, provider, secret, or published port was
+used; the temporary image and container were removed. This is an application
+smoke, not a physical Raspberry Pi or performance test
+([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json)).
+
+A separate clean bootstrap replay on native `linux/amd64` PostgreSQL 16 applied
+all 515 current schema files through migration 524, with zero failures, no
+seeds, and no farm data. It fixed a fresh-install prerequisite discovered at
+migration 475 by creating a locked-down optional Directus role placeholder.
+This does not advance ARM64 database schema replay: its latest recorded
+migration remains 434. That database replay and physical-device acceptance are
+still open ([evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json)).
+
 ## Current planner status — 16 October 2026
 
 The base candidate Compose file retains its AMD64-only PostGIS digest for the

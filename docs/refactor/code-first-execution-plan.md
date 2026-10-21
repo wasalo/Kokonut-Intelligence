@@ -3,6 +3,20 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Bootstrap and ARM64 software acceptance — 20 October 2026:** A clean schema
+replay exposed migration 475's dependency on an optional Directus role in fresh
+installations. Bootstrap now provisions a restricted `NOLOGIN` placeholder
+when absent, and the migration CLI performs the same preflight before pending
+schema work without mutating dry-run/no-op plans. Focused migration, upgrade,
+and role tests pass (56); Ruff and Python compilation pass. An isolated native
+AMD64 PostgreSQL 16 clean bootstrap applied all 515 current schema files through
+migration 524. The current ARM64 Kernel image also passed a no-network,
+read-only QEMU import/help smoke. Candidate and legacy stacks were untouched;
+full schema replay was not ARM64, whose database acceptance remains through
+migration 434, and QEMU does not certify Raspberry Pi hardware. See the
+[bootstrap replay](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json)
+and [ARM64 smoke](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json).
+
 **Latest CAP-038 implementation slice — 20 October 2026:** Migrations 521–524
 provide location-scoped AI-summary review, authenticated draft creation, and
 private bounded source-record manifests. Draft requests bind to signed

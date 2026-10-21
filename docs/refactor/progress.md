@@ -1,3 +1,20 @@
+### Clean-bootstrap optional-role prerequisite and current ARM64 smoke — 20 October 2026
+
+A clean replay exposed that migration 475 revokes from
+`kokonut_directus_runtime` before that optional role exists on a fresh install.
+The bootstrap now creates a locked-down `NOLOGIN` placeholder only when absent;
+the ordered migration CLI runs this preflight before pending schema migrations,
+while dry-run and no-op plans remain non-mutating. Fresh isolated PostgreSQL 16
+replay applied all 515 current schema files through migration 524 with zero
+failures. The focused migration/upgrade/Directus-role selection passes 56 tests,
+with Ruff and Python compilation clean. The candidate and legacy stacks were
+not targeted. Current-source ARM64 QEMU smoke also passed Gateway/SDK imports,
+18 JobSpecs, migration CLI import/help, and synthetic RPC construction with no
+network, credentials, database, or writable image filesystem. Full schema replay
+was native AMD64; ARM64 database replay remains at migration 434, and this is not
+physical Raspberry Pi acceptance ([bootstrap evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json);
+[ARM64 smoke](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json)).
+
 ### CAP-039 report CLI parity and failure boundaries — 20 October 2026
 
 Automatic report generation now closes its database connection in a `finally`
