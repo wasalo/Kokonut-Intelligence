@@ -1091,9 +1091,130 @@ def _parameter_uses_scoped_row_id(node: ast.AST | None, alias: str) -> bool:
         and isinstance(item.value, ast.Name)
         and item.value.id == alias
         and isinstance(item.slice, ast.Constant)
-        and item.slice.value == "id"
+        and isinstance(item.slice.value, str)
+        and (item.slice.value == "id" or item.slice.value.endswith("_id"))
         for item in ast.walk(node)
     )
+
+
+def _fetch_result_cursor(node: ast.AST, method: str) -> str | None:
+    call: ast.Call | None = None
+    if isinstance(node, ast.Call):
+        call = node
+    elif (
+        isinstance(node, ast.ListComp)
+        and len(node.generators) == 1
+        and isinstance(node.generators[0].iter, ast.Call)
+    ):
+        call = node.generators[0].iter
+    if (
+        call is not None
+        and isinstance(call.func, ast.Attribute)
+        and call.func.attr == method
+        and isinstance(call.func.value, ast.Name)
+    ):
+        return call.func.value.id
+    return None
+
+
+def _propagate_parent_row_scope(
+    function: ast.FunctionDef | ast.AsyncFunctionDef, queries: list[dict]
+) -> None:
+    """Propagate visible scope through direct cursor results and row loops.
+
+    Supports simple ``fetchone`` aliases and ``fetchall`` list aliases iterated
+    by a direct ``for`` loop. Only a source query already marked location-bound
+    can make its fetched rows scoped. Branches and arbitrary row transformations
+    are deliberately not followed.
+    """
+    query_nodes: dict[int, list[ast.Call]] = {}
+    for node in ast.walk(function):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in _QUERY_METHODS
+            and isinstance(node.func.value, ast.Name)
+        ):
+            query_nodes.setdefault(node.lineno, []).append(node)
+    query_records = {
+        query["line"]: query for query in queries
+    }
+    cursor_scope: dict[str, tuple[bool, bool]] = {}
+    row_aliases: dict[str, tuple[bool, bool]] = {}
+    collection_aliases: dict[str, tuple[bool, bool]] = {}
+
+    def process_block(statements: list[ast.stmt], rows: dict[str, tuple[bool, bool]], collections: dict[str, tuple[bool, bool]], cursors: dict[str, tuple[bool, bool]]) -> None:
+        for statement in statements:
+            if isinstance(statement, (ast.With, ast.AsyncWith)):
+                process_block(statement.body, rows, collections, cursors)
+                continue
+            if isinstance(statement, (ast.For, ast.AsyncFor)):
+                loop_rows = dict(rows)
+                if isinstance(statement.target, ast.Name) and isinstance(statement.iter, ast.Name):
+                    inherited = collections.get(statement.iter.id)
+                    if inherited:
+                        loop_rows[statement.target.id] = inherited
+                process_block(statement.body, loop_rows, dict(collections), dict(cursors))
+                continue
+
+            query_call = (
+                statement.value
+                if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call)
+                else None
+            )
+            if (
+                query_call is not None
+                and isinstance(query_call.func, ast.Attribute)
+                and query_call.func.attr in _QUERY_METHODS
+                and isinstance(query_call.func.value, ast.Name)
+            ):
+                record = query_records.get(query_call.lineno)
+                candidates = query_nodes.get(query_call.lineno, [])
+                if record is not None and len(candidates) == 1:
+                    params = _query_parameter_argument(query_call)
+                    inherited_scope = any(
+                        scope
+                        and _parameter_uses_scoped_row_id(params, alias)
+                        for alias, (scope, _conditional) in rows.items()
+                    )
+                    inherited_conditional = any(
+                        scope
+                        and conditional
+                        and _parameter_uses_scoped_row_id(params, alias)
+                        for alias, (scope, conditional) in rows.items()
+                    )
+                    if inherited_scope:
+                        record["location_scope_via_parent_row"] = True
+                        record["bound_location_scope_signal"] = True
+                        record["location_scope_conditionally_added"] = (
+                            record["location_scope_conditionally_added"]
+                            or inherited_conditional
+                        )
+                    cursors[query_call.func.value.id] = (
+                        record["bound_location_scope_signal"],
+                        record["location_scope_conditionally_added"],
+                    )
+                continue
+
+            if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+                value = statement.value
+                targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                target_names = [target.id for target in targets if isinstance(target, ast.Name)]
+                if value is None:
+                    continue
+                fetchone_cursor = _fetch_result_cursor(value, "fetchone")
+                fetchall_cursor = _fetch_result_cursor(value, "fetchall")
+                for name in target_names:
+                    if fetchone_cursor is not None:
+                        rows[name] = cursors.get(fetchone_cursor, (False, False))
+                    else:
+                        rows.pop(name, None)
+                    if fetchall_cursor is not None:
+                        collections[name] = cursors.get(fetchall_cursor, (False, False))
+                    else:
+                        collections.pop(name, None)
+
+    process_block(function.body, row_aliases, collection_aliases, cursor_scope)
 
 
 def _local_query_callsite_variants(
@@ -2221,7 +2342,9 @@ def _query_calls(
                 "named_bind_contract": named_bind_contract,
             }
         )
-    return sorted(queries, key=lambda item: (item["line"], item["method"]))
+    queries = sorted(queries, key=lambda item: (item["line"], item["method"]))
+    _propagate_parent_row_scope(function, queries)
+    return queries
 
 
 def _helper_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:

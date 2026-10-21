@@ -679,6 +679,67 @@ def generate(conn, location_id):
     assert replaced["queries"][2]["bound_location_scope_signal"] is False
 
 
+def test_classifier_propagates_conditional_location_scope_through_fetched_parent_list():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    query = "SELECT * FROM v_engagement_plan"
+    params = []
+    if location_id:
+        query += " WHERE scope_type = 'location' AND scope_id = %s"
+        params.append(location_id)
+    with conn.cursor() as cur:
+        cur.execute(query, params)
+        plans = [dict(row) for row in cur.fetchall()]
+        for plan in plans:
+            cur.execute("SELECT * FROM v_commitment_health WHERE plan_id = %s", (plan["plan_id"],))
+''',
+        "generate",
+    )
+
+    assert analysis["direct_query_count"] == 2
+    parent, child = analysis["queries"]
+    assert parent["location_scope_conditionally_added"] is True
+    assert parent["bound_location_scope_signal"] is True
+    assert child["location_scope_via_parent_row"] is True
+    assert child["location_scope_conditionally_added"] is True
+    assert child["bound_location_scope_signal"] is True
+    assert analysis["classification"] == "conditional_direct_query_scope"
+
+
+def test_classifier_does_not_propagate_unscoped_or_replaced_fetchall_rows():
+    unscoped = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    with conn.cursor() as cur:
+        cur.execute("SELECT * FROM v_engagement_plan")
+        plans = [dict(row) for row in cur.fetchall()]
+        for plan in plans:
+            cur.execute("SELECT * FROM v_commitment_health WHERE plan_id = %s", (plan["plan_id"],))
+''',
+        "generate",
+    )
+    replaced = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    query = "SELECT * FROM v_engagement_plan WHERE scope_type = 'location' AND scope_id = %s"
+    with conn.cursor() as cur:
+        cur.execute(query, (location_id,))
+        plans = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_network_plan")
+        plans = [dict(row) for row in cur.fetchall()]
+        for plan in plans:
+            cur.execute("SELECT * FROM v_commitment_health WHERE plan_id = %s", (plan["plan_id"],))
+''',
+        "generate",
+    )
+
+    assert unscoped["queries"][1]["location_scope_via_parent_row"] is False
+    assert unscoped["queries"][1]["bound_location_scope_signal"] is False
+    assert replaced["queries"][2]["location_scope_via_parent_row"] is False
+    assert replaced["queries"][2]["bound_location_scope_signal"] is False
+
+
 def test_classifier_reports_extra_static_positional_parameters():
     analysis = analyze_function_source(
         '''
