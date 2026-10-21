@@ -265,8 +265,9 @@ inventory omits summary previews, while a location-scoped list retains its
 preview field.
 
 Focused source tests cover all current catalogue write declarations, defensive
-copy behavior, denied high-risk actions, malformed policy input, and preflight
-before database access. These checks do not establish Directus runtime-role
-parity, authenticated agent identity, database table isolation, provider/model
-behavior, populated task parity, or human approval workflow acceptance. Those
-remain open gates for MAN-CAP-038.
+copy behavior, denied high-risk actions, malformed policy input, preflight
+before database access, and location-view collector/adapter contracts for all
+ten shared synthesis agents. These checks do not establish Directus runtime-role
+parity, authenticated operator identity, database table isolation,
+provider/model behavior, populated task parity, or human approval workflow
+acceptance. Those remain open gates for MAN-CAP-038.

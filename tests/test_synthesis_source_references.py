@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pytest
 
+from services.agents.bio_factory_agent import BioFactorySynthesisAgent
+from services.agents.capital_efficiency_agent import CapitalEfficiencySynthesisAgent
 from services.agents.commons_agent import CommonsSynthesisAgent
 from services.agents.feedback_agent import FeedbackSynthesisAgent
 from services.agents.gnh_agent import GnhSynthesisAgent
 from services.agents.kokonut_commons_agent import KokonutCommonsSynthesisAgent
 from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSynthesisAgent
+from services.agents.regenerator_agent import RegeneratorSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
 from services.agents.wellbeing_agent import WellbeingSynthesisAgent
 from services.agents.worker_draft import _validate_source_references
 
 AGENTS = [
+    CapitalEfficiencySynthesisAgent,
+    BioFactorySynthesisAgent,
+    RegeneratorSynthesisAgent,
     CommonsSynthesisAgent,
     GnhSynthesisAgent,
     ResilienceSynthesisAgent,
@@ -70,7 +77,14 @@ def test_location_source_reference_collector_uses_bounded_public_views(agent_cla
     references = agent.collect_source_references(connection, LOCATION_ID)
 
     assert set(references) == set(agent.source_reference_views)
-    assert all(f"public.{view}" in connection.cursor_value.query for view in agent.source_reference_views.values())
+    assert all(
+        re.search(
+            rf"\bFROM\s+(?:public\.)?{re.escape(view)}\b",
+            connection.cursor_value.query,
+            re.IGNORECASE,
+        )
+        for view in agent.source_reference_views.values()
+    )
     assert connection.cursor_value.query.count("WHERE location_id = %s") == len(agent.source_reference_views)
     assert connection.cursor_value.params == (LOCATION_ID,) * len(agent.source_reference_views)
     assert all(reference["row_count"] == 51 for reference in references.values())
@@ -97,6 +111,7 @@ def test_worker_adapter_accepts_each_agent_manifest_source(agent_class: Any) -> 
 
 
 def test_global_catalogue_sources_are_not_registered_as_location_manifests() -> None:
+    assert "bio_regional_input_availability" not in BioFactorySynthesisAgent.source_reference_views
     assert "network_scaling_target" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "open_source_impact_artifact" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "green_paper_publication_review" not in ResilienceSynthesisAgent.source_reference_views
