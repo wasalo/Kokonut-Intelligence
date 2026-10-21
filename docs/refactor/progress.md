@@ -1,3 +1,20 @@
+### CAP-066 local helper-return filter and bind variants — 21 October 2026
+
+The helper analyzer now follows a same-module function when every normal
+control-flow exit explicitly returns a literal SQL fragment paired with a
+literal positional list/tuple, and all other paths raise. The `swot.py`
+`_location_filter` helper has three outputs: a one-bind location predicate, a
+zero-bind empty-organization result, and a one-bind organization predicate.
+All three `suggest` report queries resolve those variants with matching arity.
+Across 175 helper memberships, 147 SQL sites are static and 28 unresolved; 133
+positional and two named contracts have zero mismatches. These counts do not
+certify tenant authorization or query-scope correlation. The focused
+query/helper/source suite passes 48 tests; Ruff, compilation, all three
+inventory checks, matrix validation, and diff checks pass. No database,
+provider, migration, candidate, or legacy stack was used. Checklist: 888
+complete / 24 open (912 total); matrix remains 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-helper-return-filter-bind-contracts.json)).
+
 ### CAP-066 helper branch-paired SQL and bind variants — 21 October 2026
 
 The helper analyzer now resolves a narrow fail-closed `if/elif` pattern where

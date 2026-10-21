@@ -3,6 +3,17 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 local helper-return filter and bind variants — 21 October 2026:**
+the analyzer follows only same-module helpers whose normal paths explicitly
+return literal filter/positional-container pairs or raise. It resolves three
+SWOT suggestion reads across location, empty-organization, and organization
+results, with matching arity and no tenant-scope signal. Helper coverage is
+147/175 static SQL sites, 28 unresolved, and 133 positional plus two named
+contracts with zero mismatches. The focused query/helper/source selection
+passes 48 tests with Ruff, compilation, all three inventory checks, matrix
+validation, and diff checks. Dynamic returns, unsupported flow, authorization,
+and populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-helper-return-filter-bind-contracts.json)).
+
 **CAP-066 helper branch-paired SQL and bind variants — 21 October 2026:** the
 helper analyzer resolves literal SQL and positional parameter containers
 assigned together on successful branches of a fail-closed `if/elif` chain. It

@@ -7,9 +7,9 @@
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
     "helper_query_sites_with_location_scope_signal": 67,
-    "helper_query_sites_with_static_sql_source": 144,
-    "helper_query_sites_with_unresolved_sql_source": 31,
-    "helper_query_sites_with_static_positional_arity": 130,
+    "helper_query_sites_with_static_sql_source": 147,
+    "helper_query_sites_with_unresolved_sql_source": 28,
+    "helper_query_sites_with_static_positional_arity": 133,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 2,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -1675,9 +1675,34 @@
           "source_file": "services/analytics/swot.py",
           "callable": "suggest",
           "line": 107,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "location",
+            "threat"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "helper_return_line": 82,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 88,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 89,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -1694,9 +1719,34 @@
           "source_file": "services/analytics/swot.py",
           "callable": "suggest",
           "line": 126,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "location",
+            "threat_narrative"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "helper_return_line": 82,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 88,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 89,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -1713,9 +1763,34 @@
           "source_file": "services/analytics/swot.py",
           "callable": "suggest",
           "line": 144,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "crisp_risk_assessment",
+            "location"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "helper_return_line": 82,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 88,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "helper_return_line": 89,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -2035,9 +2110,9 @@
       ],
       "helper_query_site_count": 27,
       "helper_query_sites_with_location_scope_signal": 7,
-      "helper_query_sites_with_static_sql_source": 20,
-      "helper_query_sites_with_unresolved_sql_source": 7,
-      "helper_query_sites_with_static_positional_arity": 17,
+      "helper_query_sites_with_static_sql_source": 23,
+      "helper_query_sites_with_unresolved_sql_source": 4,
+      "helper_query_sites_with_static_positional_arity": 20,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 2,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,

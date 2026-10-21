@@ -301,6 +301,86 @@ def list_rows(conn, location_id):
     assert analysis["queries"][0]["positional_bind_arity"] is None
 
 
+def test_classifier_resolves_literal_filter_pairs_returned_by_local_helper():
+    analysis = analyze_function_source(
+        '''
+def build_filter(location_id=None, org_id=None):
+    if location_id and not org_id:
+        return "farm.location_id = %s", [location_id]
+    if org_id and not location_id:
+        return "farm.organization_id = %s", [org_id]
+    raise ValueError("provide one scope")
+
+def report(conn, location_id=None, org_id=None):
+    where, params = build_filter(location_id, org_id)
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "report",
+    )
+
+    query = analysis["queries"][0]
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["relations"] == ["farm"]
+    assert query["bound_location_scope_signal"] is False
+    assert query["positional_bind_arity"] == {
+        "mismatch": False,
+        "variants": [
+            {
+                "helper_return_line": 4,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": False,
+            },
+            {
+                "helper_return_line": 6,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": False,
+            },
+        ],
+    }
+
+
+def test_classifier_leaves_local_helper_filter_unresolved_when_return_is_dynamic():
+    analysis = analyze_function_source(
+        '''
+def build_filter(location_id):
+    if location_id:
+        return make_filter(location_id), [location_id]
+    raise ValueError("location required")
+
+def report(conn, location_id):
+    where, params = build_filter(location_id)
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "report",
+    )
+
+    assert analysis["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
+def test_classifier_leaves_local_helper_filter_unresolved_when_a_path_falls_through():
+    analysis = analyze_function_source(
+        '''
+def build_filter(location_id):
+    if location_id:
+        return "location_id = %s", [location_id]
+
+def report(conn, location_id):
+    where, params = build_filter(location_id)
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "report",
+    )
+
+    assert analysis["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
 def test_classifier_does_not_pair_location_filter_and_bind_from_different_branches():
     analysis = analyze_function_source(
         '''

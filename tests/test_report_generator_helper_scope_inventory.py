@@ -198,3 +198,42 @@ def test_reachable_helper_inventory_resolves_fail_closed_org_location_filter_pai
             assert site["bound_location_scope_signal"] is False
     assert found == targets
 
+
+def test_reachable_helper_inventory_resolves_literal_filter_return_variants():
+    inventory = build_inventory()
+    report = next(item for item in inventory["reports"] if item["report_type"] == "business_plan")
+    queries = [
+        site
+        for site in report["reachable_helper_query_sites"]
+        if site["source_file"] == "services/analytics/swot.py"
+        and site["callable"] == "suggest"
+    ]
+
+    assert [site["line"] for site in queries] == [107, 126, 144]
+    for site in queries:
+        assert site["sql_source"] == "static_or_resolved"
+        assert site["bound_location_scope_signal"] is False
+        assert site["positional_bind_arity"] == {
+            "mismatch": False,
+            "variants": [
+                {
+                    "helper_return_line": 82,
+                    "placeholder_count": 1,
+                    "supplied_count": 1,
+                    "mismatch": False,
+                },
+                {
+                    "helper_return_line": 88,
+                    "placeholder_count": 0,
+                    "supplied_count": 0,
+                    "mismatch": False,
+                },
+                {
+                    "helper_return_line": 89,
+                    "placeholder_count": 1,
+                    "supplied_count": 1,
+                    "mismatch": False,
+                },
+            ],
+        }
+

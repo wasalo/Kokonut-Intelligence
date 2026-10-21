@@ -1,0 +1,113 @@
+{
+  "task": "CAP-066 local helper returned filter and bind variants",
+  "date": "2026-10-21",
+  "source_pattern": "A same-module helper is summarized only when every normal control-flow exit explicitly returns a literal SQL fragment paired with a literal positional list/tuple and all remaining paths raise. The caller must assign that call directly to the SQL-fragment and parameter names used by a single-formatted-name SQL f-string.",
+  "helper": {
+    "source_file": "services/analytics/swot.py",
+    "callable": "_location_filter",
+    "return_lines": [
+      82,
+      88,
+      89
+    ]
+  },
+  "resolved_memberships": [
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/swot.py",
+      "callable": "suggest",
+      "query_line": 107,
+      "variants": [
+        {
+          "helper_return_line": 82,
+          "placeholders": 1,
+          "bind_values": 1
+        },
+        {
+          "helper_return_line": 88,
+          "placeholders": 0,
+          "bind_values": 0
+        },
+        {
+          "helper_return_line": 89,
+          "placeholders": 1,
+          "bind_values": 1
+        }
+      ],
+      "bound_location_scope_signal": false
+    },
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/swot.py",
+      "callable": "suggest",
+      "query_line": 126,
+      "variants": [
+        {
+          "helper_return_line": 82,
+          "placeholders": 1,
+          "bind_values": 1
+        },
+        {
+          "helper_return_line": 88,
+          "placeholders": 0,
+          "bind_values": 0
+        },
+        {
+          "helper_return_line": 89,
+          "placeholders": 1,
+          "bind_values": 1
+        }
+      ],
+      "bound_location_scope_signal": false
+    },
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/swot.py",
+      "callable": "suggest",
+      "query_line": 144,
+      "variants": [
+        {
+          "helper_return_line": 82,
+          "placeholders": 1,
+          "bind_values": 1
+        },
+        {
+          "helper_return_line": 88,
+          "placeholders": 0,
+          "bind_values": 0
+        },
+        {
+          "helper_return_line": 89,
+          "placeholders": 1,
+          "bind_values": 1
+        }
+      ],
+      "bound_location_scope_signal": false
+    }
+  ],
+  "helper_inventory": {
+    "memberships": 175,
+    "static_sql": 147,
+    "unresolved_sql": 28,
+    "positional_bind_contracts": 133,
+    "named_bind_contracts": 2,
+    "bind_mismatches": 0
+  },
+  "limitations": [
+    "Dynamic return values remain unresolved.",
+    "Any implicit fall-through, unsupported control-flow statement, reassignment of the caller filter/parameter names, or shadowed helper remains unresolved.",
+    "The analysis checks SQL text and bind counts only; it does not certify tenant authorization or scope correlation.",
+    "The three report queries still perform no database/provider acceptance in this source-inventory check."
+  ],
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "focused_tests_passed": 48,
+    "ruff": "passed: Ruff checked the analyzer and focused tests",
+    "python_compile": "passed: py_compile on analyzer and focused tests",
+    "generated_inventory_checks": "passed: source, query-scope, and helper-scope --check commands",
+    "capability_matrix_validation": "passed: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed: git diff --check"
+  },
+  "database_or_provider_used": false,
+  "rollback": "Revert the analyzer, tests, helper inventory, docs, and evidence. No persistent application data changed."
+}
