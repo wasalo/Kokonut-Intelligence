@@ -13525,3 +13525,27 @@ was stubbed; no chain or database was contacted. Checklist: 849 complete / 25
 open (874 total); the matrix remains 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared ([test](../../tests/test_eas_indexer_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 Gnosis indexer CLI entrypoint — 21 October 2026
+
+`gnosis_indexer` now exposes a callable parser and `main()` for unified
+dispatch. Standalone/unified block interval and help output match; non-integer,
+negative, and reversed intervals fail before provider or database access. Nine
+CLI cases pass in the 53-test Gnosis recovery/redaction/outbox selection with
+Ruff and compilation. Indexer/provider/database effects were stubbed or
+rejected before access. Checklist: 850 complete / 25 open (875 total); matrix
+remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_gnosis_indexer_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-gnosis-indexer-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 mock-sensor CLI entrypoint — 21 October 2026
+
+`mock_sensors` now exposes a callable parser and `main()`. Standalone/unified
+setup, generation, cleanup, and help dispatch match. Invoking without an action
+prints help without running a demo operation. Nine CLI cases pass within the
+81-test mock-sensor/IoT/outbox selection. Ruff and compilation also pass after
+removing unused imports and assignments. All demo actions were stubbed; no
+sensor records or alerts were created or deleted. Checklist: 851 complete / 25
+open (876 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed, and
+28 prepared ([test](../../tests/test_mock_sensors_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-mock-sensors-cli-entrypoint.json)).

@@ -2625,3 +2625,20 @@ chain arguments and help match; unsupported chain choices fail before indexer
 execution. Five CLI cases pass in the 41-test EAS recovery/redaction/outbox
 selection with Ruff and compilation. The indexer was stubbed; no chain or
 database was contacted ([evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 Gnosis indexer CLI entrypoint — 21 October 2026
+
+The Gnosis indexer now exposes a callable parser and `main()`. Standalone/unified
+block interval and help output match; malformed, negative, and reversed ranges
+fail before provider/DB access. Nine CLI cases pass in the 53-test Gnosis
+recovery/redaction/outbox selection with Ruff and compilation. No provider or
+database was contacted ([evidence](builds/2026-10-21-recovery/cap-039-gnosis-indexer-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 mock-sensor CLI entrypoint — 21 October 2026
+
+The mock-sensor module now exposes a callable parser and `main()`. Setup,
+generation, cleanup, and help dispatch match between standalone/unified entry
+points; no-action invocation only displays help. Nine CLI cases pass within the
+81-test mock-sensor/IoT/outbox selection. Ruff and compilation pass after
+removing dead imports/assignments. All demo operations were stubbed; no data was
+created or deleted ([evidence](builds/2026-10-21-recovery/cap-039-mock-sensors-cli-entrypoint.json)).

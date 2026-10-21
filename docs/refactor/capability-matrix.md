@@ -4247,3 +4247,24 @@ Checklist: 849 complete / 25 open (874 total); classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared
 ([tests](../tests/test_eas_indexer_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-eas-indexer-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 Gnosis indexer CLI entrypoint — 21 October 2026:** the
+Gnosis indexer now has a callable parser/main. Standalone/unified block interval
+and help match; invalid values and ranges fail before provider/database setup.
+Nine CLI cases pass in the 53-test recovery/redaction/outbox selection with
+Ruff and compilation. Provider and database effects were stubbed or rejected.
+This does not establish live chain reorg/recovery behavior. Checklist: 850
+complete / 25 open (875 total); classifications remain 31 baseline-retained,
+7 deployed, and 28 prepared ([tests](../tests/test_gnosis_indexer_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-gnosis-indexer-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 mock-sensor CLI entrypoint — 21 October 2026:** the demo
+sensor generator now has a callable parser/main. Setup/generate/cleanup actions
+and help dispatch match; no-action invocation displays help without calling a
+demo operation. Nine CLI cases pass in the 81-test mock-sensor/IoT/outbox
+selection. Ruff and compilation pass after removing unused imports/assignments.
+All demo actions were stubbed; no records or alerts were created/deleted.
+Checklist: 851 complete / 25 open (876 total); classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_mock_sensors_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-mock-sensors-cli-entrypoint.json)).

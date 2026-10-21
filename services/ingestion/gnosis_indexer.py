@@ -807,9 +807,22 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Gnosis Chain Moloch DAO event ingestion")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="gnosis_indexer.py",
+        description="Gnosis Chain Moloch DAO event ingestion",
+    )
     parser.add_argument("--from-block", type=int, help="Start block number")
     parser.add_argument("--to-block", type=int, help="End block number")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run Gnosis indexing for the selected block interval."""
+    args = build_parser().parse_args(argv)
     run(from_block=args.from_block, to_block=args.to_block)
+
+
+if __name__ == "__main__":
+    main()

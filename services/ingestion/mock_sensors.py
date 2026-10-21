@@ -28,14 +28,11 @@ import json
 import math
 import random
 import re
-import sys
-import time
 from datetime import datetime, timedelta, timezone
 
 from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
-from .base import get_db, hash_payload, log_ingestion
-from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER
+from .base import get_db
 
 logger = get_logger("ingestion.mock_sensors")
 
@@ -249,9 +246,6 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
             sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol, metadata = sensor
             sensor_meta = metadata if isinstance(metadata, dict) else json.loads(metadata or "{}")
 
-            # Build sensor_info tuple for insert_reading
-            sensor_info = (sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol)
-
             for i in range(count):
                 ts = now - timedelta(hours=24) + (interval * i)
                 reading_date = ts.strftime("%Y-%m-%d")
@@ -291,7 +285,6 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                                 json.dumps({"mock": True, "anomaly": is_anomaly}),
                             ),
                         )
-                        pg_id = cur.fetchone()[0]
 
                     if DEMO_DIRECT_CLICKHOUSE:
                         # Demo-only path: no canonical PostgreSQL event is produced here.
@@ -335,14 +328,24 @@ def cleanup():
     logger.info("Cleanup done")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Mock sensor data generator")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="mock_sensors.py",
+        description="Mock sensor data generator",
+    )
     parser.add_argument("--setup", action="store_true", help="Register sample sensors")
     parser.add_argument("--generate", action="store_true", help="Generate sensor readings")
     parser.add_argument("--count", type=int, default=96, help="Number of readings per sensor (default: 96 = 15min intervals over 24h)")
     parser.add_argument("--anomalies", action="store_true", help="Inject anomalies for testing")
     parser.add_argument("--cleanup", action="store_true", help="Remove mock data")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run the selected mock sensor setup, generation, or cleanup action."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
 
     if args.setup:
         setup_sensors()
@@ -352,3 +355,7 @@ if __name__ == "__main__":
         cleanup()
     else:
         parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

@@ -81,6 +81,8 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `http_sensor_receiver --host 127.0.0.1 --port 18056` | Server `run()` is stubbed; no listener or database is started | Matching host/port forwarding and help; non-integer port rejects before startup |
 | `ingestion` | `mqtt_subscriber --broker mqtt.synthetic --port 18883` | Subscriber `run()` is stubbed; no broker or database is contacted | Matching broker/port forwarding and help; non-integer port rejects before startup |
 | `ingestion` | `eas_indexer --chain celo` | Indexer `run()` is stubbed; no chain or database is contacted | Matching chain argument and help; unsupported chain rejects before indexer dispatch |
+| `ingestion` | `gnosis_indexer --from-block 350 --to-block 375` | Indexer `run()` is stubbed; no provider or database is contacted | Matching standalone/unified block interval; invalid numbers/ranges fail before provider/DB setup |
+| `ingestion` | `mock_sensors --setup`; `--generate --count 7 --anomalies`; `--cleanup` | Demo actions are stubbed; no mock data or alert is written/deleted | Matching action and argument dispatch; no-action invocation only displays help |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -191,8 +193,8 @@ selection covers nine offline invocations across eight groups, forty-five
 stubbed database-query paths (including the operator inventory), one
 aggregate-service path, two synthetic report-generation paths, three
 fake-connection operator writes, and the market-data, price-attestation,
-GIS-import, HTTP sensor-receiver, MQTT subscriber, and EAS indexer parser/
-dispatch paths. Identity
+GIS-import, HTTP sensor-receiver, MQTT subscriber, EAS/Gnosis indexer, and
+mock-sensor parser/dispatch paths. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,
