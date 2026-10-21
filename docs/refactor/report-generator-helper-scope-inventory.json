@@ -1719,7 +1719,7 @@
         {
           "caller": "generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 847,
+          "line": 856,
           "depth": 1
         },
         {
@@ -2365,7 +2365,7 @@
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 847,
+          "line": 856,
           "depth": 2
         },
         {
@@ -2693,7 +2693,7 @@
         {
           "caller": "generate_coordination_cockpit",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 527,
+          "line": 536,
           "depth": 1
         }
       ],
@@ -2874,13 +2874,13 @@
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:list_scans",
-          "line": 667,
+          "line": 676,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:render_markdown",
-          "line": 676,
+          "line": 685,
           "depth": 1
         }
       ],
@@ -3109,7 +3109,7 @@
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 700,
+          "line": 709,
           "depth": 1
         }
       ],
@@ -3221,7 +3221,7 @@
         {
           "caller": "generate_governance_coordination_health",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 549,
+          "line": 558,
           "depth": 1
         }
       ],
@@ -3826,13 +3826,13 @@
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:list_analyses",
-          "line": 586,
+          "line": 595,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:render_markdown",
-          "line": 595,
+          "line": 604,
           "depth": 1
         }
       ],
@@ -3891,7 +3891,7 @@
         {
           "caller": "generate_pin_dependency",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 717,
+          "line": 726,
           "depth": 1
         },
         {
@@ -4851,7 +4851,7 @@
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 735,
+          "line": 744,
           "depth": 1
         }
       ],
@@ -4896,19 +4896,19 @@
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_publics",
-          "line": 638,
+          "line": 647,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_segments",
-          "line": 639,
+          "line": 648,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:influence_interest_matrix",
-          "line": 640,
+          "line": 649,
           "depth": 1
         },
         {
@@ -5103,13 +5103,13 @@
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:list_assessments",
-          "line": 612,
+          "line": 621,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:render_markdown",
-          "line": 621,
+          "line": 630,
           "depth": 1
         }
       ],
@@ -5581,25 +5581,25 @@
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:list_twins",
-          "line": 816,
+          "line": 825,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
-          "line": 818,
+          "line": 827,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/simulation/clash_examples.py:stress_reserve",
-          "line": 820,
+          "line": 829,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 823,
+          "line": 832,
           "depth": 1
         },
         {
@@ -5801,7 +5801,7 @@
         {
           "caller": "generate_stakeholder_cockpit",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 506,
+          "line": 515,
           "depth": 1
         }
       ],
@@ -5834,7 +5834,7 @@
         {
           "caller": "generate_stakeholder_ecosystem",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 375,
+          "line": 384,
           "depth": 1
         }
       ],
@@ -5903,7 +5903,7 @@
         {
           "caller": "generate_stakeholder_representation",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 327,
+          "line": 336,
           "depth": 1
         }
       ],
@@ -5924,7 +5924,7 @@
         {
           "caller": "generate_stakeholder_trust",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 445,
+          "line": 454,
           "depth": 1
         }
       ],
@@ -5945,7 +5945,7 @@
         {
           "caller": "generate_stakeholder_value_streams",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 475,
+          "line": 484,
           "depth": 1
         }
       ],
@@ -6785,31 +6785,31 @@
         {
           "caller": "generate_tactical_layer",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 756,
+          "line": 765,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
-          "line": 757,
+          "line": 766,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 758,
+          "line": 767,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/feedback/automation.py:detect_zwischenzug",
-          "line": 759,
+          "line": 768,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 760,
+          "line": 769,
           "depth": 1
         },
         {
@@ -7049,7 +7049,7 @@
           ],
           "sql_source": "static_or_resolved",
           "bound_location_scope_signal": true,
-          "location_scope_conditionally_added": true,
+          "location_scope_conditionally_added": false,
           "reachable_via": [
             [
               "generate_tactical_layer",

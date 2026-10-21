@@ -1,3 +1,19 @@
+### CAP-066 location-scoped stakeholder landscape — 21 October 2026
+
+Farm-scoped stakeholder landscape reports now use migration 528's dedicated
+view, which derives local aggregates only from location/farm relationships and
+interests, verified location identifiers, and salience linked to those scoped
+interests. The view uses invoker privileges so caller row policies apply. Unassigned
+reports retain the canonical network view. The report
+source inventory now records both SQL branches. Nine query-scope inventory tests, two mocked report-branch tests, and one
+location-lineage integration test pass. Disposable PostgreSQL 16 applied and
+replayed migration 528, then verified cross-location isolation and suppression
+of unreviewed identifiers. Ruff and Python compilation pass. The candidate and
+legacy databases were not touched. The disposable integration target used the
+required synthetic schema rather than a full migration-history replay. Populated farm
+output parity and accountable-owner review remain open. Checklist: 873 complete
+/ 24 open (897 total) ([evidence](builds/2026-10-21-recovery/cap-066-stakeholder-landscape-location-scope.json)).
+
 ### CAP-038 Wellbeing synthesis source alignment — 20 October 2026
 
 The Wellbeing Synthesis Agent now declares `stakeholder_feedback`, which its

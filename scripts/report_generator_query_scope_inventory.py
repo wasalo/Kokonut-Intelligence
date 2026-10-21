@@ -143,6 +143,55 @@ def _assigned_values(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[s
     return assignments
 
 
+def _conditional_assignment_variants(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    name: str,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+) -> list[tuple[int, ast.AST]]:
+    """Resolve the last value assigned to a name in location-conditional branches."""
+    variants: list[tuple[int, ast.AST]] = []
+    for node in ast.walk(function):
+        if (
+            not isinstance(node, ast.If)
+            or node.lineno >= before
+            or not _expression_mentions_location_id(node.test, assignments, node.lineno)
+        ):
+            continue
+        branch_values: list[list[tuple[int, ast.AST]]] = []
+        branch_lines: set[int] = set()
+        for branch in (node.body, node.orelse):
+            lines = set()
+            for child in ast.walk(ast.Module(body=branch, type_ignores=[])):
+                if isinstance(child, ast.Assign) and any(
+                    isinstance(target, ast.Name) and target.id == name for target in child.targets
+                ):
+                    lines.add(child.lineno)
+                elif isinstance(child, (ast.AnnAssign, ast.AugAssign)) and isinstance(
+                    child.target, ast.Name
+                ) and child.target.id == name:
+                    lines.add(child.lineno)
+            branch_lines.update(lines)
+            branch_values.append(
+                [(line, value) for line, value in assignments.get(name, []) if line in lines]
+            )
+        if not any(branch_values):
+            continue
+        latest_assignment = max(
+            (line for line, _value in assignments.get(name, []) if line < before),
+            default=-1,
+        )
+        if latest_assignment not in branch_lines:
+            continue
+        prior = [(line, value) for line, value in assignments.get(name, []) if line < node.lineno]
+        for values in branch_values:
+            if values:
+                variants.append(values[-1])
+            elif prior:
+                variants.append(prior[-1])
+    return variants
+
+
 def _query_argument(call: ast.Call) -> ast.AST | None:
     if isinstance(call.func, ast.Name) and call.func.id == "query":
         return call.args[1] if len(call.args) > 1 else None
@@ -156,19 +205,6 @@ def _query_argument(call: ast.Call) -> ast.AST | None:
 
 def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
     assignments = _assigned_values(function)
-    conditional_sql_variables: set[str] = set()
-    for node in ast.walk(function):
-        if not isinstance(node, ast.If) or not _expression_mentions_location_id(
-            node.test, assignments, node.lineno
-        ):
-            continue
-        for child in ast.walk(ast.Module(body=node.body, type_ignores=[])):
-            if isinstance(child, ast.AugAssign) and isinstance(child.target, ast.Name):
-                conditional_sql_variables.add(child.target.id)
-            elif isinstance(child, ast.Assign):
-                conditional_sql_variables.update(
-                    target.id for target in child.targets if isinstance(target, ast.Name)
-                )
     queries = []
     for node in ast.walk(function):
         if not isinstance(node, ast.Call):
@@ -183,6 +219,19 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
             continue
         sql_node = _query_argument(node)
         sql = _string_value(sql_node, assignments, node.lineno) if sql_node else None
+        sql_variants = [sql]
+        conditional_sql_variants = []
+        if isinstance(sql_node, ast.Name):
+            conditional_sql_variants = _conditional_assignment_variants(
+                function, sql_node.id, assignments, node.lineno
+            )
+            if conditional_sql_variants:
+                sql_variants = [
+                    _string_value(value, assignments, node.lineno)
+                    for _line, value in conditional_sql_variants
+                ]
+                sql = next((value for value in reversed(sql_variants) if value is not None), sql)
+        resolved_sql_variants = [value for value in sql_variants if value is not None]
         params_include_location = any(
             _expression_mentions_location_id(param, assignments, node.lineno)
             for param in parameter_nodes
@@ -190,6 +239,14 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
         parameter_variable_names = {
             name.id for param in parameter_nodes for name in ast.walk(param) if isinstance(name, ast.Name)
         }
+        if not params_include_location:
+            params_include_location = any(
+                _expression_mentions_location_id(value, assignments, line)
+                for name in parameter_variable_names
+                for line, value in _conditional_assignment_variants(
+                    function, name, assignments, node.lineno
+                )
+            )
         if not params_include_location:
             for mutation in ast.walk(function):
                 if (
@@ -206,27 +263,46 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                 ):
                     params_include_location = True
                     break
-        relations = sorted({match.lower() for match in _RELATION.findall(sql or "")})
-        location_id_reference = bool(re.search(r"\blocation_id\b", sql or "", re.IGNORECASE))
-        location_predicate = bool(_LOCATION_PREDICATE.search(sql or ""))
-        location_row_lookup = bool(_LOCATION_ROW_LOOKUP.search(sql or ""))
-        indirect_location_scope = any(pattern.search(sql or "") for pattern in _INDIRECT_LOCATION_SCOPE)
+        relations = sorted({
+            match.lower()
+            for query_sql in resolved_sql_variants
+            for match in _RELATION.findall(query_sql)
+        })
+        location_id_reference = any(
+            re.search(r"\blocation_id\b", query_sql, re.IGNORECASE)
+            for query_sql in resolved_sql_variants
+        )
+        location_predicate = any(
+            _LOCATION_PREDICATE.search(query_sql) for query_sql in resolved_sql_variants
+        )
+        location_row_lookup = any(
+            _LOCATION_ROW_LOOKUP.search(query_sql) for query_sql in resolved_sql_variants
+        )
+        indirect_location_scope = any(
+            pattern.search(query_sql)
+            for pattern in _INDIRECT_LOCATION_SCOPE
+            for query_sql in resolved_sql_variants
+        )
         location_bound = params_include_location
         queries.append(
             {
                 "line": node.lineno,
                 "method": method,
-                "sql_source": "static_or_resolved" if sql is not None else "dynamic_or_unresolved",
+                "sql_source": (
+                    "static_or_resolved"
+                    if resolved_sql_variants and len(resolved_sql_variants) == len(sql_variants)
+                    else "dynamic_or_unresolved"
+                ),
                 "relations": relations,
                 "location_id_reference": location_id_reference,
                 "location_predicate_visible": location_predicate,
-                "global_null_rows_allowed": bool(_NULL_LOCATION.search(sql or "")),
+                "global_null_rows_allowed": any(
+                    _NULL_LOCATION.search(query_sql) for query_sql in resolved_sql_variants
+                ),
                 "location_id_in_bound_expression": params_include_location,
                 "location_row_lookup_by_id": location_row_lookup,
                 "indirect_location_scope_visible": indirect_location_scope,
-                "location_scope_conditionally_added": bool(
-                    isinstance(sql_node, ast.Name) and sql_node.id in conditional_sql_variables
-                ),
+                "location_scope_conditionally_added": bool(conditional_sql_variants),
                 "bound_location_scope_signal": location_bound
                 and (location_predicate or location_row_lookup or indirect_location_scope),
             }
@@ -341,6 +417,7 @@ def build_inventory() -> dict:
         "generated_by": "scripts/report_generator_query_scope_inventory.py",
         "scope": (
             "Conservative AST inventory of direct execute/query calls in registered report functions. "
+        "Location-dependent SQL assignment branches retain all statically resolved variants. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "

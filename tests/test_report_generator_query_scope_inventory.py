@@ -90,6 +90,56 @@ def generate(conn, location_id):
     assert analysis["queries"][0]["bound_location_scope_signal"] is True
 
 
+def test_classifier_tracks_distinct_sql_branches_for_location_and_network_scope():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    if location_id:
+        query = "SELECT * FROM v_location_report WHERE location_id = %s::uuid"
+        params = [location_id]
+    else:
+        query = "SELECT * FROM v_network_report"
+        params = []
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    query = analysis["queries"][0]
+    assert analysis["classification"] == "conditional_direct_query_scope"
+    assert query["relations"] == ["v_location_report", "v_network_report"]
+    assert query["location_predicate_visible"] is True
+    assert query["location_id_in_bound_expression"] is True
+    assert query["location_scope_conditionally_added"] is True
+    assert query["bound_location_scope_signal"] is True
+
+
+def test_classifier_does_not_keep_stale_scope_after_unconditional_sql_reassignment():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    if location_id:
+        query = "SELECT * FROM v_location_report WHERE location_id = %s::uuid"
+        params = [location_id]
+    else:
+        query = "SELECT * FROM v_network_report"
+        params = []
+    query = "SELECT * FROM v_unscoped_report"
+    params = []
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    query = analysis["queries"][0]
+    assert analysis["classification"] == "no_bound_location_scope_visible"
+    assert query["relations"] == ["v_unscoped_report"]
+    assert query["location_scope_conditionally_added"] is False
+    assert query["bound_location_scope_signal"] is False
+
+
 def test_classifier_recognizes_location_scopes_expressed_through_indirect_keys():
     analysis = analyze_function_source(
         '''
@@ -142,7 +192,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     inventory = build_inventory()
 
     assert inventory["summary"]["registered_report_types"] == 94
-    assert inventory["summary"]["direct_query_sites"] == 177
+    assert inventory["summary"]["direct_query_sites"] == 176
     assert inventory["summary"]["query_sites_with_bound_location_scope_signal"] > 0
     assert inventory["summary"]["unresolved_query_sites"] == 0
     reports = {report["report_type"]: report for report in inventory["reports"]}

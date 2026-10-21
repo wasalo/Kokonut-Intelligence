@@ -242,25 +242,34 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
 
 
 def generate_stakeholder_landscape(conn, location_id=None, period_start=None, period_end=None):
-    """Generate an internal stakeholder landscape report."""
-    query = "SELECT * FROM v_stakeholder_landscape"
-    params = []
+    """Generate a network- or location-scoped stakeholder landscape report."""
     if location_id:
-        query += " WHERE EXISTS (SELECT 1 FROM party_identifier pi WHERE pi.party_id = party_id AND pi.identifier_type = 'location_id' AND pi.identifier_value = %s)"
-        params.append(location_id)
-    query += " ORDER BY advisory_score DESC NULLS LAST, display_name"
+        query = (
+            "SELECT * FROM v_stakeholder_landscape_by_location "
+            "WHERE location_id = %s::uuid "
+            "ORDER BY advisory_score DESC NULLS LAST, display_name"
+        )
+        params = [location_id]
+    else:
+        query = "SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name"
+        params = []
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(query, params)
         parties = [dict(row) for row in cur.fetchall()]
+    limitations = [
+        "Salience is advisory and depends on evidence quality and representation coverage.",
+        "Proxy parties represent interests through governed evidence; they do not provide human consent or votes.",
+    ]
+    if location_id:
+        limitations.append(
+            "Location counts include only identifiers, relationships, interests, and salience assessments with explicit location lineage; canonical party identity fields are network-wide."
+        )
     return {
         "report_type": "stakeholder_landscape",
         "location_id": location_id,
         "party_count": len(parties),
         "parties": parties,
-        "limitations": [
-            "Salience is advisory and depends on evidence quality and representation coverage.",
-            "Proxy parties represent interests through governed evidence; they do not provide human consent or votes.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 

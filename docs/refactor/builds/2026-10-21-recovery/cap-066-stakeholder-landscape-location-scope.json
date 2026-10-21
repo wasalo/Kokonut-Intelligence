@@ -1,0 +1,51 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "report_type": "stakeholder_landscape",
+  "scope_basis": "The legacy network landscape view aggregates identifiers, relationships, interests, and salience across all locations. Filtering its rows by a location identifier does not scope those aggregates.",
+  "policy": "Unassigned reports retain the canonical network view. Location reports use a dedicated projection whose operational aggregates include only explicit location/farm relationships and interests and verified location identifiers; salience is derived only through those location-scoped interests. Canonical party identity fields remain network-wide.",
+  "migration": "schemas/postgres/528_location_scoped_stakeholder_landscape.sql",
+  "focused_test_commands": [
+    "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_inventory.py tests/test_migration.py -q",
+    "python3 -m pytest tests/test_stakeholder_foundation.py -k 'location_landscape_uses or network_landscape_retains' -q",
+    "tests/test_stakeholder_foundation.py::test_location_landscape_aggregates_only_explicit_location_lineage against disposable PostgreSQL 16"
+  ],
+  "focused_tests": {
+    "passed": 51,
+    "skipped": 0,
+    "runs": [
+      "48 passed: report query-scope inventory, report source inventory, and migration unit suites.",
+      "2 passed: mocked network and location report branch tests.",
+      "1 passed: location-lineage integration test against disposable PostgreSQL 16."
+    ]
+  },
+  "disposable_postgresql_acceptance": {
+    "engine": "PostgreSQL 16",
+    "migration_replay": "passed",
+    "checks": [
+      "location-specific identifier, relationship, interest, and salience aggregates",
+      "network relationships and interests excluded from location aggregates",
+      "independent aggregates for two locations sharing the same canonical party",
+      "unreviewed location identity candidate omitted",
+      "security_invoker view option preserved on migration replay"
+    ],
+    "result": "passed",
+    "records": "synthetic only"
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_generator_source_inventory": "current",
+    "report_generator_query_scope_inventory": "current; both location and network SQL branches recorded",
+    "report_generator_helper_scope_inventory": "current",
+    "runtime_sql_inventory": "current",
+    "migration_source_discovery": "519 ordered schema files validated through migration 528",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "candidate_or_legacy_database_touched": false,
+    "provider_used": false
+  },
+  "limitations": [
+    "The integration target used the migration's required synthetic tables and columns; it was not a clean replay of the full Kokonut schema history.",
+    "This is source and SQL scope evidence, not populated farm-output parity, owner acceptance, OIDC authorization, or universal tenant isolation."
+  ]
+}
