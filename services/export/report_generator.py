@@ -316,6 +316,80 @@ class _ReadOnlyReportCursor:
         return getattr(self._cursor, name)
 
 
+def _run_auto_generation(
+    conn,
+    *,
+    location_arg: str | None,
+    location_label: str,
+    period_start: str | None,
+    period_end: str | None,
+) -> None:
+    report_types = list(REPORT_GENERATORS.keys())
+    run_id = str(uuid.uuid4())
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
+            (run_id, location_arg, len(report_types)),
+        )
+    conn.commit()
+    print(f"Generating all {len(report_types)} report types for {location_label}...")
+    print()
+
+    success = 0
+    failed = 0
+    empty = 0
+
+    for report_type in report_types:
+        print(f"Generating {report_type}...")
+        item_id = str(uuid.uuid4())
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
+                (item_id, run_id, report_type),
+            )
+        conn.commit()
+        try:
+            generator = REPORT_GENERATORS[report_type]
+            report_data = generate_report_data_read_only(
+                conn, generator, location_arg, period_start, period_end
+            )
+            _check_report_empty(report_data, report_type)
+            snapshot_id = store_snapshot(
+                conn, report_data, location_arg, period_start, period_end
+            )
+            snapshot_hash = compute_hash(report_data)
+            print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
+                    (snapshot_id, item_id),
+                )
+            conn.commit()
+            success += 1
+        except Exception as exc:  # noqa: BLE001 - persist failure and continue the batch
+            safe_error = _report_failure_summary(exc)
+            print(f"  ✗ {report_type}: {safe_error}")
+            conn.rollback()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
+                    (safe_error, item_id),
+                )
+            conn.commit()
+            failed += 1
+
+    print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
+    run_status = "succeeded" if failed == 0 else "partial" if success else "failed"
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
+            (run_status, success, failed, run_id),
+        )
+    conn.commit()
+    if failed > 0:
+        raise SystemExit(1)
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -364,69 +438,16 @@ def main():
         location_label = "network (no location filter)"
 
     if args.auto:
-        report_types = list(REPORT_GENERATORS.keys())
-        run_id = str(uuid.uuid4())
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
-                (run_id, location_arg, len(report_types)),
+        try:
+            _run_auto_generation(
+                conn,
+                location_arg=location_arg,
+                location_label=location_label,
+                period_start=args.period_start,
+                period_end=args.period_end,
             )
-        conn.commit()
-        print(f"Generating all {len(report_types)} report types for {location_label}...")
-        print()
-
-        success = 0
-        failed = 0
-        empty = 0
-
-        for report_type in report_types:
-            print(f"Generating {report_type}...")
-            item_id = str(uuid.uuid4())
-            with conn.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
-                    (item_id, run_id, report_type),
-                )
-            conn.commit()
-            try:
-                generator = REPORT_GENERATORS[report_type]
-                report_data = generate_report_data_read_only(
-                    conn, generator, location_arg, args.period_start, args.period_end
-                )
-                _check_report_empty(report_data, report_type)
-                snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
-                snapshot_hash = compute_hash(report_data)
-                print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
-                        (snapshot_id, item_id),
-                    )
-                conn.commit()
-                success += 1
-            except Exception as exc:  # noqa: BLE001 - persist failure and continue the batch
-                safe_error = _report_failure_summary(exc)
-                print(f"  ✗ {report_type}: {safe_error}")
-                conn.rollback()
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
-                        (safe_error, item_id),
-                    )
-                conn.commit()
-                failed += 1
-
-        print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
-        run_status = "succeeded" if failed == 0 else "partial" if success else "failed"
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
-                (run_status, success, failed, run_id),
-            )
-        conn.commit()
-        conn.close()
-        if failed > 0:
-            exit(1)
+        finally:
+            conn.close()
         return
 
     print(f"Generating {args.type} report for {location_label}...")

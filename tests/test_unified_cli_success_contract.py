@@ -1736,3 +1736,57 @@ def test_database_backed_export_snapshot_list_matches_and_closes_connection(
     assert calls == [(connections[0], location_id), (connections[1], location_id)]
     assert all(connection.closed for connection in connections)
     assert unified.stderr == ""
+
+
+def test_export_auto_closes_connection_if_run_creation_fails(
+    monkeypatch,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    location_id = "12345678-1234-5678-1234-567812345678"
+    connections = []
+
+    class FakeCursor:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, *_args):
+            raise RuntimeError("synthetic report-run creation failure")
+
+    class FakeConnection:
+        closed = False
+
+        def cursor(self):
+            return FakeCursor()
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    arguments = ["--auto", "--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        with pytest.raises(RuntimeError, match="synthetic report-run creation failure"):
+            report_generator.main()
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert isinstance(unified.exception, SystemExit)
+    assert unified.exception.code == 1
+    assert "Error: synthetic report-run creation failure" in unified.stderr
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)

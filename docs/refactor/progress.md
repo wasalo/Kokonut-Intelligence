@@ -1,3 +1,13 @@
+### CAP-039 automatic report connection cleanup — 20 October 2026
+
+Automatic report generation now closes its database connection in a `finally`
+boundary. A regression injects failure while creating the run record, before
+per-report processing, through both standalone and unified CLI entry points.
+The full CAP-039 offline parity selection passes 148 tests; no database or
+provider was contacted. Report output parity, operator authorization, and
+MAN-CAP-039 owner acceptance remain open
+([evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
+
 ### CAP-038 synthesis source-label alignment — 20 October 2026
 
 The source declarations for the bio-factory and stakeholder-feedback agents

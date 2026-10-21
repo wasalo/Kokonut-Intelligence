@@ -107,7 +107,7 @@ real service. Nine successful offline invocations, twenty-eight other
 PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
 service report, and three operator write invocations with fake connections
-match standalone output across all 37 mounted groups (147 tests including
+match standalone output across all 37 mounted groups (148 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
@@ -120,7 +120,7 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 147-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 148-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The twenty-nine query-backed success paths (including the operator inventory),
@@ -142,8 +142,9 @@ grievance, identity, representation, and trust read paths also close their
 connections on success. The forecast catalogue closes its connection after
 both successful and failing reads. CRISP weights likewise closes after success
 and failure; Delphi study listing and Threatcasting threat listing close their
-cursors and connections on both paths. Export snapshot listing closes its
-connection on success. The media-cleanup dry-run does not initialize the
+cursors and connections on both paths. Export snapshot listing closes its connection on success. Automatic report
+generation now also closes its connection when run-record creation fails before
+per-report processing; standalone and unified CLI regressions cover that path. The media-cleanup dry-run does not initialize the
 provider; media reconciliation uses only a stubbed inventory and confirms no
 deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
