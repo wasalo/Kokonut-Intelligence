@@ -1,61 +1,54 @@
-"""Agent action audit errors retain presence without raw diagnostic text."""
+"""Legacy agent action APIs fail closed without authenticated scope."""
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from services.agents import logging as agent_logging
-
-DIAGNOSTIC = "synthetic provider credential diagnostic"
-
-
-def test_log_agent_action_redacts_error_before_persisting(monkeypatch):
-    connection = MagicMock()
-    cursor = connection.cursor.return_value.__enter__.return_value
-    monkeypatch.setattr(agent_logging, "get_db", lambda: connection)
-
-    result = agent_logging.log_agent_action(
-        agent_id="agent-1",
-        task_id=None,
-        action="read",
-        collection="location",
-        action_result="failed",
-        error_message=DIAGNOSTIC,
-    )
-
-    parameters = cursor.execute.call_args.args[1]
-    assert result
-    assert parameters[8] == "[details redacted]"
-    assert DIAGNOSTIC not in str(parameters)
-    connection.commit.assert_called_once_with()
-    connection.close.assert_called_once_with()
+from services.agents.safety import audit_agent_action
+from services.common import database
 
 
-def test_get_agent_actions_redacts_historical_error_before_returning(monkeypatch):
-    connection = MagicMock()
-    cursor = connection.cursor.return_value.__enter__.return_value
-    cursor.fetchall.return_value = [{"id": "action-1", "action_result": "failed", "error_message": DIAGNOSTIC}]
-    monkeypatch.setattr(agent_logging, "get_db", lambda: connection)
-
-    result = agent_logging.get_agent_actions(agent_id="agent-1")
-
-    assert result == [{"id": "action-1", "action_result": "failed", "error_message": "[details redacted]"}]
-    assert DIAGNOSTIC not in str(result)
-    connection.close.assert_called_once_with()
+def _install_database_tripwire(monkeypatch):
+    get_db = MagicMock(side_effect=AssertionError("database access must not occur"))
+    monkeypatch.setattr(database, "get_db", get_db)
+    # Catch both qualified database access and a future local import alias.
+    monkeypatch.setattr(agent_logging, "get_db", get_db, raising=False)
+    return get_db
 
 
-def test_agent_action_log_failure_logs_class_not_exception_text(monkeypatch):
-    connection = MagicMock()
-    connection.cursor.side_effect = RuntimeError(DIAGNOSTIC)
-    monkeypatch.setattr(agent_logging, "get_db", lambda: connection)
-    logger_error = MagicMock()
-    monkeypatch.setattr(agent_logging.logger, "error", logger_error)
+def test_legacy_agent_action_write_fails_before_database_access(monkeypatch):
+    get_db = _install_database_tripwire(monkeypatch)
 
-    agent_logging.log_agent_action(
-        agent_id="agent-1",
-        task_id=None,
-        action="read",
-        collection="location",
-    )
+    with pytest.raises(agent_logging.AgentActionIdentityUnavailable, match="authenticated"):
+        agent_logging.log_agent_action(
+            agent_id="caller-supplied-agent-id",
+            task_id=None,
+            action="read",
+            collection="location",
+        )
 
-    logger_error.assert_called_once_with("Failed to log agent action (%s)", "RuntimeError")
-    assert DIAGNOSTIC not in str(logger_error.call_args)
-    connection.close.assert_called_once_with()
+    get_db.assert_not_called()
+
+
+def test_safety_audit_wrapper_cannot_turn_caller_id_into_agent_identity(monkeypatch):
+    get_db = _install_database_tripwire(monkeypatch)
+
+    with pytest.raises(agent_logging.AgentActionIdentityUnavailable, match="authenticated"):
+        audit_agent_action(
+            agent_id="caller-supplied-agent-id",
+            action="read",
+            collection="location",
+            payload={"location_id": "synthetic-location"},
+        )
+
+    get_db.assert_not_called()
+
+
+def test_global_agent_action_history_read_fails_before_database_access(monkeypatch):
+    get_db = _install_database_tripwire(monkeypatch)
+
+    with pytest.raises(agent_logging.AgentActionIdentityUnavailable, match="authenticated"):
+        agent_logging.get_agent_actions()
+
+    get_db.assert_not_called()
