@@ -91,6 +91,37 @@ def test_all_locations_query_requires_explicit_aggregate_mode():
     assert db.closed
 
 
+@pytest.mark.parametrize("failure_stage", ["execute", "fetchall"])
+def test_initial_location_query_failure_closes_database(failure_stage):
+    db = EmptyLocationConnection()
+    failing_operation = getattr(db.cursor_obj, failure_stage)
+    failing_operation.side_effect = RuntimeError("synthetic location query failure")
+
+    with (
+        patch.object(weather, "OPENWEATHERMAP_API_KEY", "synthetic-key"),
+        patch.object(weather, "get_db", return_value=db),
+        pytest.raises(RuntimeError, match="synthetic location query failure"),
+    ):
+        weather.run(location_id=LOCATION_ID)
+
+    assert db.closed
+
+
+def test_location_query_error_is_preserved_when_database_close_also_fails():
+    db = EmptyLocationConnection()
+    db.cursor_obj.execute.side_effect = RuntimeError("synthetic location query failure")
+    db.close = MagicMock(side_effect=RuntimeError("synthetic close detail"))
+
+    with (
+        patch.object(weather, "OPENWEATHERMAP_API_KEY", "synthetic-key"),
+        patch.object(weather, "get_db", return_value=db),
+        pytest.raises(RuntimeError, match="synthetic location query failure"),
+    ):
+        weather.run(location_id=LOCATION_ID)
+
+    db.close.assert_called_once()
+
+
 def test_cli_forwards_explicit_single_or_aggregate_scope():
     with patch.object(weather, "run") as run:
         weather.main(["--location-id", LOCATION_ID])

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "370afe98",
+  "scope": "Current-weather ingestion database cleanup when the initial location query fails",
+  "verification": {
+    "focused_tests": "3 failure-path cases pass; 37 tests across current weather, forecast CLI scope, forecast atomicity, and forecast ingestion",
+    "coverage": [
+      "database connection closes when the current-weather location SELECT raises",
+      "database connection closes when location result fetching raises",
+      "a connection-close failure logs only its exception class and does not replace the original query exception"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; connection and cursor are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: failures during current-weather location discovery now close the database connection while preserving the primary error.",
+  "limitations": [
+    "This is synthetic failure-path coverage; it does not establish live PostgreSQL or weather-provider behavior.",
+    "Successful provider delivery and external alert behavior remain separate acceptance gates."
+  ]
+}

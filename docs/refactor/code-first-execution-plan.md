@@ -2477,3 +2477,14 @@ worker recovery remain open. Checklist: 835 complete / 25 open (860 total);
 capability classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-write-cursor-cleanup.json).
+
+### CAP-039 current-weather query cleanup — 21 October 2026
+
+The current-weather location SELECT and result fetch now close PostgreSQL on
+error. A close failure does not mask the query error and is logged by class
+only. Three failure-path tests pass within the 37-test weather/forecast
+selection with Ruff and compilation. No database/provider was contacted. Live
+PostgreSQL/provider behavior remain open. Checklist: 836 complete / 25 open
+(861 total); matrix classifications remain 31 baseline-retained, 7 deployed,
+and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-weather-location-query-cleanup.json).

@@ -197,17 +197,24 @@ def run(location_id: str = None, *, all_locations: bool = False):
         sys.exit(1)
 
     db = get_db()
-    with db.cursor() as cur:
-        if location_id:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE status = 'active' AND center IS NOT NULL"
-            )
-        locations = cur.fetchall()
+    try:
+        with db.cursor() as cur:
+            if location_id:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
+                    (location_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE status = 'active' AND center IS NOT NULL"
+                )
+            locations = cur.fetchall()
+    except Exception:
+        try:
+            db.close()
+        except Exception as close_error:
+            logger.warning("Database close failed (%s)", type(close_error).__name__)
+        raise
 
     if not locations:
         logger.info("No active locations with coordinates found.")

@@ -13350,3 +13350,14 @@ database/provider was contacted. Live write behavior and worker recovery remain
 open. Checklist: 835 complete / 25 open (860 total); matrix remains 66 rows:
 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_write_cursor_cleanup.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-write-cursor-cleanup.json)).
+
+### CAP-039 current-weather query cleanup — 21 October 2026
+
+Current-weather ingestion now closes its database connection if the initial
+location query or fetch raises. If close itself fails, only its exception class
+is logged and the original query error is preserved. Three focused failure
+cases pass in the 37-test current-weather/forecast selection with Ruff and
+compilation; no database/provider was contacted. Live PostgreSQL and provider
+behavior remain open. Checklist: 836 complete / 25 open (861 total); matrix
+remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_scope.py);
+[evidence](builds/2026-10-21-recovery/cap-039-weather-location-query-cleanup.json)).

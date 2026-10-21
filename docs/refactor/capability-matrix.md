@@ -4100,3 +4100,12 @@ Ruff and compilation; no database/provider was contacted. Live write behavior
 and worker recovery remain open. Checklist: 835 complete / 25 open; capability
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-write-cursor-cleanup.json)).
+
+**CAP-039 current-weather query cleanup — 21 October 2026:** current-weather
+ingestion closes its database connection if location discovery fails, preserves
+the primary query error if close also fails, and logs only the close exception
+class. Three synthetic failure cases pass in the 37-test current-weather and
+forecast selection with Ruff and compilation; no database/provider was
+contacted. Live database and provider behavior remain open. Checklist: 836
+complete / 25 open; matrix classifications remain 31 baseline-retained, 7
+deployed, and 28 prepared ([evidence](builds/2026-10-21-recovery/cap-039-weather-location-query-cleanup.json)).
