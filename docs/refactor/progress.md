@@ -13130,3 +13130,18 @@ broader runtime ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. Checklist:
 [write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/519_location_solution_adoption_program_revision.sql),
 [Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
 [console tests](../tests/test_operator_console_solution_lifecycle.py).
+
+
+### Schema-bootstrap image override and Compose isolation contract — 20 October 2026
+
+The schema-only Compose profile now accepts `KOKONUT_BOOTSTRAP_POSTGRES_IMAGE`
+for an explicitly selected architecture-specific image while retaining its
+pinned AMD64 default. Two focused Compose-config tests pass: one checks the
+pinned default and network/port isolation, and the other verifies an ARM64 image
+override without relaxing those boundaries. Docker rejected an initial ARM64
+request using the AMD64-only default digest before PostgreSQL startup; the
+temporary volume from that failed attempt was removed. The tested ARM64 replay
+uses the separately built, locked `kokonut-kernel-postgis-arm64:local` image.
+Candidate and legacy databases remain untouched. Checklist remains 821 complete
+/ 25 open (846 total); matrix classifications remain 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared ([Compose profile](../../docker-compose.schema-bootstrap.yml); [tests](../../tests/test_schema_bootstrap_profile.py)).

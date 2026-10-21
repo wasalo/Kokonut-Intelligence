@@ -3,6 +3,13 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Network-disabled bootstrap profile — 20 October 2026:** the schema-only
+PostgreSQL Compose profile passed a local runtime smoke with `network_mode:
+none`, no host ports, a healthy database, and successful `psql` through
+`docker compose exec`; temporary container and volume were removed. No schema
+migrations ran during this smoke. The full 516-migration replay has separate
+evidence and used a private Compose bridge ([smoke evidence](builds/2026-10-20-recovery/schema-bootstrap-networkless-smoke.json); [profile](../../docker-compose.schema-bootstrap.yml)).
+
 **Current-schema clean replay — 20 October 2026:** A fresh isolated native
 AMD64 PostgreSQL 16 database applied all 516 repository schema migrations
 through 525 with zero failures and no seeds or farm data. The focused migration,

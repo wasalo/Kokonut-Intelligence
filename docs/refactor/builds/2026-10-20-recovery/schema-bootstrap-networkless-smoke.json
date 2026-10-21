@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-20",
+  "scope": "Runtime smoke of the disposable network-disabled schema-bootstrap Compose profile",
+  "source_revision": "416a4ff189758e8d420917a5d4ad63d77414bf34",
+  "compose": {
+    "file": "docker-compose.schema-bootstrap.yml",
+    "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "network_mode": "none",
+    "host_ports": [],
+    "project_network_created": false
+  },
+  "runtime": {
+    "container_reached_healthy": true,
+    "psql_via_compose_exec": "kokonut:kokonut_intelligence",
+    "schema_migrations_run": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_named_volume_removed": true,
+    "candidate_or_legacy_targeted": false
+  },
+  "result": "PASS: PostgreSQL became healthy with network_mode none and no published ports; psql worked through Compose exec and the temporary container and volume were removed.",
+  "limitations": [
+    "This is a profile/runtime smoke only; the full 516-migration replay is separately recorded and used a temporary private Compose bridge.",
+    "No candidate or legacy database was accessed or changed.",
+    "This does not certify ARM64 PostgreSQL, Raspberry Pi hardware, resource usage, or power-loss recovery."
+  ]
+}

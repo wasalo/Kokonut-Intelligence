@@ -2,7 +2,7 @@
 # No network or host port is needed: migrations run through `docker compose exec`.
 services:
   database:
-    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    image: ${KOKONUT_BOOTSTRAP_POSTGRES_IMAGE:-postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5}
     restart: "no"
     network_mode: none
     environment:

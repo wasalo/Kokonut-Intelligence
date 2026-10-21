@@ -19,6 +19,17 @@ export KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true
 
 Use a unique project name for concurrent runs. The removal flag drops the
 temporary database volume and Compose resources when the script exits.
+The default PostGIS digest is AMD64-only. To run schema replay under ARM64
+emulation or on ARM64 hardware, first build the locked `kernel-postgis` target
+for that architecture and set `KOKONUT_BOOTSTRAP_POSTGRES_IMAGE` to the local
+image tag. Do not point this override at a candidate or production database.
+
+The profile runtime-smoke reached healthy with `network_mode: none`, no host
+port bindings, and no project network; a local `psql` query succeeded through
+`docker compose exec`, then the temporary container and named volume were
+removed. No schema migration ran during this smoke. Its evidence is separate
+from the 516-migration replay below, which used a temporary private Compose
+bridge ([smoke evidence](builds/2026-10-20-recovery/schema-bootstrap-networkless-smoke.json)).
 
 The current source at `c6aab4ea` builds as a `linux/arm64` Kernel image. Under
 QEMU, a network-disabled and read-only container reported `aarch64`, imported
