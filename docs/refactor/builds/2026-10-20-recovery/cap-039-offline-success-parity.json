@@ -298,8 +298,9 @@
     {
       "command": "export --auto --location-id <synthetic-uuid>",
       "injected_failure": "report_generation_run insert raises before batch processing begins",
-      "standalone": "database connection closed while original exception propagates",
-      "unified": "database connection closed; CLI returns exit status 1 through the shared error wrapper",
+      "standalone": "database connection closed; propagated error contains only the exception class",
+      "unified": "database connection closed; CLI returns status 1 with only the exception class through the shared error wrapper",
+      "secret_exception_text_emitted": false,
       "database_or_provider_calls": 0
     }
   ],

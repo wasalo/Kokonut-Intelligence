@@ -446,6 +446,8 @@ def main():
                 period_start=args.period_start,
                 period_end=args.period_end,
             )
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
             conn.close()
         return

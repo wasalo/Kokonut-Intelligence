@@ -1747,6 +1747,7 @@ def test_export_auto_closes_connection_if_run_creation_fails(
     from services.export import report_generator
 
     location_id = "12345678-1234-5678-1234-567812345678"
+    secret_detail = "database password=synthetic-secret"
     connections = []
 
     class FakeCursor:
@@ -1757,7 +1758,7 @@ def test_export_auto_closes_connection_if_run_creation_fails(
             return False
 
         def execute(self, *_args):
-            raise RuntimeError("synthetic report-run creation failure")
+            raise RuntimeError(secret_detail)
 
     class FakeConnection:
         closed = False
@@ -1778,15 +1779,17 @@ def test_export_auto_closes_connection_if_run_creation_fails(
     original_argv = list(sys.argv)
     try:
         sys.argv = ["services.export.report_generator", *arguments]
-        with pytest.raises(RuntimeError, match="synthetic report-run creation failure"):
+        with pytest.raises(RuntimeError, match="report generation failed \\(RuntimeError\\)") as error:
             report_generator.main()
     finally:
         sys.argv = original_argv
+    assert secret_detail not in str(error.value)
 
     unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
 
     assert isinstance(unified.exception, SystemExit)
     assert unified.exception.code == 1
-    assert "Error: synthetic report-run creation failure" in unified.stderr
+    assert "Error: report generation failed (RuntimeError)" in unified.stderr
+    assert secret_detail not in unified.stderr
     assert len(connections) == 2
     assert all(connection.closed for connection in connections)

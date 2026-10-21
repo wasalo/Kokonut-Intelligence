@@ -143,8 +143,9 @@ connections on success. The forecast catalogue closes its connection after
 both successful and failing reads. CRISP weights likewise closes after success
 and failure; Delphi study listing and Threatcasting threat listing close their
 cursors and connections on both paths. Export snapshot listing closes its connection on success. Automatic report
-generation now also closes its connection when run-record creation fails before
-per-report processing; standalone and unified CLI regressions cover that path. The media-cleanup dry-run does not initialize the
+generation also closes its connection when run-record creation fails before
+per-report processing and emits only the exception class; standalone and unified
+CLI regressions cover that path. The media-cleanup dry-run does not initialize the
 provider; media reconciliation uses only a stubbed inventory and confirms no
 deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
