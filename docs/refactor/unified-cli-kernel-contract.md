@@ -108,7 +108,7 @@ PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
 service report, one synthetic single-report generation path, and three operator
 write invocations with fake connections match standalone output across all 37
-mounted groups (153 tests including
+mounted groups (155 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
@@ -121,7 +121,7 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 153-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 155-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The thirty query-backed success paths (including the operator inventory),
@@ -143,9 +143,8 @@ grievance, identity, representation, and trust read paths also close their
 connections on success. The forecast catalogue closes its connection after
 both successful and failing reads. CRISP weights likewise closes after success
 and failure; Delphi study listing and Threatcasting threat listing close their
-cursors and connections on both paths. Export snapshot listing closes its connection on success. Connection, list,
-verify, and automatic report-run setup failures now emit only the exception
-class; injected standalone/unified CLI regressions cover each failure boundary
+cursors and connections on both paths. Export snapshot listing closes its connection on success. Connection creation, list/verify queries, connection-close failures, and
+automatic report-run setup failures emit only the exception class; injected standalone/unified CLI regressions cover each failure boundary
 and confirm cleanup whenever a connection was opened. The media-cleanup dry-run does not initialize the
 provider; media reconciliation uses only a stubbed inventory and confirms no
 deletion. The cases confirm parsed filters reach expected

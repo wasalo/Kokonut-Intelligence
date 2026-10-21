@@ -5,13 +5,13 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py tests/test_operator_cli_identity_provision.py tests/test_operator_cli_identity_lifecycle.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 153,
+    "tests_passed": 155,
     "new_success_path_cases": 44,
     "database_backed_or_aggregate_service_stubbed_cases": 32,
     "mutation_paths_with_fake_connections": 4,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0,
-    "failure_path_regressions": 4
+    "failure_path_regressions": 6
   },
   "environment": {
     "sops_identity": "intentionally unavailable",
@@ -328,6 +328,20 @@
       "command": "export --verify <synthetic-hash>",
       "injected_failure": "snapshot verification raises a synthetic secret-bearing database error",
       "standalone_and_unified": "database connection closed; both surfaces expose only the exception class",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list",
+      "injected_failure": "connection close raises a synthetic secret-bearing error after the empty result",
+      "standalone_and_unified": "both surfaces expose only the exception class; close is attempted once",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --verify <synthetic-hash>",
+      "injected_failure": "connection close raises a synthetic secret-bearing error after verification",
+      "standalone_and_unified": "both surfaces expose only the exception class; close is attempted once",
       "secret_exception_text_emitted": false,
       "database_or_provider_calls": 0
     },

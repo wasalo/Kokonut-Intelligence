@@ -2006,3 +2006,71 @@ def test_export_report_generation_matches_standalone_and_unified_cli(
     assert all(connection.session_modes == [True, False] for connection in connections)
     assert all(connection.commits == 1 for connection in connections)
     assert unified.stderr == ""
+
+
+@pytest.mark.parametrize(
+    ("arguments", "read_operation"),
+    [
+        (["--list"], "list"),
+        (["--verify", "synthetic-snapshot-hash"], "verify"),
+    ],
+    ids=["snapshot-list", "snapshot-verify"],
+)
+def test_export_cli_redacts_connection_close_failures(
+    arguments: list[str],
+    read_operation: str,
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    secret_detail = "postgres password=synthetic-close-secret"
+    connections = []
+
+    class FakeConnection:
+        close_attempts = 0
+
+        def close(self):
+            self.close_attempts += 1
+            raise RuntimeError(secret_detail)
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    if read_operation == "list":
+        monkeypatch.setattr(report_generator, "list_snapshots", lambda *_args: [])
+    else:
+        monkeypatch.setattr(
+            report_generator,
+            "_verify_snapshot",
+            lambda *_args: print("Snapshot verification completed"),
+        )
+
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        with pytest.raises(
+            RuntimeError,
+            match="report generation failed \\(RuntimeError\\)",
+        ) as error:
+            report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    assert secret_detail not in str(error.value)
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert isinstance(unified.exception, SystemExit)
+    assert unified.exception.code == 1
+    assert "Error: report generation failed (RuntimeError)" in unified.stderr
+    assert secret_detail not in unified.stderr
+    assert unified.stdout == standalone_output
+    assert len(connections) == 2
+    assert all(connection.close_attempts == 1 for connection in connections)
