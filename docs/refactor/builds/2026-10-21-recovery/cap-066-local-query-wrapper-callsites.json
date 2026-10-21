@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "purpose": "Source-only verification of a report helper whose SQL and bind tuple are passed through local call sites into a query wrapper.",
+  "supported_shape": "A local query wrapper passes formal SQL and parameter names directly to execute/query; every direct call in the same module supplies a string-literal SQL argument and a positional tuple/list without starred elements.",
+  "newly_resolved_membership": {
+    "report_type": "business_plan",
+    "source_file": "services/planning/sandop.py",
+    "callable": "_rows",
+    "query_line": 20,
+    "caller": "cockpit",
+    "call_sites": [29, 43, 55]
+  },
+  "callsite_bind_results": [
+    {"call_site_line": 29, "placeholder_count": 1, "supplied_count": 1, "mismatch": false},
+    {"call_site_line": 43, "placeholder_count": 1, "supplied_count": 1, "mismatch": false},
+    {"call_site_line": 55, "placeholder_count": 1, "supplied_count": 1, "mismatch": false}
+  ],
+  "inventory": {
+    "report_to_helper_memberships": 175,
+    "static_sql_sites": 142,
+    "unresolved_sql_sites": 33,
+    "positional_bind_contracts": 128,
+    "named_bind_contracts": 2,
+    "positional_bind_mismatches": 0,
+    "named_bind_mismatches": 0,
+    "location_scope_signals": 67,
+    "new_site_location_scope_signal": false
+  },
+  "negative_case": "A wrapper callsite with computed SQL or a nonliteral parameter container remains unresolved.",
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+      "result": "40 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_source_inventory_freshness": "passed",
+    "report_query_scope_inventory_freshness": "passed",
+    "report_helper_scope_inventory_freshness": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "runtime_database_or_provider_used": false,
+  "candidate_or_legacy_stack_touched": false,
+  "acceptance_limit": "This AST contract checks literal source call sites and bind arity. It does not establish tenant isolation, PostgreSQL execution, populated output parity, or behavior for indirect/external wrapper callers."
+}

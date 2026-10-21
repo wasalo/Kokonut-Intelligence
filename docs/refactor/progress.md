@@ -1,3 +1,21 @@
+### CAP-066 literal query-wrapper call sites — 21 October 2026
+
+The helper-query analyzer now resolves a query wrapper when the wrapper passes
+formal SQL and parameter names directly to `execute`, and every direct local
+call supplies a string literal and a positional tuple/list. This resolves
+the `services/planning/sandop.py:_rows` membership used by the business-plan
+report and records all three `cockpit` call sites. Their SQL bind counts match
+their one-value parameter tuples. Across 175 helper memberships, 142 SQL sites
+are static and 33 unresolved; 128 positional and two named contracts have zero
+mismatches. The new site receives no location-scope signal. Dynamic callers,
+indirect/external wrapper uses, runtime SQL, and populated report parity remain
+unresolved. The focused query/helper/source suite passes 40 tests; Ruff,
+compilation, all three generated inventory checks, matrix validation, and diff
+checks pass. No database, provider, migration, candidate, or legacy stack was
+used. Checklist: 886 complete / 24 open (910 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows
+([evidence](builds/2026-10-21-recovery/cap-066-local-query-wrapper-callsites.json)).
+
 ### CAP-066 optional helper filter-list SQL and bind contracts — 21 October 2026
 
 The helper-query analyzer now resolves bounded optional filters built by

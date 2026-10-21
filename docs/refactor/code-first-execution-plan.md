@@ -3,6 +3,18 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 literal query-wrapper call sites — 21 October 2026:** the helper
+analyzer resolves a wrapper only when every direct local call supplies
+a string literal and a positional tuple/list. The business-plan report's
+`services/planning/sandop.py:_rows` query now records all three `cockpit` call
+sites, each with matching one-placeholder/one-value arity; it receives no
+location-scope signal. Helper coverage is 142/175 static SQL sites, 33
+unresolved, and 128 positional plus two named contracts with zero mismatches.
+The focused query/helper/source selection passes 40 tests with Ruff,
+compilation, all three inventory checks, matrix validation, and diff checks.
+Dynamic/indirect callers, runtime SQL, and populated report parity remain open
+([evidence](builds/2026-10-21-recovery/cap-066-local-query-wrapper-callsites.json)).
+
 **CAP-066 optional helper filter-list SQL and bind contracts — 21 October 2026:**
 the static helper analyzer now enumerates simple paired clause-list and
 parameter-list appends across all guard combinations, bounded to six guards.

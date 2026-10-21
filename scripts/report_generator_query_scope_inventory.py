@@ -1011,6 +1011,101 @@ def _query_parameter_argument(call: ast.Call) -> ast.AST | None:
     )
 
 
+def _local_query_callsite_variants(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    sql_node: ast.AST | None,
+    parameter_node: ast.AST | None,
+    module_tree: ast.Module | None,
+) -> tuple[list[str], dict] | None:
+    """Resolve a query wrapper only when every direct local call passes literals."""
+    if (
+        module_tree is None
+        or not isinstance(sql_node, ast.Name)
+        or not isinstance(parameter_node, ast.Name)
+    ):
+        return None
+    positional_args = [*function.args.posonlyargs, *function.args.args]
+    argument_names = [argument.arg for argument in positional_args]
+    try:
+        sql_index = argument_names.index(sql_node.id)
+        parameter_index = argument_names.index(parameter_node.id)
+    except ValueError:
+        return None
+
+    parents = {
+        child: parent
+        for parent in ast.walk(module_tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    call_sites: list[tuple[ast.Call, ast.FunctionDef | ast.AsyncFunctionDef]] = []
+    for candidate in ast.walk(module_tree):
+        if not (
+            isinstance(candidate, ast.Call)
+            and isinstance(candidate.func, ast.Name)
+            and candidate.func.id == function.name
+        ):
+            continue
+        current: ast.AST = candidate
+        caller = None
+        while current in parents:
+            current = parents[current]
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                caller = current
+                break
+        if caller is None or caller is function:
+            return None
+        if any(
+            isinstance(node, ast.Name)
+            and node.id == function.name
+            and isinstance(node.ctx, ast.Store)
+            for node in ast.walk(caller)
+        ):
+            return None
+        call_sites.append((candidate, caller))
+    if not call_sites:
+        return None
+
+    sql_variants: list[str] = []
+    variants: list[dict] = []
+    for call, caller in call_sites:
+        def argument_at(index: int, name: str) -> ast.AST | None:
+            if len(call.args) > index:
+                return call.args[index]
+            return next(
+                (keyword.value for keyword in call.keywords if keyword.arg == name),
+                None,
+            )
+
+        actual_sql = argument_at(sql_index, sql_node.id)
+        actual_parameters = argument_at(parameter_index, parameter_node.id)
+        if not isinstance(actual_parameters, (ast.Tuple, ast.List)) or any(
+            isinstance(item, ast.Starred) for item in actual_parameters.elts
+        ):
+            return None
+        if not isinstance(actual_sql, ast.Constant) or not isinstance(actual_sql.value, str):
+            return None
+        resolved_sql = actual_sql.value
+        placeholder_count, named_binds = _sql_bind_counts(resolved_sql)
+        if named_binds:
+            return None
+        supplied_count = len(actual_parameters.elts)
+        variants.append(
+            {
+                "call_site_line": call.lineno,
+                "caller": caller.name,
+                "placeholder_count": placeholder_count,
+                "supplied_count": supplied_count,
+                "mismatch": placeholder_count != supplied_count,
+            }
+        )
+        sql_variants.append(resolved_sql)
+
+    return sql_variants, {
+        "mismatch": any(variant["mismatch"] for variant in variants),
+        "variants": variants,
+    }
+
+
 def _list_append_state(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     name: str,
@@ -1340,18 +1435,31 @@ def _query_calls(
         optional_filter_variants = _optional_filter_list_query_variants(
             sql_node, node, assignments, function
         )
+        callsite_variants = None
         if optional_filter_variants:
             sql_variants, positional_arity = optional_filter_variants
             sql = sql_variants[-1]
             sql_variant_paths = [(None, value) for value in sql_variants]
         else:
-            positional_arity = _positional_bind_arity(
-                sql,
-                node,
-                assignments,
-                function,
-                conditional_sql_variants or None,
-            )
+            if sql is None:
+                callsite_variants = _local_query_callsite_variants(
+                    function,
+                    sql_node,
+                    _query_parameter_argument(node),
+                    module_tree,
+                )
+            if callsite_variants:
+                sql_variants, positional_arity = callsite_variants
+                sql = sql_variants[-1]
+                sql_variant_paths = [(None, value) for value in sql_variants]
+            else:
+                positional_arity = _positional_bind_arity(
+                    sql,
+                    node,
+                    assignments,
+                    function,
+                    conditional_sql_variants or None,
+                )
         named_bind_contract = _named_bind_contract(
             sql,
             sql_node,
@@ -1446,9 +1554,9 @@ def _query_calls(
             or not parameter_paths
             or any(path in parameter_paths for path in scoped_sql_paths)
         )
-        if optional_filter_variants:
-            # The generic optional-filter solver checks bind counts across each
-            # guard combination, but does not certify tenant-scope correlation.
+        if optional_filter_variants or callsite_variants:
+            # These source resolvers check SQL and bind shapes but do not
+            # certify tenant-scope correlation.
             correlated_location_binding = False
         queries.append(
             {

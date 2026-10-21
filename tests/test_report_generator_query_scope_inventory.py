@@ -553,6 +553,53 @@ def generate(conn, first_id=None):
     assert query["positional_bind_arity"] is None
 
 
+def test_classifier_resolves_local_query_wrapper_literal_callsites():
+    analysis = analyze_function_source(
+        '''
+def rows(cur, sql, params):
+    cur.execute(sql, params)
+
+def cockpit(cur, organization_id):
+    demand = rows(
+        cur,
+        "SELECT location_id FROM production_market_match WHERE organization_id = %s",
+        (organization_id,),
+    )
+    plans = rows(cur, "SELECT id FROM financial_plan", ())
+''',
+        "rows",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["positional_bind_arity"]["mismatch"] is False
+    assert [
+        (variant["caller"], variant["placeholder_count"], variant["supplied_count"])
+        for variant in query["positional_bind_arity"]["variants"]
+    ] == [("cockpit", 1, 1), ("cockpit", 0, 0)]
+
+
+def test_classifier_does_not_resolve_wrapper_with_dynamic_callsite():
+    analysis = analyze_function_source(
+        '''
+def rows(cur, sql, params):
+    cur.execute(sql, params)
+
+def cockpit(cur, sql, params):
+    return rows(cur, sql, params)
+
+def another_caller(cur):
+    sql = "SELECT id FROM sample"
+    return rows(cur, sql, ())
+''',
+        "rows",
+    )
+    query = analysis["queries"][0]
+
+    assert query["sql_source"] == "dynamic_or_unresolved"
+    assert query["positional_bind_arity"] is None
+
+
 def test_classifier_correlates_named_binds_with_condition_list_and_mapping_branches():
     analysis = analyze_function_source(
         '''

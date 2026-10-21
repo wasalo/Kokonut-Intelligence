@@ -154,3 +154,22 @@ def test_reachable_helper_queries_correlate_optional_filter_bind_variants():
         assert queries[0]["positional_bind_arity"]["mismatch"] is False
         assert len(queries[0]["positional_bind_arity"]["variants"]) == 8
 
+
+def test_reachable_helper_query_wrapper_uses_all_literal_local_callsites():
+    inventory = build_inventory()
+    report = next(item for item in inventory["reports"] if item["report_type"] == "business_plan")
+    query = next(
+        site
+        for site in report["reachable_helper_query_sites"]
+        if site["source_file"] == "services/planning/sandop.py"
+        and site["callable"] == "_rows"
+    )
+
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["bound_location_scope_signal"] is False
+    assert query["positional_bind_arity"]["mismatch"] is False
+    assert [
+        (variant["call_site_line"], variant["placeholder_count"], variant["supplied_count"])
+        for variant in query["positional_bind_arity"]["variants"]
+    ] == [(29, 1, 1), (43, 1, 1), (55, 1, 1)]
+
