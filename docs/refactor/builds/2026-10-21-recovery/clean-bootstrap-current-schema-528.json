@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-21",
+  "scope": "Fresh clean-bootstrap replay of all current PostgreSQL schema migrations through 528",
+  "source_revision": "f84e7ebcc1087c7320f115fdbc16484e6760835a",
+  "database": {
+    "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "architecture": "linux/amd64",
+    "postgres_major": 16,
+    "resource_limits": "not configured"
+  },
+  "isolation": {
+    "compose_project": "ki-schema-replay-20261021-74607",
+    "database_service_only": true,
+    "host_ports_published": false,
+    "network_mode": "none",
+    "external_provider_or_data_source_contacted": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "candidate_or_legacy_targeted": false,
+    "credential_handling": "A random one-run PostgreSQL password was generated in process and was not logged or written to a file. Project SOPS/plaintext environment files were not loaded."
+  },
+  "schema_replay": {
+    "runner": "scripts/verify-clean-bootstrap.sh and services.migration migrate --schemas-only",
+    "schema_files_discovered": 519,
+    "schema_migrations_applied": 519,
+    "schema_migrations_failed": 0,
+    "latest_migration": "schema:528_location_scoped_stakeholder_landscape.sql"
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_volume_removed": true,
+    "temporary_network_created": false,
+    "candidate_stack_targeted": false,
+    "legacy_stack_targeted": false,
+    "verification": "Docker container and volume filters for the unique Compose project returned no entries after the script completed."
+  },
+  "companion_checks": {
+    "migration_unit_tests": "36 passed: tests/test_migration.py",
+    "migration_source_validation": "passed: 519 schema migration files",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared; MAN-CAP checks remain separately gated"
+  },
+  "result": "PASS: all 519 current schema migrations applied on a fresh isolated PostgreSQL 16 database with no seed or farm data.",
+  "limitations": [
+    "This clean replay used native linux/amd64 PostgreSQL; full ARM64 database replay remains evidenced only through migration 434.",
+    "The replay does not certify Raspberry Pi hardware, resource endurance, power-loss behavior, or a 24-hour recovery window.",
+    "The candidate was not migrated; candidate rollout still requires the separately gated checkpoint and restore-rehearsal procedure."
+  ]
+}

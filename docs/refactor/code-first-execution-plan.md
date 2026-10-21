@@ -10,6 +10,16 @@ none`, no host ports, a healthy database, and successful `psql` through
 migrations ran during this smoke. The full 516-migration replay has separate
 evidence and used a private Compose bridge ([smoke evidence](builds/2026-10-20-recovery/schema-bootstrap-networkless-smoke.json); [profile](../../docker-compose.schema-bootstrap.yml)).
 
+**Current-source clean schema replay — 21 October 2026:** a fresh native AMD64
+PostgreSQL 16 target using the network-disabled bootstrap profile applied all
+519 current schema migrations through migration 528 with zero failures. No
+seeds or farm data were loaded, no host port was published, and the temporary
+container and volume were removed. The 36-test migration unit suite and
+519-file source validation pass; the 66-row capability matrix remains valid.
+The candidate and legacy stacks were not targeted. Full ARM64 schema replay,
+physical Raspberry Pi/power behavior, and candidate rollout remain open
+([replay evidence](builds/2026-10-21-recovery/clean-bootstrap-current-schema-528.json)).
+
 **ARM64 full-schema replay attempt — 20 October 2026:** the locked ARM64 PostGIS
 image reached healthy and reported `aarch64` under QEMU, with no network or host
 ports. The 516-file replay was stopped while migration 068 was in progress after

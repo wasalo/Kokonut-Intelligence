@@ -1,3 +1,16 @@
+### Current-source clean schema replay through migration 528 — 21 October 2026
+
+A fresh, network-disabled PostgreSQL 16 Compose project applied all 519 current
+schema migrations through migration 528 with zero failures. No seed or farm data
+was loaded and no host port was published. The isolated container and volume
+were removed and verified absent; the candidate and legacy stacks were not
+targeted. The migration unit suite passes 36 tests, source validation discovers
+519 migrations, and the capability matrix remains valid at 66 rows (31
+baseline-retained, 7 deployed, 28 prepared). This is native AMD64 replay only;
+full ARM64 database replay, Raspberry Pi hardware/power behavior, and candidate
+rollout remain open. Checklist: 875 complete / 24 open (899 total). See the
+[replay evidence](builds/2026-10-21-recovery/clean-bootstrap-current-schema-528.json).
+
 ### CAP-066 location-scoped stakeholder landscape — 21 October 2026
 
 Farm-scoped stakeholder landscape reports now use migration 528's dedicated
