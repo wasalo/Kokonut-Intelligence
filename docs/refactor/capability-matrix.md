@@ -4177,3 +4177,17 @@ database/provider was contacted. Populated parity and owner review of global
 operator authorization/privacy remain open. Checklist: 843 complete / 25 open;
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-anomaly-rule-list-cli.json)).
+
+**CAP-039 / CAP-040 market-data CLI entrypoint — 21 October 2026:** the
+market-data module now exposes a callable parser used by the unified ingestion
+CLI instead of the `runpy` fallback. World Bank and explicit seed arguments and
+help output match between entrypoints; dispatcher arguments are restored after
+success or failure. Invalid sources and date filters fail before
+provider/database access. Thirty-five focused market-data tests and 62
+ingestion help/unified CLI checks pass with Ruff and compilation. No provider,
+database, schedule, candidate, or legacy service was accessed. This does not
+prove populated-data or live-provider parity, close production worker gates, or
+accept MAN-CAP-040/047. Checklist: 844 complete / 25 open (869 total); matrix
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_market_data_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-market-data-cli-entrypoint.json)).

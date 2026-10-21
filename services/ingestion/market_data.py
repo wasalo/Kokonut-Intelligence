@@ -594,8 +594,12 @@ def run(commodity: str = None, source: str = "world_bank", month: int = None, ye
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Market data ingestion")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="market_data.py",
+        description="Market data ingestion",
+    )
     parser.add_argument("--commodity", help="Specific commodity code (e.g., COFFEE)")
     parser.add_argument(
         "--source",
@@ -605,5 +609,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--month", type=int, help="Month (1-12) to fetch from Pink Sheet")
     parser.add_argument("--year", type=int, help="Year to fetch from Pink Sheet")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run market-data ingestion through a callable CLI entry point."""
+    args = build_parser().parse_args(argv)
     run(commodity=args.commodity, source=args.source, month=args.month, year=args.year)
+
+
+if __name__ == "__main__":
+    main()

@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="tool")
 
     for name, info in TOOLS.items():
-        sub.add_parser(name, help=info["help"])
+        sub.add_parser(name, help=info["help"], add_help=False)
 
     if argv is None:
         argv = sys.argv[1:]
@@ -133,14 +133,18 @@ def main(argv: list[str] | None = None) -> None:
     mod = importlib.import_module(info["module"])
 
     # Delegate to the module's main(), injecting remaining args
-    sys.argv = [f"services.ingestion.{args.tool}"] + remaining
-    if hasattr(mod, "main"):
-        mod.main()
-    else:
-        # Fallback: run the module directly
-        import runpy
+    original_argv = sys.argv
+    try:
+        sys.argv = [f"services.ingestion.{args.tool}"] + remaining
+        if hasattr(mod, "main"):
+            mod.main()
+        else:
+            # Fallback: run the module directly
+            import runpy
 
-        runpy.run_module(info["module"], run_name="__main__")
+            runpy.run_module(info["module"], run_name="__main__")
+    finally:
+        sys.argv = original_argv
 
 
 if __name__ == "__main__":

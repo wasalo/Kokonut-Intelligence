@@ -2565,3 +2565,17 @@ privacy boundary or prove populated parity. Checklist: 843 complete / 25 open
 (868 total); matrix classifications remain 31 baseline-retained, 7 deployed,
 and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-anomaly-rule-list-cli.json).
+
+### CAP-039 / CAP-040 market-data CLI entrypoint — 21 October 2026
+
+The market-data module now provides a reusable parser and callable `main()`, so
+the unified ingestion CLI invokes its imported implementation rather than using
+the `runpy` fallback. Standalone and unified argument forwarding matches for
+World Bank and explicit seed modes, including matching help output. Dispatcher
+arguments are restored after success or failure. Invalid sources and World
+Bank date filters are rejected before work begins. The focused market-data
+tests pass (35), as do 62 ingestion-help/unified-CLI checks, Ruff, compilation,
+matrix validation, and diff checks. No provider, database, schedule, candidate,
+or legacy service was accessed. Populated price parity, live provider behavior,
+and MAN-CAP-040/047 remain open
+([evidence](builds/2026-10-21-recovery/cap-039-market-data-cli-entrypoint.json)).
