@@ -1,0 +1,20 @@
+{
+  "candidate_or_legacy_database_touched": false,
+  "capability": "CAP-038",
+  "change": "Standalone AI-summary persistence now delegates to the signed agent-summary worker adapter instead of issuing a direct INSERT through a caller-owned shared connection.",
+  "cli_output": "stored summary content is omitted",
+  "cli_request_id": "stable UUID accepted; generated when omitted; printed before storage",
+  "migrations_529_530_applied": false,
+  "python_compilation": "passed",
+  "remaining_boundary": "Generic SynthesisAgent storage and other background agent writers still require authenticated runtime wiring and provenance.",
+  "result": "passed",
+  "ruff": "passed",
+  "runtime_password_provisioned": false,
+  "tests": {
+    "command": "python3 -m pytest tests/test_ai_summary_safety.py tests/test_ai_summary_cli_lifecycle.py tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_worker_database.py tests/test_agent_write_boundary_inventory.py -q",
+    "passed": 80,
+    "skipped": 0
+  },
+  "worker_login_or_credential_provisioned": false,
+  "write_boundary": "one direct legacy ai_summary INSERT remains in services/agents/base.py; services/agents/ai_summary.py has none"
+}

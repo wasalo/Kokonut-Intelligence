@@ -19,12 +19,6 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
 
     assert inventory["direct_agent_write_sites"] == [
         {
-            "source": "services/agents/ai_summary.py",
-            "line": 459,
-            "statement_kind": "insert",
-            "table": "ai_summary",
-        },
-        {
             "source": "services/agents/base.py",
             "line": 116,
             "statement_kind": "insert",
@@ -32,7 +26,6 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
         },
     ]
     assert inventory["legacy_direct_ai_summary_inserts"] == [
-        {"source": "services/agents/ai_summary.py", "line": 459},
         {"source": "services/agents/base.py", "line": 116},
     ]
     assert inventory["agent_action_log_insert_sites"] == []
@@ -67,8 +60,8 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
     assert inventory["set_agent_context_call_sites"] == []
     assert inventory["audit_agent_action_call_sites"] == []
     assert inventory["summary"] == {
-        "direct_agent_write_sites": 2,
-        "legacy_direct_ai_summary_insert_sites": 2,
+        "direct_agent_write_sites": 1,
+        "legacy_direct_ai_summary_insert_sites": 1,
         "agent_action_log_insert_sites": 0,
         "authenticated_operator_draft_function_calls": 1,
         "authenticated_worker_draft_function_calls": 1,

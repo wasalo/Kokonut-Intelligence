@@ -95,7 +95,7 @@ def test_summary_generation_does_not_open_a_discarded_connection(monkeypatch, ca
     monkeypatch.setattr(
         ai_summary,
         "run_ai_summary",
-        lambda location_id, summary_type, store=False: {
+        lambda location_id, summary_type, store=False, request_id=None: {
             "summary": {
                 "summary_type": summary_type,
                 "source_tables": ["harvest_event"],
@@ -107,6 +107,66 @@ def test_summary_generation_does_not_open_a_discarded_connection(monkeypatch, ca
     ai_summary.main()
 
     assert "Generating combined summary" in capsys.readouterr().out
+
+
+def test_store_uses_explicit_retry_id_and_omits_content_from_cli_output(monkeypatch, capsys):
+    request_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+    _set_argv(
+        monkeypatch,
+        "--location-id",
+        LOCATION_ID,
+        "--store",
+        "--request-id",
+        request_id,
+    )
+    calls = []
+
+    def run(location_id, summary_type, store=False, request_id=None):
+        calls.append((location_id, summary_type, store, request_id))
+        return {
+            "summary": {
+                "summary_type": summary_type,
+                "source_tables": ["harvest_event"],
+                "content": "Private synthetic summary",
+            },
+            "ai_summary_id": SUMMARY_ID,
+        }
+
+    monkeypatch.setattr(ai_summary, "run_ai_summary", run)
+    monkeypatch.setattr(
+        ai_summary, "get_pg", lambda: pytest.fail("CLI must not open the legacy write path")
+    )
+
+    ai_summary.main()
+
+    output = capsys.readouterr().out
+    assert calls == [(LOCATION_ID, "combined", True, request_id)]
+    assert f"Request ID: {request_id}" in output
+    assert f"Summary stored: {SUMMARY_ID}" in output
+    assert "Private synthetic summary" not in output
+    assert "Summary content omitted from stdout" in output
+
+
+def test_malformed_store_request_id_fails_before_runner(monkeypatch):
+    _set_argv(monkeypatch, "--location-id", LOCATION_ID, "--store", "--request-id", "bad-id")
+    monkeypatch.setattr(
+        ai_summary,
+        "run_ai_summary",
+        lambda *_args, **_kwargs: pytest.fail("invalid request opened the worker path"),
+    )
+
+    with pytest.raises(SystemExit, match="2"):
+        ai_summary.main()
+
+
+def test_verify_cannot_be_combined_with_store_before_database(monkeypatch):
+    _set_argv(monkeypatch, "--verify", SUMMARY_ID, "--store")
+    monkeypatch.setattr(
+        ai_summary, "get_pg", lambda: pytest.fail("invalid CLI combination opened the database")
+    )
+
+    with pytest.raises(SystemExit, match="2"):
+        ai_summary.main()
 
 
 def test_list_closes_connection_when_query_fails(monkeypatch) -> None:

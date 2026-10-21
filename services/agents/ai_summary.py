@@ -10,6 +10,7 @@ Usage:
     python3 -m services.agents.ai_summary --location-id UUID
     python3 -m services.agents.ai_summary --location-id UUID --summary-type financial
     python3 -m services.agents.ai_summary --location-id UUID --store
+    python3 -m services.agents.ai_summary --location-id UUID --store --request-id UUID
     python3 -m services.agents.ai_summary --list
     python3 -m services.agents.ai_summary --verify <id>  # digest inspection only; no lifecycle change
 """
@@ -29,6 +30,7 @@ from services.agents.tasks import (
     validate_task_capabilities,
     validate_task_inputs,
 )
+from services.agents.worker_draft import create_worker_ai_summary_draft
 from services.common.database import get_db
 
 _SOURCE_REFERENCE_LIMIT = 50
@@ -432,9 +434,24 @@ def generate_combined(conn, location_id: str) -> dict:
 GENERATORS["combined"] = generate_combined
 
 
-def store_summary(conn, location_id: str, summary_type: str, content: str,
-                  source_tables: list, model_version: str = "rules-v1") -> str:
-    """Store AI summary in the database as a draft."""
+def store_summary(
+    conn,
+    location_id: str,
+    summary_type: str,
+    content: str,
+    source_tables: list,
+    model_version: str = "rules-v1",
+    *,
+    request_id: str,
+    source_references: dict[str, Any] | None = None,
+) -> str:
+    """Store an AI-summary draft through its signed worker identity.
+
+    ``conn`` remains in the signature for compatibility with existing callers;
+    it is not used for writing. New generation code should prefer
+    :func:`services.agents.worker_cli.run_worker_summary` so request replay and
+    source-reference collection happen before and during generation.
+    """
     validate_task_capabilities("ai_summary_synthesis")
     errors = validate_task_inputs(
         "ai_summary_synthesis",
@@ -453,24 +470,22 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
     if not isinstance(model_version, str) or not model_version.strip():
         raise ValueError("AI summary model_version must be a non-empty string")
     assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-    cur = conn.cursor()
-    summary_id = str(uuid.uuid4())
     try:
-        cur.execute(
-            """
-            INSERT INTO ai_summary
-                (id, subject_type, subject_id, summary_type, content,
-                 source_tables, model_version, status)
-            VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
-            RETURNING id
-            """,
-            (summary_id, location_id, summary_type, content, source_tables, model_version),
-        )
-        returned_id = str(cur.fetchone()[0])
-    finally:
-        cur.close()
-    conn.commit()
-    return returned_id
+        normalized_request_id = str(uuid.UUID(request_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("request_id must be a UUID") from exc
+    result = create_worker_ai_summary_draft(
+        location_id,
+        summary_type,
+        normalized_request_id,
+        {
+            "content": content,
+            "source_tables": source_tables,
+            "source_references": source_references or {},
+            "model_version": model_version,
+        },
+    )
+    return str(result["summary_id"])
 
 
 def list_summaries(conn, location_id: str = None):
@@ -520,7 +535,12 @@ def build_summary(conn, location_id: str, summary_type: str = "combined") -> dic
     return summary
 
 
-def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool = False) -> dict[str, Any]:
+def run_ai_summary(
+    location_id: str,
+    summary_type: str = "combined",
+    store: bool = False,
+    request_id: str | None = None,
+) -> dict[str, Any]:
     """Generate and optionally store an AI summary with safety checks."""
     validate_task_capabilities("ai_summary_synthesis")
     errors = validate_task_inputs(
@@ -530,21 +550,31 @@ def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool
     if errors:
         raise ValueError("; ".join(errors))
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
+    if store:
+        from services.agents.worker_cli import run_worker_summary
+
+        normalized_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
+        saved = run_worker_summary(location_id, summary_type, normalized_request_id)
+        summary = {
+            "content": saved["content"],
+            "source_tables": list(saved["source_tables"] or []),
+            "source_references": saved.get("source_references", {}),
+            "summary_type": summary_type,
+            "location_id": location_id,
+        }
+        return {
+            "summary": summary,
+            "ai_summary_id": saved["summary_id"],
+            "request_id": normalized_request_id,
+            "replayed": bool(saved.get("replayed")),
+        }
+
     conn = get_pg()
     try:
         summary = build_summary(conn, location_id, summary_type)
-        output: dict[str, Any] = {"summary": summary}
-        if store:
-            output["ai_summary_id"] = store_summary(
-                conn,
-                location_id,
-                summary["summary_type"],
-                summary["content"],
-                summary["source_tables"],
-            )
     finally:
         conn.close()
-    return output
+    return {"summary": summary}
 
 
 def _cli_uuid(parser: argparse.ArgumentParser, value: str, label: str) -> str:
@@ -560,7 +590,11 @@ def main():
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--summary-type", choices=list(GENERATORS.keys()), default="combined",
                         help="Type of summary to generate (default: combined)")
-    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
+    parser.add_argument("--store", action="store_true", help="Store draft via the signed worker path for human review")
+    parser.add_argument(
+        "--request-id",
+        help="Stable UUID for retry-safe storage; valid only with --store",
+    )
     parser.add_argument(
         "--list",
         action="store_true",
@@ -580,12 +614,14 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.request_id and not args.store:
+        parser.error("--request-id requires --store")
     if args.all_locations and not args.list:
         parser.error("--all-locations requires --list")
 
     if args.list:
-        if args.verify or args.store:
-            parser.error("--list cannot be combined with --verify or --store")
+        if args.verify or args.store or args.request_id:
+            parser.error("--list cannot be combined with --verify, --store, or --request-id")
         if args.all_locations and args.location_id:
             parser.error("--all-locations cannot be combined with --location-id")
         if not args.location_id and not args.all_locations:
@@ -608,6 +644,10 @@ def main():
         return
 
     if args.verify:
+        if args.store:
+            parser.error("--verify cannot be combined with --store")
+        if args.request_id:
+            parser.error("--verify cannot be combined with --request-id")
         args.verify = _cli_uuid(parser, args.verify, "summary-id")
         conn = get_pg()
         try:
@@ -636,9 +676,21 @@ def main():
         parser.error("--location-id is required (or use --list)")
 
     args.location_id = _cli_uuid(parser, args.location_id, "location-id")
+    if args.store:
+        args.request_id = (
+            _cli_uuid(parser, args.request_id, "request-id")
+            if args.request_id
+            else str(uuid.uuid4())
+        )
+        print(f"Request ID: {args.request_id}")
 
     print(f"Generating {args.summary_type} summary for location {args.location_id}...")
-    result = run_ai_summary(args.location_id, args.summary_type, store=args.store)
+    result = run_ai_summary(
+        args.location_id,
+        args.summary_type,
+        store=args.store,
+        request_id=args.request_id,
+    )
 
     print(f"Type: {result['summary']['summary_type']}")
     print(f"Sources: {', '.join(result['summary']['source_tables'])}")
@@ -646,7 +698,10 @@ def main():
         print(f"Summary stored: {result['ai_summary_id']}")
     else:
         print("Summary not stored (use --store to save as draft)")
-    print(f"\n--- Preview ---\n{result['summary']['content'][:500]}")
+    if args.store:
+        print("Summary content omitted from stdout; review the draft in the authorized console.")
+    else:
+        print(f"\n--- Preview ---\n{result['summary']['content'][:500]}")
 
 
 if __name__ == "__main__":

@@ -8,12 +8,17 @@ import pytest
 
 from services.agents import ai_summary
 
+LOCATION_ID = "a0000000-0000-4000-8000-000000000001"
+REQUEST_ID = "a0000000-0000-4000-8000-000000000002"
+
 
 def test_store_summary_rejects_malformed_location_before_cursor_access():
     conn = mock.Mock()
     with mock.patch.object(ai_summary, "assert_agent_action_allowed") as safety:
         with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
-            ai_summary.store_summary(conn, "not-a-uuid", "operations", "draft", [])
+            ai_summary.store_summary(
+                conn, "not-a-uuid", "operations", "draft", [], request_id=REQUEST_ID
+            )
 
     conn.cursor.assert_not_called()
     conn.commit.assert_not_called()
@@ -29,6 +34,7 @@ def test_store_summary_rejects_invalid_content_before_cursor_access():
             "operations",
             "   ",
             ["harvest_event"],
+            request_id=REQUEST_ID,
         )
 
     conn.cursor.assert_not_called()
@@ -44,6 +50,7 @@ def test_store_summary_rejects_overlong_content_before_cursor_access():
             "operations",
             "x" * 20_001,
             ["harvest_event"],
+            request_id=REQUEST_ID,
         )
 
     conn.cursor.assert_not_called()
@@ -68,6 +75,7 @@ def test_store_summary_rejects_invalid_source_tables_before_cursor_access(source
                 "operations",
                 "synthetic draft",
                 source_tables,
+                request_id=REQUEST_ID,
             )
 
     conn.cursor.assert_not_called()
@@ -75,72 +83,84 @@ def test_store_summary_rejects_invalid_source_tables_before_cursor_access(source
     safety.assert_not_called()
 
 
-@pytest.mark.parametrize("failure_stage", ["execute", "fetchone"])
-def test_store_summary_closes_cursor_and_does_not_commit_on_persistence_failure(
-    failure_stage,
-):
+def test_store_summary_propagates_signed_worker_failure_without_using_shared_connection():
     conn = mock.Mock()
-    cursor = conn.cursor.return_value
-    failure = RuntimeError(f"{failure_stage} failed")
-    if failure_stage == "execute":
-        cursor.execute.side_effect = failure
-    else:
-        cursor.fetchone.side_effect = failure
+    failure = RuntimeError("worker write failed")
 
-    with pytest.raises(RuntimeError, match=f"{failure_stage} failed"):
-        ai_summary.store_summary(
-            conn,
-            "a0000000-0000-4000-8000-000000000001",
-            "operations",
-            "synthetic draft",
-            ["harvest_event"],
-        )
+    with mock.patch.object(ai_summary, "create_worker_ai_summary_draft", side_effect=failure) as writer:
+        with pytest.raises(RuntimeError, match="worker write failed"):
+            ai_summary.store_summary(
+                conn,
+                LOCATION_ID,
+                "operations",
+                "synthetic draft",
+                ["harvest_event"],
+                request_id=REQUEST_ID,
+            )
 
-    cursor.close.assert_called_once_with()
+    writer.assert_called_once()
+    conn.cursor.assert_not_called()
     conn.commit.assert_not_called()
 
 
-def test_store_summary_validates_and_commits_a_draft():
+def test_store_summary_uses_worker_identity_and_keeps_shared_connection_unused():
     conn = mock.Mock()
-    conn.cursor.return_value.fetchone.return_value = ("stored-id",)
 
-    result = ai_summary.store_summary(
-        conn,
-        "a0000000-0000-4000-8000-000000000001",
-        "operations",
-        "synthetic draft",
-        ["harvest_event"],
-    )
+    with mock.patch.object(
+        ai_summary,
+        "create_worker_ai_summary_draft",
+        return_value={"summary_id": "stored-id"},
+    ) as writer:
+        result = ai_summary.store_summary(
+            conn,
+            LOCATION_ID,
+            "operations",
+            "synthetic draft",
+            ["harvest_event"],
+            request_id=REQUEST_ID,
+            source_references={
+                "harvest_event": {"record_ids": [LOCATION_ID], "row_count": 1, "truncated": False}
+            },
+        )
 
     assert result == "stored-id"
-    conn.cursor.return_value.execute.assert_called_once()
-    conn.commit.assert_called_once_with()
-
-
-def test_run_ai_summary_does_not_store_invalid_output():
-    conn = mock.Mock()
-    generator = mock.Mock(
-        return_value={
-            "content": "synthetic summary",
+    writer.assert_called_once_with(
+        LOCATION_ID,
+        "operations",
+        REQUEST_ID,
+        {
+            "content": "synthetic draft",
             "source_tables": ["harvest_event"],
-            "summary_type": "operations",
-        }
+            "source_references": {
+                "harvest_event": {"record_ids": [LOCATION_ID], "row_count": 1, "truncated": False}
+            },
+            "model_version": "rules-v1",
+        },
     )
-    with mock.patch.object(ai_summary, "get_pg", return_value=conn):
-        with mock.patch.object(ai_summary, "validate_task_capabilities"):
-            with mock.patch.object(ai_summary, "assert_agent_action_allowed"):
-                with mock.patch.object(ai_summary, "_check_registry_backed", return_value=True):
-                    with mock.patch.dict(ai_summary.GENERATORS, {"operations": generator}):
-                        with mock.patch.object(
-                            ai_summary, "validate_output", return_value=["bad summary"]
-                        ):
-                            with mock.patch.object(ai_summary, "store_summary") as store:
-                                with pytest.raises(ValueError, match="bad summary"):
-                                    ai_summary.run_ai_summary(
-                                        "a0000000-0000-4000-8000-000000000001",
-                                        "operations",
-                                        store=True,
-                                    )
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
 
-    store.assert_not_called()
-    conn.close.assert_called_once_with()
+
+def test_run_ai_summary_store_uses_worker_path_before_shared_database(monkeypatch):
+    saved = {
+        "summary_id": "stored-id",
+        "content": "synthetic summary",
+        "source_tables": ["harvest_event"],
+        "source_references": {},
+        "replayed": False,
+    }
+    monkeypatch.setattr(
+        ai_summary,
+        "get_pg",
+        lambda: pytest.fail("stored summary must use the signed worker path"),
+    )
+    from services.agents import worker_cli
+
+    with mock.patch.object(worker_cli, "run_worker_summary", return_value=saved) as run_worker:
+        result = ai_summary.run_ai_summary(
+            LOCATION_ID, "operations", store=True, request_id=REQUEST_ID
+        )
+
+    run_worker.assert_called_once_with(LOCATION_ID, "operations", REQUEST_ID)
+    assert result["ai_summary_id"] == "stored-id"
+    assert result["summary"]["source_references"] == {}

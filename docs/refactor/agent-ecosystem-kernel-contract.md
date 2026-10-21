@@ -87,16 +87,18 @@ run without decrypting `.env.sops`.
   Signed worker context and authenticated operator context remain the supported
   identity patterns; legacy/background agent writers still lack an authenticated
   run identity and database least privilege.
-- The current source inventory identifies two literal direct DML sites in
-  `services/agents`, both legacy `ai_summary` inserts. Legacy agent-action write
-  and global-read helpers now fail before database access because their caller-
-  supplied `agent_id` and unscoped query do not authenticate a principal. The
-  inventory pins one authenticated Gateway draft call and four signed-worker
-  summary calls (lookup, create, source-reference attach, and read), with no
-  calls to `set_agent_context()` or `audit_agent_action()`. It records source
-  locations and table names, not SQL text or runtime values; dynamic SQL may be
-  missed. This is source coverage, not proof of role privileges or runtime
-  reachability ([inventory](agent-write-boundary-inventory.json);
+- The current source inventory identifies one literal direct DML site in
+  `services/agents`: the generic legacy `SynthesisAgent` draft insert. The
+  standalone AI-summary helper and one-shot CLI now persist through the signed
+  worker adapter; the legacy agent-action write and global-read helpers fail
+  before database access because their caller-supplied `agent_id` and unscoped
+  query do not authenticate a principal. The inventory pins one authenticated
+  Gateway draft call and four signed-worker summary calls (lookup, create,
+  source-reference attach, and read), with no calls to `set_agent_context()` or
+  `audit_agent_action()`. It records source locations and table names, not SQL
+  text or runtime values; dynamic SQL may be missed. This is source coverage,
+  not proof of role privileges or runtime reachability
+  ([inventory](agent-write-boundary-inventory.json);
   [checker](../../scripts/agent_write_boundary_inventory.py)).
 
 ## Location-scoped AI-summary draft and human-review slice
