@@ -165,14 +165,20 @@ operator setter behavior remains covered. This applies only to the new signed
 worker adapter; legacy/background writers still lack row-level manifests.
 
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
-role that may switch only to the bounded worker execution role. An operator
-still needs to provision its login/password and the isolated worker's database
-URL and high-entropy credential. This is not yet an agent runtime deployment:
-no isolated agent process, Compose service, or secret-provider entry was
-added, and existing agent/CLI writers still use their legacy paths. The database
-acceptance uses a synthetic operator-context stub for its review step; production worker
-identity is exercised with migration 405's signed worker context. Migration
-529/530 are not rolled out to the candidate. See the
+role that may switch only to the bounded worker execution role. A one-shot
+`services.agents.worker_cli` now exercises this path for the four deterministic
+AI-summary types: it checks the stable request receipt first, runs source
+queries inside a read-only transaction using the required runtime database
+identity, and creates the draft plus
+source manifest through the separate signed worker connection. Compose exposes
+the dedicated DSN and high-entropy credential only to the opt-in
+`agent-summary-worker` service. An operator still needs to provision the runtime
+password, worker login/password, worker credential, and service DSN; migrations 529/530 are not rolled
+out to the candidate. Existing synthesis CLIs still use their legacy draft
+writer, and other agent tasks are not yet wired to this worker. The database
+acceptance uses a synthetic operator-context stub for its review step;
+production worker identity is exercised with migration 405's signed worker
+context. See the
 [worker adapter](../../services/agents/worker_draft.py),
 [migration 529](../../schemas/postgres/529_signed_agent_ai_summary_drafts.sql),
 [migration 530](../../schemas/postgres/530_signed_agent_ai_summary_source_references.sql),

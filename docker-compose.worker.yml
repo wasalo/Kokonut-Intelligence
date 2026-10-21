@@ -32,8 +32,8 @@ services:
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
-      PG_USER: ${PG_USER:-kokonut}
-      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       CH_HOST: clickhouse
       CH_PORT: "8123"
@@ -90,6 +90,39 @@ services:
           memory: 512M
     profiles:
       - worker
+
+  # One-shot AI-summary generation is isolated from the shared supervisor so
+  # its signed-worker credential is never inherited by event/scheduler handlers.
+  # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
+  #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID
+  #   --summary-type combined --request-id UUID
+  agent-summary-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint: ["python3", "-m", "services.agents.worker_cli"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - agent-summary-worker
 
   event-worker:
     build:

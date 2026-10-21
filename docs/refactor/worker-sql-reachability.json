@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 32,
-    "sql_execution_sites": 329,
-    "statically_reachable_site_memberships": 329,
-    "unique_sites_with_static_operation_path": 256,
+    "sql_execution_sites": 333,
+    "statically_reachable_site_memberships": 333,
+    "unique_sites_with_static_operation_path": 260,
     "sites_without_static_function_match": 73,
     "unmatched_functions_absent_from_all_worker_graphs": 73,
     "sites_reached_by_multiple_operations": 13
@@ -173,7 +173,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/climate_worker.py:51:12",
         "services/ingestion/climate_worker.py:90:12"
       ]
@@ -184,24 +184,24 @@
       "operation_ref": "scheduled_module:services.ingestion.data_freshness",
       "statically_reachable_sql_site_count": 18,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/data_freshness.py:104:8",
-        "services/ingestion/data_freshness.py:167:4",
-        "services/ingestion/data_freshness.py:180:4",
-        "services/ingestion/data_freshness.py:190:4",
-        "services/ingestion/data_freshness.py:216:4",
-        "services/ingestion/data_freshness.py:232:4",
-        "services/ingestion/data_freshness.py:249:4",
-        "services/ingestion/data_freshness.py:258:8",
-        "services/ingestion/data_freshness.py:280:4",
-        "services/ingestion/data_freshness.py:413:12",
-        "services/ingestion/data_freshness.py:425:16",
-        "services/ingestion/data_freshness.py:502:20",
-        "services/ingestion/data_freshness.py:508:16",
-        "services/ingestion/data_freshness.py:514:16",
-        "services/ingestion/data_freshness.py:54:8",
-        "services/ingestion/data_freshness.py:557:4",
-        "services/ingestion/data_freshness.py:59:8",
-        "services/ingestion/data_freshness.py:73:4"
+        "services/ingestion/data_freshness.py:105:8",
+        "services/ingestion/data_freshness.py:171:8",
+        "services/ingestion/data_freshness.py:186:8",
+        "services/ingestion/data_freshness.py:198:8",
+        "services/ingestion/data_freshness.py:225:8",
+        "services/ingestion/data_freshness.py:241:8",
+        "services/ingestion/data_freshness.py:260:8",
+        "services/ingestion/data_freshness.py:269:12",
+        "services/ingestion/data_freshness.py:293:8",
+        "services/ingestion/data_freshness.py:427:16",
+        "services/ingestion/data_freshness.py:441:20",
+        "services/ingestion/data_freshness.py:520:24",
+        "services/ingestion/data_freshness.py:528:20",
+        "services/ingestion/data_freshness.py:536:20",
+        "services/ingestion/data_freshness.py:54:12",
+        "services/ingestion/data_freshness.py:581:8",
+        "services/ingestion/data_freshness.py:59:12",
+        "services/ingestion/data_freshness.py:74:8"
       ]
     },
     {
@@ -234,7 +234,7 @@
       "operation_ref": "scheduled_module:services.ingestion.eas_worker",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/eas_worker.py:137:20",
         "services/ingestion/eas_worker.py:159:12",
         "services/ingestion/eas_worker.py:187:12",
@@ -282,7 +282,7 @@
       "operation_ref": "scheduled_module:services.ingestion.market_data_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/market_data_worker.py:55:12"
       ]
     },
@@ -298,14 +298,14 @@
         "services/ingestion/copernicus_remote_sensing.py:236:8",
         "services/ingestion/gee_remote_sensing.py:296:4",
         "services/ingestion/gee_remote_sensing.py:335:8",
-        "services/ingestion/remote_sensing_fetcher.py:127:8",
-        "services/ingestion/remote_sensing_fetcher.py:165:4",
-        "services/ingestion/remote_sensing_fetcher.py:219:4",
-        "services/ingestion/remote_sensing_fetcher.py:238:8",
-        "services/ingestion/remote_sensing_fetcher.py:254:4",
-        "services/ingestion/remote_sensing_fetcher.py:282:4",
-        "services/ingestion/remote_sensing_fetcher.py:441:4",
-        "services/ingestion/remote_sensing_fetcher.py:504:12"
+        "services/ingestion/remote_sensing_fetcher.py:136:8",
+        "services/ingestion/remote_sensing_fetcher.py:176:8",
+        "services/ingestion/remote_sensing_fetcher.py:232:8",
+        "services/ingestion/remote_sensing_fetcher.py:253:12",
+        "services/ingestion/remote_sensing_fetcher.py:271:8",
+        "services/ingestion/remote_sensing_fetcher.py:301:8",
+        "services/ingestion/remote_sensing_fetcher.py:462:8",
+        "services/ingestion/remote_sensing_fetcher.py:528:16"
       ]
     },
     {
@@ -317,7 +317,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/remote_sensing_worker.py:160:12",
         "services/ingestion/remote_sensing_worker.py:53:12"
       ]
@@ -347,7 +347,7 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_worker",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/rpc_worker.py:108:12",
         "services/ingestion/rpc_worker.py:142:12",
         "services/ingestion/rpc_worker.py:171:12",
@@ -359,7 +359,7 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.sensor_ingester",
       "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
-      "statically_reachable_sql_site_count": 13,
+      "statically_reachable_sql_site_count": 17,
       "statically_reachable_sql_site_ids": [
         "services/drivers/registry.py:244:12",
         "services/drivers/registry.py:371:16",
@@ -373,7 +373,11 @@
         "services/ingestion/sensor_ingester.py:178:8",
         "services/ingestion/sensor_ingester.py:201:8",
         "services/ingestion/sensor_ingester.py:226:12",
-        "services/ingestion/sensor_ingester.py:833:12"
+        "services/ingestion/sensor_ingester.py:380:16",
+        "services/ingestion/sensor_ingester.py:426:20",
+        "services/ingestion/sensor_ingester.py:432:20",
+        "services/ingestion/sensor_ingester.py:433:20",
+        "services/ingestion/sensor_ingester.py:927:12"
       ]
     },
     {
@@ -385,7 +389,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/sensor_worker.py:240:12",
         "services/ingestion/sensor_worker.py:271:12",
         "services/ingestion/sensor_worker.py:48:12",
@@ -400,8 +404,8 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
-        "services/ingestion/weather.py:202:12",
-        "services/ingestion/weather.py:207:12",
+        "services/ingestion/weather.py:203:16",
+        "services/ingestion/weather.py:208:16",
         "services/ingestion/weather.py:92:8"
       ]
     },
@@ -431,7 +435,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/weather_forecast_worker.py:44:12",
         "services/ingestion/weather_forecast_worker.py:85:12"
       ]
@@ -445,7 +449,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/weather_worker.py:113:12",
         "services/ingestion/weather_worker.py:68:12"
       ]
@@ -496,7 +500,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/metrics/noi_snapshot_worker.py:29:12"
       ]
     },
@@ -511,7 +515,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12"
+        "services/common/worker_database.py:115:12"
       ]
     },
     {
@@ -525,7 +529,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12"
+        "services/common/worker_database.py:115:12"
       ]
     },
     {
@@ -539,7 +543,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12"
+        "services/common/worker_database.py:115:12"
       ]
     },
     {
@@ -553,7 +557,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12"
+        "services/common/worker_database.py:115:12"
       ]
     },
     {
@@ -562,7 +566,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/events/notification_outbox.py:179:12",
         "services/events/notification_outbox.py:194:12",
         "services/events/notification_outbox.py:214:16",
@@ -575,7 +579,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/events/notification_outbox.py:179:12",
         "services/events/notification_outbox.py:194:12",
         "services/events/notification_outbox.py:214:16",
@@ -591,7 +595,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:114:12",
+        "services/common/worker_database.py:115:12",
         "services/ingestion/sensor_anomaly_worker.py:83:8",
         "services/ingestion/sensor_anomaly_worker.py:89:8"
       ]
@@ -1887,9 +1891,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/worker_database.py:114:12",
+      "id": "services/common/worker_database.py:115:12",
       "source": "services/common/worker_database.py",
-      "line": 114,
+      "line": 115,
       "scope": "get_worker_db",
       "method": "execute",
       "expression_kind": "literal",
@@ -4892,7 +4896,7 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:54:8",
+      "id": "services/ingestion/data_freshness.py:54:12",
       "source": "services/ingestion/data_freshness.py",
       "line": 54,
       "scope": "_query_freshness_configs",
@@ -4913,7 +4917,7 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:59:8",
+      "id": "services/ingestion/data_freshness.py:59:12",
       "source": "services/ingestion/data_freshness.py",
       "line": 59,
       "scope": "_query_freshness_configs",
@@ -4934,9 +4938,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:73:4",
+      "id": "services/ingestion/data_freshness.py:74:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 73,
+      "line": 74,
       "scope": "_location_ids",
       "method": "execute",
       "expression_kind": "literal",
@@ -4955,9 +4959,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:104:8",
+      "id": "services/ingestion/data_freshness.py:105:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 104,
+      "line": 105,
       "scope": "_query_latest_data_at",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -4974,9 +4978,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:114:4",
+      "id": "services/ingestion/data_freshness.py:116:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 114,
+      "line": 116,
       "scope": "_query_latest_ingestion",
       "method": "execute",
       "expression_kind": "literal",
@@ -4993,9 +4997,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/data_freshness.py:167:4",
+      "id": "services/ingestion/data_freshness.py:171:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 167,
+      "line": 171,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -5014,9 +5018,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:180:4",
+      "id": "services/ingestion/data_freshness.py:186:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 180,
+      "line": 186,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -5035,9 +5039,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:190:4",
+      "id": "services/ingestion/data_freshness.py:198:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 190,
+      "line": 198,
       "scope": "_alert_state",
       "method": "execute",
       "expression_kind": "literal",
@@ -5056,9 +5060,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:216:4",
+      "id": "services/ingestion/data_freshness.py:225:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 216,
+      "line": 225,
       "scope": "_persist_alert_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5077,9 +5081,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:232:4",
+      "id": "services/ingestion/data_freshness.py:241:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 232,
+      "line": 241,
       "scope": "_persist_alert_event",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5098,9 +5102,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:249:4",
+      "id": "services/ingestion/data_freshness.py:260:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 249,
+      "line": 260,
       "scope": "_persist_delivery_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -5119,9 +5123,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:258:8",
+      "id": "services/ingestion/data_freshness.py:269:12",
       "source": "services/ingestion/data_freshness.py",
-      "line": 258,
+      "line": 269,
       "scope": "_persist_delivery_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -5141,9 +5145,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:280:4",
+      "id": "services/ingestion/data_freshness.py:293:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 280,
+      "line": 293,
       "scope": "_insert_check_result",
       "method": "execute",
       "expression_kind": "literal",
@@ -5162,9 +5166,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:413:12",
+      "id": "services/ingestion/data_freshness.py:427:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 413,
+      "line": 427,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5181,9 +5185,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:425:16",
+      "id": "services/ingestion/data_freshness.py:441:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 425,
+      "line": 441,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5200,9 +5204,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:502:20",
+      "id": "services/ingestion/data_freshness.py:520:24",
       "source": "services/ingestion/data_freshness.py",
-      "line": 502,
+      "line": 520,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5221,9 +5225,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:508:16",
+      "id": "services/ingestion/data_freshness.py:528:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 508,
+      "line": 528,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5242,9 +5246,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:514:16",
+      "id": "services/ingestion/data_freshness.py:536:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 514,
+      "line": 536,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5261,9 +5265,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:557:4",
+      "id": "services/ingestion/data_freshness.py:581:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 557,
+      "line": 581,
       "scope": "get_freshness_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -6168,9 +6172,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:108:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:117:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 108,
+      "line": 117,
       "scope": "_query_active_jobs",
       "method": "execute",
       "expression_kind": "literal",
@@ -6188,9 +6192,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:127:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:136:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 127,
+      "line": 136,
       "scope": "_claim_due_jobs",
       "method": "execute",
       "expression_kind": "literal",
@@ -6212,9 +6216,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:165:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:176:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 165,
+      "line": 176,
       "scope": "_query_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -6234,9 +6238,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:219:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:232:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 219,
+      "line": 232,
       "scope": "_update_job_status",
       "method": "execute",
       "expression_kind": "fstring",
@@ -6256,9 +6260,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:238:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:253:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 238,
+      "line": 253,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -6278,9 +6282,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:254:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:271:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 254,
+      "line": 271,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
       "expression_kind": "literal",
@@ -6301,9 +6305,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:282:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:301:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 282,
+      "line": 301,
       "scope": "_record_provider_attempt",
       "method": "execute",
       "expression_kind": "literal",
@@ -6323,9 +6327,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:441:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:462:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 441,
+      "line": 462,
       "scope": "list_jobs",
       "method": "execute",
       "expression_kind": "literal",
@@ -6346,9 +6350,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:504:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:528:16",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 504,
+      "line": 528,
       "scope": "main",
       "method": "execute",
       "expression_kind": "literal",
@@ -6851,9 +6855,85 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:788:8",
+      "id": "services/ingestion/sensor_ingester.py:380:16",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 788,
+      "line": 380,
+      "scope": "run_csv",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:426:20",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 426,
+      "scope": "run_csv",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:432:20",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 432,
+      "scope": "run_csv",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:433:20",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 433,
+      "scope": "run_csv",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:882:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 882,
       "scope": "check_calibration_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -6872,9 +6952,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:833:12",
+      "id": "services/ingestion/sensor_ingester.py:927:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 833,
+      "line": 927,
       "scope": "list_calibration_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -6999,9 +7079,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather.py:202:12",
+      "id": "services/ingestion/weather.py:203:16",
       "source": "services/ingestion/weather.py",
-      "line": 202,
+      "line": 203,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -7021,9 +7101,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather.py:207:12",
+      "id": "services/ingestion/weather.py:208:16",
       "source": "services/ingestion/weather.py",
-      "line": 207,
+      "line": 208,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",

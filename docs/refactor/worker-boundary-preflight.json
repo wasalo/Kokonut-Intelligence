@@ -27,8 +27,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 329,
-    "sites_with_static_operation_path": 256,
+    "execution_site_count": 333,
+    "sites_with_static_operation_path": 260,
     "sites_without_static_function_match": 73,
     "site_refs_for_review": [
       {
@@ -367,7 +367,7 @@
         "import_closure_operation_count": 11
       },
       {
-        "site": "services/ingestion/data_freshness.py:114:4",
+        "site": "services/ingestion/data_freshness.py:116:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
@@ -377,12 +377,12 @@
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/remote_sensing_fetcher.py:108:4",
+        "site": "services/ingestion/remote_sensing_fetcher.py:117:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/sensor_ingester.py:788:8",
+        "site": "services/ingestion/sensor_ingester.py:882:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

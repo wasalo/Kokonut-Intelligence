@@ -1,0 +1,32 @@
+{
+  "agent_write_boundary_inventory": "current",
+  "candidate_or_legacy_database_touched": false,
+  "capability": "CAP-038",
+  "capability_matrix": "valid (66 rows)",
+  "change": "Added an opt-in one-shot signed worker entry point for deterministic AI-summary generation; source reads are read-only and draft plus source-reference writes use the dedicated signed worker adapter.",
+  "cli_help": "passed without database access",
+  "compose": {
+    "config_validation": "passed with candidate, worker, and standard overlays using a synthetic runtime-password placeholder; no containers were started",
+    "dedicated_worker_dsn_and_credential_present_only_on": "agent-summary-worker",
+    "profile": "agent-summary-worker"
+  },
+  "migration_applied": false,
+  "migration_prerequisites": "migrations 529 and 530 must be applied before use",
+  "python_compilation": "passed",
+  "read_transaction": "SET TRANSACTION READ ONLY with 15-second statement and 3-second lock timeouts",
+  "remaining_boundary": "This entry point supports four deterministic AI-summary types only. Existing synthesis CLIs and other agent task writers still use legacy paths; the one-shot service is not enabled by default.",
+  "result": "passed",
+  "ruff": "passed",
+  "runtime_database_identity": "KOKONUT_RUNTIME_USER/PASSWORD required; source transaction is read-only and time-bounded",
+  "runtime_password_provisioned": false,
+  "runtime_sql_inventory": "current",
+  "stdout": "summary content and source row IDs omitted; only summary ID, status, and replay marker are printed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_worker_database.py -q",
+    "passed": 54,
+    "skipped": 0
+  },
+  "worker_login_or_credential_provisioned": false,
+  "worker_source_and_reachability_inventories": "current",
+  "write_path": "signed worker adapter with exact request replay and source-reference attachment"
+}
