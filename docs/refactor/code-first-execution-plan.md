@@ -2579,3 +2579,14 @@ matrix validation, and diff checks. No provider, database, schedule, candidate,
 or legacy service was accessed. Populated price parity, live provider behavior,
 and MAN-CAP-040/047 remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-market-data-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 price-attestation CLI entrypoint — 21 October 2026
+
+`price_attestation` now exposes a callable parser and `main()`. Incomplete
+commands print help before PostgreSQL is opened; stubbed manual and daily paths
+preserve arguments and close connections. Standalone and unified CLI output and
+argument dispatch match. Seven focused cases pass within the 50-test
+price/Oracle selection, with 62 ingestion-help/unified CLI checks, Ruff, and
+compilation. Database writes and EAS access were stubbed; no database or chain
+was contacted. Populated source parity and on-chain attestation remain open
+([evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).

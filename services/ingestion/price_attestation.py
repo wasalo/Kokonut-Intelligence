@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict
@@ -125,15 +126,27 @@ def attest_daily_prices(conn) -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Price feed attestation")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="price_attestation.py",
+        description="Price feed attestation",
+    )
     parser.add_argument("--commodity", help="Commodity to attest")
     parser.add_argument("--price", type=float, help="Price to attest")
     parser.add_argument("--source", default="manual", help="Price source")
     parser.add_argument("--run-daily", action="store_true", help="Attest all daily prices")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run a manual or daily price attestation command."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if not args.run_daily and not (args.commodity and args.price):
+        parser.print_help()
+        return
 
     conn = get_db()
     try:
@@ -143,7 +156,9 @@ if __name__ == "__main__":
         elif args.commodity and args.price:
             result = attest_price(conn, args.commodity, args.price, args.source)
             print_json(result)
-        else:
-            parser.print_help()
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    main()

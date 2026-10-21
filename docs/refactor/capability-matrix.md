@@ -4191,3 +4191,15 @@ accept MAN-CAP-040/047. Checklist: 844 complete / 25 open (869 total); matrix
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([tests](../tests/test_market_data_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-market-data-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 price-attestation CLI entrypoint — 21 October 2026:**
+`price_attestation` now has a callable parser/main path and avoids opening
+PostgreSQL when arguments only request help or do not select an operation.
+Stubbed manual/daily dispatch closes connections; standalone/unified arguments
+and help match. Seven CLI regressions pass within the 50-test price/Oracle
+selection and 62 CLI-help/unified checks, with Ruff and compilation. No database
+or chain was contacted; populated price lineage and on-chain attestation remain
+unverified. Checklist: 845 complete / 25 open (870 total); classifications
+remain 31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_price_attestation_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).

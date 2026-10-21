@@ -13464,3 +13464,18 @@ open. Checklist: 844 complete / 25 open (869 total); the matrix remains 66
 rows: 31 baseline-retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_market_data_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-market-data-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 price-attestation CLI entrypoint — 21 October 2026
+
+`price_attestation` now exposes a callable parser and `main()`, so unified
+dispatch does not re-run the imported module. Incomplete invocations print help
+without opening PostgreSQL. Stubbed manual and daily operations preserve their
+arguments and close connections; standalone and unified help/argument behavior
+matches. Seven CLI cases pass within the 50-test price/Oracle selection, and 62
+ingestion-help/unified CLI checks pass. Ruff and compilation pass. Database
+writes and EAS access were stubbed; no database or chain was contacted. This
+does not establish populated price parity or on-chain attestation behavior.
+Checklist: 845 complete / 25 open (870 total); matrix remains 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_price_attestation_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-price-attestation-cli-entrypoint.json)).
