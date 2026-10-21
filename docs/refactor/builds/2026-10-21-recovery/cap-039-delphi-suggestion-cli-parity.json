@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-039",
+  "related_capability": "CAP-027",
+  "scope": "Verify standalone and unified CLI forwarding for the in-memory Delphi recommendation suggestion command.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_unified_cli_success_contract.py::test_delphi_recommendation_suggestion_matches_standalone_without_database -q",
+    "result": "passed",
+    "passed": 1
+  },
+  "standalone_unified_output": "identical",
+  "caller_supplied_actor_returned": false,
+  "database_or_provider_calls": false,
+  "environment": {
+    "database_url": "closed loopback port",
+    "sops_identity": "unavailable"
+  },
+  "limits": [
+    "This verifies CLI forwarding and offline behavior only.",
+    "Persisted Delphi recommendation drafts and human review remain on the authenticated, location-scoped Gateway paths."
+  ]
+}

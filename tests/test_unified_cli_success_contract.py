@@ -84,6 +84,33 @@ def test_offline_catalogue_output_matches_standalone_cli(group: str) -> None:
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_delphi_recommendation_suggestion_matches_standalone_without_database() -> None:
+    args = [
+        "draft-recommendation",
+        "--study-id",
+        "a0000000-0000-4000-8000-000000000001",
+        "--text",
+        "Consider a phased water plan.",
+        "--summary",
+        "Synthetic panel summary.",
+        "--created-by",
+        "caller-supplied-actor",
+    ]
+    environment = _environment()
+
+    standalone = _run(["-m", "services.delphi.cli", *args], environment)
+    unified = _run(["-m", "services.cli", "delphi", "--", *args], environment)
+
+    assert standalone.returncode == unified.returncode == 0
+    standalone_result = json.loads(standalone.stdout)
+    unified_result = json.loads(unified.stdout)
+    assert unified_result == standalone_result
+    assert unified_result["status"] == "draft"
+    assert "created_by" not in unified_result
+    assert "in-memory" in unified_result["safety_note"].lower()
+    assert unified.stderr == standalone.stderr == ""
+
+
 def test_offline_form_validation_output_matches_standalone_cli(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.json"
     manifest_path.write_text(json.dumps(_manifest()), encoding="utf-8")
