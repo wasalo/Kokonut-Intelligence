@@ -15,14 +15,15 @@
     "python3 -m py_compile services/ingestion/sensor_ingester.py tests/test_sensor_ingester_csv_audit_scope.py tests/test_sensor_ingester_error_redaction.py"
   ],
   "results": {
-    "pytest": "27 passed",
+    "pytest": "29 passed",
     "ruff": "passed",
     "py_compile": "passed"
   },
   "verified": [
-    "Missing-field, invalid-timestamp, rejected-reading, successful, and failed-processing CSV audits pass the caller-owned connection and canonical location ID.",
+    "Missing-field, short-row, invalid-numeric, unknown-sensor, invalid-timestamp, rejected-reading, successful, and failed-processing CSV audits pass the caller-owned connection and canonical location ID.",
     "Synthetic rejected and successful CSV cases create only one connection, use the same connection for audit writes, and close it after the batch.",
-    "Failure details remain redacted to safe fixed messages or exception class names."
+    "Failure details remain redacted to safe fixed messages or exception class names.",
+    "Raw numeric values and unknown device identifiers are not included in error messages or audit detail."
   ],
   "external_effects": "CSV files were synthetic temporary fixtures; database writes and sensor projection were mocked. No database or provider was contacted.",
   "limitations": [

@@ -69,17 +69,26 @@ def test_csv_invalid_timestamp_is_not_copied_to_logs_or_audit(tmp_path, monkeypa
     connection.close.assert_called_once()
 
 
-def test_csv_invalid_numeric_value_is_not_logged(tmp_path, monkeypatch):
+def test_csv_invalid_numeric_value_is_audited_without_raw_value(tmp_path, monkeypatch):
     connection = MagicMock()
     logger = MagicMock()
+    audit = MagicMock()
     csv_path = _write_csv(tmp_path / "readings.csv", value=SECRET)
     monkeypatch.setattr(sensor_ingester, "get_db", lambda: connection)
     monkeypatch.setattr(sensor_ingester, "get_sensor_type_ranges", lambda *_args: {})
+    monkeypatch.setattr(sensor_ingester, "hash_payload", lambda _row: "c" * 64)
+    monkeypatch.setattr(sensor_ingester, "log_ingestion", audit)
     monkeypatch.setattr(sensor_ingester, "logger", logger)
 
     sensor_ingester.run_csv(csv_path, location_id=LOCATION_ID)
 
+    audit.assert_called_once()
+    assert audit.call_args.kwargs["error_message"] == "invalid numeric value"
+    assert audit.call_args.kwargs["validation_errors"] == ["invalid numeric value"]
+    assert audit.call_args.kwargs["db"] is connection
+    assert audit.call_args.kwargs["location_id"] == LOCATION_ID
     assert SECRET not in str(logger.warning.call_args)
+    assert SECRET not in str(audit.call_args)
     assert "invalid numeric value" in str(logger.warning.call_args)
     connection.close.assert_called_once()
 

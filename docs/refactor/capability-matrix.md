@@ -4301,9 +4301,10 @@ and 28 prepared ([HTTP test](../tests/test_http_sensor_receiver_cli.py);
 
 **CAP-039 sensor CSV audit scope — 21 October 2026:** sensor CSV processing
 now writes every row audit through its existing farm-scoped connection and
-passes the canonical `location_id`, covering missing fields, timestamp/read
-validation rejection, successful reads, and caught write failures. The synthetic
-selection passes 27 tests with Ruff and Python compilation; temporary CSV
+passes the canonical `location_id`, covering missing/short rows, invalid numeric
+values, unknown sensors, timestamp/read validation rejection, successful reads,
+and caught write failures. Raw values and unknown device identifiers stay out of
+error messages. The synthetic selection passes 29 tests with Ruff and Python compilation; temporary CSV
 fixtures and database/projection mocks were used, with no live database or
 provider access. This verifies call-site scope and cleanup, not live RLS or
 populated import parity. Checklist: 856 complete / 25 open (881 total);

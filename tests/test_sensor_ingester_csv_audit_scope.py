@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -125,6 +126,69 @@ def test_successful_csv_row_audit_uses_scoped_caller_connection(monkeypatch, tmp
     sensor_ingester.run_csv(str(csv_path), LOCATION_ID)
 
     assert len(audit_calls) == 1
+    assert audit_calls[0]["db"] is connection
+    assert audit_calls[0]["location_id"] == LOCATION_ID
+    assert connection.commits == 1
+    assert connection.closed
+
+
+def test_unknown_sensor_row_is_audited_without_logging_the_device_identifier(
+    monkeypatch, tmp_path
+) -> None:
+    secret_device_id = "private-sensor-identifier"
+    csv_path = tmp_path / "readings.csv"
+    with csv_path.open("w", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=["device_id", "reading_date", "value"])
+        writer.writeheader()
+        writer.writerow(
+            {"device_id": secret_device_id, "reading_date": "2026-10-21", "value": "10"}
+        )
+
+    connection = _Connection()
+    audit_calls = []
+    logger = MagicMock()
+    monkeypatch.setattr(sensor_ingester, "get_db", lambda: connection)
+    monkeypatch.setattr(sensor_ingester, "get_sensor_type_ranges", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(sensor_ingester, "get_sensor_by_id_or_slug", lambda *_args: None)
+    monkeypatch.setattr(
+        sensor_ingester,
+        "log_ingestion",
+        lambda **kwargs: audit_calls.append(kwargs),
+    )
+    monkeypatch.setattr(sensor_ingester, "logger", logger)
+
+    sensor_ingester.run_csv(str(csv_path), LOCATION_ID)
+
+    assert len(audit_calls) == 1
+    assert audit_calls[0]["error_message"] == "sensor not found in scoped location"
+    assert audit_calls[0]["db"] is connection
+    assert audit_calls[0]["location_id"] == LOCATION_ID
+    assert secret_device_id not in str(audit_calls[0])
+    assert secret_device_id not in str(logger.warning.call_args)
+    assert connection.commits == 1
+    assert connection.closed
+
+
+def test_short_csv_row_becomes_scoped_missing_field_audit(monkeypatch, tmp_path) -> None:
+    csv_path = tmp_path / "short-readings.csv"
+    csv_path.write_text(
+        "device_id,reading_date,value\nsoil-01,2026-10-21\n",
+        encoding="utf-8",
+    )
+    connection = _Connection()
+    audit_calls = []
+    monkeypatch.setattr(sensor_ingester, "get_db", lambda: connection)
+    monkeypatch.setattr(sensor_ingester, "get_sensor_type_ranges", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(
+        sensor_ingester,
+        "log_ingestion",
+        lambda **kwargs: audit_calls.append(kwargs),
+    )
+
+    sensor_ingester.run_csv(str(csv_path), LOCATION_ID)
+
+    assert len(audit_calls) == 1
+    assert audit_calls[0]["error_message"] == "missing required fields"
     assert audit_calls[0]["db"] is connection
     assert audit_calls[0]["location_id"] == LOCATION_ID
     assert connection.commits == 1

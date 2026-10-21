@@ -280,10 +280,10 @@ def run_csv(file_path: str, location_id: str | None = None):
         errors = 0
 
         for i, row in enumerate(rows):
-            device_id = row.get("device_id", "").strip()
-            reading_date = row.get("reading_date", "").strip()
-            reading_time = row.get("reading_time", "").strip()
-            value_str = row.get("value", "").strip()
+            device_id = (row.get("device_id") or "").strip()
+            reading_date = (row.get("reading_date") or "").strip()
+            reading_time = (row.get("reading_time") or "").strip()
+            value_str = (row.get("value") or "").strip()
 
             if not device_id or not reading_date or not value_str:
                 errors += 1
@@ -313,8 +313,23 @@ def run_csv(file_path: str, location_id: str | None = None):
 
             try:
                 value = float(value_str)
-            except ValueError:
+            except (TypeError, ValueError, OverflowError):
                 errors += 1
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="sensor_csv",
+                    source_id=f"row_{i + 1}",
+                    target_table="sensor_reading",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="failed",
+                    error_message="invalid numeric value",
+                    validation_status="rejected",
+                    validation_errors=["invalid numeric value"],
+                    db=db,
+                    location_id=location_id,
+                )
                 logger.warning("  ✗ Row %d: invalid numeric value", i + 1)
                 continue
 
@@ -322,7 +337,22 @@ def run_csv(file_path: str, location_id: str | None = None):
             sensor_info = get_sensor_by_id_or_slug(db, device_id, location_id)
             if not sensor_info:
                 errors += 1
-                logger.warning("  ✗ Row %d: sensor '%s' not found", i + 1, device_id)
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="sensor_csv",
+                    source_id=f"row_{i + 1}",
+                    target_table="sensor_reading",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="failed",
+                    error_message="sensor not found in scoped location",
+                    validation_status="rejected",
+                    validation_errors=["sensor not found in scoped location"],
+                    db=db,
+                    location_id=location_id,
+                )
+                logger.warning("  ✗ Row %d: sensor not found in scoped location", i + 1)
                 continue
 
             # Validate range
