@@ -1,0 +1,228 @@
+{
+  "generated_by": "scripts/report_generator_query_scope_inventory.py",
+  "scope": "Static AST evidence only; direct require_network_scope(report_type, location_id) calls are reported separately from bound location filters and do not prove authorization, tenant isolation, or correct audience policy.",
+  "summary": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "query_sites_with_bound_location_scope_signal": 131,
+    "reports_with_network_scope_guard": 18
+  },
+  "guarded_reports": [
+    {
+      "report_type": "bio_regional_input",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "guards": [
+        {
+          "line": 194,
+          "report_type": "bio_regional_input",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "capability_assessment",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 178,
+          "report_type": "capability_assessment",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "capability_dashboard",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 131,
+          "report_type": "capability_dashboard",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "coordination_cockpit",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 536,
+          "report_type": "coordination_cockpit",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "dao_proposal_history",
+      "source_file": "services/export/reports/wellbeing.py",
+      "guards": [
+        {
+          "line": 363,
+          "report_type": "dao_proposal_history",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "federation_mutual_aid",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "guards": [
+        {
+          "line": 85,
+          "report_type": "federation_mutual_aid",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "governance_coordination_health",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 558,
+          "report_type": "governance_coordination_health",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "green_paper_publication_status",
+      "source_file": "services/export/reports/wellbeing.py",
+      "guards": [
+        {
+          "line": 239,
+          "report_type": "green_paper_publication_status",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "open_source_impact",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "guards": [
+        {
+          "line": 175,
+          "report_type": "open_source_impact",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "participatory_signal",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "guards": [
+        {
+          "line": 135,
+          "report_type": "participatory_signal",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_cockpit",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 515,
+          "report_type": "stakeholder_cockpit",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_ecosystem",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 384,
+          "report_type": "stakeholder_ecosystem",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_representation",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 336,
+          "report_type": "stakeholder_representation",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_trust",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 454,
+          "report_type": "stakeholder_trust",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_value_streams",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 484,
+          "report_type": "stakeholder_value_streams",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "strategy_execution",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 152,
+          "report_type": "strategy_execution",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "technology_roadmap",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 215,
+          "report_type": "technology_roadmap",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    },
+    {
+      "report_type": "value_stream_formal",
+      "source_file": "services/export/reports/strategy.py",
+      "guards": [
+        {
+          "line": 200,
+          "report_type": "value_stream_formal",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ]
+    }
+  ]
+}

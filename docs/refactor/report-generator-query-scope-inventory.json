@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_query_scope_inventory.py",
-  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain statically resolved variants, including a simple unconditional static string suffix after the branch. Positional bind arity is compared for static SQL and branch-correlated SQL when parameter counts are statically known. Unique, unshadowed module-level literal strings are resolved in SQL expressions; computed or reassigned module values remain unresolved. Named-bind keys are compared when literal mappings and simple branch-correlated condition-list appends are statically available; dynamic containers and nested conditional mutations remain unresolved. Literal same-module helper-return filters emit a branch signal only when a returned location predicate binds the caller's location_id argument. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
+  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain statically resolved variants, including a simple unconditional static string suffix after the branch. Positional bind arity is compared for static SQL and branch-correlated SQL when parameter counts are statically known. Unique, unshadowed module-level literal strings are resolved in SQL expressions; computed or reassigned module values remain unresolved. Named-bind keys are compared when literal mappings and simple branch-correlated condition-list appends are statically available; dynamic containers and nested conditional mutations remain unresolved. Literal same-module helper-return filters emit a branch signal only when a returned location predicate binds the caller's location_id argument. Direct require_network_scope(report_type, location_id) calls are recorded separately as network-attribution guards; they are not counted as bound farm filters or tenant authorization. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
     "direct_query_sites": 176,
@@ -12,6 +12,7 @@
     "query_sites_with_bound_location_scope_signal": 131,
     "conditional_scope_query_sites": 6,
     "unresolved_query_sites": 0,
+    "reports_with_network_scope_guard": 18,
     "classification_counts": {
       "all_direct_queries_show_bound_location_scope": 37,
       "conditional_direct_query_scope": 4,
@@ -35,6 +36,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -99,6 +101,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -163,6 +166,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -180,6 +184,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -197,6 +202,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -261,6 +267,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -325,6 +332,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -389,6 +397,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -453,6 +462,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 194,
+          "report_type": "bio_regional_input",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -494,6 +511,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "compute_health",
@@ -517,6 +535,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "generate_business_plan",
@@ -564,6 +583,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 178,
+          "report_type": "capability_assessment",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [
         {
           "callable": "get_capability_dashboard",
@@ -592,6 +619,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 131,
+          "report_type": "capability_dashboard",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [
         {
           "callable": "get_capability_dashboard",
@@ -620,6 +655,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "accounting_report.build_capital_accounting",
@@ -643,6 +679,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -707,6 +744,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -794,6 +832,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -858,6 +897,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
@@ -989,6 +1029,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1053,6 +1094,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "generate_capital_accounting",
@@ -1076,6 +1118,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 536,
+          "report_type": "coordination_cockpit",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -1140,6 +1190,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1184,6 +1235,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1248,6 +1300,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 363,
+          "report_type": "dao_proposal_history",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -1313,6 +1373,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1396,6 +1457,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1460,6 +1522,7 @@
       "queries_with_bound_location_scope_signal": 6,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1616,6 +1679,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -1633,6 +1697,7 @@
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1743,6 +1808,7 @@
       "queries_with_bound_location_scope_signal": 9,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -1973,6 +2039,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 85,
+          "report_type": "federation_mutual_aid",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": []
     },
@@ -1990,6 +2064,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2054,6 +2129,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2142,6 +2218,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -2159,6 +2236,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2223,6 +2301,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2287,6 +2366,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 558,
+          "report_type": "governance_coordination_health",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -2420,6 +2507,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2484,6 +2572,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2548,6 +2637,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 239,
+          "report_type": "green_paper_publication_status",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -2589,6 +2686,7 @@
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2699,6 +2797,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2763,6 +2862,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2850,6 +2950,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -2937,6 +3038,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 175,
+          "report_type": "open_source_impact",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -2978,6 +3087,7 @@
       "queries_with_bound_location_scope_signal": 5,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3111,6 +3221,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3198,6 +3309,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3285,6 +3397,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 135,
+          "report_type": "participatory_signal",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": []
     },
@@ -3302,6 +3422,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3366,6 +3487,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "get_pest_management_report",
@@ -3389,6 +3511,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3406,6 +3529,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3423,6 +3547,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "generate_pitch",
@@ -3446,6 +3571,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "build_health",
@@ -3469,6 +3595,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "compute_promotion_ladder",
@@ -3492,6 +3619,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3509,6 +3637,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3526,6 +3655,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3590,6 +3720,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3607,6 +3738,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3671,6 +3803,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3735,6 +3868,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3822,6 +3956,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -3839,6 +3974,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3903,6 +4039,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -3990,6 +4127,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4054,6 +4192,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4141,6 +4280,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4205,6 +4345,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -4222,6 +4363,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 515,
+          "report_type": "stakeholder_cockpit",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -4286,6 +4435,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4341,6 +4491,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 384,
+          "report_type": "stakeholder_ecosystem",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -4451,6 +4609,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 2,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4529,6 +4688,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4584,6 +4744,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4640,6 +4801,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -4718,6 +4880,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 336,
+          "report_type": "stakeholder_representation",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -4782,6 +4952,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 454,
+          "report_type": "stakeholder_trust",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -4892,6 +5070,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 484,
+          "report_type": "stakeholder_value_streams",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -5002,6 +5188,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -5019,6 +5206,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "build_all",
@@ -5042,6 +5230,7 @@
       "queries_with_bound_location_scope_signal": 13,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5361,6 +5550,7 @@
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5425,6 +5615,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 152,
+          "report_type": "strategy_execution",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [
         {
           "callable": "get_perspective_summary",
@@ -5448,6 +5646,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [
         {
           "callable": "compute_promotion_ladder",
@@ -5471,6 +5670,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 215,
+          "report_type": "technology_roadmap",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [],
       "queries": [
         {
@@ -5560,6 +5767,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5624,6 +5832,7 @@
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5711,6 +5920,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5775,6 +5985,7 @@
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {
@@ -5885,6 +6096,14 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [
+        {
+          "line": 200,
+          "report_type": "value_stream_formal",
+          "location_argument": "location_id",
+          "location_id_parameter": true
+        }
+      ],
       "helper_calls": [
         {
           "callable": "get_stream_summary",
@@ -5908,6 +6127,7 @@
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": []
     },
@@ -5925,6 +6145,7 @@
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
+      "network_scope_guards": [],
       "helper_calls": [],
       "queries": [
         {

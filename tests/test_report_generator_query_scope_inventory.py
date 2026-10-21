@@ -90,6 +90,49 @@ def generate(conn, location_id):
     assert analysis["queries"][0]["bound_location_scope_signal"] is True
 
 
+def test_classifier_records_network_scope_guard_separately_from_query_scope():
+    analysis = analyze_function_source(
+        '''
+def generate_stakeholder_trust(conn, location_id=None):
+    require_network_scope("stakeholder_trust", location_id)
+    with conn.cursor() as cur:
+        cur.execute("SELECT * FROM v_party_trust_profile")
+''',
+        "generate_stakeholder_trust",
+    )
+
+    assert analysis["classification"] == "no_bound_location_scope_visible"
+    assert analysis["queries_with_bound_location_scope_signal"] == 0
+    assert analysis["network_scope_guards"] == [
+        {
+            "line": 3,
+            "report_type": "stakeholder_trust",
+            "location_argument": "location_id",
+            "location_id_parameter": True,
+        }
+    ]
+
+
+def test_classifier_records_wrong_network_guard_argument_without_claiming_location_guard():
+    analysis = analyze_function_source(
+        '''
+def generate_report(conn, location_id=None):
+    require_network_scope("some_other_report", tenant_id)
+    conn.execute("SELECT * FROM shared_view")
+''',
+        "generate_report",
+    )
+
+    assert analysis["network_scope_guards"] == [
+        {
+            "line": 3,
+            "report_type": "some_other_report",
+            "location_argument": "tenant_id",
+            "location_id_parameter": False,
+        }
+    ]
+
+
 def test_classifier_tracks_distinct_sql_branches_for_location_and_network_scope():
     analysis = analyze_function_source(
         '''
@@ -1122,6 +1165,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     assert inventory["summary"]["named_bind_contract_mismatch_sites"] == 0
     assert inventory["summary"]["query_sites_with_bound_location_scope_signal"] > 0
     assert inventory["summary"]["unresolved_query_sites"] == 0
+    assert inventory["summary"]["reports_with_network_scope_guard"] > 0
     reports = {report["report_type"]: report for report in inventory["reports"]}
     farm_summary = reports["farm_summary"]
     assert farm_summary["source_file"] == "services/export/reports/core.py"
@@ -1151,6 +1195,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     ]
     assert unresolved_arity == [("data_stream_summary", 29)]
     assert reports["data_stream_summary"]["queries"][0]["named_bind_contract"]["mismatch"] is False
+    assert reports["stakeholder_trust"]["network_scope_guards"][0]["location_id_parameter"] is True
 
 
 def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):

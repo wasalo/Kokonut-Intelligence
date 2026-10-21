@@ -2373,6 +2373,31 @@ def _helper_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
     ]
 
 
+def _network_scope_guards(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
+    """Record direct guards that reject attributing network-wide reports to a farm."""
+    guards = []
+    for node in ast.walk(function):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Name) or node.func.id != "require_network_scope":
+            continue
+        report_type = node.args[0].value if node.args and isinstance(node.args[0], ast.Constant) else None
+        location_argument = (
+            node.args[1].id
+            if len(node.args) > 1 and isinstance(node.args[1], ast.Name)
+            else None
+        )
+        guards.append(
+            {
+                "line": node.lineno,
+                "report_type": report_type,
+                "location_argument": location_argument,
+                "location_id_parameter": location_argument == "location_id",
+            }
+        )
+    return sorted(guards, key=lambda guard: guard["line"])
+
+
 def _analyze_function(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     module_tree: ast.Module | None = None,
@@ -2381,6 +2406,7 @@ def _analyze_function(
     scope_signal_count = sum(query["bound_location_scope_signal"] for query in queries)
     unresolved_count = sum(query["sql_source"] != "static_or_resolved" for query in queries)
     conditional_count = sum(query["location_scope_conditionally_added"] for query in queries)
+    network_scope_guards = _network_scope_guards(function)
     if not queries:
         classification = "helper_or_computed_without_direct_query"
     elif unresolved_count and scope_signal_count < len(queries):
@@ -2417,6 +2443,7 @@ def _analyze_function(
         "queries_with_bound_location_scope_signal": scope_signal_count,
         "conditional_scope_query_count": conditional_count,
         "unresolved_query_count": unresolved_count,
+        "network_scope_guards": network_scope_guards,
         "helper_calls": _helper_calls(function),
         "queries": queries,
     }
@@ -2445,6 +2472,7 @@ def build_inventory() -> dict:
     scope_signal_queries = 0
     conditional_scope_queries = 0
     unresolved_queries = 0
+    network_scope_guarded_reports = 0
     for report in source_inventory["reports"]:
         source_path = ROOT / report["source_file"]
         tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
@@ -2466,6 +2494,9 @@ def build_inventory() -> dict:
         scope_signal_queries += analysis["queries_with_bound_location_scope_signal"]
         conditional_scope_queries += analysis["conditional_scope_query_count"]
         unresolved_queries += analysis["unresolved_query_count"]
+        network_scope_guarded_reports += any(
+            guard["location_id_parameter"] for guard in analysis["network_scope_guards"]
+        )
         entries.append(
             {
                 "report_type": report["report_type"],
@@ -2489,6 +2520,7 @@ def build_inventory() -> dict:
             "when literal mappings and simple branch-correlated condition-list appends are statically available; "
             "dynamic containers and nested conditional mutations remain unresolved. "
             "Literal same-module helper-return filters emit a branch signal only when a returned location predicate binds the caller's location_id argument. "
+            "Direct require_network_scope(report_type, location_id) calls are recorded separately as network-attribution guards; they are not counted as bound farm filters or tenant authorization. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "
@@ -2504,6 +2536,7 @@ def build_inventory() -> dict:
             "query_sites_with_bound_location_scope_signal": scope_signal_queries,
             "conditional_scope_query_sites": conditional_scope_queries,
             "unresolved_query_sites": unresolved_queries,
+            "reports_with_network_scope_guard": network_scope_guarded_reports,
             "classification_counts": dict(sorted(classification_counts.items())),
         },
         "reports": sorted(entries, key=lambda entry: entry["report_type"]),
