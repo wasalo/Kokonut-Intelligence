@@ -13649,3 +13649,20 @@ parity or tenant authorization. Checklist: 866 complete / 24 open (890 total);
 capability matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
 Evidence: docs/refactor/builds/2026-10-21-recovery/
 cap-066-stakeholder-cockpit-network-scope.json.
+
+
+### CAP-066 network-wide report scope — 21 October 2026
+
+Eight additional report types are now network-only because their queries use
+global views, canonical network identity projections, or DAO ledgers without
+farm predicates. Together with the already-classified stakeholder cockpit,
+CLI calls that attach a farm ID fail before opening PostgreSQL, direct calls
+reject that scope, and automatic per-farm report batches store these outputs as
+network snapshots with no location ID. The focused CLI and generator selection
+passes 73 tests with five database-dependent skips. Ruff, compilation, all
+report/runtime inventory freshness checks, and capability-matrix validation
+pass. No database, provider, or migration was used. This prevents false farm
+attribution; it does not establish tenant isolation or populated report parity
+([evidence](builds/2026-10-21-recovery/cap-066-network-only-report-scopes.json)).
+Checklist: 867 complete / 24 open (891 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

@@ -127,7 +127,19 @@ from .reports import (  # noqa: F401 (re-exported public report API)
     store_snapshot,
 )
 
-NETWORK_SCOPE_ONLY_REPORTS = frozenset({"stakeholder_cockpit"})
+NETWORK_SCOPE_ONLY_REPORTS = frozenset(
+    {
+        "coordination_cockpit",
+        "dao_proposal_history",
+        "governance_coordination_health",
+        "stakeholder_cockpit",
+        "stakeholder_ecosystem",
+        "stakeholder_representation",
+        "stakeholder_trust",
+        "stakeholder_value_streams",
+        "technology_roadmap",
+    }
+)
 
 NETWORK_LEVEL_REPORTS = frozenset(
     {

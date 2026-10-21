@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 866 checklist items complete and 24
-open (890 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 867 checklist items complete and 24
+open (891 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1791,3 +1791,8 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-066 network-only stakeholder cockpit scope — 21 October 2026
 
 - [x] Classify `stakeholder_cockpit` as network-only because its internal and public cockpit views are global aggregates with no farm dimension. A single-farm request now fails during CLI validation; direct location-scoped calls fail before opening a cursor. A network request and the `--all` spelling remain available, and `--auto --location-id` stores this report as an unassigned network snapshot rather than mislabeling it with a farm ID. The focused report CLI/read-only/error/inventory selection passes 46 tests with Ruff and compilation; refreshed inventories and capability-matrix validation pass. No database, migration, or provider was used. This is report-scope integrity, not tenant authorization or farm-level cockpit parity ([implementation](../../services/export/report_generator.py); [view guard](../../services/export/reports/strategy.py); [test](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-21-recovery/cap-066-stakeholder-cockpit-network-scope.json)). Checklist: 866 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 network-only report scope closure — 21 October 2026
+
+- [x] Apply network-only scope to the remaining report generators that read global views or ledgers without a farm predicate: coordination, DAO proposal history, governance coordination health, stakeholder ecosystem/representation/trust/value streams, and technology roadmap. CLI requests with a farm ID fail before database access, direct generator calls reject farm IDs before opening a cursor, and automatic runs store all nine network-only reports without a farm assignment. The focused selection passes 73 tests with five database-dependent skips; Ruff, compilation, all four report/runtime inventories, and matrix validation pass. No database, migration, candidate, legacy stack, or provider was used. Rollback is a source revert of the scope registry/guards and associated tests; no persistent state changed. This prevents false farm attribution but does not prove tenant authorization or populated report parity ([scope registry](../../services/export/report_generator.py); [shared guard](../../services/export/reports/scope.py); [tests](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-21-recovery/cap-066-network-only-report-scopes.json)). Checklist: 867 complete / 24 open (891 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

@@ -8,6 +8,8 @@ import psycopg2.extras
 
 from services.common.errors import safe_exception_class
 
+from .scope import require_network_scope
+
 
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
@@ -206,6 +208,7 @@ def generate_value_stream_formal(conn, location_id=None, period_start=None, peri
 
 def generate_technology_roadmap(conn, location_id=None, period_start=None, period_end=None):
     """Generate an executive technology roadmap report."""
+    require_network_scope("technology_roadmap", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_technology_roadmap_overview ORDER BY name")
         roadmaps = [dict(row) for row in cur.fetchall()]
@@ -317,6 +320,7 @@ def generate_stakeholder_grievance(conn, location_id=None, period_start=None, pe
 
 def generate_stakeholder_representation(conn, location_id=None, period_start=None, period_end=None):
     """Generate privacy-aware stakeholder representation and equity metrics."""
+    require_network_scope("stakeholder_representation", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_public_stakeholder_representation ORDER BY activity_type, activity_id")
         representation = [dict(row) for row in cur.fetchall()]
@@ -364,6 +368,7 @@ def generate_stakeholder_decision_lineage(conn, location_id=None, period_start=N
 
 def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, period_end=None):
     """Generate the internal stakeholder ecosystem cockpit report."""
+    require_network_scope("stakeholder_ecosystem", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         cockpit = dict(cur.fetchone())
@@ -433,6 +438,7 @@ def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, per
 
 def generate_stakeholder_trust(conn, location_id=None, period_start=None, period_end=None):
     """Generate explainable trust profiles, evidence timelines, and disputes."""
+    require_network_scope("stakeholder_trust", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_party_trust_profile ORDER BY open_risk_count DESC, display_name")
         profiles = [dict(row) for row in cur.fetchall()]
@@ -462,6 +468,7 @@ def generate_stakeholder_trust(conn, location_id=None, period_start=None, period
 
 def generate_stakeholder_value_streams(conn, location_id=None, period_start=None, period_end=None):
     """Generate stakeholder-aware capability and value-stream outcomes."""
+    require_network_scope("stakeholder_value_streams", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
         links = [dict(row) for row in cur.fetchall()]
@@ -492,8 +499,7 @@ def generate_stakeholder_value_streams(conn, location_id=None, period_start=None
 
 def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, period_end=None):
     """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
-    if location_id is not None:
-        raise ValueError("stakeholder_cockpit uses network-wide views and cannot be farm-scoped")
+    require_network_scope("stakeholder_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         internal = dict(cur.fetchone())
@@ -514,6 +520,7 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
 
 def generate_coordination_cockpit(conn, location_id=None, period_start=None, period_end=None):
     """Generate internal coordination controls and public-safe alliance output."""
+    require_network_scope("coordination_cockpit", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
         internal = [dict(row) for row in cur.fetchall()]
@@ -535,6 +542,7 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
 
 def generate_governance_coordination_health(conn, location_id=None, period_start=None, period_end=None):
     """Generate internal governance health and public-safe throughput output."""
+    require_network_scope("governance_coordination_health", location_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_governance_cockpit_internal")
         internal = dict(cur.fetchone())

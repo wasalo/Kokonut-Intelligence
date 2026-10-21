@@ -6,7 +6,17 @@ import pytest
 
 from services.export import report_generator
 from services.export.report_generator import build_parser, validate_args
-from services.export.reports.strategy import generate_stakeholder_cockpit
+from services.export.reports.strategy import (
+    generate_coordination_cockpit,
+    generate_governance_coordination_health,
+    generate_stakeholder_cockpit,
+    generate_stakeholder_ecosystem,
+    generate_stakeholder_representation,
+    generate_stakeholder_trust,
+    generate_stakeholder_value_streams,
+    generate_technology_roadmap,
+)
+from services.export.reports.wellbeing import generate_dao_proposal_history
 
 LOCATION_A = "11111111-1111-4111-8111-111111111111"
 LOCATION_B = "22222222-2222-4222-8222-222222222222"
@@ -80,43 +90,60 @@ def test_explicit_aggregate_report_scopes_remain_available(arguments) -> None:
     validate(*arguments)
 
 
-def test_stakeholder_cockpit_is_network_scoped_and_rejects_farm_scope(capsys) -> None:
-    validate("--type", "stakeholder_cockpit")
-    validate("--type", "stakeholder_cockpit", "--all")
+@pytest.mark.parametrize("report_type", sorted(report_generator.NETWORK_SCOPE_ONLY_REPORTS))
+def test_network_only_reports_reject_farm_scope_and_allow_network_scope(report_type, capsys) -> None:
+    validate("--type", report_type)
+    validate("--type", report_type, "--all")
 
     with pytest.raises(SystemExit) as exc_info:
-        validate("--type", "stakeholder_cockpit", "--location-id", LOCATION_A)
+        validate("--type", report_type, "--location-id", LOCATION_A)
 
     assert exc_info.value.code == 2
     assert "is network-scoped" in capsys.readouterr().err
 
 
-def test_network_scope_only_report_location_argument_is_unassigned() -> None:
-    assert report_generator._generator_location_arg("stakeholder_cockpit", LOCATION_A) is None
-    assert report_generator._generator_location_arg("stakeholder_cockpit", "all") is None
+@pytest.mark.parametrize("report_type", sorted(report_generator.NETWORK_SCOPE_ONLY_REPORTS))
+def test_network_scope_only_report_location_argument_is_unassigned(report_type) -> None:
+    assert report_generator._generator_location_arg(report_type, LOCATION_A) is None
+    assert report_generator._generator_location_arg(report_type, "all") is None
     assert report_generator._generator_location_arg("farm_summary", LOCATION_A) == LOCATION_A
 
 
-def test_stakeholder_cockpit_rejects_direct_farm_scope_before_database_access() -> None:
+@pytest.mark.parametrize(
+    ("report_type", "generator"),
+    [
+        ("coordination_cockpit", generate_coordination_cockpit),
+        ("dao_proposal_history", generate_dao_proposal_history),
+        ("governance_coordination_health", generate_governance_coordination_health),
+        ("stakeholder_cockpit", generate_stakeholder_cockpit),
+        ("stakeholder_ecosystem", generate_stakeholder_ecosystem),
+        ("stakeholder_representation", generate_stakeholder_representation),
+        ("stakeholder_trust", generate_stakeholder_trust),
+        ("stakeholder_value_streams", generate_stakeholder_value_streams),
+        ("technology_roadmap", generate_technology_roadmap),
+    ],
+)
+def test_network_only_generators_reject_direct_farm_scope_before_database_access(report_type, generator) -> None:
     connection = Mock()
 
-    with pytest.raises(ValueError, match="cannot be farm-scoped"):
-        generate_stakeholder_cockpit(connection, LOCATION_A)
+    with pytest.raises(ValueError, match=f"{report_type} uses network-wide sources"):
+        generator(connection, LOCATION_A)
 
     connection.cursor.assert_not_called()
 
 
-def test_auto_generation_stores_network_cockpit_without_farm_scope(monkeypatch) -> None:
+@pytest.mark.parametrize("report_type", sorted(report_generator.NETWORK_SCOPE_ONLY_REPORTS))
+def test_auto_generation_stores_network_only_reports_without_farm_scope(monkeypatch, report_type) -> None:
     connection = MagicMock()
     observed = {"generation_location": None, "snapshot_location": LOCATION_A}
 
-    monkeypatch.setattr(report_generator, "REPORT_GENERATORS", {"stakeholder_cockpit": object()})
+    monkeypatch.setattr(report_generator, "REPORT_GENERATORS", {report_type: object()})
     monkeypatch.setattr(
         report_generator,
         "generate_report_data_read_only",
         lambda _conn, _generator, location_id, _start, _end: observed.update(
             generation_location=location_id
-        ) or {"report_type": "stakeholder_cockpit"},
+        ) or {"report_type": report_type},
     )
     monkeypatch.setattr(report_generator, "_check_report_empty", lambda _data, _report_type: None)
     monkeypatch.setattr(report_generator, "store_snapshot", lambda _conn, _data, location_id, *_: (

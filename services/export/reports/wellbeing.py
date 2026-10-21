@@ -8,6 +8,7 @@ import psycopg2.extras
 from .common import (
     _serialize_rows,
 )
+from .scope import require_network_scope
 
 
 def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
@@ -358,6 +359,7 @@ def generate_dao_proposal_history(
     into one record per proposal, including vote tallies and lifecycle. This is a
     read-only view; it never calls the chain.
     """
+    require_network_scope("dao_proposal_history", location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """

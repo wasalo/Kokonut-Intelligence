@@ -207,7 +207,7 @@
       "callable": "generate_business_model_canvas",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 66,
+      "source_line": 68,
       "parameters": [
         "conn",
         "location_id",
@@ -248,7 +248,7 @@
       "callable": "generate_capability_assessment",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 172,
+      "source_line": 174,
       "parameters": [
         "conn",
         "location_id",
@@ -269,7 +269,7 @@
       "callable": "generate_capability_dashboard",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 127,
+      "source_line": 129,
       "parameters": [
         "conn",
         "location_id",
@@ -290,7 +290,7 @@
       "callable": "generate_capital_accounting",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 817,
+      "source_line": 825,
       "parameters": [
         "conn",
         "location_id",
@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 260,
+      "source_line": 261,
       "parameters": [
         "conn",
         "location_id",
@@ -441,7 +441,7 @@
       "callable": "generate_coordination_cockpit",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 515,
+      "source_line": 521,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 352,
+      "source_line": 353,
       "parameters": [
         "conn",
         "location_id",
@@ -527,7 +527,7 @@
       "callable": "generate_data_stream_summary",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 12,
+      "source_line": 14,
       "parameters": [
         "conn",
         "location_id",
@@ -549,7 +549,7 @@
       "callable": "generate_ebf_scorecard",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 13,
+      "source_line": 14,
       "parameters": [
         "conn",
         "location_id",
@@ -593,7 +593,7 @@
       "callable": "generate_env_scan_report",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 652,
+      "source_line": 660,
       "parameters": [
         "conn",
         "location_id",
@@ -680,7 +680,7 @@
       "callable": "generate_financial_sustainability",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 129,
+      "source_line": 130,
       "parameters": [
         "conn",
         "location_id",
@@ -724,7 +724,7 @@
       "callable": "generate_fork_opportunities",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 682,
+      "source_line": 690,
       "parameters": [
         "conn",
         "location_id",
@@ -789,7 +789,7 @@
       "callable": "generate_governance_coordination_health",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 536,
+      "source_line": 543,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 305,
+      "source_line": 306,
       "parameters": [
         "conn",
         "location_id",
@@ -852,7 +852,7 @@
       "callable": "generate_green_paper_publication_status",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 234,
+      "source_line": 235,
       "parameters": [
         "conn",
         "location_id",
@@ -873,7 +873,7 @@
       "callable": "generate_holistic_wellbeing",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 60,
+      "source_line": 61,
       "parameters": [
         "conn",
         "location_id",
@@ -1112,7 +1112,7 @@
       "callable": "generate_pestel_assessment",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 571,
+      "source_line": 579,
       "parameters": [
         "conn",
         "location_id",
@@ -1134,7 +1134,7 @@
       "callable": "generate_pin_dependency",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 701,
+      "source_line": 709,
       "parameters": [
         "conn",
         "location_id",
@@ -1155,7 +1155,7 @@
       "callable": "generate_pitch_deck",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 102,
+      "source_line": 104,
       "parameters": [
         "conn",
         "location_id",
@@ -1198,7 +1198,7 @@
       "callable": "generate_promotion_ladder",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 719,
+      "source_line": 727,
       "parameters": [
         "conn",
         "location_id",
@@ -1219,7 +1219,7 @@
       "callable": "generate_publics_market_landscape",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 623,
+      "source_line": 631,
       "parameters": [
         "conn",
         "location_id",
@@ -1284,7 +1284,7 @@
       "callable": "generate_regional_readiness",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 597,
+      "source_line": 605,
       "parameters": [
         "conn",
         "location_id",
@@ -1437,7 +1437,7 @@
       "callable": "generate_risk_mitigation",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 161,
+      "source_line": 162,
       "parameters": [
         "conn",
         "location_id",
@@ -1480,7 +1480,7 @@
       "callable": "generate_scaling_roadmap",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 193,
+      "source_line": 194,
       "parameters": [
         "conn",
         "location_id",
@@ -1501,7 +1501,7 @@
       "callable": "generate_simulation_wargame",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 774,
+      "source_line": 782,
       "parameters": [
         "conn",
         "location_id",
@@ -1522,7 +1522,7 @@
       "callable": "generate_stakeholder_cockpit",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 493,
+      "source_line": 500,
       "parameters": [
         "conn",
         "location_id",
@@ -1543,7 +1543,7 @@
       "callable": "generate_stakeholder_decision_lineage",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 340,
+      "source_line": 344,
       "parameters": [
         "conn",
         "location_id",
@@ -1564,7 +1564,7 @@
       "callable": "generate_stakeholder_ecosystem",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 365,
+      "source_line": 369,
       "parameters": [
         "conn",
         "location_id",
@@ -1585,7 +1585,7 @@
       "callable": "generate_stakeholder_engagement",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 261,
+      "source_line": 264,
       "parameters": [
         "conn",
         "location_id",
@@ -1606,7 +1606,7 @@
       "callable": "generate_stakeholder_grievance",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 293,
+      "source_line": 296,
       "parameters": [
         "conn",
         "location_id",
@@ -1627,7 +1627,7 @@
       "callable": "generate_stakeholder_landscape",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 237,
+      "source_line": 240,
       "parameters": [
         "conn",
         "location_id",
@@ -1648,7 +1648,7 @@
       "callable": "generate_stakeholder_outcomes",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 392,
+      "source_line": 397,
       "parameters": [
         "conn",
         "location_id",
@@ -1669,7 +1669,7 @@
       "callable": "generate_stakeholder_representation",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 318,
+      "source_line": 321,
       "parameters": [
         "conn",
         "location_id",
@@ -1690,7 +1690,7 @@
       "callable": "generate_stakeholder_trust",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 434,
+      "source_line": 439,
       "parameters": [
         "conn",
         "location_id",
@@ -1711,7 +1711,7 @@
       "callable": "generate_stakeholder_value_streams",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 463,
+      "source_line": 469,
       "parameters": [
         "conn",
         "location_id",
@@ -1817,7 +1817,7 @@
       "callable": "generate_strategy_execution",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 147,
+      "source_line": 149,
       "parameters": [
         "conn",
         "location_id",
@@ -1838,7 +1838,7 @@
       "callable": "generate_tactical_layer",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 736,
+      "source_line": 744,
       "parameters": [
         "conn",
         "location_id",
@@ -1859,7 +1859,7 @@
       "callable": "generate_technology_roadmap",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 207,
+      "source_line": 209,
       "parameters": [
         "conn",
         "location_id",
@@ -1968,7 +1968,7 @@
       "callable": "generate_value_stream_formal",
       "source_module": "services.export.reports.strategy",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 193,
+      "source_line": 195,
       "parameters": [
         "conn",
         "location_id",
