@@ -116,6 +116,8 @@ def test_unsupported_or_ambiguous_location_scopes_fail_before_database_access(ar
     "arguments",
     [
         ("--type", "business_plan", "--all"),
+        ("--type", "scaling_economics"),
+        ("--type", "scaling_economics", "--all"),
         ("--type", "comprehensive_status", "--all"),
         ("--type", "state_of_kokonut", "--location-id", LOCATION_A, "--location-id", LOCATION_B),
         ("--type", "business_plan", "--location-id", LOCATION_A, "--location-id", LOCATION_B),

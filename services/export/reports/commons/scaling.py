@@ -13,52 +13,59 @@ from ..scope import require_network_scope
 
 def generate_scaling_economics(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe scaling economics and unit-cost report."""
+    network_scope = location_id in (None, "all")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
+    if network_scope:
+        cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
+    else:
         cur.execute(
             """
             SELECT *
             FROM v_public_farm_launch_unit_economics
-            WHERE location_id = %s OR location_id IS NULL
+            WHERE location_id = %s::uuid
             ORDER BY target_region, economics_name
             """,
             (location_id,),
         )
-    else:
-        cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
     economics = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_network_scaling_target
-        WHERE (%s::date IS NULL OR target_date >= %s::date)
-          AND (%s::date IS NULL OR target_date <= %s::date)
-        ORDER BY target_date, target_name
-        """,
-        (period_start, period_start, period_end, period_end),
-    )
-    targets = [dict(r) for r in cur.fetchall()]
+    targets = []
+    if network_scope:
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_network_scaling_target
+            WHERE (%s::date IS NULL OR target_date >= %s::date)
+              AND (%s::date IS NULL OR target_date <= %s::date)
+            ORDER BY target_date, target_name
+            """,
+            (period_start, period_start, period_end, period_end),
+        )
+        targets = [dict(r) for r in cur.fetchall()]
     cur.close()
 
     total_launch_cost = sum(float(row.get("total_launch_cost_usd") or 0) for row in economics)
     total_target_capital = sum(float(row.get("capital_required_usd") or 0) for row in targets)
     planned_farms = sum(int(row.get("planned_farm_count") or 0) for row in economics)
-    target_farms = sum(int(row.get("target_farm_count") or 0) for row in targets)
+    target_farms = sum(int(row.get("target_farm_count") or 0) for row in targets) if network_scope else None
+    limitations = [
+        "Scaling economics are planning evidence, not guaranteed ROI or securities-style return claims.",
+        "Planned farm counts are roadmap targets unless backed by separate registry records.",
+        "Private capital terms, side letters, and unsupported external integrations are excluded.",
+    ]
+    if not network_scope:
+        limitations.append("Network-wide scaling targets are omitted from farm-scoped snapshots.")
     return {
         "report_type": "scaling_economics",
-        "location_id": location_id,
+        "location_id": None if network_scope else location_id,
+        "scope": "network" if network_scope else "location",
         "unit_economics": _serialize_rows(economics),
         "network_targets": _serialize_rows(targets),
-        "total_launch_cost_usd": round(total_launch_cost, 2),
-        "total_target_capital_usd": round(total_target_capital, 2),
+        "total_launch_cost_usd": round(total_launch_cost, 2) if network_scope else None,
+        "total_target_capital_usd": round(total_target_capital, 2) if network_scope else None,
         "planned_farm_count": planned_farms,
         "target_farm_count": target_farms,
-        "limitations": [
-            "Scaling economics are planning evidence, not guaranteed ROI or securities-style return claims.",
-            "Planned farm counts are roadmap targets unless backed by separate registry records.",
-            "Private capital terms, side letters, and unsupported external integrations are excluded.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 

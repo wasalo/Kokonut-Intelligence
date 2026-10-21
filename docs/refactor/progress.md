@@ -13699,3 +13699,17 @@ not prove tenant authorization or populated parity
 ([evidence](builds/2026-10-21-recovery/cap-066-helper-backed-network-report-scopes.json)).
 Checklist: 870 complete / 24 open (894 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 scaling economics scope split — 21 October 2026
+
+`scaling_economics` now keeps farm launch costs in the selected farm snapshot
+and omits network-wide scaling targets there. Network runs include both sets
+of published data and have no location assignment; the CLI accepts both an
+explicit network request and `--all`. The focused scaling/CLI/inventory tests
+pass (119), with Ruff, compilation, inventory freshness, and capability-matrix
+validation. No database or migration was used. This closes a report-labeling
+and scope-mixing issue, not tenant authorization or populated parity
+([evidence](builds/2026-10-21-recovery/cap-066-scaling-economics-scope.json)).
+Checklist: 871 complete / 24 open (895 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

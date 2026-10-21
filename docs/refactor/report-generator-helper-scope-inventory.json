@@ -50,7 +50,7 @@
         {
           "caller": "generate_adoption_barriers",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 100,
+          "line": 107,
           "depth": 1
         },
         {
@@ -3473,19 +3473,19 @@
         {
           "caller": "generate_open_source_impact",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 168,
+          "line": 175,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/database.py:query",
-          "line": 169,
+          "line": 176,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 175,
+          "line": 182,
           "depth": 1
         },
         {
@@ -3725,7 +3725,7 @@
         {
           "caller": "generate_perpetual_value_stress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 151,
+          "line": 158,
           "depth": 1
         },
         {
@@ -5506,13 +5506,13 @@
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 51,
+          "line": 62,
           "depth": 1
         },
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 52,
+          "line": 63,
           "depth": 1
         },
         {

@@ -158,6 +158,7 @@ NETWORK_LEVEL_REPORTS = frozenset(
         "state_of_kokonut_graphs",
         "comprehensive_status",
         "strategic_reserve",
+        "scaling_economics",
         *NETWORK_SCOPE_ONLY_REPORTS,
     }
 )

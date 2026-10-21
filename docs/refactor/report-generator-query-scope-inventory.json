@@ -67,7 +67,7 @@
       "report_type": "adoption_barriers",
       "callable": "generate_adoption_barriers",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 68,
+      "source_line": 75,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 1,
@@ -76,7 +76,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 72,
+          "line": 79,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -92,7 +92,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 84,
+          "line": 91,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2096,7 +2096,7 @@
       "report_type": "open_source_impact",
       "callable": "generate_open_source_impact",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 164,
+      "source_line": 171,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "queries_with_bound_location_scope_signal": 0,
@@ -2105,7 +2105,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 169,
+          "line": 176,
           "method": "query",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2357,7 +2357,7 @@
       "report_type": "perpetual_value_stress",
       "callable": "generate_perpetual_value_stress",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 113,
+      "source_line": 120,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 1,
@@ -2366,7 +2366,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 119,
+          "line": 126,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2382,7 +2382,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 131,
+          "line": 138,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2920,23 +2920,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 18,
-          "method": "execute",
-          "sql_source": "static_or_resolved",
-          "relations": [
-            "v_public_farm_launch_unit_economics"
-          ],
-          "location_id_reference": true,
-          "location_predicate_visible": true,
-          "global_null_rows_allowed": true,
-          "location_id_in_bound_expression": true,
-          "location_row_lookup_by_id": false,
-          "indirect_location_scope_visible": false,
-          "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
-        },
-        {
-          "line": 28,
+          "line": 19,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2952,7 +2936,23 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 31,
+          "line": 21,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_farm_launch_unit_economics"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 34,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

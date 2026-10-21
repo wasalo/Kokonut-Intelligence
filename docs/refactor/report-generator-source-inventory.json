@@ -36,7 +36,7 @@
       "callable": "generate_adoption_barriers",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 68,
+      "source_line": 75,
       "parameters": [
         "conn",
         "location_id",
@@ -961,7 +961,7 @@
       "callable": "generate_open_source_impact",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 164,
+      "source_line": 171,
       "parameters": [
         "conn",
         "location_id",
@@ -1069,7 +1069,7 @@
       "callable": "generate_perpetual_value_stress",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 113,
+      "source_line": 120,
       "parameters": [
         "conn",
         "location_id",
