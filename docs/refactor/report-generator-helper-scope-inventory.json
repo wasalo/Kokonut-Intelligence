@@ -7,9 +7,9 @@
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
     "helper_query_sites_with_location_scope_signal": 67,
-    "helper_query_sites_with_static_sql_source": 147,
-    "helper_query_sites_with_unresolved_sql_source": 28,
-    "helper_query_sites_with_static_positional_arity": 133,
+    "helper_query_sites_with_static_sql_source": 157,
+    "helper_query_sites_with_unresolved_sql_source": 18,
+    "helper_query_sites_with_static_positional_arity": 143,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 2,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -118,9 +118,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -135,9 +180,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -151,9 +241,9 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_static_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -194,9 +284,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -211,9 +346,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -227,9 +407,9 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_static_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -4134,9 +4314,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -4151,9 +4376,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -4167,9 +4437,9 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_static_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -4913,9 +5183,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -4930,9 +5245,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -4946,9 +5306,9 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_static_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -6525,9 +6885,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -6542,9 +6947,54 @@
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
           "line": 30,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "relations": [
+            "v_public_algorithmic_redistribution_mechanism",
+            "v_public_anti_capture_governance_policy",
+            "v_public_commons_redistribution_policy",
+            "v_public_federation_protocol",
+            "v_public_participatory_signal_experiment"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "call_site_line": 39,
+                "caller": "generate_anti_capture_governance",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 62,
+                "caller": "generate_redistribution_policy",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 86,
+                "caller": "generate_federation_mutual_aid",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 108,
+                "caller": "generate_algorithmic_redistribution",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              },
+              {
+                "call_site_line": 136,
+                "caller": "generate_participatory_signal",
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          },
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
@@ -6558,9 +7008,9 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_static_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,

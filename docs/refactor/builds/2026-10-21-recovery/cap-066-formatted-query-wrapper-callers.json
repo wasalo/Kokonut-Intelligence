@@ -1,0 +1,77 @@
+{
+  "task": "CAP-066 formatted SQL identifiers at same-module query-wrapper call sites",
+  "date": "2026-10-21",
+  "wrapper": {
+    "source_file": "services/export/reports/commons/kokonut.py",
+    "callable": "_fetch_public_view",
+    "query_lines": [
+      25,
+      30
+    ]
+  },
+  "callers": [
+    {
+      "callable": "generate_anti_capture_governance",
+      "call_line": 39,
+      "view": "v_public_anti_capture_governance_policy"
+    },
+    {
+      "callable": "generate_redistribution_policy",
+      "call_line": 62,
+      "view": "v_public_commons_redistribution_policy"
+    },
+    {
+      "callable": "generate_federation_mutual_aid",
+      "call_line": 86,
+      "view": "v_public_federation_protocol"
+    },
+    {
+      "callable": "generate_algorithmic_redistribution",
+      "call_line": 108,
+      "view": "v_public_algorithmic_redistribution_mechanism"
+    },
+    {
+      "callable": "generate_participatory_signal",
+      "call_line": 136,
+      "view": "v_public_participatory_signal_experiment"
+    }
+  ],
+  "resolved_memberships": 10,
+  "query_variants": {
+    "location_filter": {
+      "placeholder_count": 1,
+      "bind_value_count": 1,
+      "call_sites": 5
+    },
+    "unfiltered": {
+      "placeholder_count": 0,
+      "bind_value_count": 0,
+      "call_sites": 5
+    }
+  },
+  "helper_inventory": {
+    "memberships": 175,
+    "static_sql": 157,
+    "unresolved_sql": 18,
+    "positional_bind_contracts": 143,
+    "named_bind_contracts": 2,
+    "bind_mismatches": 0
+  },
+  "scope_boundary": "Literal wrapper resolution reports SQL relations and bind arity only. It deliberately provides no tenant/location scope signal.",
+  "limitations": [
+    "Every direct local wrapper call must pass literal strings for formatted SQL identifiers.",
+    "Dynamic/indirect/external callers remain unresolved.",
+    "No database execution or report-output parity was tested."
+  ],
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "focused_tests_passed": 51,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "generated_inventory_checks": "passed: source, query-scope, and helper-scope checks",
+    "capability_matrix_validation": "passed: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed"
+  },
+  "database_or_provider_used": false,
+  "rollback": "Revert the analyzer, source regressions, helper inventory, progress docs, and this evidence; no application data changed."
+}

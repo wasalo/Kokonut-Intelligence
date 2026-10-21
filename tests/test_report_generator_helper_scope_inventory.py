@@ -237,3 +237,51 @@ def test_reachable_helper_inventory_resolves_literal_filter_return_variants():
             ],
         }
 
+
+def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
+    inventory = build_inventory()
+    expected_reports = {
+        "anti_capture_governance",
+        "redistribution_policy",
+        "federation_mutual_aid",
+        "algorithmic_redistribution",
+        "participatory_signal",
+    }
+    found = set()
+    for report in inventory["reports"]:
+        queries = [
+            site
+            for site in report["reachable_helper_query_sites"]
+            if site["source_file"] == "services/export/reports/commons/kokonut.py"
+            and site["callable"] == "_fetch_public_view"
+        ]
+        if not queries:
+            continue
+        found.add(report["report_type"])
+        assert [site["line"] for site in queries] == [25, 30]
+        for site in queries:
+            assert site["sql_source"] == "static_or_resolved"
+            assert site["bound_location_scope_signal"] is False
+            assert site["positional_bind_arity"]["mismatch"] is False
+            assert len(site["positional_bind_arity"]["variants"]) == 5
+            assert {
+                item["caller"] for item in site["positional_bind_arity"]["variants"]
+            } == {
+                "generate_anti_capture_governance",
+                "generate_redistribution_policy",
+                "generate_federation_mutual_aid",
+                "generate_algorithmic_redistribution",
+                "generate_participatory_signal",
+            }
+        location_query = queries[0]
+        network_query = queries[1]
+        assert all(
+            item["placeholder_count"] == item["supplied_count"] == 1
+            for item in location_query["positional_bind_arity"]["variants"]
+        )
+        assert all(
+            item["placeholder_count"] == item["supplied_count"] == 0
+            for item in network_query["positional_bind_arity"]["variants"]
+        )
+    assert found == expected_reports
+

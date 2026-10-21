@@ -381,6 +381,67 @@ def report(conn, location_id):
     assert analysis["queries"][0]["positional_bind_arity"] is None
 
 
+def test_classifier_resolves_formatted_sql_identifiers_from_literal_local_callers():
+    analysis = analyze_function_source(
+        '''
+def load(conn, view_name, location_id=None, order_by="id"):
+    cur = conn.cursor()
+    if location_id:
+        cur.execute(
+            f"SELECT * FROM {view_name} WHERE location_id = %s ORDER BY {order_by}",
+            (location_id,),
+        )
+    else:
+        cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
+
+def report_one(conn, location_id):
+    return load(conn, "v_public_one", location_id, "created_at DESC")
+
+def report_two(conn):
+    return load(conn, "v_public_two", None, "name")
+''',
+        "load",
+    )
+
+    location_query, network_query = analysis["queries"]
+    assert location_query["sql_source"] == "static_or_resolved"
+    assert location_query["relations"] == ["v_public_one", "v_public_two"]
+    assert location_query["bound_location_scope_signal"] is False
+    assert location_query["positional_bind_arity"]["mismatch"] is False
+    assert [
+        (item["caller"], item["placeholder_count"], item["supplied_count"])
+        for item in location_query["positional_bind_arity"]["variants"]
+    ] == [("report_one", 1, 1), ("report_two", 1, 1)]
+    assert network_query["sql_source"] == "static_or_resolved"
+    assert network_query["relations"] == ["v_public_one", "v_public_two"]
+    assert network_query["bound_location_scope_signal"] is False
+    assert network_query["positional_bind_arity"]["mismatch"] is False
+    assert [
+        (item["caller"], item["placeholder_count"], item["supplied_count"])
+        for item in network_query["positional_bind_arity"]["variants"]
+    ] == [("report_one", 0, 0), ("report_two", 0, 0)]
+
+
+def test_classifier_keeps_formatted_sql_unresolved_if_any_local_caller_is_dynamic():
+    analysis = analyze_function_source(
+        '''
+def load(conn, view_name):
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM {view_name}")
+
+def report_one(conn):
+    return load(conn, "v_public_one")
+
+def report_two(conn, view_name):
+    return load(conn, view_name)
+''',
+        "load",
+    )
+
+    assert analysis["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
 def test_classifier_does_not_pair_location_filter_and_bind_from_different_branches():
     analysis = analyze_function_source(
         '''

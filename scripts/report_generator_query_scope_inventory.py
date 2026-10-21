@@ -1106,6 +1106,118 @@ def _local_query_callsite_variants(
     }
 
 
+def _local_formatted_query_callsite_variants(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    sql_node: ast.AST | None,
+    parameter_node: ast.AST | None,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    query_call: ast.Call,
+    module_tree: ast.Module | None,
+) -> tuple[list[str], dict] | None:
+    """Resolve f-string SQL identifiers from all literal same-module callers."""
+    if module_tree is None or not isinstance(sql_node, ast.JoinedStr):
+        return None
+    names: list[str] = []
+    for item in sql_node.values:
+        if not isinstance(item, ast.FormattedValue):
+            continue
+        if (
+            not isinstance(item.value, ast.Name)
+            or item.conversion != -1
+            or item.format_spec is not None
+        ):
+            return None
+        names.append(item.value.id)
+    if not names:
+        return None
+    positional_args = [*function.args.posonlyargs, *function.args.args]
+    argument_indexes = {argument.arg: index for index, argument in enumerate(positional_args)}
+    if any(name not in argument_indexes for name in names):
+        return None
+
+    parents = {
+        child: parent
+        for parent in ast.walk(module_tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    call_sites: list[tuple[ast.Call, ast.FunctionDef | ast.AsyncFunctionDef]] = []
+    for candidate in ast.walk(module_tree):
+        if not (
+            isinstance(candidate, ast.Call)
+            and isinstance(candidate.func, ast.Name)
+            and candidate.func.id == function.name
+        ):
+            continue
+        current: ast.AST = candidate
+        caller = None
+        while current in parents:
+            current = parents[current]
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                caller = current
+                break
+        if (
+            caller is None
+            or caller is function
+            or any(isinstance(argument, ast.Starred) for argument in candidate.args)
+        ):
+            return None
+        if any(
+            isinstance(node, ast.Name)
+            and node.id == function.name
+            and isinstance(node.ctx, ast.Store)
+            for node in ast.walk(caller)
+        ):
+            return None
+        call_sites.append((candidate, caller))
+    if not call_sites:
+        return None
+
+    defaults_offset = len(positional_args) - len(function.args.defaults)
+    sql_variants: list[str] = []
+    arity_variants: list[dict] = []
+    for call, caller in call_sites:
+        branch_assignments = dict(assignments)
+        for name in names:
+            index = argument_indexes[name]
+            actual = call.args[index] if len(call.args) > index else next(
+                (keyword.value for keyword in call.keywords if keyword.arg == name),
+                None,
+            )
+            if actual is None and index >= defaults_offset:
+                actual = function.args.defaults[index - defaults_offset]
+            if any(keyword.arg == name for keyword in call.keywords) and len(call.args) > index:
+                return None
+            if not isinstance(actual, ast.Constant) or not isinstance(actual.value, str):
+                return None
+            # The wrapper's parameter names are replaced by each caller's
+            # literal before resolving the template f-string.
+            branch_assignments[name] = [(-1, ast.Constant(value=actual.value))]
+
+        resolved_sql = _string_value(sql_node, branch_assignments, function.lineno)
+        if resolved_sql is None:
+            return None
+        placeholder_count, named_binds = _sql_bind_counts(resolved_sql)
+        supplied_count = _known_parameter_count(
+            parameter_node, assignments, query_call.lineno, function
+        )
+        if named_binds or supplied_count is None:
+            return None
+        sql_variants.append(resolved_sql)
+        arity_variants.append(
+            {
+                "call_site_line": call.lineno,
+                "caller": caller.name,
+                "placeholder_count": placeholder_count,
+                "supplied_count": supplied_count,
+                "mismatch": placeholder_count != supplied_count,
+            }
+        )
+    return sql_variants, {
+        "mismatch": any(item["mismatch"] for item in arity_variants),
+        "variants": arity_variants,
+    }
+
+
 def _list_append_state(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     name: str,
@@ -1740,6 +1852,7 @@ def _query_calls(
             sql_node, node, assignments, function, module_tree
         )
         callsite_variants = None
+        formatted_callsite_variants = None
         if optional_filter_variants:
             sql_variants, positional_arity = optional_filter_variants
             sql = sql_variants[-1]
@@ -1760,8 +1873,21 @@ def _query_calls(
                     _query_parameter_argument(node),
                     module_tree,
                 )
+                if not callsite_variants:
+                    formatted_callsite_variants = _local_formatted_query_callsite_variants(
+                        function,
+                        sql_node,
+                        _query_parameter_argument(node),
+                        assignments,
+                        node,
+                        module_tree,
+                    )
             if callsite_variants:
                 sql_variants, positional_arity = callsite_variants
+                sql = sql_variants[-1]
+                sql_variant_paths = [(None, value) for value in sql_variants]
+            elif formatted_callsite_variants:
+                sql_variants, positional_arity = formatted_callsite_variants
                 sql = sql_variants[-1]
                 sql_variant_paths = [(None, value) for value in sql_variants]
             else:
@@ -1871,6 +1997,7 @@ def _query_calls(
             or tuple_filter_variants
             or local_helper_filter_variants
             or callsite_variants
+            or formatted_callsite_variants
         ):
             # These source resolvers check SQL and bind shapes but do not
             # certify tenant-scope correlation.

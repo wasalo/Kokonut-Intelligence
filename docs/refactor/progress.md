@@ -1,3 +1,19 @@
+### CAP-066 literal formatted SQL in shared-view callers — 21 October 2026
+
+The helper analyzer now resolves a wrapper whose SQL f-string interpolates
+only function arguments when every direct same-module caller provides literal
+strings for those identifiers. It resolves both `_fetch_public_view` queries
+across five report callers: the location branch has one placeholder/one bind,
+and the unfiltered branch has zero placeholders/zero binds. Across 175 helper
+memberships, 157 SQL sites are static and 18 unresolved; 143 positional and
+two named contracts have zero mismatches. Wrapper resolution emits no
+location-scope signal. The focused query/helper/source suite passes 51 tests;
+Ruff, compilation, all three inventory checks, matrix validation, and diff
+checks pass. No database, provider, migration, candidate, or legacy stack was
+used. Checklist: 889 complete / 24 open (913 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows
+([evidence](builds/2026-10-21-recovery/cap-066-formatted-query-wrapper-callers.json)).
+
 ### CAP-066 local helper-return filter and bind variants — 21 October 2026
 
 The helper analyzer now follows a same-module function when every normal

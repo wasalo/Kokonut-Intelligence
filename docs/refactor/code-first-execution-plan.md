@@ -3,6 +3,18 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 literal formatted SQL in shared-view callers — 21 October 2026:**
+the analyzer resolves helper SQL f-strings only when every direct local caller
+supplies literal strings for interpolated names. Both `_fetch_public_view`
+queries now resolve across five report callers, for ten report-to-helper
+memberships; bind arity is one/one for location-filtered SQL and zero/zero for
+unfiltered SQL. No location-scope signal is inferred. Helper coverage is
+157/175 static SQL sites, 18 unresolved, and 143 positional plus two named
+contracts with zero mismatches. The focused query/helper/source selection
+passes 51 tests with Ruff, compilation, all three inventory checks, matrix
+validation, and diff checks. External/dynamic callers, database execution, and
+populated parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-formatted-query-wrapper-callers.json)).
+
 **CAP-066 local helper-return filter and bind variants — 21 October 2026:**
 the analyzer follows only same-module helpers whose normal paths explicitly
 return literal filter/positional-container pairs or raise. It resolves three
