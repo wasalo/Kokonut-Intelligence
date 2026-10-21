@@ -417,6 +417,45 @@ def generate(conn, location_id):
     assert analysis["queries"][0]["named_bind_contract"]["required_names"] == ["location_id"]
 
 
+def test_classifier_resolves_literal_module_sql_constants_without_overriding_locals():
+    resolved = analyze_function_source(
+        '''
+ACTIVE_FILTER = "status = 'published' AND sold_at IS NULL"
+
+def generate(conn, location_id):
+    conn.execute(
+        f"SELECT id FROM market_listing WHERE location_id = %s AND {ACTIVE_FILTER}",
+        (location_id,),
+    )
+''',
+        "generate",
+    )
+    shadowed = analyze_function_source(
+        '''
+ACTIVE_FILTER = "status = 'published'"
+
+def generate(conn, ACTIVE_FILTER):
+    conn.execute(f"SELECT id FROM market_listing WHERE {ACTIVE_FILTER}", ())
+''',
+        "generate",
+    )
+    dynamic = analyze_function_source(
+        '''
+ACTIVE_FILTER = load_filter()
+
+def generate(conn):
+    conn.execute(f"SELECT id FROM market_listing WHERE {ACTIVE_FILTER}", ())
+''',
+        "generate",
+    )
+
+    assert resolved["queries"][0]["sql_source"] == "static_or_resolved"
+    assert resolved["queries"][0]["positional_bind_arity"]["mismatch"] is False
+    assert resolved["queries"][0]["bound_location_scope_signal"] is True
+    assert shadowed["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+    assert dynamic["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+
+
 def test_classifier_correlates_named_binds_with_condition_list_and_mapping_branches():
     analysis = analyze_function_source(
         '''

@@ -106,4 +106,32 @@ def test_reachable_helper_queries_inventory_static_named_bind_contracts():
     assert reference_class_sites[35]["supplied_names"] == ["loc", "metric"]
     assert reference_class_sites[50]["required_names"] == ["loc"]
     assert reference_class_sites[50]["supplied_names"] == ["loc"]
+    assert summary["helper_query_sites_with_static_sql_source"] == sum(
+        site["sql_source"] == "static_or_resolved" for site in query_sites
+    )
+    assert summary["helper_query_sites_with_unresolved_sql_source"] == sum(
+        site["sql_source"] != "static_or_resolved" for site in query_sites
+    )
+
+
+def test_reachable_helper_queries_resolve_literal_module_sql_constants():
+    inventory = build_inventory()
+    business_plan = next(
+        report for report in inventory["reports"] if report["report_type"] == "business_plan"
+    )
+    marketplace_queries = [
+        site
+        for site in business_plan["reachable_helper_query_sites"]
+        if site["source_file"] == "services/analytics/marketplace.py"
+        and site["callable"] == "get_market_overview"
+    ]
+    listing_queries = [
+        site for site in marketplace_queries if "market_listing" in site["relations"]
+    ]
+
+    assert len(marketplace_queries) == 4
+    assert all(site["sql_source"] == "static_or_resolved" for site in marketplace_queries)
+    assert len(listing_queries) == 3
+    assert all(site["bound_location_scope_signal"] for site in listing_queries)
+    assert all(site["positional_bind_arity"]["mismatch"] is False for site in marketplace_queries)
 

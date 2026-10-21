@@ -758,8 +758,52 @@ def _named_bind_contract(
     }
 
 
-def _assigned_values(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, list[tuple[int, ast.AST]]]:
+def _assigned_values(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    module_tree: ast.Module | None = None,
+) -> dict[str, list[tuple[int, ast.AST]]]:
+    """Collect local assignments and unique literal module strings not shadowed locally."""
     assignments: dict[str, list[tuple[int, ast.AST]]] = {}
+    local_names = {
+        argument.arg
+        for argument in [
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
+            *([function.args.vararg] if function.args.vararg else []),
+            *([function.args.kwarg] if function.args.kwarg else []),
+        ]
+    }
+    local_names.update(
+        node.id
+        for node in ast.walk(function)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store)
+    )
+    if module_tree is not None:
+        module_assignments: dict[str, list[tuple[int, ast.AST]]] = {}
+        for statement in module_tree.body:
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+                target = statement.targets[0]
+                if isinstance(target, ast.Name):
+                    module_assignments.setdefault(target.id, []).append(
+                        (statement.lineno, statement.value)
+                    )
+            elif isinstance(statement, ast.AnnAssign) and isinstance(
+                statement.target, ast.Name
+            ) and statement.value is not None:
+                module_assignments.setdefault(statement.target.id, []).append(
+                    (statement.lineno, statement.value)
+                )
+        for name, values in module_assignments.items():
+            if name in local_names or len(values) != 1:
+                continue
+            line, value = values[0]
+            if line >= function.lineno:
+                continue
+            resolved = _string_value(value, {}, line)
+            if resolved is not None:
+                assignments[name] = [(line, ast.Constant(value=resolved))]
+
     for node in sorted(ast.walk(function), key=lambda item: getattr(item, "lineno", 0)):
         if isinstance(node, ast.Assign):
             for target in node.targets:
@@ -956,8 +1000,11 @@ def _query_argument(call: ast.Call) -> ast.AST | None:
     return first
 
 
-def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]:
-    assignments = _assigned_values(function)
+def _query_calls(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    module_tree: ast.Module | None = None,
+) -> list[dict]:
+    assignments = _assigned_values(function, module_tree)
     queries = []
     for node in ast.walk(function):
         if not isinstance(node, ast.Call):
@@ -1149,8 +1196,11 @@ def _helper_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
     ]
 
 
-def _analyze_function(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict:
-    queries = _query_calls(function)
+def _analyze_function(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    module_tree: ast.Module | None = None,
+) -> dict:
+    queries = _query_calls(function, module_tree)
     scope_signal_count = sum(query["bound_location_scope_signal"] for query in queries)
     unresolved_count = sum(query["sql_source"] != "static_or_resolved" for query in queries)
     conditional_count = sum(query["location_scope_conditionally_added"] for query in queries)
@@ -1203,7 +1253,7 @@ def analyze_function_source(source: str, function_name: str) -> dict:
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == function_name
     )
-    return _analyze_function(function)
+    return _analyze_function(function, tree)
 
 
 def build_inventory() -> dict:
@@ -1227,7 +1277,7 @@ def build_inventory() -> dict:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name == report["callable"]
         )
-        analysis = _analyze_function(function)
+        analysis = _analyze_function(function, tree)
         classification_counts[analysis["classification"]] = (
             classification_counts.get(analysis["classification"], 0) + 1
         )
@@ -1256,7 +1306,9 @@ def build_inventory() -> dict:
             "Conservative AST inventory of direct execute/query calls in registered report functions. "
             "Location-dependent SQL assignment branches retain statically resolved variants, including a simple "
             "unconditional static string suffix after the branch. Positional bind arity is compared for static SQL "
-            "and branch-correlated SQL when parameter counts are statically known. Named-bind keys are compared "
+            "and branch-correlated SQL when parameter counts are statically known. Unique, unshadowed module-level "
+            "literal strings are resolved in SQL expressions; computed or reassigned module values remain unresolved. "
+            "Named-bind keys are compared "
             "when literal mappings and simple branch-correlated condition-list appends are statically available; "
             "dynamic containers and nested conditional mutations remain unresolved. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "

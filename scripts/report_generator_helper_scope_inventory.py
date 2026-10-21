@@ -313,7 +313,9 @@ def _trace_report(
         if key in visited:
             continue
         visited.add(key)
-        analysis = _analyze_function(helper)
+        helper_module = _module_name(helper_path)
+        helper_tree = ast.parse(helper_path.read_text(encoding="utf-8"), filename=str(helper_path))
+        analysis = _analyze_function(helper, helper_tree)
         for query in analysis["queries"]:
             query_key = (helper_path.relative_to(ROOT).as_posix(), query["line"])
             record = {
@@ -333,12 +335,11 @@ def _trace_report(
             else:
                 record["reachable_via"] = [call_path]
                 query_sites[query_key] = record
-        helper_module = _module_name(helper_path)
-        helper_tree = ast.parse(helper_path.read_text(encoding="utf-8"), filename=str(helper_path))
         enqueue_calls(helper_module, helper, helper_tree, call_path, depth)
 
     queries = sorted(query_sites.values(), key=lambda item: (item["source_file"], item["line"]))
     scoped = sum(item["bound_location_scope_signal"] for item in queries)
+    static_sql_sites = sum(item["sql_source"] == "static_or_resolved" for item in queries)
     arity_sites = [item for item in queries if item["positional_bind_arity"] is not None]
     arity_mismatches = sum(item["positional_bind_arity"]["mismatch"] for item in arity_sites)
     named_bind_sites = [item for item in queries if item["named_bind_contract"] is not None]
@@ -363,6 +364,8 @@ def _trace_report(
         "reachable_helper_query_sites": queries,
         "helper_query_site_count": len(queries),
         "helper_query_sites_with_location_scope_signal": scoped,
+        "helper_query_sites_with_static_sql_source": static_sql_sites,
+        "helper_query_sites_with_unresolved_sql_source": len(queries) - static_sql_sites,
         "helper_query_sites_with_static_positional_arity": len(arity_sites),
         "helper_query_sites_with_positional_arity_mismatch": arity_mismatches,
         "helper_query_sites_with_static_named_bind_contract": len(named_bind_sites),
@@ -379,6 +382,8 @@ def build_inventory() -> dict:
     reports = []
     helper_query_sites = 0
     helper_scope_sites = 0
+    helper_static_sql_sites = 0
+    helper_unresolved_sql_sites = 0
     helper_arity_sites = 0
     helper_arity_mismatches = 0
     helper_named_bind_sites = 0
@@ -397,6 +402,8 @@ def build_inventory() -> dict:
         trace = _trace_report(report, source_path, function, module_tree)
         helper_query_sites += trace["helper_query_site_count"]
         helper_scope_sites += trace["helper_query_sites_with_location_scope_signal"]
+        helper_static_sql_sites += trace["helper_query_sites_with_static_sql_source"]
+        helper_unresolved_sql_sites += trace["helper_query_sites_with_unresolved_sql_source"]
         helper_arity_sites += trace["helper_query_sites_with_static_positional_arity"]
         helper_arity_mismatches += trace["helper_query_sites_with_positional_arity_mismatch"]
         helper_named_bind_sites += trace["helper_query_sites_with_static_named_bind_contract"]
@@ -412,7 +419,8 @@ def build_inventory() -> dict:
             "AST-only report-to-helper source trace. It follows statically imported or same-module local functions "
             "that resolve to unique Python definitions under services/. It records direct execute/query sites and "
             "statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text "
-            "or values. A location-scope signal is not "
+            "or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values "
+            "remain unresolved. A location-scope signal is not "
             "proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, "
             "external providers, runtime call selection, database views, and semantic report behavior are not "
             "proven. No service is imported or executed and no database, provider, or secret is accessed."
@@ -422,6 +430,8 @@ def build_inventory() -> dict:
             "reports_with_resolved_helper_query_sites": reports_with_helper_queries,
             "reachable_helper_query_sites_per_report": helper_query_sites,
             "helper_query_sites_with_location_scope_signal": helper_scope_sites,
+            "helper_query_sites_with_static_sql_source": helper_static_sql_sites,
+            "helper_query_sites_with_unresolved_sql_source": helper_unresolved_sql_sites,
             "helper_query_sites_with_static_positional_arity": helper_arity_sites,
             "helper_query_sites_with_positional_arity_mismatch": helper_arity_mismatches,
             "helper_query_sites_with_static_named_bind_contract": helper_named_bind_sites,

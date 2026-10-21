@@ -3,6 +3,16 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 literal module SQL constants in helper closure — 21 October 2026:**
+the query analyzer resolves a unique literal module-level SQL string only when
+it precedes the function and no local binding shadows it. Five helper query
+memberships are now statically resolved; helper coverage is 136/175 static SQL
+sites, 39 unresolved sites, 122 positional contracts, and two named contracts,
+with zero bind mismatches. The focused query/helper/source selection passes 32
+tests; Ruff, compilation, all three inventories, matrix validation, and diff
+checks pass. Computed/reassigned globals, dynamic SQL, runtime execution, and
+populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-literal-module-sql-constants.json)).
+
 **CAP-066 helper named-bind contracts — 21 October 2026:** the helper-scope
 inventory now carries named-bind analysis for reachable helper queries. Across
 175 report-to-helper query memberships, 117 positional and two named contracts

@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "check": "literal-module-sql-constants-in-report-helper-closure",
+  "change": "Resolve only unique module-level literal strings that precede the analyzed function and are not shadowed by local bindings.",
+  "newly_resolved_helper_query_sites": [
+    {
+      "source_file": "services/analytics/marketplace.py",
+      "callable": "get_market_overview",
+      "line": 632,
+      "relation": "market_listing",
+      "binds": "one positional location_id bind",
+      "location_scope_signal": true
+    },
+    {
+      "source_file": "services/analytics/marketplace.py",
+      "callable": "get_market_overview",
+      "line": 645,
+      "relation": "market_listing joined with crop",
+      "binds": "one positional location_id bind",
+      "location_scope_signal": true
+    },
+    {
+      "source_file": "services/analytics/process_mining.py",
+      "callable": "load_model",
+      "line": 46,
+      "relation": "process_model",
+      "binds": "one positional entity_type bind",
+      "location_scope_signal": false
+    },
+    {
+      "source_file": "services/analytics/process_mining.py",
+      "callable": "load_model",
+      "line": 52,
+      "relation": "process_model",
+      "binds": "no binds",
+      "location_scope_signal": false
+    },
+    {
+      "source_file": "services/analytics/process_mining.py",
+      "callable": "load_model",
+      "line": 58,
+      "relation": "process_model",
+      "binds": "no binds",
+      "location_scope_signal": false
+    }
+  ],
+  "helper_inventory_summary": {
+    "registered_report_types": 94,
+    "report_to_helper_query_memberships": 175,
+    "static_sql_sites": 136,
+    "unresolved_sql_sites": 39,
+    "static_positional_bind_contracts": 122,
+    "positional_bind_mismatches": 0,
+    "static_named_bind_contracts": 2,
+    "named_bind_mismatches": 0,
+    "location_scope_signals": 67
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+      "result": "32 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_source_inventory_freshness": "passed",
+    "report_query_inventory_freshness": "passed",
+    "report_helper_inventory_freshness": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Computed or reassigned module values and local shadowing remain unresolved by design.",
+    "Dynamic query building, closures, loops, provider SQL, and indirect execution are not inferred.",
+    "Static source inventory does not prove database execution, authorization, RLS, or populated report parity."
+  ],
+  "environment": {
+    "database_accessed": false,
+    "provider_accessed": false,
+    "migration_applied": false,
+    "candidate_or_legacy_stack_touched": false
+  }
+}

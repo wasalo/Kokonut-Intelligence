@@ -1,3 +1,20 @@
+### CAP-066 literal module SQL constants in helper closure — 21 October 2026
+
+The static report analyzer now resolves only unique literal module-level
+strings that appear before a helper and are not shadowed by local bindings.
+This recovered five helper query memberships: two marketplace reads that use
+the literal active-listing predicate and three process-model reads using a
+literal column list. The helper inventory now classifies 136 of 175 SQL sites
+as static and 39 as unresolved; it checks 122 positional and two named bind
+contracts with zero mismatches, and finds 67 location-scope signals. The
+focused query/helper/source selection passes 32 tests. Ruff, compilation, all
+three report inventory checks, capability-matrix validation, and diff checks
+pass. Computed/reassigned globals, dynamic SQL, and runtime/report parity remain
+open. No database, provider, migration, candidate, or legacy stack was used.
+Checklist: 884 complete / 24 open (908 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows
+([evidence](builds/2026-10-21-recovery/cap-066-literal-module-sql-constants.json)).
+
 ### CAP-066 helper named-bind contracts — 21 October 2026
 
 The report helper inventory now carries named-bind contracts from the static
