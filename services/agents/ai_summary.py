@@ -11,7 +11,7 @@ Usage:
     python3 -m services.agents.ai_summary --location-id UUID --summary-type financial
     python3 -m services.agents.ai_summary --location-id UUID --store
     python3 -m services.agents.ai_summary --list
-    python3 -m services.agents.ai_summary --verify <id>
+    python3 -m services.agents.ai_summary --verify <id>  # digest inspection only; no lifecycle change
 """
 
 import argparse
@@ -556,7 +556,13 @@ def main():
                         help="Type of summary to generate (default: combined)")
     parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
     parser.add_argument("--list", action="store_true", help="List existing summaries")
-    parser.add_argument("--verify", help="Verify a summary by ID (check content hash)")
+    parser.add_argument(
+        "--verify",
+        help=(
+            "Inspect a summary and compute its content digest; this does not "
+            "compare a stored digest or change lifecycle status"
+        ),
+    )
     args = parser.parse_args()
 
     if args.list:
@@ -595,8 +601,9 @@ def main():
             print(f"ID: {row['id']}")
             print(f"Type: {row['summary_type']}")
             print(f"Status: {row['status']}")
+            print("Lifecycle verification: not performed (read-only inspection)")
             print(f"Model: {row['model_version']}")
-            print(f"Content hash: {content_hash}")
+            print(f"Content SHA-256 (computed only; not compared): {content_hash}")
             print(f"Content length: {len(row['content'])} chars")
         return
 

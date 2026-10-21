@@ -13,24 +13,27 @@ SUMMARY_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 
 
 class Cursor:
-    def __init__(self, *, fail_on_execute: bool = False) -> None:
+    def __init__(self, *, fail_on_execute: bool = False, row=None) -> None:
         self.fail_on_execute = fail_on_execute
+        self.row = row
         self.closed = False
+        self.queries = []
 
     def execute(self, _query, _parameters=None) -> None:
+        self.queries.append(_query)
         if self.fail_on_execute:
             raise RuntimeError("synthetic summary query failure")
 
     def fetchone(self):
-        return None
+        return self.row
 
     def close(self) -> None:
         self.closed = True
 
 
 class Connection:
-    def __init__(self, *, fail_on_execute: bool = False) -> None:
-        self.cursor_instance = Cursor(fail_on_execute=fail_on_execute)
+    def __init__(self, *, fail_on_execute: bool = False, row=None) -> None:
+        self.cursor_instance = Cursor(fail_on_execute=fail_on_execute, row=row)
         self.closed = False
 
     def cursor(self, **_kwargs) -> Cursor:
@@ -116,5 +119,30 @@ def test_verify_closes_cursor_and_connection_when_query_fails(monkeypatch) -> No
     with pytest.raises(RuntimeError, match="synthetic summary query failure"):
         ai_summary.main()
 
+    assert connection.cursor_instance.closed is True
+    assert connection.closed is True
+
+
+def test_verify_is_explicitly_read_only_and_does_not_claim_lifecycle_review(
+    monkeypatch, capsys
+) -> None:
+    _set_argv(monkeypatch, "--verify", SUMMARY_ID)
+    connection = Connection(
+        row={
+            "id": SUMMARY_ID,
+            "summary_type": "operations",
+            "status": "draft",
+            "model_version": "synthetic-v1",
+            "content": "Synthetic summary",
+        }
+    )
+    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
+
+    ai_summary.main()
+
+    output = capsys.readouterr().out
+    assert "Lifecycle verification: not performed (read-only inspection)" in output
+    assert "Content SHA-256 (computed only; not compared):" in output
+    assert connection.cursor_instance.queries == ["SELECT * FROM ai_summary WHERE id = %s"]
     assert connection.cursor_instance.closed is True
     assert connection.closed is True

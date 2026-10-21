@@ -146,7 +146,9 @@ List and verify modes acquire a connection only for their query and close it in
 CLI checks exercise missing/malformed inputs and cleanup failures. This is a
 resource-lifecycle and input-preflight guarantee only: the CLI still uses its
 configured database principal and does not authenticate an operator or establish
-tenant authorization.
+tenant authorization. The legacy `--verify` option is a read-only inspection:
+it computes a SHA-256 digest without comparing it to a stored digest and never
+changes lifecycle status, so it is not the human-review action.
 
 Focused source tests cover all current catalogue write declarations, defensive
 copy behavior, denied high-risk actions, malformed policy input, and preflight

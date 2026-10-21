@@ -1,3 +1,11 @@
+### CAP-038 AI-summary digest inspection wording — 20 October 2026
+
+The legacy `--verify` option now says plainly that it computes a local digest
+without comparing a stored value and does not change the governed lifecycle.
+Its output explicitly says lifecycle review was not performed. Eight CLI tests
+and a 34-test AI-summary/safety regression selection pass offline; no database
+or provider was contacted ([tests](../../tests/test_ai_summary_cli_lifecycle.py); [evidence](builds/2026-10-20-recovery/cap-038-ai-summary-verify-readonly.json)).
+
 ### CAP-038 standalone AI-summary CLI lifecycle — 20 October 2026
 
 The legacy AI-summary CLI now rejects missing command modes and malformed UUIDs
