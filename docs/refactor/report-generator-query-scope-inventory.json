@@ -638,22 +638,22 @@
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
-          "line": 527,
+          "line": 526,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_ghg_emissions",
-          "line": 528,
+          "line": 527,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_regenerative_score",
-          "line": 530,
+          "line": 529,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_tree_carbon",
-          "line": 529,
+          "line": 528,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -716,7 +716,7 @@
           "location_id_reference": false,
           "location_predicate_visible": false,
           "global_null_rows_allowed": false,
-          "location_id_in_bound_expression": true,
+          "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,

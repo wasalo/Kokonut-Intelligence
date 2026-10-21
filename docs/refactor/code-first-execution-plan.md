@@ -3,6 +3,16 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 climate-impact report query fix — 21 October 2026:** the climate
+report's shared active-protocol query no longer receives an unused location
+parameter despite having no SQL placeholder. A focused regression checks every
+query's placeholder/parameter arity and confirms the shared protocol projection
+is preserved. The report and query-inventory selection passes 12 tests; Ruff,
+Python compilation, runtime SQL and three report inventory checks, and matrix
+validation pass. No database, migration, candidate, legacy stack, or provider
+was used. Populated report parity and MAN-CAP-066 owner acceptance remain open
+([evidence](builds/2026-10-21-recovery/cap-066-climate-impact-query-parameters.json)).
+
 **Network-disabled bootstrap profile — 20 October 2026:** the schema-only
 PostgreSQL Compose profile passed a local runtime smoke with `network_mode:
 none`, no host ports, a healthy database, and successful `psql` through

@@ -516,8 +516,7 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         FROM operations_protocol
         WHERE status = 'active'
         ORDER BY section
-    """,
-        (location_id,),
+    """
     )
     protocols = [dict(r) for r in cur.fetchall()]
 

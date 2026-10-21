@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 873 checklist items complete and 24
-open (897 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 877 checklist items complete and 24
+open (901 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1833,3 +1833,8 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### Secretless explicit schema-bootstrap configuration — 21 October 2026
 
 - [x] Prevent explicit Compose-only schema replay from attempting to decrypt workstation `.env.sops` when the migration subprocess connects through `docker compose exec` and uses only supplied database routing. The bypass is explicitly named, restricted to development/local environments, and fails closed in production. The focused environment and schema-bootstrap selection passes 20 tests; Ruff, shell syntax, and diff checks pass. No migration, database, candidate, legacy stack, or provider was used for this code change ([implementation](../../services/common/env.py); [script](../../scripts/verify-clean-bootstrap.sh); [tests](../../tests/test_common_env.py); [evidence](builds/2026-10-21-recovery/schema-bootstrap-secretless-config.json)). Checklist: 876 complete / 24 open (900 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+
+
+### CAP-066 climate-impact report query parameters — 21 October 2026
+
+- [x] Fix the climate-impact report's active operations-protocol query, which supplied a location parameter to SQL with no placeholder and could fail at execution. The protocol catalog is intentionally shared reference metadata (the table has no location column), so the query now runs without a location parameter while the other climate-impact reads and calculations remain location-scoped. The focused report and query-inventory selection passes 12 tests; Ruff, Python compilation, runtime SQL inventory, three report inventories, and the capability-matrix validator pass. No database, migration, candidate, legacy stack, or provider was used. Rollback is a source revert; no persisted data changed. This restores the report calculation path but does not establish farm-output parity or MAN-CAP-066 acceptance ([implementation](../../services/export/reports/core.py); [test](../../tests/test_climate_impact_report.py); [evidence](builds/2026-10-21-recovery/cap-066-climate-impact-query-parameters.json)). Checklist: 877 complete / 24 open (901 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

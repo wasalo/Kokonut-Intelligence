@@ -1,3 +1,18 @@
+### CAP-066 climate-impact report query parameters — 21 October 2026
+
+The climate-impact report passed a location ID to its shared active
+`operations_protocol` query even though that SQL contains no parameter
+placeholder. PostgreSQL could reject the query and prevent report generation.
+The call now omits the unused parameter; the protocol catalog has no location
+column and remains explicitly documented as shared reference metadata. The new
+focused regression checks SQL/parameter arity and preserves the protocol output.
+The focused climate-impact and query-inventory selection passes 12 tests;
+Ruff, Python compilation, runtime SQL inventory, three report inventories, and
+the capability-matrix validator pass. No database, migration, candidate,
+legacy stack, or provider was used. Populated report parity and MAN-CAP-066
+owner acceptance remain open. Checklist: 877 complete / 24 open (901 total).
+See the [evidence](builds/2026-10-21-recovery/cap-066-climate-impact-query-parameters.json).
+
 ### Secretless schema-bootstrap configuration — 21 October 2026
 
 Explicit Compose-only schema replay now skips loading the workstation's
