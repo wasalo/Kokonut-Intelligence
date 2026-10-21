@@ -13170,3 +13170,18 @@ invocation, and invalid-action rejection before database access. Ruff and Python
 compilation pass; no database or DAO RPC provider was contacted. Checklist:
 822 complete / 25 open (847 total); matrix classifications remain 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared ([implementation](../../services/governance/cli.py); [tests](../../tests/test_governance_framework_cli.py); [evidence](builds/2026-10-20-recovery/cap-039-governance-framework-list-cli.json)).
+
+
+### CAP-047 freshness CLI offline preflight — 20 October 2026
+
+Data-freshness help now returns without loading secret-bearing database
+configuration; `--source` requires `--check`, and `--check` and `--summary`
+cannot be combined. The 37-test freshness suite passes, including four mocked
+preflight regressions and a fresh-process import check. Ruff, Python
+compilation, and diff checks pass. No database, provider, candidate, or legacy
+service was contacted. This does not close production alert routing, retention
+ownership, or MAN-CAP-047. Checklist: 823 complete / 25 open (848
+total); capability matrix remains 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared ([implementation](../../services/ingestion/data_freshness.py);
+[tests](../../tests/test_telemetry_freshness.py);
+[evidence](builds/2026-10-20-recovery/freshness-cli-offline-preflight.json)).
