@@ -1,6 +1,6 @@
 # Code-first refactor execution plan
 
-**Updated:** 20 October 2026
+**Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
 **Network-disabled bootstrap profile — 20 October 2026:** the schema-only
@@ -2340,4 +2340,15 @@ feature-parity completion. No database or migration was used. Checklist: 752
 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 Evidence: [source-to-route audit](solution-lifecycle-source-route-audit.md).
 
-**Latest implementation slice — 20 October 2026:** CAP-035 now retires the
+### CAP-039 ingestion status CLI parity — 21 October 2026
+
+The `ingestion status log`, `indexers`, and `summary` paths now compare
+standalone and unified output with synthetic connections. The log checks bound
+filters; error-bearing reads verify redaction; and all three paths verify
+connection cleanup after query failures. Nine focused tests pass with Ruff and
+Python compilation. No database or provider was contacted. This closes
+mocked output/cleanup paths only;
+populated-data behavior and authorization remain open. Checklist: 825 complete
+/ 25 open (850 total); capability classifications remain 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json`.

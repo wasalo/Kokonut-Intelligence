@@ -22,33 +22,34 @@ def _display_error_message(message) -> str:
 def query_ingestion_log(args):
     """Query recent ingestion log entries."""
     db = get_db()
-    with db.cursor() as cur:
-        conditions = []
-        params = []
+    try:
+        with db.cursor() as cur:
+            conditions = []
+            params = []
 
-        if args.source:
-            conditions.append("source_system = %s")
-            params.append(args.source)
-        if args.status_filter:
-            conditions.append("status = %s")
-            params.append(args.status_filter)
-        if args.errors_only:
-            conditions.append("status = 'failed'")
+            if args.source:
+                conditions.append("source_system = %s")
+                params.append(args.source)
+            if args.status_filter:
+                conditions.append("status = %s")
+                params.append(args.status_filter)
+            if args.errors_only:
+                conditions.append("status = 'failed'")
 
-        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+            where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
-        cur.execute(f"""
-            SELECT source_system, target_table, status, error_message,
-                   rows_affected, processing_time_ms, created_at
-            FROM ingestion_log
-            {where}
-            ORDER BY created_at DESC
-            LIMIT %s
-        """, params + [args.limit])
+            cur.execute(f"""
+                SELECT source_system, target_table, status, error_message,
+                       rows_affected, processing_time_ms, created_at
+                FROM ingestion_log
+                {where}
+                ORDER BY created_at DESC
+                LIMIT %s
+            """, params + [args.limit])
 
-        rows = cur.fetchall()
-
-    db.close()
+            rows = cur.fetchall()
+    finally:
+        db.close()
 
     if not rows:
         print("No ingestion records found.")
@@ -64,15 +65,17 @@ def query_ingestion_log(args):
 def query_indexer_status(args):
     """Query chain indexer status."""
     db = get_db()
-    with db.cursor() as cur:
-        cur.execute("""
-            SELECT chain, indexer_type, last_synced_block, status,
-                   error_message, last_synced_at
-            FROM chain_indexer_status
-            ORDER BY chain, indexer_type
-        """)
-        rows = cur.fetchall()
-    db.close()
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT chain, indexer_type, last_synced_block, status,
+                       error_message, last_synced_at
+                FROM chain_indexer_status
+                ORDER BY chain, indexer_type
+            """)
+            rows = cur.fetchall()
+    finally:
+        db.close()
 
     if not rows:
         print("No indexer status records found.")
@@ -88,16 +91,18 @@ def query_indexer_status(args):
 def show_summary(args):
     """Show ingestion summary statistics."""
     db = get_db()
-    with db.cursor() as cur:
-        cur.execute("""
-            SELECT source_system, status, COUNT(*) as cnt,
-                   SUM(rows_affected) as total_rows
-            FROM ingestion_log
-            GROUP BY source_system, status
-            ORDER BY source_system, status
-        """)
-        rows = cur.fetchall()
-    db.close()
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT source_system, status, COUNT(*) as cnt,
+                       SUM(rows_affected) as total_rows
+                FROM ingestion_log
+                GROUP BY source_system, status
+                ORDER BY source_system, status
+            """)
+            rows = cur.fetchall()
+    finally:
+        db.close()
 
     if not rows:
         print("No ingestion records found.")
@@ -109,7 +114,7 @@ def show_summary(args):
         print(f"{r[0]:<20} {r[1]:<10} {r[2]:<8} {r[3] or 0:<12}")
 
 
-def main():
+def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description="Ingestion status monitoring")
     sub = parser.add_subparsers(dest="command")
 
@@ -122,7 +127,7 @@ def main():
     sub.add_parser("indexers", help="Show chain indexer status")
     sub.add_parser("summary", help="Show ingestion summary statistics")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.command == "log":
         query_ingestion_log(args)

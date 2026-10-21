@@ -13200,3 +13200,18 @@ operator principal decision, and MAN-CAP-039 review remain open. Checklist:
 824 complete / 25 open (849 total); capability matrix remains 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_ingestion_cli_help_isolation.py);
 [evidence](builds/2026-10-20-recovery/cap-039-ingestion-help-isolation.json)).
+
+
+### CAP-039 ingestion status read parity — 21 October 2026
+
+The `ingestion status log`, `indexers`, and `summary` commands now have
+synthetic standalone/unified CLI parity checks. Log filters remain bound
+parameters; persisted diagnostics are redacted; and all three query functions
+close connections when query execution fails. Nine focused tests pass; Ruff
+and Python compilation pass. The tests use fake connections only; no database
+or provider was contacted. This covers these read paths synthetically and does
+not establish populated-data behavior or authorization. Checklist: 825
+complete / 25 open (850 total);
+capability matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28
+prepared ([implementation](../../services/ingestion/status.py); [test](../../tests/test_ingestion_status_error_redaction.py);
+[evidence](builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json)).

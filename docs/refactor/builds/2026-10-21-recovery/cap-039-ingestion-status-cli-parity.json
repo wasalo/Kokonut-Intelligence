@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "f212071e8b72de5fb7e9ca30eea4e66304505c77",
+  "scope": "Synthetic ingestion status CLI output parity and connection cleanup",
+  "invocation": {
+    "standalone": "services.ingestion.status.main(['log', '--source', 'synthetic-provider', '--status', 'failed', '--errors-only', '--limit', '7'])",
+    "unified": "services.cli ingestion -- status log --source synthetic-provider --status failed --errors-only --limit 7"
+  },
+  "verification": {
+    "focused_tests": "9 passed",
+    "coverage": [
+      "standalone and unified output is byte-for-byte equal for log, indexers, and summary commands",
+      "log source and status filters use bound query parameters",
+      "persisted diagnostic detail is redacted in log and indexer output",
+      "all three ingestion status reads close fake connections after query failure"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all database connections were fakes",
+    "provider": "not contacted"
+  },
+  "result": "PASS: synthetic ingestion status output matches across standalone and unified CLI entrypoints for log, indexers, and summary; log filters are parameterized and all status query connections close after failures.",
+  "limitations": [
+    "This verifies CLI parsing, rendering, redaction, and connection cleanup only; it does not verify populated database behavior or authorization.",
+    "Other ingestion commands and privileged operator actions remain under CAP-039 review."
+  ]
+}

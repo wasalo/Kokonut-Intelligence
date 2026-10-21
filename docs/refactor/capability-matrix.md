@@ -4007,3 +4007,11 @@ database identity, and an unavailable SOPS age key. The subprocess regression,
 Ruff, and compilation pass. This closes only help/import configuration
 preflight; non-help CLI parity and MAN-CAP-039 review remain open
 ([evidence](builds/2026-10-20-recovery/cap-039-ingestion-help-isolation.json)).
+
+**CAP-039 ingestion status read parity — 21 October 2026:** `log`, `indexers`,
+and `summary` now have synthetic standalone/unified output parity. Log filters
+are bound parameters, persisted diagnostics are redacted, and all three status
+reads close fake connections after query failure. Nine focused tests, Ruff,
+and compilation pass; no database or provider was contacted. This is a mocked
+read-path contract, not populated-data or authorization
+acceptance ([evidence](builds/2026-10-21-recovery/cap-039-ingestion-status-cli-parity.json)).
