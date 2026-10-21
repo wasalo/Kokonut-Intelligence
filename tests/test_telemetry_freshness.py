@@ -62,6 +62,29 @@ def test_freshness_help_does_not_open_database(monkeypatch, capsys) -> None:
     assert "--check" in capsys.readouterr().out
 
 
+def test_freshness_help_import_does_not_load_secret_bearing_database_config() -> None:
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "from services.ingestion import data_freshness; "
+                "assert 'services.ingestion.base' not in sys.modules; "
+                "data_freshness.main([])"
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "--check" in result.stdout
+
+
 def test_freshness_source_requires_check_before_database(monkeypatch, capsys) -> None:
     from services.ingestion import data_freshness
 

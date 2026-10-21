@@ -23,7 +23,6 @@ import psycopg2.extras
 from services.common.cli import print_json
 
 from ..common.logging import get_logger
-from .base import get_db
 
 logger = get_logger("ingestion.data_freshness")
 
@@ -588,6 +587,13 @@ def main(argv: Optional[List[str]] = None) -> None:
             parser.print_help()
     finally:
         conn.close()
+
+
+def get_db():
+    """Load the ingestion database connection only when a DB action is run."""
+    from .base import get_db as _get_db
+
+    return _get_db()
 
 
 if __name__ == "__main__":
