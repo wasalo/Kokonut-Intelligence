@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "74838bdd",
+  "scope": "Data-freshness check orchestration SAVEPOINT and status-update cursor cleanup",
+  "verification": {
+    "focused_tests": "5 orchestration failure cases pass; 64 tests across cursor cleanup, CLI parity, and telemetry freshness",
+    "coverage": [
+      "SAVEPOINT cursor closes if SAVEPOINT execution fails",
+      "ROLLBACK TO SAVEPOINT cursor closes if rollback command execution fails",
+      "alert-state update, check update, and RELEASE SAVEPOINT cursors close if execution fails",
+      "failures after savepoint creation still invoke the existing transaction rollback path",
+      "failure cases do not commit partial freshness state"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all cursor/transaction behavior was synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: freshness orchestration closes its transaction-control cursors on command errors and retains existing rollback behavior.",
+  "limitations": [
+    "This is synthetic transaction/cursor coverage; no live PostgreSQL savepoint behavior was exercised.",
+    "Live database authorization, global-summary privacy, and alert delivery remain open."
+  ]
+}

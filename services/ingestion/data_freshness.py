@@ -423,8 +423,10 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
             now = datetime.now(timezone.utc)
             savepoint = "freshness_scope"
             save_cur = conn.cursor()
-            save_cur.execute(f"SAVEPOINT {savepoint}")
-            save_cur.close()
+            try:
+                save_cur.execute(f"SAVEPOINT {savepoint}")
+            finally:
+                save_cur.close()
             try:
                 _validate_thresholds(stale_threshold, critical_threshold)
                 last_data_at = _query_latest_data_at(conn, source_system, scoped, location_id)
@@ -435,8 +437,10 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 status = _determine_status(gap_minutes, stale_threshold, critical_threshold)
             except Exception as exc:
                 rollback_cur = conn.cursor()
-                rollback_cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
-                rollback_cur.close()
+                try:
+                    rollback_cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                finally:
+                    rollback_cur.close()
                 status = "error"
                 metadata = {"error": _safe_evaluation_error(exc)}
                 logger.error(
@@ -512,20 +516,26 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                         )
                 elif status != "error":
                     update_cur = conn.cursor()
-                    update_cur.execute(
-                        "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
-                        (status, now, state["id"]),
-                    )
-                    update_cur.close()
+                    try:
+                        update_cur.execute(
+                            "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",
+                            (status, now, state["id"]),
+                        )
+                    finally:
+                        update_cur.close()
                 update_check_cur = conn.cursor()
-                update_check_cur.execute(
-                    "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
-                    (alert_sent, alert_channel, check_id),
-                )
-                update_check_cur.close()
+                try:
+                    update_check_cur.execute(
+                        "UPDATE data_freshness_check SET alert_sent = %s, alert_channel = %s WHERE id = %s",
+                        (alert_sent, alert_channel, check_id),
+                    )
+                finally:
+                    update_check_cur.close()
                 release_cur = conn.cursor()
-                release_cur.execute(f"RELEASE SAVEPOINT {savepoint}")
-                release_cur.close()
+                try:
+                    release_cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+                finally:
+                    release_cur.close()
             except Exception:
                 conn.rollback()
                 raise

@@ -13405,8 +13405,21 @@ alert-history, delivery-attempt, and check-result helpers now close their own
 cursors after SQL or result-retrieval failures. No helper takes transaction
 ownership. Seventeen synthetic failure cases pass in the 59-test
 freshness/telemetry selection with Ruff and compilation; no database/provider
-was contacted. This does not cover check_freshness orchestration SAVEPOINT
-cursors, live authorization, global-summary privacy, or alert delivery.
+was contacted. The subsequent orchestration slice covers the SAVEPOINT cursors. Live
+authorization, global-summary privacy, and alert delivery remain open.
 Checklist: 840 complete / 25 open (865 total); matrix remains 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cursor_cleanup.py);
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-helper-cursor-cleanup.json)).
+
+### CAP-039 data-freshness SAVEPOINT cursor cleanup — 21 October 2026
+
+The `check_freshness` orchestration closes cursors for SAVEPOINT creation,
+rollback-to-savepoint, alert-state/check updates, and savepoint release when
+the SQL command fails. Failures after savepoint creation still follow the
+existing rollback path and do not commit partial results. Five synthetic failure
+cases pass in the 64-test freshness/telemetry selection with Ruff and
+compilation; no database/provider was contacted. Live PostgreSQL behavior and
+authorization remain open. Checklist: 841 complete / 25 open (866 total);
+matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_data_freshness_cursor_cleanup.py);
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-savepoint-cursor-cleanup.json)).

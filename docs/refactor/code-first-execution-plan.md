@@ -2534,3 +2534,13 @@ was contacted. SAVEPOINT orchestration cleanup, authorization, summary privacy,
 and delivery remain open. Checklist: 840 complete / 25 open (865 total); matrix
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-helper-cursor-cleanup.json).
+
+### CAP-039 data-freshness SAVEPOINT cursor cleanup — 21 October 2026
+
+Freshness orchestration closes its SAVEPOINT, rollback-to-savepoint, status/check
+update, and release cursors on SQL errors. Existing transaction rollback is
+preserved and partial results are not committed. Five synthetic cases pass in
+the 64-test freshness/telemetry selection with Ruff and compilation. No live
+database/provider was used. Checklist: 841 complete / 25 open (866 total);
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-savepoint-cursor-cleanup.json).
