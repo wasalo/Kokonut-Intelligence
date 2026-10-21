@@ -149,10 +149,10 @@ def test_fetch_job_rejects_a_mismatched_location_before_bbox_or_provider_work():
     [
         ["--run-jobs"],
         ["--list-jobs"],
-        ["--job-id", "job-1"],
+        ["--job-id", "12345678-1234-5678-1234-567812345679"],
         ["--run-jobs", "--list-jobs", "--location-id", LOCATION_ID],
         ["--run-jobs", "--location-id", "invalid"],
-        ["--job-id", "", "--location-id", LOCATION_ID],
+        ["--job-id", "not-a-uuid", "--location-id", LOCATION_ID],
         ["--run-jobs", "--limit", "0", "--location-id", LOCATION_ID],
     ],
 )
@@ -207,11 +207,12 @@ def test_job_lookup_binds_location_scope_to_sql():
     cursor = conn.cursor.return_value
     cursor.fetchone.return_value = None
 
-    _query_job(conn, "job-1", LOCATION_ID)
+    job_id = "12345678-1234-5678-1234-567812345679"
+    _query_job(conn, job_id, LOCATION_ID)
 
     sql, parameters = cursor.execute.call_args.args
     assert "id = %s AND location_id = %s" in sql
-    assert parameters == ("job-1", LOCATION_ID)
+    assert parameters == (job_id, LOCATION_ID)
 
 
 def test_job_listing_and_active_job_query_bind_location_scope():

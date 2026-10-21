@@ -13326,3 +13326,16 @@ database authorization, provider execution, and worker recovery remain open.
 Checklist: 833 complete / 25 open (858 total); matrix remains 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cursor_cleanup.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-fetcher-cursor-cleanup.json)).
+
+### CAP-039 remote-sensing manual job-run contract — 21 October 2026
+
+The manual `--job-id` path now validates and canonicalizes UUIDs before DB
+setup, matching the job table's UUID primary key. Standalone and unified runs
+bind the same job/location scope, return identical synthetic JSON, and pass the
+scoped job to a stubbed provider adapter; empty and malformed values fail
+offline. Five manual-path checks pass within the 87-test fetcher/scheduler/
+automation selection; Ruff and compilation pass. No database or provider was
+contacted. Live authorization, provider output parity, and worker recovery
+remain open. Checklist: 834 complete / 25 open (859 total); matrix remains 66
+rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-manual-run-contract.json)).

@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "1579e193",
+  "scope": "Remote-sensing manual job-run UUID validation and standalone/unified parity",
+  "invocation": "remote_sensing_fetcher --job-id <synthetic-job-uuid> --location-id <synthetic-location-uuid>",
+  "verification": {
+    "focused_tests": "5 manual-run cases pass; 87 tests in the fetcher, scheduler, and automation selection",
+    "coverage": [
+      "manual job ID is canonicalized as a UUID before PostgreSQL setup, consistent with the remote_sensing_job primary key type",
+      "standalone/unified SQL binds the exact job and location IDs and produces identical JSON output",
+      "the location-qualified synthetic job row is passed to the provider execution adapter",
+      "empty and malformed job IDs fail before DB setup through both CLI entrypoints",
+      "connection and cursor cleanup remain covered without a live provider call"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; query results were synthetic",
+    "provider": "not contacted; job execution adapter was stubbed"
+  },
+  "result": "PASS: manual job runs now preflight UUID input and preserve location-scoped CLI parity.",
+  "limitations": [
+    "This is mocked database/provider coverage; it does not establish live authorization or provider output parity.",
+    "Durable provider execution, lease/retry behavior, and worker recovery remain open."
+  ]
+}

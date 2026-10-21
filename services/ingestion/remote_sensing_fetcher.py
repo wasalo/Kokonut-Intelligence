@@ -46,6 +46,14 @@ def _canonical_location_id(location_id: str | None) -> str:
         raise ValueError("location_id must be a UUID") from None
 
 
+def _canonical_job_id(job_id: str) -> str:
+    """Require a canonical job UUID before querying PostgreSQL."""
+    try:
+        return str(uuid.UUID(str(job_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("job_id must be a UUID") from None
+
+
 def _classify_provider_result(result: Optional[Dict[str, Any]] = None, error: Optional[Exception] = None) -> str:
     """Return ``success``, ``no_data``, ``retryable``, or ``non_retryable``."""
     if error is not None:
@@ -161,6 +169,7 @@ def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, A
 
 def _query_job(conn, job_id: str, location_id: str) -> Optional[Dict[str, Any]]:
     """Query a specific job only within one location."""
+    job_id = _canonical_job_id(job_id)
     location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
@@ -487,9 +496,9 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.run_jobs and not 1 <= args.limit <= MAX_RUN_BATCH_SIZE:
         parser.error(f"--limit must be between 1 and {MAX_RUN_BATCH_SIZE}")
-    if args.job_id is not None and not args.job_id.strip():
-        parser.error("--job-id requires a non-empty job ID")
     try:
+        if args.job_id is not None:
+            args.job_id = _canonical_job_id(args.job_id)
         location_id = _canonical_location_id(args.location_id)
     except ValueError as exc:
         parser.error(str(exc))

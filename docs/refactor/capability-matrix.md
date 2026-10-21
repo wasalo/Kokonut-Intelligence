@@ -4081,3 +4081,13 @@ compilation; no database/provider was contacted. Live authorization, provider
 execution, and worker recovery remain open. Checklist: 833 complete / 25 open;
 matrix classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-fetcher-cursor-cleanup.json)).
+
+**CAP-039 remote-sensing manual job run — 21 October 2026:** `--job-id` now
+validates as a UUID before DB setup. Standalone/unified execution binds the
+same location-scoped record and returns matching output with provider
+execution stubbed; malformed IDs fail offline. Five manual-path checks pass in
+the 87-test fetcher/scheduler/automation selection with Ruff and compilation.
+No database/provider was contacted. Live authorization, provider output, and
+worker recovery remain open. Checklist: 834 complete / 25 open; matrix remains
+31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-manual-run-contract.json)).

@@ -52,12 +52,16 @@ class _Connection:
             id="active-jobs-fetch",
         ),
         pytest.param(
-            lambda conn: remote_sensing_fetcher._query_job(conn, "job-id", LOCATION_ID),
+            lambda conn: remote_sensing_fetcher._query_job(
+                conn, "12345678-1234-5678-1234-567812345679", LOCATION_ID
+            ),
             "execute",
             id="single-job-execute",
         ),
         pytest.param(
-            lambda conn: remote_sensing_fetcher._query_job(conn, "job-id", LOCATION_ID),
+            lambda conn: remote_sensing_fetcher._query_job(
+                conn, "12345678-1234-5678-1234-567812345679", LOCATION_ID
+            ),
             "fetchone",
             id="single-job-fetch",
         ),

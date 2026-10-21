@@ -7,6 +7,7 @@ import pytest
 from services.ingestion import remote_sensing_fetcher
 
 LOCATION_ID = "12345678-1234-5678-1234-567812345678"
+JOB_ID = "12345678-1234-5678-1234-567812345679"
 
 
 class _Cursor:
@@ -220,3 +221,78 @@ def test_remote_sensing_job_create_rolls_back_and_closes_on_insert_failure(
     assert connection.cursor_instance.closed
     assert connection.commit_count == 0
     assert connection.rollback_count == 1
+
+
+def test_manual_job_run_output_matches_and_binds_job_and_location(monkeypatch, capsys):
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    job = {"id": JOB_ID, "location_id": LOCATION_ID, "provider": "gee"}
+    connections = []
+    dispatched = []
+
+    def make_connection():
+        connection = _Connection([job])
+        connections.append(connection)
+        return connection
+
+    def fetch_job(connection, selected_job, *, location_id):
+        dispatched.append((connection, selected_job, location_id))
+        return {"job_id": JOB_ID, "status": "success", "observations": 1}
+
+    monkeypatch.setattr(remote_sensing_fetcher, "get_db", make_connection)
+    monkeypatch.setattr(remote_sensing_fetcher, "fetch_job", fetch_job)
+    arguments = ["--job-id", JOB_ID, "--location-id", LOCATION_ID]
+
+    remote_sensing_fetcher.main(arguments)
+    standalone_output = capsys.readouterr().out
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "remote_sensing_fetcher", *arguments],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == {
+        "job_id": JOB_ID,
+        "status": "success",
+        "observations": 1,
+    }
+    assert len(connections) == 2
+    for connection in connections:
+        assert connection.closed
+        assert connection.cursor_instance.closed
+        assert "id = %s AND location_id = %s" in connection.cursor_instance.query
+        assert connection.cursor_instance.params == (JOB_ID, LOCATION_ID)
+    assert [row[1:] for row in dispatched] == [(job, LOCATION_ID), (job, LOCATION_ID)]
+    assert unified.stderr == ""
+
+
+@pytest.mark.parametrize("entrypoint", ["standalone", "unified"])
+@pytest.mark.parametrize("job_id", ["", "not-a-uuid"])
+def test_manual_job_run_rejects_malformed_job_id_before_database(
+    monkeypatch, entrypoint, job_id
+):
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    monkeypatch.setattr(
+        remote_sensing_fetcher,
+        "get_db",
+        lambda: pytest.fail("malformed job ID must fail before DB setup"),
+    )
+    arguments = ["--job-id", job_id, "--location-id", LOCATION_ID]
+
+    if entrypoint == "standalone":
+        with pytest.raises(SystemExit) as exc_info:
+            remote_sensing_fetcher.main(arguments)
+        assert exc_info.value.code == 2
+    else:
+        result = CliRunner().invoke(
+            unified_cli.app,
+            ["ingestion", "--", "remote_sensing_fetcher", *arguments],
+        )
+        assert result.exit_code == 2
+        assert "job_id must be a UUID" in result.output
