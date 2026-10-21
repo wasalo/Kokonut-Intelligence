@@ -4225,3 +4225,14 @@ recovery. Checklist: 847 complete / 25 open (872 total); classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared
 ([tests](../tests/test_http_sensor_receiver_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 MQTT subscriber CLI entrypoint — 21 October 2026:** the
+MQTT subscriber now has a callable parser/main. Standalone/unified broker and
+port arguments and help match; non-integer ports fail before startup. Five CLI
+cases pass within the 91-test MQTT/IoT/outbox selection with Ruff and
+compilation. Subscriber startup was stubbed; no broker or database was
+contacted. This is CLI dispatch coverage, not MQTT delivery acceptance.
+Checklist: 848 complete / 25 open (873 total); classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_mqtt_subscriber_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).

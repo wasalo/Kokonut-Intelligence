@@ -79,6 +79,7 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `price_attestation --commodity coffee --price 2.5 --source world_bank`; `--run-daily`; incomplete/help invocation | Connection and attestation operations are synthetic; incomplete invocation does not open PostgreSQL | Matching standalone/unified arguments and help; manual/daily paths close their connections |
 | `ingestion` | `gis_import --file <synthetic-geojson> --target plot` | Import `run()` is stubbed; file parsing and database effects do not run | Exact standalone/unified argument forwarding and help output match; missing file/invalid target reject before import |
 | `ingestion` | `http_sensor_receiver --host 127.0.0.1 --port 18056` | Server `run()` is stubbed; no listener or database is started | Matching host/port forwarding and help; non-integer port rejects before startup |
+| `ingestion` | `mqtt_subscriber --broker mqtt.synthetic --port 18883` | Subscriber `run()` is stubbed; no broker or database is contacted | Matching broker/port forwarding and help; non-integer port rejects before startup |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -189,7 +190,7 @@ selection covers nine offline invocations across eight groups, forty-five
 stubbed database-query paths (including the operator inventory), one
 aggregate-service path, two synthetic report-generation paths, three
 fake-connection operator writes, and the market-data, price-attestation,
-GIS-import, and HTTP sensor-receiver parser/dispatch paths. Identity
+GIS-import, HTTP sensor-receiver, and MQTT subscriber parser/dispatch paths. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,

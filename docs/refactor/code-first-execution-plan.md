@@ -2608,3 +2608,12 @@ Standalone/unified host/port forwarding and help match; non-integer ports fail
 before startup. Five CLI cases pass in the 79-test HTTP/IoT/outbox selection
 with Ruff and compilation. Server startup was stubbed, so no listener, database,
 or provider was touched ([evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 MQTT subscriber CLI entrypoint — 21 October 2026
+
+The MQTT subscriber now exposes a callable parser and `main()`. Standalone and
+unified broker/port forwarding and help match; invalid non-integer ports fail
+before subscriber startup. Five CLI cases pass in the 91-test MQTT/IoT/outbox
+selection with Ruff and compilation. Subscriber startup was stubbed, so no
+broker or database was contacted
+([evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).

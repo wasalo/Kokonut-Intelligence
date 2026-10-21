@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import hmac
 import json
@@ -459,12 +460,22 @@ def run(broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT):
         subscriber.stop()
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="MQTT sensor subscriber")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="mqtt_subscriber.py",
+        description="MQTT sensor subscriber",
+    )
     parser.add_argument("--broker", default=DEFAULT_BROKER, help="MQTT broker host")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="MQTT broker port")
-    args = parser.parse_args()
+    return parser
 
+
+def main(argv: list[str] | None = None) -> None:
+    """Start the MQTT sensor subscriber."""
+    args = build_parser().parse_args(argv)
     run(broker=args.broker, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

@@ -13503,3 +13503,14 @@ complete / 25 open (872 total); the matrix remains 66 rows: 31 baseline-
 retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_http_sensor_receiver_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 MQTT subscriber CLI entrypoint — 21 October 2026
+
+`mqtt_subscriber` now exposes a callable parser and `main()` for unified
+dispatch. Standalone/unified broker and port arguments and help output match;
+non-integer port input fails before startup. Five CLI cases pass in the 91-test
+MQTT/IoT/outbox selection with Ruff and compilation. Subscriber startup was
+stubbed; no broker or database was contacted. Checklist: 848 complete / 25 open
+(873 total); the matrix remains 66 rows: 31 baseline-retained, 7 deployed, and
+28 prepared ([test](../../tests/test_mqtt_subscriber_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-mqtt-subscriber-cli-entrypoint.json)).
