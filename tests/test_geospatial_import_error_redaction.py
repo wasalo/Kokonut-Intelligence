@@ -35,7 +35,12 @@ def test_gis_update_failure_logs_only_exception_class(monkeypatch):
     connection = MagicMock()
     logger = MagicMock()
     cursor = connection.cursor.return_value.__enter__.return_value
-    cursor.execute.side_effect = RuntimeError(f"database DSN contained {SECRET}")
+
+    def fail_update(query, *_args):
+        if query.lstrip().startswith("UPDATE"):
+            raise RuntimeError(f"database DSN contained {SECRET}")
+
+    cursor.execute.side_effect = fail_update
     monkeypatch.setattr(gis_import, "logger", logger)
 
     assert not gis_import.import_record(
@@ -47,6 +52,10 @@ def test_gis_update_failure_logs_only_exception_class(monkeypatch):
 
     assert SECRET not in str(logger.error.call_args)
     assert "RuntimeError" in str(logger.error.call_args)
+    executed = [call.args[0] for call in cursor.execute.call_args_list]
+    assert any(statement == "SAVEPOINT gis_import_update" for statement in executed)
+    assert any(statement == "ROLLBACK TO SAVEPOINT gis_import_update" for statement in executed)
+    assert any(statement == "RELEASE SAVEPOINT gis_import_update" for statement in executed)
 
 
 def test_gis_run_failure_is_redacted_from_log_and_audit(tmp_path, monkeypatch):
@@ -72,6 +81,8 @@ def test_gis_run_failure_is_redacted_from_log_and_audit(tmp_path, monkeypatch):
 
     audit.assert_called_once()
     assert audit.call_args.kwargs["error_message"] == "boundary import failed (RuntimeError)"
+    assert audit.call_args.kwargs["db"] is connection
+    assert audit.call_args.kwargs["location_id"] is None
     assert SECRET not in str(audit.call_args)
     assert SECRET not in str(logger.error.call_args)
     connection.commit.assert_called_once()

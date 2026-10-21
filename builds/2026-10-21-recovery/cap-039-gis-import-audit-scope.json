@@ -1,0 +1,34 @@
+{
+  "capability": "CAP-039",
+  "slice": "GIS import transaction-scoped audit and location mapping",
+  "date": "2026-10-21",
+  "implementation": "services/ingestion/gis_import.py",
+  "tests": [
+    "tests/test_gis_import.py",
+    "tests/test_gis_import_cli.py",
+    "tests/test_geospatial_import_error_redaction.py",
+    "tests/test_gis_import_audit_scope.py"
+  ],
+  "commands": [
+    "python3 -m pytest tests/test_gis_import.py tests/test_gis_import_cli.py tests/test_geospatial_import_error_redaction.py tests/test_gis_import_audit_scope.py -q",
+    "python3 -m ruff check services/ingestion/gis_import.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_gis_import_audit_scope.py",
+    "python3 -m py_compile services/ingestion/gis_import.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_gis_import_audit_scope.py"
+  ],
+  "results": {
+    "pytest": "44 passed",
+    "ruff": "passed",
+    "py_compile": "passed"
+  },
+  "verified": [
+    "Location records map to their own location ID; farm records map to farm.location_id; plot records map through farm.location_id.",
+    "Success and failure audits use the same caller-owned database connection as geometry updates and include the resolved location scope.",
+    "Unknown targets receive a fixed failure message and null location scope; log output does not echo the source slug.",
+    "A failed geometry update rolls back to its savepoint and releases it so the transaction can continue.",
+    "Batch commit failure triggers rollback, and the connection closes on all tested exits."
+  ],
+  "external_effects": "All database access was mocked. No database, provider, or candidate service was contacted.",
+  "limitations": [
+    "No live PostgreSQL transaction or tenant authorization was exercised.",
+    "No populated legacy/candidate geometry fixture was compared."
+  ]
+}

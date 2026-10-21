@@ -211,7 +211,11 @@ def test_kml_import_dispatches_to_location_boundary_writer(monkeypatch, tmp_path
     database = FakeDatabase()
     imported = []
     monkeypatch.setattr(gis_import, "get_db", lambda: database)
-    monkeypatch.setattr(gis_import, "resolve_target_record", lambda *_args: "location-id")
+    monkeypatch.setattr(
+        gis_import,
+        "resolve_target_record",
+        lambda *_args: ("location-id", "location-id"),
+    )
     monkeypatch.setattr(
         gis_import,
         "import_record",

@@ -389,15 +389,27 @@ def compute_center(wkt: str) -> str:
     return f"ST_Centroid(ST_GeomFromEWKT('{wkt}'))"
 
 
-def resolve_target_record(db, slug: str, target: str) -> str:
-    """Look up a record ID by slug from the target table. Returns UUID or None."""
+def resolve_target_record(db, slug: str, target: str) -> tuple[str, str | None] | None:
+    """Look up the record and its owning location by slug."""
+    if target == "location":
+        query = "SELECT id, id AS location_id FROM location WHERE slug = %s LIMIT 1"
+    elif target == "farm":
+        query = "SELECT id, location_id FROM farm WHERE slug = %s LIMIT 1"
+    elif target == "plot":
+        query = """
+            SELECT p.id, f.location_id
+            FROM plot p
+            JOIN farm f ON f.id = p.farm_id
+            WHERE p.slug = %s
+            LIMIT 1
+        """
+    else:
+        raise ValueError("target must be a supported GIS entity")
+
     with db.cursor() as cur:
-        cur.execute(
-            f"SELECT id FROM {target} WHERE slug = %s LIMIT 1",
-            (slug,),
-        )
+        cur.execute(query, (slug,))
         row = cur.fetchone()
-        return str(row[0]) if row else None
+        return (str(row[0]), str(row[1]) if row[1] is not None else None) if row else None
 
 
 def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, lon: float = None) -> bool:
@@ -405,8 +417,10 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
 
     Returns True if the record was updated.
     """
+    savepoint = "gis_import_update"
     try:
         with db.cursor() as cur:
+            cur.execute(f"SAVEPOINT {savepoint}")
             if lat is not None and lon is not None:
                 cur.execute(
                     f"""
@@ -433,8 +447,13 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
                     """,
                     (wkt, wkt, wkt, wkt, record_id),
                 )
-        return cur.rowcount > 0
+            row_updated = cur.rowcount > 0
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        return row_updated
     except Exception as e:
+        with db.cursor() as cur:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
         logger.error("  Failed to update %s %s (%s)", target, record_id, type(e).__name__)
         return False
 
@@ -464,101 +483,117 @@ def run(file_path: str, target: str = "location"):
     errors = 0
     logger.info("Processing %d records from %s (target: %s)...", len(records), file_path, target)
 
-    for i, rec in enumerate(records):
-        slug = rec["slug"]
+    try:
+        for i, rec in enumerate(records):
+            slug = rec["slug"]
+            record_id = None
+            location_id = None
+            audit = {
+                "source_system": "gis_import",
+                "source_table": f"{target}_geojson",
+                "source_id": slug,
+                "target_table": target,
+                "operation": "update",
+                "payload_hash": hash_payload(rec),
+                "db": db,
+            }
 
-        try:
-            record_id = resolve_target_record(db, slug, target)
-            if not record_id:
+            try:
+                resolved = resolve_target_record(db, slug, target)
+                if not resolved:
+                    errors += 1
+                    logger.warning("  ✗ Target record not found (%s)", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=None,
+                        status="failed",
+                        error_message="Target record not found",
+                        location_id=None,
+                    )
+                    continue
+                record_id, location_id = resolved
+
+                if rec["geom_type"] == "WKT":
+                    wkt = rec["wkt"]
+                    lat = None
+                    lon = None
+                elif rec["geom_type"] == "Point":
+                    wkt = rec["wkt"]
+                    lat = rec.get("lat")
+                    lon = rec.get("lon")
+                elif rec["geom_type"] == "Polygon":
+                    wkt = build_polygon_wkt(rec["coordinates"])
+                    lat = None
+                    lon = None
+                elif rec["geom_type"] == "MultiPolygon":
+                    wkt = build_multipolygon_wkt(rec["coordinates"])
+                    lat = None
+                    lon = None
+                else:
+                    errors += 1
+                    logger.warning("  ✗ Unsupported geometry type")
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message="Unsupported geometry type",
+                        location_id=location_id,
+                    )
+                    continue
+
+                validation_errors = validate_boundary_wkt(wkt)
+                if validation_errors:
+                    errors += 1
+                    logger.warning("  ✗ Invalid boundary (%s)", ", ".join(validation_errors))
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message=", ".join(validation_errors),
+                        location_id=location_id,
+                    )
+                    continue
+
+                updated = import_record(db, record_id, target, wkt, lat, lon)
+                if updated:
+                    success += 1
+                    logger.info("  ✓ %s boundary updated", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="success",
+                        rows_affected=1,
+                        location_id=location_id,
+                    )
+                else:
+                    errors += 1
+                    logger.warning("  ✗ %s boundary update failed", target)
+                    log_ingestion(
+                        **audit,
+                        target_id=record_id,
+                        status="failed",
+                        error_message="Boundary update failed",
+                        location_id=location_id,
+                    )
+
+            except Exception as e:
                 errors += 1
-                logger.warning("  ✗ Record not found: %s (slug: %s)", target, slug)
+                logger.error("  ✗ Row %d failed (%s)", i + 1, type(e).__name__)
                 log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
-                    target_id=None,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
-                    status="failed",
-                    error_message=f"Record not found: {slug}",
-                )
-                continue
-
-            if rec["geom_type"] == "WKT":
-                wkt = rec["wkt"]
-                lat = None
-                lon = None
-            elif rec["geom_type"] == "Point":
-                wkt = rec["wkt"]
-                lat = rec.get("lat")
-                lon = rec.get("lon")
-            elif rec["geom_type"] == "Polygon":
-                wkt = build_polygon_wkt(rec["coordinates"])
-                lat = None
-                lon = None
-            elif rec["geom_type"] == "MultiPolygon":
-                wkt = build_multipolygon_wkt(rec["coordinates"])
-                lat = None
-                lon = None
-            else:
-                errors += 1
-                logger.warning("  ✗ Unsupported geometry type: %s", rec["geom_type"])
-                continue
-
-            validation_errors = validate_boundary_wkt(wkt)
-            if validation_errors:
-                errors += 1
-                logger.warning("  ✗ Invalid boundary for %s: %s", slug, ", ".join(validation_errors))
-                log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
+                    **audit,
                     target_id=record_id,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
                     status="failed",
-                    error_message=", ".join(validation_errors),
+                    error_message=f"boundary import failed ({type(e).__name__})",
+                    location_id=location_id,
                 )
-                continue
 
-            updated = import_record(db, record_id, target, wkt, lat, lon)
-            if updated:
-                success += 1
-                logger.info("  ✓ %s: %s boundary updated", target, slug)
-                log_ingestion(
-                    source_system="gis_import",
-                    source_table=f"{target}_geojson",
-                    source_id=slug,
-                    target_table=target,
-                    target_id=record_id,
-                    operation="update",
-                    payload_hash=hash_payload(rec),
-                    status="success",
-                    rows_affected=1,
-                )
-            else:
-                errors += 1
-                logger.warning("  ✗ %s: no rows updated for %s", target, slug)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-        except Exception as e:
-            errors += 1
-            logger.error("  ✗ Row %d (%s) failed (%s)", i + 1, slug, type(e).__name__)
-            log_ingestion(
-                source_system="gis_import",
-                source_table=f"{target}_geojson",
-                source_id=slug,
-                target_table=target,
-                target_id=None,
-                operation="update",
-                payload_hash=hash_payload(rec),
-                status="failed",
-                error_message=f"boundary import failed ({type(e).__name__})",
-            )
-
-    db.commit()
-    db.close()
     logger.info("Done: %d success, %d errors", success, errors)
 
 
