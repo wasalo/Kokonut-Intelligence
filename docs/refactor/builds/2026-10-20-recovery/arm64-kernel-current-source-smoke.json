@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-20",
+  "scope": "Current-source ARM64 image and network-disabled QEMU import smoke",
+  "source_revision": "1e5bf08a5f777276340a71752f611b8dd5eb18cc",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-current-arm64-20261020:local --file Dockerfile.kernel .",
+    "result": "passed",
+    "architecture": "linux/arm64",
+    "image_user": "appuser",
+    "image_id": "sha256:7bd3c1e88312c0fc833ed436f1f4d85f7db068a20e0032527e9039c0f99cd1ca",
+    "temporary_image_removed": true
+  },
+  "runtime": {
+    "platform_machine": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "mounts": "read-only sdk/python bind mount at /sdk",
+    "checks": {
+      "gateway_module_import": true,
+      "python_sdk_import": true,
+      "job_spec_entries": 18,
+      "synthetic_rpc_snapshot_construction": true
+    },
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_app_database_proxy_metabase": "remained healthy and were not targeted",
+    "legacy_stack_targeted": false,
+    "persistent_volumes_or_compose_stacks_modified": false
+  },
+  "result": "PASS: current-source ARM64 build and bounded software import smoke.",
+  "limitations": [
+    "QEMU does not establish physical Raspberry Pi compatibility or performance.",
+    "No current-schema migration replay, database restore, provider call, resource-endurance benchmark, power-loss test, or 24-hour recovery run was performed."
+  ]
+}

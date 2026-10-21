@@ -3970,3 +3970,10 @@ agent/summary/Gateway selection passes 89 tests with nine PostgreSQL-dependent
 skips; no database or provider was contacted. This remains input validation,
 not identity or least-privilege acceptance
 ([evidence](builds/2026-10-20-recovery/cap-038-agent-draft-content-bound.json)).
+
+**ARM64 software-only refresh — 20 October 2026:** current source revision
+`1e5bf08a` builds for `linux/arm64` and passes a network-disabled, read-only
+QEMU import smoke for the Gateway, Python SDK, 18 JobSpecs, and synthetic RPC
+snapshot. This does not certify physical hardware, current-schema replay,
+resource endurance, power-loss behavior, or 24-hour recovery
+([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke.json)).

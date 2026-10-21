@@ -1,5 +1,19 @@
 # ARM64 Kernel application build evidence
 
+## Current-source software refresh — 20 October 2026
+
+The pushed source revision `1e5bf08a5f777276340a71752f611b8dd5eb18cc` built
+the default Kernel target for `linux/arm64`. Docker reported the image as
+`linux/arm64` with configured user `appuser`. A network-disabled QEMU container
+with a read-only root imported `services.gateway.app` and the mounted Python
+SDK, loaded all 18 `JobSpec` records, and constructed a synthetic RPC balance
+snapshot. The container used only a read-only SDK bind mount and disposable
+`/tmp`; it had no database, provider, credential, or host-port access. The
+temporary container and image were removed, and candidate services remained
+healthy. This is current-source software evidence, not physical Pi, migration,
+resource-endurance, power-loss, or 24-hour recovery acceptance
+([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke.json)).
+
 ## Current source smokes — 16 October 2026
 
 On `04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9`, Docker Buildx built the

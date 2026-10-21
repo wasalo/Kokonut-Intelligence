@@ -1,3 +1,15 @@
+### ARM64/QEMU current-source software refresh — 20 October 2026
+
+The current `1e5bf08a` source builds as `linux/arm64`; its image reports
+`aarch64` and non-root `appuser`. A network-disabled QEMU container with a
+read-only root imported the Gateway and Python SDK, loaded all 18 JobSpecs, and
+constructed a synthetic RPC snapshot. The temporary container and image were
+removed; candidate containers remain healthy. No database, provider, credential,
+port, persistent volume, or physical Raspberry Pi was used. This refreshes only
+software evidence; schema replay on this source, physical/power acceptance,
+resource endurance, and 24-hour recovery remain open
+([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke.json)).
+
 ### CAP-038 shared-agent draft content bound — 20 October 2026
 
 Both shared and standalone persistence helpers now enforce the existing
