@@ -2642,3 +2642,17 @@ points; no-action invocation only displays help. Nine CLI cases pass within the
 81-test mock-sensor/IoT/outbox selection. Ruff and compilation pass after
 removing dead imports/assignments. All demo operations were stubbed; no data was
 created or deleted ([evidence](builds/2026-10-21-recovery/cap-039-mock-sensors-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 Baal indexer CLI range contract — 21 October 2026
+
+The Baal indexer now has a reusable parser and standalone/unified argument
+parity. Negative and reversed block intervals fail before provider/database
+initialization; explicit block zero is preserved as the requested endpoint.
+Twelve focused CLI cases cover dispatch, invalid inputs, help parity, and zero
+endpoint behavior, including the actual `run()` range call. The combined Baal
+recovery, ingestion dispatch, and all-tool help selection passes 19 tests; Ruff
+and compilation pass. No chain or database was contacted. Checklist: 854
+complete / 25 open (879 total); matrix remains 66 rows: 31 baseline-retained,
+7 deployed, and 28 prepared. See
+[the test](../tests/test_baal_indexer_cli.py) and
+[evidence](builds/2026-10-21-recovery/cap-039-baal-indexer-cli-contract.json).

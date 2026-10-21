@@ -5,7 +5,7 @@
   "change": "The unified ingestion CLI now requires each imported module to expose a callable main(); it no longer executes a module through runpy when that contract is missing.",
   "test": {
     "command": "python3 -m pytest tests/test_ingestion_cli_dispatch.py tests/test_ingestion_cli_help_isolation.py -q",
-    "result": "passed; missing entrypoint fails closed, restores sys.argv, and mounted module help remains available"
+    "result": "3 passed; missing entrypoint fails closed and restores sys.argv; all 19 mounted modules show help through both standalone and unified ingestion entrypoints without database credentials"
   },
   "ruff": {
     "command": "ruff check services/ingestion/cli.py tests/test_ingestion_cli_dispatch.py",

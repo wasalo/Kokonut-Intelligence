@@ -187,13 +187,14 @@ def _checksum(addr: str) -> str:
 
 
 def run(from_block: int | None = None, to_block: int | None = None) -> int:
+    _validate_block_range(from_block, to_block)
     try:
         w3 = Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
         client = BaalReadClient(w3=w3)
         baal = client._baal
         last_committed_block = get_last_synced_block(KOKONUT_DAO_CHAIN, INDEXER_TYPE) or 0
         start = from_block if from_block is not None else last_committed_block
-        end = to_block or w3.eth.block_number
+        end = to_block if to_block is not None else w3.eth.block_number
     except Exception as exc:
         raise BaalIndexingError(
             f"Baal provider initialization failed ({type(exc).__name__})"
@@ -253,11 +254,34 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
     return processed
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Index Kokonut Baal (Moloch v3) DAO events")
+def _validate_block_range(from_block: int | None, to_block: int | None) -> None:
+    """Reject invalid block ranges before provider or database initialization."""
+    if from_block is not None and from_block < 0:
+        raise ValueError("--from-block must be non-negative")
+    if to_block is not None and to_block < 0:
+        raise ValueError("--to-block must be non-negative")
+    if from_block is not None and to_block is not None and from_block > to_block:
+        raise ValueError("--to-block must be greater than or equal to --from-block")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the parser shared by standalone and unified CLI entry points."""
+    parser = argparse.ArgumentParser(
+        prog="baal_indexer.py",
+        description="Index Kokonut Baal (Moloch v3) DAO events"
+    )
     parser.add_argument("--from-block", type=int, default=None)
     parser.add_argument("--to-block", type=int, default=None)
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        _validate_block_range(args.from_block, args.to_block)
+    except ValueError as exc:
+        parser.error(str(exc))
     count = run(from_block=args.from_block, to_block=args.to_block)
     logger.info("Baal indexer complete: %s events ingested", count)
 

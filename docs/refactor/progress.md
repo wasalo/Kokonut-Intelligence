@@ -13568,9 +13568,22 @@ rows: 31 baseline-retained, 7 deployed, and 28 prepared
 The unified ingestion dispatcher now fails closed if a registered implementation
 lacks a callable `main()` instead of re-executing its source through `runpy`.
 The regression confirms the error and `sys.argv` restoration; all 19 mounted
-module help paths remain available through the production-like isolation check.
-Two focused tests pass with Ruff and Python compilation. No provider, database,
+modules show credential-free help through both standalone and unified ingestion
+entrypoints. Three focused checks pass with Ruff and Python compilation. No provider, database,
 or network was contacted. Checklist: 853 complete / 25 open (878 total); matrix
 remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_ingestion_cli_dispatch.py);
 [evidence](builds/2026-10-21-recovery/cap-039-ingestion-dispatch-no-runpy.json)).
+
+### CAP-039 / CAP-040 Baal indexer CLI range contract — 21 October 2026
+
+The Baal indexer now has a reusable parser and standalone/unified argument
+parity. Negative and reversed block intervals fail before provider/database
+initialization; explicit block zero is preserved as the requested endpoint.
+Twelve focused CLI cases cover dispatch, invalid inputs, help parity, and zero
+endpoint behavior, including the actual `run()` range call. The combined Baal
+recovery, ingestion dispatch, and all-tool help selection passes 19 tests; Ruff
+and compilation pass. No chain or database was contacted. Checklist: 854
+complete / 25 open (879 total); matrix remains 66 rows: 31 baseline-retained,
+7 deployed, and 28 prepared ([test](../../tests/test_baal_indexer_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-baal-indexer-cli-contract.json)).
