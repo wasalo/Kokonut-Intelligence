@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 877 checklist items complete and 24
-open (901 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 878 checklist items complete and 24
+open (902 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1838,3 +1838,5 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-066 climate-impact report query parameters — 21 October 2026
 
 - [x] Fix the climate-impact report's active operations-protocol query, which supplied a location parameter to SQL with no placeholder and could fail at execution. The protocol catalog is intentionally shared reference metadata (the table has no location column), so the query now runs without a location parameter while the other climate-impact reads and calculations remain location-scoped. The focused report and query-inventory selection passes 12 tests; Ruff, Python compilation, runtime SQL inventory, three report inventories, and the capability-matrix validator pass. No database, migration, candidate, legacy stack, or provider was used. Rollback is a source revert; no persisted data changed. This restores the report calculation path but does not establish farm-output parity or MAN-CAP-066 acceptance ([implementation](../../services/export/reports/core.py); [test](../../tests/test_climate_impact_report.py); [evidence](builds/2026-10-21-recovery/cap-066-climate-impact-query-parameters.json)). Checklist: 877 complete / 24 open (901 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+
+- [x] Extend the report source inventory to detect positional SQL bind-count mismatches when SQL and parameters are statically known. It ignores placeholder-like text in SQL literals/comments and leaves named, dynamic, and branch-built parameters unresolved. Across 94 reports and 176 direct query sites, 170 have statically checkable positional arity and none mismatch. The focused climate-impact/query-inventory selection passes 15 tests; Ruff, Python compilation, four generated inventory checks, runtime SQL inventory, and capability-matrix validation pass. No database, migration, candidate, legacy stack, or provider was used. This is a conservative source guard, not runtime SQL acceptance ([checker](../../scripts/report_generator_query_scope_inventory.py); [tests](../../tests/test_report_generator_query_scope_inventory.py); [inventory](report-generator-query-scope-inventory.json); [evidence](builds/2026-10-21-recovery/cap-066-report-query-bind-arity.json)). Checklist: 878 complete / 24 open (902 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

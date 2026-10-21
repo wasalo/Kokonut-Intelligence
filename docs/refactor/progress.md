@@ -1,3 +1,19 @@
+### CAP-066 report SQL bind arity inventory — 21 October 2026
+
+The report query inventory now counts positional `%s` placeholders outside SQL
+string literals and comments, then compares them with statically known
+parameter containers for unbranched static queries. Named binds, dynamic
+containers, and conditional SQL are left unresolved. The current 94-report
+catalog has 170 statically checkable sites across 176 direct queries and zero
+mismatches. Synthetic regressions cover extra parameters, quoted/commented
+placeholder text, and named-bind deferral. The focused report/inventory
+selection passes 15 tests; Ruff, Python compilation, four inventory checks,
+runtime SQL inventory, and matrix validation pass. No database, migration,
+candidate, legacy stack, or provider was used. This source check is not runtime
+SQL acceptance. Checklist: 878 complete / 24 open (902 total). See the
+[inventory](report-generator-query-scope-inventory.json) and
+[evidence](builds/2026-10-21-recovery/cap-066-report-query-bind-arity.json).
+
 ### CAP-066 climate-impact report query parameters — 21 October 2026
 
 The climate-impact report passed a location ID to its shared active

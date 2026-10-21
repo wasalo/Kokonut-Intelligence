@@ -3,6 +3,16 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 report SQL bind arity inventory — 21 October 2026:** the query-scope
+inventory now compares positional `%s` placeholder counts with simple statically
+known parameter containers for unbranched static SQL. SQL string literals and
+comments do not count as binds; named, dynamic, and conditional parameter
+construction stays unresolved. 170 of 176 direct report query sites are
+statically checkable, with zero mismatches. Extra-bind, SQL-literal/comment,
+and named-bind regressions pass in a 15-test focused climate-report/inventory
+selection. Ruff, compilation, four inventory checks, runtime SQL inventory, and
+matrix validation pass. No database or provider was used ([evidence](builds/2026-10-21-recovery/cap-066-report-query-bind-arity.json)).
+
 **CAP-066 climate-impact report query fix — 21 October 2026:** the climate
 report's shared active-protocol query no longer receives an unused location
 parameter despite having no SQL placeholder. A focused regression checks every

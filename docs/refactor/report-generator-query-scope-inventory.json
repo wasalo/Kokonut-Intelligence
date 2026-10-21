@@ -1,10 +1,12 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_query_scope_inventory.py",
-  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain all statically resolved variants. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
+  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain all statically resolved variants. For unbranched static SQL and statically known positional parameter containers, it also compares %s placeholder and supplied-value counts; named and dynamic bindings are left unresolved. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
     "direct_query_sites": 176,
+    "static_positional_arity_sites": 170,
+    "positional_arity_mismatch_sites": 0,
     "query_sites_with_bound_location_scope_signal": 126,
     "conditional_scope_query_sites": 1,
     "unresolved_query_sites": 0,
@@ -24,6 +26,8 @@
       "source_line": 131,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -43,7 +47,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 136,
@@ -59,7 +68,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -70,6 +84,8 @@
       "source_line": 75,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -89,7 +105,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 91,
@@ -105,7 +126,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -116,6 +142,8 @@
       "source_line": 105,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -129,6 +157,8 @@
       "source_line": 36,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -142,6 +172,8 @@
       "source_line": 14,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -161,7 +193,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 19,
@@ -177,7 +214,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -188,6 +230,8 @@
       "source_line": 52,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -207,7 +251,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 57,
@@ -223,7 +272,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -234,6 +288,8 @@
       "source_line": 151,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -253,7 +309,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 156,
@@ -269,7 +330,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -280,6 +346,8 @@
       "source_line": 105,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -299,7 +367,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 121,
@@ -315,7 +388,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -326,6 +404,8 @@
       "source_line": 190,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -345,7 +425,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -356,6 +441,8 @@
       "source_line": 68,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -375,6 +462,8 @@
       "source_line": 6,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -400,7 +489,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -411,6 +505,8 @@
       "source_line": 176,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -435,6 +531,8 @@
       "source_line": 129,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -459,6 +557,8 @@
       "source_line": 838,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -478,6 +578,8 @@
       "source_line": 46,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -497,7 +599,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 51,
@@ -513,7 +620,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -524,6 +636,8 @@
       "source_line": 262,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -543,7 +657,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 267,
@@ -559,7 +678,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 279,
@@ -575,7 +699,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -586,6 +715,8 @@
       "source_line": 542,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -605,7 +736,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 547,
@@ -621,7 +757,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -632,6 +773,8 @@
       "source_line": 465,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -672,7 +815,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 490,
@@ -688,7 +836,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          }
         },
         {
           "line": 501,
@@ -704,7 +857,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 513,
@@ -720,7 +878,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -731,6 +894,8 @@
       "source_line": 46,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -750,7 +915,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 62,
@@ -766,7 +936,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -777,6 +952,8 @@
       "source_line": 365,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -796,6 +973,8 @@
       "source_line": 534,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -815,7 +994,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 540,
@@ -831,7 +1015,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -842,6 +1031,8 @@
       "source_line": 192,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -864,7 +1055,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -875,6 +1071,8 @@
       "source_line": 47,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -894,7 +1092,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 52,
@@ -910,7 +1113,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -921,6 +1129,8 @@
       "source_line": 354,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -940,7 +1150,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 395,
@@ -957,7 +1172,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -968,6 +1188,8 @@
       "source_line": 14,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -987,7 +1209,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         }
       ]
     },
@@ -998,6 +1221,8 @@
       "source_line": 14,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1017,7 +1242,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 33,
@@ -1033,7 +1263,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1044,6 +1279,8 @@
       "source_line": 11,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 6,
+      "static_positional_arity_site_count": 6,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 6,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1063,7 +1300,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 16,
@@ -1079,7 +1321,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 24,
@@ -1095,7 +1342,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 35,
@@ -1111,7 +1363,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 46,
@@ -1127,7 +1384,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 57,
@@ -1143,7 +1405,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1154,6 +1421,8 @@
       "source_line": 673,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1167,6 +1436,8 @@
       "source_line": 299,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1186,7 +1457,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 316,
@@ -1202,7 +1478,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 328,
@@ -1218,7 +1499,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 340,
@@ -1234,7 +1520,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1245,6 +1536,8 @@
       "source_line": 15,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 9,
+      "static_positional_arity_site_count": 9,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 9,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1264,7 +1557,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 26,
@@ -1280,7 +1578,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 30,
@@ -1297,7 +1600,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 41,
@@ -1315,7 +1623,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 55,
@@ -1333,7 +1646,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 87,
@@ -1349,7 +1667,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 104,
@@ -1365,7 +1688,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 118,
@@ -1381,7 +1709,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 134,
@@ -1397,7 +1730,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1408,6 +1746,8 @@
       "source_line": 82,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1421,6 +1761,8 @@
       "source_line": 130,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1440,7 +1782,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 135,
@@ -1456,7 +1803,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1467,6 +1819,8 @@
       "source_line": 387,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1486,7 +1840,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 403,
@@ -1503,7 +1862,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 449,
@@ -1519,7 +1883,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1530,6 +1899,8 @@
       "source_line": 703,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1543,6 +1914,8 @@
       "source_line": 151,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1562,7 +1935,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 156,
@@ -1578,7 +1956,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1589,6 +1972,8 @@
       "source_line": 11,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1608,7 +1993,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 16,
@@ -1624,7 +2014,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1635,6 +2030,8 @@
       "source_line": 556,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 5,
+      "static_positional_arity_site_count": 5,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1654,7 +2051,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 562,
@@ -1670,7 +2072,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 564,
@@ -1686,7 +2093,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 566,
@@ -1702,7 +2114,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 568,
@@ -1718,7 +2135,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1729,6 +2151,8 @@
       "source_line": 82,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1748,7 +2172,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 100,
@@ -1764,7 +2193,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1775,6 +2209,8 @@
       "source_line": 307,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1794,7 +2230,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 325,
@@ -1810,7 +2251,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1821,6 +2267,8 @@
       "source_line": 235,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1840,7 +2288,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1851,6 +2304,8 @@
       "source_line": 61,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1870,7 +2325,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 68,
@@ -1886,7 +2346,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 80,
@@ -1902,7 +2367,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 95,
@@ -1918,7 +2388,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1929,6 +2404,8 @@
       "source_line": 130,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1948,7 +2425,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 135,
@@ -1964,7 +2446,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -1975,6 +2462,8 @@
       "source_line": 224,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -1994,7 +2483,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 229,
@@ -2010,7 +2504,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 237,
@@ -2026,7 +2525,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2037,6 +2541,8 @@
       "source_line": 175,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2056,7 +2562,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 180,
@@ -2072,7 +2583,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 188,
@@ -2088,7 +2604,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2099,6 +2620,8 @@
       "source_line": 171,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2118,7 +2641,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2129,6 +2657,8 @@
       "source_line": 386,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 5,
+      "static_positional_arity_site_count": 5,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 5,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2148,7 +2678,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 393,
@@ -2164,7 +2699,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 401,
@@ -2180,7 +2720,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 409,
@@ -2196,7 +2741,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 417,
@@ -2212,7 +2762,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2223,6 +2778,8 @@
       "source_line": 502,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2242,7 +2799,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 507,
@@ -2258,7 +2820,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 516,
@@ -2274,7 +2841,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2285,6 +2857,8 @@
       "source_line": 452,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2304,7 +2878,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 459,
@@ -2320,7 +2899,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 467,
@@ -2336,7 +2920,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2347,6 +2936,8 @@
       "source_line": 132,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2360,6 +2951,8 @@
       "source_line": 120,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2379,7 +2972,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 138,
@@ -2395,7 +2993,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2406,6 +3009,8 @@
       "source_line": 15,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2425,6 +3030,8 @@
       "source_line": 592,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2438,6 +3045,8 @@
       "source_line": 722,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2451,6 +3060,8 @@
       "source_line": 104,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2470,6 +3081,8 @@
       "source_line": 118,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2489,6 +3102,8 @@
       "source_line": 740,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2508,6 +3123,8 @@
       "source_line": 644,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2521,6 +3138,8 @@
       "source_line": 59,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2534,6 +3153,8 @@
       "source_line": 11,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2553,7 +3174,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 16,
@@ -2569,7 +3195,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2580,6 +3211,8 @@
       "source_line": 618,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2593,6 +3226,8 @@
       "source_line": 81,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2612,7 +3247,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 86,
@@ -2628,7 +3268,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2639,6 +3284,8 @@
       "source_line": 86,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2658,7 +3305,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 104,
@@ -2674,7 +3326,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2685,6 +3342,8 @@
       "source_line": 31,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2704,7 +3363,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 36,
@@ -2720,7 +3384,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 47,
@@ -2736,7 +3405,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2747,6 +3421,8 @@
       "source_line": 369,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2760,6 +3436,8 @@
       "source_line": 137,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2779,7 +3457,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 142,
@@ -2795,7 +3478,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2806,6 +3494,8 @@
       "source_line": 324,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2825,7 +3515,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 329,
@@ -2841,7 +3536,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 337,
@@ -2857,7 +3557,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2868,6 +3573,8 @@
       "source_line": 162,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2887,7 +3594,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 167,
@@ -2903,7 +3615,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2914,6 +3631,8 @@
       "source_line": 14,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2933,7 +3652,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 21,
@@ -2949,7 +3673,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 34,
@@ -2965,7 +3694,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -2976,6 +3710,8 @@
       "source_line": 194,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -2995,7 +3731,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         },
         {
           "line": 210,
@@ -3011,7 +3752,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3022,6 +3768,8 @@
       "source_line": 795,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3035,6 +3783,8 @@
       "source_line": 513,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3054,7 +3804,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 519,
@@ -3070,7 +3825,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3081,6 +3841,8 @@
       "source_line": 357,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3100,7 +3862,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         }
       ]
     },
@@ -3111,6 +3874,8 @@
       "source_line": 382,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3130,7 +3895,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 388,
@@ -3146,7 +3916,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 390,
@@ -3162,7 +3937,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 392,
@@ -3178,7 +3958,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3189,6 +3974,8 @@
       "source_line": 277,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3208,7 +3995,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         },
         {
           "line": 290,
@@ -3224,7 +4012,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3235,6 +4028,8 @@
       "source_line": 309,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3254,7 +4049,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         }
       ]
     },
@@ -3265,6 +4061,8 @@
       "source_line": 244,
       "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
@@ -3285,7 +4083,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": true,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         }
       ]
     },
@@ -3296,6 +4095,8 @@
       "source_line": 410,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 1,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3315,7 +4116,8 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": null
         },
         {
           "line": 428,
@@ -3331,7 +4133,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3342,6 +4149,8 @@
       "source_line": 334,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3361,7 +4170,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 340,
@@ -3377,7 +4191,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3388,6 +4207,8 @@
       "source_line": 452,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3407,7 +4228,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 458,
@@ -3423,7 +4249,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 460,
@@ -3439,7 +4270,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 464,
@@ -3455,7 +4291,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3466,6 +4307,8 @@
       "source_line": 482,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3485,7 +4328,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 488,
@@ -3501,7 +4349,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 490,
@@ -3517,7 +4370,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 494,
@@ -3533,7 +4391,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3544,6 +4407,8 @@
       "source_line": 251,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3557,6 +4422,8 @@
       "source_line": 312,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3576,6 +4443,8 @@
       "source_line": 555,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 13,
+      "static_positional_arity_site_count": 13,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 10,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3595,7 +4464,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 568,
@@ -3611,7 +4485,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 578,
@@ -3627,7 +4506,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 591,
@@ -3643,7 +4527,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 604,
@@ -3659,7 +4548,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 616,
@@ -3675,7 +4569,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 628,
@@ -3693,7 +4592,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 641,
@@ -3709,7 +4613,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 652,
@@ -3725,7 +4634,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 665,
@@ -3741,7 +4655,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 682,
@@ -3757,7 +4676,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 685,
@@ -3773,7 +4697,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 688,
@@ -3789,7 +4718,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3800,6 +4734,8 @@
       "source_line": 449,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3819,7 +4755,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 479,
@@ -3835,7 +4776,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3846,6 +4792,8 @@
       "source_line": 150,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3865,6 +4813,8 @@
       "source_line": 757,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3884,6 +4834,8 @@
       "source_line": 213,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3903,7 +4855,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          }
         },
         {
           "line": 220,
@@ -3919,7 +4876,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 226,
@@ -3937,7 +4899,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
+          "bound_location_scope_signal": false,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3948,6 +4915,8 @@
       "source_line": 11,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -3967,7 +4936,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 16,
@@ -3983,7 +4957,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -3994,6 +4973,8 @@
       "source_line": 273,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
+      "static_positional_arity_site_count": 3,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 3,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4013,7 +4994,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 278,
@@ -4029,7 +5015,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 286,
@@ -4045,7 +5036,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -4056,6 +5052,8 @@
       "source_line": 97,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4075,7 +5073,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 102,
@@ -4091,7 +5094,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -4102,6 +5110,8 @@
       "source_line": 101,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
+      "static_positional_arity_site_count": 4,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 4,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4121,7 +5131,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 106,
@@ -4137,7 +5152,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 114,
@@ -4153,7 +5173,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 125,
@@ -4169,7 +5194,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     },
@@ -4180,6 +5210,8 @@
       "source_line": 198,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4199,6 +5231,8 @@
       "source_line": 217,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
+      "static_positional_arity_site_count": 0,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 0,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4212,6 +5246,8 @@
       "source_line": 117,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 2,
+      "static_positional_arity_site_count": 2,
+      "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 2,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -4231,7 +5267,12 @@
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          }
         },
         {
           "line": 122,
@@ -4247,7 +5288,12 @@
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": true
+          "bound_location_scope_signal": true,
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          }
         }
       ]
     }

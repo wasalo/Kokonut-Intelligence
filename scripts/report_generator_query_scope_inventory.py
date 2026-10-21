@@ -120,6 +120,138 @@ def _expression_mentions_location_id(node: ast.AST | None, assignments: dict[str
     return "location_id" in resolved_names
 
 
+def _sql_bind_counts(sql: str) -> tuple[int, bool]:
+    """Count positional %s binds outside SQL literals/comments and detect named binds."""
+    code: list[str] = []
+    index = 0
+    while index < len(sql):
+        char = sql[index]
+        following = sql[index + 1] if index + 1 < len(sql) else ""
+        if char == "'" or char == '"':
+            quote = char
+            index += 1
+            while index < len(sql):
+                if sql[index] == "\\":
+                    index += 2
+                    continue
+                if sql[index] == quote:
+                    if index + 1 < len(sql) and sql[index + 1] == quote:
+                        index += 2
+                        continue
+                    index += 1
+                    break
+                index += 1
+            code.append(" ")
+            continue
+        if char == "-" and following == "-":
+            newline = sql.find("\n", index + 2)
+            index = len(sql) if newline < 0 else newline + 1
+            code.append(" ")
+            continue
+        if char == "/" and following == "*":
+            index += 2
+            depth = 1
+            while index < len(sql) and depth:
+                if sql.startswith("/*", index):
+                    depth += 1
+                    index += 2
+                elif sql.startswith("*/", index):
+                    depth -= 1
+                    index += 2
+                else:
+                    index += 1
+            code.append(" ")
+            continue
+        if char == "$":
+            delimiter = re.match(r"\$[a-zA-Z_][a-zA-Z0-9_]*\$|\$\$", sql[index:])
+            if delimiter:
+                token = delimiter.group(0)
+                end = sql.find(token, index + len(token))
+                index = len(sql) if end < 0 else end + len(token)
+                code.append(" ")
+                continue
+        code.append(char)
+        index += 1
+
+    executable_sql = "".join(code)
+    positional_count = 0
+    index = 0
+    while index < len(executable_sql):
+        if executable_sql.startswith("%%", index):
+            index += 2
+        elif executable_sql.startswith("%s", index):
+            positional_count += 1
+            index += 2
+        else:
+            index += 1
+    named_bind = bool(
+        re.search(r"%\([a-zA-Z_][a-zA-Z0-9_]*\)s", executable_sql)
+        or re.search(r"(?<!:):[a-zA-Z_][a-zA-Z0-9_]*", executable_sql)
+    )
+    return positional_count, named_bind
+
+
+def _known_parameter_count(
+    node: ast.AST | None,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> int | None:
+    """Resolve only simple positional parameter containers; skip dynamic mappings/lists."""
+    if node is None or isinstance(node, ast.Constant) and node.value is None:
+        return 0
+    if isinstance(node, (ast.Tuple, ast.List)):
+        return None if any(isinstance(item, ast.Starred) for item in node.elts) else len(node.elts)
+    if isinstance(node, ast.Dict):
+        return None
+    if isinstance(node, ast.Name):
+        if any(
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and call.func.attr in {"append", "extend", "update"}
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == node.id
+            and call.lineno < before
+            for call in ast.walk(function)
+        ) or any(
+            isinstance(statement, ast.AugAssign)
+            and isinstance(statement.target, ast.Name)
+            and statement.target.id == node.id
+            and statement.lineno < before
+            for statement in ast.walk(function)
+        ):
+            return None
+        candidates = [value for line, value in assignments.get(node.id, []) if line < before]
+        return _known_parameter_count(candidates[-1], assignments, before, function) if candidates else None
+    return 1
+
+
+def _positional_bind_arity(
+    sql: str | None,
+    call: ast.Call,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict | None:
+    if sql is None:
+        return None
+    placeholder_count, named_binds = _sql_bind_counts(sql)
+    if named_binds:
+        return None
+    positional_index = 2 if isinstance(call.func, ast.Name) and call.func.id == "query" else 1
+    parameter_node = call.args[positional_index] if len(call.args) > positional_index else next(
+        (keyword.value for keyword in call.keywords if keyword.arg in {"params", "parameters"}),
+        None,
+    )
+    supplied_count = _known_parameter_count(parameter_node, assignments, call.lineno, function)
+    if supplied_count is None:
+        return None
+    return {
+        "placeholder_count": placeholder_count,
+        "supplied_count": supplied_count,
+        "mismatch": placeholder_count != supplied_count,
+    }
+
+
 def _assigned_values(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, list[tuple[int, ast.AST]]]:
     assignments: dict[str, list[tuple[int, ast.AST]]] = {}
     for node in sorted(ast.walk(function), key=lambda item: getattr(item, "lineno", 0)):
@@ -279,6 +411,11 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                     (path, _string_value(value, assignments, line))
                     for path, line, value in conditional_sql_variants
                 ]
+        positional_arity = (
+            None
+            if conditional_sql_variants
+            else _positional_bind_arity(sql, node, assignments, function)
+        )
         resolved_sql_variants = [value for value in sql_variants if value is not None]
         parameter_variable_names = {
             name.id for param in parameter_nodes for name in ast.walk(param) if isinstance(name, ast.Name)
@@ -387,6 +524,7 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                 "bound_location_scope_signal": location_bound
                 and (location_predicate or location_row_lookup or indirect_location_scope)
                 and correlated_location_binding,
+                "positional_bind_arity": positional_arity,
             }
         )
     return sorted(queries, key=lambda item: (item["line"], item["method"]))
@@ -440,6 +578,14 @@ def _analyze_function(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict:
     return {
         "classification": classification,
         "direct_query_count": len(queries),
+        "static_positional_arity_site_count": sum(
+            query["positional_bind_arity"] is not None for query in queries
+        ),
+        "positional_arity_mismatch_count": sum(
+            query["positional_bind_arity"] is not None
+            and query["positional_bind_arity"]["mismatch"]
+            for query in queries
+        ),
         "queries_with_bound_location_scope_signal": scope_signal_count,
         "conditional_scope_query_count": conditional_count,
         "unresolved_query_count": unresolved_count,
@@ -464,6 +610,8 @@ def build_inventory() -> dict:
     entries = []
     classification_counts: dict[str, int] = {}
     total_queries = 0
+    static_positional_arity_sites = 0
+    positional_arity_mismatches = 0
     scope_signal_queries = 0
     conditional_scope_queries = 0
     unresolved_queries = 0
@@ -481,6 +629,8 @@ def build_inventory() -> dict:
             classification_counts.get(analysis["classification"], 0) + 1
         )
         total_queries += analysis["direct_query_count"]
+        static_positional_arity_sites += analysis["static_positional_arity_site_count"]
+        positional_arity_mismatches += analysis["positional_arity_mismatch_count"]
         scope_signal_queries += analysis["queries_with_bound_location_scope_signal"]
         conditional_scope_queries += analysis["conditional_scope_query_count"]
         unresolved_queries += analysis["unresolved_query_count"]
@@ -500,6 +650,7 @@ def build_inventory() -> dict:
         "scope": (
             "Conservative AST inventory of direct execute/query calls in registered report functions. "
         "Location-dependent SQL assignment branches retain all statically resolved variants. "
+            "For unbranched static SQL and statically known positional parameter containers, it also compares %s placeholder and supplied-value counts; named and dynamic bindings are left unresolved. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "
@@ -508,6 +659,8 @@ def build_inventory() -> dict:
         "summary": {
             "registered_report_types": len(entries),
             "direct_query_sites": total_queries,
+            "static_positional_arity_sites": static_positional_arity_sites,
+            "positional_arity_mismatch_sites": positional_arity_mismatches,
             "query_sites_with_bound_location_scope_signal": scope_signal_queries,
             "conditional_scope_query_sites": conditional_scope_queries,
             "unresolved_query_sites": unresolved_queries,

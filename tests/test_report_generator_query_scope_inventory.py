@@ -231,11 +231,67 @@ def generate(conn, location_id):
     assert analysis["queries"][1]["indirect_location_scope_visible"] is False
 
 
+def test_classifier_reports_extra_static_positional_parameters():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM location", (location_id,))
+''',
+        "generate",
+    )
+
+    assert analysis["static_positional_arity_site_count"] == 1
+    assert analysis["positional_arity_mismatch_count"] == 1
+    assert analysis["queries"][0]["positional_bind_arity"] == {
+        "placeholder_count": 0,
+        "supplied_count": 1,
+        "mismatch": True,
+    }
+
+
+def test_classifier_ignores_placeholders_inside_sql_literals_and_comments():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, first_id, second_id):
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT '%s' /* %s */ FROM sample WHERE first_id = %s -- %s\\n"
+        "AND second_id = %s",
+        (first_id, second_id),
+    )
+''',
+        "generate",
+    )
+
+    assert analysis["queries"][0]["positional_bind_arity"] == {
+        "placeholder_count": 2,
+        "supplied_count": 2,
+        "mismatch": False,
+    }
+
+
+def test_classifier_leaves_named_bind_arity_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    conn.execute("SELECT id FROM location WHERE id = :location_id", {"location_id": location_id})
+''',
+        "generate",
+    )
+
+    assert analysis["static_positional_arity_site_count"] == 0
+    assert analysis["positional_arity_mismatch_count"] == 0
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
 def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     inventory = build_inventory()
 
     assert inventory["summary"]["registered_report_types"] == 94
     assert inventory["summary"]["direct_query_sites"] == 176
+    assert inventory["summary"]["static_positional_arity_sites"] > 0
+    assert inventory["summary"]["positional_arity_mismatch_sites"] == 0
     assert inventory["summary"]["query_sites_with_bound_location_scope_signal"] > 0
     assert inventory["summary"]["unresolved_query_sites"] == 0
     reports = {report["report_type"]: report for report in inventory["reports"]}
