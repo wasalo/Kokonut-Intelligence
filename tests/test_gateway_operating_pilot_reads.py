@@ -621,3 +621,47 @@ def test_http_work_claim_page_fails_closed_when_oidc_is_disabled(monkeypatch):
         response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims")
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "error,status_code",
+    [
+        (TenantContextDenied("denied"), 403),
+        (reads.OperatingPilotReadInvalid("invalid page"), 400),
+        (type("PermissionDenied", (Exception,), {"pgcode": "42501"})("denied"), 403),
+    ],
+)
+def test_http_work_claim_page_maps_denials_to_no_store_responses(
+    monkeypatch, error, status_code,
+):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    def fail(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_work_claims",
+        fail,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(router, object(), run_in_threadpool,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/operating-pilot/{LOCATION_ID}/work-claims")
+    assert response.status_code == status_code
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
