@@ -69,3 +69,11 @@ def test_schema_bootstrap_accepts_arm64_image_override_without_relaxing_isolatio
     assert not database.get("ports")
     assert not database.get("networks")
 
+
+def test_explicit_clean_bootstrap_does_not_load_workstation_dotenv_secrets() -> None:
+    script = (ROOT / "scripts" / "verify-clean-bootstrap.sh").read_text()
+
+    assert 'KOKONUT_ENV_SECRETS_NOT_REQUIRED=true' in script
+    assert "PG_USER=kokonut" in script
+    assert 'PG_DB="$DB_NAME"' in script
+

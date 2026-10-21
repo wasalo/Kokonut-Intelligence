@@ -19,6 +19,10 @@ container and volume were removed. The 36-test migration unit suite and
 The candidate and legacy stacks were not targeted. Full ARM64 schema replay,
 physical Raspberry Pi/power behavior, and candidate rollout remain open
 ([replay evidence](builds/2026-10-21-recovery/clean-bootstrap-current-schema-528.json)).
+The explicit Compose-only path now skips workstation dotenv loading because it
+uses `psql` inside the selected database container and only needs its routing
+database/user; the bypass is development-only and production rejects it. Twenty
+focused environment/Compose tests pass ([configuration evidence](builds/2026-10-21-recovery/schema-bootstrap-secretless-config.json)).
 
 **ARM64 full-schema replay attempt — 20 October 2026:** the locked ARM64 PostGIS
 image reached healthy and reported `aarch64` under QEMU, with no network or host

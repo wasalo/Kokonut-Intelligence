@@ -67,4 +67,15 @@ compose exec -T "$DB_SERVICE" \
     psql -X -U kokonut -d postgres -v ON_ERROR_STOP=1 \
     -c "CREATE DATABASE \"$DB_NAME\""
 
-PG_DB="$DB_NAME" python3 -m services.migration migrate --schemas-only "${MIGRATION_ARGS[@]}"
+if [[ -n "$COMPOSE_PROJECT" ]]; then
+    # This explicit Compose-only path runs psql inside the selected database
+    # container; provide the only host-side routing settings and avoid loading
+    # unrelated app/provider secrets from the workstation's dotenv files.
+    KOKONUT_ENV=development \
+        KOKONUT_ENV_SECRETS_NOT_REQUIRED=true \
+        PG_USER=kokonut \
+        PG_DB="$DB_NAME" \
+        python3 -m services.migration migrate --schemas-only "${MIGRATION_ARGS[@]}"
+else
+    PG_DB="$DB_NAME" python3 -m services.migration migrate --schemas-only "${MIGRATION_ARGS[@]}"
+fi

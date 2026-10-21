@@ -1,3 +1,15 @@
+### Secretless schema-bootstrap configuration — 21 October 2026
+
+Explicit Compose-only schema replay now skips loading the workstation's
+`.env.sops` because it invokes `psql` inside the selected database container
+and needs only the database name and user for routing. This has a separate
+`KOKONUT_ENV_SECRETS_NOT_REQUIRED` setting that is accepted only in development,
+dev, or local environments; production fails closed. The focused environment
+and Compose tests pass (20), as do Ruff, shell syntax, and diff checks. No
+database, migration, candidate, legacy stack, or provider was used for this code
+change. Checklist: 876 complete / 24 open (900 total). See the
+[configuration evidence](builds/2026-10-21-recovery/schema-bootstrap-secretless-config.json).
+
 ### Current-source clean schema replay through migration 528 — 21 October 2026
 
 A fresh, network-disabled PostgreSQL 16 Compose project applied all 519 current

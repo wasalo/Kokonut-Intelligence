@@ -13,6 +13,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", raising=False)
     monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
@@ -69,6 +70,33 @@ def test_loader_reuses_secrets_exported_by_load_secrets_script(monkeypatch, tmp_
 
     assert env.os.environ["LOADED_SECRET"] == "already-exported"
     assert env._LOADED is True
+
+
+def test_explicit_secretless_bootstrap_skips_dotenv_in_development(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "development")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("secretless schema bootstrap must not decrypt dotenv"),
+    )
+
+    env.load_dotenv()
+
+    assert env._LOADED is True
+
+
+def test_secretless_bootstrap_flag_is_rejected_outside_development(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_NOT_REQUIRED", "true")
+
+    with pytest.raises(env.SecretLoadError, match="allowed only in development"):
+        env.load_dotenv()
+
+    assert env._LOADED is False
 
 
 def test_script_loaded_marker_keeps_production_environment_validation(monkeypatch, tmp_path):
