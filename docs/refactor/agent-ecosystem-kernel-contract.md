@@ -148,7 +148,10 @@ resource-lifecycle and input-preflight guarantee only: the CLI still uses its
 configured database principal and does not authenticate an operator or establish
 tenant authorization. The legacy `--verify` option is a read-only inspection:
 it computes a SHA-256 digest without comparing it to a stored digest and never
-changes lifecycle status, so it is not the human-review action.
+changes lifecycle status, so it is not the human-review action. Summary listing
+requires an exact location filter or explicit `--all-locations`; the unfiltered
+inventory omits summary previews, while a location-scoped list retains its
+preview field.
 
 Focused source tests cover all current catalogue write declarations, defensive
 copy behavior, denied high-risk actions, malformed policy input, and preflight

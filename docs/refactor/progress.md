@@ -1,3 +1,11 @@
+### CAP-038 AI-summary list scope and preview minimization — 20 October 2026
+
+The standalone summary inventory now requires an exact location filter or
+explicit `--all-locations`. Global inventory omits narrative previews; scoped
+listing preserves its existing preview. Three offline regressions prove the
+preflight, redaction, and location filter. The 11-case CLI lifecycle suite and
+Ruff pass; no database or provider was contacted ([tests](../../tests/test_ai_summary_cli_lifecycle.py); [evidence](builds/2026-10-20-recovery/cap-038-ai-summary-list-scope.json)).
+
 ### CAP-038 AI-summary digest inspection wording — 20 October 2026
 
 The legacy `--verify` option now says plainly that it computes a local digest

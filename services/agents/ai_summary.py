@@ -480,7 +480,10 @@ def list_summaries(conn, location_id: str = None):
                 (location_id,),
             )
         else:
-            cur.execute("SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary ORDER BY created_at DESC LIMIT 20")
+            cur.execute(
+                "SELECT id, summary_type, status, created_at, NULL::text as preview "
+                "FROM ai_summary ORDER BY created_at DESC LIMIT 20"
+            )
         return [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -555,7 +558,16 @@ def main():
     parser.add_argument("--summary-type", choices=list(GENERATORS.keys()), default="combined",
                         help="Type of summary to generate (default: combined)")
     parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
-    parser.add_argument("--list", action="store_true", help="List existing summaries")
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="List summaries for --location-id, or explicitly across all locations",
+    )
+    parser.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Allow an unfiltered summary inventory when used with --list (previews omitted)",
+    )
     parser.add_argument(
         "--verify",
         help=(
@@ -565,7 +577,16 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.all_locations and not args.list:
+        parser.error("--all-locations requires --list")
+
     if args.list:
+        if args.verify or args.store:
+            parser.error("--list cannot be combined with --verify or --store")
+        if args.all_locations and args.location_id:
+            parser.error("--all-locations cannot be combined with --location-id")
+        if not args.location_id and not args.all_locations:
+            parser.error("--list requires --location-id or explicit --all-locations")
         if args.location_id:
             args.location_id = _cli_uuid(parser, args.location_id, "location-id")
         conn = get_pg()
@@ -576,7 +597,8 @@ def main():
         if not summaries:
             print("No summaries found.")
         else:
-            print(f"{'ID':<38} {'Type':<15} {'Status':<12} {'Created':<20} Preview")
+            preview_heading = "Preview" if args.location_id else "Preview omitted (all locations)"
+            print(f"{'ID':<38} {'Type':<15} {'Status':<12} {'Created':<20} {preview_heading}")
             print("-" * 120)
             for s in summaries:
                 print(f"{str(s['id']):<38} {s['summary_type']:<15} {s['status']:<12} {str(s['created_at']):<20} {(s['preview'] or '')[:60]}")
