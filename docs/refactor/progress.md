@@ -13158,3 +13158,15 @@ and volume. This is not full ARM64 schema acceptance; the latest completed
 ARM64 replay remains through migration 434. Candidate and legacy are untouched.
 Checklist remains 821 complete / 25 open (846 total); matrix classifications
 remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([attempt evidence](builds/2026-10-20-recovery/arm64-schema-replay-attempt.json)).
+
+
+### CAP-039 documented governance framework list invocation — 20 October 2026
+
+The repository documents `framework list`, but the Typer command accepted only
+`framework` and rejected the documented extra token. It now accepts `list` and
+preserves the prior no-argument form. The focused standalone/unified CLI
+selection passes three checks for output parity, fake-connection cleanup, legacy
+invocation, and invalid-action rejection before database access. Ruff and Python
+compilation pass; no database or DAO RPC provider was contacted. Checklist:
+822 complete / 25 open (847 total); matrix classifications remain 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared ([implementation](../../services/governance/cli.py); [tests](../../tests/test_governance_framework_cli.py); [evidence](builds/2026-10-20-recovery/cap-039-governance-framework-list-cli.json)).

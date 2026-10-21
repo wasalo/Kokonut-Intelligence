@@ -18,6 +18,13 @@ for a complete local run. Cleanup removed the temporary database, container, and
 volume. This partial attempt is not migration acceptance; the latest completed
 ARM64 replay remains through migration 434 ([evidence](builds/2026-10-20-recovery/arm64-schema-replay-attempt.json)).
 
+**CAP-039 CLI syntax compatibility — 20 October 2026:** the documented
+`framework list` invocation now works through the standalone and unified DAO
+CLIs while retaining the no-argument compatibility form. Three fake-connection
+checks pass for output parity, cleanup, and invalid-action preflight; Ruff and
+Python compilation pass. No live database or DAO provider was contacted
+([evidence](builds/2026-10-20-recovery/cap-039-governance-framework-list-cli.json)).
+
 **Current-schema clean replay — 20 October 2026:** A fresh isolated native
 AMD64 PostgreSQL 16 database applied all 516 repository schema migrations
 through 525 with zero failures and no seeds or farm data. The focused migration,
