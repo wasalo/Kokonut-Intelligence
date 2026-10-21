@@ -2523,3 +2523,14 @@ and alert delivery remain open. Checklist: 839 complete / 25 open (864 total);
 matrix classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json).
+
+### CAP-039 data-freshness helper cursor cleanup — 21 October 2026
+
+Freshness data-access helpers now close cursors after query and fetch errors for
+configuration, location, ingestion-time, alert-state, alert-history, delivery,
+and check-result operations. Seventeen synthetic cases pass in the 59-test
+freshness/telemetry selection with Ruff and compilation. No database/provider
+was contacted. SAVEPOINT orchestration cleanup, authorization, summary privacy,
+and delivery remain open. Checklist: 840 complete / 25 open (865 total); matrix
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-helper-cursor-cleanup.json).

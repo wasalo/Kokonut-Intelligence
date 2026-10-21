@@ -49,16 +49,17 @@ FRESHNESS_TABLE_TIMESTAMP_COLUMNS = {
 def _query_freshness_configs(conn, source: Optional[str] = None) -> List[Dict[str, Any]]:
     """Query active freshness configurations."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if source:
-        cur.execute(
-            "SELECT * FROM data_freshness_config WHERE is_active = TRUE AND source_system = %s",
-            (source,),
-        )
-    else:
-        cur.execute("SELECT * FROM data_freshness_config WHERE is_active = TRUE")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        if source:
+            cur.execute(
+                "SELECT * FROM data_freshness_config WHERE is_active = TRUE AND source_system = %s",
+                (source,),
+            )
+        else:
+            cur.execute("SELECT * FROM data_freshness_config WHERE is_active = TRUE")
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _validate_thresholds(stale_threshold: int, critical_threshold: int) -> None:
@@ -69,10 +70,11 @@ def _validate_thresholds(stale_threshold: int, critical_threshold: int) -> None:
 
 def _location_ids(conn) -> List[str]:
     cur = conn.cursor()
-    cur.execute("SELECT id FROM location ORDER BY id")
-    rows = [str(row[0]) for row in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("SELECT id FROM location ORDER BY id")
+        return [str(row[0]) for row in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _query_latest_data_at(
@@ -110,13 +112,15 @@ def _query_latest_data_at(
 def _query_latest_ingestion(conn, source_system: str) -> Optional[datetime]:
     """Get the most recent ingestion log entry for a source."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        "SELECT MAX(created_at) AS last_at FROM ingestion_log WHERE source_system = %s AND status = 'success'",
-        (source_system,),
-    )
-    row = cur.fetchone()
-    cur.close()
-    return row["last_at"] if row and row["last_at"] else None
+    try:
+        cur.execute(
+            "SELECT MAX(created_at) AS last_at FROM ingestion_log WHERE source_system = %s AND status = 'success'",
+            (source_system,),
+        )
+        row = cur.fetchone()
+        return row["last_at"] if row and row["last_at"] else None
+    finally:
+        cur.close()
 
 
 def _determine_status(
@@ -163,40 +167,45 @@ def _alert_event(
 def _alert_state(conn, source_system: str, location_id: Optional[str]) -> Dict[str, Any]:
     """Lock and return the alert state for one source/location scope."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT * FROM data_freshness_alert_state
-        WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
-        FOR UPDATE
-        """,
-        (source_system, location_id),
-    )
-    state = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            SELECT * FROM data_freshness_alert_state
+            WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
+            FOR UPDATE
+            """,
+            (source_system, location_id),
+        )
+        state = cur.fetchone()
+    finally:
+        cur.close()
     if state:
         return dict(state)
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_state (source_system, location_id, current_status)
-        VALUES (%s, %s, 'no_data')
-        ON CONFLICT DO NOTHING
-        """,
-        (source_system, location_id),
-    )
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO data_freshness_alert_state (source_system, location_id, current_status)
+            VALUES (%s, %s, 'no_data')
+            ON CONFLICT DO NOTHING
+            """,
+            (source_system, location_id),
+        )
+    finally:
+        cur.close()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT * FROM data_freshness_alert_state
-        WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
-        FOR UPDATE
-        """,
-        (source_system, location_id),
-    )
-    state = dict(cur.fetchone())
-    cur.close()
-    return state
+    try:
+        cur.execute(
+            """
+            SELECT * FROM data_freshness_alert_state
+            WHERE source_system = %s AND location_id IS NOT DISTINCT FROM %s
+            FOR UPDATE
+            """,
+            (source_system, location_id),
+        )
+        return dict(cur.fetchone())
+    finally:
+        cur.close()
 
 
 def _persist_alert_event(
@@ -212,54 +221,58 @@ def _persist_alert_event(
     now: datetime,
 ) -> str:
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_history
-            (state_id, check_id, source_system, location_id, event_type,
-             previous_status, status, gap_minutes, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (state["id"], check_id, source_system, location_id, event_type, previous_status, status, gap_minutes, now),
-    )
-    alert_id = str(cur.fetchone()[0])
-    count_column = {
-        "alert": "alert_count",
-        "escalation": "escalation_count",
-        "recovery": "recovery_count",
-    }[event_type]
-    cur.execute(
-        f"""
-        UPDATE data_freshness_alert_state
-        SET current_status = %s, last_event_type = %s, last_event_status = %s,
-            last_event_at = %s, {count_column} = {count_column} + 1, updated_at = %s
-        WHERE id = %s
-        """,
-        (status, event_type, status, now, now, state["id"]),
-    )
-    cur.close()
-    return alert_id
+    try:
+        cur.execute(
+            """
+            INSERT INTO data_freshness_alert_history
+                (state_id, check_id, source_system, location_id, event_type,
+                 previous_status, status, gap_minutes, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (state["id"], check_id, source_system, location_id, event_type, previous_status, status, gap_minutes, now),
+        )
+        alert_id = str(cur.fetchone()[0])
+        count_column = {
+            "alert": "alert_count",
+            "escalation": "escalation_count",
+            "recovery": "recovery_count",
+        }[event_type]
+        cur.execute(
+            f"""
+            UPDATE data_freshness_alert_state
+            SET current_status = %s, last_event_type = %s, last_event_status = %s,
+                last_event_at = %s, {count_column} = {count_column} + 1, updated_at = %s
+            WHERE id = %s
+            """,
+            (status, event_type, status, now, now, state["id"]),
+        )
+        return alert_id
+    finally:
+        cur.close()
 
 
 def _persist_delivery_attempt(
     conn, alert_id: str, channel: str, delivered: bool, error_message: Optional[str] = None
 ) -> None:
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_alert_delivery_attempt
-            (alert_id, channel, outcome, error_message)
-        VALUES (%s, %s, %s, %s)
-        """,
-        (alert_id, channel, "delivered" if delivered else "failed", error_message),
-    )
-    if delivered:
+    try:
         cur.execute(
-            "UPDATE data_freshness_alert_state SET last_delivered_at = NOW(), updated_at = NOW() "
-            "WHERE id = (SELECT state_id FROM data_freshness_alert_history WHERE id = %s)",
-            (alert_id,),
+            """
+            INSERT INTO data_freshness_alert_delivery_attempt
+                (alert_id, channel, outcome, error_message)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (alert_id, channel, "delivered" if delivered else "failed", error_message),
         )
-    cur.close()
+        if delivered:
+            cur.execute(
+                "UPDATE data_freshness_alert_state SET last_delivered_at = NOW(), updated_at = NOW() "
+                "WHERE id = (SELECT state_id FROM data_freshness_alert_history WHERE id = %s)",
+                (alert_id,),
+            )
+    finally:
+        cur.close()
 
 
 def _insert_check_result(
@@ -276,29 +289,30 @@ def _insert_check_result(
 ) -> str:
     """Insert a freshness check result. Returns check ID."""
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO data_freshness_check
-            (config_id, source_system, location_id, last_data_at,
-             gap_minutes, status, alert_sent, alert_channel, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (
-            config_id,
-            source_system,
-            location_id,
-            last_data_at,
-            gap_minutes,
-            status,
-            alert_sent,
-            alert_channel,
-            json.dumps(metadata or {}),
-        ),
-    )
-    check_id = str(cur.fetchone()[0])
-    cur.close()
-    return check_id
+    try:
+        cur.execute(
+            """
+            INSERT INTO data_freshness_check
+                (config_id, source_system, location_id, last_data_at,
+                 gap_minutes, status, alert_sent, alert_channel, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                config_id,
+                source_system,
+                location_id,
+                last_data_at,
+                gap_minutes,
+                status,
+                alert_sent,
+                alert_channel,
+                json.dumps(metadata or {}),
+            ),
+        )
+        return str(cur.fetchone()[0])
+    finally:
+        cur.close()
 
 
 def _safe_delivery_error(exc: Exception) -> str:

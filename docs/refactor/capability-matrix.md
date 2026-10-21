@@ -4139,3 +4139,13 @@ contacted. Populated view parity, global operator/privacy boundary, and alert
 delivery remain open. Checklist: 839 complete / 25 open; classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json)).
+
+**CAP-039 data-freshness helper cursor cleanup — 21 October 2026:** helper-owned
+configuration, location, ingestion-time, alert-state, alert-history, delivery,
+and check-result cursors close on SQL/fetch failure. Seventeen synthetic cases
+pass in the 59-test freshness/telemetry selection with Ruff and compilation; no
+database/provider was contacted. Transaction orchestration SAVEPOINT cursors,
+live authorization, global-summary privacy, and alert delivery remain open.
+Checklist: 840 complete / 25 open; classifications remain 31 baseline-retained,
+7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-helper-cursor-cleanup.json)).

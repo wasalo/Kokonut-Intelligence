@@ -13397,3 +13397,16 @@ contacted. Live view output, operator/privacy boundaries, and alert delivery
 remain open. Checklist: 839 complete / 25 open (864 total); matrix remains 66
 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json)).
+
+### CAP-039 data-freshness helper cursor cleanup — 21 October 2026
+
+The freshness configuration, location inventory, ingestion-time, alert-state,
+alert-history, delivery-attempt, and check-result helpers now close their own
+cursors after SQL or result-retrieval failures. No helper takes transaction
+ownership. Seventeen synthetic failure cases pass in the 59-test
+freshness/telemetry selection with Ruff and compilation; no database/provider
+was contacted. This does not cover check_freshness orchestration SAVEPOINT
+cursors, live authorization, global-summary privacy, or alert delivery.
+Checklist: 840 complete / 25 open (865 total); matrix remains 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cursor_cleanup.py);
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-helper-cursor-cleanup.json)).
