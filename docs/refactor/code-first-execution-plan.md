@@ -1,3 +1,20 @@
+**CAP-066 helper-return location scope correlation — 21 October 2026:** the
+report query analyzer follows literal same-module filter/bind pairs returned
+by a helper and reports a conditional location signal only when the filter is
+bound to the caller's `location_id` argument. Joined `alias.id = %s` requires
+a matching `location` join. Three SWOT suggestion queries now expose their
+location-specific variant separately from organization/no-filter variants;
+wrong-argument and unjoined-alias regressions stay unscoped. The focused query,
+helper, and source-inventory selection passes 57 tests with Ruff, compilation,
+all report/runtime inventory freshness checks, matrix validation, and diff
+checks. The helper inventory remains 169/169 static SQL memberships with zero
+unresolved sites and bind mismatches; 81 memberships have a location-scope
+source signal. This does not establish authorization, RLS, database execution,
+populated report parity, or audience access ([evidence](builds/2026-10-21-recovery/cap-066-helper-return-location-scope-correlation.json)).
+Checklist: 894 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared. No database, migration, candidate, legacy stack, or provider was
+used.
+
 # Code-first refactor execution plan
 
 **Updated:** 21 October 2026

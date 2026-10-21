@@ -387,6 +387,7 @@ def _trace_report(
                 "named_bind_contract": query["named_bind_contract"],
                 "bound_location_scope_signal": query["bound_location_scope_signal"],
                 "location_scope_conditionally_added": query["location_scope_conditionally_added"],
+                "location_scope_variants": query.get("location_scope_variants", []),
             }
             existing = query_sites.get(query_key)
             if existing:
@@ -483,6 +484,8 @@ def build_inventory() -> dict:
             "statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text "
             "or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values "
             "remain unresolved. The shared database query forwarding adapter is recorded separately, with SQL counted at its caller site. "
+            "For literal same-module filter-return helpers, a conditional location signal is recorded only when a returned location predicate "
+            "is paired with the caller's location_id argument; alternative organization/no-filter variants are preserved separately. "
             "A location-scope signal is not "
             "proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, "
             "external providers, runtime call selection, database views, and semantic report behavior are not "

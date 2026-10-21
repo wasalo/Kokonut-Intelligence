@@ -1,12 +1,12 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_helper_scope_inventory.py",
-  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites and statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values remain unresolved. The shared database query forwarding adapter is recorded separately, with SQL counted at its caller site. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
+  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites and statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values remain unresolved. The shared database query forwarding adapter is recorded separately, with SQL counted at its caller site. For literal same-module filter-return helpers, a conditional location signal is recorded only when a returned location predicate is paired with the caller's location_id argument; alternative organization/no-filter variants are preserved separately. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 32,
     "reachable_helper_query_sites_per_report": 169,
-    "helper_query_sites_with_location_scope_signal": 78,
+    "helper_query_sites_with_location_scope_signal": 81,
     "helper_query_sites_with_static_sql_source": 169,
     "helper_query_sites_with_unresolved_sql_source": 0,
     "helper_query_sites_with_static_positional_arity": 149,
@@ -174,6 +174,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_algorithmic_redistribution",
@@ -236,6 +237,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_algorithmic_redistribution",
@@ -341,6 +343,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_anti_capture_governance",
@@ -403,6 +406,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_anti_capture_governance",
@@ -701,6 +705,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -724,6 +729,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -747,6 +753,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -770,6 +777,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -793,6 +801,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -814,6 +823,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_model_canvas",
@@ -1193,6 +1203,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1219,6 +1230,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1244,6 +1256,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1269,6 +1282,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1294,6 +1308,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1320,6 +1335,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1346,6 +1362,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1372,6 +1389,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1397,6 +1415,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1574,6 +1593,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1751,6 +1771,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1790,6 +1811,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1815,6 +1837,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1858,8 +1881,28 @@
             ]
           },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true,
+          "location_scope_conditionally_added": true,
+          "location_scope_variants": [
+            {
+              "helper_return_line": 82,
+              "location_predicate_visible": true,
+              "location_id_bound": true,
+              "bound_location_scope_signal": true
+            },
+            {
+              "helper_return_line": 88,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            },
+            {
+              "helper_return_line": 89,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            }
+          ],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1902,8 +1945,28 @@
             ]
           },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true,
+          "location_scope_conditionally_added": true,
+          "location_scope_variants": [
+            {
+              "helper_return_line": 82,
+              "location_predicate_visible": true,
+              "location_id_bound": true,
+              "bound_location_scope_signal": true
+            },
+            {
+              "helper_return_line": 88,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            },
+            {
+              "helper_return_line": 89,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            }
+          ],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1946,8 +2009,28 @@
             ]
           },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true,
+          "location_scope_conditionally_added": true,
+          "location_scope_variants": [
+            {
+              "helper_return_line": 82,
+              "location_predicate_visible": true,
+              "location_id_bound": true,
+              "bound_location_scope_signal": true
+            },
+            {
+              "helper_return_line": 88,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            },
+            {
+              "helper_return_line": 89,
+              "location_predicate_visible": false,
+              "location_id_bound": false,
+              "bound_location_scope_signal": false
+            }
+          ],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -1982,6 +2065,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2051,6 +2135,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2120,6 +2205,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2146,6 +2232,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2171,6 +2258,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2210,6 +2298,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2246,6 +2335,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2268,6 +2358,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2293,6 +2384,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2342,6 +2434,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2370,6 +2463,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_business_plan_report",
@@ -2381,7 +2475,7 @@
         }
       ],
       "helper_query_site_count": 27,
-      "helper_query_sites_with_location_scope_signal": 10,
+      "helper_query_sites_with_location_scope_signal": 13,
       "helper_query_sites_with_static_sql_source": 27,
       "helper_query_sites_with_unresolved_sql_source": 0,
       "helper_query_sites_with_static_positional_arity": 22,
@@ -2505,6 +2599,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_assessment",
@@ -2530,6 +2625,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_assessment",
@@ -2554,6 +2650,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_assessment",
@@ -2578,6 +2675,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_assessment",
@@ -2711,6 +2809,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_dashboard",
@@ -2736,6 +2835,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_dashboard",
@@ -2760,6 +2860,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_dashboard",
@@ -2784,6 +2885,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capability_dashboard",
@@ -2925,6 +3027,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -2949,6 +3052,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -2973,6 +3077,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -2997,6 +3102,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -3021,6 +3127,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -3045,6 +3152,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -3069,6 +3177,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_capital_accounting",
@@ -3295,6 +3404,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3318,6 +3428,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3341,6 +3452,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3364,6 +3476,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3387,6 +3500,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3410,6 +3524,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3433,6 +3548,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3457,6 +3573,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_climate_impact",
@@ -3693,6 +3810,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3718,6 +3836,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3743,6 +3862,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3768,6 +3888,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3793,6 +3914,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3818,6 +3940,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3843,6 +3966,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3867,6 +3991,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3888,6 +4013,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3909,6 +4035,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3930,6 +4057,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3953,6 +4081,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -3976,6 +4105,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_comprehensive_status",
@@ -4265,6 +4395,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_env_scan_report",
@@ -4289,6 +4420,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_env_scan_report",
@@ -4473,6 +4605,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_federation_mutual_aid",
@@ -4535,6 +4668,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_federation_mutual_aid",
@@ -4641,6 +4775,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_fork_opportunities",
@@ -4660,6 +4795,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_fork_opportunities",
@@ -5341,6 +5477,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_participatory_signal",
@@ -5403,6 +5540,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_participatory_signal",
@@ -5490,6 +5628,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pest_management",
@@ -5513,6 +5652,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pest_management",
@@ -5536,6 +5676,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pest_management",
@@ -5596,6 +5737,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pestel_assessment",
@@ -5620,6 +5762,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pestel_assessment",
@@ -5697,6 +5840,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pin_dependency",
@@ -5720,6 +5864,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pin_dependency",
@@ -5743,6 +5888,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pin_dependency",
@@ -5766,6 +5912,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pin_dependency",
@@ -5902,6 +6049,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -5926,6 +6074,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -5951,6 +6100,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -5976,6 +6126,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6001,6 +6152,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6026,6 +6178,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6051,6 +6204,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6076,6 +6230,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6101,6 +6256,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6126,6 +6282,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_pitch_deck",
@@ -6463,6 +6620,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6488,6 +6646,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6513,6 +6672,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6538,6 +6698,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6562,6 +6723,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6586,6 +6748,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6611,6 +6774,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6635,6 +6799,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6659,6 +6824,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6680,6 +6846,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6715,6 +6882,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6782,6 +6950,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6849,6 +7018,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_process_health",
@@ -6902,6 +7072,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_promotion_ladder",
@@ -6975,6 +7146,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_publics_market_landscape",
@@ -6999,6 +7171,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_publics_market_landscape",
@@ -7023,6 +7196,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_publics_market_landscape",
@@ -7047,6 +7221,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_publics_market_landscape",
@@ -7152,6 +7327,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_redistribution_policy",
@@ -7214,6 +7390,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_redistribution_policy",
@@ -7309,6 +7486,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_regional_readiness",
@@ -7333,6 +7511,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_regional_readiness",
@@ -7538,6 +7717,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_revenue_multiplier",
@@ -7562,6 +7742,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_revenue_multiplier",
@@ -7685,6 +7866,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_reward_calibration",
@@ -7709,6 +7891,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_reward_calibration",
@@ -7976,6 +8159,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8000,6 +8184,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8023,6 +8208,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8047,6 +8233,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8067,6 +8254,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8088,6 +8276,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_simulation_wargame",
@@ -8441,6 +8630,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8464,6 +8654,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8487,6 +8678,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8510,6 +8702,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8535,6 +8728,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8558,6 +8752,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8581,6 +8776,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8604,6 +8800,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8628,6 +8825,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8651,6 +8849,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut",
@@ -8744,6 +8943,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8769,6 +8969,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8793,6 +8994,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8817,6 +9019,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8842,6 +9045,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8867,6 +9071,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -8891,6 +9096,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_state_of_kokonut_graphs",
@@ -9096,6 +9302,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategic_reserve",
@@ -9116,6 +9323,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategic_reserve",
@@ -9140,6 +9348,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategic_reserve",
@@ -9254,6 +9463,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategy_execution",
@@ -9429,6 +9639,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategy_execution",
@@ -9452,6 +9663,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_strategy_execution",
@@ -9622,6 +9834,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9645,6 +9858,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9668,6 +9882,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9691,6 +9906,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9714,6 +9930,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9737,6 +9954,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9756,6 +9974,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9776,6 +9995,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9814,6 +10034,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": true,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -9838,6 +10059,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_tactical_layer",
@@ -10099,6 +10321,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_value_stream_formal",
@@ -10194,6 +10417,7 @@
           "named_bind_contract": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_value_stream_map",
@@ -10261,6 +10485,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_value_stream_map",
@@ -10328,6 +10553,7 @@
           },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
+          "location_scope_variants": [],
           "reachable_via": [
             [
               "generate_value_stream_map",

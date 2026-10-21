@@ -1,3 +1,22 @@
+### CAP-066 branch-correlated location scope in helper returns — 21 October 2026
+
+The report query analyzer now follows literal filter/bind pairs returned by a
+same-module helper and emits a conditional location-scope signal only when a
+returned location predicate binds the caller's `location_id` argument. It
+also recognizes `alias.id = %s` only when that alias is joined to `location` in
+the resolved query. The three SWOT suggestion reads now record their
+location-specific branch separately from organization and empty-result
+branches. Wrong-argument and unjoined-alias regressions remain unscoped. The
+focused report query/helper/source-inventory selection passes 57 tests; Ruff,
+compilation, all report/runtime inventories, capability-matrix validation,
+and diff checks pass. The helper inventory still resolves 169/169 SQL
+memberships with zero bind mismatches; 81 show at least one location-scope
+source signal. This is static source evidence only, not authorization, RLS,
+populated report parity, or access approval. No database, migration, candidate,
+legacy stack, or provider was used. Checklist: 894 complete / 24 open (918
+total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
+Evidence: [helper scope correlation](builds/2026-10-21-recovery/cap-066-helper-return-location-scope-correlation.json).
+
 ### CAP-066 shared query forwarder call-site accounting — 21 October 2026
 
 The helper inventory now recognizes `services/common/database.py:query` only

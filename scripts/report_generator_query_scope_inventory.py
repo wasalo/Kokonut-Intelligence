@@ -19,6 +19,15 @@ _LOCATION_PREDICATE = re.compile(
     r"\b(?:[a-z_][a-z0-9_]*\.)?location_id\s*(?:=|<>|!=|\bin\b|\bis\b|\bany\b)",
     re.IGNORECASE,
 )
+_LOCATION_JOIN_ALIAS = re.compile(
+    r"\b(?:from|join)\s+(?:public\.)?location\s+(?:as\s+)?"
+    r"([a-z_][a-z0-9_]*)\s+on\b",
+    re.IGNORECASE,
+)
+_JOINED_LOCATION_ID_PREDICATE = re.compile(
+    r"\b([a-z_][a-z0-9_]*)\.id\s*=\s*%s\b",
+    re.IGNORECASE,
+)
 _LOCATION_ROW_LOOKUP = re.compile(
     r"\bfrom\s+(?:[a-z_][a-z0-9_]*\.)?location\b[\s\S]*?\bwhere\s+(?:[a-z_][a-z0-9_]*\.)?id\s*=",
     re.IGNORECASE,
@@ -1639,12 +1648,14 @@ def _local_helper_filter_query_variants(
     assignments: dict[str, list[tuple[int, ast.AST]]],
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     module_tree: ast.Module | None,
-) -> tuple[list[str], dict] | None:
+) -> tuple[list[str], dict, list[dict]] | None:
     """Resolve tuple filters returned by a small same-module helper.
 
     Every normal helper exit must return a literal SQL fragment paired with a
     literal list/tuple of positional binds; every other path must raise. The
-    result checks SQL/bind arity only, never tenant-scope authorization.
+    result checks SQL/bind arity and a narrow location-scope source signal when
+    a returned location predicate binds the caller's ``location_id`` argument.
+    This does not establish authorization.
     """
     if module_tree is None or not isinstance(sql_node, ast.JoinedStr):
         return None
@@ -1718,7 +1729,7 @@ def _local_helper_filter_query_variants(
         return None
     helper = helper_definitions[0]
 
-    def return_pair(statement: ast.Return) -> tuple[str, int, int] | None:
+    def return_pair(statement: ast.Return) -> tuple[str, list[ast.expr], int] | None:
         value = statement.value
         if not isinstance(value, ast.Tuple) or len(value.elts) != 2:
             return None
@@ -1729,12 +1740,12 @@ def _local_helper_filter_query_variants(
             isinstance(item, ast.Starred) for item in values.elts
         ):
             return None
-        return fragment.value, len(values.elts), statement.lineno
+        return fragment.value, list(values.elts), statement.lineno
 
     def analyze_exits(
         statements: list[ast.stmt],
-    ) -> tuple[list[tuple[str, int, int]], bool] | None:
-        returned: list[tuple[str, int, int]] = []
+    ) -> tuple[list[tuple[str, list[ast.expr], int]], bool] | None:
+        returned: list[tuple[str, list[ast.expr], int]] = []
         falls_through = True
         for statement in statements:
             if not falls_through:
@@ -1774,9 +1785,34 @@ def _local_helper_filter_query_variants(
     if exit_summary is None or exit_summary[1] or not exit_summary[0]:
         return None
 
+    helper_positional = [*helper.args.posonlyargs, *helper.args.args]
+    call_arguments: dict[str, ast.expr] = {}
+    if not helper.args.vararg and not helper.args.kwarg:
+        if len(helper_call.args) <= len(helper_positional) and not any(
+            isinstance(argument, ast.Starred) for argument in helper_call.args
+        ):
+            call_arguments = {
+                argument.arg: value
+                for argument, value in zip(helper_positional, helper_call.args)
+            }
+            for keyword in helper_call.keywords:
+                if keyword.arg is None or keyword.arg in call_arguments:
+                    call_arguments = {}
+                    break
+                call_arguments[keyword.arg] = keyword.value
+
+    caller_has_location_argument = any(
+        argument.arg == "location_id"
+        for argument in [
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
+        ]
+    )
     sql_variants: list[str] = []
     arity_variants: list[dict] = []
-    for fragment, supplied_count, return_line in exit_summary[0]:
+    location_scope_variants: list[dict] = []
+    for fragment, bind_values, return_line in exit_summary[0]:
         branch_assignments = dict(assignments)
         branch_assignments[where_name] = [
             (pair_assignment.lineno, ast.Constant(value=fragment))
@@ -1787,6 +1823,7 @@ def _local_helper_filter_query_variants(
         placeholder_count, named_binds = _sql_bind_counts(resolved_sql)
         if named_binds:
             return None
+        supplied_count = len(bind_values)
         arity_variants.append(
             {
                 "helper_return_line": return_line,
@@ -1796,10 +1833,39 @@ def _local_helper_filter_query_variants(
             }
         )
         sql_variants.append(resolved_sql)
+        location_bound = False
+        if caller_has_location_argument and len(bind_values) == 1:
+            helper_value = bind_values[0]
+            if isinstance(helper_value, ast.Name):
+                caller_value = call_arguments.get(helper_value.id)
+                location_bound = (
+                    isinstance(caller_value, ast.Name)
+                    and caller_value.id == "location_id"
+                )
+        fragment_has_location_predicate = bool(_LOCATION_PREDICATE.search(fragment))
+        joined_location_aliases = set(_LOCATION_JOIN_ALIAS.findall(resolved_sql))
+        joined_id_match = _JOINED_LOCATION_ID_PREDICATE.search(fragment)
+        joined_location_predicate = bool(
+            joined_id_match and joined_id_match.group(1).lower() in joined_location_aliases
+        )
+        location_scope_variants.append(
+            {
+                "helper_return_line": return_line,
+                "location_predicate_visible": (
+                    fragment_has_location_predicate or joined_location_predicate
+                ),
+                "location_id_bound": location_bound,
+                "bound_location_scope_signal": (
+                    placeholder_count == supplied_count == 1
+                    and location_bound
+                    and (fragment_has_location_predicate or joined_location_predicate)
+                ),
+            }
+        )
     return sql_variants, {
         "mismatch": any(item["mismatch"] for item in arity_variants),
         "variants": arity_variants,
-    }
+    }, location_scope_variants
 
 
 def _query_calls(
@@ -1851,6 +1917,7 @@ def _query_calls(
         local_helper_filter_variants = _local_helper_filter_query_variants(
             sql_node, node, assignments, function, module_tree
         )
+        local_helper_scope_variants: list[dict] = []
         callsite_variants = None
         formatted_callsite_variants = None
         if optional_filter_variants:
@@ -1862,7 +1929,9 @@ def _query_calls(
             sql = sql_variants[-1]
             sql_variant_paths = [(None, value) for value in sql_variants]
         elif local_helper_filter_variants:
-            sql_variants, positional_arity = local_helper_filter_variants
+            sql_variants, positional_arity, local_helper_scope_variants = (
+                local_helper_filter_variants
+            )
             sql = sql_variants[-1]
             sql_variant_paths = [(None, value) for value in sql_variants]
         else:
@@ -1964,6 +2033,10 @@ def _query_calls(
         location_predicate = any(
             _LOCATION_PREDICATE.search(query_sql) for query_sql in resolved_sql_variants
         )
+        if local_helper_scope_variants:
+            location_predicate = location_predicate or any(
+                item["location_predicate_visible"] for item in local_helper_scope_variants
+            )
         location_row_lookup = any(
             _LOCATION_ROW_LOOKUP.search(query_sql) for query_sql in resolved_sql_variants
         )
@@ -1972,7 +2045,9 @@ def _query_calls(
             for pattern in _INDIRECT_LOCATION_SCOPE
             for query_sql in resolved_sql_variants
         )
-        location_bound = params_include_location
+        location_bound = params_include_location or any(
+            item["location_id_bound"] for item in local_helper_scope_variants
+        )
         scoped_sql_paths = {
             path
             for path, query_sql in sql_variant_paths
@@ -1995,13 +2070,26 @@ def _query_calls(
         if (
             optional_filter_variants
             or tuple_filter_variants
-            or local_helper_filter_variants
             or callsite_variants
             or formatted_callsite_variants
         ):
             # These source resolvers check SQL and bind shapes but do not
             # certify tenant-scope correlation.
             correlated_location_binding = False
+        elif local_helper_filter_variants:
+            correlated_location_binding = any(
+                item["bound_location_scope_signal"]
+                for item in local_helper_scope_variants
+            )
+        location_scope_conditionally_added = bool(conditional_sql_variants)
+        if local_helper_scope_variants:
+            location_variant_signals = [
+                item["bound_location_scope_signal"]
+                for item in local_helper_scope_variants
+            ]
+            location_scope_conditionally_added = location_scope_conditionally_added or (
+                any(location_variant_signals) and not all(location_variant_signals)
+            )
         queries.append(
             {
                 "line": node.lineno,
@@ -2020,10 +2108,15 @@ def _query_calls(
                 "location_id_in_bound_expression": params_include_location,
                 "location_row_lookup_by_id": location_row_lookup,
                 "indirect_location_scope_visible": indirect_location_scope,
-                "location_scope_conditionally_added": bool(conditional_sql_variants),
+                "location_scope_conditionally_added": location_scope_conditionally_added,
                 "bound_location_scope_signal": location_bound
                 and (location_predicate or location_row_lookup or indirect_location_scope)
                 and correlated_location_binding,
+                **(
+                    {"location_scope_variants": local_helper_scope_variants}
+                    if local_helper_scope_variants
+                    else {}
+                ),
                 "positional_bind_arity": positional_arity,
                 "named_bind_contract": named_bind_contract,
             }
@@ -2172,6 +2265,7 @@ def build_inventory() -> dict:
             "Named-bind keys are compared "
             "when literal mappings and simple branch-correlated condition-list appends are statically available; "
             "dynamic containers and nested conditional mutations remain unresolved. "
+            "Literal same-module helper-return filters emit a branch signal only when a returned location predicate binds the caller's location_id argument. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "

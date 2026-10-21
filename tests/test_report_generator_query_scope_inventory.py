@@ -322,7 +322,12 @@ def report(conn, location_id=None, org_id=None):
     query = analysis["queries"][0]
     assert query["sql_source"] == "static_or_resolved"
     assert query["relations"] == ["farm"]
-    assert query["bound_location_scope_signal"] is False
+    assert query["bound_location_scope_signal"] is True
+    assert query["location_scope_conditionally_added"] is True
+    assert [item["bound_location_scope_signal"] for item in query["location_scope_variants"]] == [
+        True,
+        False,
+    ]
     assert query["positional_bind_arity"] == {
         "mismatch": False,
         "variants": [
@@ -340,6 +345,68 @@ def report(conn, location_id=None, org_id=None):
             },
         ],
     }
+
+
+def test_classifier_does_not_bind_location_scope_to_an_organization_argument():
+    analysis = analyze_function_source(
+        '''
+def build_filter(location_id, org_id):
+    return "farm.location_id = %s", [org_id]
+
+def report(conn, location_id, org_id):
+    where, params = build_filter(location_id, org_id)
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "report",
+    )
+
+    query = analysis["queries"][0]
+    assert query["bound_location_scope_signal"] is False
+    assert query["location_scope_variants"] == [
+        {
+            "helper_return_line": 3,
+            "location_predicate_visible": True,
+            "location_id_bound": False,
+            "bound_location_scope_signal": False,
+        }
+    ]
+
+
+def test_classifier_recognizes_location_alias_filter_only_when_joined_to_location():
+    analysis = analyze_function_source(
+        '''
+def build_filter(location_id):
+    return "l.id = %s", [location_id]
+
+def report(conn, location_id):
+    where, params = build_filter(location_id)
+    cur = conn.cursor()
+    cur.execute(
+        f"SELECT t.id FROM threat t JOIN location l ON l.id = t.location_id WHERE {where}",
+        params,
+    )
+''',
+        "report",
+    )
+
+    query = analysis["queries"][0]
+    assert query["bound_location_scope_signal"] is True
+    assert query["location_scope_variants"][0]["location_predicate_visible"] is True
+
+    unjoined = analyze_function_source(
+        '''
+def build_filter(location_id):
+    return "l.id = %s", [location_id]
+
+def report(conn, location_id):
+    where, params = build_filter(location_id)
+    cur = conn.cursor()
+    cur.execute(f"SELECT t.id FROM threat t WHERE {where}", params)
+''',
+        "report",
+    )["queries"][0]
+    assert unjoined["bound_location_scope_signal"] is False
 
 
 def test_classifier_leaves_local_helper_filter_unresolved_when_return_is_dynamic():

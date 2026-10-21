@@ -351,7 +351,8 @@ def test_reachable_helper_inventory_resolves_literal_filter_return_variants():
     assert [site["line"] for site in queries] == [107, 126, 144]
     for site in queries:
         assert site["sql_source"] == "static_or_resolved"
-        assert site["bound_location_scope_signal"] is False
+        assert site["bound_location_scope_signal"] is True
+        assert site["location_scope_conditionally_added"] is True
         assert site["positional_bind_arity"] == {
             "mismatch": False,
             "variants": [
@@ -375,6 +376,10 @@ def test_reachable_helper_inventory_resolves_literal_filter_return_variants():
                 },
             ],
         }
+        assert [
+            item["bound_location_scope_signal"]
+            for item in site["location_scope_variants"]
+        ] == [True, False, False]
 
 
 def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
