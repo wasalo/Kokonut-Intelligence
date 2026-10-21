@@ -82,5 +82,4 @@ def test_locationless_report_queries_have_explicit_network_or_multi_location_pol
         "business_model_canvas",
         "redistribution_policy",
         "state_of_kokonut",
-        "value_stream_map",
     }

@@ -100,7 +100,15 @@ def test_reachable_helper_queries_inventory_static_named_bind_contracts():
 
     assert summary["helper_query_sites_with_static_named_bind_contract"] == len(static_sites)
     assert summary["helper_query_sites_with_named_bind_contract_mismatch"] == len(mismatches)
-    assert len(static_sites) == 2
+    value_stream_sites = [
+        site
+        for site in static_sites
+        if site["source_file"] == "services/analytics/value_stream.py"
+        and site["callable"] in {"stage_lead_times", "first_time_through"}
+    ]
+    assert len(static_sites) == 8
+    assert len(value_stream_sites) == 6
+    assert all(not site["named_bind_contract"]["mismatch"] for site in value_stream_sites)
     assert not mismatches
     assert reference_class_sites[35]["required_names"] == ["loc", "metric"]
     assert reference_class_sites[35]["supplied_names"] == ["loc", "metric"]
@@ -134,6 +142,34 @@ def test_reachable_helper_queries_resolve_literal_module_sql_constants():
     assert len(listing_queries) == 3
     assert all(site["bound_location_scope_signal"] for site in listing_queries)
     assert all(site["positional_bind_arity"]["mismatch"] is False for site in marketplace_queries)
+
+
+def test_value_stream_pipeline_queries_have_static_sql_and_location_bind_contracts():
+    inventory = build_inventory()
+    report_types = {"business_plan", "process_health", "value_stream_map"}
+    expected_callables = {"wip_by_stage", "stage_lead_times", "first_time_through"}
+
+    for report in inventory["reports"]:
+        if report["report_type"] not in report_types:
+            continue
+        queries = [
+            site
+            for site in report["reachable_helper_query_sites"]
+            if site["source_file"] == "services/analytics/value_stream.py"
+            and site["callable"] in expected_callables
+        ]
+        assert {site["callable"] for site in queries} == expected_callables
+        for site in queries:
+            assert site["sql_source"] == "static_or_resolved"
+            assert site["bound_location_scope_signal"] is True
+            if site["callable"] == "wip_by_stage":
+                assert site["positional_bind_arity"] == {
+                    "placeholder_count": 1,
+                    "supplied_count": 1,
+                    "mismatch": False,
+                }
+            else:
+                assert site["named_bind_contract"]["mismatch"] is False
 
 
 def test_reachable_helper_queries_correlate_optional_filter_bind_variants():

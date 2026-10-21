@@ -1,10 +1,12 @@
 """Tests for the VSM value-stream analytics module."""
 
-import pytest
-import psycopg2
+from unittest.mock import MagicMock
 
-from services.ingestion.base import get_db
+import psycopg2
+import pytest
+
 from services.analytics import value_stream as vs
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -64,3 +66,99 @@ def test_report_generator_entrypoint():
         pytest.skip("value-stream tables not present (migrations not applied)")
     finally:
         conn.close()
+
+
+def test_wip_query_keeps_pipeline_location_and_review_status_rules():
+    cur = MagicMock()
+    cur.fetchall.return_value = [{"entity_type": "farm_activity", "status": "draft", "wip": 2}]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = vs.wip_by_stage(conn, "location-1")
+
+    sql, params = cur.execute.call_args.args
+    assert result == [{"entity_type": "farm_activity", "status": "draft", "wip": 2}]
+    assert params == ("location-1",)
+    assert "farm_activity_source_eligible_for_use" in sql
+    assert "entity.review_status::text" in sql
+    assert "FROM ai_summary AS entity CROSS JOIN scope\n            WHERE scope.loc IS NULL" in sql
+    assert "FROM agent_task AS entity CROSS JOIN scope\n            WHERE scope.loc IS NULL" in sql
+    assert "entity.location_id = scope.loc" in sql
+
+
+def test_lead_time_query_uses_location_cte_and_exact_named_parameters():
+    cur = MagicMock()
+    cur.fetchall.return_value = [{"entity_type": "farm_activity", "avg_lead_days": 2.5}]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = vs.stage_lead_times(
+        conn,
+        "location-1",
+        "2026-01-01",
+        "2026-01-31",
+        initial_status="submitted",
+        goal_status="verified",
+        entity_type="farm_activity",
+    )
+
+    sql, params = cur.execute.call_args.args
+    assert result == [{"entity_type": "farm_activity", "avg_lead_days": 2.5}]
+    assert params == {
+        "loc": "location-1",
+        "ps": "2026-01-01",
+        "pe": "2026-01-31",
+        "goal": "verified",
+        "initial": "submitted",
+        "etype": "farm_activity",
+    }
+    assert "farm_activity_source_eligible_for_use" in sql
+    assert "scope.loc IS NULL OR entity.location_id = scope.loc" in sql
+    assert "lt.entity_type = %(etype)s" in sql
+
+
+def test_first_time_through_query_uses_location_cte_and_exact_named_parameters():
+    cur = MagicMock()
+    cur.fetchone.return_value = {"published_count": 4, "first_time_through": 3}
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = vs.first_time_through(
+        conn,
+        "location-1",
+        "2026-01-01",
+        "2026-01-31",
+        goal_status="verified",
+        fail_status="rejected",
+        entity_type="farm_activity",
+    )
+
+    sql, params = cur.execute.call_args.args
+    assert result == {
+        "published_count": 4,
+        "first_time_through": 3,
+        "pct": 75.0,
+    }
+    assert params == {
+        "loc": "location-1",
+        "ps": "2026-01-01",
+        "pe": "2026-01-31",
+        "goal": "verified",
+        "fail": "rejected",
+        "etype": "farm_activity",
+    }
+    assert "farm_activity_source_eligible_for_use" in sql
+    assert "scope.loc IS NULL OR entity.location_id = scope.loc" in sql
+    assert "lt.entity_type = %(etype)s" in sql
+
+
+def test_lead_time_empty_entity_type_keeps_the_unfiltered_behavior():
+    cur = MagicMock()
+    cur.fetchall.return_value = []
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    vs.stage_lead_times(conn, entity_type="")
+
+    _sql, params = cur.execute.call_args.args
+    assert params["etype"] is None

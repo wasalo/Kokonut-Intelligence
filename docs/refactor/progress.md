@@ -1,3 +1,21 @@
+### CAP-066 static value-stream query contracts — 21 October 2026
+
+The WIP, lifecycle lead-time, and first-time-through queries now use explicit
+parameterized SQL instead of loop-built SQL over the fixed pipeline. They retain
+all eight entity types, the `agent_task.review_status` mapping, the locationless
+`ai_summary`/`agent_task` exclusion, farm-activity eligibility, and optional
+location/date/status filters. The helper inventory verifies nine memberships
+across three report types: three positional 1/1 contracts and six complete
+named-bind contracts, with zero mismatches. The focused source/mock/helper
+selection passes 19 tests; Ruff, compilation, all three report inventories,
+runtime SQL inventory, capability-matrix validation, and diff checks pass.
+Across 175 helper memberships, 168 SQL sites are static, seven unresolved, and
+148 positional plus eight named contracts have zero mismatches. This is source
+analysis only: no PostgreSQL query ran, and the location signal does not prove
+authorization, RLS, or populated report parity. Checklist: 891 complete / 24
+open (915 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-value-stream-static-query-contracts.json)).
+
 ### CAP-066 capital-accounting query contract — 21 October 2026
 
 The diversion calculation now uses a fixed `expense_event` query with a bound

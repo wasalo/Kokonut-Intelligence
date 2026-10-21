@@ -6,12 +6,12 @@
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
-    "helper_query_sites_with_location_scope_signal": 69,
-    "helper_query_sites_with_static_sql_source": 159,
-    "helper_query_sites_with_unresolved_sql_source": 16,
-    "helper_query_sites_with_static_positional_arity": 145,
+    "helper_query_sites_with_location_scope_signal": 78,
+    "helper_query_sites_with_static_sql_source": 168,
+    "helper_query_sites_with_unresolved_sql_source": 7,
+    "helper_query_sites_with_static_positional_arity": 148,
     "helper_query_sites_with_positional_arity_mismatch": 0,
-    "helper_query_sites_with_static_named_bind_contract": 2,
+    "helper_query_sites_with_static_named_bind_contract": 8,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
     "unresolved_local_helper_calls": 0
   },
@@ -858,7 +858,6 @@
         "services/analytics/swot.py:_location_filter",
         "services/analytics/swot.py:list_swot",
         "services/analytics/swot.py:suggest",
-        "services/analytics/value_stream.py:_entity_loc_sql",
         "services/analytics/value_stream.py:bottleneck_ranking",
         "services/analytics/value_stream.py:current_state_map",
         "services/analytics/value_stream.py:first_time_through",
@@ -1156,49 +1155,37 @@
         {
           "caller": "services/analytics/value_stream.py:bottleneck_ranking",
           "callee": "services/analytics/value_stream.py:wip_by_stage",
-          "line": 186,
+          "line": 243,
           "depth": 4
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:wip_by_stage",
-          "line": 210,
+          "line": 267,
           "depth": 4
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:stage_lead_times",
-          "line": 211,
+          "line": 268,
           "depth": 4
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:first_time_through",
-          "line": 212,
+          "line": 269,
           "depth": 4
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:bottleneck_ranking",
-          "line": 213,
+          "line": 270,
           "depth": 4
         },
         {
           "caller": "services/analytics/competitive_report.py:health",
           "callee": "services/analytics/competitive_report.py:_clean",
           "line": 21,
-          "depth": 5
-        },
-        {
-          "caller": "services/analytics/value_stream.py:stage_lead_times",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 105,
-          "depth": 5
-        },
-        {
-          "caller": "services/analytics/value_stream.py:first_time_through",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 151,
           "depth": 5
         }
       ],
@@ -1986,12 +1973,27 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "wip_by_stage",
-          "line": 88,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "line": 91,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entities",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -2006,12 +2008,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "stage_lead_times",
-          "line": 113,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 162,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback",
+            "start"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -2026,12 +2077,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "first_time_through",
-          "line": 159,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 210,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "rej",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -2289,12 +2389,12 @@
         }
       ],
       "helper_query_site_count": 27,
-      "helper_query_sites_with_location_scope_signal": 7,
-      "helper_query_sites_with_static_sql_source": 23,
-      "helper_query_sites_with_unresolved_sql_source": 4,
-      "helper_query_sites_with_static_positional_arity": 20,
+      "helper_query_sites_with_location_scope_signal": 10,
+      "helper_query_sites_with_static_sql_source": 26,
+      "helper_query_sites_with_unresolved_sql_source": 1,
+      "helper_query_sites_with_static_positional_arity": 21,
       "helper_query_sites_with_positional_arity_mismatch": 0,
-      "helper_query_sites_with_static_named_bind_contract": 2,
+      "helper_query_sites_with_static_named_bind_contract": 4,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
@@ -6077,7 +6177,6 @@
         "services/analytics/process_mining.py:goal_state",
         "services/analytics/process_mining.py:initial_state",
         "services/analytics/process_mining.py:load_model",
-        "services/analytics/value_stream.py:_entity_loc_sql",
         "services/analytics/value_stream.py:bottleneck_ranking",
         "services/analytics/value_stream.py:first_time_through",
         "services/analytics/value_stream.py:stage_lead_times",
@@ -6188,18 +6287,6 @@
           "depth": 3
         },
         {
-          "caller": "services/analytics/value_stream.py:stage_lead_times",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 105,
-          "depth": 3
-        },
-        {
-          "caller": "services/analytics/value_stream.py:first_time_through",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 151,
-          "depth": 3
-        },
-        {
           "caller": "services/analytics/predictive_bpm.py:breaches",
           "callee": "services/analytics/predictive_bpm.py:current_state_of",
           "line": 159,
@@ -6214,7 +6301,7 @@
         {
           "caller": "services/analytics/value_stream.py:bottleneck_ranking",
           "callee": "services/analytics/value_stream.py:wip_by_stage",
-          "line": 186,
+          "line": 243,
           "depth": 3
         },
         {
@@ -6605,12 +6692,27 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "wip_by_stage",
-          "line": 88,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "line": 91,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entities",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -6623,12 +6725,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "stage_lead_times",
-          "line": 113,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 162,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback",
+            "start"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -6641,12 +6792,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "first_time_through",
-          "line": 159,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 210,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "rej",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -6658,14 +6858,14 @@
         }
       ],
       "helper_query_site_count": 13,
-      "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 10,
-      "helper_query_sites_with_unresolved_sql_source": 3,
-      "helper_query_sites_with_static_positional_arity": 8,
+      "helper_query_sites_with_location_scope_signal": 3,
+      "helper_query_sites_with_static_sql_source": 13,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 9,
       "helper_query_sites_with_positional_arity_mismatch": 0,
-      "helper_query_sites_with_static_named_bind_contract": 0,
+      "helper_query_sites_with_static_named_bind_contract": 2,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "no_location_scope_signal_in_resolved_helper_queries",
+      "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
     {
@@ -9885,7 +10085,6 @@
       "report_source_file": "services/analytics/value_stream.py",
       "report_callable": "generate_value_stream_map",
       "resolved_helper_functions": [
-        "services/analytics/value_stream.py:_entity_loc_sql",
         "services/analytics/value_stream.py:bottleneck_ranking",
         "services/analytics/value_stream.py:current_state_map",
         "services/analytics/value_stream.py:first_time_through",
@@ -9896,49 +10095,37 @@
         {
           "caller": "generate_value_stream_map",
           "callee": "services/analytics/value_stream.py:current_state_map",
-          "line": 222,
+          "line": 279,
           "depth": 1
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:wip_by_stage",
-          "line": 210,
+          "line": 267,
           "depth": 2
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:stage_lead_times",
-          "line": 211,
+          "line": 268,
           "depth": 2
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:first_time_through",
-          "line": 212,
+          "line": 269,
           "depth": 2
         },
         {
           "caller": "services/analytics/value_stream.py:current_state_map",
           "callee": "services/analytics/value_stream.py:bottleneck_ranking",
-          "line": 213,
+          "line": 270,
           "depth": 2
-        },
-        {
-          "caller": "services/analytics/value_stream.py:stage_lead_times",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 105,
-          "depth": 3
-        },
-        {
-          "caller": "services/analytics/value_stream.py:first_time_through",
-          "callee": "services/analytics/value_stream.py:_entity_loc_sql",
-          "line": 151,
-          "depth": 3
         },
         {
           "caller": "services/analytics/value_stream.py:bottleneck_ranking",
           "callee": "services/analytics/value_stream.py:wip_by_stage",
-          "line": 186,
+          "line": 243,
           "depth": 3
         }
       ],
@@ -9946,12 +10133,27 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "wip_by_stage",
-          "line": 88,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "line": 91,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entities",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -9964,12 +10166,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "stage_lead_times",
-          "line": 113,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 162,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback",
+            "start"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "goal",
+              "initial",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -9982,12 +10233,61 @@
         {
           "source_file": "services/analytics/value_stream.py",
           "callable": "first_time_through",
-          "line": 159,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
+          "line": 210,
+          "relations": [
+            "agent_task",
+            "ai_summary",
+            "data_stream_post",
+            "entity_loc",
+            "farm_activity",
+            "harvest_event",
+            "impact_claim",
+            "lifecycle_transition",
+            "pub",
+            "rej",
+            "report_snapshot",
+            "scope",
+            "stakeholder_feedback"
+          ],
+          "sql_source": "static_or_resolved",
           "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "named_bind_contract": {
+            "required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_required_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "base_supplied_names": [
+              "etype",
+              "fail",
+              "goal",
+              "loc",
+              "pe",
+              "ps"
+            ],
+            "variants": [],
+            "mismatch": false
+          },
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -9999,14 +10299,14 @@
         }
       ],
       "helper_query_site_count": 3,
-      "helper_query_sites_with_location_scope_signal": 0,
-      "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 3,
-      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_location_scope_signal": 3,
+      "helper_query_sites_with_static_sql_source": 3,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 1,
       "helper_query_sites_with_positional_arity_mismatch": 0,
-      "helper_query_sites_with_static_named_bind_contract": 0,
+      "helper_query_sites_with_static_named_bind_contract": 2,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "no_location_scope_signal_in_resolved_helper_queries",
+      "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
     {
