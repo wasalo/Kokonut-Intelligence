@@ -637,17 +637,19 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Current accounting
 
 **Current CAP-039 report CLI slice — 20 October 2026:** Standalone and unified
-`export --verify` and synthetic single-report generation now compare output;
-the generation case checks read-only calculation, later snapshot persistence,
-and cleanup. Close failures during listing/verification are also redacted. The
-full focused selection passes 155 tests, with no database or provider calls.
-The checklist is 816 complete / 25 open (841 total),
-recounted from its nested checkboxes; the matrix remains 66 rows (31
-baseline-retained, 7 deployed, 28 prepared). Candidate and legacy databases
-were not touched. MAN-CAP-039 owner acceptance, operator authorization, and
-live report behavior remain open.
+`export --verify`, single-report generation, and automatic batch generation now
+compare output. Synthetic auto coverage checks run/item success transitions,
+exact location forwarding, read-only calculation, snapshot ordering, and
+connection cleanup; an injected report failure is redacted while the next item
+continues and the batch is marked partial. Close failures are redacted too.
+The full focused selection passes 157 tests, with no database/provider calls.
+The checklist is 818 complete / 25 open (843 total), recounted from its nested
+checkboxes; the matrix remains 66 rows (31 baseline-retained, 7 deployed, 28 prepared). Candidate and
+legacy databases were not touched. MAN-CAP-039 owner acceptance, operator
+authorization, and live report behavior remain open.
 
-The latest security-hardening batch was pushed to the PR branch as `efdd05b5`.
+Earlier refactor work recorded a security-hardening batch pushed as `efdd05b5`;
+that run and its CI references below are historical checkpoints.
 Across these slices, raw exception messages, model paths, identifiers, and
 child output are replaced with bounded summaries while rollback, retry, and
 fallback behavior remain intact. Each slice has focused regression evidence in

@@ -2074,3 +2074,313 @@ def test_export_cli_redacts_connection_close_failures(
     assert unified.stdout == standalone_output
     assert len(connections) == 2
     assert all(connection.close_attempts == 1 for connection in connections)
+
+
+def test_export_auto_generation_matches_standalone_and_unified_cli(
+    monkeypatch,
+    capsys,
+) -> None:
+    from uuid import UUID
+
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    report_data = {"report_type": "farm_summary", "rows": [{"count": 3}]}
+    connections = []
+    statements = []
+    calculations = []
+    snapshots = []
+    run_ids = iter(
+        [
+            UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+            UUID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+            UUID("cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+            UUID("dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+        ]
+    )
+
+    class FakeCursor:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query, parameters=None):
+            statements.append((self.connection, " ".join(query.split()), parameters))
+
+    class FakeConnection:
+        def __init__(self):
+            self.autocommit = False
+            self.read_only = False
+            self.session_modes = []
+            self.rollbacks = 0
+            self.commits = 0
+            self.closed = False
+
+        def cursor(self):
+            return FakeCursor(self)
+
+        def set_session(self, *, readonly):
+            self.read_only = readonly
+            self.session_modes.append(readonly)
+
+        def rollback(self):
+            self.rollbacks += 1
+            self.read_only = False
+
+        def commit(self):
+            self.commits += 1
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def generate_report(connection, selected_location, period_start, period_end):
+        calculations.append(
+            (connection.read_only, selected_location, period_start, period_end)
+        )
+        return report_data
+
+    def store_snapshot(connection, data, selected_location, period_start, period_end):
+        snapshots.append(
+            (connection.read_only, data, selected_location, period_start, period_end)
+        )
+        connection.commit()
+        return "synthetic-snapshot-id"
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    monkeypatch.setattr(report_generator, "REPORT_GENERATORS", {"farm_summary": generate_report})
+    monkeypatch.setattr(report_generator, "store_snapshot", store_snapshot)
+    monkeypatch.setattr(report_generator, "compute_hash", lambda _data: "synthetic-hash")
+    monkeypatch.setattr(report_generator.uuid, "uuid4", lambda: next(run_ids))
+    arguments = ["--auto", "--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert standalone_output.splitlines() == [
+        f"Generating all 1 report types for {location_id}...",
+        "",
+        "Generating farm_summary...",
+        "  ✓ farm_summary: synthetic-snapshot-id (synthetic-hash)",
+        "",
+        "Done: 1 succeeded, 0 failed, 0 empty",
+    ]
+    assert calculations == [
+        (True, location_id, None, None),
+        (True, location_id, None, None),
+    ]
+    assert snapshots == [
+        (False, report_data, location_id, None, None),
+        (False, report_data, location_id, None, None),
+    ]
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(connection.rollbacks == 1 for connection in connections)
+    assert all(connection.session_modes == [True, False] for connection in connections)
+    assert all(connection.commits == 5 for connection in connections)
+
+    normalized = [
+        (query, parameters)
+        for _connection, query, parameters in statements
+    ]
+    assert normalized == [
+        (
+            "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
+            ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", location_id, 1),
+        ),
+        (
+            "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
+            ("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "farm_summary"),
+        ),
+        (
+            "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
+            ("synthetic-snapshot-id", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+        ),
+        (
+            "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
+            ("succeeded", 1, 0, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+        ),
+        (
+            "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
+            ("cccccccc-cccc-4ccc-8ccc-cccccccccccc", location_id, 1),
+        ),
+        (
+            "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
+            ("dddddddd-dddd-4ddd-8ddd-dddddddddddd", "cccccccc-cccc-4ccc-8ccc-cccccccccccc", "farm_summary"),
+        ),
+        (
+            "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
+            ("synthetic-snapshot-id", "dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+        ),
+        (
+            "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
+            ("succeeded", 1, 0, "cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+        ),
+    ]
+    assert unified.stderr == ""
+
+
+def test_export_auto_generation_redacts_and_continues_after_report_failure(
+    monkeypatch,
+    capsys,
+) -> None:
+    from uuid import UUID
+
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    secret_detail = "database password=synthetic-batch-secret"
+    connections = []
+    statements = []
+    calculations = []
+    snapshots = []
+    generated_ids = iter(UUID(int=value, version=4) for value in range(1, 7))
+
+    class FakeCursor:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, query, parameters=None):
+            statements.append((self.connection, " ".join(query.split()), parameters))
+
+    class FakeConnection:
+        def __init__(self):
+            self.autocommit = False
+            self.read_only = False
+            self.session_modes = []
+            self.rollbacks = 0
+            self.commits = 0
+            self.closed = False
+
+        def cursor(self):
+            return FakeCursor(self)
+
+        def set_session(self, *, readonly):
+            self.read_only = readonly
+            self.session_modes.append(readonly)
+
+        def rollback(self):
+            self.rollbacks += 1
+            self.read_only = False
+
+        def commit(self):
+            self.commits += 1
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fail_report(connection, *_args):
+        calculations.append(("farm_summary", connection.read_only))
+        raise RuntimeError(secret_detail)
+
+    def succeed_report(connection, selected_location, period_start, period_end):
+        calculations.append(("climate_impact", connection.read_only))
+        return {
+            "report_type": "climate_impact",
+            "location_id": selected_location,
+            "period_start": period_start,
+            "period_end": period_end,
+        }
+
+    def store_snapshot(connection, data, selected_location, period_start, period_end):
+        snapshots.append(
+            (connection.read_only, data, selected_location, period_start, period_end)
+        )
+        connection.commit()
+        return "synthetic-snapshot-id"
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    monkeypatch.setattr(
+        report_generator,
+        "REPORT_GENERATORS",
+        {"farm_summary": fail_report, "climate_impact": succeed_report},
+    )
+    monkeypatch.setattr(report_generator, "store_snapshot", store_snapshot)
+    monkeypatch.setattr(report_generator, "compute_hash", lambda _data: "synthetic-hash")
+    monkeypatch.setattr(report_generator.uuid, "uuid4", lambda: next(generated_ids))
+    arguments = ["--auto", "--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        with pytest.raises(SystemExit) as standalone_error:
+            report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert standalone_error.value.code == 1
+    assert isinstance(unified.exception, SystemExit)
+    assert unified.exception.code == 1
+    assert unified.stdout == standalone_output
+    assert "farm_summary: report generation failed (RuntimeError)" in unified.stdout
+    assert "climate_impact: synthetic-snapshot-id (synthetic-hash)" in unified.stdout
+    assert "Done: 1 succeeded, 1 failed, 0 empty" in unified.stdout
+    assert secret_detail not in standalone_output
+    assert secret_detail not in unified.output
+    assert calculations == [
+        ("farm_summary", True),
+        ("climate_impact", True),
+        ("farm_summary", True),
+        ("climate_impact", True),
+    ]
+    assert len(snapshots) == 2
+    assert all(not read_only for read_only, *_rest in snapshots)
+    assert snapshots[0][2:] == (location_id, None, None)
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(connection.session_modes == [True, False, True, False] for connection in connections)
+
+    failed_items = [
+        (query, parameters)
+        for _connection, query, parameters in statements
+        if "UPDATE report_generation_run_item SET status = 'failed'" in query
+    ]
+    assert len(failed_items) == 2
+    assert all(parameters[0] == "report generation failed (RuntimeError)" for _, parameters in failed_items)
+    assert all(secret_detail not in repr(parameters) for _, parameters in failed_items)
+    completed_runs = [
+        parameters
+        for _connection, query, parameters in statements
+        if query.startswith("UPDATE report_generation_run SET status")
+    ]
+    assert completed_runs == [
+        ("partial", 1, 1, "00000000-0000-4000-8000-000000000001"),
+        ("partial", 1, 1, "00000000-0000-4000-8000-000000000004"),
+    ]
+    assert unified.stderr == ""

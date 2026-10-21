@@ -1,16 +1,19 @@
-### CAP-039 automatic report connection cleanup — 20 October 2026
+### CAP-039 report CLI parity and failure boundaries — 20 October 2026
 
 Automatic report generation now closes its database connection in a `finally`
-boundary. Standalone/unified parity now covers successful `--verify` output with a
+boundary. Standalone/unified parity covers successful `--verify` output with a
 stubbed verifier and single-report generation through synthetic calculation
-and snapshot-store adapters. Close failures after listing or verification are
-also reduced to class-only errors in both CLI entry points. Injected failures cover connection creation, snapshot listing, snapshot
+and snapshot-store adapters. The automatic batch path verifies run/item state,
+location scope, and output; an injected failed report is redacted while the next
+report succeeds and the run is marked partial. Close failures after listing or
+verification are reduced to class-only errors in both CLI entry points. Injected failures cover connection creation, snapshot listing, snapshot
 verification, and run-record creation before per-report processing. Those four
 standalone/unified pairs verify class-only errors and cleanup when a connection
-exists. Two additional cases inject close failures after listing and verification;
-both entry points expose only the exception class and attempt close once. The full CAP-039 offline parity selection passes 155 tests;
+exists. Separate cases inject close failures after listing and verification, and
+a per-report failure confirms auto mode continues safely. The full CAP-039 offline
+parity selection passes 157 tests;
 no database or provider was contacted. Recounting the nested checklist items
-corrected the summary to 816 complete / 25 open (841 total); the previous
+corrected the summary to 818 complete / 25 open (843 total); the previous
 header count was stale. Report output parity, operator authorization, and
 MAN-CAP-039 owner acceptance remain open
 ([evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).

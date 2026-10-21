@@ -106,9 +106,9 @@ PostgreSQL URL so accidental secret/database setup fails instead of reaching a
 real service. Nine successful offline invocations, twenty-nine other
 PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
-service report, one synthetic single-report generation path, and three operator
-write invocations with fake connections match standalone output across all 37
-mounted groups (155 tests including
+service report, two synthetic report-generation paths (single and automatic
+batch), and three operator write invocations with fake connections match
+standalone output across all 37 mounted groups (157 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
@@ -121,31 +121,39 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 155-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 157-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The thirty query-backed success paths (including the operator inventory),
-one aggregate-service-stubbed tenant-preflight path, one synthetic report
-generation path, and three fake-connection operator writes exercise
-their real parsers, forwarding, and JSON or text output paths from both entry
-points with synthetic results. The grant-revocation case confirms the required
+one aggregate-service-stubbed tenant-preflight path, two synthetic report-
+generation paths (single and automatic batch), and three fake-connection
+operator writes exercise their real parsers, forwarding, and JSON or text output
+paths from both entry points with synthetic results. The grant-revocation case confirms the required
 actor and reason reach the UPDATE; it does not test database authorization. The
 identity-provision case confirms an existing enabled identity can be refreshed
 without changing its enabled state; the separate focused source check verifies
 that a disabled identity is rejected and cannot be re-enabled through this
 command. The identity-disable case verifies the identity update and session
 revocation share one transaction and that a session-update failure rolls back;
-it does not add actor/reason audit or establish database authorization. The
-connection-taking commands use fake connections and prove they close them.
+it does not add actor/reason audit or establish database authorization.
+
+The automatic report-batch parity case asserts run/item creation and success
+transitions, exact location scope, the read-only calculation wrapper, snapshot
+ordering, and connection cleanup using fake cursors. The single-report case
+asserts the calculation/persistence ordering too. The synthetic auto-failure
+case verifies per-report redaction, continuation to the next report, a persisted
+`partial` run, failure exit status, and connection cleanup in both entry points.
+The connection-taking commands use fake connections and prove they close them.
 The governance proposal, role, link, tactical, and tension read CLIs close their
 connections after both successful and failing service calls. The stakeholder
 grievance, identity, representation, and trust read paths also close their
 connections on success. The forecast catalogue closes its connection after
 both successful and failing reads. CRISP weights likewise closes after success
 and failure; Delphi study listing and Threatcasting threat listing close their
-cursors and connections on both paths. Export snapshot listing closes its connection on success. Connection creation, list/verify queries, connection-close failures, and
-automatic report-run setup failures emit only the exception class; injected standalone/unified CLI regressions cover each failure boundary
-and confirm cleanup whenever a connection was opened. The media-cleanup dry-run does not initialize the
+cursors and connections on both paths. Export snapshot listing closes its connection on success. Connection creation,
+list/verify queries, connection-close failures, and automatic report-run setup
+failures emit only the exception class; injected standalone/unified regressions
+cover each failure boundary and confirm cleanup whenever a connection opened. The media-cleanup dry-run does not initialize the
 provider; media reconciliation uses only a stubbed inventory and confirms no
 deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
@@ -153,7 +161,7 @@ service calls; they do not claim database query behavior or authorization.
 Every mounted group now has at least one successful output-parity path. This
 selection covers nine offline invocations across eight groups, thirty
 stubbed database-query paths (including the operator inventory), one
-aggregate-service path, one synthetic report-generation path, and three
+aggregate-service path, two synthetic report-generation paths, and three
 fake-connection operator writes. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
