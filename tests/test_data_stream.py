@@ -1,6 +1,7 @@
 """Unit tests for Data Stream feature."""
 
 import hashlib
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -427,6 +428,42 @@ class TestReportGenerator:
         assert report["total_posts"] == 2
         assert report["anchored_posts"] == 1
         assert report["by_type"]["photo"] == 1
+
+    @pytest.mark.parametrize(
+        ("period_start", "period_end", "expected_params"),
+        [
+            (None, None, {"location_id": LOCATION_ID}),
+            ("2026-01-01", None, {"location_id": LOCATION_ID, "period_start": "2026-01-01"}),
+            (None, "2026-01-31", {"location_id": LOCATION_ID, "period_end": "2026-01-31"}),
+            (
+                "2026-01-01",
+                "2026-01-31",
+                {
+                    "location_id": LOCATION_ID,
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-01-31",
+                },
+            ),
+        ],
+    )
+    def test_data_stream_summary_named_binds_match_optional_period_filters(
+        self, period_start, period_end, expected_params
+    ):
+        from services.export.report_generator import generate_data_stream_summary
+
+        conn = _fake_conn()
+        generate_data_stream_summary(
+            conn,
+            LOCATION_ID,
+            period_start=period_start,
+            period_end=period_end,
+        )
+
+        sql, params = conn.execute.call_args.args
+        sql_bind_names = set(re.findall(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)", sql))
+        assert sql_bind_names == set(expected_params)
+        assert params == expected_params
+        assert "dsp.location_id = :location_id" in sql
 
 
 # ---------------------------------------------------------------------------

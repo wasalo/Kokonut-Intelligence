@@ -3,6 +3,15 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 named report bind filters — 21 October 2026:** a mocked connection
+regression now checks the remaining direct named-bind report query across all
+four optional date-bound combinations. Its SQL bind names exactly match the
+supplied parameter map, and the location bind is always present. The combined
+Data Stream/query/helper/source-inventory selection passes 79 tests; Ruff,
+compilation, and diff checks pass. The static inventory remains positional-only
+at 175 of 176 direct queries; this does not establish PostgreSQL execution,
+dynamic helper coverage, or populated report parity ([evidence](builds/2026-10-21-recovery/cap-066-named-report-bind-contract.json)).
+
 **CAP-066 conditional report query bind arity — 21 October 2026:** the static
 query analyzer now correlates SQL placeholders with parameters across simple
 location branches and a common static suffix. It checks 175/176 direct report

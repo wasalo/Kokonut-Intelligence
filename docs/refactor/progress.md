@@ -1,3 +1,16 @@
+### CAP-066 named report bind filters — 21 October 2026
+
+The remaining direct named-bind report query, `data_stream_summary`, now has a
+mocked connection regression for all four optional date-bound combinations.
+Each case confirms that SQL bind names exactly match supplied mapping keys and
+that the location bind remains present. The combined Data Stream and
+query/helper/source-inventory selection passes 79 tests; Ruff, Python
+compilation, and diff checks pass. The static inventory remains positional-only
+at 175 of 176 direct report queries; dynamic helper queries and populated
+report parity remain open. No database, provider, migration, candidate, or
+legacy stack was used. Checklist: 881 complete / 24 open (905 total); matrix:
+31 baseline-retained, 7 deployed, 28 prepared ([evidence](builds/2026-10-21-recovery/cap-066-named-report-bind-contract.json)).
+
 ### CAP-066 conditional report query bind arity — 21 October 2026
 
 The report query analyzer now correlates static SQL and positional parameter
