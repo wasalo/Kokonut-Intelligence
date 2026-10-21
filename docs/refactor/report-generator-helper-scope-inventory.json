@@ -50,7 +50,7 @@
         {
           "caller": "generate_adoption_barriers",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 99,
+          "line": 100,
           "depth": 1
         },
         {
@@ -210,7 +210,7 @@
         {
           "caller": "generate_bio_factory_batch",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 37,
+          "line": 38,
           "depth": 1
         },
         {
@@ -238,7 +238,7 @@
         {
           "caller": "generate_bio_input_provenance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 90,
+          "line": 91,
           "depth": 1
         },
         {
@@ -266,7 +266,7 @@
         {
           "caller": "generate_bio_quality_test",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 174,
+          "line": 175,
           "depth": 1
         },
         {
@@ -294,7 +294,7 @@
         {
           "caller": "generate_bio_recipe_library",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 137,
+          "line": 138,
           "depth": 1
         },
         {
@@ -318,19 +318,26 @@
         "services/common/database.py:_cursor_for",
         "services/common/database.py:query",
         "services/common/utils.py:serialize_rows",
-        "services/common/utils.py:serialize_value"
+        "services/common/utils.py:serialize_value",
+        "services/export/reports/scope.py:require_network_scope"
       ],
       "resolved_helper_call_edges": [
         {
           "caller": "generate_bio_regional_input",
+          "callee": "services/export/reports/scope.py:require_network_scope",
+          "line": 194,
+          "depth": 1
+        },
+        {
+          "caller": "generate_bio_regional_input",
           "callee": "services/common/database.py:query",
-          "line": 193,
+          "line": 195,
           "depth": 1
         },
         {
           "caller": "generate_bio_regional_input",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 208,
+          "line": 210,
           "depth": 1
         },
         {
@@ -1954,13 +1961,13 @@
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 295,
+          "line": 296,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 296,
+          "line": 297,
           "depth": 1
         },
         {
@@ -2733,7 +2740,7 @@
         {
           "caller": "generate_dao_proposal_history",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 362,
+          "line": 363,
           "depth": 1
         }
       ],
@@ -3243,7 +3250,7 @@
         {
           "caller": "generate_governance_throughput",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 342,
+          "line": 343,
           "depth": 1
         },
         {
@@ -3265,13 +3272,20 @@
       "report_callable": "generate_green_paper_publication_status",
       "resolved_helper_functions": [
         "services/common/utils.py:serialize_rows",
-        "services/common/utils.py:serialize_value"
+        "services/common/utils.py:serialize_value",
+        "services/export/reports/scope.py:require_network_scope"
       ],
       "resolved_helper_call_edges": [
         {
           "caller": "generate_green_paper_publication_status",
+          "callee": "services/export/reports/scope.py:require_network_scope",
+          "line": 239,
+          "depth": 1
+        },
+        {
+          "caller": "generate_green_paper_publication_status",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 252,
+          "line": 253,
           "depth": 1
         },
         {
@@ -3431,19 +3445,26 @@
         "services/common/database.py:_cursor_for",
         "services/common/database.py:query",
         "services/common/utils.py:serialize_rows",
-        "services/common/utils.py:serialize_value"
+        "services/common/utils.py:serialize_value",
+        "services/export/reports/scope.py:require_network_scope"
       ],
       "resolved_helper_call_edges": [
         {
           "caller": "generate_open_source_impact",
+          "callee": "services/export/reports/scope.py:require_network_scope",
+          "line": 168,
+          "depth": 1
+        },
+        {
+          "caller": "generate_open_source_impact",
           "callee": "services/common/database.py:query",
-          "line": 167,
+          "line": 169,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 173,
+          "line": 175,
           "depth": 1
         },
         {
@@ -3676,7 +3697,7 @@
         {
           "caller": "generate_perpetual_value_stress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 150,
+          "line": 151,
           "depth": 1
         },
         {
@@ -5457,13 +5478,13 @@
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 50,
+          "line": 51,
           "depth": 1
         },
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 51,
+          "line": 52,
           "depth": 1
         },
         {

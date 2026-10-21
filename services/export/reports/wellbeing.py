@@ -236,6 +236,7 @@ def generate_green_paper_publication_status(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe Green Paper publication status report."""
+    require_network_scope("green_paper_publication_status", location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """

@@ -13666,3 +13666,17 @@ attribution; it does not establish tenant isolation or populated report parity
 ([evidence](builds/2026-10-21-recovery/cap-066-network-only-report-scopes.json)).
 Checklist: 867 complete / 24 open (891 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 public reference report scope — 21 October 2026
+
+The regional bio-input, Green Paper publication-status, and open-source impact
+reports now reject farm attribution because their public source views have no
+farm predicate. Auto-generation stores them without location IDs. The focused
+report scope selection passes 86 tests with five database-dependent skips; Ruff,
+compilation, inventory freshness, and capability-matrix validation pass. No
+database or migration was used. This is a scope-label correction, not a tenant
+authorization or populated-parity claim
+([evidence](builds/2026-10-21-recovery/cap-066-public-reference-report-scope.json)).
+Checklist: 868 complete / 24 open (892 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

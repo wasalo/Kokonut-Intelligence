@@ -129,9 +129,12 @@ from .reports import (  # noqa: F401 (re-exported public report API)
 
 NETWORK_SCOPE_ONLY_REPORTS = frozenset(
     {
+        "bio_regional_input",
         "coordination_cockpit",
         "dao_proposal_history",
+        "green_paper_publication_status",
         "governance_coordination_health",
+        "open_source_impact",
         "stakeholder_cockpit",
         "stakeholder_ecosystem",
         "stakeholder_representation",

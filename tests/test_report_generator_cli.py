@@ -6,6 +6,8 @@ import pytest
 
 from services.export import report_generator
 from services.export.report_generator import build_parser, validate_args
+from services.export.reports.commons.bio_factory import generate_bio_regional_input
+from services.export.reports.commons.scaling import generate_open_source_impact
 from services.export.reports.strategy import (
     generate_coordination_cockpit,
     generate_governance_coordination_health,
@@ -16,7 +18,25 @@ from services.export.reports.strategy import (
     generate_stakeholder_value_streams,
     generate_technology_roadmap,
 )
-from services.export.reports.wellbeing import generate_dao_proposal_history
+from services.export.reports.wellbeing import (
+    generate_dao_proposal_history,
+    generate_green_paper_publication_status,
+)
+
+NETWORK_ONLY_GENERATORS = (
+    ("bio_regional_input", generate_bio_regional_input),
+    ("coordination_cockpit", generate_coordination_cockpit),
+    ("dao_proposal_history", generate_dao_proposal_history),
+    ("governance_coordination_health", generate_governance_coordination_health),
+    ("green_paper_publication_status", generate_green_paper_publication_status),
+    ("open_source_impact", generate_open_source_impact),
+    ("stakeholder_cockpit", generate_stakeholder_cockpit),
+    ("stakeholder_ecosystem", generate_stakeholder_ecosystem),
+    ("stakeholder_representation", generate_stakeholder_representation),
+    ("stakeholder_trust", generate_stakeholder_trust),
+    ("stakeholder_value_streams", generate_stakeholder_value_streams),
+    ("technology_roadmap", generate_technology_roadmap),
+)
 
 LOCATION_A = "11111111-1111-4111-8111-111111111111"
 LOCATION_B = "22222222-2222-4222-8222-222222222222"
@@ -109,20 +129,12 @@ def test_network_scope_only_report_location_argument_is_unassigned(report_type) 
     assert report_generator._generator_location_arg("farm_summary", LOCATION_A) == LOCATION_A
 
 
-@pytest.mark.parametrize(
-    ("report_type", "generator"),
-    [
-        ("coordination_cockpit", generate_coordination_cockpit),
-        ("dao_proposal_history", generate_dao_proposal_history),
-        ("governance_coordination_health", generate_governance_coordination_health),
-        ("stakeholder_cockpit", generate_stakeholder_cockpit),
-        ("stakeholder_ecosystem", generate_stakeholder_ecosystem),
-        ("stakeholder_representation", generate_stakeholder_representation),
-        ("stakeholder_trust", generate_stakeholder_trust),
-        ("stakeholder_value_streams", generate_stakeholder_value_streams),
-        ("technology_roadmap", generate_technology_roadmap),
-    ],
-)
+def test_network_only_report_registry_matches_direct_scope_guards() -> None:
+    guarded_types = {report_type for report_type, _generator in NETWORK_ONLY_GENERATORS}
+    assert report_generator.NETWORK_SCOPE_ONLY_REPORTS == guarded_types
+
+
+@pytest.mark.parametrize(("report_type", "generator"), NETWORK_ONLY_GENERATORS)
 def test_network_only_generators_reject_direct_farm_scope_before_database_access(report_type, generator) -> None:
     connection = Mock()
 

@@ -8,6 +8,7 @@ import psycopg2.extras
 from services.common.database import query
 
 from ..common import _serialize_rows
+from ..scope import require_network_scope
 
 
 def generate_bio_factory_batch(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
@@ -190,6 +191,7 @@ def generate_bio_regional_input(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate a public-safe LAC regional input availability report."""
+    require_network_scope("bio_regional_input", location_id)
     regional = query(conn,
         """
         SELECT *

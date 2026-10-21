@@ -36,7 +36,7 @@
       "callable": "generate_adoption_barriers",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 67,
+      "source_line": 68,
       "parameters": [
         "conn",
         "location_id",
@@ -99,7 +99,7 @@
       "callable": "generate_bio_factory_batch",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 13,
+      "source_line": 14,
       "parameters": [
         "conn",
         "location_id",
@@ -121,7 +121,7 @@
       "callable": "generate_bio_input_provenance",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 51,
+      "source_line": 52,
       "parameters": [
         "conn",
         "location_id",
@@ -143,7 +143,7 @@
       "callable": "generate_bio_quality_test",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 150,
+      "source_line": 151,
       "parameters": [
         "conn",
         "location_id",
@@ -165,7 +165,7 @@
       "callable": "generate_bio_recipe_library",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 104,
+      "source_line": 105,
       "parameters": [
         "conn",
         "location_id",
@@ -186,7 +186,7 @@
       "callable": "generate_bio_regional_input",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 189,
+      "source_line": 190,
       "parameters": [
         "conn",
         "location_id",
@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 261,
+      "source_line": 262,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 353,
+      "source_line": 354,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 306,
+      "source_line": 307,
       "parameters": [
         "conn",
         "location_id",
@@ -961,7 +961,7 @@
       "callable": "generate_open_source_impact",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 163,
+      "source_line": 164,
       "parameters": [
         "conn",
         "location_id",
@@ -1069,7 +1069,7 @@
       "callable": "generate_perpetual_value_stress",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 112,
+      "source_line": 113,
       "parameters": [
         "conn",
         "location_id",
@@ -1459,7 +1459,7 @@
       "callable": "generate_scaling_economics",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 13,
+      "source_line": 14,
       "parameters": [
         "conn",
         "location_id",

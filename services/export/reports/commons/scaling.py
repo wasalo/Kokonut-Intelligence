@@ -8,6 +8,7 @@ import psycopg2.extras
 from services.common.database import query
 
 from ..common import _serialize_rows
+from ..scope import require_network_scope
 
 
 def generate_scaling_economics(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
@@ -164,6 +165,7 @@ def generate_open_source_impact(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate public-safe open-source artifact reuse report."""
+    require_network_scope("open_source_impact", location_id)
     artifacts = query(conn,
         "SELECT * FROM v_public_open_source_impact_artifact ORDER BY reuse_count DESC, artifact_type, artifact_name"
     )
