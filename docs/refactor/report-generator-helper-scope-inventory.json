@@ -1698,7 +1698,7 @@
         {
           "caller": "generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 833,
+          "line": 835,
           "depth": 1
         },
         {
@@ -2344,7 +2344,7 @@
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 833,
+          "line": 835,
           "depth": 2
         },
         {
@@ -2835,13 +2835,13 @@
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:list_scans",
-          "line": 653,
+          "line": 655,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:render_markdown",
-          "line": 662,
+          "line": 664,
           "depth": 1
         }
       ],
@@ -3063,7 +3063,7 @@
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 686,
+          "line": 688,
           "depth": 1
         }
       ],
@@ -3750,13 +3750,13 @@
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:list_analyses",
-          "line": 572,
+          "line": 574,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:render_markdown",
-          "line": 581,
+          "line": 583,
           "depth": 1
         }
       ],
@@ -3815,7 +3815,7 @@
         {
           "caller": "generate_pin_dependency",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 703,
+          "line": 705,
           "depth": 1
         },
         {
@@ -4775,7 +4775,7 @@
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 721,
+          "line": 723,
           "depth": 1
         }
       ],
@@ -4820,19 +4820,19 @@
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_publics",
-          "line": 624,
+          "line": 626,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_segments",
-          "line": 625,
+          "line": 627,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:influence_interest_matrix",
-          "line": 626,
+          "line": 628,
           "depth": 1
         },
         {
@@ -5027,13 +5027,13 @@
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:list_assessments",
-          "line": 598,
+          "line": 600,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:render_markdown",
-          "line": 607,
+          "line": 609,
           "depth": 1
         }
       ],
@@ -5505,25 +5505,25 @@
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:list_twins",
-          "line": 802,
-          "depth": 1
-        },
-        {
-          "caller": "generate_simulation_wargame",
-          "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
           "line": 804,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
-          "callee": "services/simulation/clash_examples.py:stress_reserve",
+          "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
           "line": 806,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
+          "callee": "services/simulation/clash_examples.py:stress_reserve",
+          "line": 808,
+          "depth": 1
+        },
+        {
+          "caller": "generate_simulation_wargame",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 809,
+          "line": 811,
           "depth": 1
         },
         {
@@ -6657,31 +6657,31 @@
         {
           "caller": "generate_tactical_layer",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 742,
-          "depth": 1
-        },
-        {
-          "caller": "generate_tactical_layer",
-          "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
-          "line": 743,
-          "depth": 1
-        },
-        {
-          "caller": "generate_tactical_layer",
-          "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
           "line": 744,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
-          "callee": "services/feedback/automation.py:detect_zwischenzug",
+          "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
           "line": 745,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
-          "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
+          "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
           "line": 746,
+          "depth": 1
+        },
+        {
+          "caller": "generate_tactical_layer",
+          "callee": "services/feedback/automation.py:detect_zwischenzug",
+          "line": 747,
+          "depth": 1
+        },
+        {
+          "caller": "generate_tactical_layer",
+          "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
+          "line": 748,
           "depth": 1
         },
         {

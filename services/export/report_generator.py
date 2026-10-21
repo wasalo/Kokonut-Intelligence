@@ -127,6 +127,8 @@ from .reports import (  # noqa: F401 (re-exported public report API)
     store_snapshot,
 )
 
+NETWORK_SCOPE_ONLY_REPORTS = frozenset({"stakeholder_cockpit"})
+
 NETWORK_LEVEL_REPORTS = frozenset(
     {
         "state_of_kokonut",
@@ -134,6 +136,7 @@ NETWORK_LEVEL_REPORTS = frozenset(
         "state_of_kokonut_graphs",
         "comprehensive_status",
         "strategic_reserve",
+        *NETWORK_SCOPE_ONLY_REPORTS,
     }
 )
 
@@ -149,6 +152,13 @@ MULTI_LOCATION_REPORTS = frozenset(
     }
 )
 ALL_LOCATION_REPORTS = NETWORK_LEVEL_REPORTS | {"business_plan"}
+
+
+def _generator_location_arg(report_type: str, location_arg: str | None) -> str | None:
+    """Keep reports backed only by network-wide views out of farm snapshots."""
+    if report_type in NETWORK_SCOPE_ONLY_REPORTS:
+        return None
+    return location_arg
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -190,6 +200,9 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
 
     if args.type and args.all and args.type not in ALL_LOCATION_REPORTS:
         parser.error(f"--all is not supported for report type {args.type}")
+
+    if args.type in NETWORK_SCOPE_ONLY_REPORTS and args.location_id:
+        parser.error(f"report type {args.type} is network-scoped and does not accept --location-id")
 
     if args.type and args.location_id and len(args.location_id) > 1:
         if args.type not in MULTI_LOCATION_REPORTS:
@@ -364,12 +377,13 @@ def _run_auto_generation(
         conn.commit()
         try:
             generator = REPORT_GENERATORS[report_type]
+            report_location_arg = _generator_location_arg(report_type, location_arg)
             report_data = generate_report_data_read_only(
-                conn, generator, location_arg, period_start, period_end
+                conn, generator, report_location_arg, period_start, period_end
             )
             _check_report_empty(report_data, report_type)
             snapshot_id = store_snapshot(
-                conn, report_data, location_arg, period_start, period_end
+                conn, report_data, report_location_arg, period_start, period_end
             )
             snapshot_hash = compute_hash(report_data)
             print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
@@ -455,6 +469,10 @@ def main():
         location_arg = None
         location_label = "network (no location filter)"
 
+    if args.type in NETWORK_SCOPE_ONLY_REPORTS:
+        location_arg = None
+        location_label = "network"
+
     if args.auto:
         try:
             _run_auto_generation(
@@ -474,11 +492,14 @@ def main():
 
     try:
         generator = REPORT_GENERATORS[args.type]
+        report_location_arg = _generator_location_arg(args.type, location_arg)
         report_data = generate_report_data_read_only(
-            conn, generator, location_arg, args.period_start, args.period_end
+            conn, generator, report_location_arg, args.period_start, args.period_end
         )
 
-        snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
+        snapshot_id = store_snapshot(
+            conn, report_data, report_location_arg, args.period_start, args.period_end
+        )
         snapshot_hash = compute_hash(report_data)
 
         print(f"Snapshot stored: {snapshot_id}")

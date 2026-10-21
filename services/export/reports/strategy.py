@@ -492,6 +492,8 @@ def generate_stakeholder_value_streams(conn, location_id=None, period_start=None
 
 def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, period_end=None):
     """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
+    if location_id is not None:
+        raise ValueError("stakeholder_cockpit uses network-wide views and cannot be farm-scoped")
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
         internal = dict(cur.fetchone())

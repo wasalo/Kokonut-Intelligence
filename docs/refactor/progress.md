@@ -13634,3 +13634,18 @@ scope, live OIDC/browser, and MAN-CAP-066 remain open. Checklist: 865 complete /
 24 open (889 total); capability matrix remains 31 baseline-retained, 7
 deployed, and 28 prepared. Evidence:
 docs/refactor/builds/2026-10-21-recovery/cap-066-farm-summary-period-bounds.json.
+
+
+### CAP-066 network-only stakeholder cockpit scope — 21 October 2026
+
+The stakeholder cockpit's internal and public aggregate views have no farm
+dimension. The report is classified network-only: farm-specific CLI requests
+are rejected before database access, direct generator calls reject farm scope,
+and auto-generation stores the cockpit without a location assignment. The
+focused report CLI/read-only/error/inventory selection passes 46 tests; Ruff,
+Python compilation, inventories, and matrix validation pass. No database,
+provider, or migration was used. This does not provide farm-level cockpit
+parity or tenant authorization. Checklist: 866 complete / 24 open (890 total);
+capability matrix remains 31 baseline-retained, 7 deployed, and 28 prepared.
+Evidence: docs/refactor/builds/2026-10-21-recovery/
+cap-066-stakeholder-cockpit-network-scope.json.

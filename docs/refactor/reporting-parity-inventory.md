@@ -208,6 +208,13 @@ dates. This makes the report's selected window consistent across these
 time-based totals, but the change has only source and synthetic-test evidence.
 Populated reference-output parity remains open.
 
+The stakeholder cockpit reads global internal and public aggregate views that
+have no farm dimension. It is now explicitly network-scoped: a farm-specific
+CLI request is rejected before database access, direct generator calls reject
+farm IDs, and auto-generated snapshots are stored with no farm assignment.
+This prevents a network aggregate from appearing to be a farm-specific result;
+it does not implement farm-level cockpit views or provide authorization.
+
 ## Safe next slices
 
 1. Read-only inventory of the populated archived dashboard/report definitions:
