@@ -6,6 +6,7 @@ import psycopg2
 import psycopg2.extras
 
 from ..common import _serialize_rows
+from ..scope import require_network_scope
 
 
 def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: str = "id") -> list[dict]:
@@ -81,6 +82,7 @@ def generate_redistribution_policy(
 def generate_federation_mutual_aid(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
+    require_network_scope("federation_mutual_aid", location_id)
     protocols = _fetch_public_view(
         conn, "v_public_federation_protocol", None, "protocol_status, federation_scope, protocol_name"
     )
@@ -130,6 +132,7 @@ def generate_algorithmic_redistribution(
 def generate_participatory_signal(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
+    require_network_scope("participatory_signal", location_id)
     experiments = _fetch_public_view(
         conn, "v_public_participatory_signal_experiment", None, "experiment_status, signal_type, experiment_name"
     )

@@ -13680,3 +13680,20 @@ authorization or populated-parity claim
 ([evidence](builds/2026-10-21-recovery/cap-066-public-reference-report-scope.json)).
 Checklist: 868 complete / 24 open (892 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 helper-backed network report scope — 21 October 2026
+
+Seven additional helper-backed reports now reject farm attribution: capability
+assessment/dashboard, federation mutual aid, participatory signal, process
+health, strategy execution, and formal value streams. Their helpers return
+network-wide catalogues, explicitly omit location filters, or mix global
+measures with farm-filtered rows. Automatic per-farm runs save them without a
+location assignment. The expanded selection passes 121 tests with seven
+database-dependent skips; Ruff, compilation, report/runtime inventories, and
+capability-matrix validation pass. No database or migration was used. This
+prevents false farm attribution but does not prove tenant authorization or
+populated parity
+([evidence](builds/2026-10-21-recovery/cap-066-helper-backed-network-report-scopes.json)).
+Checklist: 869 complete / 24 open (893 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

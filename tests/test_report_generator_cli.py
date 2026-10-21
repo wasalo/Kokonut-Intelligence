@@ -4,11 +4,18 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+from services.analytics.process_health import generate_process_health
 from services.export import report_generator
 from services.export.report_generator import build_parser, validate_args
 from services.export.reports.commons.bio_factory import generate_bio_regional_input
+from services.export.reports.commons.kokonut import (
+    generate_federation_mutual_aid,
+    generate_participatory_signal,
+)
 from services.export.reports.commons.scaling import generate_open_source_impact
 from services.export.reports.strategy import (
+    generate_capability_assessment,
+    generate_capability_dashboard,
     generate_coordination_cockpit,
     generate_governance_coordination_health,
     generate_stakeholder_cockpit,
@@ -16,7 +23,9 @@ from services.export.reports.strategy import (
     generate_stakeholder_representation,
     generate_stakeholder_trust,
     generate_stakeholder_value_streams,
+    generate_strategy_execution,
     generate_technology_roadmap,
+    generate_value_stream_formal,
 )
 from services.export.reports.wellbeing import (
     generate_dao_proposal_history,
@@ -25,17 +34,24 @@ from services.export.reports.wellbeing import (
 
 NETWORK_ONLY_GENERATORS = (
     ("bio_regional_input", generate_bio_regional_input),
+    ("capability_assessment", generate_capability_assessment),
+    ("capability_dashboard", generate_capability_dashboard),
     ("coordination_cockpit", generate_coordination_cockpit),
     ("dao_proposal_history", generate_dao_proposal_history),
+    ("federation_mutual_aid", generate_federation_mutual_aid),
     ("governance_coordination_health", generate_governance_coordination_health),
     ("green_paper_publication_status", generate_green_paper_publication_status),
     ("open_source_impact", generate_open_source_impact),
+    ("participatory_signal", generate_participatory_signal),
+    ("process_health", generate_process_health),
     ("stakeholder_cockpit", generate_stakeholder_cockpit),
     ("stakeholder_ecosystem", generate_stakeholder_ecosystem),
     ("stakeholder_representation", generate_stakeholder_representation),
     ("stakeholder_trust", generate_stakeholder_trust),
     ("stakeholder_value_streams", generate_stakeholder_value_streams),
+    ("strategy_execution", generate_strategy_execution),
     ("technology_roadmap", generate_technology_roadmap),
+    ("value_stream_formal", generate_value_stream_formal),
 )
 
 LOCATION_A = "11111111-1111-4111-8111-111111111111"

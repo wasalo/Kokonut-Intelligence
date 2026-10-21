@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 868 checklist items complete and 24
-open (892 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 869 checklist items complete and 24
+open (893 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1801,3 +1801,8 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-066 public reference report scope — 21 October 2026
 
 - [x] Mark `bio_regional_input`, `green_paper_publication_status`, and `open_source_impact` as network-only. Their public views expose organization-wide reference material without a farm predicate; previously a farm-specific request could attach a misleading location ID. Farm-scoped CLI requests now fail before database access, direct calls reject farm IDs, and automatic per-farm runs save these outputs without location assignment. The focused report selection passes 86 tests with five database-dependent skips; Ruff, compilation, four inventories, and matrix validation pass. No database, candidate, legacy service, provider, or migration was used. Revert the scope registry, source guards, and tests to roll back; no persistent state changed. Public output eligibility remains governed by its source views, and this change does not assert authorization or report parity ([scope registry](../../services/export/report_generator.py); [guards](../../services/export/reports/commons/bio_factory.py); [tests](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-21-recovery/cap-066-public-reference-report-scope.json)). Checklist: 868 complete / 24 open (892 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 helper-backed network report scope — 21 October 2026
+
+- [x] Extend network-only scope to seven reports whose helper-backed output is global or mixes global measures with farm-filtered rows: capability assessment/dashboard, federation mutual aid, participatory signal, process health, strategy execution, and formal value streams. These reports now reject farm-specific CLI requests before database access, guard direct generator calls, and remain unassigned during automatic per-farm runs. The expanded selection passes 121 tests with seven database-dependent skips. Ruff, compilation, all four inventories, and matrix validation pass. No candidate/legacy database, provider, or migration was used. Rollback is a source revert; no persisted data changed. This avoids exposing mixed/global results as farm snapshots but does not establish tenant authorization or populated parity ([scope registry](../../services/export/report_generator.py); [guards](../../services/export/reports/scope.py); [process-health guard](../../services/analytics/process_health.py); [tests](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-21-recovery/cap-066-helper-backed-network-report-scopes.json)). Checklist: 869 complete / 24 open (893 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

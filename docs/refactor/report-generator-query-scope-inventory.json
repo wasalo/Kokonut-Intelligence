@@ -113,7 +113,7 @@
       "report_type": "algorithmic_redistribution",
       "callable": "generate_algorithmic_redistribution",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 103,
+      "source_line": 105,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -126,7 +126,7 @@
       "report_type": "anti_capture_governance",
       "callable": "generate_anti_capture_governance",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 35,
+      "source_line": 36,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -408,7 +408,7 @@
       "report_type": "capability_assessment",
       "callable": "generate_capability_assessment",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 174,
+      "source_line": 176,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -417,12 +417,12 @@
       "helper_calls": [
         {
           "callable": "get_capability_dashboard",
-          "line": 178,
+          "line": 181,
           "location_id_name_visible_in_arguments": false
         },
         {
           "callable": "get_coverage_analysis",
-          "line": 179,
+          "line": 182,
           "location_id_name_visible_in_arguments": false
         }
       ],
@@ -441,12 +441,12 @@
       "helper_calls": [
         {
           "callable": "get_capability_dashboard",
-          "line": 133,
+          "line": 134,
           "location_id_name_visible_in_arguments": false
         },
         {
           "callable": "get_coverage_analysis",
-          "line": 134,
+          "line": 135,
           "location_id_name_visible_in_arguments": false
         }
       ],
@@ -456,7 +456,7 @@
       "report_type": "capital_accounting",
       "callable": "generate_capital_accounting",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 825,
+      "source_line": 829,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -465,7 +465,7 @@
       "helper_calls": [
         {
           "callable": "accounting_report.build_capital_accounting",
-          "line": 843,
+          "line": 847,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -793,7 +793,7 @@
       "report_type": "coordination_cockpit",
       "callable": "generate_coordination_cockpit",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 521,
+      "source_line": 525,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 0,
@@ -802,7 +802,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 525,
+          "line": 529,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -818,7 +818,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 527,
+          "line": 531,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1151,7 +1151,7 @@
       "report_type": "env_scan_report",
       "callable": "generate_env_scan_report",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 660,
+      "source_line": 664,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -1405,7 +1405,7 @@
       "report_type": "federation_mutual_aid",
       "callable": "generate_federation_mutual_aid",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 81,
+      "source_line": 82,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -1527,7 +1527,7 @@
       "report_type": "fork_opportunities",
       "callable": "generate_fork_opportunities",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 690,
+      "source_line": 694,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -1632,7 +1632,7 @@
       "report_type": "governance_coordination_health",
       "callable": "generate_governance_coordination_health",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 543,
+      "source_line": 547,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 5,
       "queries_with_bound_location_scope_signal": 0,
@@ -1641,7 +1641,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 547,
+          "line": 551,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1657,7 +1657,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 549,
+          "line": 553,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1673,7 +1673,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 551,
+          "line": 555,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1689,7 +1689,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 553,
+          "line": 557,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1705,7 +1705,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 555,
+          "line": 559,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2344,7 +2344,7 @@
       "report_type": "participatory_signal",
       "callable": "generate_participatory_signal",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 130,
+      "source_line": 132,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2422,7 +2422,7 @@
       "report_type": "pestel_assessment",
       "callable": "generate_pestel_assessment",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 579,
+      "source_line": 583,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2435,7 +2435,7 @@
       "report_type": "pin_dependency",
       "callable": "generate_pin_dependency",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 709,
+      "source_line": 713,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2467,7 +2467,7 @@
       "report_type": "process_health",
       "callable": "generate_process_health",
       "source_file": "services/analytics/process_health.py",
-      "source_line": 117,
+      "source_line": 118,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2476,7 +2476,7 @@
       "helper_calls": [
         {
           "callable": "build_health",
-          "line": 124,
+          "line": 127,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -2486,7 +2486,7 @@
       "report_type": "promotion_ladder",
       "callable": "generate_promotion_ladder",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 727,
+      "source_line": 731,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2495,7 +2495,7 @@
       "helper_calls": [
         {
           "callable": "compute_promotion_ladder",
-          "line": 731,
+          "line": 735,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -2505,7 +2505,7 @@
       "report_type": "publics_market_landscape",
       "callable": "generate_publics_market_landscape",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 631,
+      "source_line": 635,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2518,7 +2518,7 @@
       "report_type": "redistribution_policy",
       "callable": "generate_redistribution_policy",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 58,
+      "source_line": 59,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -2577,7 +2577,7 @@
       "report_type": "regional_readiness",
       "callable": "generate_regional_readiness",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 605,
+      "source_line": 609,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -3019,7 +3019,7 @@
       "report_type": "simulation_wargame",
       "callable": "generate_simulation_wargame",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 782,
+      "source_line": 786,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -3032,7 +3032,7 @@
       "report_type": "stakeholder_cockpit",
       "callable": "generate_stakeholder_cockpit",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 500,
+      "source_line": 504,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 0,
@@ -3041,7 +3041,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 504,
+          "line": 508,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3057,7 +3057,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 506,
+          "line": 510,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3078,7 +3078,7 @@
       "report_type": "stakeholder_decision_lineage",
       "callable": "generate_stakeholder_decision_lineage",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 344,
+      "source_line": 348,
       "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
       "queries_with_bound_location_scope_signal": 1,
@@ -3087,7 +3087,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 353,
+          "line": 357,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3108,7 +3108,7 @@
       "report_type": "stakeholder_ecosystem",
       "callable": "generate_stakeholder_ecosystem",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 369,
+      "source_line": 373,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
       "queries_with_bound_location_scope_signal": 0,
@@ -3117,7 +3117,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 373,
+          "line": 377,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3133,7 +3133,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 375,
+          "line": 379,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3149,7 +3149,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 377,
+          "line": 381,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3165,7 +3165,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 379,
+          "line": 383,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3186,7 +3186,7 @@
       "report_type": "stakeholder_engagement",
       "callable": "generate_stakeholder_engagement",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 264,
+      "source_line": 268,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 1,
@@ -3195,7 +3195,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 273,
+          "line": 277,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3211,7 +3211,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 277,
+          "line": 281,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3232,7 +3232,7 @@
       "report_type": "stakeholder_grievance",
       "callable": "generate_stakeholder_grievance",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 296,
+      "source_line": 300,
       "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
       "queries_with_bound_location_scope_signal": 1,
@@ -3241,7 +3241,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 305,
+          "line": 309,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3262,7 +3262,7 @@
       "report_type": "stakeholder_landscape",
       "callable": "generate_stakeholder_landscape",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 240,
+      "source_line": 244,
       "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
       "queries_with_bound_location_scope_signal": 1,
@@ -3271,7 +3271,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 249,
+          "line": 253,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3293,7 +3293,7 @@
       "report_type": "stakeholder_outcomes",
       "callable": "generate_stakeholder_outcomes",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 397,
+      "source_line": 401,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 1,
@@ -3302,7 +3302,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 411,
+          "line": 415,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3318,7 +3318,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 415,
+          "line": 419,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3339,7 +3339,7 @@
       "report_type": "stakeholder_representation",
       "callable": "generate_stakeholder_representation",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 321,
+      "source_line": 325,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "queries_with_bound_location_scope_signal": 0,
@@ -3348,7 +3348,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 325,
+          "line": 329,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3364,7 +3364,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 327,
+          "line": 331,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3385,7 +3385,7 @@
       "report_type": "stakeholder_trust",
       "callable": "generate_stakeholder_trust",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 439,
+      "source_line": 443,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
       "queries_with_bound_location_scope_signal": 0,
@@ -3394,7 +3394,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 443,
+          "line": 447,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3410,7 +3410,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 445,
+          "line": 449,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3426,7 +3426,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 447,
+          "line": 451,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3442,7 +3442,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 451,
+          "line": 455,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3463,7 +3463,7 @@
       "report_type": "stakeholder_value_streams",
       "callable": "generate_stakeholder_value_streams",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 469,
+      "source_line": 473,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 4,
       "queries_with_bound_location_scope_signal": 0,
@@ -3472,7 +3472,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 473,
+          "line": 477,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3488,7 +3488,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 475,
+          "line": 479,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3504,7 +3504,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 477,
+          "line": 481,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3520,7 +3520,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 481,
+          "line": 485,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3843,7 +3843,7 @@
       "report_type": "strategy_execution",
       "callable": "generate_strategy_execution",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 149,
+      "source_line": 150,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -3852,7 +3852,7 @@
       "helper_calls": [
         {
           "callable": "get_perspective_summary",
-          "line": 156,
+          "line": 158,
           "location_id_name_visible_in_arguments": false
         }
       ],
@@ -3862,7 +3862,7 @@
       "report_type": "tactical_layer",
       "callable": "generate_tactical_layer",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 744,
+      "source_line": 748,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -3871,7 +3871,7 @@
       "helper_calls": [
         {
           "callable": "compute_promotion_ladder",
-          "line": 756,
+          "line": 760,
           "location_id_name_visible_in_arguments": true
         }
       ],
@@ -3881,7 +3881,7 @@
       "report_type": "technology_roadmap",
       "callable": "generate_technology_roadmap",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 209,
+      "source_line": 213,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 3,
       "queries_with_bound_location_scope_signal": 0,
@@ -3890,7 +3890,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 213,
+          "line": 217,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3906,7 +3906,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 216,
+          "line": 220,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -3922,7 +3922,7 @@
           "bound_location_scope_signal": false
         },
         {
-          "line": 222,
+          "line": 226,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4177,7 +4177,7 @@
       "report_type": "value_stream_formal",
       "callable": "generate_value_stream_formal",
       "source_file": "services/export/reports/strategy.py",
-      "source_line": 195,
+      "source_line": 198,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,
@@ -4186,7 +4186,7 @@
       "helper_calls": [
         {
           "callable": "get_stream_summary",
-          "line": 199,
+          "line": 203,
           "location_id_name_visible_in_arguments": false
         }
       ],

@@ -12,10 +12,11 @@ from __future__ import annotations
 import argparse
 from typing import Any, Dict, List, Optional
 
-from services.common.database import get_db
-from services.analytics import value_stream, process_mining as pm, predictive_bpm
+from services.analytics import predictive_bpm, value_stream
+from services.analytics import process_mining as pm
 from services.analytics.process_gap import assess_maturity
 from services.common.cli import print_json
+from services.common.database import get_db
 
 DEFAULT_SLA_HOURS = 72.0
 
@@ -121,6 +122,8 @@ def generate_process_health(
     period_end: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Report-generator compatible entry point (BAM board, no SLA breach risk)."""
+    if location_id is not None:
+        raise ValueError("process_health uses network-wide sources and cannot be farm-scoped")
     return build_health(conn, location_id=location_id, sla_target_hours=None)
 
 

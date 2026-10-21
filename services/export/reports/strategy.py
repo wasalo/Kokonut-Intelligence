@@ -128,6 +128,7 @@ def generate_pitch_deck(conn, location_id: str, period_start: str = None, period
 
 def generate_capability_dashboard(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability map dashboard report."""
+    require_network_scope("capability_dashboard", location_id)
     from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
@@ -148,6 +149,7 @@ def generate_capability_dashboard(conn, location_id=None, period_start=None, per
 
 def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
     """Generate a strategy execution report (Balanced Scorecard and kernel)."""
+    require_network_scope("strategy_execution", location_id)
     from ...analytics.competitive_report import health as competitive_health
     from ...analytics.strategy_execution import dashboard
     from ...analytics.strategy_map import get_perspective_summary
@@ -173,6 +175,7 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
 
 def generate_capability_assessment(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability maturity and coverage assessment."""
+    require_network_scope("capability_assessment", location_id)
     from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
@@ -194,6 +197,7 @@ def generate_capability_assessment(conn, location_id=None, period_start=None, pe
 
 def generate_value_stream_formal(conn, location_id=None, period_start=None, period_end=None):
     """Generate a formal value stream map report."""
+    require_network_scope("value_stream_formal", location_id)
     from ...analytics.value_stream_defs import get_stream_summary
 
     streams = get_stream_summary()

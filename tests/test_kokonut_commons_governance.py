@@ -13,7 +13,6 @@ from services.export.report_generator import (
     generate_redistribution_policy,
 )
 
-
 SCHEMA = Path("schemas/postgres/041_kokonut_commons_governance.sql")
 SEED = Path("schemas/seeds/042_kokonut_commons_governance.sql")
 PILOT_SEED = Path("schemas/seeds/042_pilot_kokonut_commons_governance.sql")
@@ -162,9 +161,13 @@ def test_kokonut_commons_report_generators_registered_and_public_safe() -> None:
     conn = Conn()
     assert generate_anti_capture_governance(conn, "x")["community_veto_count"] == 1
     assert generate_redistribution_policy(conn, "x")["scenario_policy_count"] == 1
-    assert generate_federation_mutual_aid(conn, "x")["permissionless_forking_count"] == 1
+    federation = generate_federation_mutual_aid(conn)
+    assert federation["permissionless_forking_count"] == 1
+    assert federation["location_id"] is None
     assert generate_algorithmic_redistribution(conn, "x")["report_type"] == "algorithmic_redistribution"
-    assert generate_participatory_signal(conn, "x")["advisory_count"] == 1
+    participatory = generate_participatory_signal(conn)
+    assert participatory["advisory_count"] == 1
+    assert participatory["location_id"] is None
 
 
 if __name__ == "__main__":
