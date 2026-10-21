@@ -1,0 +1,63 @@
+{
+  "task": "CAP-066 conservative helper query tuple-filter bind inventory",
+  "date": "2026-10-21",
+  "source_pattern": "A fail-closed if/elif chain assigns a literal SQL fragment and literal positional parameter list/tuple together, and its final else raises.",
+  "resolved_memberships": [
+    {
+      "report_type": "business_model_canvas",
+      "source_file": "services/analytics/business_model_canvas.py",
+      "callable": "list_canvas",
+      "line": 126,
+      "variants": [
+        {
+          "scope": "location",
+          "placeholders": 1,
+          "bind_values": 1
+        },
+        {
+          "scope": "organization",
+          "placeholders": 1,
+          "bind_values": 1
+        }
+      ]
+    },
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/swot.py",
+      "callable": "list_swot",
+      "line": 65,
+      "variants": [
+        {
+          "scope": "organization",
+          "placeholders": 1,
+          "bind_values": 1
+        },
+        {
+          "scope": "location",
+          "placeholders": 1,
+          "bind_values": 1
+        }
+      ]
+    }
+  ],
+  "scope_boundary": "The analyzer resolves SQL text and bind counts only. It does not certify tenant authorization, ownership, or correlation between an organization/location parameter and a security context.",
+  "helper_inventory": {
+    "memberships": 175,
+    "static_sql": 144,
+    "unresolved_sql": 31,
+    "positional_bind_contracts": 130,
+    "named_bind_contracts": 2,
+    "bind_mismatches": 0
+  },
+  "verification": {
+    "focused_test_command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "focused_tests_passed": 44,
+    "ruff": "passed: ruff check on analyzer and focused tests",
+    "python_compile": "passed: py_compile on analyzer and focused tests",
+    "generated_inventory_checks": "passed: source, query-scope, and helper-scope --check commands",
+    "capability_matrix_validation": "passed: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed: git diff --check"
+  },
+  "database_or_provider_used": false,
+  "rollback": "Revert the analyzer, regression tests, regenerated helper inventory, documentation, and this evidence record; no persistent application data was changed."
+}

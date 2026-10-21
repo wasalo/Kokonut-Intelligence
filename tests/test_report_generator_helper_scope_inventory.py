@@ -173,3 +173,28 @@ def test_reachable_helper_query_wrapper_uses_all_literal_local_callsites():
         for variant in query["positional_bind_arity"]["variants"]
     ] == [(29, 1, 1), (43, 1, 1), (55, 1, 1)]
 
+
+def test_reachable_helper_inventory_resolves_fail_closed_org_location_filter_pairs():
+    inventory = build_inventory()
+    targets = {
+        ("business_model_canvas", "services/analytics/business_model_canvas.py", "list_canvas"),
+        ("business_plan", "services/analytics/swot.py", "list_swot"),
+    }
+    found = set()
+    for report in inventory["reports"]:
+        for site in report["reachable_helper_query_sites"]:
+            key = (report["report_type"], site["source_file"], site["callable"])
+            if key not in targets:
+                continue
+            found.add(key)
+            assert site["sql_source"] == "static_or_resolved"
+            assert site["positional_bind_arity"]["mismatch"] is False
+            assert [
+                (item["placeholder_count"], item["supplied_count"])
+                for item in site["positional_bind_arity"]["variants"]
+            ] == [(1, 1), (1, 1)]
+            # Resolving a location predicate is not proof that the parameter
+            # is an authorization context or that every branch is tenant-safe.
+            assert site["bound_location_scope_signal"] is False
+    assert found == targets
+

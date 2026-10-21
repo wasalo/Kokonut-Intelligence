@@ -220,6 +220,87 @@ def generate(conn, location_id, include_location_filter):
     assert analysis["queries"][0]["positional_bind_arity"] is None
 
 
+def test_classifier_resolves_literal_if_elif_sql_and_parameter_pairs_without_scope_claim():
+    analysis = analyze_function_source(
+        '''
+def list_rows(conn, org_id=None, location_id=None):
+    if location_id and not org_id:
+        where, params = "location_id = %s", [location_id]
+    elif org_id and not location_id:
+        where, params = "organization_id = %s", [org_id]
+    else:
+        raise ValueError("provide exactly one scope")
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "list_rows",
+    )
+
+    query = analysis["queries"][0]
+    assert query["sql_source"] == "static_or_resolved"
+    assert query["relations"] == ["farm"]
+    assert query["location_predicate_visible"] is True
+    assert query["bound_location_scope_signal"] is False
+    assert query["positional_bind_arity"] == {
+        "mismatch": False,
+        "variants": [
+            {
+                "conditional_line": 3,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": False,
+            },
+            {
+                "conditional_line": 5,
+                "branch": 1,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": False,
+            },
+        ],
+    }
+
+
+def test_classifier_detects_tuple_filter_branch_bind_mismatch():
+    analysis = analyze_function_source(
+        '''
+def list_rows(conn, org_id=None, location_id=None):
+    if location_id and not org_id:
+        where, params = "location_id = %s", [location_id]
+    elif org_id and not location_id:
+        where, params = "organization_id = %s AND active = %s", [org_id]
+    else:
+        raise ValueError("provide exactly one scope")
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "list_rows",
+    )
+
+    arity = analysis["queries"][0]["positional_bind_arity"]
+    assert arity["mismatch"] is True
+    assert [item["mismatch"] for item in arity["variants"]] == [False, True]
+
+
+def test_classifier_leaves_tuple_filter_variants_unresolved_without_fail_closed_else():
+    analysis = analyze_function_source(
+        '''
+def list_rows(conn, location_id):
+    if location_id:
+        where, params = "location_id = %s", [location_id]
+    else:
+        params = []
+    cur = conn.cursor()
+    cur.execute(f"SELECT id FROM farm WHERE {where}", params)
+''',
+        "list_rows",
+    )
+
+    assert analysis["queries"][0]["sql_source"] == "dynamic_or_unresolved"
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
 def test_classifier_does_not_pair_location_filter_and_bind_from_different_branches():
     analysis = analyze_function_source(
         '''

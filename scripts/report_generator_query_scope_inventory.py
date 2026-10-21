@@ -1392,6 +1392,135 @@ def _optional_filter_list_query_variants(
     }
 
 
+def _tuple_filter_query_variants(
+    sql_node: ast.AST | None,
+    call: ast.Call,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> tuple[list[str], dict] | None:
+    """Resolve a fail-closed if/elif chain assigning ``(where, params)``.
+
+    This deliberately handles only literal SQL fragments paired with literal
+    positional parameter containers. It does not infer that the selected
+    predicate is an authorization or tenant boundary.
+    """
+    if not isinstance(sql_node, ast.JoinedStr):
+        return None
+    parameter_node = _query_parameter_argument(call)
+    if not isinstance(parameter_node, ast.Name):
+        return None
+    formatted_names = [
+        item.value.id
+        for item in sql_node.values
+        if isinstance(item, ast.FormattedValue) and isinstance(item.value, ast.Name)
+    ]
+    if len(formatted_names) != 1 or sum(
+        isinstance(item, ast.FormattedValue) for item in sql_node.values
+    ) != 1:
+        return None
+    where_name = formatted_names[0]
+
+    def literal_pair(body: list[ast.stmt]) -> tuple[str, list | tuple, ast.Assign] | None:
+        if len(body) != 1 or not isinstance(body[0], ast.Assign):
+            return None
+        assignment = body[0]
+        if (
+            len(assignment.targets) != 1
+            or not isinstance(assignment.targets[0], ast.Tuple)
+            or len(assignment.targets[0].elts) != 2
+            or not all(isinstance(item, ast.Name) for item in assignment.targets[0].elts)
+            or [item.id for item in assignment.targets[0].elts]
+            != [where_name, parameter_node.id]
+            or not isinstance(assignment.value, ast.Tuple)
+            or len(assignment.value.elts) != 2
+        ):
+            return None
+        fragment, values = assignment.value.elts
+        if not isinstance(fragment, ast.Constant) or not isinstance(fragment.value, str):
+            return None
+        if not isinstance(values, (ast.List, ast.Tuple)) or any(
+            isinstance(item, ast.Starred) for item in values.elts
+        ):
+            return None
+        return fragment.value, values.elts, assignment
+
+    def is_single_raise(body: list[ast.stmt]) -> bool:
+        return len(body) == 1 and isinstance(body[0], ast.Raise)
+
+    def collect_chain(
+        node: ast.If,
+    ) -> list[tuple[str, list | tuple, ast.Assign, int]] | None:
+        pair = literal_pair(node.body)
+        if pair is None:
+            return None
+        variants = [(*pair, node.lineno)]
+        if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+            following = collect_chain(node.orelse[0])
+            return variants + following if following else None
+        if not is_single_raise(node.orelse):
+            return None
+        return variants
+
+    candidate_chains = [
+        variants
+        for statement in function.body
+        if isinstance(statement, ast.If) and statement.lineno < call.lineno
+        and (variants := collect_chain(statement)) is not None
+    ]
+    if len(candidate_chains) != 1:
+        return None
+    branch_values = candidate_chains[0]
+    paired_assignments = {
+        id(assignment)
+        for _fragment, _values, assignment, _condition_line in branch_values
+    }
+    for node in ast.walk(function):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        written_names = {
+            child.id
+            for target in targets
+            for child in ast.walk(target)
+            if isinstance(child, ast.Name)
+        }
+        if (
+            node.lineno < call.lineno
+            and written_names.intersection({where_name, parameter_node.id})
+            and id(node) not in paired_assignments
+        ):
+            return None
+
+    sql_variants: list[str] = []
+    arity_variants: list[dict] = []
+    for branch, (fragment, values, assignment, condition_line) in enumerate(branch_values):
+        branch_assignments = dict(assignments)
+        branch_assignments[where_name] = [
+            (assignment.lineno, ast.Constant(value=fragment))
+        ]
+        resolved_sql = _string_value(sql_node, branch_assignments, call.lineno)
+        if resolved_sql is None:
+            return None
+        placeholder_count, named_binds = _sql_bind_counts(resolved_sql)
+        if named_binds:
+            return None
+        supplied_count = len(values)
+        arity_variants.append(
+            {
+                "conditional_line": condition_line,
+                "branch": branch,
+                "placeholder_count": placeholder_count,
+                "supplied_count": supplied_count,
+                "mismatch": placeholder_count != supplied_count,
+            }
+        )
+        sql_variants.append(resolved_sql)
+    return sql_variants, {
+        "mismatch": any(item["mismatch"] for item in arity_variants),
+        "variants": arity_variants,
+    }
+
+
 def _query_calls(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     module_tree: ast.Module | None = None,
@@ -1435,9 +1564,16 @@ def _query_calls(
         optional_filter_variants = _optional_filter_list_query_variants(
             sql_node, node, assignments, function
         )
+        tuple_filter_variants = _tuple_filter_query_variants(
+            sql_node, node, assignments, function
+        )
         callsite_variants = None
         if optional_filter_variants:
             sql_variants, positional_arity = optional_filter_variants
+            sql = sql_variants[-1]
+            sql_variant_paths = [(None, value) for value in sql_variants]
+        elif tuple_filter_variants:
+            sql_variants, positional_arity = tuple_filter_variants
             sql = sql_variants[-1]
             sql_variant_paths = [(None, value) for value in sql_variants]
         else:
@@ -1554,7 +1690,7 @@ def _query_calls(
             or not parameter_paths
             or any(path in parameter_paths for path in scoped_sql_paths)
         )
-        if optional_filter_variants or callsite_variants:
+        if optional_filter_variants or tuple_filter_variants or callsite_variants:
             # These source resolvers check SQL and bind shapes but do not
             # certify tenant-scope correlation.
             correlated_location_binding = False

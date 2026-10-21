@@ -3,6 +3,17 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 helper branch-paired SQL and bind variants — 21 October 2026:** the
+helper analyzer resolves literal SQL and positional parameter containers
+assigned together on successful branches of a fail-closed `if/elif` chain. It
+adds the business-model-canvas and SWOT listing queries, both with matching
+location/organization variant arity, without assigning a tenant-scope signal.
+Coverage is 144/175 static SQL sites, 31 unresolved, and 130 positional plus
+two named contracts with zero mismatches. The focused query/helper/source
+selection passes 44 tests with Ruff, compilation, all three inventory checks,
+matrix validation, and diff checks. Runtime SQL, authorization context,
+external callers, and populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-helper-tuple-filter-bind-contracts.json)).
+
 **CAP-066 literal query-wrapper call sites — 21 October 2026:** the helper
 analyzer resolves a wrapper only when every direct local call supplies
 a string literal and a positional tuple/list. The business-plan report's

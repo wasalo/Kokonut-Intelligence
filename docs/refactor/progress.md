@@ -1,3 +1,19 @@
+### CAP-066 helper branch-paired SQL and bind variants — 21 October 2026
+
+The helper analyzer now resolves a narrow fail-closed `if/elif` pattern where
+all successful branches assign a literal SQL filter and a literal positional
+parameter list/tuple together, and the fallback raises. It resolves the
+business-model-canvas `list_canvas` and SWOT `list_swot` report memberships;
+both location/organization variants have one placeholder and one bind. Across
+175 helper memberships, 144 SQL sites are static and 31 unresolved; 130
+positional and two named contracts have zero mismatches. These SQL/bind counts
+do not certify tenant authorization or organization/location context. The
+focused query/helper/source suite passes 44 tests; Ruff, compilation, all three
+inventory checks, matrix validation, and diff checks pass. No database,
+provider, migration, candidate, or legacy stack was used. Checklist: 887
+complete / 24 open (911 total); matrix remains 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-helper-tuple-filter-bind-contracts.json)).
+
 ### CAP-066 literal query-wrapper call sites — 21 October 2026
 
 The helper-query analyzer now resolves a query wrapper when the wrapper passes
