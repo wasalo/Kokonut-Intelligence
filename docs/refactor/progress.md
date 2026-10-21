@@ -1,3 +1,16 @@
+### CAP-066 helper named-bind contracts — 21 October 2026
+
+The report helper inventory now carries named-bind contracts from the static
+query analyzer. Across 175 report-to-helper query memberships, it checks 117
+positional contracts and two named-bind contracts with zero mismatches. The
+focused helper/query/source selection passes 30 tests; Ruff, Python compilation,
+all three report inventory freshness checks, capability-matrix validation, and
+diff checks pass. Dynamic SQL/parameter construction and populated report
+parity remain open. This is source-only evidence; no database, provider,
+migration, candidate, or legacy stack was used. Checklist: 883 complete / 24
+open (907 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-helper-named-bind-contracts.json)).
+
 ### CAP-066 static named report bind contract — 21 October 2026
 
 The direct report query inventory now checks both positional parameters and

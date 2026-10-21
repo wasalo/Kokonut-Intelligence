@@ -3,6 +3,15 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 helper named-bind contracts — 21 October 2026:** the helper-scope
+inventory now carries named-bind analysis for reachable helper queries. Across
+175 report-to-helper query memberships, 117 positional and two named contracts
+are statically checked with zero mismatches. The 30-test helper/query/source
+selection, Ruff, compilation, all three generated inventory checks, matrix
+validation, and diff checks pass. Dynamic SQL/parameter construction and
+populated report parity remain open; this scan is not database execution or
+tenant authorization ([evidence](builds/2026-10-21-recovery/cap-066-helper-named-bind-contracts.json)).
+
 **CAP-066 static named report bind contract — 21 October 2026:** the direct
 report inventory now compares SQLAlchemy `:name` and psycopg `%(name)s` binds
 with literal mapping keys, including simple condition-list and mapping updates
@@ -10,7 +19,7 @@ under matching `if` branches. It covers all 176 direct query sites using 175
 positional contracts and one named contract, with zero mismatches. The 84-test
 Data Stream/query/helper/source selection passes with Ruff, compilation, three
 inventory freshness checks, capability validation, and diff checks. Dynamic or
-nested mutations, helper-query named binds, runtime PostgreSQL behavior, and
+nested mutations, dynamic helper binds, runtime PostgreSQL behavior, and
 populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-static-named-report-bind-contract.json)).
 
 **CAP-066 named report bind filters — 21 October 2026:** a mocked connection

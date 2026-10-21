@@ -77,3 +77,33 @@ def test_reachable_helper_queries_inventory_static_positional_bind_arity():
     assert static_sites
     assert not mismatches
 
+
+def test_reachable_helper_queries_inventory_static_named_bind_contracts():
+    inventory = build_inventory()
+    summary = inventory["summary"]
+    query_sites = [
+        site
+        for report in inventory["reports"]
+        for site in report["reachable_helper_query_sites"]
+    ]
+    static_sites = [
+        site for site in query_sites if site["named_bind_contract"] is not None
+    ]
+    mismatches = [
+        site for site in static_sites if site["named_bind_contract"]["mismatch"]
+    ]
+    reference_class_sites = {
+        site["line"]: site["named_bind_contract"]
+        for site in static_sites
+        if site["source_file"] == "services/forecast/reference_class.py"
+    }
+
+    assert summary["helper_query_sites_with_static_named_bind_contract"] == len(static_sites)
+    assert summary["helper_query_sites_with_named_bind_contract_mismatch"] == len(mismatches)
+    assert len(static_sites) == 2
+    assert not mismatches
+    assert reference_class_sites[35]["required_names"] == ["loc", "metric"]
+    assert reference_class_sites[35]["supplied_names"] == ["loc", "metric"]
+    assert reference_class_sites[50]["required_names"] == ["loc"]
+    assert reference_class_sites[50]["supplied_names"] == ["loc"]
+

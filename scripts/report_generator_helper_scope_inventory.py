@@ -323,6 +323,7 @@ def _trace_report(
                 "relations": query["relations"],
                 "sql_source": query["sql_source"],
                 "positional_bind_arity": query["positional_bind_arity"],
+                "named_bind_contract": query["named_bind_contract"],
                 "bound_location_scope_signal": query["bound_location_scope_signal"],
                 "location_scope_conditionally_added": query["location_scope_conditionally_added"],
             }
@@ -340,6 +341,10 @@ def _trace_report(
     scoped = sum(item["bound_location_scope_signal"] for item in queries)
     arity_sites = [item for item in queries if item["positional_bind_arity"] is not None]
     arity_mismatches = sum(item["positional_bind_arity"]["mismatch"] for item in arity_sites)
+    named_bind_sites = [item for item in queries if item["named_bind_contract"] is not None]
+    named_bind_mismatches = sum(
+        item["named_bind_contract"]["mismatch"] for item in named_bind_sites
+    )
     if not queries:
         classification = "no_query_sites_in_resolved_local_helper_closure"
     elif scoped == len(queries):
@@ -360,6 +365,8 @@ def _trace_report(
         "helper_query_sites_with_location_scope_signal": scoped,
         "helper_query_sites_with_static_positional_arity": len(arity_sites),
         "helper_query_sites_with_positional_arity_mismatch": arity_mismatches,
+        "helper_query_sites_with_static_named_bind_contract": len(named_bind_sites),
+        "helper_query_sites_with_named_bind_contract_mismatch": named_bind_mismatches,
         "classification": classification,
         "unresolved_local_helper_calls": sorted(
             unresolved, key=lambda item: (item["caller"], item["line"] or -1, item["call"])
@@ -374,6 +381,8 @@ def build_inventory() -> dict:
     helper_scope_sites = 0
     helper_arity_sites = 0
     helper_arity_mismatches = 0
+    helper_named_bind_sites = 0
+    helper_named_bind_mismatches = 0
     reports_with_helper_queries = 0
     unresolved_calls = 0
     for report in source_inventory["reports"]:
@@ -390,6 +399,8 @@ def build_inventory() -> dict:
         helper_scope_sites += trace["helper_query_sites_with_location_scope_signal"]
         helper_arity_sites += trace["helper_query_sites_with_static_positional_arity"]
         helper_arity_mismatches += trace["helper_query_sites_with_positional_arity_mismatch"]
+        helper_named_bind_sites += trace["helper_query_sites_with_static_named_bind_contract"]
+        helper_named_bind_mismatches += trace["helper_query_sites_with_named_bind_contract_mismatch"]
         reports_with_helper_queries += trace["helper_query_site_count"] > 0
         unresolved_calls += len(trace["unresolved_local_helper_calls"])
         reports.append(trace)
@@ -400,7 +411,7 @@ def build_inventory() -> dict:
         "scope": (
             "AST-only report-to-helper source trace. It follows statically imported or same-module local functions "
             "that resolve to unique Python definitions under services/. It records direct execute/query sites and "
-            "statically checkable positional bind arity in the bounded local call closure without retaining SQL text "
+            "statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text "
             "or values. A location-scope signal is not "
             "proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, "
             "external providers, runtime call selection, database views, and semantic report behavior are not "
@@ -413,6 +424,8 @@ def build_inventory() -> dict:
             "helper_query_sites_with_location_scope_signal": helper_scope_sites,
             "helper_query_sites_with_static_positional_arity": helper_arity_sites,
             "helper_query_sites_with_positional_arity_mismatch": helper_arity_mismatches,
+            "helper_query_sites_with_static_named_bind_contract": helper_named_bind_sites,
+            "helper_query_sites_with_named_bind_contract_mismatch": helper_named_bind_mismatches,
             "unresolved_local_helper_calls": unresolved_calls,
         },
         "reports": sorted(reports, key=lambda item: item["report_type"]),

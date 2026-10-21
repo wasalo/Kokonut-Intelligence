@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "check": "report-helper-named-bind-contracts",
+  "scope": {
+    "registered_report_types": 94,
+    "report_to_helper_query_memberships": 175,
+    "static_positional_bind_contracts": 117,
+    "positional_bind_mismatches": 0,
+    "static_named_bind_contracts": 2,
+    "named_bind_mismatches": 0,
+    "named_bind_sites": [
+      {
+        "source_file": "services/forecast/reference_class.py",
+        "callable": "apply_reference_class",
+        "line": 35,
+        "required_names": ["loc", "metric"],
+        "supplied_names": ["loc", "metric"]
+      },
+      {
+        "source_file": "services/forecast/reference_class.py",
+        "callable": "apply_reference_class",
+        "line": 50,
+        "required_names": ["loc"],
+        "supplied_names": ["loc"]
+      }
+    ]
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_inventory.py -q",
+      "result": "30 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_source_inventory_freshness": "passed",
+    "report_query_inventory_freshness": "passed",
+    "report_helper_inventory_freshness": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Dynamic or unresolved helper SQL and parameter construction remain unchecked.",
+    "Static bind matching does not prove PostgreSQL execution or report output parity.",
+    "Tenant authorization, RLS, populated fixtures, and owner acceptance remain open."
+  ],
+  "environment": {
+    "database_accessed": false,
+    "provider_accessed": false,
+    "migration_applied": false,
+    "candidate_or_legacy_stack_touched": false
+  }
+}
