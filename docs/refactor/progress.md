@@ -13373,3 +13373,15 @@ no database/provider was contacted. Populated-data/provider behavior and live
 authorization remain open. Checklist: 837 complete / 25 open (862 total); matrix
 remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-weather-cli-parity.json)).
+
+### CAP-039 weather-forecast CLI parity — 21 October 2026
+
+Weather forecast now matches through standalone and unified entrypoints for
+canonical single-location and explicitly selected aggregate reads using
+synthetic empty results. Location scope, output/logs, and cleanup match; invalid
+UUIDs fail before DB setup. Four focused forecast parity/preflight cases pass
+in the 45-test weather/forecast selection with Ruff and compilation. No
+database/provider was contacted. Populated data, provider delivery, and live
+authorization remain open. Checklist: 838 complete / 25 open (863 total); matrix
+remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json)).

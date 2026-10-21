@@ -4119,3 +4119,14 @@ weather/forecast selection with Ruff and compilation. Populated parity, live
 provider behavior, authorization, and MAN-CAP-039 review remain open. Checklist:
 837 complete / 25 open; capability classifications remain 31 baseline-retained,
 7 deployed, and 28 prepared ([evidence](builds/2026-10-21-recovery/cap-039-weather-cli-parity.json)).
+
+**CAP-039 weather-forecast CLI parity — 21 October 2026:** canonical
+single-location and explicitly selected aggregate reads now match across
+standalone/unified entrypoints with synthetic empty results. Bound scope, logs,
+and cleanup match; malformed location IDs fail before DB setup. Four focused
+forecast parity/preflight tests pass within the 45-test weather/forecast
+selection with Ruff and compilation; no database/provider was contacted.
+Populated parity, live provider behavior, authorization, and MAN-CAP-039 review
+remain open. Checklist: 838 complete / 25 open; capability classifications
+remain 31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json)).

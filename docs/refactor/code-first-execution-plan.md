@@ -2500,3 +2500,15 @@ provider delivery, and live authorization remain open. Checklist: 837 complete /
 25 open (862 total); matrix classifications remain 31 baseline-retained, 7
 deployed, and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-weather-cli-parity.json).
+
+### CAP-039 weather-forecast CLI parity — 21 October 2026
+
+Standalone/unified weather-forecast reads now match for canonical location and
+explicit aggregate scope on synthetic empty query results. Invalid IDs fail
+before DB setup; the query scope, logs, and cleanup match. Four focused
+forecast parity/preflight checks pass in the 45-test weather/forecast selection
+with Ruff and compilation. No database/provider was contacted. Populated-data
+parity, live provider, and authorization remain open. Checklist: 838 complete /
+25 open (863 total); matrix classifications remain 31 baseline-retained, 7
+deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json).
