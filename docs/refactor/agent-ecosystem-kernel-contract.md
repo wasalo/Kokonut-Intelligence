@@ -150,23 +150,32 @@ private append-only request receipt, and permits an independent operator to
 review the resulting draft through the existing review workflow. A worker
 credential has no table-level summary write or private-receipt access. The
 database rejects duplicate source-table hints and mismatched location scope.
+Migration 530 extends that path with the same private bounded source-reference
+manifest used by authenticated operator drafts. The adapter validates a maximum
+of ten declared source tables, fifty unique UUIDs per table, exact sample
+counts, and a 64 KB serialized bound before opening the worker connection. It
+attaches references in the same transaction as draft creation, then reads the
+stored manifest through an exact worker/location/request function. PostgreSQL
+rechecks source row ownership under forced-RLS disposable acceptance; a failed
+attachment rolls back both draft and receipt. The existing reviewer queue includes these references, and the
+operator setter behavior remains covered. This applies only to the new signed
+worker adapter; legacy/background writers still lack row-level manifests.
 
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
 role that may switch only to the bounded worker execution role. An operator
 still needs to provision its login/password and the isolated worker's database
 URL and high-entropy credential. This is not yet an agent runtime deployment:
 no isolated agent process, Compose service, or secret-provider entry was
-added, and existing agent/CLI writers still use their legacy paths. The worker
-path currently stores table-name hints only and does not attach
-migration 523/524's row-reference manifest. The database acceptance uses a
-synthetic operator-context stub for its review step; production worker
+added, and existing agent/CLI writers still use their legacy paths. The database
+acceptance uses a synthetic operator-context stub for its review step; production worker
 identity is exercised with migration 405's signed worker context. Migration
-529 is not rolled out to the candidate. See the
+529/530 are not rolled out to the candidate. See the
 [worker adapter](../../services/agents/worker_draft.py),
 [migration 529](../../schemas/postgres/529_signed_agent_ai_summary_drafts.sql),
+[migration 530](../../schemas/postgres/530_signed_agent_ai_summary_source_references.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [disposable checker](../../scripts/check-agent-worker-ai-summary-disposable.py),
-and [evidence](builds/2026-10-21-recovery/cap-038-agent-worker-draft-disposable.json).
+and [evidence](builds/2026-10-21-recovery/cap-038-agent-worker-source-references-disposable.json).
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

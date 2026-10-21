@@ -48,7 +48,29 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
         {"source": "services/gateway/ai_summary_draft.py", "line": 106}
     ]
     assert inventory["authenticated_worker_draft_function_calls"] == [
-        {"source": "services/agents/worker_draft.py", "line": 142}
+        {"source": "services/agents/worker_draft.py", "line": 243}
+    ]
+    assert inventory["authenticated_worker_summary_function_calls"] == [
+        {
+            "source": "services/agents/worker_draft.py",
+            "line": 165,
+            "function": "get_location_ai_summary_worker_source_references",
+        },
+        {
+            "source": "services/agents/worker_draft.py",
+            "line": 192,
+            "function": "get_location_ai_summary_worker_draft_request",
+        },
+        {
+            "source": "services/agents/worker_draft.py",
+            "line": 243,
+            "function": "create_location_ai_summary_worker_draft",
+        },
+        {
+            "source": "services/agents/worker_draft.py",
+            "line": 255,
+            "function": "set_location_ai_summary_source_references",
+        },
     ]
     assert inventory["set_agent_context_call_sites"] == []
     assert inventory["audit_agent_action_call_sites"] == []
@@ -58,6 +80,7 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
         "agent_action_log_insert_sites": 1,
         "authenticated_operator_draft_function_calls": 1,
         "authenticated_worker_draft_function_calls": 1,
+        "authenticated_worker_summary_function_calls": 4,
         "set_agent_context_call_sites": 0,
         "audit_agent_action_call_sites": 0,
     }
@@ -79,7 +102,10 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
     )
     (agents / "worker.py").write_text(
         "def create(cursor):\n"
-        "    cursor.execute(\"SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(%s)\", ('value',))\n",
+        "    cursor.execute(\"SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(%s)\", ('value',))\n"
+        "    cursor.execute(\"SELECT kokonut_security.set_location_ai_summary_source_references(%s)\", ('value',))\n"
+        "    cursor.execute(\"SELECT kokonut_security.get_location_ai_summary_worker_source_references(%s)\", ('value',))\n"
+        "    cursor.execute(\"SELECT * FROM kokonut_security.get_location_ai_summary_worker_draft_request(%s)\", ('value',))\n",
         encoding="utf-8",
     )
     (gateway / "draft.py").write_text(
@@ -128,6 +154,12 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
     ]
     assert inventory["authenticated_worker_draft_function_calls"] == [
         {"source": "services/agents/worker.py", "line": 2}
+    ]
+    assert inventory["authenticated_worker_summary_function_calls"] == [
+        {"source": "services/agents/worker.py", "line": 2, "function": "create_location_ai_summary_worker_draft"},
+        {"source": "services/agents/worker.py", "line": 3, "function": "set_location_ai_summary_source_references"},
+        {"source": "services/agents/worker.py", "line": 4, "function": "get_location_ai_summary_worker_source_references"},
+        {"source": "services/agents/worker.py", "line": 5, "function": "get_location_ai_summary_worker_draft_request"},
     ]
     assert inventory["set_agent_context_call_sites"] == [
         {"source": "services/agents/legacy.py", "line": 6}

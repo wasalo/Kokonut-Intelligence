@@ -27,6 +27,13 @@ AUTHENTICATED_DRAFT_CALL = re.compile(
 AUTHENTICATED_WORKER_DRAFT_CALL = re.compile(
     r"\bkokonut_security\.create_location_ai_summary_worker_draft\s*\(", re.IGNORECASE
 )
+AUTHENTICATED_WORKER_SUMMARY_CALL = re.compile(
+    r"\bkokonut_security\.(get_location_ai_summary_worker_draft_request|"
+    r"create_location_ai_summary_worker_draft|"
+    r"set_location_ai_summary_source_references|"
+    r"get_location_ai_summary_worker_source_references)\s*\(",
+    re.IGNORECASE,
+)
 
 
 def _sql_text(node: ast.AST) -> str:
@@ -60,6 +67,7 @@ def build_inventory(root: Path = ROOT) -> dict:
     direct_agent_writes: list[dict] = []
     authenticated_calls: list[dict] = []
     authenticated_worker_calls: list[dict] = []
+    authenticated_worker_summary_calls: list[dict] = []
     legacy_context_calls: list[dict] = []
     audit_helper_calls: list[dict] = []
 
@@ -100,10 +108,23 @@ def build_inventory(root: Path = ROOT) -> dict:
                         authenticated_calls.append({"source": relative, "line": node.lineno})
                     if relative.startswith("services/agents/") and AUTHENTICATED_WORKER_DRAFT_CALL.search(query):
                         authenticated_worker_calls.append({"source": relative, "line": node.lineno})
+                    if relative.startswith("services/agents/"):
+                        worker_call = AUTHENTICATED_WORKER_SUMMARY_CALL.search(query)
+                        if worker_call:
+                            authenticated_worker_summary_calls.append(
+                                {
+                                    "source": relative,
+                                    "line": node.lineno,
+                                    "function": worker_call.group(1).lower(),
+                                }
+                            )
 
     direct_agent_writes.sort(key=lambda item: (item["source"], item["line"]))
     authenticated_calls.sort(key=lambda item: (item["source"], item["line"]))
     authenticated_worker_calls.sort(key=lambda item: (item["source"], item["line"]))
+    authenticated_worker_summary_calls.sort(
+        key=lambda item: (item["source"], item["line"])
+    )
     legacy_context_calls.sort(key=lambda item: (item["source"], item["line"]))
     audit_helper_calls.sort(key=lambda item: (item["source"], item["line"]))
     legacy_summary_writes = [
@@ -117,12 +138,12 @@ def build_inventory(root: Path = ROOT) -> dict:
         if site["table"] == "agent_action_log" and site["statement_kind"] == "insert"
     ]
     return {
-        "version": 2,
+        "version": 3,
         "generated_by": "scripts/agent_write_boundary_inventory.py",
         "scope": (
             "Static Python call-site inventory for literal direct DML in services/agents, "
             "the signed operator draft function call in services/gateway, the signed worker "
-            "draft function call in services/agents, and calls to the "
+            "draft and source-reference function calls in services/agents, and calls to the "
             "disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. "
             "Source locations classify code paths; they do not prove runtime identity, database "
             "privileges, query reachability, or tenant isolation."
@@ -133,6 +154,7 @@ def build_inventory(root: Path = ROOT) -> dict:
             "agent_action_log_insert_sites": len(agent_action_log_writes),
             "authenticated_operator_draft_function_calls": len(authenticated_calls),
             "authenticated_worker_draft_function_calls": len(authenticated_worker_calls),
+            "authenticated_worker_summary_function_calls": len(authenticated_worker_summary_calls),
             "set_agent_context_call_sites": len(legacy_context_calls),
             "audit_agent_action_call_sites": len(audit_helper_calls),
         },
@@ -145,6 +167,7 @@ def build_inventory(root: Path = ROOT) -> dict:
         ],
         "authenticated_operator_draft_function_calls": authenticated_calls,
         "authenticated_worker_draft_function_calls": authenticated_worker_calls,
+        "authenticated_worker_summary_function_calls": authenticated_worker_summary_calls,
         "set_agent_context_call_sites": legacy_context_calls,
         "audit_agent_action_call_sites": audit_helper_calls,
     }

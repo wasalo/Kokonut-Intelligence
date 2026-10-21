@@ -3,6 +3,69 @@
 CREATE ROLE directus NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
     NOREPLICATION NOBYPASSRLS NOINHERIT;
 
+-- Minimal location-qualified source rows for migrations 523/524 and 530.
+CREATE TABLE public.harvest_event (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.sales_event (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL,
+    crop_cycle_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.crop_cycle (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, crop_id UUID NOT NULL
+);
+CREATE TABLE public.sensor_reading (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.expense_event (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL,
+    category TEXT NOT NULL, amount NUMERIC NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.noi_snapshot (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.soil_carbon_measurement (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.species_observation (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.remote_sensing_observation (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.weather_observation (id UUID PRIMARY KEY, location_id UUID NOT NULL);
+CREATE TABLE public.crop (id UUID PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE public.expense_category (id UUID PRIMARY KEY, name TEXT NOT NULL);
+
+INSERT INTO public.harvest_event (id, location_id) VALUES
+    ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-0000-0000-000000000001'),
+    ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-0000-0000-000000000002');
+INSERT INTO public.crop (id, name) VALUES
+    ('e0000000-0000-4000-8000-000000000101', 'Synthetic crop');
+INSERT INTO public.crop_cycle (id, location_id, crop_id) VALUES
+    ('e0000000-0000-4000-8000-000000000102', 'a0000000-0000-0000-0000-000000000001',
+     'e0000000-0000-4000-8000-000000000101');
+INSERT INTO public.sales_event (id, location_id, crop_cycle_id, status) VALUES
+    ('e0000000-0000-4000-8000-000000000103', 'a0000000-0000-0000-0000-000000000001',
+     'e0000000-0000-4000-8000-000000000102', 'published');
+INSERT INTO public.expense_category (id, name) VALUES
+    ('e0000000-0000-4000-8000-000000000104', 'Operations');
+INSERT INTO public.expense_event (id, location_id, category, amount, status) VALUES
+    ('e0000000-0000-4000-8000-000000000105', 'a0000000-0000-0000-0000-000000000001',
+     'Operations', 10, 'verified');
+
+DO $$
+DECLARE
+    source_table TEXT;
+BEGIN
+    FOREACH source_table IN ARRAY ARRAY[
+        'harvest_event', 'sales_event', 'crop_cycle', 'sensor_reading',
+        'expense_event', 'noi_snapshot', 'soil_carbon_measurement',
+        'species_observation', 'remote_sensing_observation', 'weather_observation'
+    ] LOOP
+        EXECUTE pg_catalog.format(
+            'ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', source_table
+        );
+        EXECUTE pg_catalog.format(
+            'ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', source_table
+        );
+        EXECUTE pg_catalog.format(
+            'CREATE POLICY ai_summary_worker_location_scope ON public.%I '
+            'USING (location_id = NULLIF(current_setting(''kokonut.location_id'', TRUE), '''')::UUID)',
+            source_table
+        );
+    END LOOP;
+END;
+$$;
+
 CREATE TABLE public.operator_identity (
     id UUID PRIMARY KEY
 );

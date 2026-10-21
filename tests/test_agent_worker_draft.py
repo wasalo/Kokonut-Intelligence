@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -27,12 +28,20 @@ class FakeCursor:
     def execute(self, query: str, params: Any = None) -> None:
         self.query = " ".join(query.split())
         self.connection.calls.append((self.query, params))
+        if "set_location_ai_summary_source_references" in self.query:
+            self.connection.source_references = json.loads(params[3])
 
     def fetchone(self) -> tuple[Any, ...] | None:
         if "get_location_ai_summary_worker_draft_request" in self.query:
             return self.connection.lookup_result
         if "create_location_ai_summary_worker_draft" in self.query:
             return self.connection.create_result
+        if "get_location_ai_summary_worker_source_references" in self.query:
+            return (self.connection.source_references,)
+        if "set_location_ai_summary_source_references" in self.query:
+            if self.connection.fail_source_setter:
+                raise RuntimeError("synthetic source attachment failure")
+            return (self.connection.source_references,)
         return None
 
 
@@ -42,6 +51,8 @@ class FakeConnection:
     def __init__(self) -> None:
         self.calls: list[tuple[str, Any]] = []
         self.lookup_result: tuple[Any, ...] | None = None
+        self.source_references: dict[str, Any] = {}
+        self.fail_source_setter = False
         self.create_result: tuple[Any, ...] | None = (
             "c0000000-0000-4000-8000-000000000001",
             "Bounded worker draft",
@@ -130,8 +141,9 @@ def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch:
     assert result is not None
     assert result["summary_id"] == "c0000000-0000-4000-8000-000000000002"
     assert result["replayed"] is True
-    assert len(connection.calls) == 3
+    assert len(connection.calls) == 4
     assert "get_location_ai_summary_worker_draft_request" in connection.calls[2][0]
+    assert "get_location_ai_summary_worker_source_references" in connection.calls[3][0]
     assert connection.commits == 1
     assert connection.closed
 
@@ -184,3 +196,105 @@ def test_worker_write_rolls_back_and_closes_on_function_failure(monkeypatch: pyt
     assert connection.commits == 0
     assert connection.rollbacks == 1
     assert connection.closed
+
+
+def test_worker_write_rolls_back_draft_when_source_attachment_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection()
+    connection.fail_source_setter = True
+    _install_worker_mocks(monkeypatch)
+
+    with pytest.raises(RuntimeError, match="source attachment failure"):
+        worker_draft.create_worker_ai_summary_draft(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            {
+                "content": "Draft and lineage must commit atomically",
+                "source_tables": ["harvest_event"],
+                "source_references": {
+                    "harvest_event": {
+                        "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+                        "row_count": 1,
+                        "truncated": False,
+                    }
+                },
+            },
+            connection_factory=lambda: connection,
+        )
+
+    assert connection.commits == 0
+    assert connection.rollbacks == 1
+    assert connection.closed
+
+
+def test_worker_write_attaches_source_references_and_returns_stored_manifest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection()
+    _install_worker_mocks(monkeypatch)
+    source_references = {
+        "harvest_event": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+            "row_count": 1,
+            "truncated": False,
+        }
+    }
+
+    result = worker_draft.create_worker_ai_summary_draft(
+        LOCATION_ID,
+        "wellbeing",
+        REQUEST_ID,
+        {
+            "content": "A source-linked worker draft",
+            "source_tables": ["harvest_event"],
+            "source_references": source_references,
+        },
+        connection_factory=lambda: connection,
+    )
+
+    assert result["source_references"] == source_references
+    assert [query.split("(", 1)[0] for query, _ in connection.calls[2:]] == [
+        "SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft",
+        "SELECT kokonut_security.set_location_ai_summary_source_references",
+        "SELECT kokonut_security.get_location_ai_summary_worker_source_references",
+    ]
+    assert json.loads(connection.calls[3][1][3]) == source_references
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+
+
+@pytest.mark.parametrize(
+    ("source_references", "message"),
+    [
+        ({"sensor_reading": {"record_ids": [], "row_count": 0, "truncated": False}}, "declared"),
+        ({"unknown_table": {"record_ids": [], "row_count": 0, "truncated": False}}, "declared"),
+        ({"harvest_event": {"record_ids": ["not-a-uuid"], "row_count": 1, "truncated": False}}, "UUIDs"),
+        ({"harvest_event": {"record_ids": ["e0000000-0000-4000-8000-000000000001"] * 2, "row_count": 2, "truncated": False}}, "unique"),
+        ({"harvest_event": {"record_ids": [], "row_count": 1, "truncated": False}}, "inconsistent"),
+        ({"harvest_event": {"record_ids": [], "row_count": 0, "truncated": True}}, "inconsistent"),
+        ({"harvest_event": {"record_ids": ["e0000000-0000-4000-8000-000000000001"] * 51, "row_count": 51, "truncated": True}}, "at most 50"),
+    ],
+)
+def test_invalid_source_references_fail_before_secret_or_database_access(
+    monkeypatch: pytest.MonkeyPatch,
+    source_references: dict[str, Any],
+    message: str,
+) -> None:
+    def unexpected(*_: Any, **__: Any) -> Any:
+        raise AssertionError("invalid source references reached worker secret/database access")
+
+    monkeypatch.setattr(worker_draft, "get_worker_credential", unexpected)
+    with pytest.raises(AgentDraftInvalid, match=message):
+        worker_draft.create_worker_ai_summary_draft(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            {
+                "content": "x",
+                "source_tables": ["harvest_event"],
+                "source_references": source_references,
+            },
+            connection_factory=unexpected,
+        )
