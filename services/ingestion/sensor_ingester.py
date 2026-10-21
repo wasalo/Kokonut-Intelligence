@@ -376,6 +376,9 @@ def run_csv(file_path: str, location_id: str | None = None):
                 warnings += 1
                 logger.warning("  ⚠ Row %d: %s", i + 1, ', '.join(validation.warnings))
 
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT sensor_csv_row")
+
             try:
                 pg_id = insert_reading(
                     db, sensor_info, reading_date, reading_time, value, quality,
@@ -416,12 +419,18 @@ def run_csv(file_path: str, location_id: str | None = None):
                     source_table="sensor_reading",
                     source_id=pg_id,
                     priority="normal",
+                    commit=False,
                 )
+
+                with db.cursor() as cur:
+                    cur.execute("RELEASE SAVEPOINT sensor_csv_row")
 
                 success += 1
 
             except Exception as e:
-                db.rollback()
+                with db.cursor() as cur:
+                    cur.execute("ROLLBACK TO SAVEPOINT sensor_csv_row")
+                    cur.execute("RELEASE SAVEPOINT sensor_csv_row")
                 errors += 1
                 log_ingestion(
                     source_system="csv_upload",
@@ -440,6 +449,9 @@ def run_csv(file_path: str, location_id: str | None = None):
 
         db.commit()
         logger.info("Done: %d success, %d warnings, %d errors", success, warnings, errors)
+    except Exception:
+        db.rollback()
+        raise
     finally:
         global _event_bus
         _event_bus = None
@@ -721,12 +733,30 @@ def run_single(
     """Ingest one reading for a sensor in an explicit location."""
     location_id = _canonical_location_id(location_id)
     db = get_db()
+    committed = False
     try:
         ranges = get_sensor_type_ranges(db)
 
         sensor_info = get_sensor_by_id_or_slug(db, sensor_id, location_id)
         if not sensor_info:
-            logger.error("Sensor '%s' not found", sensor_id)
+            log_ingestion(
+                source_system="api",
+                source_table="sensor_api",
+                source_id=sensor_id,
+                target_table="sensor_reading",
+                target_id=None,
+                operation="insert",
+                payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
+                status="failed",
+                error_message="sensor not found in scoped location",
+                validation_status="rejected",
+                validation_errors=["sensor not found in scoped location"],
+                db=db,
+                location_id=location_id,
+            )
+            db.commit()
+            committed = True
+            logger.error("Sensor not found in scoped location")
             sys.exit(1)
 
         now = datetime.now(timezone.utc)
@@ -740,7 +770,26 @@ def run_single(
             value, sensor_type, "sensor", timestamp, ranges=ranges, identity=sensor_id
         )
         if validation.status == "rejected":
-            raise ValueError("; ".join(validation.errors))
+            log_ingestion(
+                source_system="api",
+                source_table="sensor_api",
+                source_id=sensor_id,
+                target_table="sensor_reading",
+                target_id=None,
+                operation="insert",
+                payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
+                status="failed",
+                error_message="sensor reading rejected by validation",
+                validation_status="rejected",
+                validation_errors=validation.errors,
+                validation_warnings=validation.warnings,
+                dedupe_key=validation.dedupe_key,
+                db=db,
+                location_id=location_id,
+            )
+            db.commit()
+            committed = True
+            raise ValueError("sensor reading rejected by validation")
         quality = "suspect" if validation.status == "suspect" else "good"
         for warning in validation.warnings:
             logger.warning("  ⚠ %s", warning)
@@ -766,6 +815,8 @@ def run_single(
             validation_status=validation.status,
             validation_warnings=validation.warnings,
             dedupe_key=validation.dedupe_key,
+            db=db,
+            location_id=location_id,
         )
 
         bus = _get_event_bus(conn=db)
@@ -784,12 +835,18 @@ def run_single(
             source_table="sensor_reading",
             source_id=pg_id,
             priority="normal",
+            commit=False,
         )
 
         db.commit()
+        committed = True
 
         name = sensor_info[1]
         logger.info("✓ %s: %.2f (%s) at %s %s", name, value, sensor_type, reading_date, reading_time)
+    except Exception:
+        if not committed:
+            db.rollback()
+        raise
     finally:
         global _event_bus
         _event_bus = None

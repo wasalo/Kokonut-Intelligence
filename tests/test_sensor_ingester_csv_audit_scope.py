@@ -18,6 +18,10 @@ class _Connection:
         self.closed = False
         self.commits = 0
         self.rollbacks = 0
+        self.statements = []
+
+    def cursor(self):
+        return _Cursor(self)
 
     def commit(self) -> None:
         self.commits += 1
@@ -27,6 +31,20 @@ class _Connection:
 
     def close(self) -> None:
         self.closed = True
+
+
+class _Cursor:
+    def __init__(self, connection: _Connection) -> None:
+        self.connection = connection
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def execute(self, statement, *_args):
+        self.connection.statements.append(statement)
 
 
 @pytest.mark.parametrize(

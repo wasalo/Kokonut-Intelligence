@@ -121,6 +121,10 @@ def test_csv_processing_exception_is_redacted_in_audit_and_log(tmp_path, monkeyp
     assert SECRET not in str(audit.call_args)
     assert SECRET not in str(logger.error.call_args)
     assert "RuntimeError" in str(logger.error.call_args)
-    connection.rollback.assert_called_once()
+    statements = [call.args[0] for call in connection.cursor.return_value.__enter__.return_value.execute.call_args_list]
+    assert "SAVEPOINT sensor_csv_row" in statements
+    assert "ROLLBACK TO SAVEPOINT sensor_csv_row" in statements
+    assert "RELEASE SAVEPOINT sensor_csv_row" in statements
+    connection.rollback.assert_not_called()
     connection.commit.assert_called_once()
     connection.close.assert_called_once()
