@@ -12,9 +12,13 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from report_generator_helper_scope_inventory import (  # noqa: E402
     _absolute_import_module,
     _import_bindings,
+    _query_forwarder_execute_lines,
     _resolve_call_target,
     _resolve_function_cached,
     build_inventory,
+)
+from report_generator_query_scope_inventory import (  # noqa: E402
+    build_inventory as build_report_query_inventory,
 )
 
 
@@ -54,6 +58,30 @@ def test_report_serializer_alias_resolves_without_importing_services():
     assert function.name == "serialize_rows"
 
 
+def test_shared_query_adapter_is_only_excluded_when_it_forwards_sql_unchanged():
+    source_path = ROOT / "services/common/database.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    query = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "query"
+    )
+
+    assert _query_forwarder_execute_lines(source_path, query) == [77, 80]
+
+    changed_tree = ast.parse(
+        """
+def query(conn, sql, params=None):
+    sql = f"SELECT * FROM {sql}"
+    conn.execute(sql, params)
+"""
+    )
+    changed_query = next(
+        node for node in changed_tree.body if isinstance(node, ast.FunctionDef)
+    )
+    assert _query_forwarder_execute_lines(source_path, changed_query) is None
+
+
 def test_reachable_helper_queries_inventory_static_positional_bind_arity():
     inventory = build_inventory()
     summary = inventory["summary"]
@@ -76,6 +104,62 @@ def test_reachable_helper_queries_inventory_static_positional_bind_arity():
     assert summary["helper_query_sites_with_positional_arity_mismatch"] == len(mismatches)
     assert static_sites
     assert not mismatches
+
+
+def test_query_forwarding_wrappers_link_to_report_or_helper_call_sites():
+    inventory = build_inventory()
+    direct_inventory = build_report_query_inventory()
+    reports = {
+        report["report_type"]: report
+        for report in inventory["reports"]
+        if report["report_type"] in {
+            "bio_regional_input",
+            "climate_impact",
+            "open_source_impact",
+        }
+    }
+
+    assert set(reports) == {"bio_regional_input", "climate_impact", "open_source_impact"}
+    for report in reports.values():
+        assert len(report["forwarded_query_wrappers"]) == 1
+        wrapper = report["forwarded_query_wrappers"][0]
+        assert wrapper["source_file"] == "services/common/database.py"
+        assert wrapper["callable"] == "query"
+        assert wrapper["execution_lines"] == [77, 80]
+        assert wrapper["caller_sites"]
+        assert not any(
+            site["source_file"] == "services/common/database.py"
+            for site in report["reachable_helper_query_sites"]
+        )
+    assert inventory["summary"]["reports_with_forwarded_query_wrappers"] == 3
+    assert inventory["summary"]["forwarded_query_wrapper_caller_sites"] == 4
+    assert inventory["summary"]["helper_query_sites_with_unresolved_sql_source"] == 0
+    direct_reports = {
+        report["report_type"]: report
+        for report in direct_inventory["reports"]
+    }
+    for report_type, expected_relation in {
+        "bio_regional_input": "v_public_bio_regional_input_summary",
+        "open_source_impact": "v_public_open_source_impact_artifact",
+    }.items():
+        callsite = next(
+            site
+            for site in direct_reports[report_type]["queries"]
+            if expected_relation in site["relations"]
+        )
+        assert callsite["sql_source"] == "static_or_resolved"
+    climate_report = reports["climate_impact"]
+    climate_helper_callsites = [
+        site
+        for site in climate_report["reachable_helper_query_sites"]
+        if site["source_file"] == "services/analytics/carbon_balance.py"
+        and site["callable"] in {"compute_tree_carbon", "compute_regenerative_score"}
+    ]
+    assert {site["callable"] for site in climate_helper_callsites} == {
+        "compute_tree_carbon",
+        "compute_regenerative_score",
+    }
+    assert all(site["sql_source"] == "static_or_resolved" for site in climate_helper_callsites)
 
 
 def test_reachable_helper_queries_inventory_static_named_bind_contracts():

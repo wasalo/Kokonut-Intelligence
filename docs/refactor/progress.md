@@ -1,3 +1,19 @@
+### CAP-066 shared query forwarder call-site accounting — 21 October 2026
+
+The helper inventory now recognizes `services/common/database.py:query` only
+while both execute branches forward the unchanged `sql` argument. It records
+the adapter and its reachable caller lines separately, while the direct report
+or helper call site remains the SQL/bind evidence. This removes six duplicate
+unresolved wrapper-body rows and records four call sites across three report
+types. The focused helper/source-inventory selection passes 17 tests; Ruff,
+compilation, all three report inventories, runtime SQL inventory,
+capability-matrix validation, and diff checks pass. The helper inventory now
+covers 169/169 SQL memberships with zero unresolved sites, 149 positional plus
+eight named contracts, and zero bind mismatches. No authorization, RLS,
+PostgreSQL execution, or populated report parity is claimed. Checklist: 893
+complete / 24 open (917 total); matrix remains 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-query-forwarder-callsite-inventory.json)).
+
 ### CAP-066 business-plan financial-list query contract — 21 October 2026
 
 `planning.budget.list_plans` now uses fixed SQL with bound organization and

@@ -216,6 +216,48 @@ def _calls_in_function(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list
     return _function_body(function).calls
 
 
+def _query_forwarder_execute_lines(
+    source_path: Path,
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> list[int] | None:
+    """Recognize the shared query adapter when it forwards its SQL argument unchanged."""
+    if (
+        source_path.relative_to(ROOT).as_posix() != "services/common/database.py"
+        or function.name != "query"
+    ):
+        return None
+    argument_names = {
+        argument.arg
+        for argument in [
+            *function.args.posonlyargs,
+            *function.args.args,
+            *function.args.kwonlyargs,
+        ]
+    }
+    if "sql" not in argument_names:
+        return None
+    execute_calls = [
+        call
+        for call in _calls_in_function(function)
+        if isinstance(call.func, ast.Attribute) and call.func.attr == "execute"
+    ]
+    if len(execute_calls) != 2 or any(
+        not call.args
+        or not isinstance(call.args[0], ast.Name)
+        or call.args[0].id != "sql"
+        for call in execute_calls
+    ):
+        return None
+    if any(
+        isinstance(node, ast.Name)
+        and node.id == "sql"
+        and isinstance(node.ctx, ast.Store)
+        for node in ast.walk(function)
+    ):
+        return None
+    return sorted(call.lineno for call in execute_calls)
+
+
 def _trace_report(
     report: dict,
     source_path: Path,
@@ -227,6 +269,7 @@ def _trace_report(
     unresolved: list[dict] = []
     edges: list[dict] = []
     query_sites: dict[tuple[str, int], dict] = {}
+    forwarded_query_wrappers: dict[str, dict] = {}
     visited: set[str] = set()
     max_depth = _MAX_HELPER_DEPTH
 
@@ -315,8 +358,24 @@ def _trace_report(
         visited.add(key)
         helper_module = _module_name(helper_path)
         helper_tree = ast.parse(helper_path.read_text(encoding="utf-8"), filename=str(helper_path))
+        forwarded_lines = _query_forwarder_execute_lines(helper_path, helper)
+        if forwarded_lines:
+            forwarded_query_wrappers[key] = {
+                "source_file": helper_path.relative_to(ROOT).as_posix(),
+                "callable": helper.name,
+                "execution_lines": forwarded_lines,
+                "caller_sites": sorted(
+                    [
+                        {"caller": edge["caller"], "line": edge["line"]}
+                        for edge in edges
+                        if edge["callee"] == key
+                    ],
+                    key=lambda item: (item["caller"], item["line"]),
+                ),
+                "sql_inventory": "caller callsite in the direct report inventory or helper query site",
+            }
         analysis = _analyze_function(helper, helper_tree)
-        for query in analysis["queries"]:
+        for query in analysis["queries"] if not forwarded_lines else []:
             query_key = (helper_path.relative_to(ROOT).as_posix(), query["line"])
             record = {
                 "source_file": query_key[0],
@@ -361,6 +420,9 @@ def _trace_report(
         "report_callable": report["callable"],
         "resolved_helper_functions": sorted(visited),
         "resolved_helper_call_edges": sorted(edges, key=lambda item: (item["depth"], item["line"], item["callee"])),
+        "forwarded_query_wrappers": [
+            forwarded_query_wrappers[key] for key in sorted(forwarded_query_wrappers)
+        ],
         "reachable_helper_query_sites": queries,
         "helper_query_site_count": len(queries),
         "helper_query_sites_with_location_scope_signal": scoped,
@@ -420,7 +482,8 @@ def build_inventory() -> dict:
             "that resolve to unique Python definitions under services/. It records direct execute/query sites and "
             "statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text "
             "or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values "
-            "remain unresolved. A location-scope signal is not "
+            "remain unresolved. The shared database query forwarding adapter is recorded separately, with SQL counted at its caller site. "
+            "A location-scope signal is not "
             "proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, "
             "external providers, runtime call selection, database views, and semantic report behavior are not "
             "proven. No service is imported or executed and no database, provider, or secret is accessed."
@@ -436,6 +499,14 @@ def build_inventory() -> dict:
             "helper_query_sites_with_positional_arity_mismatch": helper_arity_mismatches,
             "helper_query_sites_with_static_named_bind_contract": helper_named_bind_sites,
             "helper_query_sites_with_named_bind_contract_mismatch": helper_named_bind_mismatches,
+            "reports_with_forwarded_query_wrappers": sum(
+                bool(report["forwarded_query_wrappers"]) for report in reports
+            ),
+            "forwarded_query_wrapper_caller_sites": sum(
+                len(wrapper["caller_sites"])
+                for report in reports
+                for wrapper in report["forwarded_query_wrappers"]
+            ),
             "unresolved_local_helper_calls": unresolved_calls,
         },
         "reports": sorted(reports, key=lambda item: item["report_type"]),

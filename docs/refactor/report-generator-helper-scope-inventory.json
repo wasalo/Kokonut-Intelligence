@@ -1,18 +1,20 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_helper_scope_inventory.py",
-  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites and statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values remain unresolved. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
+  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites and statically checkable positional bind arity and named bind contracts in the bounded local call closure without retaining SQL text or values. Unique unshadowed literal module strings are resolved; computed or reassigned module values remain unresolved. The shared database query forwarding adapter is recorded separately, with SQL counted at its caller site. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
-    "reports_with_resolved_helper_query_sites": 34,
-    "reachable_helper_query_sites_per_report": 175,
+    "reports_with_resolved_helper_query_sites": 32,
+    "reachable_helper_query_sites_per_report": 169,
     "helper_query_sites_with_location_scope_signal": 78,
     "helper_query_sites_with_static_sql_source": 169,
-    "helper_query_sites_with_unresolved_sql_source": 6,
+    "helper_query_sites_with_unresolved_sql_source": 0,
     "helper_query_sites_with_static_positional_arity": 149,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 8,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
+    "reports_with_forwarded_query_wrappers": 3,
+    "forwarded_query_wrapper_caller_sites": 4,
     "unresolved_local_helper_calls": 0
   },
   "reports": [
@@ -38,6 +40,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -72,6 +75,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -113,6 +117,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/commons/kokonut.py",
@@ -279,6 +284,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/commons/kokonut.py",
@@ -438,6 +444,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -472,6 +479,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -506,6 +514,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -540,6 +549,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -595,51 +605,33 @@
           "depth": 2
         }
       ],
-      "reachable_helper_query_sites": [
+      "forwarded_query_wrappers": [
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 77,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_bio_regional_input",
-              "services/common/database.py:query"
-            ]
-          ]
-        },
-        {
-          "source_file": "services/common/database.py",
-          "callable": "query",
-          "line": 80,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_bio_regional_input",
-              "services/common/database.py:query"
-            ]
-          ]
+          "execution_lines": [
+            77,
+            80
+          ],
+          "caller_sites": [
+            {
+              "caller": "generate_bio_regional_input",
+              "line": 195
+            }
+          ],
+          "sql_inventory": "caller callsite in the direct report inventory or helper query site"
         }
       ],
-      "helper_query_site_count": 2,
+      "reachable_helper_query_sites": [],
+      "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
       "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
       "helper_query_sites_with_static_positional_arity": 0,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "no_location_scope_signal_in_resolved_helper_queries",
+      "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
     {
@@ -677,6 +669,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/business_model_canvas.py",
@@ -1182,6 +1175,7 @@
           "depth": 5
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/competitive_report.py",
@@ -2471,6 +2465,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/capability_map.py",
@@ -2676,6 +2671,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/capability_map.py",
@@ -2909,6 +2905,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/capital/capacity.py",
@@ -3115,6 +3112,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -3155,6 +3153,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -3189,6 +3188,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -3255,6 +3255,27 @@
           "callee": "services/common/database.py:_cursor_for",
           "line": 78,
           "depth": 3
+        }
+      ],
+      "forwarded_query_wrappers": [
+        {
+          "source_file": "services/common/database.py",
+          "callable": "query",
+          "execution_lines": [
+            77,
+            80
+          ],
+          "caller_sites": [
+            {
+              "caller": "services/analytics/carbon_balance.py:compute_regenerative_score",
+              "line": 236
+            },
+            {
+              "caller": "services/analytics/carbon_balance.py:compute_tree_carbon",
+              "line": 79
+            }
+          ],
+          "sql_inventory": "caller callsite in the direct report inventory or helper query site"
         }
       ],
       "reachable_helper_query_sites": [
@@ -3442,53 +3463,17 @@
               "services/analytics/carbon_balance.py:compute_regenerative_score"
             ]
           ]
-        },
-        {
-          "source_file": "services/common/database.py",
-          "callable": "query",
-          "line": 77,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_climate_impact",
-              "services/analytics/carbon_balance.py:compute_tree_carbon",
-              "services/common/database.py:query"
-            ]
-          ]
-        },
-        {
-          "source_file": "services/common/database.py",
-          "callable": "query",
-          "line": 80,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_climate_impact",
-              "services/analytics/carbon_balance.py:compute_tree_carbon",
-              "services/common/database.py:query"
-            ]
-          ]
         }
       ],
-      "helper_query_site_count": 10,
+      "helper_query_site_count": 8,
       "helper_query_sites_with_location_scope_signal": 8,
       "helper_query_sites_with_static_sql_source": 8,
-      "helper_query_sites_with_unresolved_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
       "helper_query_sites_with_static_positional_arity": 8,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "mixed_resolved_helper_query_scope_signals",
+      "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
     {
@@ -3513,6 +3498,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -3687,6 +3673,7 @@
           "depth": 4
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/capital/capacity.py",
@@ -4023,6 +4010,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4041,6 +4029,7 @@
       "report_callable": "generate_crop_noi",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4075,6 +4064,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4102,6 +4092,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4120,6 +4111,7 @@
       "report_callable": "generate_data_stream_summary",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4160,6 +4152,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4218,6 +4211,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4252,6 +4246,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/env_scanning.py",
@@ -4319,6 +4314,7 @@
       "report_callable": "generate_environmental",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4371,6 +4367,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4419,6 +4416,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/commons/kokonut.py",
@@ -4578,6 +4576,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4596,6 +4595,7 @@
       "report_callable": "generate_forecast_summary",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4623,6 +4623,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/events/fork_detector.py",
@@ -4700,6 +4701,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4734,6 +4736,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4761,6 +4764,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4795,6 +4799,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4829,6 +4834,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4870,6 +4876,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4916,6 +4923,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4950,6 +4958,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -4990,6 +4999,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5030,6 +5040,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5085,51 +5096,33 @@
           "depth": 2
         }
       ],
-      "reachable_helper_query_sites": [
+      "forwarded_query_wrappers": [
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 77,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_open_source_impact",
-              "services/common/database.py:query"
-            ]
-          ]
-        },
-        {
-          "source_file": "services/common/database.py",
-          "callable": "query",
-          "line": 80,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
-          "named_bind_contract": null,
-          "bound_location_scope_signal": false,
-          "location_scope_conditionally_added": false,
-          "reachable_via": [
-            [
-              "generate_open_source_impact",
-              "services/common/database.py:query"
-            ]
-          ]
+          "execution_lines": [
+            77,
+            80
+          ],
+          "caller_sites": [
+            {
+              "caller": "generate_open_source_impact",
+              "line": 176
+            }
+          ],
+          "sql_inventory": "caller callsite in the direct report inventory or helper query site"
         }
       ],
-      "helper_query_site_count": 2,
+      "reachable_helper_query_sites": [],
+      "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
       "helper_query_sites_with_static_sql_source": 0,
-      "helper_query_sites_with_unresolved_sql_source": 2,
+      "helper_query_sites_with_unresolved_sql_source": 0,
       "helper_query_sites_with_static_positional_arity": 0,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "no_location_scope_signal_in_resolved_helper_queries",
+      "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
     {
@@ -5160,6 +5153,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5200,6 +5194,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5240,6 +5235,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5288,6 +5284,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/commons/kokonut.py",
@@ -5447,6 +5444,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -5474,6 +5472,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/pest_management.py",
@@ -5578,6 +5577,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/pestel.py",
@@ -5679,6 +5679,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/pin_dependency.py",
@@ -5883,6 +5884,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/pitch.py",
@@ -6447,6 +6449,7 @@
           "depth": 5
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/predictive_bpm.py",
@@ -6881,6 +6884,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/promotion_ladder.py",
@@ -6952,6 +6956,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/publics.py",
@@ -7090,6 +7095,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/commons/kokonut.py",
@@ -7249,6 +7255,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7283,6 +7290,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/regional_readiness.py",
@@ -7366,6 +7374,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7400,6 +7409,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7434,6 +7444,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7509,6 +7520,7 @@
           "depth": 4
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/revenue_multiplier/analyzer.py",
@@ -7593,6 +7605,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7654,6 +7667,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/reward_calibration.py",
@@ -7736,6 +7750,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7776,6 +7791,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7810,6 +7826,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -7941,6 +7958,7 @@
           "depth": 4
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/digital_twin.py",
@@ -8105,6 +8123,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8123,6 +8142,7 @@
       "report_callable": "generate_stakeholder_decision_lineage",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8150,6 +8170,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8168,6 +8189,7 @@
       "report_callable": "generate_stakeholder_engagement",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8186,6 +8208,7 @@
       "report_callable": "generate_stakeholder_grievance",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8204,6 +8227,7 @@
       "report_callable": "generate_stakeholder_landscape",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8222,6 +8246,7 @@
       "report_callable": "generate_stakeholder_outcomes",
       "resolved_helper_functions": [],
       "resolved_helper_call_edges": [],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8249,6 +8274,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8276,6 +8302,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8303,6 +8330,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -8397,6 +8425,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/state.py",
@@ -8697,6 +8726,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/kokonut_graphs.py",
@@ -8968,6 +8998,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -9050,6 +9081,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/strategic_reserve/health.py",
@@ -9204,6 +9236,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/competitive_report.py",
@@ -9571,6 +9604,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/pin_dependency.py",
@@ -9839,6 +9873,7 @@
           "depth": 1
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -9873,6 +9908,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -9907,6 +9943,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -9941,6 +9978,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -9987,6 +10025,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
@@ -10042,6 +10081,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/value_stream_defs.py",
@@ -10127,6 +10167,7 @@
           "depth": 3
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/analytics/value_stream.py",
@@ -10329,6 +10370,7 @@
           "depth": 2
         }
       ],
+      "forwarded_query_wrappers": [],
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
