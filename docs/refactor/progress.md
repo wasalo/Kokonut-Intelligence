@@ -1,3 +1,13 @@
+### CAP-038 shared-agent source metadata preflight — 20 October 2026
+
+`SynthesisAgent.store_summary()` now validates the static source-table list
+against the draft function's existing shape limits before creating a cursor.
+Empty, overlong, and malformed lists are rejected. The combined agent,
+summary-source, and Gateway draft selection passes 82 tests with nine
+PostgreSQL-dependent skips, plus Ruff and compilation.
+This is metadata-shape validation only; it does not establish actual source
+lineage or tenant authorization ([tests](../../tests/test_agents_base.py); [evidence](builds/2026-10-20-recovery/cap-038-agent-source-table-metadata.json)).
+
 ### CAP-038 AI-summary list scope and preview minimization — 20 October 2026
 
 The standalone summary inventory now requires an exact location filter or

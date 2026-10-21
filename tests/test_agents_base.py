@@ -137,6 +137,34 @@ def test_store_summary_rejects_malformed_location_before_cursor_access():
     assert conn.committed is False
 
 
+@pytest.mark.parametrize(
+    "source_tables",
+    [
+        [],
+        [f"table_{index}" for index in range(21)],
+        ["valid_table", "not-valid"],
+    ],
+)
+def test_store_summary_rejects_invalid_source_table_metadata_before_cursor_access(
+    source_tables: list[str],
+):
+    class _InvalidSourceAgent(_DummyAgent):
+        pass
+
+    _InvalidSourceAgent.source_tables = source_tables
+    conn = _FakeConn()
+
+    with pytest.raises(ValueError, match="source_tables must contain 1 to 20"):
+        _InvalidSourceAgent().store_summary(
+            conn,
+            {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+        )
+
+    assert conn.cursor_obj.executed is None
+    assert conn.cursor_obj.closed is False
+    assert conn.committed is False
+
+
 def test_run_uses_sentinel_subject_id_for_locationless_summary():
     class _LocationlessDummyAgent(_DummyAgent):
         task_key = "financial_resilience_synthesis"

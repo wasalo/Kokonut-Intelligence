@@ -1,0 +1,27 @@
+{
+  "capability": "CAP-038",
+  "check": "shared-agent-source-table-metadata-preflight",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_agents_base.py tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agent_input_preflight.py tests/test_ai_summary_safety.py tests/test_ai_summary_cli_lifecycle.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 65,
+    "postgresql_dependent_skips": 9,
+    "invalid_metadata_cases_rejected_before_cursor": 3,
+    "source_table_constraints": "one to 20 lowercase SQL identifiers",
+    "database_or_provider_calls": 0
+  },
+  "additional_checks": {
+    "combined_regression_selection": {
+      "command": "python3 -m pytest tests/test_agents_base.py tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agent_input_preflight.py tests/test_ai_summary_safety.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_source_references.py tests/test_gateway_ai_summary_draft.py -q",
+      "tests_passed": 82,
+      "postgresql_dependent_skips": 9
+    },
+    "ruff": "passed",
+    "python_compilation": "passed"
+  },
+  "limitations": [
+    "This validates metadata shape only; the values are not linked evidence and do not establish that each table contributed to the draft.",
+    "It does not establish agent identity, database least privilege, tenant authorization, or MAN-CAP-038 acceptance."
+  ]
+}

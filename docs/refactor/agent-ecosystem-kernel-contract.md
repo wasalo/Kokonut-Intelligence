@@ -63,7 +63,9 @@ run without decrypting `.env.sops`.
   invalid model-version label; callers cannot bypass the runner's validation
   by invoking the low-level write helper directly. These checks still create
   drafts only and do not approve or publish them. The shared helper closes its
-  cursor before commit and also closes it if insert/fetch fails.
+  cursor before commit and also closes it if insert/fetch fails. It validates
+  that its static source table metadata contains between one and 20 lowercase
+  SQL identifiers, matching the database draft function's shape limits.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log

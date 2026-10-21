@@ -12,6 +12,7 @@ small subclass; everything else lives here (or in the existing
 from __future__ import annotations
 
 import argparse
+import re
 import uuid
 from typing import Any, Callable, Optional
 
@@ -23,6 +24,8 @@ from services.agents.tasks import (
 )
 from services.common.cli import print_json
 from services.common.database import get_db
+
+_SOURCE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
 
 class SynthesisAgent:
@@ -75,6 +78,19 @@ class SynthesisAgent:
         errors = validate_task_inputs(self.task_key, inputs)
         if errors:
             raise ValueError("; ".join(errors))
+        if (
+            not isinstance(self.source_tables, list)
+            or not 1 <= len(self.source_tables) <= 20
+            or any(
+                not isinstance(table, str) or _SOURCE_TABLE_NAME.fullmatch(table) is None
+                for table in self.source_tables
+            )
+        ):
+            raise ValueError(
+                "Invalid agent draft: source_tables must contain 1 to 20 "
+                "lowercase SQL identifiers"
+            )
+        source_tables = list(self.source_tables)
         version = model_version or self.model_version
         if not isinstance(version, str) or not version.strip():
             raise ValueError("Invalid agent draft: model_version must be a non-empty string")
@@ -97,7 +113,7 @@ class SynthesisAgent:
                     subject_id,
                     self.summary_type,
                     summary["synthesis"],
-                    self.source_tables,
+                    source_tables,
                     version,
                 ),
             )
