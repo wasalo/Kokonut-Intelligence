@@ -569,7 +569,7 @@
         </section>
         <section id="operating-pilot" hidden aria-labelledby="operating-pilot-heading">
           <h2 id="operating-pilot-heading">Operating pilot overview</h2>
-          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, aggregate capacity periods, and work-claim activity. Person-linked totals remain hidden when fewer than three people contribute.</p>
+          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, aggregate capacity periods, work-claim activity, and resource-request categories. Person-linked totals remain hidden when fewer than three people contribute.</p>
           <div class="toolbar">
             <label for="operating-pilot-location">Granted location</label>
             <select id="operating-pilot-location"></select>
@@ -606,6 +606,16 @@
             </table>
           </div>
           <button id="operating-pilot-work-claims-more" class="secondary" type="button" hidden>Load more work types</button>
+          <h3>Resource-request categories</h3>
+          <p class="muted">Requests are grouped into fixed categories. Requester identities, narratives, urgency, and decision states are not shown.</p>
+          <p id="operating-pilot-resource-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Resource category</th><th>Requests</th></tr></thead>
+              <tbody id="operating-pilot-resource-rows"></tbody>
+            </table>
+          </div>
+          <button id="operating-pilot-resource-more" class="secondary" type="button" hidden>Load more categories</button>
         </section>
         <section id="sequential-evidence" hidden aria-labelledby="sequential-evidence-heading">
           <h2 id="sequential-evidence-heading">Sequential evidence</h2>
@@ -1734,14 +1744,19 @@
       const operatingPilotWorkClaimsStatus = document.querySelector("#operating-pilot-work-claims-status");
       const operatingPilotWorkClaimsRows = document.querySelector("#operating-pilot-work-claims-rows");
       const operatingPilotWorkClaimsMore = document.querySelector("#operating-pilot-work-claims-more");
+      const operatingPilotResourceStatus = document.querySelector("#operating-pilot-resource-status");
+      const operatingPilotResourceRows = document.querySelector("#operating-pilot-resource-rows");
+      const operatingPilotResourceMore = document.querySelector("#operating-pilot-resource-more");
       let operatingPilotLocations = new Set();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
       let operatingPilotWorkClaimsRequestVersion = 0;
+      let operatingPilotResourceRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
+      let operatingPilotResourceOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -2588,12 +2603,56 @@
         }
       }
 
+      async function loadOperatingPilotResources(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotResourceRequestVersion;
+        if (!operatingPilotLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotResourceOffset = 0;
+          operatingPilotResourceRows.replaceChildren();
+        }
+        const offset = append ? operatingPilotResourceOffset : 0;
+        operatingPilotResourceMore.disabled = true;
+        operatingPilotResourceStatus.textContent = "Loading resource-request categories…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-categories?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotResourceRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotRow(operatingPilotResourceRows, [
+              item.resource_category,
+              item.suppressed === true ? "Suppressed (<3 requesters)" : item.request_count
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotResourceMore.hidden = !canContinue;
+          operatingPilotResourceOffset = canContinue ? nextOffset : 0;
+          operatingPilotResourceStatus.textContent = canContinue
+            ? "Showing a bounded page of aggregate resource categories."
+            : operatingPilotResourceRows.childElementCount ? "Resource categories loaded." : "No resource requests are available.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotResourceRequestVersion) return;
+          operatingPilotResourceMore.hidden = true;
+          operatingPilotResourceStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotResourceRequestVersion) operatingPilotResourceMore.disabled = false;
+        }
+      }
+
       async function loadOperatingPilot() {
         await Promise.all([
           loadOperatingPilotSummary(),
           loadOperatingPilotDemand(),
           loadOperatingPilotCapacity(),
-          loadOperatingPilotWorkClaims()
+          loadOperatingPilotWorkClaims(),
+          loadOperatingPilotResources()
         ]);
       }
 
@@ -15327,6 +15386,7 @@
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
+      operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true));
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));

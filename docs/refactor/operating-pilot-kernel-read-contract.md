@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, aggregate capacity-period page, and suppressed work-claim category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`
 
 ## Route and authorization
 
@@ -105,16 +105,36 @@ that category. The exact contributor count is not returned. Pages default to
 activity view; independent human review remains necessary and no claim can be
 accepted, rejected, or changed from this route.
 
+## Resource-request category page
+
+`GET /operator/api/operating-pilot/{location_id}/resource-categories` uses
+the same exact location grant, signed tenant context, read-only connection,
+bounded pagination, and no-store response. Migration 538 scopes requests to
+active Adelphi farms mapped to the requested location and normalizes the
+legacy free-text `resource_type` value into a fixed category set; unknown
+values become `other`. The page returns only category, request count, and a
+suppression flag. It omits request IDs, requester identity, descriptions,
+urgency, decision/status, dates, and decision reasons. Counts are hidden when
+fewer than three distinct requesters contributed to a category. The projection
+is an aggregate inventory, not an individual request queue or decision path.
+
+The non-login pilot reader receives the additional `resource_type` column
+needed by this function. Migration 461 already grants that role access to
+`decision` for the aggregate summary; migration 538 does not broaden that
+pre-existing grant or expose decision state in this response. Runtime and
+Directus receive no direct request-table access from migration 538.
+
 ## Operator console
 
-The operator console exposes these four read routes in a single operating-pilot
+The operator console exposes these five read routes in a single operating-pilot
 panel only when the signed session contains an exact `operating_pilot:read`
 location grant. The location selector is populated only from those grants; the
 browser sends same-origin, no-store requests and discards stale responses when
 the selected location changes. Demand and capacity pages are bounded to 25
-rows per request and provide explicit load-more controls. Capacity hours and
-work-claim counts are rendered as suppressed whenever their groups have fewer
-than three contributors. Fixed allowlists and text-only DOM rendering are used.
+rows per request and provide explicit load-more controls. Capacity hours,
+work-claim counts, and resource-request counts are rendered as suppressed
+whenever their groups have fewer than three contributors. Fixed allowlists and
+text-only DOM rendering are used.
 This console surface does not add write or review actions and does not
 constitute live OIDC/browser acceptance.
 
@@ -122,29 +142,32 @@ constitute live OIDC/browser acceptance.
 
 The non-login `kokonut_operating_pilot_reader` role can select only the source
 columns needed by these projections and has no identity-table access or
-mutation privileges. Migration 526 adds only `work_item.work_type`; titles and
-descriptions remain unavailable to the reader. `kokonut_runtime` is granted
+mutation privileges. Migrations 526 and 538 add only `work_item.work_type` and
+`operating_resource_request.resource_type`; titles, descriptions, and decision
+reasons remain unavailable to the reader. `kokonut_runtime` is granted
 execution of the security-definer function, which rechecks signed operator
 location context and the active exact database grant on every call. This
 migration does not remove pre-existing
 direct table grants from the legacy runtime or Directus roles; their direct
 database boundary and forced RLS remain open gates. The disposable acceptance
-uses clean test roles and proves this migration introduces no such table
-grants; it does not represent the deployed role ACL state.
+uses clean test roles and proves migrations 461, 479, 480, 526, and 538
+introduce no such table grants; it does not represent the deployed role ACL
+state.
 
 ## Verification and rollback
 
 The Gateway contract and exact route policy are covered by
 `tests/test_gateway_operating_pilot_reads.py` and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
-acceptance runner applies/replays migrations 461, 479, 480, and 526, exercises
-active and internal scopes, checks aggregate values, demand/capacity/claim
-paging, small-cohort suppression, tenant/grant denials and data redaction, and
+acceptance runner applies/replays migrations 461, 479, 480, 526, and 538,
+exercises active and internal scopes, checks aggregate values,
+demand/capacity/claim/resource-category paging, small-cohort suppression,
+tenant/grant denials and data redaction, and
 inspects runtime, Directus, and reader privileges:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
-registration and route policy. If migrations 461, 479, 480, or 526 are applied, retain
+registration and route policy. If migrations 461, 479, 480, 526, or 538 are applied, retain
 their ordered reader role/functions and ACLs; disable only the affected route.
 Do not edit or reverse an applied migration.
 

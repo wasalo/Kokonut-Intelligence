@@ -1837,6 +1837,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    operating_pilot_resource_categories_match = re.fullmatch(
+        r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/resource-categories", path
+    )
+    if operating_pilot_resource_categories_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "operating_pilot",
+            "action": "read",
+            "public": False,
+            "location_id": operating_pilot_resource_categories_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_summary_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/summary", path
     )

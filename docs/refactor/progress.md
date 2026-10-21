@@ -14129,3 +14129,25 @@ source-review aid and does not prove authorization, RLS, or populated report
 parity ([evidence](builds/2026-10-21-recovery/cap-066-report-scope-branch-correlation.json)).
 Checklist: 873 complete / 24 open (897 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-037 resource-request category projection — 21 October 2026
+
+The operator console now shows a bounded location-scoped resource-request
+category summary. Migration 538 maps legacy free-text resource types to fixed
+categories, returns only category/count/suppression, and hides counts below
+three distinct requesters. The signed `operating_pilot:read` grant and active
+Adelphi farm-to-location mapping are checked in PostgreSQL; identities,
+narratives, urgency, decision/status, dates, and reasons are omitted. The new
+console read is same-origin, no-store, paginated, and read-only. Gateway, route
+policy, console contract/JavaScript, and migration metadata checks pass: 98
+tests. Disposable PostgreSQL 16 applies and replays migrations 461, 479, 480,
+526, and 538 and passes 20 grouped scope, denial, paging, suppression,
+redaction, and role assertions. Ruff, Python compilation, runtime SQL
+inventory, capability validation, and diff checks pass. Candidate and legacy
+databases were not touched; migration 538 has not been rolled out. The view
+does not implement individual request decisions and does not close populated
+parity, privacy/audience, live OIDC/browser, broader ACL/RLS, recovery, or
+MAN-CAP-037 acceptance. Checklist: 918 complete / 24 open (942 total); matrix
+remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+Evidence: [resource category disposable acceptance](builds/2026-10-21-recovery/cap-037-operating-pilot-resource-categories-disposable.json).
