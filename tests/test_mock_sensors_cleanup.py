@@ -24,6 +24,9 @@ class _Cursor:
         if self.fail_on and self.fail_on in normalized:
             raise RuntimeError("synthetic query failure")
 
+    def fetchall(self) -> list[tuple[object, ...]]:
+        return []
+
 
 class _Database:
     def __init__(self, *, fail_on: str | None = None) -> None:
@@ -69,6 +72,49 @@ def test_cleanup_rolls_back_and_closes_when_delete_fails(monkeypatch) -> None:
 
     with pytest.raises(RuntimeError, match="synthetic query failure"):
         mock_sensors.cleanup()
+
+    assert not database.committed
+    assert database.rolled_back
+    assert database.closed
+
+
+def test_setup_sensors_commits_and_closes_on_success(monkeypatch) -> None:
+    database = _Database()
+    monkeypatch.setattr(mock_sensors, "get_db", lambda: database)
+    monkeypatch.setattr(mock_sensors, "get_or_create_location", lambda _db: "location-id")
+    monkeypatch.setattr(mock_sensors, "SAMPLE_SENSORS", [])
+
+    mock_sensors.setup_sensors()
+
+    assert database.committed
+    assert not database.rolled_back
+    assert database.closed
+
+
+def test_setup_sensors_rolls_back_and_closes_when_location_setup_fails(monkeypatch) -> None:
+    database = _Database()
+    monkeypatch.setattr(mock_sensors, "get_db", lambda: database)
+
+    def fail_location_setup(_db):
+        raise RuntimeError("synthetic setup failure")
+
+    monkeypatch.setattr(mock_sensors, "get_or_create_location", fail_location_setup)
+
+    with pytest.raises(RuntimeError, match="synthetic setup failure"):
+        mock_sensors.setup_sensors()
+
+    assert not database.committed
+    assert database.rolled_back
+    assert database.closed
+
+
+def test_setup_sensors_rolls_back_and_closes_after_sensor_type_query_fails(monkeypatch) -> None:
+    database = _Database(fail_on="SELECT id, name FROM sensor_type")
+    monkeypatch.setattr(mock_sensors, "get_db", lambda: database)
+    monkeypatch.setattr(mock_sensors, "get_or_create_location", lambda _db: "location-id")
+
+    with pytest.raises(RuntimeError, match="synthetic query failure"):
+        mock_sensors.setup_sensors()
 
     assert not database.committed
     assert database.rolled_back

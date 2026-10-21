@@ -135,8 +135,21 @@ def get_or_create_location(db):
 
 
 def setup_sensors():
-    """Register sample sensors in the database."""
+    """Register sample sensors and always release the database connection."""
     db = get_db()
+    try:
+        _setup_sensors(db)
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise
+    finally:
+        db.close()
+
+
+def _setup_sensors(db):
     location_id = get_or_create_location(db)
 
     # Get sensor type IDs
@@ -216,7 +229,6 @@ def setup_sensors():
             logger.info("  ✓ %s: %s", sensor['name'], sid)
 
     db.commit()
-    db.close()
     logger.info("%d sensors registered", created)
 
 

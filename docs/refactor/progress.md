@@ -1,3 +1,15 @@
+### CAP-039 mock-sensor setup connection lifecycle — 21 October 2026
+
+Mock-sensor setup now rolls back if location or sensor registration fails and
+closes its connection on all exits. Synthetic success and failure checks
+verify commit, rollback, and close behavior. The focused mock-sensor CLI,
+cleanup, insertion-redaction, and unified dispatcher selection passes 26 tests;
+Ruff and Python compilation pass. No database or provider was used. This is
+local connection-lifecycle evidence, not scheduled worker recovery acceptance.
+Checklist: 917 complete / 24 open (941 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[mock-sensor setup cleanup](builds/2026-10-21-recovery/cap-039-mock-sensor-setup-cleanup.json).
+
 ### CAP-039 mock-sensor count preflight — 21 October 2026
 
 Mock-sensor generation now rejects zero, negative, non-integer, and boolean
