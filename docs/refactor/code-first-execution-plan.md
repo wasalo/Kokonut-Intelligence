@@ -2554,3 +2554,14 @@ source-only input fails before database setup. Two focused tests pass in the
 write, or alert was run. Checklist: 842 complete / 25 open (867 total); matrix
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json).
+
+### CAP-039 anomaly-rule list CLI contract — 21 October 2026
+
+Standalone/unified global rule listing now matches on a synthetic row. The query
+is intentionally global and location/aggregate selectors fail before database
+setup. Five focused tests pass in the 47-test anomaly selection with Ruff and
+compilation; no database/provider was contacted. This does not set the operator
+privacy boundary or prove populated parity. Checklist: 843 complete / 25 open
+(868 total); matrix classifications remain 31 baseline-retained, 7 deployed,
+and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-anomaly-rule-list-cli.json).

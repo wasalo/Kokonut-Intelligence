@@ -13434,3 +13434,15 @@ runs. Two focused cases pass in the 66-test freshness selection with Ruff and
 compilation. Checklist: 842 complete / 25 open (867 total); matrix remains 66
 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json)).
+
+### CAP-039 anomaly-rule list CLI contract — 21 October 2026
+
+The global `anomaly_detector --list-rules` query and logged output now have
+standalone/unified parity on synthetic rows. The existing query has no location
+filter; both CLIs reject location and aggregate selectors before DB setup. Five
+focused cases pass in the 47-test anomaly selection with Ruff and compilation;
+no database/provider was contacted. This does not authorize the global list or
+prove populated parity; owner privacy review remains open. Checklist: 843
+complete / 25 open (868 total); matrix remains 66 rows: 31 baseline-retained,
+7 deployed, and 28 prepared ([test](../../tests/test_anomaly_detector_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-anomaly-rule-list-cli.json)).

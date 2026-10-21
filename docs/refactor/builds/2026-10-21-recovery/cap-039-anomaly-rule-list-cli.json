@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "203a0e28",
+  "scope": "Anomaly alert-rule global-list CLI parity and selector rejection",
+  "verification": {
+    "focused_tests": "5 parity/scope cases pass; 47 tests in the anomaly CLI, service, and notification selection",
+    "coverage": [
+      "standalone/unified --list-rules query and logger output match on a synthetic row",
+      "the existing query is explicitly global and does not claim location scoping",
+      "both CLIs reject --location-id and --all-locations with --list-rules before database setup",
+      "cursor and connection close on successful listing"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; rows and connection are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: global alert-rule listing has verified standalone/unified behavior and explicit rejection of location selectors.",
+  "limitations": [
+    "This documents existing global behavior; it does not establish operator authorization or change the access boundary.",
+    "Populated rule parity and owner review of global-list privacy remain open."
+  ]
+}

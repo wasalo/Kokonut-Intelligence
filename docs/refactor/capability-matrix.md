@@ -4168,3 +4168,12 @@ compilation. Actual evaluation, global privacy/authorization, and delivery
 remain open. Checklist: 842 complete / 25 open; classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json)).
+
+**CAP-039 anomaly-rule list CLI contract — 21 October 2026:** `--list-rules`
+now has standalone/unified output parity on synthetic rows and explicitly
+rejects location selectors; its existing query remains global. Five focused
+cases pass in the 47-test anomaly selection with Ruff and compilation; no
+database/provider was contacted. Populated parity and owner review of global
+operator authorization/privacy remain open. Checklist: 843 complete / 25 open;
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-anomaly-rule-list-cli.json)).
