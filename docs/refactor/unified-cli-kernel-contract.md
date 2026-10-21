@@ -1,7 +1,6 @@
 # Unified CLI Kernel contract
 
-**Status:** the command tree is deployed; common registration/help/forwarding
-checks pass. Full module-level legacy CLI parity remains open.
+**Status:** the command tree is deployed; actual parser help and invalid-argument preflight cover all 37 mounted groups, and every group has at least one sampled standalone/unified output path. Full argument/output parity, real database/provider behavior, and privileged operator authorization remain open.
 
 ## Entry points
 
