@@ -2488,3 +2488,15 @@ PostgreSQL/provider behavior remain open. Checklist: 836 complete / 25 open
 (861 total); matrix classifications remain 31 baseline-retained, 7 deployed,
 and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-weather-location-query-cleanup.json).
+
+### CAP-039 current-weather CLI parity — 21 October 2026
+
+Standalone/unified current-weather reads match for canonical single-location
+and explicitly selected aggregate scope using synthetic empty query results.
+Malformed IDs fail before DB setup; logs, bound scope, and cleanup match. Four
+parity/preflight checks pass in a 41-test weather/forecast selection with Ruff
+and compilation; no database/provider was contacted. Populated-data parity,
+provider delivery, and live authorization remain open. Checklist: 837 complete /
+25 open (862 total); matrix classifications remain 31 baseline-retained, 7
+deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-weather-cli-parity.json).

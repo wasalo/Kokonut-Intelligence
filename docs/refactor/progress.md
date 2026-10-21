@@ -13361,3 +13361,15 @@ compilation; no database/provider was contacted. Live PostgreSQL and provider
 behavior remain open. Checklist: 836 complete / 25 open (861 total); matrix
 remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_scope.py);
 [evidence](builds/2026-10-21-recovery/cap-039-weather-location-query-cleanup.json)).
+
+### CAP-039 current-weather CLI parity — 21 October 2026
+
+Current weather now has matching standalone/unified behavior for canonical
+single-location reads and explicit `--all-locations` reads against synthetic
+empty query results. The requested location is bound, logs and output match,
+and malformed scope fails before DB setup. Four focused parity/preflight cases
+pass within the 41-test weather/forecast selection with Ruff and compilation;
+no database/provider was contacted. Populated-data/provider behavior and live
+authorization remain open. Checklist: 837 complete / 25 open (862 total); matrix
+remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-weather-cli-parity.json)).
