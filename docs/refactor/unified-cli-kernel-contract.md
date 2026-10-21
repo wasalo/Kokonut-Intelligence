@@ -103,11 +103,11 @@ For each row, the regression invokes both `python -m <legacy-module>` and
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Nine successful offline invocations, twenty-eight other
+real service. Nine successful offline invocations, twenty-nine other
 PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
 service report, and three operator write invocations with fake connections
-match standalone output across all 37 mounted groups (151 tests including
+match standalone output across all 37 mounted groups (152 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
@@ -120,10 +120,10 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 151-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 152-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The twenty-nine query-backed success paths (including the operator inventory),
+The thirty query-backed success paths (including the operator inventory),
 one aggregate-service-stubbed tenant-preflight path, and three fake-connection
 operator writes exercise
 their real parsers, forwarding, and JSON or text output paths from both entry

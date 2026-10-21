@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py tests/test_operator_cli_identity_provision.py tests/test_operator_cli_identity_lifecycle.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 151,
-    "new_success_path_cases": 42,
-    "database_backed_or_aggregate_service_stubbed_cases": 30,
+    "tests_passed": 152,
+    "new_success_path_cases": 43,
+    "database_backed_or_aggregate_service_stubbed_cases": 31,
     "mutation_paths_with_fake_connections": 3,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0,
@@ -292,6 +292,14 @@
       "dependencies": ["identity update and session revocation are stubbed with fake connections"],
       "output": "JSON disabled-identity receipt",
       "database_behavior": "Standalone and unified output match and both execute the identity disable and active-session revocation in one managed transaction; separate failure injection confirms rollback. Actor/reason audit and database authorization are not tested."
+    }
+  ],
+  "additional_success_paths": [
+    {
+      "command": "export --verify <synthetic-snapshot-hash>",
+      "dependency": "snapshot verification query is stubbed with synthetic output",
+      "standalone_and_unified": "arguments and output match; each opened connection is closed",
+      "database_or_provider_calls": 0
     }
   ],
   "additional_failure_paths": [

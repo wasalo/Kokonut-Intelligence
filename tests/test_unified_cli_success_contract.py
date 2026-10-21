@@ -1859,3 +1859,55 @@ def test_export_cli_redacts_database_connection_and_read_failures(
     expected_connections = 0 if failure_point == "connect" else 2
     assert len(connections) == expected_connections
     assert all(connection.closed for connection in connections)
+
+
+def test_export_snapshot_verify_matches_standalone_and_unified_cli(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    calls = []
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fake_verify(connection, snapshot_hash):
+        calls.append((connection, snapshot_hash))
+        print("Result: PASS -- hash matches, report is intact")
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    monkeypatch.setattr(report_generator, "_verify_snapshot", fake_verify)
+    arguments = ["--verify", "synthetic-snapshot-hash"]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert unified.output.strip() == "Result: PASS -- hash matches, report is intact"
+    assert calls == [
+        (connections[0], "synthetic-snapshot-hash"),
+        (connections[1], "synthetic-snapshot-hash"),
+    ]
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert unified.stderr == ""
