@@ -159,3 +159,11 @@ services, route policies, and migrations from the proposed deployment. After
 application, retain additive functions, roles, and ledgers as ordered
 migrations; disable the routes to roll back application behavior. No candidate
 rollout is included in this batch.
+
+The legacy Delphi facilitator and CLI no longer persist, list, approve, or
+reject recommendations directly. The agent helper produces an in-memory
+suggestion only; the old command paths fail before database access. Use the
+authenticated Gateway draft and review routes for location-scoped persistence,
+request idempotency, audit, and independent human decisions. Other legacy
+Delphi study/panel commands remain outside this recommendation-specific
+boundary, and no candidate or legacy database change is implied.

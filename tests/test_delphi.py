@@ -301,23 +301,25 @@ class TestFacilitatorFlow:
         assert "should_stop" in result
         assert result["items"]
 
-    def test_draft_recommendation(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "draft"}
-        rec = f.draft_recommendation("study-1", "Adopt median positions")
-        assert rec["status"] == "draft"
-        mock_conn.commit.assert_called_once()
+    @pytest.mark.parametrize(
+        ("method_name", "args", "message"),
+        [
+            ("draft_recommendation", ("study-1", "Adopt medians"), "Gateway draft route"),
+            ("approve_recommendation", ("rec-1", "caller-supplied-actor"), "Gateway review route"),
+            ("reject_recommendation", ("rec-1", "caller-supplied-actor", "reason"), "Gateway review route"),
+            ("list_recommendations", ("study-1",), "Gateway review route"),
+        ],
+    )
+    def test_legacy_recommendation_paths_fail_before_database_access(
+        self, method_name, args, message
+    ):
+        f, mock_conn, _mock_cursor = self._make()
 
-    def test_approve_recommendation(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "approved"}
-        rec = f.approve_recommendation("rec-1", "human-1")
-        assert rec["status"] == "approved"
+        with pytest.raises(RuntimeError, match=message):
+            getattr(f, method_name)(*args)
 
-    def test_approve_requires_human(self):
-        f, _, _ = self._make()
-        with pytest.raises(ValueError, match="approved_by is required"):
-            f.approve_recommendation("rec-1", "")
+        mock_conn.cursor.assert_not_called()
+        mock_conn.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -367,7 +369,7 @@ class TestDelphiAgent:
     def test_task_registered(self):
         from services.agents.tasks import get_task
         task = get_task("delphi_facilitation")
-        assert "delphi_recommendation:draft" in task["writes"]
+        assert task["writes"] == []
         assert task["high_risk"] is False
 
     def test_summarize_study(self):
@@ -392,17 +394,24 @@ class TestDelphiAgent:
         assert summary["title"] == "Drought"
         assert "synthesis" in summary
 
-    def test_draft_recommendation_draft_only(self):
+    def test_draft_recommendation_is_in_memory_and_ignores_supplied_actor(self):
         from services.agents.delphi_facilitator_agent import draft_recommendation
         from services.delphi.facilitator import Facilitator
         mock_cursor = MagicMock()
         mock_conn = _make_mock_conn(mock_cursor)
         fac = Facilitator(conn=mock_conn)
-        mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "draft"}
         rec = draft_recommendation(
-            "a0000000-0000-4000-8000-000000000001", "Adopt medians", facilitator=fac
+            "a0000000-0000-4000-8000-000000000001",
+            "Adopt medians",
+            created_by="caller-supplied-actor",
+            facilitator=fac,
         )
         assert rec["status"] == "draft"
+        assert rec["study_id"] == "a0000000-0000-4000-8000-000000000001"
+        assert "created_by" not in rec
+        assert "in-memory" in rec["safety_note"].lower()
+        mock_cursor.execute.assert_not_called()
+        mock_conn.commit.assert_not_called()
 
     def test_run_facilitation(self):
         from services.agents.delphi_facilitator_agent import run_delphi_facilitation
@@ -418,7 +427,6 @@ class TestDelphiAgent:
         mock_cursor.fetchone.side_effect = [
             study_dict,
             {"n": 2},
-            {"id": "rec-1", "status": "draft"},  # draft_recommendation insert
         ]
         mock_cursor.fetchall.side_effect = [
             [item_dict],
@@ -426,7 +434,13 @@ class TestDelphiAgent:
         ]
         output = run_delphi_facilitation(study_id, draft=True, facilitator=fac)
         assert "summary" in output
-        assert "recommendation_draft" in output
+        assert output["recommendation_draft"]["status"] == "draft"
+        assert "created_by" not in output["recommendation_draft"]
+        assert not any(
+            "INSERT INTO delphi_recommendation" in call.args[0]
+            for call in mock_cursor.execute.call_args_list
+        )
+        mock_conn.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -443,3 +457,38 @@ class TestDelphiCLI:
         assert hasattr(services.delphi, "Facilitator")
         assert hasattr(services.delphi, "PanelManager")
         assert hasattr(services.delphi, "ConsensusCalculator")
+
+    def test_legacy_agent_cli_emits_in_memory_draft_without_database(self, monkeypatch, capsys):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        monkeypatch.setattr(
+            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
+        )
+        cli.cmd_draft_recommendation(
+            SimpleNamespace(
+                study_id="a0000000-0000-4000-8000-000000000001",
+                text="Adopt medians",
+                summary="Synthetic summary",
+                created_by="caller-supplied-actor",
+            )
+        )
+        output = json.loads(capsys.readouterr().out)
+        assert output["status"] == "draft"
+        assert "created_by" not in output
+
+    @pytest.mark.parametrize(
+        "command",
+        ["cmd_approve_recommendation", "cmd_reject_recommendation", "cmd_list_recommendations"],
+    )
+    def test_legacy_recommendation_commands_fail_before_database_access(self, command, monkeypatch):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        monkeypatch.setattr(
+            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
+        )
+        with pytest.raises(SystemExit, match="authenticated.*Gateway"):
+            getattr(cli, command)(SimpleNamespace())

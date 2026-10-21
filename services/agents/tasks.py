@@ -238,7 +238,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "high_risk": False,
     },
     "delphi_facilitation": {
-        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary of panel consensus and draft a recommendation. Agents cannot publish; a human must approve.",
+        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary and an in-memory recommendation suggestion. Persistence and review require the authenticated operator Gateway.",
         "risk": "medium",
         "inputs": {
             "study_id": {"type": "string", "format": "uuid", "required": True},
@@ -247,7 +247,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
             "summary": {"type": "object", "required": True},
             "recommendation_draft": {"type": "object", "required": False},
         },
-        "writes": ["delphi_recommendation:draft"],
+        "writes": [],
         "high_risk": False,
     },
     "coordination_strategy_draft": {

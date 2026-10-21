@@ -470,7 +470,7 @@ class Facilitator:
         }
 
     # ------------------------------------------------------------------
-    # Recommendation (draft only)
+    # Recommendation lifecycle (authenticated Gateway only)
     # ------------------------------------------------------------------
 
     def draft_recommendation(
@@ -480,62 +480,22 @@ class Facilitator:
         summary: Optional[str] = None,
         created_by: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Create a draft recommendation. Must be human-approved to publish."""
-        conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        rec_id = str(uuid.uuid4())
-        cur.execute(
-            """
-            INSERT INTO delphi_recommendation
-                (id, study_id, summary, recommendation_text, status, created_by)
-            VALUES (%s, %s, %s, %s, 'draft', %s)
-            RETURNING *
-            """,
-            (rec_id, study_id, summary, recommendation_text, created_by),
+        """Reject unauthenticated persistence; drafts use the scoped Gateway."""
+        raise RuntimeError(
+            "Direct Delphi recommendation writes are disabled; use the authenticated "
+            "operator Gateway draft route"
         )
-        result = dict(cur.fetchone())
-        conn.commit()
-        cur.close()
-        return result
 
     def approve_recommendation(
         self,
         recommendation_id: str,
         approved_by: str,
     ) -> Dict[str, Any]:
-        """Human approval of a draft recommendation."""
-        if not approved_by:
-            raise ValueError("approved_by is required for human oversight")
-        conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            """
-            UPDATE delphi_recommendation
-            SET status = 'approved', approved_by = %s, approved_at = NOW()
-            WHERE id = %s AND status = 'draft'
-              AND EXISTS (
-                  SELECT 1 FROM delphi_diversity_assessment da
-                  WHERE da.study_id = delphi_recommendation.study_id
-              )
-              AND NOT EXISTS (
-                  SELECT 1 FROM delphi_minority_report mr
-                  WHERE mr.study_id = delphi_recommendation.study_id
-                    AND mr.status IN ('draft','submitted')
-              )
-            RETURNING *
-            """,
-            (approved_by, recommendation_id),
+        """Reject caller-attributed review; use the scoped Gateway review path."""
+        raise RuntimeError(
+            "Direct Delphi recommendation review is disabled; use the authenticated "
+            "operator Gateway review route"
         )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            raise ValueError(
-                f"Recommendation {recommendation_id} is not review-ready; "
-                "complete diversity assessment and minority-report review"
-            )
-        conn.commit()
-        cur.close()
-        return dict(row)
 
     def reject_recommendation(
         self,
@@ -543,62 +503,18 @@ class Facilitator:
         rejected_by: str,
         reason: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Human rejection of a draft recommendation with reason."""
-        if not rejected_by:
-            raise ValueError("rejected_by is required for human oversight")
-        conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            """
-            UPDATE delphi_recommendation
-            SET status = 'rejected',
-                approved_by = %s,
-                approved_at = NOW()
-            WHERE id = %s AND status = 'draft'
-            RETURNING *
-            """,
-            (rejected_by, recommendation_id),
+        """Reject caller-attributed review; use the scoped Gateway review path."""
+        raise RuntimeError(
+            "Direct Delphi recommendation review is disabled; use the authenticated "
+            "operator Gateway review route"
         )
-        row = cur.fetchone()
-        if not row:
-            cur.close()
-            raise ValueError(f"Recommendation {recommendation_id} not found or not in draft status")
-        # Store rejection reason in study metadata
-        if reason:
-            study_id = row["study_id"]
-            cur2 = conn.cursor()
-            cur2.execute(
-                """
-                UPDATE delphi_study
-                SET metadata = jsonb_set(
-                    COALESCE(metadata, '{}'),
-                    '{rejection_log}',
-                    COALESCE(metadata->'rejection_log', '[]'::jsonb) || %s::jsonb
-                ),
-                updated_at = NOW()
-                WHERE id = %s
-                """,
-                (json.dumps([{
-                    "recommendation_id": recommendation_id,
-                    "rejected_by": rejected_by,
-                    "reason": reason,
-                    "rejected_at": datetime.now(timezone.utc).isoformat(),
-                }]), study_id),
-            )
-        conn.commit()
-        cur.close()
-        return dict(row)
 
     def list_recommendations(self, study_id: str) -> List[Dict[str, Any]]:
-        conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            "SELECT * FROM delphi_recommendation WHERE study_id = %s ORDER BY created_at DESC",
-            (study_id,),
+        """Reject unscoped reads; recommendation queues use the scoped Gateway."""
+        raise RuntimeError(
+            "Direct Delphi recommendation reads are disabled; use the authenticated "
+            "operator Gateway review route"
         )
-        results = [dict(r) for r in cur.fetchall()]
-        cur.close()
-        return results
 
     # ------------------------------------------------------------------
     # Panel calibration

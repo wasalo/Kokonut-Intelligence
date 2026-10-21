@@ -1,9 +1,9 @@
 """Delphi facilitator agent.
 
 Acts as the AI facilitator for Real-time Delphi studies: builds anonymized
-live summaries of the panel distribution and drafts recommendations. Per
-Kokonut agent safety rules, the agent may only create DRAFT recommendations; a
-human must approve before any outcome is published.
+live summaries of the panel distribution and in-memory recommendation
+suggestions. Persisted drafts and review decisions use the authenticated
+location-scoped Gateway; a human must review before any outcome is approved.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 from typing import Any, Dict, List, Optional
 
-from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import (
     validate_output,
     validate_task_capabilities,
@@ -69,20 +68,21 @@ def draft_recommendation(
     created_by: Optional[str] = None,
     facilitator: Optional[Facilitator] = None,
 ) -> Dict[str, Any]:
-    """Draft a recommendation. Agents cannot publish — status stays 'draft'."""
+    """Prepare an in-memory suggestion; compatibility actor/facilitator args are ignored."""
     validate_task_capabilities("delphi_facilitation")
     errors = validate_task_inputs("delphi_facilitation", {"study_id": study_id})
     if errors:
         raise ValueError("; ".join(errors))
-    assert_agent_action_allowed("create", "delphi_recommendation", {"status": "draft"})
-    fac = facilitator or Facilitator()
-    rec = fac.draft_recommendation(
-        study_id=study_id,
-        recommendation_text=recommendation_text,
-        summary=summary,
-        created_by=created_by,
-    )
-    return rec
+    return {
+        "study_id": study_id,
+        "summary": summary,
+        "recommendation_text": recommendation_text,
+        "status": "draft",
+        "safety_note": (
+            "In-memory agent suggestion only. Persist through the authenticated "
+            "operator Gateway draft route and review it independently."
+        ),
+    }
 
 
 def run_delphi_facilitation(

@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038",
+  "related_capability": "CAP-027",
+  "scope": "Retire unauthenticated legacy Delphi recommendation persistence, listing, and review paths while preserving in-memory agent suggestions and authenticated Gateway lifecycle operations.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_delphi.py tests/test_gateway_delphi_recommendation_drafts.py tests/test_gateway_delphi_recommendation_review.py tests/test_operator_console_delphi_recommendation_drafts.py tests/test_operator_console_delphi_recommendation_review.py tests/test_agent_tasks.py -q",
+    "result": "passed",
+    "passed": 129
+  },
+  "ruff": "passed",
+  "py_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "agent_write_boundary_inventory": "current",
+  "capability_matrix": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_added_or_applied": false,
+  "limits": [
+    "Agent-generated recommendation suggestions are now ephemeral until an authenticated operator submits them through the location-scoped Gateway draft route.",
+    "Other legacy Delphi study and panel commands are outside this recommendation-specific boundary.",
+    "Live OIDC/browser behavior, populated parity, runtime-role least privilege, and MAN-CAP-038 owner acceptance remain open."
+  ]
+}

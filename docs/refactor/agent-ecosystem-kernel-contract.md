@@ -277,3 +277,12 @@ ten shared synthesis agents. These checks do not establish Directus runtime-role
 parity, authenticated operator identity, database table isolation,
 provider/model behavior, populated task parity, or human approval workflow
 acceptance. Those remain open gates for MAN-CAP-038.
+
+Delphi recommendation generation now returns only an in-memory suggestion from
+the agent path. The legacy facilitator and CLI draft, list, approve, and reject
+methods fail closed before opening a database connection; persisted drafts and
+review decisions must use the authenticated, location-scoped Delphi Gateway
+routes. This prevents caller-supplied actor IDs and unscoped recommendation
+reads from bypassing the CAP-027 request receipts and review audit. It does not
+retire other legacy Delphi study or panel operations, or establish live OIDC,
+browser, runtime-role, or populated-data parity.
