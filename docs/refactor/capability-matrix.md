@@ -4158,3 +4158,13 @@ Ruff and compilation; no database/provider was contacted. Live database behavior
 and authorization remain open. Checklist: 841 complete / 25 open; matrix
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-savepoint-cursor-cleanup.json)).
+
+**CAP-039 data-freshness check CLI dispatch — 21 October 2026:** standalone
+and unified `--check --source weather` calls forward matching arguments and
+JSON output, with connection cleanup. Invalid source-only use fails before DB
+setup. The checker is stubbed, so no query, freshness write, or alert runs. Two
+focused cases pass within the 66-test freshness selection with Ruff and
+compilation. Actual evaluation, global privacy/authorization, and delivery
+remain open. Checklist: 842 complete / 25 open; classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json)).

@@ -2544,3 +2544,13 @@ the 64-test freshness/telemetry selection with Ruff and compilation. No live
 database/provider was used. Checklist: 841 complete / 25 open (866 total);
 classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-savepoint-cursor-cleanup.json).
+
+### CAP-039 data-freshness check CLI dispatch — 21 October 2026
+
+Standalone/unified `--check --source weather` calls pass the same scope and
+produce matching JSON with the checker stubbed; connections close and invalid
+source-only input fails before database setup. Two focused tests pass in the
+66-test freshness selection with Ruff and compilation. No evaluation, query,
+write, or alert was run. Checklist: 842 complete / 25 open (867 total); matrix
+classifications remain 31 baseline-retained, 7 deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json).

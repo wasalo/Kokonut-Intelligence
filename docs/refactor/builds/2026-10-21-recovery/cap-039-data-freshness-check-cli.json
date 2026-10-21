@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "852da94c",
+  "scope": "Data-freshness --check source dispatch parity through standalone and unified CLIs",
+  "verification": {
+    "focused_tests": "2 check-dispatch/preflight cases pass; 66 tests across freshness CLI, cursor, and telemetry selections",
+    "coverage": [
+      "standalone/unified --check --source weather forwards the same source to the checker and prints identical JSON",
+      "opened database connections close after the checker returns",
+      "--source without --check is rejected by the unified CLI before database setup",
+      "the checker is stubbed so no freshness evaluation, alert, or database write occurs"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; connection and checker are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: freshness-check CLI dispatch and source preflight match without running freshness writes.",
+  "limitations": [
+    "This is parser/dispatch coverage with the checker stubbed; it does not establish query, alert, or persistence behavior.",
+    "Global operator/privacy boundaries and external alert delivery remain open."
+  ]
+}

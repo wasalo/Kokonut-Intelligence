@@ -80,6 +80,46 @@ def test_freshness_summary_matches_across_standalone_and_unified_clis(
     assert unified.stderr == ""
 
 
+def test_freshness_check_dispatch_and_output_match(monkeypatch, capsys):
+    result = {
+        "checked": 1,
+        "fresh": 1,
+        "stale": 0,
+        "critical": 0,
+        "no_data": 0,
+        "error": 0,
+        "results": [{"source_system": "weather", "status": "fresh"}],
+    }
+    connections = []
+    check_calls = []
+
+    def make_connection():
+        connection = _Connection([])
+        connections.append(connection)
+        return connection
+
+    def check(connection, *, source=None):
+        check_calls.append((connection, source))
+        return result
+
+    monkeypatch.setattr(data_freshness, "get_db", make_connection)
+    monkeypatch.setattr(data_freshness, "check_freshness", check)
+
+    data_freshness.main(["--check", "--source", "weather"])
+    standalone_output = capsys.readouterr().out
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "data_freshness", "--check", "--source", "weather"],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == result
+    assert check_calls == [(connections[0], "weather"), (connections[1], "weather")]
+    assert all(connection.closed for connection in connections)
+    assert unified.stderr == ""
+
+
 @pytest.mark.parametrize("failure_stage", ["execute", "fetchall"])
 @pytest.mark.parametrize("entrypoint", ["standalone", "unified"])
 def test_freshness_summary_failure_closes_cursor_and_connection(
@@ -102,3 +142,18 @@ def test_freshness_summary_failure_closes_cursor_and_connection(
 
     assert connection.cursor_instance.closed
     assert connection.closed
+
+
+def test_freshness_source_without_check_is_rejected_before_database(monkeypatch):
+    monkeypatch.setattr(
+        data_freshness,
+        "get_db",
+        lambda: pytest.fail("source without --check must fail before DB setup"),
+    )
+    result = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "data_freshness", "--source", "weather"],
+    )
+
+    assert result.exit_code == 2
+    assert "--source requires --check" in result.output

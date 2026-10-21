@@ -13423,3 +13423,14 @@ authorization remain open. Checklist: 841 complete / 25 open (866 total);
 matrix remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
 ([test](../../tests/test_data_freshness_cursor_cleanup.py);
 [evidence](builds/2026-10-21-recovery/cap-039-data-freshness-savepoint-cursor-cleanup.json)).
+
+### CAP-039 data-freshness check CLI dispatch — 21 October 2026
+
+Standalone and unified `data_freshness --check --source weather` calls forward
+the same source and produce matching JSON, while closing their connections.
+`--source` without `--check` fails before DB setup in the unified CLI. The
+checker is stubbed: no freshness evaluation, alert, database query, or write
+runs. Two focused cases pass in the 66-test freshness selection with Ruff and
+compilation. Checklist: 842 complete / 25 open (867 total); matrix remains 66
+rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-check-cli.json)).
