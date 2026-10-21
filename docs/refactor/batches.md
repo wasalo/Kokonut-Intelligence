@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 854 checklist items complete and 25
-open (879 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 863 checklist items complete and 24
+open (887 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1775,3 +1775,7 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-026 advisory backcast console read — 20 October 2026
 
 - [x] Add a grant-gated operator-console view for location-scoped backcast summaries and milestone detail under exact `threatcasting:read`. The view uses keyset pagination, same-origin no-store requests, stale-response guards, text-only rendering, and preserves `advisory_only`; it exposes no write or approval actions and displays dependency counts without dependency IDs. The Gateway now caps encoded plan detail at 1 MiB and returns 413 for oversized records, in addition to its 500-milestone limit. The focused console, Gateway, and route-policy selection passes 23 tests, including oversized-response cleanup and inline JavaScript syntax; Ruff passes. No database or provider was contacted. CAP-026 remains prepared pending live OIDC/browser, populated output/evidence parity, broader ACL/RLS, and MAN-CAP-026 review ([contract](threatcasting-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_threatcasting.py)). Checklist: 719 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
+
+### CAP-066 crop NOI source alignment — 21 October 2026
+
+- [x] Route `crop_noi` reports through the shared `v_crop_cycle_noi` formula and honor the requested crop-cycle date window. Forward migration 527 requires verified/published sales, direct expenses, shared allocations, and harvest inputs to match the crop cycle location; the view keeps its existing output columns. The report preserves its legacy keys while adding gross/net revenue and direct/shared cost components. Two focused report tests pass with Ruff and compilation; disposable PostgreSQL 16 applies and replays migration 527 with three grouped lifecycle, location-isolation, output-shape, and replay assertions. Candidate and legacy databases were not touched; migration 527 is not rolled out. This closes code-level formula drift only: populated farm-reference parity, report owners, scope review, and MAN-CAP-066 remain open ([migration](../../schemas/postgres/527_location_consistent_crop_cycle_noi_inputs.sql); [implementation](../../services/export/reports/core.py); [test](../../tests/test_crop_noi_report.py); [disposable check](../../scripts/check-crop-cycle-noi-view-disposable.py); [evidence](builds/2026-10-21-recovery/cap-066-crop-noi-view-disposable.json)). Checklist: 863 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

@@ -187,13 +187,13 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 
 
 def generate_crop_noi(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
-    """Generate a crop net operating income report."""
+    """Generate a crop NOI report from the canonical crop-cycle NOI view."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute(
         """
         SELECT
-            cc.id as cycle_id,
+            v.crop_cycle_id as cycle_id,
             cc.cycle_name,
             c.name as crop_name,
             p.name as plot_name,
@@ -203,34 +203,36 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
             cc.expected_yield,
             cc.actual_yield,
             cc.expected_revenue,
-            cc.actual_revenue
-        FROM crop_cycle cc
+            v.gross_revenue,
+            v.returns_discounts as returns_and_discounts,
+            v.net_revenue,
+            v.direct_crop_costs,
+            v.allocated_shared_costs,
+            v.total_costs,
+            v.noi,
+            v.operating_margin_pct,
+            v.loss_rate_pct
+        FROM v_crop_cycle_noi v
+        JOIN crop_cycle cc ON cc.id = v.crop_cycle_id
         JOIN crop c ON cc.crop_id = c.id
         JOIN plot p ON cc.plot_id = p.id
-        WHERE cc.location_id = %s
+        WHERE v.location_id = %s
+          AND (%s::date IS NULL OR cc.planting_date >= %s::date)
+          AND (%s::date IS NULL OR COALESCE(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date)
         ORDER BY cc.planting_date DESC
-    """,
-        (location_id,),
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
     )
     cycles = [dict(r) for r in cur.fetchall()]
-
-    # Get expenses per crop cycle
     noi_data = []
     for cycle in cycles:
-        cur.execute(
-            """
-            SELECT
-                COALESCE(SUM(ca.allocated_amount), 0) as total_allocated_cost
-            FROM crop_cost_allocation ca
-            WHERE ca.crop_cycle_id = %s
-        """,
-            (cycle["cycle_id"],),
-        )
-        cost = dict(cur.fetchone())
-
-        actual_revenue = float(cycle["actual_revenue"] or 0)
-        allocated_cost = float(cost["total_allocated_cost"])
-        noi = actual_revenue - allocated_cost
+        gross_revenue = float(cycle["gross_revenue"] or 0)
+        returns_and_discounts = float(cycle["returns_and_discounts"] or 0)
+        net_revenue = float(cycle["net_revenue"] or 0)
+        direct_crop_costs = float(cycle["direct_crop_costs"] or 0)
+        allocated_shared_costs = float(cycle["allocated_shared_costs"] or 0)
+        total_costs = float(cycle["total_costs"] or 0)
+        noi = float(cycle["noi"] or 0)
 
         noi_data.append(
             {
@@ -246,18 +248,32 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
                 "expected_yield": float(cycle["expected_yield"] or 0),
                 "actual_yield": float(cycle["actual_yield"] or 0),
                 "expected_revenue": float(cycle["expected_revenue"] or 0),
-                "actual_revenue": actual_revenue,
-                "allocated_cost": allocated_cost,
+                # Retain the legacy keys while making their accounting basis
+                # explicit: actual revenue is net verified revenue, and the
+                # crop cost includes direct plus allocated shared costs.
+                "actual_revenue": net_revenue,
+                "allocated_cost": total_costs,
+                "gross_revenue": gross_revenue,
+                "returns_and_discounts": returns_and_discounts,
+                "net_revenue": net_revenue,
+                "direct_crop_costs": direct_crop_costs,
+                "allocated_shared_costs": allocated_shared_costs,
+                "total_costs": total_costs,
                 "crop_noi": noi,
-                "operating_margin_pct": (noi / actual_revenue * 100) if actual_revenue > 0 else 0,
+                "operating_margin_pct": float(cycle["operating_margin_pct"] or 0),
+                "loss_rate_pct": float(cycle["loss_rate_pct"] or 0),
             }
         )
 
     cur.close()
 
-    total_revenue = sum(d["actual_revenue"] for d in noi_data)
-    total_cost = sum(d["allocated_cost"] for d in noi_data)
-    total_noi = total_revenue - total_cost
+    total_gross_revenue = sum(d["gross_revenue"] for d in noi_data)
+    total_returns_and_discounts = sum(d["returns_and_discounts"] for d in noi_data)
+    total_revenue = sum(d["net_revenue"] for d in noi_data)
+    total_direct_costs = sum(d["direct_crop_costs"] for d in noi_data)
+    total_shared_costs = sum(d["allocated_shared_costs"] for d in noi_data)
+    total_cost = sum(d["total_costs"] for d in noi_data)
+    total_noi = sum(d["crop_noi"] for d in noi_data)
 
     return {
         "report_type": "crop_noi",
@@ -265,6 +281,10 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
         "crop_cycles": noi_data,
         "summary": {
             "total_revenue": total_revenue,
+            "total_gross_revenue": total_gross_revenue,
+            "total_returns_and_discounts": total_returns_and_discounts,
+            "total_direct_crop_costs": total_direct_costs,
+            "total_allocated_shared_costs": total_shared_costs,
             "total_cost": total_cost,
             "total_noi": total_noi,
             "overall_margin_pct": (total_noi / total_revenue * 100) if total_revenue > 0 else 0,

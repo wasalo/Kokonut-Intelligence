@@ -4,15 +4,15 @@
   "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
-    "direct_query_sites": 177,
+    "direct_query_sites": 176,
     "query_sites_with_bound_location_scope_signal": 126,
     "conditional_scope_query_sites": 5,
     "unresolved_query_sites": 0,
     "classification_counts": {
-      "all_direct_queries_show_bound_location_scope": 34,
+      "all_direct_queries_show_bound_location_scope": 35,
       "conditional_direct_query_scope": 3,
       "helper_or_computed_without_direct_query": 28,
-      "mixed_direct_query_scope": 16,
+      "mixed_direct_query_scope": 15,
       "no_bound_location_scope_visible": 13
     }
   },
@@ -629,7 +629,7 @@
       "report_type": "climate_impact",
       "callable": "generate_climate_impact",
       "source_file": "services/export/reports/core.py",
-      "source_line": 442,
+      "source_line": 462,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 4,
       "queries_with_bound_location_scope_signal": 3,
@@ -638,28 +638,28 @@
       "helper_calls": [
         {
           "callable": "compute_carbon_balance",
-          "line": 504,
+          "line": 524,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_ghg_emissions",
-          "line": 505,
+          "line": 525,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_regenerative_score",
-          "line": 507,
+          "line": 527,
           "location_id_name_visible_in_arguments": true
         },
         {
           "callable": "compute_tree_carbon",
-          "line": 506,
+          "line": 526,
           "location_id_name_visible_in_arguments": true
         }
       ],
       "queries": [
         {
-          "line": 462,
+          "line": 482,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -675,7 +675,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 467,
+          "line": 487,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -691,7 +691,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 478,
+          "line": 498,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -707,7 +707,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 490,
+          "line": 510,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -840,8 +840,8 @@
       "callable": "generate_crop_noi",
       "source_file": "services/export/reports/core.py",
       "source_line": 189,
-      "classification": "mixed_direct_query_scope",
-      "direct_query_count": 2,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 1,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
@@ -854,7 +854,8 @@
           "relations": [
             "crop",
             "crop_cycle",
-            "plot"
+            "plot",
+            "v_crop_cycle_noi"
           ],
           "location_id_reference": true,
           "location_predicate_visible": true,
@@ -864,22 +865,6 @@
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true
-        },
-        {
-          "line": 220,
-          "method": "execute",
-          "sql_source": "static_or_resolved",
-          "relations": [
-            "crop_cost_allocation"
-          ],
-          "location_id_reference": false,
-          "location_predicate_visible": false,
-          "global_null_rows_allowed": false,
-          "location_id_in_bound_expression": false,
-          "location_row_lookup_by_id": false,
-          "indirect_location_scope_visible": false,
-          "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false
         }
       ]
     },
@@ -1179,7 +1164,7 @@
       "report_type": "environmental",
       "callable": "generate_environmental",
       "source_file": "services/export/reports/core.py",
-      "source_line": 276,
+      "source_line": 296,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 4,
       "queries_with_bound_location_scope_signal": 4,
@@ -1188,7 +1173,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 281,
+          "line": 301,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1204,7 +1189,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 293,
+          "line": 313,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1220,7 +1205,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 305,
+          "line": 325,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1236,7 +1221,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 317,
+          "line": 337,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1479,7 +1464,7 @@
       "report_type": "forecast",
       "callable": "generate_forecast_summary",
       "source_file": "services/export/reports/core.py",
-      "source_line": 364,
+      "source_line": 384,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
       "queries_with_bound_location_scope_signal": 3,
@@ -1488,7 +1473,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 369,
+          "line": 389,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1504,7 +1489,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 380,
+          "line": 400,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1521,7 +1506,7 @@
           "bound_location_scope_signal": true
         },
         {
-          "line": 426,
+          "line": 446,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2759,7 +2744,7 @@
       "report_type": "revenue_multiplier",
       "callable": "generate_revenue_multiplier",
       "source_file": "services/export/reports/core.py",
-      "source_line": 346,
+      "source_line": 366,
       "classification": "helper_or_computed_without_direct_query",
       "direct_query_count": 0,
       "queries_with_bound_location_scope_signal": 0,

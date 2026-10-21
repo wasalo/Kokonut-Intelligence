@@ -13587,3 +13587,22 @@ and compilation pass. No chain or database was contacted. Checklist: 854
 complete / 25 open (879 total); matrix remains 66 rows: 31 baseline-retained,
 7 deployed, and 28 prepared ([test](../../tests/test_baal_indexer_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-baal-indexer-cli-contract.json)).
+
+### CAP-066 crop NOI source alignment — 21 October 2026
+
+The `crop_noi` report now reads the shared `v_crop_cycle_noi` projection instead
+of recomputing NOI from the mutable `crop_cycle.actual_revenue` field and raw
+allocation rows. It applies the requested crop-cycle date bounds and returns
+the canonical verified-input components while preserving legacy response keys.
+Forward migration 527 requires verified/published sales, direct expenses,
+shared allocations, and harvest inputs to match the crop cycle location; the
+view schema stays unchanged. Two focused report tests pass with Ruff and Python compilation.
+Disposable PostgreSQL 16 applies and replays migration 527 and verifies
+verified/published eligibility, draft/rejected exclusion, location isolation,
+the unchanged view shape, and replay behavior in three grouped assertions.
+No candidate or legacy database was contacted; migration 527 remains pending
+there. Populated report parity and MAN-CAP-066 owner acceptance remain open
+([migration](../../schemas/postgres/527_location_consistent_crop_cycle_noi_inputs.sql);
+[test](../../tests/test_crop_noi_report.py);
+[disposable check](../../scripts/check-crop-cycle-noi-view-disposable.py);
+[evidence](builds/2026-10-21-recovery/cap-066-crop-noi-view-disposable.json)).

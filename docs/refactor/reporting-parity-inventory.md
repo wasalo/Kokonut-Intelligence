@@ -181,6 +181,20 @@ rollback path. The `--auto` command runs all 94 types and is not by itself a
 safe parity operation: empty reports can still be stored, expensive outputs
 can be generated together, and all snapshots begin as drafts.
 
+
+### Source-backed report correction: crop NOI
+
+The `crop_noi` snapshot generator now reads the shared `v_crop_cycle_noi` view,
+which is the repository's formula owner for verified sales, returns/discounts,
+verified direct costs, allocated shared costs, and verified harvest loss. It
+also applies the requested crop-cycle date bounds and exposes the formula
+components in the snapshot. Migration 527 requires verified/published sales, direct expenses, shared-cost
+allocations, and harvest inputs to match the crop cycle location.
+This removes a source-code formula mismatch; it does not establish populated
+legacy-output parity or report-owner acceptance. The source check and
+disposable PostgreSQL evidence are recorded in
+[`batches.md`](batches.md#cap-066-crop-noi-source-alignment--21-october-2026).
+
 ## Safe next slices
 
 1. Read-only inventory of the populated archived dashboard/report definitions:

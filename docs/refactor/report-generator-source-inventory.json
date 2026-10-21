@@ -377,7 +377,7 @@
       "callable": "generate_climate_impact",
       "source_module": "services.export.reports.core",
       "source_file": "services/export/reports/core.py",
-      "source_line": 442,
+      "source_line": 462,
       "parameters": [
         "conn",
         "location_id",
@@ -615,7 +615,7 @@
       "callable": "generate_environmental",
       "source_module": "services.export.reports.core",
       "source_file": "services/export/reports/core.py",
-      "source_line": 276,
+      "source_line": 296,
       "parameters": [
         "conn",
         "location_id",
@@ -702,7 +702,7 @@
       "callable": "generate_forecast_summary",
       "source_module": "services.export.reports.core",
       "source_file": "services/export/reports/core.py",
-      "source_line": 364,
+      "source_line": 384,
       "parameters": [
         "conn",
         "location_id",
@@ -1371,7 +1371,7 @@
       "callable": "generate_revenue_multiplier",
       "source_module": "services.export.reports.core",
       "source_file": "services/export/reports/core.py",
-      "source_line": 346,
+      "source_line": 366,
       "parameters": [
         "conn",
         "location_id",
