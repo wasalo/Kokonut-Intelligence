@@ -9,6 +9,7 @@ import pytest
 from services.agents.commons_agent import CommonsSynthesisAgent
 from services.agents.feedback_agent import FeedbackSynthesisAgent
 from services.agents.gnh_agent import GnhSynthesisAgent
+from services.agents.kokonut_commons_agent import KokonutCommonsSynthesisAgent
 from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
 from services.agents.wellbeing_agent import WellbeingSynthesisAgent
@@ -21,6 +22,7 @@ AGENTS = [
     OpenSourceCapitalistSynthesisAgent,
     WellbeingSynthesisAgent,
     FeedbackSynthesisAgent,
+    KokonutCommonsSynthesisAgent,
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 
@@ -98,6 +100,8 @@ def test_global_catalogue_sources_are_not_registered_as_location_manifests() -> 
     assert "network_scaling_target" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "open_source_impact_artifact" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
     assert "green_paper_publication_review" not in ResilienceSynthesisAgent.source_reference_views
+    assert "federation_protocol" not in KokonutCommonsSynthesisAgent.source_reference_views
+    assert "participatory_signal_experiment" not in KokonutCommonsSynthesisAgent.source_reference_views
 
 
 def test_feedback_sources_use_only_consent_approved_published_views() -> None:

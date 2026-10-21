@@ -64,6 +64,9 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "wellbeing_metric_observation",
         "participatory_action_record",
         "stakeholder_feedback",
+        "anti_capture_governance_policy",
+        "commons_redistribution_policy",
+        "algorithmic_redistribution_mechanism",
     }
 )
 

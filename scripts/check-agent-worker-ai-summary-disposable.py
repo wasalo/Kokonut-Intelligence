@@ -30,8 +30,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/533_regenerator_synthesis_source_references.sql",
     ROOT / "schemas/postgres/534_public_synthesis_source_reference_views.sql",
     ROOT / "schemas/postgres/535_consent_safe_wellbeing_feedback_source_views.sql",
+    ROOT / "schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-wellbeing-feedback-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-kokonut-commons-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -79,6 +80,11 @@ CONSENT_SAFE_SOURCE_VIEWS = {
     "wellbeing_metric_observation": "v_public_wellbeing_metric_summary",
     "participatory_action_record": "v_public_participatory_governance_summary",
     "stakeholder_feedback": "v_public_stakeholder_feedback_summary",
+}
+KOKONUT_COMMONS_SOURCE_VIEWS = {
+    "anti_capture_governance_policy": "v_public_anti_capture_governance_policy",
+    "commons_redistribution_policy": "v_public_commons_redistribution_policy",
+    "algorithmic_redistribution_mechanism": "v_public_algorithmic_redistribution_mechanism",
 }
 
 
@@ -664,6 +670,84 @@ def _consent_safe_feedback_acceptance() -> str:
     """
 
 
+def _kokonut_commons_source_acceptance() -> str:
+    source_ids = {
+        "anti_capture_governance_policy": "e0000000-0000-4000-8000-000000000701",
+        "commons_redistribution_policy": "e0000000-0000-4000-8000-000000000702",
+        "algorithmic_redistribution_mechanism": "e0000000-0000-4000-8000-000000000703",
+    }
+    payload_entries = ", ".join(
+        f"'{table}', jsonb_build_object('record_ids', jsonb_build_array('{source_ids[table]}'), "
+        "'row_count', 1, 'truncated', false)"
+        for table in KOKONUT_COMMONS_SOURCE_VIEWS
+    )
+    view_array = ", ".join(f"'{view}'" for view in KOKONUT_COMMONS_SOURCE_VIEWS.values())
+    table_array = ", ".join(f"'{table}'" for table in KOKONUT_COMMONS_SOURCE_VIEWS)
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE draft_record RECORD;
+            payload JSONB;
+            attached JSONB;
+            object_name TEXT;
+    BEGIN
+        SELECT * INTO STRICT draft_record
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'kokonut_commons', 'Synthetic Kokonut Commons policies.',
+              ARRAY['anti_capture_governance_policy', 'commons_redistribution_policy',
+                    'federation_protocol', 'algorithmic_redistribution_mechanism',
+                    'participatory_signal_experiment'], 'kokonut-commons-agent-v1',
+              'd0000000-0000-4000-8000-000000000941'
+          );
+        payload := jsonb_build_object({payload_entries});
+        attached := kokonut_security.set_location_ai_summary_source_references(
+            '{LOCATION_ID}', draft_record.summary_id,
+            'd0000000-0000-4000-8000-000000000941', payload
+        );
+        IF attached IS DISTINCT FROM payload
+           OR payload ? 'federation_protocol'
+           OR payload ? 'participatory_signal_experiment' THEN
+            RAISE EXCEPTION 'Kokonut Commons references included a global catalogue or lost local source rows';
+        END IF;
+        attached := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', draft_record.summary_id,
+            'd0000000-0000-4000-8000-000000000941'
+        );
+        IF attached IS DISTINCT FROM payload THEN
+            RAISE EXCEPTION 'Kokonut Commons references were not returned under exact scope';
+        END IF;
+        IF payload -> 'commons_redistribution_policy' -> 'record_ids'
+           ? 'e0000000-0000-4000-8000-000000000704' THEN
+            RAISE EXCEPTION 'network-wide commons policy entered a farm manifest';
+        END IF;
+        FOREACH object_name IN ARRAY ARRAY[{view_array}] LOOP
+            IF NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'id', 'SELECT')
+               OR NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'location_id', 'SELECT')
+               OR has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'public_summary', 'SELECT') THEN
+                RAISE EXCEPTION 'Kokonut Commons drafter grant exceeds ID and location columns';
+            END IF;
+        END LOOP;
+        FOREACH object_name IN ARRAY ARRAY[{table_array}] LOOP
+            IF has_table_privilege('kokonut_worker_execution',
+                    format('public.%I', object_name), 'SELECT') THEN
+                RAISE EXCEPTION 'worker execution has direct Kokonut Commons source access to %', object_name;
+            END IF;
+        END LOOP;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    """
+
+
 def _review_context_fixture() -> str:
     return r"""
     CREATE OR REPLACE FUNCTION kokonut_security.current_tenant_context()
@@ -866,7 +950,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-535 apply; migrations 530-535 replay",
+        "migrations 405, 419, 521-524, 529-536 apply; migrations 530-536 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
@@ -878,6 +962,9 @@ def main() -> int:
         "migration 535 validates consent-filtered cultural, wellbeing, participatory-action, and stakeholder-feedback views",
         "private/no-consent stakeholder feedback cannot be attached to a worker draft",
         "the consent-safe source drafter receives only ID/location columns and worker execution has no sensitive-table access",
+        "migration 536 validates location-assigned Kokonut Commons governance policy views",
+        "Kokonut Commons manifests include location-assigned rows but exclude global federation, signal, and unassigned policy records",
+        "Kokonut Commons drafter grants are limited to ID/location and worker execution has no direct policy-table access",
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
@@ -893,7 +980,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "capital-efficiency, bio-factory, regenerative, commons, GNH, financial resilience, open-source-capitalist, and consent-safe wellbeing/feedback synthesis attach bounded IDs for thirty-one location-scoped public views; private feedback aggregates remain unreferenced",
+        "source_lineage_note": "capital-efficiency, bio-factory, regenerative, commons, GNH, financial resilience, open-source-capitalist, consent-safe wellbeing/feedback, and farm-assigned Kokonut Commons synthesis attach bounded IDs for thirty-four location-scoped public views; private feedback and global governance catalogues remain unreferenced",
         "checks": checks,
     }
     stage = "container_start"
@@ -908,12 +995,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
@@ -921,6 +1008,8 @@ def main() -> int:
         base.psql(docker, container, _registered_synthesis_source_acceptance())
         stage = "consent_safe_wellbeing_feedback_acceptance"
         base.psql(docker, container, _consent_safe_feedback_acceptance())
+        stage = "kokonut_commons_source_acceptance"
+        base.psql(docker, container, _kokonut_commons_source_acceptance())
         base.psql(docker, container, _review_context_fixture())
         stage = "synthetic_operator_source_reference_acceptance"
         base.psql(docker, container, _operator_source_acceptance())

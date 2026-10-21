@@ -215,6 +215,32 @@ INSERT INTO public.stakeholder_feedback VALUES
     ('e0000000-0000-4000-8000-000000000604', 'a0000000-0000-0000-0000-000000000001', 'published', TRUE, TRUE),
     ('e0000000-0000-4000-8000-000000000605', 'a0000000-0000-0000-0000-000000000001', 'published', FALSE, FALSE);
 
+CREATE TABLE public.anti_capture_governance_policy (
+    id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL
+);
+CREATE TABLE public.commons_redistribution_policy (
+    id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL
+);
+CREATE TABLE public.algorithmic_redistribution_mechanism (
+    id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL
+);
+CREATE VIEW public.v_public_anti_capture_governance_policy AS
+    SELECT id, location_id, 'Synthetic public policy'::TEXT AS public_summary
+    FROM public.anti_capture_governance_policy WHERE status = 'published';
+CREATE VIEW public.v_public_commons_redistribution_policy AS
+    SELECT id, location_id, 'Synthetic public policy'::TEXT AS public_summary
+    FROM public.commons_redistribution_policy WHERE status = 'published';
+CREATE VIEW public.v_public_algorithmic_redistribution_mechanism AS
+    SELECT id, location_id, 'Synthetic public mechanism'::TEXT AS public_summary
+    FROM public.algorithmic_redistribution_mechanism WHERE status = 'published';
+INSERT INTO public.anti_capture_governance_policy VALUES
+    ('e0000000-0000-4000-8000-000000000701', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.commons_redistribution_policy VALUES
+    ('e0000000-0000-4000-8000-000000000702', 'a0000000-0000-0000-0000-000000000001', 'published'),
+    ('e0000000-0000-4000-8000-000000000704', NULL, 'published');
+INSERT INTO public.algorithmic_redistribution_mechanism VALUES
+    ('e0000000-0000-4000-8000-000000000703', 'a0000000-0000-0000-0000-000000000001', 'published');
+
 DO $$
 DECLARE
     source_table TEXT;

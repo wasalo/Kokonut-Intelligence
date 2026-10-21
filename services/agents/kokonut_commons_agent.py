@@ -60,6 +60,11 @@ class KokonutCommonsSynthesisAgent(SynthesisAgent):
     read_collection = "anti_capture_governance_policy"
     model_version = "kokonut-commons-agent-v1"
     source_tables = ["anti_capture_governance_policy", "commons_redistribution_policy", "federation_protocol", "algorithmic_redistribution_mechanism", "participatory_signal_experiment"]
+    source_reference_views = {
+        "anti_capture_governance_policy": "v_public_anti_capture_governance_policy",
+        "commons_redistribution_policy": "v_public_commons_redistribution_policy",
+        "algorithmic_redistribution_mechanism": "v_public_algorithmic_redistribution_mechanism",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_kokonut_commons(conn, location_id)
