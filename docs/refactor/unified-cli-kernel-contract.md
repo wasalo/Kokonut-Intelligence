@@ -194,7 +194,12 @@ stubbed database-query paths (including the operator inventory), one
 aggregate-service path, two synthetic report-generation paths, three
 fake-connection operator writes, and the market-data, price-attestation,
 GIS-import, HTTP sensor-receiver, MQTT subscriber, EAS/Gnosis indexer, and
-mock-sensor parser/dispatch paths. Identity
+mock-sensor parser/dispatch paths. Every registered ingestion module must
+provide a callable `main()` entry point; the dispatcher fails closed if that
+contract is missing and never executes module source through `runpy`. Mock
+sensor generation selects only devices explicitly marked by setup, and cleanup
+scopes alert/reading deletion to those devices while retaining registry rows.
+Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,

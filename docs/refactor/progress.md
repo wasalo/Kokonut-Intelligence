@@ -13549,3 +13549,28 @@ sensor records or alerts were created or deleted. Checklist: 851 complete / 25
 open (876 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed, and
 28 prepared ([test](../../tests/test_mock_sensors_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-mock-sensors-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 mock-sensor data scope — 21 October 2026
+
+Mock sensor setup now marks created devices and adopts preexisting demo devices
+only when their stable identity fields match. Generation selects only active
+marked demo devices; cleanup deletes alerts and mock readings scoped to those
+devices, then retains the registry rows so existing references are not broken.
+Injected SQL failure confirms rollback and connection cleanup. The 57-test
+mock-sensor/IoT selection passes with Ruff and compilation; all database calls
+were mocked. Checklist: 852 complete / 25 open (877 total); matrix remains 66
+rows: 31 baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_mock_sensors_cleanup.py);
+[evidence](builds/2026-10-21-recovery/mock-sensor-demo-scope.json)).
+
+### CAP-039 ingestion dispatcher callable-entrypoint boundary — 21 October 2026
+
+The unified ingestion dispatcher now fails closed if a registered implementation
+lacks a callable `main()` instead of re-executing its source through `runpy`.
+The regression confirms the error and `sys.argv` restoration; all 19 mounted
+module help paths remain available through the production-like isolation check.
+Two focused tests pass with Ruff and Python compilation. No provider, database,
+or network was contacted. Checklist: 853 complete / 25 open (878 total); matrix
+remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared
+([test](../../tests/test_ingestion_cli_dispatch.py);
+[evidence](builds/2026-10-21-recovery/cap-039-ingestion-dispatch-no-runpy.json)).

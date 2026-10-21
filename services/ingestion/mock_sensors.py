@@ -156,9 +156,40 @@ def setup_sensors():
             continue
 
         with db.cursor() as cur:
-            # Check if slug exists
-            cur.execute("SELECT id FROM sensor_device WHERE slug = %s", (sensor["slug"],))
-            if cur.fetchone():
+            # Existing demo devices are adopted only when their stable sample
+            # identity still matches. This lets upgraded local demo data keep
+            # working without tagging a real device that happens to share a slug.
+            cur.execute(
+                """
+                SELECT id, name, manufacturer, model, serial_number, metadata
+                FROM sensor_device
+                WHERE slug = %s
+                """,
+                (sensor["slug"],),
+            )
+            existing = cur.fetchone()
+            if existing:
+                existing_id, name, manufacturer, model, serial_number, metadata = existing
+                expected_identity = (
+                    sensor["name"], sensor["manufacturer"], sensor["model"],
+                    sensor["serial_number"],
+                )
+                existing_identity = (name, manufacturer, model, serial_number)
+                if existing_identity == expected_identity:
+                    existing_metadata = (
+                        metadata if isinstance(metadata, dict)
+                        else json.loads(metadata or "{}")
+                    )
+                    existing_metadata.update({
+                        "base_value": sensor["base_value"],
+                        "daily_variation": sensor["daily_variation"],
+                        "noise": sensor["noise"],
+                        "mock_sensor_demo": True,
+                    })
+                    cur.execute(
+                        "UPDATE sensor_device SET metadata = %s::jsonb WHERE id = %s",
+                        (json.dumps(existing_metadata), existing_id),
+                    )
                 logger.info("  ⊙ %s: already exists", sensor['name'])
                 continue
 
@@ -176,7 +207,8 @@ def setup_sensors():
                     sensor["protocol"],
                     json.dumps({"base_value": sensor["base_value"],
                                 "daily_variation": sensor["daily_variation"],
-                                "noise": sensor["noise"]}),
+                                "noise": sensor["noise"],
+                                "mock_sensor_demo": True}),
                 ),
             )
             sid = cur.fetchone()[0]
@@ -227,6 +259,7 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                 FROM sensor_device sd
                 JOIN sensor_type st ON sd.sensor_type_id = st.id
                 WHERE sd.status = 'active'
+                  AND sd.metadata->>'mock_sensor_demo' = 'true'
             """)
             sensors = cur.fetchall()
 
@@ -317,14 +350,37 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
 
 
 def cleanup():
-    """Remove all mock sensor data."""
+    """Remove mock readings and alerts for explicitly marked demo devices."""
     db = get_db()
-    with db.cursor() as cur:
-        cur.execute("DELETE FROM sensor_alert")
-        cur.execute("DELETE FROM sensor_reading WHERE metadata->>'mock' = 'true'")
-        cur.execute("DELETE FROM sensor_device WHERE metadata->>'mock' IS NOT NULL OR name LIKE 'Soil Moisture%' OR name LIKE 'Weather Station%' OR name LIKE 'Rain Gauge%'")
-    db.commit()
-    db.close()
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM sensor_alert
+                WHERE sensor_device_id IN (
+                    SELECT id
+                    FROM sensor_device
+                    WHERE metadata->>'mock_sensor_demo' = 'true'
+                )
+                """
+            )
+            cur.execute(
+                """
+                DELETE FROM sensor_reading
+                WHERE metadata->>'mock' = 'true'
+                  AND sensor_id::text IN (
+                      SELECT id::text
+                      FROM sensor_device
+                      WHERE metadata->>'mock_sensor_demo' = 'true'
+                  )
+                """
+            )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
     logger.info("Cleanup done")
 
 

@@ -136,13 +136,12 @@ def main(argv: list[str] | None = None) -> None:
     original_argv = sys.argv
     try:
         sys.argv = [f"services.ingestion.{args.tool}"] + remaining
-        if hasattr(mod, "main"):
-            mod.main()
-        else:
-            # Fallback: run the module directly
-            import runpy
-
-            runpy.run_module(info["module"], run_name="__main__")
+        module_main = getattr(mod, "main", None)
+        if not callable(module_main):
+            parser.error(
+                f"ingestion tool {args.tool!r} does not expose a callable main()"
+            )
+        module_main()
     finally:
         sys.argv = original_argv
 
