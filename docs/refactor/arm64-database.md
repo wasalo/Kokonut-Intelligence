@@ -12,12 +12,13 @@ smoke, not a physical Raspberry Pi or performance test
 ([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json)).
 
 A separate clean bootstrap replay on native `linux/amd64` PostgreSQL 16 applied
-all 515 current schema files through migration 524, with zero failures, no
+all 516 current schema files through migration 525, with zero failures, no
 seeds, and no farm data. It fixed a fresh-install prerequisite discovered at
 migration 475 by creating a locked-down optional Directus role placeholder.
 This does not advance ARM64 database schema replay: its latest recorded
-migration remains 434. That database replay and physical-device acceptance are
-still open ([evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json)).
+migration remains 434. The separate ARM64 Gateway/runtime integration remains
+tested against schema 524. ARM64 database replay and physical-device acceptance
+are still open ([evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-525.json)).
 
 **Cross-architecture schema integration (20 October 2026):** the current
 ARM64 Gateway was started under QEMU against a fresh native AMD64 PostgreSQL 16

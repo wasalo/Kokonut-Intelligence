@@ -3,6 +3,18 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Current-schema clean replay — 20 October 2026:** A fresh isolated native
+AMD64 PostgreSQL 16 database applied all 516 repository schema migrations
+through 525 with zero failures and no seeds or farm data. The focused migration,
+operator lifecycle, and unified-CLI selection passes 105 tests; Ruff, Python
+compilation, matrix validation, and migration-source validation pass. Docker's
+address pool was exhausted by 20 empty networks from prior Kokonut test
+projects; only those unattached test networks were removed. Candidate and legacy
+networks and services remained untouched. The candidate still needs its own
+ordered migration rollout after a fresh encrypted checkpoint and restore
+rehearsal. ARM64 database replay remains through 434; the separate ARM64 Gateway
+runtime check remains against schema 524. [Replay evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-525.json).
+
 **Bootstrap and ARM64 software acceptance — 20 October 2026:** A clean schema
 replay exposed migration 475's dependency on an optional Directus role in fresh
 installations. Bootstrap now provisions a restricted `NOLOGIN` placeholder

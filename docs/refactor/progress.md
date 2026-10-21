@@ -20,15 +20,16 @@ A clean replay exposed that migration 475 revokes from
 `kokonut_directus_runtime` before that optional role exists on a fresh install.
 The bootstrap now creates a locked-down `NOLOGIN` placeholder only when absent;
 the ordered migration CLI runs this preflight before pending schema migrations,
-while dry-run and no-op plans remain non-mutating. Fresh isolated PostgreSQL 16
-replay applied all 515 current schema files through migration 524 with zero
-failures. The focused migration/upgrade/Directus-role selection passes 56 tests,
-with Ruff and Python compilation clean. The candidate and legacy stacks were
-not targeted. Current-source ARM64 QEMU smoke also passed Gateway/SDK imports,
+while dry-run and no-op plans remain non-mutating. A fresh isolated PostgreSQL 16
+replay now applies all 516 current schema files through migration 525 with zero
+failures. The focused migration/operator-CLI selection passes 105 tests, and
+Ruff, Python compilation, capability-matrix validation, and migration-source
+validation pass. The candidate and legacy stacks were not targeted. The
+current-source ARM64 QEMU smoke also passed Gateway/SDK imports,
 18 JobSpecs, migration CLI import/help, and synthetic RPC construction with no
 network, credentials, database, or writable image filesystem. Full schema replay
 was native AMD64; ARM64 database replay remains at migration 434, and this is not
-physical Raspberry Pi acceptance ([bootstrap evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-524.json);
+physical Raspberry Pi acceptance ([bootstrap evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-525.json);
 [ARM64 smoke](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke-c6aab4ea.json)).
 The ARM64 Gateway was then run against a fresh database containing the same
 515 schema migrations under an internal-only Docker network. It reported
