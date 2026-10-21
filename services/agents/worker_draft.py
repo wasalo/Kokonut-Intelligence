@@ -41,6 +41,10 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "bio_input_provenance",
         "bio_recipe_library",
         "bio_factory_quality_test",
+        "regenerative_outcome_summary",
+        "community_governance_mechanism",
+        "replication_readiness_assessment",
+        "adaptive_stewardship_review",
     }
 )
 

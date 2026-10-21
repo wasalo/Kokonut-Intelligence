@@ -27,8 +27,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/530_signed_agent_ai_summary_source_references.sql",
     ROOT / "schemas/postgres/531_capital_efficiency_synthesis_source_references.sql",
     ROOT / "schemas/postgres/532_registered_agent_source_reference_views.sql",
+    ROOT / "schemas/postgres/533_regenerator_synthesis_source_references.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-bio-factory-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-regenerator-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -76,8 +77,11 @@ def _worker_acceptance() -> str:
             denied BOOLEAN;
             manifest JSONB;
             bio_manifest JSONB;
+            regenerator_manifest JSONB;
             source_result JSONB;
             bio_probe RECORD;
+            regenerator_probe RECORD;
+            regenerator_bad_probe RECORD;
     BEGIN
         SELECT * INTO created
           FROM kokonut_security.create_location_ai_summary_worker_draft(
@@ -220,6 +224,66 @@ def _worker_acceptance() -> str:
             RAISE EXCEPTION 'bio-factory source references were not returned under exact scope';
         END IF;
 
+        SELECT * INTO regenerator_probe
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'regenerative_outcomes', 'Published regenerative source references.',
+              ARRAY['regenerative_outcome_summary', 'community_governance_mechanism',
+                    'replication_readiness_assessment', 'adaptive_stewardship_review'],
+              'regenerator-agent-v1', 'd0000000-0000-4000-8000-000000000913'
+          );
+        regenerator_manifest := jsonb_build_object(
+            'regenerative_outcome_summary', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000401'),
+                'row_count', 1, 'truncated', false
+            ),
+            'community_governance_mechanism', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000411'),
+                'row_count', 1, 'truncated', false
+            ),
+            'replication_readiness_assessment', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000421'),
+                'row_count', 1, 'truncated', false
+            ),
+            'adaptive_stewardship_review', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000431'),
+                'row_count', 1, 'truncated', false
+            )
+        );
+        source_result := kokonut_security.set_location_ai_summary_source_references(
+            '{LOCATION_ID}', regenerator_probe.summary_id, 'd0000000-0000-4000-8000-000000000913',
+            regenerator_manifest
+        );
+        IF source_result IS DISTINCT FROM regenerator_manifest THEN
+            RAISE EXCEPTION 'registered regenerator views did not preserve source references';
+        END IF;
+        source_result := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', regenerator_probe.summary_id, 'd0000000-0000-4000-8000-000000000913'
+        );
+        IF source_result IS DISTINCT FROM regenerator_manifest THEN
+            RAISE EXCEPTION 'regenerator source references were not returned under exact scope';
+        END IF;
+        SELECT * INTO regenerator_bad_probe
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'regenerative_outcomes', 'Cross-location rejection fixture.',
+              ARRAY['regenerative_outcome_summary'], 'regenerator-agent-v1',
+              'd0000000-0000-4000-8000-000000000914'
+          );
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', regenerator_bad_probe.summary_id, 'd0000000-0000-4000-8000-000000000914',
+                '{{"regenerative_outcome_summary":{{"record_ids":["e0000000-0000-4000-8000-000000000403"],"row_count":1,"truncated":false}}}}'::jsonb
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'other-location regenerative source row was accepted'; END IF;
+        source_result := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', regenerator_bad_probe.summary_id, 'd0000000-0000-4000-8000-000000000914'
+        );
+        IF source_result <> '{{}}'::jsonb THEN
+            RAISE EXCEPTION 'rejected regenerative attachment left a partial manifest';
+        END IF;
+
         denied := FALSE;
         BEGIN
             PERFORM kokonut_security.get_location_ai_summary_worker_source_references(
@@ -343,6 +407,7 @@ def _worker_acceptance() -> str:
            OR has_table_privilege('kokonut_worker_execution', 'public.harvest_event', 'SELECT')
            OR has_table_privilege('kokonut_worker_execution', 'public.capital_efficiency_scenario', 'SELECT')
            OR has_table_privilege('kokonut_worker_execution', 'public.bio_factory_batch', 'SELECT')
+           OR has_table_privilege('kokonut_worker_execution', 'public.regenerative_outcome_summary', 'SELECT')
            OR has_table_privilege('kokonut_worker_execution', 'kokonut_security.ai_summary_source_reference_view', 'SELECT') THEN
             RAISE EXCEPTION 'worker execution role has direct source or manifest table access';
         END IF;
@@ -559,11 +624,12 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-532 apply; migrations 530-532 replay",
+        "migrations 405, 419, 521-524, 529-533 apply; migrations 530-533 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
         "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
+        "migration 533 validates four regenerative source views and rejects cross-location rows without changing attached manifests",
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
@@ -579,7 +645,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "capital-efficiency and bio-factory synthesis now attach bounded IDs for eight published-view sources; other generic synthesis agents retain table-name hints",
+        "source_lineage_note": "capital-efficiency, bio-factory, and regenerative synthesis attach bounded IDs for twelve published-view sources; other generic synthesis agents retain table-name hints",
         "checks": checks,
     }
     stage = "container_start"
@@ -594,12 +660,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())

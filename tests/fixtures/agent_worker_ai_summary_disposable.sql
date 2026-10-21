@@ -104,6 +104,37 @@ INSERT INTO public.bio_recipe_library VALUES
 INSERT INTO public.bio_factory_quality_test VALUES
     ('e0000000-0000-4000-8000-000000000331', 'a0000000-0000-0000-0000-000000000001', 'published');
 
+CREATE TABLE public.regenerative_outcome_summary (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.community_governance_mechanism (
+    id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL
+);
+CREATE TABLE public.replication_readiness_assessment (
+    id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL
+);
+CREATE TABLE public.adaptive_stewardship_review (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE VIEW public.v_public_regenerative_outcome_summary AS
+    SELECT id, location_id FROM public.regenerative_outcome_summary WHERE status = 'published';
+CREATE VIEW public.v_public_community_governance_mechanism AS
+    SELECT id, location_id FROM public.community_governance_mechanism WHERE status = 'published';
+CREATE VIEW public.v_public_replication_readiness_summary AS
+    SELECT id, location_id FROM public.replication_readiness_assessment WHERE status = 'published';
+CREATE VIEW public.v_public_adaptive_stewardship_summary AS
+    SELECT id, location_id FROM public.adaptive_stewardship_review WHERE status = 'published';
+INSERT INTO public.regenerative_outcome_summary VALUES
+    ('e0000000-0000-4000-8000-000000000401', 'a0000000-0000-0000-0000-000000000001', 'published'),
+    ('e0000000-0000-4000-8000-000000000402', 'a0000000-0000-0000-0000-000000000001', 'draft'),
+    ('e0000000-0000-4000-8000-000000000403', 'a0000000-0000-0000-0000-000000000002', 'published');
+INSERT INTO public.community_governance_mechanism VALUES
+    ('e0000000-0000-4000-8000-000000000411', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.replication_readiness_assessment VALUES
+    ('e0000000-0000-4000-8000-000000000421', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.adaptive_stewardship_review VALUES
+    ('e0000000-0000-4000-8000-000000000431', 'a0000000-0000-0000-0000-000000000001', 'published');
+
 DO $$
 DECLARE
     source_table TEXT;

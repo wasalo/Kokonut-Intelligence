@@ -24,28 +24,28 @@
   "authenticated_worker_draft_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 251
+      "line": 255
     }
   ],
   "authenticated_worker_summary_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 173,
+      "line": 177,
       "function": "get_location_ai_summary_worker_source_references"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 200,
+      "line": 204,
       "function": "get_location_ai_summary_worker_draft_request"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 251,
+      "line": 255,
       "function": "create_location_ai_summary_worker_draft"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 263,
+      "line": 267,
       "function": "set_location_ai_summary_source_references"
     }
   ],

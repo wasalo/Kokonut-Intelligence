@@ -120,6 +120,42 @@ class RegeneratorSynthesisAgent(SynthesisAgent):
     read_collection = "regenerative_outcome_summary"
     model_version = "regenerator-agent-v1"
     source_tables = ["regenerative_outcome_summary", "community_governance_mechanism", "replication_readiness_assessment", "adaptive_stewardship_review"]
+    source_reference_views = {
+        "regenerative_outcome_summary": "v_public_regenerative_outcome_summary",
+        "community_governance_mechanism": "v_public_community_governance_mechanism",
+        "replication_readiness_assessment": "v_public_replication_readiness_summary",
+        "adaptive_stewardship_review": "v_public_adaptive_stewardship_summary",
+    }
+    source_reference_query = """
+        WITH sources AS MATERIALIZED (
+            SELECT 'regenerative_outcome_summary'::text AS source_table, id
+            FROM v_public_regenerative_outcome_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'community_governance_mechanism'::text, id
+            FROM v_public_community_governance_mechanism WHERE location_id = %s
+            UNION ALL
+            SELECT 'replication_readiness_assessment'::text, id
+            FROM v_public_replication_readiness_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'adaptive_stewardship_review'::text, id
+            FROM v_public_adaptive_stewardship_summary WHERE location_id = %s
+        ), counts AS (
+            SELECT source_table, count(*) AS row_count
+            FROM sources
+            GROUP BY source_table
+        ), numbered AS (
+            SELECT source_table, id,
+                   row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
+            FROM sources
+        )
+        SELECT counts.source_table, counts.row_count,
+               array_agg(numbered.id ORDER BY numbered.ordinal)
+                   FILTER (WHERE numbered.ordinal <= 50) AS record_ids
+        FROM counts
+        JOIN numbered USING (source_table)
+        GROUP BY counts.source_table, counts.row_count
+        ORDER BY counts.source_table
+    """
 
     def synthesize(self, conn, location_id=None):
         return synthesize_regenerator(conn, location_id)

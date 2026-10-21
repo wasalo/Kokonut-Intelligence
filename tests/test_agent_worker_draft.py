@@ -305,6 +305,44 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
     assert connection.rollbacks == 0
 
 
+def test_worker_write_accepts_regenerator_source_references(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection()
+    _install_worker_mocks(monkeypatch)
+    source_tables = [
+        "regenerative_outcome_summary",
+        "community_governance_mechanism",
+        "replication_readiness_assessment",
+        "adaptive_stewardship_review",
+    ]
+    source_references = {
+        table: {
+            "record_ids": [f"e0000000-0000-4000-8000-{index:012d}"],
+            "row_count": 1,
+            "truncated": False,
+        }
+        for index, table in enumerate(source_tables, start=401)
+    }
+
+    result = worker_draft.create_worker_ai_summary_draft(
+        LOCATION_ID,
+        "regenerative_outcomes",
+        REQUEST_ID,
+        {
+            "content": "Location-scoped regenerative source references",
+            "source_tables": source_tables,
+            "source_references": source_references,
+        },
+        connection_factory=lambda: connection,
+    )
+
+    assert result["source_references"] == source_references
+    assert json.loads(connection.calls[3][1][3]) == source_references
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+
+
 @pytest.mark.parametrize(
     ("source_references", "message"),
     [
