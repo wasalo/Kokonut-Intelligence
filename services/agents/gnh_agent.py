@@ -139,6 +139,13 @@ class GnhSynthesisAgent(SynthesisAgent):
     read_collection = "gnh_alignment_assessment"
     model_version = "gnh-agent-v1"
     source_tables = ["gnh_alignment_assessment", "cultural_preservation_plan", "renewable_energy_plan", "vulnerable_group_access_plan", "foundational_wellbeing_observation"]
+    source_reference_views = {
+        "gnh_alignment_assessment": "v_public_gnh_alignment_summary",
+        "cultural_preservation_plan": "v_public_cultural_preservation_summary",
+        "renewable_energy_plan": "v_public_renewable_energy_summary",
+        "vulnerable_group_access_plan": "v_public_vulnerable_access_summary",
+        "foundational_wellbeing_observation": "v_public_foundational_wellbeing_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_gnh(conn, location_id)

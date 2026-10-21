@@ -121,6 +121,12 @@ class CommonsSynthesisAgent(SynthesisAgent):
     read_collection = "time_liberation_observation"
     model_version = "commons-agent-v1"
     source_tables = ["time_liberation_observation", "capital_alignment_assessment", "governance_inclusion_observation", "land_stewardship_commitment"]
+    source_reference_views = {
+        "time_liberation_observation": "v_public_time_liberation_summary",
+        "capital_alignment_assessment": "v_public_capital_alignment_summary",
+        "governance_inclusion_observation": "v_public_governance_inclusion_summary",
+        "land_stewardship_commitment": "v_public_land_stewardship_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_commons(conn, location_id)

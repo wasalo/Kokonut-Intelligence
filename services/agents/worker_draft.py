@@ -45,6 +45,21 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "community_governance_mechanism",
         "replication_readiness_assessment",
         "adaptive_stewardship_review",
+        "time_liberation_observation",
+        "capital_alignment_assessment",
+        "governance_inclusion_observation",
+        "land_stewardship_commitment",
+        "gnh_alignment_assessment",
+        "cultural_preservation_plan",
+        "renewable_energy_plan",
+        "vulnerable_group_access_plan",
+        "foundational_wellbeing_observation",
+        "financial_sustainability_plan",
+        "risk_mitigation_register",
+        "scaling_roadmap_milestone",
+        "farm_launch_unit_economics",
+        "adoption_barrier_assessment",
+        "perpetual_value_stress_test",
     }
 )
 

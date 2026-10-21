@@ -120,6 +120,11 @@ class ResilienceSynthesisAgent(SynthesisAgent):
     read_collection = "financial_sustainability_plan"
     model_version = "resilience-agent-v1"
     source_tables = ["financial_sustainability_plan", "risk_mitigation_register", "scaling_roadmap_milestone", "green_paper_publication_review"]
+    source_reference_views = {
+        "financial_sustainability_plan": "v_public_financial_sustainability_summary",
+        "risk_mitigation_register": "v_public_risk_mitigation_summary",
+        "scaling_roadmap_milestone": "v_public_scaling_roadmap_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_resilience(conn, location_id)

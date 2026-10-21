@@ -145,6 +145,11 @@ class OpenSourceCapitalistSynthesisAgent(SynthesisAgent):
     read_collection = "farm_launch_unit_economics"
     model_version = "open-source-capitalist-agent-v1"
     source_tables = ["farm_launch_unit_economics", "network_scaling_target", "adoption_barrier_assessment", "perpetual_value_stress_test", "open_source_impact_artifact"]
+    source_reference_views = {
+        "farm_launch_unit_economics": "v_public_farm_launch_unit_economics",
+        "adoption_barrier_assessment": "v_public_adoption_barrier_assessment",
+        "perpetual_value_stress_test": "v_public_perpetual_value_stress_test",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_open_source_capitalist(conn, location_id)

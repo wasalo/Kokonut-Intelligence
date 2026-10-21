@@ -28,8 +28,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/531_capital_efficiency_synthesis_source_references.sql",
     ROOT / "schemas/postgres/532_registered_agent_source_reference_views.sql",
     ROOT / "schemas/postgres/533_regenerator_synthesis_source_references.sql",
+    ROOT / "schemas/postgres/534_public_synthesis_source_reference_views.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-regenerator-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-public-synthesis-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -38,6 +39,40 @@ OTHER_LOCATION_ID = "a0000000-0000-0000-0000-000000000002"
 REQUEST_ID = "d0000000-0000-4000-8000-000000000901"
 RAW_CREDENTIAL = "synthetic-agent-summary-worker-credential-2026-10-21"
 CREDENTIAL_HASH = hashlib.sha256(RAW_CREDENTIAL.encode("utf-8")).hexdigest()
+ADDITIONAL_SOURCE_TABLES = [
+    "time_liberation_observation",
+    "capital_alignment_assessment",
+    "governance_inclusion_observation",
+    "land_stewardship_commitment",
+    "gnh_alignment_assessment",
+    "cultural_preservation_plan",
+    "renewable_energy_plan",
+    "vulnerable_group_access_plan",
+    "foundational_wellbeing_observation",
+    "financial_sustainability_plan",
+    "risk_mitigation_register",
+    "scaling_roadmap_milestone",
+    "farm_launch_unit_economics",
+    "adoption_barrier_assessment",
+    "perpetual_value_stress_test",
+]
+ADDITIONAL_SOURCE_VIEWS = {
+    "time_liberation_observation": "v_public_time_liberation_summary",
+    "capital_alignment_assessment": "v_public_capital_alignment_summary",
+    "governance_inclusion_observation": "v_public_governance_inclusion_summary",
+    "land_stewardship_commitment": "v_public_land_stewardship_summary",
+    "gnh_alignment_assessment": "v_public_gnh_alignment_summary",
+    "cultural_preservation_plan": "v_public_cultural_preservation_summary",
+    "renewable_energy_plan": "v_public_renewable_energy_summary",
+    "vulnerable_group_access_plan": "v_public_vulnerable_access_summary",
+    "foundational_wellbeing_observation": "v_public_foundational_wellbeing_summary",
+    "financial_sustainability_plan": "v_public_financial_sustainability_summary",
+    "risk_mitigation_register": "v_public_risk_mitigation_summary",
+    "scaling_roadmap_milestone": "v_public_scaling_roadmap_summary",
+    "farm_launch_unit_economics": "v_public_farm_launch_unit_economics",
+    "adoption_barrier_assessment": "v_public_adoption_barrier_assessment",
+    "perpetual_value_stress_test": "v_public_perpetual_value_stress_test",
+}
 
 
 def _load_base():
@@ -422,6 +457,88 @@ def _worker_acceptance() -> str:
     """
 
 
+def _registered_synthesis_source_acceptance() -> str:
+    groups = [
+        ("commons_liberation", "commons-agent-v1", ADDITIONAL_SOURCE_TABLES[:4]),
+        ("gnh_alignment", "gnh-agent-v1", ADDITIONAL_SOURCE_TABLES[4:9]),
+        ("financial_resilience", "resilience-agent-v1", ADDITIONAL_SOURCE_TABLES[9:12]),
+        ("open_source_capitalist", "open-source-capitalist-agent-v1", ADDITIONAL_SOURCE_TABLES[12:]),
+    ]
+    id_by_table = {
+        table: f"e0000000-0000-4000-8000-{index:012d}"
+        for index, table in enumerate(ADDITIONAL_SOURCE_TABLES, start=501)
+    }
+    statements = []
+    for group_index, (summary_type, model_version, source_tables) in enumerate(groups, start=1):
+        request_id = f"d0000000-0000-4000-8000-{920 + group_index:012d}"
+        source_array = ", ".join(f"'{table}'" for table in source_tables)
+        payload_entries = ", ".join(
+            f"'{table}', jsonb_build_object('record_ids', jsonb_build_array('{id_by_table[table]}'), "
+            "'row_count', 1, 'truncated', false)"
+            for table in source_tables
+        )
+        statements.append(
+            f"""
+        SELECT * INTO STRICT draft_record
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', '{summary_type}', 'Synthetic {summary_type} source references.',
+              ARRAY[{source_array}], '{model_version}', '{request_id}'
+          );
+        payload := jsonb_build_object({payload_entries});
+        attached := kokonut_security.set_location_ai_summary_source_references(
+            '{LOCATION_ID}', draft_record.summary_id, '{request_id}', payload
+        );
+        IF attached IS DISTINCT FROM payload THEN
+            RAISE EXCEPTION '{summary_type} source references did not match the registered views';
+        END IF;
+        attached := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', draft_record.summary_id, '{request_id}'
+        );
+        IF attached IS DISTINCT FROM payload THEN
+            RAISE EXCEPTION '{summary_type} source references were not returned under exact scope';
+        END IF;
+"""
+        )
+
+    view_array = ", ".join(f"'{view}'" for view in ADDITIONAL_SOURCE_VIEWS.values())
+    table_array = ", ".join(f"'{table}'" for table in ADDITIONAL_SOURCE_TABLES)
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE draft_record RECORD;
+            payload JSONB;
+            attached JSONB;
+            object_name TEXT;
+    BEGIN
+        {''.join(statements)}
+        FOREACH object_name IN ARRAY ARRAY[{view_array}] LOOP
+            IF NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'id', 'SELECT')
+               OR NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'location_id', 'SELECT')
+               OR has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'public_summary', 'SELECT') THEN
+                RAISE EXCEPTION 'source-view drafter grant is not limited to identity and location columns';
+            END IF;
+        END LOOP;
+        FOREACH object_name IN ARRAY ARRAY[{table_array}] LOOP
+            IF has_table_privilege('kokonut_worker_execution',
+                    format('public.%I', object_name), 'SELECT') THEN
+                RAISE EXCEPTION 'worker execution has direct source table access to %', object_name;
+            END IF;
+        END LOOP;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    """
+
+
 def _review_context_fixture() -> str:
     return r"""
     CREATE OR REPLACE FUNCTION kokonut_security.current_tenant_context()
@@ -624,12 +741,15 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-533 apply; migrations 530-533 replay",
+        "migrations 405, 419, 521-524, 529-534 apply; migrations 530-534 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
         "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
         "migration 533 validates four regenerative source views and rejects cross-location rows without changing attached manifests",
+        "migration 534 validates fifteen location-scoped views across commons, GNH, financial resilience, and open-source-capitalist agents",
+        "the four additional agent manifests round-trip through signed worker scope; global source catalogues stay excluded",
+        "the drafter receives only ID/location view columns and worker execution receives no direct source table access",
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
@@ -645,7 +765,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "capital-efficiency, bio-factory, and regenerative synthesis attach bounded IDs for twelve published-view sources; other generic synthesis agents retain table-name hints",
+        "source_lineage_note": "capital-efficiency, bio-factory, regenerative, commons, GNH, financial resilience, and open-source-capitalist synthesis attach bounded IDs for twenty-seven location-scoped published views; other generic synthesis agents retain table-name hints",
         "checks": checks,
     }
     stage = "container_start"
@@ -660,15 +780,17 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
+        stage = "multi_agent_source_reference_acceptance"
+        base.psql(docker, container, _registered_synthesis_source_acceptance())
         base.psql(docker, container, _review_context_fixture())
         stage = "synthetic_operator_source_reference_acceptance"
         base.psql(docker, container, _operator_source_acceptance())

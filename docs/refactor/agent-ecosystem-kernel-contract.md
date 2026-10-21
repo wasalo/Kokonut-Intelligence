@@ -175,15 +175,17 @@ AI-summary types and the ten registered shared synthesis tasks. Shared
 `ai_summary` directly. The worker checks the stable request receipt before
 source queries, runs reads inside a bounded read-only transaction using the
 runtime database identity, and creates the draft through the separate signed
-worker connection. Capital-efficiency, bio-factory, and regenerative synthesis
-attach bounded row IDs for twelve exact-location published summary views through
-the same private manifest. The base agent contract accepts a fixed per-agent
-query and view map, collects IDs inside the source read's repeatable-read
-snapshot, excludes the bio-factory's network-wide regional catalogue, and keeps
-global governance records out of the location-scoped regenerative references.
-Migration 532 creates the migration-owned view map; migrations 532–533 register
-the bio-factory and regenerative views. PostgreSQL rechecks exact counts and
-sampled IDs through the matching public view before attachment. Other generic synthesis
+worker connection. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
+Financial Resilience, and Open Source Capitalist synthesis attach bounded row
+IDs for twenty-seven exact-location published summary views through the same
+private manifest. The base agent contract accepts a fixed query or builds one
+from a validated static view map, collecting IDs inside the source read's
+repeatable-read snapshot. The mappings exclude the bio-factory's network-wide
+regional catalogue, unassigned governance records, global scaling/artifact
+catalogues, and Green Paper publication status. Migration 532 creates the
+migration-owned view map; migrations 532–534 register eligible views.
+PostgreSQL rechecks exact counts and sampled IDs through the matching public
+view before attachment. Other generic synthesis
 tasks still persist table-name hints without row-level source manifests; the
 deterministic AI-summary path also attaches the bounded manifest. On replay,
 generic task callers receive the
@@ -191,7 +193,7 @@ stored draft text and receipt rather than regenerating the task's full structure
 output. Compose exposes the dedicated DSN and high-entropy credential only to
 the opt-in `agent-summary-worker` service. An operator still needs to provision
 the runtime password, worker login/password, worker credential, and service DSN;
-migrations 529–533 are not rolled out to the candidate. Stored shared-agent CLI
+migrations 529–534 are not rolled out to the candidate. Stored shared-agent CLI
 output is reduced to the draft ID, request ID, status, and replay flag. For
 example, run a task through the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
@@ -203,10 +205,12 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 531](../../schemas/postgres/531_capital_efficiency_synthesis_source_references.sql),
 [migration 532](../../schemas/postgres/532_registered_agent_source_reference_views.sql),
 [migration 533](../../schemas/postgres/533_regenerator_synthesis_source_references.sql),
+[migration 534](../../schemas/postgres/534_public_synthesis_source_reference_views.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),
 [regenerator tests](../../tests/test_regenerative_outcomes.py),
+[multi-agent source-reference tests](../../tests/test_synthesis_source_references.py),
 [worker orchestration tests](../../tests/test_agent_worker_cli.py),
 [disposable checker](../../scripts/check-agent-worker-ai-summary-disposable.py),
 and [capital-efficiency evidence](builds/2026-10-21-recovery/cap-038-capital-efficiency-source-references-disposable.json).
@@ -214,6 +218,8 @@ The [registered-view evidence](builds/2026-10-21-recovery/cap-038-bio-factory-so
 also covers migration 532 replay and the bio-factory mappings.
 The [regenerative-view evidence](builds/2026-10-21-recovery/cap-038-regenerator-source-references-disposable.json)
 covers migration 533 replay, location matching, and cross-location rejection.
+The [multi-agent view evidence](builds/2026-10-21-recovery/cap-038-public-synthesis-source-references-disposable.json)
+covers migration 534 replay, the 15 new mappings, and exact view-column grants.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

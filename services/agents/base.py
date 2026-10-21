@@ -28,6 +28,7 @@ from services.common.cli import print_json
 from services.common.database import get_db
 
 _SOURCE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_PUBLIC_SOURCE_VIEW_NAME = re.compile(r"^v_public_[a-z0-9_]{1,55}$")
 
 
 def validate_source_tables(source_tables: Any, *, label: str) -> list[str]:
@@ -88,22 +89,23 @@ class SynthesisAgent:
     ) -> dict[str, dict[str, Any]]:
         """Return bounded row references for sources that have a safe view contract.
 
-        The fixed query runs only for signed draft storage, in the same
-        repeatable-read transaction as :meth:`synthesize`. Agents without an
-        exact public-view mapping retain their declared table-name hints and
-        return no row refs.
+        The fixed or map-generated query runs only for signed draft storage, in
+        the same repeatable-read transaction as :meth:`synthesize`. Agents
+        without an exact public-view mapping retain their declared table-name
+        hints and return no row references.
         """
-        if not self.source_reference_views or self.source_reference_query is None:
+        if not self.source_reference_views:
             return {}
         if (
             len(self.source_reference_views) > 10
             or any(table not in self.source_tables for table in self.source_reference_views)
         ):
             raise ValueError("source reference views must match declared source tables")
+        query = self.source_reference_query or self._build_source_reference_query()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             cur.execute(
-                self.source_reference_query,
+                query,
                 (location_id,) * len(self.source_reference_views),
             )
             rows = cur.fetchall()
@@ -122,6 +124,40 @@ class SynthesisAgent:
                 "truncated": row_count > len(record_ids),
             }
         return references
+
+    def _build_source_reference_query(self) -> str:
+        """Build bounded location-filtered SQL from static public-view metadata."""
+        selects = []
+        for source_table, view_name in self.source_reference_views.items():
+            if (
+                _SOURCE_TABLE_NAME.fullmatch(source_table) is None
+                or _PUBLIC_SOURCE_VIEW_NAME.fullmatch(view_name) is None
+            ):
+                raise ValueError("source reference metadata contains an invalid SQL identifier")
+            selects.append(
+                f"SELECT '{source_table}'::text AS source_table, id "
+                f"FROM public.{view_name} WHERE location_id = %s"
+            )
+        return f"""
+            WITH sources AS MATERIALIZED (
+                {' UNION ALL '.join(selects)}
+            ), counts AS (
+                SELECT source_table, count(*) AS row_count
+                FROM sources
+                GROUP BY source_table
+            ), numbered AS (
+                SELECT source_table, id,
+                       row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
+                FROM sources
+            )
+            SELECT counts.source_table, counts.row_count,
+                   array_agg(numbered.id ORDER BY numbered.ordinal)
+                       FILTER (WHERE numbered.ordinal <= 50) AS record_ids
+            FROM counts
+            JOIN numbered USING (source_table)
+            GROUP BY counts.source_table, counts.row_count
+            ORDER BY counts.source_table
+        """
 
     def store_summary(
         self,

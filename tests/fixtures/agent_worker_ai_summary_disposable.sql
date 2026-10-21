@@ -135,6 +135,48 @@ INSERT INTO public.replication_readiness_assessment VALUES
 INSERT INTO public.adaptive_stewardship_review VALUES
     ('e0000000-0000-4000-8000-000000000431', 'a0000000-0000-0000-0000-000000000001', 'published');
 
+-- Location-scoped fixture views for the remaining public synthesis sources.
+DO $$
+DECLARE
+    source_pair TEXT[];
+    source_index INTEGER := 501;
+    source_id UUID;
+BEGIN
+    FOREACH source_pair SLICE 1 IN ARRAY ARRAY[
+        ARRAY['time_liberation_observation', 'v_public_time_liberation_summary'],
+        ARRAY['capital_alignment_assessment', 'v_public_capital_alignment_summary'],
+        ARRAY['governance_inclusion_observation', 'v_public_governance_inclusion_summary'],
+        ARRAY['land_stewardship_commitment', 'v_public_land_stewardship_summary'],
+        ARRAY['gnh_alignment_assessment', 'v_public_gnh_alignment_summary'],
+        ARRAY['cultural_preservation_plan', 'v_public_cultural_preservation_summary'],
+        ARRAY['renewable_energy_plan', 'v_public_renewable_energy_summary'],
+        ARRAY['vulnerable_group_access_plan', 'v_public_vulnerable_access_summary'],
+        ARRAY['foundational_wellbeing_observation', 'v_public_foundational_wellbeing_summary'],
+        ARRAY['financial_sustainability_plan', 'v_public_financial_sustainability_summary'],
+        ARRAY['risk_mitigation_register', 'v_public_risk_mitigation_summary'],
+        ARRAY['scaling_roadmap_milestone', 'v_public_scaling_roadmap_summary'],
+        ARRAY['farm_launch_unit_economics', 'v_public_farm_launch_unit_economics'],
+        ARRAY['adoption_barrier_assessment', 'v_public_adoption_barrier_assessment'],
+        ARRAY['perpetual_value_stress_test', 'v_public_perpetual_value_stress_test']
+    ] LOOP
+        source_id := ('e0000000-0000-4000-8000-' || lpad(source_index::TEXT, 12, '0'))::UUID;
+        EXECUTE format(
+            'CREATE TABLE public.%I (id UUID PRIMARY KEY, location_id UUID, status TEXT NOT NULL)',
+            source_pair[1]
+        );
+        EXECUTE format(
+            'CREATE VIEW public.%I AS SELECT id, location_id, %L::TEXT AS public_summary FROM public.%I WHERE status = %L',
+            source_pair[2], 'Synthetic source summary', source_pair[1], 'published'
+        );
+        EXECUTE format(
+            'INSERT INTO public.%I (id, location_id, status) VALUES ($1, $2, $3)',
+            source_pair[1]
+        ) USING source_id, 'a0000000-0000-0000-0000-000000000001'::UUID, 'published';
+        source_index := source_index + 1;
+    END LOOP;
+END;
+$$;
+
 DO $$
 DECLARE
     source_table TEXT;
