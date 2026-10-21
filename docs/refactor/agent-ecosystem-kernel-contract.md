@@ -62,7 +62,8 @@ run without decrypting `.env.sops`.
   incomplete/empty persisted content, invalid source-table metadata, or an
   invalid model-version label; callers cannot bypass the runner's validation
   by invoking the low-level write helper directly. These checks still create
-  drafts only and do not approve or publish them. The shared helper closes its
+  drafts only and do not approve or publish them. A common validator applies
+  the source-table bounds to both shared and standalone writers. The shared helper closes its
   cursor before commit and also closes it if insert/fetch fails. It validates
   that its static source table metadata contains between one and 20 lowercase
   SQL identifiers, matching the database draft function's shape limits.

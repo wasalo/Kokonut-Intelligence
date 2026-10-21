@@ -3946,3 +3946,11 @@ shape enforced by the authenticated draft function. Three fake-connection cases
 verify rejection before cursor creation. This does not establish linked evidence,
 tenant authorization, or MAN-CAP-038 acceptance
 ([evidence](builds/2026-10-20-recovery/cap-038-agent-source-table-metadata.json)).
+
+**CAP-038 standalone metadata parity note — 20 October 2026:** the standalone
+AI-summary writer now uses the shared 1–20 lowercase-identifier validator too.
+Three offline malformed-list cases fail before cursor creation or safety-side
+effects; the combined agent/summary/Gateway selection passes 85 tests with nine
+database-dependent skips. This remains shape validation, not evidence lineage
+or MAN-CAP-038 acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-metadata-preflight.json)).

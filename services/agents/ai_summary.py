@@ -22,6 +22,7 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
+from services.agents.base import validate_source_tables
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import (
     validate_output,
@@ -445,10 +446,9 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
         raise ValueError("Unsupported AI summary type")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("AI summary content must be a non-empty string")
-    if not isinstance(source_tables, list) or any(
-        not isinstance(table, str) or not table for table in source_tables
-    ):
-        raise ValueError("AI summary source_tables must be a list of non-empty strings")
+    source_tables = validate_source_tables(
+        source_tables, label="Invalid AI summary draft"
+    )
     if not isinstance(model_version, str) or not model_version.strip():
         raise ValueError("AI summary model_version must be a non-empty string")
     assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})

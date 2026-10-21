@@ -28,6 +28,22 @@ from services.common.database import get_db
 _SOURCE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
 
+def validate_source_tables(source_tables: Any, *, label: str) -> list[str]:
+    """Validate and copy source-table names before draft persistence."""
+    if (
+        not isinstance(source_tables, list)
+        or not 1 <= len(source_tables) <= 20
+        or any(
+            not isinstance(table, str) or _SOURCE_TABLE_NAME.fullmatch(table) is None
+            for table in source_tables
+        )
+    ):
+        raise ValueError(
+            f"{label}: source_tables must contain 1 to 20 lowercase SQL identifiers"
+        )
+    return list(source_tables)
+
+
 class SynthesisAgent:
     """A read-first synthesis agent.
 
@@ -78,19 +94,9 @@ class SynthesisAgent:
         errors = validate_task_inputs(self.task_key, inputs)
         if errors:
             raise ValueError("; ".join(errors))
-        if (
-            not isinstance(self.source_tables, list)
-            or not 1 <= len(self.source_tables) <= 20
-            or any(
-                not isinstance(table, str) or _SOURCE_TABLE_NAME.fullmatch(table) is None
-                for table in self.source_tables
-            )
-        ):
-            raise ValueError(
-                "Invalid agent draft: source_tables must contain 1 to 20 "
-                "lowercase SQL identifiers"
-            )
-        source_tables = list(self.source_tables)
+        source_tables = validate_source_tables(
+            self.source_tables, label="Invalid agent draft"
+        )
         version = model_version or self.model_version
         if not isinstance(version, str) or not version.strip():
             raise ValueError("Invalid agent draft: model_version must be a non-empty string")

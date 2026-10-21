@@ -35,6 +35,31 @@ def test_store_summary_rejects_invalid_content_before_cursor_access():
     conn.commit.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "source_tables",
+    [
+        [],
+        [f"table_{index}" for index in range(21)],
+        ["harvest_event", "not-valid"],
+    ],
+)
+def test_store_summary_rejects_invalid_source_tables_before_cursor_access(source_tables):
+    conn = mock.Mock()
+    with mock.patch.object(ai_summary, "assert_agent_action_allowed") as safety:
+        with pytest.raises(ValueError, match="source_tables must contain 1 to 20"):
+            ai_summary.store_summary(
+                conn,
+                "a0000000-0000-4000-8000-000000000001",
+                "operations",
+                "synthetic draft",
+                source_tables,
+            )
+
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+    safety.assert_not_called()
+
+
 def test_store_summary_validates_and_commits_a_draft():
     conn = mock.Mock()
     conn.cursor.return_value.fetchone.return_value = ("stored-id",)

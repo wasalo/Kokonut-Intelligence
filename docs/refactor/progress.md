@@ -1,3 +1,14 @@
+### CAP-038 standalone AI-summary metadata parity — 20 October 2026
+
+Standalone and shared synthesis draft writers now call the same validator for
+source-table metadata. Empty, overlong, and malformed table lists are rejected
+before cursor creation; three standalone regression cases also prove rejection
+precedes the agent safety side effect. The combined agent, summary-source, and
+Gateway draft selection passes 85 tests with nine PostgreSQL-dependent skips,
+plus Ruff and compilation. This does not establish source lineage, tenant
+authorization, or MAN-CAP-038 acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-metadata-preflight.json)).
+
 ### CAP-038 shared-agent source metadata preflight — 20 October 2026
 
 `SynthesisAgent.store_summary()` now validates the static source-table list
