@@ -13260,3 +13260,16 @@ open (853 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared ([test](../../tests/test_sensor_ingester_cli_parity.py);
 [contract](unified-cli-kernel-contract.md);
 [evidence](builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json)).
+
+
+### CAP-039 climate data CLI dispatch parity — 21 October 2026
+
+All six climate selectors (`worldclim`, `ncep`, `modis`, `smap`, `sentinel1`,
+and `all`) now produce matching standalone/unified JSON receipts with stubbed
+operations. Each receives a canonical location UUID and closes its connection;
+conflicting selectors fail before database setup. Eight focused tests pass
+with Ruff and Python compilation. No database or provider was contacted.
+Provider retrieval and persistence remain open. Checklist: 829 complete / 25
+open (854 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
+and 28 prepared ([test](../../tests/test_climate_data_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json)).

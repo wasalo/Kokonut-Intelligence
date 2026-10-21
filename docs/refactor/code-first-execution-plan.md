@@ -2393,3 +2393,15 @@ scheduled-driver runtime remain open.
 Checklist: 828 complete / 25 open (853 total); capability classifications
 remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json`.
+
+
+### CAP-039 climate data CLI dispatch parity — 21 October 2026
+
+The six climate selectors (five datasets plus `--all`) now preserve JSON
+output and canonical location forwarding through standalone and unified CLIs
+with stubbed operation functions. Conflicting selectors fail before database
+setup. Eight focused tests pass with Ruff and Python compilation. No database
+or provider was contacted. Provider retrieval and persistence remain open.
+Checklist: 829 complete / 25 open (854 total); capability classifications
+remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json`.

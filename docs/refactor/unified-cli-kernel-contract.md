@@ -65,6 +65,7 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `sensor_ingester --sensor <synthetic-device> --value 12.5 --location-id <synthetic-location-uuid>` | Writer function is stubbed; database and event-bus effects are not run | No stdout; exact standalone/unified argument forwarding |
 | `ingestion` | `sensor_ingester --file <synthetic-csv-path> --location-id <synthetic-location-uuid>` | CSV writer function is stubbed; file parsing and database effects are not run | No stdout; exact standalone/unified argument forwarding |
 | `ingestion` | `sensor_ingester --driver-instance-id <synthetic-instance-uuid> --location-id <synthetic-location-uuid>` | Scheduled driver function is stubbed; provider and database effects are not run | No stdout; exact standalone/unified argument forwarding |
+| `ingestion` | `climate_data --worldclim`, `--ncep`, `--modis`, `--smap`, `--sentinel1`, or `--all`, each with `--location-id <synthetic-location-uuid>` | Dataset functions are stubbed; PostgreSQL connections are synthetic | Matching standalone/unified JSON receipts; conflicting selectors fail before DB setup |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -115,9 +116,9 @@ PostgreSQL-backed read invocations with stubbed query functions (including
 ingestion status and location-scoped device reads), one operator inventory
 read, one tenant-preflight invocation with a synthetic aggregate service
 report, two synthetic report-generation paths (single and automatic
-batch), three operator write invocations, one device registration write, and
-three sensor write/driver argument-forwarding invocations with stubbed
-operation functions match
+batch), three operator write invocations, one device registration write,
+three sensor write/driver argument-forwarding invocations, and six climate
+operation-selection variants with stubbed operation functions match
 standalone output across all 37 mounted groups (157 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree

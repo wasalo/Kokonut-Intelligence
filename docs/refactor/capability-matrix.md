@@ -4040,3 +4040,10 @@ Ruff, and compilation pass; no database/provider was contacted. Single-reading,
 CSV, and scheduled-driver forwarding are checked with stubbed operations;
 ingestion effects/output and scheduled-driver runtime remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-sensor-inventory-cli-parity.json)).
+
+**CAP-039 climate data CLI dispatch — 21 October 2026:** all six climate
+operation selectors preserve standalone/unified JSON receipts and location
+forwarding with stubbed operations; conflicting selectors fail before DB
+setup. Eight focused tests, Ruff, and compilation pass; no database/provider
+was contacted. Provider retrieval and persistence remain open
+([evidence](builds/2026-10-21-recovery/cap-039-climate-data-cli-parity.json)).

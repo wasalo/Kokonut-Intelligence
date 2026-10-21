@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "ce113212e07e0fef108205617b8ca8d7ccdf6ee7",
+  "scope": "Climate ingestion CLI standalone/unified output and selector preflight parity",
+  "operations": [
+    "--worldclim",
+    "--ncep",
+    "--modis",
+    "--smap",
+    "--sentinel1",
+    "--all"
+  ],
+  "verification": {
+    "focused_tests": "8 passed",
+    "coverage": [
+      "all six operation selectors preserve their standalone/unified dispatch and JSON receipt",
+      "each operation receives the canonical location UUID and closes its connection",
+      "conflicting dataset selectors fail before database setup in both CLIs"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; connections and operation results were synthetic",
+    "provider": "not contacted; dataset operation functions were stubbed"
+  },
+  "result": "PASS: all climate dataset selectors and the aggregate selector preserve standalone/unified CLI behavior using synthetic operations.",
+  "limitations": [
+    "This verifies argument selection, JSON rendering, and connection cleanup only; provider and persistence behavior remain untested.",
+    "It does not establish authorization or populated-data parity."
+  ]
+}
