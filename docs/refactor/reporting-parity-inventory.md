@@ -201,6 +201,13 @@ before unit totals and harvest counts are aggregated; this matches the lifecycle
 filter used by `v_crop_cycle_noi`. Focused source-level evidence is recorded in
 [`batches.md`](batches.md#cap-066-farm-summary-harvest-lifecycle-filter--21-october-2026).
 
+The same farm summary now applies its inclusive period bounds to verified and
+published expense categories by `expense_date`. Financial transactions already
+use `transaction_date`; harvest and published farm activity use their domain
+dates. This makes the report's selected window consistent across these
+time-based totals, but the change has only source and synthetic-test evidence.
+Populated reference-output parity remains open.
+
 ## Safe next slices
 
 1. Read-only inventory of the populated archived dashboard/report definitions:

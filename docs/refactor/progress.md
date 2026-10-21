@@ -13620,3 +13620,17 @@ tenant scope, live OIDC/browser, and MAN-CAP-066 acceptance remain open.
 Checklist: 864 complete / 24 open (888 total); matrix classifications remain
 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 docs/refactor/builds/2026-10-21-recovery/cap-066-farm-harvest-lifecycle.json.
+
+
+### CAP-066 farm-summary expense period bounds — 21 October 2026
+
+The verified/published expense-category breakdown now honors the selected
+inclusive report period through `expense_date`; financial totals already use
+`transaction_date`, and harvest/activity use their domain dates. The focused
+CAP-066 report selection passes 24 tests, with Ruff, compilation, current SQL
+and report inventories, and matrix validation. Checks use mocked connections;
+no database or migration was used. Populated reference-output parity, access
+scope, live OIDC/browser, and MAN-CAP-066 remain open. Checklist: 865 complete /
+24 open (889 total); capability matrix remains 31 baseline-retained, 7
+deployed, and 28 prepared. Evidence:
+docs/refactor/builds/2026-10-21-recovery/cap-066-farm-summary-period-bounds.json.

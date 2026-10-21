@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 864 checklist items complete and 24
-open (888 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 865 checklist items complete and 24
+open (889 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1783,3 +1783,7 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-066 farm-summary harvest lifecycle filter — 21 October 2026
 
 - [x] Restrict farm-summary harvest totals to `verified` and `published` events, matching the canonical crop-NOI view and the report's existing governed-source policy. Draft, submitted, and rejected harvests no longer affect report counts, quantities, averages, or unit totals. The focused farm-activity summary regression and report checks pass with Ruff and Python compilation; static report/runtime inventories are refreshed. No migration, database, candidate, or legacy stack was used. This closes source lifecycle eligibility only; populated output parity, tenant scope, live OIDC/browser, and MAN-CAP-066 remain open ([implementation](../../services/export/reports/core.py); [test](../../tests/test_farm_activity_summary_report.py); [evidence](builds/2026-10-21-recovery/cap-066-farm-harvest-lifecycle.json)). Checklist: 864 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+
+### CAP-066 farm-summary expense period bounds — 21 October 2026
+
+- [x] Apply the requested inclusive date window to the verified/published `expense_event` category breakdown using `expense_date`. The financial summary already used the same period bounds through `transaction_date`; harvest and published activity queries also honor them. A focused regression pins each query's location, period parameters, and the expense lifecycle filter. The 24-test CAP-066 report selection, Ruff, Python compilation, matrix validation, and refreshed SQL/report inventories pass. No database or migration was used. This aligns period selection but does not establish populated reference-output parity or decide whether report audiences receive access ([implementation](../../services/export/reports/core.py); [test](../../tests/test_farm_activity_summary_report.py); [evidence](builds/2026-10-21-recovery/cap-066-farm-summary-period-bounds.json)). Checklist: 865 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.

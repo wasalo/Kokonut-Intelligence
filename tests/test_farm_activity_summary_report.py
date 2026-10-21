@@ -155,6 +155,37 @@ def test_farm_summary_aggregates_only_published_activities_and_excludes_private_
     assert "center" not in report["location"]
 
 
+
+def test_farm_summary_applies_period_bounds_to_finance_and_verified_expenses():
+    connection = FarmSummaryConnection([])
+
+    generate_farm_summary(
+        connection,
+        LOCATION_ID,
+        period_start="2026-10-01",
+        period_end="2026-10-31",
+    )
+
+    finance_query, finance_params = next(
+        (sql, params)
+        for sql, params in connection.cursor_instance.statements
+        if "FROM financial_transaction" in sql
+    )
+    assert "transaction_date >= %s::date" in finance_query
+    assert "transaction_date <= %s::date" in finance_query
+    assert finance_params == (LOCATION_ID, "2026-10-01", "2026-10-01", "2026-10-31", "2026-10-31")
+
+    expense_query, expense_params = next(
+        (sql, params)
+        for sql, params in connection.cursor_instance.statements
+        if "FROM expense_event" in sql
+    )
+    assert "ee.status IN ('verified', 'published')" in expense_query
+    assert "ee.expense_date >= %s::date" in expense_query
+    assert "ee.expense_date <= %s::date" in expense_query
+    assert expense_params == (LOCATION_ID, "2026-10-01", "2026-10-01", "2026-10-31", "2026-10-31")
+
+
 def test_farm_summary_returns_zeroes_when_no_activity_is_published():
     report = generate_farm_summary(FarmSummaryConnection([]), LOCATION_ID)
 

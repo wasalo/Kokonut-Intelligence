@@ -106,9 +106,11 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         SELECT ee.category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
         WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
+          AND (%s::date IS NULL OR ee.expense_date >= %s::date)
+          AND (%s::date IS NULL OR ee.expense_date <= %s::date)
         GROUP BY ee.category ORDER BY total DESC
     """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     expense_breakdown = [dict(r) for r in cur.fetchall()]
 

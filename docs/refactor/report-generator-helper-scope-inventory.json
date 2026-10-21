@@ -2020,25 +2020,25 @@
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_carbon_balance",
-          "line": 525,
-          "depth": 1
-        },
-        {
-          "caller": "generate_climate_impact",
-          "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
-          "line": 526,
-          "depth": 1
-        },
-        {
-          "caller": "generate_climate_impact",
-          "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
           "line": 527,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
-          "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
+          "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
           "line": 528,
+          "depth": 1
+        },
+        {
+          "caller": "generate_climate_impact",
+          "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
+          "line": 529,
+          "depth": 1
+        },
+        {
+          "caller": "generate_climate_impact",
+          "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
+          "line": 530,
           "depth": 1
         },
         {
@@ -2912,18 +2912,6 @@
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_value",
-          "line": 170,
-          "depth": 1
-        },
-        {
-          "caller": "generate_farm_summary",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 171,
-          "depth": 1
-        },
-        {
-          "caller": "generate_farm_summary",
-          "callee": "services/common/utils.py:serialize_rows",
           "line": 172,
           "depth": 1
         },
@@ -2931,6 +2919,18 @@
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
           "line": 173,
+          "depth": 1
+        },
+        {
+          "caller": "generate_farm_summary",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 174,
+          "depth": 1
+        },
+        {
+          "caller": "generate_farm_summary",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 175,
           "depth": 1
         },
         {
@@ -5181,7 +5181,7 @@
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/revenue_multiplier/analyzer.py:analyze_location",
-          "line": 373,
+          "line": 375,
           "depth": 1
         },
         {
