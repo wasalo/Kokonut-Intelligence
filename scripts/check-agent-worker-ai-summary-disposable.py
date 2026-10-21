@@ -31,8 +31,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/534_public_synthesis_source_reference_views.sql",
     ROOT / "schemas/postgres/535_consent_safe_wellbeing_feedback_source_views.sql",
     ROOT / "schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql",
+    ROOT / "schemas/postgres/537_registered_worker_summary_types.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-kokonut-commons-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-registered-worker-summary-types-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -130,10 +131,12 @@ def _worker_acceptance() -> str:
             bio_probe RECORD;
             regenerator_probe RECORD;
             regenerator_bad_probe RECORD;
+            test_summary_type TEXT;
+            test_summary_counter INTEGER := 950;
     BEGIN
         SELECT * INTO created
           FROM kokonut_security.create_location_ai_summary_worker_draft(
-              '{LOCATION_ID}', 'wellbeing', 'Worker-produced synthetic draft.',
+              '{LOCATION_ID}', 'holistic_wellbeing', 'Worker-produced synthetic draft.',
               ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category',
                     'capital_efficiency_scenario', 'regenerative_efficiency_observation',
                     'governance_throughput_observation', 'capital_provider_utility_scenario'],
@@ -142,6 +145,40 @@ def _worker_acceptance() -> str:
         IF created.summary_id IS NULL OR created.replayed
            OR created.resulting_status <> 'draft' THEN
             RAISE EXCEPTION 'first worker request did not create one draft';
+        END IF;
+
+        FOREACH test_summary_type IN ARRAY ARRAY[
+            'operations', 'financial', 'environmental', 'combined',
+            'bio_factory', 'capital_efficiency', 'commons_liberation',
+            'stakeholder_feedback', 'gnh_alignment', 'holistic_wellbeing',
+            'kokonut_commons', 'open_source_capitalist',
+            'financial_resilience', 'regenerative_outcomes'
+        ] LOOP
+            test_summary_counter := test_summary_counter + 1;
+            PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft(
+                '{LOCATION_ID}', test_summary_type,
+                'Registered summary acceptance ' || test_summary_type,
+                ARRAY['harvest_event'], 'agent-v1',
+                ('d0000000-0000-4000-8000-' || lpad(test_summary_counter::TEXT, 12, '0'))::UUID
+            );
+        END LOOP;
+
+        denied := FALSE;
+        BEGIN
+            PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft(
+                '{LOCATION_ID}', 'unregistered_agent', 'Unregistered summary type.',
+                ARRAY['harvest_event'], 'agent-v1', 'd0000000-0000-4000-8000-000000000906'
+            );
+        EXCEPTION WHEN check_violation THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'unregistered worker summary type was accepted'; END IF;
+        SELECT * INTO looked_up
+          FROM kokonut_security.get_location_ai_summary_worker_draft_request(
+              '{LOCATION_ID}', 'unregistered_agent',
+              'd0000000-0000-4000-8000-000000000906'
+          );
+        IF FOUND THEN
+            RAISE EXCEPTION 'rejected summary type left a worker receipt';
         END IF;
 
         manifest := jsonb_build_object(
@@ -352,7 +389,7 @@ def _worker_acceptance() -> str:
 
         SELECT * INTO replayed
           FROM kokonut_security.create_location_ai_summary_worker_draft(
-              '{LOCATION_ID}', 'wellbeing', 'Changed generated text is ignored on exact request retry.',
+              '{LOCATION_ID}', 'holistic_wellbeing', 'Changed generated text is ignored on exact request retry.',
               ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category',
                     'capital_efficiency_scenario', 'regenerative_efficiency_observation',
                     'governance_throughput_observation', 'capital_provider_utility_scenario'],
@@ -366,7 +403,7 @@ def _worker_acceptance() -> str:
 
         SELECT * INTO looked_up
           FROM kokonut_security.get_location_ai_summary_worker_draft_request(
-              '{LOCATION_ID}', 'wellbeing', '{REQUEST_ID}'
+              '{LOCATION_ID}', 'holistic_wellbeing', '{REQUEST_ID}'
           );
         IF looked_up.summary_id IS DISTINCT FROM created.summary_id
            OR looked_up.content IS DISTINCT FROM created.content THEN
@@ -424,7 +461,7 @@ def _worker_acceptance() -> str:
         denied := FALSE;
         BEGIN
             PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft(
-                '{OTHER_LOCATION_ID}', 'wellbeing', 'Wrong location.',
+                '{OTHER_LOCATION_ID}', 'holistic_wellbeing', 'Wrong location.',
                 ARRAY['harvest_event'], 'agent-v2', 'd0000000-0000-4000-8000-000000000902'
             );
         EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
@@ -434,7 +471,7 @@ def _worker_acceptance() -> str:
         denied := FALSE;
         BEGIN
             PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft(
-                '{LOCATION_ID}', 'wellbeing', 'Duplicate source metadata.',
+                '{LOCATION_ID}', 'holistic_wellbeing', 'Duplicate source metadata.',
                 ARRAY['harvest_event', 'harvest_event'], 'agent-v2',
                 'd0000000-0000-4000-8000-000000000903'
             );
@@ -950,9 +987,10 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-536 apply; migrations 530-536 replay",
+        "migrations 405, 419, 521-524, 529-537 apply; migrations 530-537 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
+        "only the four deterministic and ten registered synthesis summary types can create drafts, and rejected types leave no partial row",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
         "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
         "migration 533 validates four regenerative source views and rejects cross-location rows without changing attached manifests",
@@ -995,12 +1033,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())

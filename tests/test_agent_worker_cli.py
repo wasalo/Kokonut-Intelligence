@@ -89,8 +89,8 @@ def test_worker_cli_does_not_write_after_source_generation_failure():
 
 
 class _SyntheticSynthesisAgent(SynthesisAgent):
-    task_key = "ai_summary_synthesis"
-    summary_type = "synthetic_agent"
+    task_key = "bio_factory_synthesis"
+    summary_type = "bio_factory"
     read_collection = "ai_summary"
     model_version = "synthetic-v1"
     source_tables = ["harvest_event"]
@@ -158,7 +158,7 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
     connection.close.assert_called_once_with()
     writer.assert_called_once_with(
         LOCATION_ID,
-        "synthetic_agent",
+        "bio_factory",
         REQUEST_ID,
         {
             "content": "Synthetic agent draft",
@@ -173,6 +173,23 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
         "request_id": REQUEST_ID,
         "replayed": False,
     }
+
+
+def test_worker_summary_rejects_unregistered_type_before_request_lookup():
+    existing_reader = MagicMock(side_effect=AssertionError("invalid type reached receipt lookup"))
+    connection_factory = MagicMock(side_effect=AssertionError("invalid type opened source DB"))
+
+    with pytest.raises(ValueError, match="registered deterministic worker summary"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "unregistered_summary",
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=existing_reader,
+        )
+
+    existing_reader.assert_not_called()
+    connection_factory.assert_not_called()
 
 
 def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():

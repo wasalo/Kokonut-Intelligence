@@ -18,6 +18,24 @@ from services.common.worker_database import get_worker_credential, get_worker_db
 
 _WORKER_KEY = "agent_summary_draft"
 _SUMMARY_TYPE = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
+DETERMINISTIC_SUMMARY_TYPES = ("operations", "financial", "environmental", "combined")
+SYNTHESIS_SUMMARY_TYPES = frozenset(
+    {
+        "bio_factory",
+        "capital_efficiency",
+        "commons_liberation",
+        "stakeholder_feedback",
+        "gnh_alignment",
+        "holistic_wellbeing",
+        "kokonut_commons",
+        "open_source_capitalist",
+        "financial_resilience",
+        "regenerative_outcomes",
+    }
+)
+SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
+    (*DETERMINISTIC_SUMMARY_TYPES, *SYNTHESIS_SUMMARY_TYPES)
+)
 _SOURCE_TABLE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 _SOURCE_REFERENCE_TABLES = frozenset(
     {
@@ -138,6 +156,8 @@ def _validate_payload(
 ) -> tuple[str, list[str], str, dict[str, dict[str, Any]], str]:
     if not isinstance(summary_type, str) or not _SUMMARY_TYPE.fullmatch(summary_type):
         raise AgentDraftInvalid("summary_type is invalid")
+    if summary_type not in SUPPORTED_WORKER_SUMMARY_TYPES:
+        raise AgentDraftInvalid("summary_type is not a registered worker draft type")
     if not isinstance(summary, Mapping):
         raise AgentDraftInvalid("summary must be an object")
     content = summary.get("content") or summary.get("synthesis")

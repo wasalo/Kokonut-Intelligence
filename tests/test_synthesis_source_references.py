@@ -17,7 +17,7 @@ from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSyn
 from services.agents.regenerator_agent import RegeneratorSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
 from services.agents.wellbeing_agent import WellbeingSynthesisAgent
-from services.agents.worker_draft import _validate_source_references
+from services.agents.worker_draft import SYNTHESIS_SUMMARY_TYPES, _validate_source_references
 
 AGENTS = [
     CapitalEfficiencySynthesisAgent,
@@ -32,6 +32,10 @@ AGENTS = [
     KokonutCommonsSynthesisAgent,
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+
+
+def test_worker_summary_type_registry_covers_all_shared_synthesis_agents() -> None:
+    assert {agent.summary_type for agent in AGENTS} == SYNTHESIS_SUMMARY_TYPES
 
 
 class _Cursor:

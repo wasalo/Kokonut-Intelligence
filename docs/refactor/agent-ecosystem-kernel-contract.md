@@ -185,7 +185,9 @@ network-wide regional catalogue, unassigned governance records, global
 scaling/artifact catalogues, Green Paper publication status, private/no-consent
 feedback rows, and unassigned/network-wide Kokonut Commons sources. Migration
 532 creates the migration-owned view map; migrations 532–536 register eligible
-views.
+views. Migration 537 constrains new signed-worker draft receipts to the four
+deterministic and ten registered synthesis summary types while preserving
+historical receipt reads.
 PostgreSQL rechecks exact counts and sampled IDs through the matching public
 view before attachment. Other generic synthesis
 tasks still persist table-name hints without row-level source manifests; the
@@ -210,6 +212,7 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 534](../../schemas/postgres/534_public_synthesis_source_reference_views.sql),
 [migration 535](../../schemas/postgres/535_consent_safe_wellbeing_feedback_source_views.sql),
 [migration 536](../../schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql),
+[migration 537](../../schemas/postgres/537_registered_worker_summary_types.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),
@@ -228,6 +231,7 @@ The [consent-safe evidence](builds/2026-10-21-recovery/cap-038-wellbeing-feedbac
 covers migration 535 replay and rejection of private/no-consent feedback IDs.
 The [Kokonut Commons evidence](builds/2026-10-21-recovery/cap-038-kokonut-commons-source-references-disposable.json)
 covers migration 536 replay and exclusion of unassigned/network-wide policies.
+The [registered-summary-type evidence](builds/2026-10-21-recovery/cap-038-registered-worker-summary-types-disposable.json) covers migration 537 replay, all fourteen supported types, and atomic rejection of an unregistered type.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

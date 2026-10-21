@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038",
+  "scope": "Bound signed-worker AI-summary draft types to the deterministic worker and registered shared synthesis contracts.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_migration.py tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+    "result": "passed",
+    "passed": 137
+  },
+  "ruff": "passed",
+  "py_compile": "passed",
+  "disposable_postgresql": {
+    "command": "python3 scripts/check-agent-worker-ai-summary-disposable.py",
+    "result": "passed",
+    "network": "disabled",
+    "migrations": [
+      "405_signed_worker_tenant_context.sql",
+      "419_private_worker_context_functions.sql",
+      "521_location_scoped_ai_summary_review.sql",
+      "522_authenticated_ai_summary_drafts.sql",
+      "523_ai_summary_source_references.sql",
+      "524_ai_summary_global_source_references.sql",
+      "529_signed_agent_ai_summary_drafts.sql",
+      "530_signed_agent_ai_summary_source_references.sql",
+      "531_capital_efficiency_synthesis_source_references.sql",
+      "532_registered_agent_source_reference_views.sql",
+      "533_regenerator_synthesis_source_references.sql",
+      "534_public_synthesis_source_reference_views.sql",
+      "535_consent_safe_wellbeing_feedback_source_views.sql",
+      "536_location_scoped_kokonut_commons_source_views.sql",
+      "537_registered_worker_summary_types.sql"
+    ],
+    "assertions_passed": 23,
+    "assertions": [
+      "migrations 405, 419, 521-524, 529-537 apply; migrations 530-537 replay",
+      "signed worker accepts all four deterministic and ten registered synthesis types",
+      "unregistered signed-worker type is rejected without a partial receipt or draft",
+      "worker principal, exact location scope, retry idempotency, source manifests, and review boundaries remain valid"
+    ]
+  },
+  "runtime_sql_inventory": "regenerated and current",
+  "worker_source_closure": "passed",
+  "worker_sql_inventory": "passed",
+  "agent_write_boundary_inventory": "regenerated and current",
+  "capability_matrix": "passed",
+  "candidate_or_legacy_modified": false,
+  "candidate_migration_537_applied": false,
+  "limits": [
+    "The NOT VALID constraint preserves historical receipt rows; only new receipt inserts must use one of the registered worker types.",
+    "This disposable acceptance does not provision worker credentials or establish populated production-provider behavior."
+  ]
+}

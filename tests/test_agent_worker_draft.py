@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from services.agents import worker_draft
-from services.agents.worker_draft import AgentDraftInvalid
+from services.agents.worker_draft import SUPPORTED_WORKER_SUMMARY_TYPES, AgentDraftInvalid
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
 REQUEST_ID = "d0000000-0000-4000-8000-000000000001"
@@ -79,6 +79,17 @@ class FakeConnection:
         self.closed = True
 
 
+@pytest.mark.parametrize("summary_type", sorted(SUPPORTED_WORKER_SUMMARY_TYPES))
+def test_registered_worker_summary_types_pass_payload_validation(summary_type: str) -> None:
+    content, source_tables, *_ = worker_draft._validate_payload(
+        summary_type,
+        {"content": "Registered draft", "source_tables": ["harvest_event"]},
+    )
+
+    assert content == "Registered draft"
+    assert source_tables == ["harvest_event"]
+
+
 def _install_worker_mocks(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Any, ...]]:
     events: list[tuple[Any, ...]] = []
     monkeypatch.setattr(worker_draft, "get_worker_credential", lambda key: "s" * 40)
@@ -91,7 +102,7 @@ def test_worker_store_sets_exact_signed_scope_before_bounded_function(monkeypatc
     events = _install_worker_mocks(monkeypatch)
     result = worker_draft.create_worker_ai_summary_draft(
         LOCATION_ID,
-        "wellbeing",
+        "holistic_wellbeing",
         REQUEST_ID,
         {
             "synthesis": "Bounded worker draft",
@@ -152,6 +163,7 @@ def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch:
     ("summary_type", "summary", "message"),
     [
         ("Bad-Type", {"content": "x", "source_tables": ["harvest_event"]}, "summary_type"),
+        ("unregistered_agent", {"content": "x", "source_tables": ["harvest_event"]}, "registered worker draft type"),
         ("operations", {"content": " ", "source_tables": ["harvest_event"]}, "summary content"),
         ("operations", {"content": "x", "source_tables": []}, "source_tables"),
         ("operations", {"content": "x", "source_tables": ["bad-name"]}, "source_tables"),
@@ -284,7 +296,7 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
 
     result = worker_draft.create_worker_ai_summary_draft(
         LOCATION_ID,
-        "wellbeing",
+        "holistic_wellbeing",
         REQUEST_ID,
         {
             "content": "A source-linked worker draft",

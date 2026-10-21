@@ -11,12 +11,14 @@ from uuid import UUID
 
 from services.agents.ai_summary import build_summary
 from services.agents.worker_draft import (
+    DETERMINISTIC_SUMMARY_TYPES,
+    SYNTHESIS_SUMMARY_TYPES,
     create_worker_ai_summary_draft,
     get_worker_ai_summary_draft,
 )
 from services.common.database import get_db
 
-_SUMMARY_TYPES = ("operations", "financial", "environmental", "combined")
+_SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
 _SUMMARY_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
 
 _SYNTHESIS_AGENT_MODULES = {
@@ -77,6 +79,7 @@ def run_worker_synthesis(
         not agent.task_key
         or not isinstance(agent.summary_type, str)
         or _SUMMARY_TYPE_PATTERN.fullmatch(agent.summary_type) is None
+        or agent.summary_type not in SYNTHESIS_SUMMARY_TYPES
     ):
         raise ValueError("registered synthesis agent metadata is incomplete")
     validate_task_capabilities(agent.task_key)
@@ -170,6 +173,11 @@ def run_worker_summary(
     read_existing = existing_reader or get_worker_ai_summary_draft
     write_draft = draft_writer or create_worker_ai_summary_draft
     generate = summary_builder or build_summary
+    if (
+        not isinstance(summary_type, str)
+        or summary_type not in DETERMINISTIC_SUMMARY_TYPES
+    ):
+        raise ValueError("summary_type is not a registered deterministic worker summary")
     prior = read_existing(location_id, summary_type, request_id)
     if prior is not None:
         return prior
