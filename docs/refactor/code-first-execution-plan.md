@@ -656,6 +656,15 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
+**Current CAP-039 operator-audit slice — 20 October 2026:** Identity disable
+now requires a bounded actor label and reason and atomically writes a private
+append-only audit record with the PostgreSQL login principal. Focused mocked
+checks cover argument validation, CLI output parity, and rollback on session
+or audit failure; a disposable PostgreSQL check covers constraints, ACLs,
+principal capture, and update/delete/truncate rejection. These records do not
+authenticate the actor or close local principal separation. Candidate and
+legacy databases remain untouched.
+
 **Current CAP-039 report CLI slice — 20 October 2026:** Standalone and unified
 `export --verify`, single-report generation, and automatic batch generation now
 compare output. Synthetic auto coverage checks run/item success transitions,
@@ -663,10 +672,10 @@ exact location forwarding, read-only calculation, snapshot ordering, and
 connection cleanup; an injected report failure is redacted while the next item
 continues and the batch is marked partial. Close failures are redacted too.
 The full focused selection passes 157 tests, with no database/provider calls.
-The checklist is 818 complete / 25 open (843 total), recounted from its nested
+The checklist is 819 complete / 25 open (844 total), recounted from its nested
 checkboxes; the matrix remains 66 rows (31 baseline-retained, 7 deployed, 28 prepared). Candidate and
-legacy databases were not touched. MAN-CAP-039 owner acceptance, operator
-authorization, and live report behavior remain open.
+legacy databases were not touched. MAN-CAP-039 owner acceptance, remaining
+operator authorization, and live report behavior remain open.
 
 Earlier refactor work recorded a security-hardening batch pushed as `efdd05b5`;
 that run and its CI references below are historical checkpoints.

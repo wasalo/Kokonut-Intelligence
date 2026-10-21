@@ -660,6 +660,7 @@ def test_operator_identity_disable_cli_matches_and_revokes_sessions(monkeypatch,
 
     operator_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
     identity = {"id": operator_id, "issuer": "https://identity.example.test", "enabled": False}
+    audit = {"id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "database_principal": "kokonut"}
     connections = []
 
     class FakeResult:
@@ -688,6 +689,8 @@ def test_operator_identity_disable_cli_matches_and_revokes_sessions(monkeypatch,
                 return FakeResult(identity)
             if normalized.startswith("update operator_session"):
                 return FakeResult()
+            if normalized.startswith("insert into operator_identity_admin_audit"):
+                return FakeResult(audit)
             raise AssertionError(f"unexpected operator identity SQL: {normalized}")
 
     def make_connection():
@@ -696,7 +699,11 @@ def test_operator_identity_disable_cli_matches_and_revokes_sessions(monkeypatch,
         return connection
 
     monkeypatch.setattr(operator_cli, "get_connection", make_connection)
-    arguments = ["identity", "disable", "--operator-id", operator_id]
+    arguments = [
+        "identity", "disable", "--operator-id", operator_id,
+        "--disabled-by", "local-admin@example.test",
+        "--reason", "Access ended after operator role change.",
+    ]
     original_argv = list(sys.argv)
     try:
         sys.argv = ["services.gateway.operator_cli", *arguments]
@@ -709,14 +716,21 @@ def test_operator_identity_disable_cli_matches_and_revokes_sessions(monkeypatch,
 
     assert unified.exit_code == 0, unified.output
     assert unified.output == standalone_output
-    assert json.loads(unified.output) == identity
+    assert json.loads(unified.output) == {"identity": identity, "audit": audit}
     assert len(connections) == 2
     assert all(connection.closed for connection in connections)
     for connection in connections:
-        assert len(connection.statements) == 2
+        assert len(connection.statements) == 3
         assert connection.statements[0][0].startswith("update operator_identity")
         assert connection.statements[1][0].startswith("update operator_session")
-        assert all(params == {"operator_id": operator_id} for _query, params in connection.statements)
+        assert connection.statements[2][0].startswith(
+            "insert into operator_identity_admin_audit"
+        )
+        assert connection.statements[2][1] == {
+            "operator_id": operator_id,
+            "actor_label": "local-admin@example.test",
+            "reason": "Access ended after operator role change.",
+        }
     assert unified.stderr == ""
 
 

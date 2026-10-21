@@ -96,7 +96,7 @@ mounted unified command using the same arguments. It covers:
 | `operator` | `revoke-grant --grant-id <uuid> --revoked-by <actor> --reason <reason>` | PostgreSQL update is stubbed | JSON revoked-grant receipt with audit actor/reason |
 | `operator` | `identity provision --issuer <https-url> --subject <subject> --display-name <name>` | PostgreSQL insert/update is stubbed | JSON identity receipt; active identity refresh cannot change enabled state |
 | `operator` | `list` | Five PostgreSQL inventory queries return synthetic rows | JSON identities, grants, memberships, shares, and tenant transfers |
-| `operator` | `identity disable --operator-id <uuid>` | Identity update and session revocation are stubbed | JSON disabled-identity receipt |
+| `operator` | `identity disable --operator-id <uuid> --disabled-by <label> --reason <text>` | Identity update, active-session revocation, and append-only audit insert are stubbed in one transaction | JSON identity receipt plus audit receipt; actor label is caller-supplied, not authenticated |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.

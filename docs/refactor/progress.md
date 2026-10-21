@@ -1,3 +1,19 @@
+### CAP-039 operator identity disable audit — 20 October 2026
+
+Identity disablement now requires a bounded local actor label and reason, then
+updates the identity, revokes its active sessions, and appends a private audit
+row in one transaction. Migration 525 captures PostgreSQL `SESSION_USER` and
+blocks update, delete, and truncate; it revokes table privileges from every
+existing `kokonut_*` role and `PUBLIC`, including grants inherited from broad
+default privileges. Mocked tests cover input
+preflight, standalone/unified output parity, and rollback if session
+revocation or audit insertion fails or the insert returns no audit receipt.
+Disposable PostgreSQL coverage checks
+constraints, role ACLs, principal capture, and immutable history. The supplied
+actor label is attribution only: the owner must still accept the local admin
+model and choose a database principal with appropriate isolation. Candidate
+and legacy databases were not contacted ([evidence](builds/2026-10-20-recovery/cap-039-identity-disable-audit.json)).
+
 ### Clean-bootstrap optional-role prerequisite and current ARM64 smoke — 20 October 2026
 
 A clean replay exposed that migration 475 revokes from

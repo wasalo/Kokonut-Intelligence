@@ -28,7 +28,7 @@ rights.
 | Command | Checks performed by source or database | Actor/audit behavior | Remaining boundary |
 | --- | --- | --- | --- |
 | `identity provision` | Requires HTTPS issuer and a non-empty, bounded subject. Inserts a new enabled identity. An existing enabled identity may have its display name refreshed. A matching disabled identity now fails closed. | No actor or reason is stored. Provisioning does not auto-create grants. | Database-login trust is the only caller boundary. There is no explicit reactivation command. |
-| `identity disable` | Sets `operator_identity.enabled = false` and revokes active sessions in one transaction. | No disabling actor or reason is stored. | Local database-login trust; review the missing durable actor/reason record before using as an operational workflow. |
+| `identity disable` | Sets `operator_identity.enabled = false`, revokes active sessions, and appends an audit event in one transaction. | Requires a bounded actor label and reason; the row also records PostgreSQL `SESSION_USER`. The actor label is caller-supplied attribution, not an authenticated identity. | Local database-login trust remains the authorization boundary. The current candidate's superuser principal can bypass table ACLs and append-only triggers. Owner acceptance of the administration model and principal is still required. |
 | `identity party bind/revoke/list` | Uses `SET LOCAL ROLE kokonut_governance_identity_admin` and bounded `kokonut_security` functions. Listing can be narrowed to one operator. | Bind/revoke require actor and reason, persisted by the function. | The database role/function boundary is verified separately; the actor text itself is attribution, not an OIDC session. |
 | `grant` | Validates resource/action identifiers, enabled target identity, location, current owner verification, target membership in the selected organization, and owner-or-active-share scope before upsert. | `--granted-by` is free text and is not checked against an identity or tenant-admin membership. | Trusted local DBA caller; do not treat the grantor string as proof of approval. |
 | `farm-activity-role grant` | Validates enabled target, current verified location owner, target membership, and owner-or-active-share scope; expands the fixed role catalogue in one transaction. | `--granted-by` is free text and is not verified. | Same local DBA boundary; no authenticated grantor check. |
@@ -44,13 +44,15 @@ rights.
 The CAP-039 offline selection compares standalone and unified CLI output for
 operator identity provisioning, identity disablement, operator list, and
 scope-grant revocation using fake connections. Focused mocked checks cover
-disabled-identity reactivation, identity/session transaction rollback, and
-revocation audit fields. Disablement still records no actor or reason. These
-tests verify parsing, SQL construction, synthetic output, and connection
-cleanup; they do not prove PostgreSQL
-authorization, an authenticated grantor, or production principal separation.
-Migration 390's request, acceptance, and cancellation functions have separate
-disposable PostgreSQL checks.
+disabled-identity reactivation, identity/session/audit transaction rollback,
+and revocation/disablement attribution. Migration 525 stores disable actor
+labels and reasons in a private append-only audit table together with the
+PostgreSQL login principal. These tests verify parsing, SQL construction,
+synthetic output, and connection cleanup; disposable PostgreSQL checks verify
+the audit table's append-only and role boundaries. Neither evidence proves an
+authenticated grantor or production principal separation. Migration 390's
+request, acceptance, and cancellation functions have separate disposable
+PostgreSQL checks.
 
 Before calling the operator boundary accepted, the repository owner must select
 the intended administration model and confirm which database principal may run
@@ -67,6 +69,7 @@ decisions and the selected principal's database boundary are verified.
 - [Unified CLI registration](../../services/cli.py)
 - [Database connection configuration](../../services/common/database.py)
 - [Operator identity and session schema](../../schemas/postgres/380_operator_identity_sessions.sql)
+- [Operator identity disable audit](../../schemas/postgres/525_operator_identity_disable_audit.sql)
 - [Tenant-aware grants](../../schemas/postgres/388_tenant_aware_operator_grants.sql)
 - [Audited owner transfers](../../schemas/postgres/390_audited_location_tenant_transfers.sql)
 - [Runtime-role policy](runtime-role-policy.md)

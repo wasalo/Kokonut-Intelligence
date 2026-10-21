@@ -1,0 +1,18 @@
+{
+  "migration": "525_operator_identity_disable_audit.sql",
+  "postgres_image": "postgis/postgis:16-3.4",
+  "checks": [
+    "migration applies to minimal identity schema",
+    "all kokonut_* roles have no audit table privileges",
+    "PUBLIC has no audit table privileges despite a broad default grant",
+    "valid audit row captures authenticated database login",
+    "update rejected",
+    "delete rejected",
+    "truncate rejected",
+    "blank actor rejected",
+    "blank reason rejected",
+    "denied mutations preserve the original audit row"
+  ],
+  "candidate_or_legacy_database_touched": false,
+  "status": "passed"
+}

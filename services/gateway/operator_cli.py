@@ -62,6 +62,13 @@ def provision_identity(args) -> None:
 
 def disable_identity(args) -> None:
     operator_id = _uuid(args.operator_id, "operator-id")
+    disabled_by = args.disabled_by.strip()
+    reason = args.reason.strip()
+    if not disabled_by or len(disabled_by) > 200:
+        raise ValueError("disabled-by must identify the local operator (1-200 characters)")
+    if not reason or len(reason) > 2000:
+        raise ValueError("reason is required (1-2000 characters)")
+
     with get_connection() as conn:
         row = conn.execute(
             """UPDATE operator_identity SET enabled = FALSE, updated_at = NOW()
@@ -75,9 +82,24 @@ def disable_identity(args) -> None:
                     WHERE operator_id = :operator_id AND revoked_at IS NULL""",
                 {"operator_id": operator_id},
             )
+            audit = conn.execute(
+                """INSERT INTO operator_identity_admin_audit
+                       (operator_id, action, actor_label, reason)
+                   VALUES (:operator_id, 'identity_disabled', :actor_label, :reason)
+                   RETURNING id, created_at, database_principal""",
+                {
+                    "operator_id": operator_id,
+                    "actor_label": disabled_by,
+                    "reason": reason,
+                },
+            ).first()
+            if audit is None:
+                raise RuntimeError("operator identity disable audit was not recorded")
+        else:
+            audit = None
     if row is None:
         raise ValueError("operator identity was not found")
-    print_json(row)
+    print_json({"identity": row, "audit": audit})
 
 
 def bind_governance_party(args) -> None:
@@ -829,6 +851,8 @@ def main() -> None:
     provision.set_defaults(func=provision_identity)
     disable = identity_commands.add_parser("disable")
     disable.add_argument("--operator-id", required=True)
+    disable.add_argument("--disabled-by", required=True)
+    disable.add_argument("--reason", required=True)
     disable.set_defaults(func=disable_identity)
 
     party = identity_commands.add_parser(
