@@ -446,6 +446,8 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
         raise ValueError("Unsupported AI summary type")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("AI summary content must be a non-empty string")
+    if len(content) > 20_000:
+        raise ValueError("AI summary content must be at most 20000 characters")
     source_tables = validate_source_tables(
         source_tables, label="Invalid AI summary draft"
     )
@@ -454,19 +456,21 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
     assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
     cur = conn.cursor()
     summary_id = str(uuid.uuid4())
-    cur.execute(
-        """
-        INSERT INTO ai_summary
-            (id, subject_type, subject_id, summary_type, content,
-             source_tables, model_version, status)
-        VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
-        RETURNING id
-        """,
-        (summary_id, location_id, summary_type, content, source_tables, model_version),
-    )
-    returned_id = str(cur.fetchone()[0])
+    try:
+        cur.execute(
+            """
+            INSERT INTO ai_summary
+                (id, subject_type, subject_id, summary_type, content,
+                 source_tables, model_version, status)
+            VALUES (%s, 'location', %s, %s, %s, %s, %s, 'draft')
+            RETURNING id
+            """,
+            (summary_id, location_id, summary_type, content, source_tables, model_version),
+        )
+        returned_id = str(cur.fetchone()[0])
+    finally:
+        cur.close()
     conn.commit()
-    cur.close()
     return returned_id
 
 

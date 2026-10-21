@@ -1,3 +1,14 @@
+### CAP-038 standalone AI-summary write boundary — 20 October 2026
+
+The standalone draft writer now applies the database review contract's
+20,000-character bound before opening a cursor and closes its cursor on failed
+INSERT or fetch without committing. Three fake-connection regressions cover the
+size bound and both failure points. The combined agent, AI-summary, and Gateway
+draft selection passes 88 tests with nine PostgreSQL-dependent skips, plus Ruff
+and compilation; no database or provider was contacted. This improves local
+input and resource handling only, not CLI authentication, least privilege, or
+MAN-CAP-038 acceptance ([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-write-boundary.json)).
+
 ### CAP-038 standalone AI-summary metadata parity — 20 October 2026
 
 Standalone and shared synthesis draft writers now call the same validator for

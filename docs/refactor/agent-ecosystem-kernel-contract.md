@@ -58,14 +58,15 @@ run without decrypting `.env.sops`.
   intentionally supports a small top-level subset; nested JSON schemas remain
   undefined rather than being implied by object/array type checks.
 - Both shared and standalone draft persistence helpers repeat their write-side
-  checks before requesting a cursor. They reject malformed task scope and
-  incomplete/empty persisted content, invalid source-table metadata, or an
+  checks before requesting a cursor. They reject malformed task scope,
+  incomplete/empty or over-limit persisted content, invalid source-table metadata, or an
   invalid model-version label; callers cannot bypass the runner's validation
   by invoking the low-level write helper directly. These checks still create
   drafts only and do not approve or publish them. A common validator applies
-  the source-table bounds to both shared and standalone writers. The shared helper closes its
-  cursor before commit and also closes it if insert/fetch fails. It validates
-  that its static source table metadata contains between one and 20 lowercase
+  the source-table bounds to both shared and standalone writers. Both helpers
+  close their cursors after insert/fetch failure and commit only after a
+  successful write. The shared helper also validates that its static source
+  table metadata contains between one and 20 lowercase
   SQL identifiers, matching the database draft function's shape limits.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.

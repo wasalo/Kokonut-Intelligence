@@ -3954,3 +3954,11 @@ effects; the combined agent/summary/Gateway selection passes 85 tests with nine
 database-dependent skips. This remains shape validation, not evidence lineage
 or MAN-CAP-038 acceptance
 ([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-metadata-preflight.json)).
+
+**CAP-038 standalone draft write-boundary note — 20 October 2026:** standalone
+AI-summary writes reject content above the database's 20,000-character limit
+before cursor creation and close the cursor when INSERT or fetch fails without
+committing. Three fake-connection regressions pass inside an 88-test focused
+agent/summary/Gateway selection with nine PostgreSQL-dependent skips. This does
+not establish authenticated CLI access or MAN-CAP-038 acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-write-boundary.json)).
