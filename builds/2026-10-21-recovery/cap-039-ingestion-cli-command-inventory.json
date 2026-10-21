@@ -1,0 +1,20 @@
+{
+  "capability": "CAP-039",
+  "slice": "registered ingestion command inventory",
+  "date": "2026-10-21",
+  "contract": "docs/refactor/unified-cli-kernel-contract.md",
+  "registry": "services/ingestion/cli.py:TOOLS",
+  "test": "tests/test_ingestion_cli_dispatch.py",
+  "command": "python3 -m pytest tests/test_ingestion_cli_dispatch.py -q",
+  "result": "2 passed; Ruff and Python compilation passed.",
+  "verified": [
+    "The successful offline parity inventory names every registered ingestion tool.",
+    "All 19 tool entries are represented, including status and Baal indexer.",
+    "The command inventory records representative arguments and dependency/output boundaries."
+  ],
+  "limitations": [
+    "This is a documentation/registry drift check; it does not execute live databases or providers.",
+    "Successful synthetic parity does not establish authorization or populated-data parity.",
+    "MAN-CAP-039 owner acceptance remains open."
+  ]
+}
