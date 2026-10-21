@@ -13491,3 +13491,15 @@ stubbed; no file, database, or provider was accessed. Checklist: 846 complete /
 25 open (871 total); matrix remains 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared ([test](../../tests/test_gis_import_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 HTTP sensor-receiver CLI entrypoint — 21 October 2026
+
+`http_sensor_receiver` now exposes a callable parser and `main()` for unified
+dispatch. Standalone/unified host and port arguments and help output match; a
+non-integer port fails before server startup. Five CLI cases pass within the
+79-test HTTP/IoT/outbox selection with Ruff and compilation. The server runner
+was stubbed; no socket, database, or provider was accessed. Checklist: 847
+complete / 25 open (872 total); the matrix remains 66 rows: 31 baseline-
+retained, 7 deployed, and 28 prepared
+([test](../../tests/test_http_sensor_receiver_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).

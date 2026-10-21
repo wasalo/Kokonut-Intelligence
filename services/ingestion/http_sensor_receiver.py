@@ -12,6 +12,7 @@ Usage:
     uvicorn services.ingestion.http_sensor_receiver:app --host 0.0.0.0 --port 8056
 """
 
+import argparse
 import hashlib
 import hmac
 import json
@@ -350,12 +351,22 @@ def run(host: str = "0.0.0.0", port: int = 8056):
     uvicorn.run(app, host=host, port=port, proxy_headers=False)
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="HTTP sensor receiver")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="http_sensor_receiver.py",
+        description="HTTP sensor receiver",
+    )
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
     parser.add_argument("--port", type=int, default=8056, help="Bind port")
-    args = parser.parse_args()
+    return parser
 
+
+def main(argv: list[str] | None = None) -> None:
+    """Start the HTTP sensor receiver with the requested bind address."""
+    args = build_parser().parse_args(argv)
     run(host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

@@ -2600,3 +2600,11 @@ GIS/geospatial selection with Ruff and compilation. The importer was stubbed;
 no file, database, or provider was accessed. Actual GIS fixture parsing and
 import semantics remain covered separately
 ([evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).
+
+### CAP-039 / CAP-040 HTTP sensor-receiver CLI entrypoint — 21 October 2026
+
+The HTTP sensor receiver now exposes a callable parser and `main()`.
+Standalone/unified host/port forwarding and help match; non-integer ports fail
+before startup. Five CLI cases pass in the 79-test HTTP/IoT/outbox selection
+with Ruff and compilation. Server startup was stubbed, so no listener, database,
+or provider was touched ([evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).

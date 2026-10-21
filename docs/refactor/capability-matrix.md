@@ -4214,3 +4214,14 @@ not populated spatial-data parity. Checklist: 846 complete / 25 open (871
 total); classifications remain 31 baseline-retained, 7 deployed, and 28
 prepared ([tests](../tests/test_gis_import_cli.py);
 [evidence](builds/2026-10-21-recovery/cap-039-gis-import-cli-entrypoint.json)).
+
+**CAP-039 / CAP-040 HTTP sensor-receiver CLI entrypoint — 21 October 2026:**
+the HTTP receiver now has a callable parser/main. Standalone/unified host and
+port arguments and help match; non-integer ports fail before server startup.
+Five CLI cases pass within the 79-test HTTP/IoT/outbox selection with Ruff and
+compilation. Server startup was stubbed; no socket or database was accessed.
+This does not establish authenticated sensor transport or live listener
+recovery. Checklist: 847 complete / 25 open (872 total); classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([tests](../tests/test_http_sensor_receiver_cli.py);
+[evidence](builds/2026-10-21-recovery/cap-039-http-sensor-receiver-cli-entrypoint.json)).
