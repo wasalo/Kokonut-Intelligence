@@ -3,6 +3,16 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 static named report bind contract — 21 October 2026:** the direct
+report inventory now compares SQLAlchemy `:name` and psycopg `%(name)s` binds
+with literal mapping keys, including simple condition-list and mapping updates
+under matching `if` branches. It covers all 176 direct query sites using 175
+positional contracts and one named contract, with zero mismatches. The 84-test
+Data Stream/query/helper/source selection passes with Ruff, compilation, three
+inventory freshness checks, capability validation, and diff checks. Dynamic or
+nested mutations, helper-query named binds, runtime PostgreSQL behavior, and
+populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-static-named-report-bind-contract.json)).
+
 **CAP-066 named report bind filters — 21 October 2026:** a mocked connection
 regression now checks the remaining direct named-bind report query across all
 four optional date-bound combinations. Its SQL bind names exactly match the
@@ -19,8 +29,9 @@ queries and 117/175 report-to-helper query memberships with no mismatches.
 Regressions cover matching branches, opposite-branch parameter errors, and
 unresolved nested SQL/parameter mutations. The combined focused query/helper/source inventory
 selection passes 24 tests; Ruff, compilation, three inventory checks, and matrix
-validation pass. No database or provider was used. Named binds, complex helper
-queries, runtime SQL, and populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-conditional-query-bind-arity.json)).
+validation pass. No database or provider was used. Helper-query named binds,
+complex helper queries, runtime SQL, and populated report parity remain open
+([evidence](builds/2026-10-21-recovery/cap-066-conditional-query-bind-arity.json)).
 
 **CAP-066 report helper SQL bind arity — 21 October 2026:** the helper-scope
 inventory now records positional bind counts for statically resolved helper

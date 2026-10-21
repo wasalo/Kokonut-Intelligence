@@ -120,8 +120,8 @@ def _expression_mentions_location_id(node: ast.AST | None, assignments: dict[str
     return "location_id" in resolved_names
 
 
-def _sql_bind_counts(sql: str) -> tuple[int, bool]:
-    """Count positional %s binds outside SQL literals/comments and detect named binds."""
+def _sql_executable_text(sql: str) -> str:
+    """Remove SQL strings, quoted identifiers, comments, and dollar bodies."""
     code: list[str] = []
     index = 0
     while index < len(sql):
@@ -173,7 +173,24 @@ def _sql_bind_counts(sql: str) -> tuple[int, bool]:
         code.append(char)
         index += 1
 
-    executable_sql = "".join(code)
+    return "".join(code)
+
+
+def _sql_named_bind_names(sql: str) -> set[str]:
+    """Return named placeholder keys outside SQL literals and comments."""
+    executable_sql = _sql_executable_text(sql).replace("%%(", "   (")
+    names: set[str] = set()
+    for psycopg_name, sqlalchemy_name in re.findall(
+        r"%\(([a-zA-Z_][a-zA-Z0-9_]*)\)s|(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)",
+        executable_sql,
+    ):
+        names.add(psycopg_name or sqlalchemy_name)
+    return names
+
+
+def _sql_bind_counts(sql: str) -> tuple[int, bool]:
+    """Count positional %s binds outside SQL literals/comments and detect named binds."""
+    executable_sql = _sql_executable_text(sql)
     positional_count = 0
     index = 0
     while index < len(executable_sql):
@@ -184,10 +201,7 @@ def _sql_bind_counts(sql: str) -> tuple[int, bool]:
             index += 2
         else:
             index += 1
-    named_bind = bool(
-        re.search(r"%\([a-zA-Z_][a-zA-Z0-9_]*\)s", executable_sql)
-        or re.search(r"(?<!:):[a-zA-Z_][a-zA-Z0-9_]*", executable_sql)
-    )
+    named_bind = bool(_sql_named_bind_names(sql))
     return positional_count, named_bind
 
 
@@ -391,6 +405,356 @@ def _positional_bind_arity(
         "placeholder_count": placeholder_count,
         "supplied_count": supplied_count,
         "mismatch": placeholder_count != supplied_count,
+    }
+
+
+def _simple_branch_path(
+    node: ast.AST, parents: dict[ast.AST, ast.AST]
+) -> tuple[int, int] | tuple[()] | None:
+    """Return one enclosing if branch, (), or None for unsupported control flow."""
+    current = node
+    branch_path: tuple[int, int] | None = None
+    while current in parents:
+        parent = parents[current]
+        if isinstance(parent, ast.If):
+            if branch_path is not None:
+                return None
+            branch_root = current
+            while parents.get(branch_root) is not parent:
+                branch_root = parents[branch_root]
+            if branch_root in parent.body:
+                branch_path = (parent.lineno, 0)
+            elif branch_root in parent.orelse:
+                branch_path = (parent.lineno, 1)
+            else:
+                return None
+        elif isinstance(parent, (ast.For, ast.AsyncFor, ast.While, ast.Try, ast.Match)):
+            return None
+        current = parent
+    return branch_path if branch_path is not None else ()
+
+
+def _expression_assignment_closure(
+    node: ast.AST,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+) -> list[ast.AST]:
+    """Follow simple local names used to construct a SQL expression."""
+    expressions: list[ast.AST] = []
+    pending = [node]
+    visited_names: set[str] = set()
+    while pending:
+        expression = pending.pop()
+        expressions.append(expression)
+        for child in ast.walk(expression):
+            if not isinstance(child, ast.Name) or child.id in visited_names:
+                continue
+            visited_names.add(child.id)
+            candidates = [
+                value for line, value in assignments.get(child.id, []) if line < before
+            ]
+            if candidates:
+                pending.append(candidates[-1])
+    return expressions
+
+
+def _named_bind_sql_additions(
+    sql_node: ast.AST | None,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    before: int,
+) -> tuple[set[str], dict[tuple[int, int], set[str]]] | None:
+    """Resolve literal named binds appended to a list used by SQL ``join``."""
+    if sql_node is None:
+        return None
+    expressions = _expression_assignment_closure(sql_node, assignments, before)
+    join_calls = [
+        item
+        for expression in expressions
+        for item in ast.walk(expression)
+        if isinstance(item, ast.Call)
+        and isinstance(item.func, ast.Attribute)
+        and item.func.attr == "join"
+        and len(item.args) == 1
+        and isinstance(item.args[0], ast.Name)
+    ]
+    list_joins: dict[str, list[int]] = {}
+    for call in join_calls:
+        list_joins.setdefault(call.args[0].id, []).append(call.lineno)
+    if not list_joins:
+        return set(), {}
+
+    parents = {
+        child: parent
+        for parent in ast.walk(function)
+        for child in ast.iter_child_nodes(parent)
+    }
+    unconditional_names: set[str] = set()
+    conditional_names: dict[tuple[int, int], set[str]] = {}
+    for list_name, join_lines in list_joins.items():
+        if len(set(join_lines)) != 1:
+            return None
+        join_line = join_lines[0]
+        candidates = [
+            (line, value) for line, value in assignments.get(list_name, []) if line < join_line
+        ]
+        if not candidates:
+            return None
+        initial_line, initial_value = candidates[-1]
+        if not isinstance(initial_value, (ast.List, ast.Tuple)) or _string_sequence(
+            initial_value, assignments, initial_line
+        ) is None:
+            return None
+        if any(
+            isinstance(statement, (ast.Assign, ast.AnnAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == list_name
+                for target in (
+                    statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                )
+            )
+            and initial_line < statement.lineno < join_line
+            for statement in ast.walk(function)
+        ):
+            return None
+
+        join_call_ids = {id(call) for call in join_calls if call.args[0].id == list_name}
+        for statement in ast.walk(function):
+            statement_line = getattr(statement, "lineno", before)
+            if not initial_line < statement_line < join_line:
+                continue
+            if isinstance(statement, ast.AugAssign) and (
+                isinstance(statement.target, ast.Name)
+                and statement.target.id == list_name
+                or isinstance(statement.target, ast.Subscript)
+                and isinstance(statement.target.value, ast.Name)
+                and statement.target.value.id == list_name
+            ):
+                return None
+            if isinstance(statement, ast.Delete) and any(
+                isinstance(target, ast.Name)
+                and target.id == list_name
+                or isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == list_name
+                for target in statement.targets
+            ):
+                return None
+            if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+                value = statement.value
+                if isinstance(value, ast.Name) and value.id == list_name:
+                    return None
+                targets = (
+                    statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                )
+                if any(
+                    isinstance(target, ast.Subscript)
+                    and isinstance(target.value, ast.Name)
+                    and target.value.id == list_name
+                    for target in targets
+                ):
+                    return None
+            if isinstance(statement, ast.Attribute) and isinstance(
+                statement.value, ast.Name
+            ) and statement.value.id == list_name:
+                parent = parents.get(statement)
+                if not (
+                    statement.attr == "append"
+                    and isinstance(parent, ast.Call)
+                    and parent.func is statement
+                ):
+                    return None
+            if (
+                isinstance(statement, ast.Call)
+                and id(statement) not in join_call_ids
+                and any(
+                    isinstance(child, ast.Name) and child.id == list_name
+                    for argument in statement.args
+                    for child in ast.walk(argument)
+                )
+            ):
+                return None
+
+        for mutation in ast.walk(function):
+            if not (
+                isinstance(mutation, ast.Call)
+                and isinstance(mutation.func, ast.Attribute)
+                and isinstance(mutation.func.value, ast.Name)
+                and mutation.func.value.id == list_name
+                and initial_line < mutation.lineno < join_line
+            ):
+                continue
+            if mutation.func.attr != "append" or len(mutation.args) != 1 or mutation.keywords:
+                return None
+            fragment = _string_value(mutation.args[0], assignments, mutation.lineno)
+            if fragment is None:
+                return None
+            names = _sql_named_bind_names(fragment)
+            branch = _simple_branch_path(mutation, parents)
+            if branch is None:
+                return None
+            if branch:
+                conditional_names.setdefault(branch, set()).update(names)
+            else:
+                unconditional_names.update(names)
+    return unconditional_names, conditional_names
+
+
+def _named_bind_parameter_keys(
+    parameter_node: ast.AST | None,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    before: int,
+) -> tuple[set[str], dict[tuple[int, int], set[str]]] | None:
+    """Resolve a literal dict and simple branch-local ``params[key]`` writes."""
+    parameter_name: str | None = None
+    dictionary: ast.Dict | None = None
+    dictionary_line = before
+    if isinstance(parameter_node, ast.Dict):
+        dictionary = parameter_node
+    elif isinstance(parameter_node, ast.Name):
+        parameter_name = parameter_node.id
+        candidates = [
+            (line, value) for line, value in assignments.get(parameter_name, []) if line < before
+        ]
+        if len(candidates) != 1 or not isinstance(candidates[0][1], ast.Dict):
+            return None
+        dictionary_line, dictionary = candidates[0]
+    else:
+        return None
+
+    keys: set[str] = set()
+    for key in dictionary.keys:
+        if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+            return None
+        keys.add(key.value)
+
+    if parameter_name is None:
+        return keys, {}
+
+    parents = {
+        child: parent
+        for parent in ast.walk(function)
+        for child in ast.iter_child_nodes(parent)
+    }
+    conditional_keys: dict[tuple[int, int], set[str]] = {}
+    for statement in ast.walk(function):
+        if not dictionary_line < getattr(statement, "lineno", before) < before:
+            continue
+        targets: list[ast.AST] = []
+        if isinstance(statement, ast.Assign):
+            targets.extend(statement.targets)
+        elif isinstance(statement, (ast.AnnAssign, ast.AugAssign)):
+            targets.append(statement.target)
+        elif isinstance(statement, ast.Delete):
+            targets.extend(statement.targets)
+
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == parameter_name:
+                return None
+            if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+                if target.value.id != parameter_name:
+                    continue
+                if isinstance(statement, ast.Delete) or not isinstance(
+                    statement, (ast.Assign, ast.AnnAssign)
+                ):
+                    return None
+                key_node = target.slice
+                if not isinstance(key_node, ast.Constant) or not isinstance(key_node.value, str):
+                    return None
+                branch = _simple_branch_path(statement, parents)
+                if branch is None:
+                    return None
+                if branch:
+                    conditional_keys.setdefault(branch, set()).add(key_node.value)
+                else:
+                    keys.add(key_node.value)
+
+        if isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Name):
+            if statement.value.id == parameter_name and any(
+                isinstance(target, ast.Name) and target.id != parameter_name
+                for target in statement.targets
+            ):
+                return None
+
+        if (
+            isinstance(statement, ast.Call)
+            and isinstance(statement.func, ast.Attribute)
+            and isinstance(statement.func.value, ast.Name)
+            and statement.func.value.id == parameter_name
+            and statement.func.attr not in {"copy", "get", "keys", "values", "items"}
+        ):
+            return None
+        if isinstance(statement, ast.Call) and any(
+            isinstance(child, ast.Name) and child.id == parameter_name
+            for argument in statement.args
+            for child in ast.walk(argument)
+        ):
+            return None
+    return keys, conditional_keys
+
+
+def _named_bind_contract(
+    sql: str | None,
+    sql_node: ast.AST | None,
+    call: ast.Call,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    conditional_sql_variants: list[tuple[tuple[int, int], int, ast.AST]] | None = None,
+) -> dict | None:
+    """Compare static named SQL binds with literal mapping keys by branch."""
+    if sql is None or conditional_sql_variants:
+        return None
+    required_base = _sql_named_bind_names(sql)
+    if not required_base or _sql_bind_counts(sql)[0]:
+        return None
+    positional_index = 2 if isinstance(call.func, ast.Name) and call.func.id == "query" else 1
+    parameter_node = call.args[positional_index] if len(call.args) > positional_index else next(
+        (keyword.value for keyword in call.keywords if keyword.arg in {"params", "parameters"}),
+        None,
+    )
+    parameter_info = _named_bind_parameter_keys(
+        parameter_node, assignments, function, call.lineno
+    )
+    sql_additions = _named_bind_sql_additions(sql_node, assignments, function, call.lineno)
+    if parameter_info is None or sql_additions is None:
+        return None
+
+    supplied_base, supplied_branches = parameter_info
+    sql_unconditional, sql_branches = sql_additions
+    required = required_base | sql_unconditional
+    supplied = set(supplied_base)
+    all_branches = set(sql_branches) | set(supplied_branches)
+    variants = []
+    for branch in sorted(all_branches):
+        branch_required = sql_branches.get(branch, set())
+        branch_supplied = supplied_branches.get(branch, set())
+        effective_required = required | branch_required
+        effective_supplied = supplied | branch_supplied
+        mismatch = effective_required != effective_supplied
+        variants.append(
+            {
+                "conditional_line": branch[0],
+                "branch": branch[1],
+                "required_names": sorted(effective_required),
+                "supplied_names": sorted(effective_supplied),
+                "mismatch": mismatch,
+            }
+        )
+    base_mismatch = required != supplied
+    all_required = required | (
+        set().union(*sql_branches.values()) if sql_branches else set()
+    )
+    all_supplied = supplied | (
+        set().union(*supplied_branches.values()) if supplied_branches else set()
+    )
+    return {
+        "required_names": sorted(all_required),
+        "supplied_names": sorted(all_supplied),
+        "base_required_names": sorted(required),
+        "base_supplied_names": sorted(supplied),
+        "variants": variants,
+        "mismatch": base_mismatch or any(item["mismatch"] for item in variants),
     }
 
 
@@ -636,6 +1000,14 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
             function,
             conditional_sql_variants or None,
         )
+        named_bind_contract = _named_bind_contract(
+            sql,
+            sql_node,
+            node,
+            assignments,
+            function,
+            conditional_sql_variants or None,
+        )
         resolved_sql_variants = [value for value in sql_variants if value is not None]
         parameter_variable_names = {
             name.id for param in parameter_nodes for name in ast.walk(param) if isinstance(name, ast.Name)
@@ -745,6 +1117,7 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                 and (location_predicate or location_row_lookup or indirect_location_scope)
                 and correlated_location_binding,
                 "positional_bind_arity": positional_arity,
+                "named_bind_contract": named_bind_contract,
             }
         )
     return sorted(queries, key=lambda item: (item["line"], item["method"]))
@@ -806,6 +1179,14 @@ def _analyze_function(function: ast.FunctionDef | ast.AsyncFunctionDef) -> dict:
             and query["positional_bind_arity"]["mismatch"]
             for query in queries
         ),
+        "static_named_bind_contract_site_count": sum(
+            query["named_bind_contract"] is not None for query in queries
+        ),
+        "named_bind_contract_mismatch_count": sum(
+            query["named_bind_contract"] is not None
+            and query["named_bind_contract"]["mismatch"]
+            for query in queries
+        ),
         "queries_with_bound_location_scope_signal": scope_signal_count,
         "conditional_scope_query_count": conditional_count,
         "unresolved_query_count": unresolved_count,
@@ -832,6 +1213,8 @@ def build_inventory() -> dict:
     total_queries = 0
     static_positional_arity_sites = 0
     positional_arity_mismatches = 0
+    static_named_bind_contract_sites = 0
+    named_bind_contract_mismatches = 0
     scope_signal_queries = 0
     conditional_scope_queries = 0
     unresolved_queries = 0
@@ -851,6 +1234,8 @@ def build_inventory() -> dict:
         total_queries += analysis["direct_query_count"]
         static_positional_arity_sites += analysis["static_positional_arity_site_count"]
         positional_arity_mismatches += analysis["positional_arity_mismatch_count"]
+        static_named_bind_contract_sites += analysis["static_named_bind_contract_site_count"]
+        named_bind_contract_mismatches += analysis["named_bind_contract_mismatch_count"]
         scope_signal_queries += analysis["queries_with_bound_location_scope_signal"]
         conditional_scope_queries += analysis["conditional_scope_query_count"]
         unresolved_queries += analysis["unresolved_query_count"]
@@ -871,8 +1256,9 @@ def build_inventory() -> dict:
             "Conservative AST inventory of direct execute/query calls in registered report functions. "
             "Location-dependent SQL assignment branches retain statically resolved variants, including a simple "
             "unconditional static string suffix after the branch. Positional bind arity is compared for static SQL "
-            "and branch-correlated SQL when parameter counts are statically known; named binds, dynamic containers, "
-            "and nested conditional mutations remain unresolved. "
+            "and branch-correlated SQL when parameter counts are statically known. Named-bind keys are compared "
+            "when literal mappings and simple branch-correlated condition-list appends are statically available; "
+            "dynamic containers and nested conditional mutations remain unresolved. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "
@@ -883,6 +1269,8 @@ def build_inventory() -> dict:
             "direct_query_sites": total_queries,
             "static_positional_arity_sites": static_positional_arity_sites,
             "positional_arity_mismatch_sites": positional_arity_mismatches,
+            "static_named_bind_contract_sites": static_named_bind_contract_sites,
+            "named_bind_contract_mismatch_sites": named_bind_contract_mismatches,
             "query_sites_with_bound_location_scope_signal": scope_signal_queries,
             "conditional_scope_query_sites": conditional_scope_queries,
             "unresolved_query_sites": unresolved_queries,

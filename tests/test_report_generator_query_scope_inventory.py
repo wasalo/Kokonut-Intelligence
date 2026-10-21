@@ -376,18 +376,152 @@ def generate(conn, first_id, second_id):
     }
 
 
-def test_classifier_leaves_named_bind_arity_unresolved():
+def test_classifier_checks_named_mapping_and_ignores_quoted_or_commented_placeholders():
     analysis = analyze_function_source(
         '''
 def generate(conn, location_id):
-    conn.execute("SELECT id FROM location WHERE id = :location_id", {"location_id": location_id})
+    conn.execute(
+        "SELECT ':literal' FROM location WHERE id = :location_id -- :comment",
+        {"location_id": location_id},
+    )
 ''',
         "generate",
     )
 
     assert analysis["static_positional_arity_site_count"] == 0
     assert analysis["positional_arity_mismatch_count"] == 0
+    assert analysis["static_named_bind_contract_site_count"] == 1
+    assert analysis["named_bind_contract_mismatch_count"] == 0
     assert analysis["queries"][0]["positional_bind_arity"] is None
+    assert analysis["queries"][0]["named_bind_contract"] == {
+        "required_names": ["location_id"],
+        "supplied_names": ["location_id"],
+        "base_required_names": ["location_id"],
+        "base_supplied_names": ["location_id"],
+        "variants": [],
+        "mismatch": False,
+    }
+
+
+def test_classifier_checks_psycopg_named_placeholder_mapping():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    conn.execute("SELECT id FROM location WHERE id = %(location_id)s", {"location_id": location_id})
+''',
+        "generate",
+    )
+
+    assert analysis["static_named_bind_contract_site_count"] == 1
+    assert analysis["named_bind_contract_mismatch_count"] == 0
+    assert analysis["queries"][0]["named_bind_contract"]["required_names"] == ["location_id"]
+
+
+def test_classifier_correlates_named_binds_with_condition_list_and_mapping_branches():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id, period_start, period_end):
+    conditions = ["dsp.location_id = :location_id"]
+    params = {"location_id": location_id}
+    if period_start:
+        conditions.append("dsp.created_at >= :period_start")
+        params["period_start"] = period_start
+    if period_end:
+        conditions.append("dsp.created_at <= :period_end")
+        params["period_end"] = period_end
+    where = " AND ".join(conditions)
+    sql = f"SELECT * FROM data_stream_post dsp WHERE {where}"
+    conn.execute(sql, params)
+''',
+        "generate",
+    )
+
+    contract = analysis["queries"][0]["named_bind_contract"]
+    assert contract["mismatch"] is False
+    assert contract["base_required_names"] == ["location_id"]
+    assert contract["base_supplied_names"] == ["location_id"]
+    assert [
+        (variant["required_names"], variant["supplied_names"], variant["mismatch"])
+        for variant in contract["variants"]
+    ] == [
+        (["location_id", "period_start"], ["location_id", "period_start"], False),
+        (["location_id", "period_end"], ["location_id", "period_end"], False),
+    ]
+
+
+def test_classifier_detects_named_mapping_keys_added_on_the_wrong_branch():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id, period_start, period_end):
+    conditions = ["dsp.location_id = :location_id"]
+    params = {"location_id": location_id}
+    if period_start:
+        conditions.append("dsp.created_at >= :period_start")
+        params["period_end"] = period_end
+    where = " AND ".join(conditions)
+    sql = f"SELECT * FROM data_stream_post dsp WHERE {where}"
+    conn.execute(sql, params)
+''',
+        "generate",
+    )
+
+    contract = analysis["queries"][0]["named_bind_contract"]
+    assert contract["mismatch"] is True
+    assert any(variant["mismatch"] for variant in contract["variants"])
+
+
+def test_classifier_leaves_nested_named_bind_mutations_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id, period_start, include_period):
+    conditions = ["dsp.location_id = :location_id"]
+    params = {"location_id": location_id}
+    if period_start:
+        if include_period:
+            conditions.append("dsp.created_at >= :period_start")
+            params["period_start"] = period_start
+    where = " AND ".join(conditions)
+    sql = f"SELECT * FROM data_stream_post dsp WHERE {where}"
+    conn.execute(sql, params)
+''',
+        "generate",
+    )
+
+    assert analysis["queries"][0]["named_bind_contract"] is None
+
+
+def test_classifier_leaves_unrecognized_list_and_mapping_mutations_unresolved():
+    list_mutation = analyze_function_source(
+        '''
+def generate(conn, location_id, period_start):
+    conditions = ["dsp.location_id = :location_id"]
+    params = {"location_id": location_id}
+    if period_start:
+        conditions += ["dsp.created_at >= :period_start"]
+        params["period_start"] = period_start
+    where = " AND ".join(conditions)
+    sql = f"SELECT * FROM data_stream_post dsp WHERE {where}"
+    conn.execute(sql, params)
+''',
+        "generate",
+    )
+    mapping_mutation = analyze_function_source(
+        '''
+def generate(conn, location_id, period_start):
+    conditions = ["dsp.location_id = :location_id"]
+    params = {"location_id": location_id}
+    if period_start:
+        conditions.append("dsp.created_at >= :period_start")
+        params.update({"period_start": period_start})
+    where = " AND ".join(conditions)
+    sql = f"SELECT * FROM data_stream_post dsp WHERE {where}"
+    conn.execute(sql, params)
+''',
+        "generate",
+    )
+
+    assert list_mutation["queries"][0]["named_bind_contract"] is None
+    assert mapping_mutation["queries"][0]["named_bind_contract"] is None
 
 
 def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
@@ -397,6 +531,8 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     assert inventory["summary"]["direct_query_sites"] == 176
     assert inventory["summary"]["static_positional_arity_sites"] == 175
     assert inventory["summary"]["positional_arity_mismatch_sites"] == 0
+    assert inventory["summary"]["static_named_bind_contract_sites"] == 1
+    assert inventory["summary"]["named_bind_contract_mismatch_sites"] == 0
     assert inventory["summary"]["query_sites_with_bound_location_scope_signal"] > 0
     assert inventory["summary"]["unresolved_query_sites"] == 0
     reports = {report["report_type"]: report for report in inventory["reports"]}
@@ -427,6 +563,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
         if query["positional_bind_arity"] is None
     ]
     assert unresolved_arity == [("data_stream_summary", 29)]
+    assert reports["data_stream_summary"]["queries"][0]["named_bind_contract"]["mismatch"] is False
 
 
 def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):

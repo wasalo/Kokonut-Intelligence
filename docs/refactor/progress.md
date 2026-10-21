@@ -1,3 +1,19 @@
+### CAP-066 static named report bind contract — 21 October 2026
+
+The direct report query inventory now checks both positional parameters and
+named mapping keys. It compares SQLAlchemy `:name` and psycopg `%(name)s`
+placeholders outside literals/comments, and follows simple condition-list
+appends plus mapping-key assignments in the same `if` branch. This closes the
+direct `data_stream_summary` named-bind site: 175 positional sites and one
+named-bind site are statically checked, with zero mismatches. Dynamic
+containers, nested/unrecognized mutations, helper-query named binds, and
+populated report parity remain open. The focused Data Stream/query/helper/source
+selection passes 84 tests; Ruff, compilation, all three inventory freshness
+checks, capability validation, and diff checks pass. No database, provider,
+migration, candidate, or legacy stack was used. Checklist: 882 complete / 24
+open (906 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-066-static-named-report-bind-contract.json)).
+
 ### CAP-066 named report bind filters — 21 October 2026
 
 The remaining direct named-bind report query, `data_stream_summary`, now has a
