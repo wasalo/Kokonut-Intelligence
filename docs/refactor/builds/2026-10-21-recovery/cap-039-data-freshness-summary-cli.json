@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "6964bc8c",
+  "scope": "Data-freshness summary standalone/unified parity and query-failure cursor cleanup",
+  "verification": {
+    "focused_tests": "5 summary parity/failure cases pass; 42 tests in the data-freshness/telemetry selection",
+    "coverage": [
+      "standalone/unified summary JSON matches for synthetic location/status rows",
+      "summary selects only the documented freshness view",
+      "execute and fetch failures close both cursor and connection in standalone and unified CLI paths",
+      "unified CLI reports service failure as exit code 1"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; query rows and connection are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: summary CLI parity and cleanup are covered without a live database or provider.",
+  "limitations": [
+    "This is mocked summary-query behavior; it does not establish live view output or database authorization.",
+    "Global freshness-summary privacy/operator-role boundaries and alert-delivery acceptance remain open."
+  ]
+}

@@ -4130,3 +4130,12 @@ Populated parity, live provider behavior, authorization, and MAN-CAP-039 review
 remain open. Checklist: 838 complete / 25 open; capability classifications
 remain 31 baseline-retained, 7 deployed, and 28 prepared
 ([evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json)).
+
+**CAP-039 data-freshness summary CLI — 21 October 2026:** the global summary
+has matching standalone/unified JSON output on synthetic view rows. Query/fetch
+failures close both cursor and connection. Five focused cases pass in the 42-test
+freshness selection with Ruff and compilation; no database/provider was
+contacted. Populated view parity, global operator/privacy boundary, and alert
+delivery remain open. Checklist: 839 complete / 25 open; classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json)).

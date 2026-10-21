@@ -2512,3 +2512,14 @@ parity, live provider, and authorization remain open. Checklist: 838 complete /
 25 open (863 total); matrix classifications remain 31 baseline-retained, 7
 deployed, and 28 prepared. See
 [evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json).
+
+### CAP-039 data-freshness summary CLI — 21 October 2026
+
+Standalone/unified global summary output matches for synthetic rows, and query
+or fetch failure closes cursor and connection. Five focused cases pass in the
+42-test freshness/telemetry selection with Ruff and compilation. No
+database/provider was contacted. Live view parity, operator/privacy boundaries,
+and alert delivery remain open. Checklist: 839 complete / 25 open (864 total);
+matrix classifications remain 31 baseline-retained, 7 deployed, and 28
+prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json).

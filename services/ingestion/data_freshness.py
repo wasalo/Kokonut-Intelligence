@@ -553,10 +553,11 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
 def get_freshness_summary(conn) -> List[Dict[str, Any]]:
     """Get current freshness summary from the database view."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT * FROM v_data_freshness_summary")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("SELECT * FROM v_data_freshness_summary")
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def main(argv: Optional[List[str]] = None) -> None:

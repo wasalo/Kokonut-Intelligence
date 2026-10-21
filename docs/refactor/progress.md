@@ -13385,3 +13385,15 @@ database/provider was contacted. Populated data, provider delivery, and live
 authorization remain open. Checklist: 838 complete / 25 open (863 total); matrix
 remains 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_weather_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-weather-forecast-cli-parity.json)).
+
+### CAP-039 data-freshness summary CLI — 21 October 2026
+
+The freshness summary now has matching standalone/unified JSON output for
+synthetic rows. Its cursor closes after query and fetch failures; the CLI
+connection closes in both entrypoints, which return the unified CLI's normal
+nonzero error status. Five focused parity/failure cases pass in the 42-test
+freshness selection with Ruff and compilation. No database/provider was
+contacted. Live view output, operator/privacy boundaries, and alert delivery
+remain open. Checklist: 839 complete / 25 open (864 total); matrix remains 66
+rows: 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_data_freshness_cli_parity.py);
+[evidence](builds/2026-10-21-recovery/cap-039-data-freshness-summary-cli.json)).

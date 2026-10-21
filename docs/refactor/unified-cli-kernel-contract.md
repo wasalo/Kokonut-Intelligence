@@ -72,6 +72,7 @@ mounted unified command using the same arguments. It covers:
 | `ingestion` | `remote_sensing_fetcher --job-id <synthetic-job-uuid> --location-id <synthetic-location-uuid>` | Location-qualified PostgreSQL lookup is synthetic; provider execution is stubbed | Matching standalone/unified JSON result; empty or malformed job UUID rejected before DB setup |
 | `ingestion` | `weather --location-id <synthetic-location-uuid>` or explicit `--all-locations` | PostgreSQL location query returns synthetic empty results; no provider is contacted | Matching standalone/unified logs and scope; invalid location rejected before DB setup |
 | `ingestion` | `weather_forecast --location-id <synthetic-location-uuid>` or explicit `--all-locations` | PostgreSQL location query returns synthetic empty results; no provider is contacted | Matching standalone/unified logs and scope; invalid location rejected before DB setup |
+| `ingestion` | `data_freshness --summary` | PostgreSQL summary-view rows are synthetic | Matching standalone/unified JSON; cursor/connection close on execute or fetch failure; global operator boundary remains unverified |
 | `mobile-forms` | `validate --manifest <synthetic-file>` and `preview --manifest <synthetic-file>` | Local file and schema validation; no database or provider | JSON summary reports `database_write: false`; preview reports `publication: not applied` |
 | `audit-spool` | `status --path <missing-private-path>` | Local SQLite capacity check; no PostgreSQL or provider; missing-file status does not create the journal | JSON capacity summary; no journal contents |
 | `systems` | `--list-modules` | Local Python module registry; no database or provider | Sorted module names and descriptions |
@@ -117,7 +118,7 @@ For each row, the regression invokes both `python -m <legacy-module>` and
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Nine successful offline invocations, forty-two other
+real service. Nine successful offline invocations, forty-three other
 PostgreSQL-backed read invocations with stubbed query functions (including
 ingestion status and location-scoped device reads), one operator inventory
 read, one tenant-preflight invocation with a synthetic aggregate service
@@ -143,7 +144,7 @@ database or chain/provider command. These checks run with the offline output
 parity cases in a 157-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The forty-three query-backed success paths (including the operator inventory),
+The forty-four query-backed success paths (including the operator inventory),
 one aggregate-service-stubbed tenant-preflight path, two synthetic report-
 generation paths (single and automatic batch), and three fake-connection
 operator writes exercise their real parsers, forwarding, and JSON or text output
