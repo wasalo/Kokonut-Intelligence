@@ -87,6 +87,13 @@ run without decrypting `.env.sops`.
   Signed worker context and authenticated operator context remain the supported
   identity patterns; legacy/background agent writers still lack an authenticated
   run identity and database least privilege.
+- The current source inventory identifies two legacy direct `ai_summary`
+  inserts in the shared synthesis base and standalone AI-summary CLI, one
+  authenticated Gateway call to the bounded draft function, and no calls to
+  `set_agent_context()`. The checker pins these source locations and emits no
+  SQL text or runtime values. This is source coverage, not proof of role
+  privileges or runtime reachability ([inventory](agent-write-boundary-inventory.json);
+  [checker](../../scripts/agent_write_boundary_inventory.py)).
 
 ## Location-scoped AI-summary draft and human-review slice
 

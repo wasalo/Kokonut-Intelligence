@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "generated_by": "scripts/agent_write_boundary_inventory.py",
+  "scope": "Static Python call-site inventory for direct AI-summary inserts in services/agents, the signed operator draft function call in services/gateway, and calls to the disabled set_agent_context helper. Source locations classify code paths; they do not prove runtime identity, database privileges, query reachability, or tenant isolation.",
+  "summary": {
+    "legacy_direct_ai_summary_insert_sites": 2,
+    "authenticated_operator_draft_function_calls": 1,
+    "set_agent_context_call_sites": 0
+  },
+  "legacy_direct_ai_summary_inserts": [
+    {
+      "source": "services/agents/ai_summary.py",
+      "line": 459
+    },
+    {
+      "source": "services/agents/base.py",
+      "line": 116
+    }
+  ],
+  "authenticated_operator_draft_function_calls": [
+    {
+      "source": "services/gateway/ai_summary_draft.py",
+      "line": 106
+    }
+  ],
+  "set_agent_context_call_sites": []
+}
