@@ -4060,7 +4060,7 @@ was contacted. Live writes and aggregate-operation authorization remain open
 fetch-job list now has standalone/unified JSON parity with synthetic rows,
 bound location SQL, cleanup, and missing/invalid scope preflight. Five focused
 tests, Ruff, and compilation pass; no database/provider was contacted. Job
-creation, provider execution, and worker recovery remain open
+provider execution and worker recovery remain open
 ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json)).
 
 **CAP-039 remote-sensing job creation — 21 October 2026:** job creation now
@@ -4072,3 +4072,12 @@ and no provider was contacted. Provider execution, lease/retry recovery, live
 authorization, and MAN-CAP-039 review remain open. Checklist: 832 complete /
 25 open; capability classifications remain 31 baseline-retained, 7 deployed,
 and 28 prepared ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json)).
+
+**CAP-039 remote-sensing fetcher cursor cleanup — 21 October 2026:** active-job
+queries, exact job lookups, job lists, and stored/plot-derived bbox reads now
+close cursors on query and result-fetch failures. Ten synthetic cases pass in
+the focused 82-test fetcher/scheduler/automation selection with Ruff and
+compilation; no database/provider was contacted. Live authorization, provider
+execution, and worker recovery remain open. Checklist: 833 complete / 25 open;
+matrix classifications remain 31 baseline-retained, 7 deployed, and 28
+prepared ([evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-fetcher-cursor-cleanup.json)).

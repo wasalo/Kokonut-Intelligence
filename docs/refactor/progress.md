@@ -13295,7 +13295,7 @@ The fetcher job list now has standalone/unified JSON parity using synthetic
 query rows. Its SQL binds the exact location, and the command rejects missing
 or malformed scope before database setup. Cursor and connection cleanup pass.
 Five focused tests pass with Ruff and Python compilation; no database or
-provider was contacted. Job creation, execution, and worker recovery remain
+provider was contacted. Provider execution and worker recovery remain
 open. Checklist: 831 complete / 25 open (856 total); matrix remains 66 rows:
 31 baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json)).
@@ -13313,3 +13313,16 @@ execution, job recovery, and operator authorization remain open. Checklist:
 832 complete / 25 open (857 total); matrix remains 66 rows: 31 baseline-
 retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cli_parity.py);
 [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json)).
+
+
+### CAP-039 remote-sensing fetcher read cursor cleanup — 21 October 2026
+
+The fetcher now closes read cursors when execution or result retrieval fails
+for active-job queries, exact job lookup, job listing, and both stored and
+plot-derived bbox lookup paths. Ten focused failure cases pass within an
+82-test fetcher/scheduler/automation selection; Ruff and compilation pass.
+Only synthetic cursors were used, with no database or provider calls. Live
+database authorization, provider execution, and worker recovery remain open.
+Checklist: 833 complete / 25 open (858 total); matrix remains 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_remote_sensing_fetcher_cursor_cleanup.py);
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-fetcher-cursor-cleanup.json)).

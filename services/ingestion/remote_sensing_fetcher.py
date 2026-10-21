@@ -105,17 +105,18 @@ def _query_active_jobs(conn, location_id: str) -> List[Dict[str, Any]]:
     """Query active remote sensing jobs due for one location."""
     location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT * FROM remote_sensing_job
-        WHERE status = 'active'
-        AND location_id = %s
-        AND (next_run_at IS NULL OR next_run_at <= NOW())
-        AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
-        ORDER BY next_run_at NULLS FIRST
-    """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("""
+            SELECT * FROM remote_sensing_job
+            WHERE status = 'active'
+            AND location_id = %s
+            AND (next_run_at IS NULL OR next_run_at <= NOW())
+            AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
+            ORDER BY next_run_at NULLS FIRST
+        """, (location_id,))
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -162,13 +163,15 @@ def _query_job(conn, job_id: str, location_id: str) -> Optional[Dict[str, Any]]:
     """Query a specific job only within one location."""
     location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        "SELECT * FROM remote_sensing_job WHERE id = %s AND location_id = %s",
-        (job_id, location_id),
-    )
-    row = cur.fetchone()
-    cur.close()
-    return dict(row) if row else None
+    try:
+        cur.execute(
+            "SELECT * FROM remote_sensing_job WHERE id = %s AND location_id = %s",
+            (job_id, location_id),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        cur.close()
 
 
 def _update_job_status(
@@ -235,12 +238,14 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
     # If job has explicit bbox, use it
     if job.get("bbox"):
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute(
-            "SELECT ST_XMin(bbox) AS west, ST_YMin(bbox) AS south, ST_XMax(bbox) AS east, ST_YMax(bbox) AS north FROM (SELECT bbox FROM remote_sensing_job WHERE id = %s AND location_id = %s) sub",
-            (str(job["id"]), str(job["location_id"])),
-        )
-        row = cur.fetchone()
-        cur.close()
+        try:
+            cur.execute(
+                "SELECT ST_XMin(bbox) AS west, ST_YMin(bbox) AS south, ST_XMax(bbox) AS east, ST_YMax(bbox) AS north FROM (SELECT bbox FROM remote_sensing_job WHERE id = %s AND location_id = %s) sub",
+                (str(job["id"]), str(job["location_id"])),
+            )
+            row = cur.fetchone()
+        finally:
+            cur.close()
         if row and row["west"] is not None:
             return {
                 "west": float(row["west"]),
@@ -251,21 +256,23 @@ def _resolve_bbox_from_job(conn, job: Dict[str, Any]) -> Optional[Dict[str, floa
 
     # Otherwise derive from plot geometries
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT
-            ST_XMin(ST_Extent(p.geometry)) AS west,
-            ST_YMin(ST_Extent(p.geometry)) AS south,
-            ST_XMax(ST_Extent(p.geometry)) AS east,
-            ST_YMax(ST_Extent(p.geometry)) AS north
-        FROM plot p
-        JOIN farm f ON p.farm_id = f.id
-        WHERE f.location_id = %s AND p.geometry IS NOT NULL
-    """,
-        (str(job["location_id"]),),
-    )
-    row = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            SELECT
+                ST_XMin(ST_Extent(p.geometry)) AS west,
+                ST_YMin(ST_Extent(p.geometry)) AS south,
+                ST_XMax(ST_Extent(p.geometry)) AS east,
+                ST_YMax(ST_Extent(p.geometry)) AS north
+            FROM plot p
+            JOIN farm f ON p.farm_id = f.id
+            WHERE f.location_id = %s AND p.geometry IS NOT NULL
+        """,
+            (str(job["location_id"]),),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
     if row and row["west"] is not None:
         return {
             "west": float(row["west"]),
@@ -438,16 +445,17 @@ def list_jobs(conn, location_id: str) -> List[Dict[str, Any]]:
     """List remote sensing fetch jobs for one location."""
     location_id = _canonical_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        SELECT j.*, l.name AS location_name
-        FROM remote_sensing_job j
-        JOIN location l ON l.id = j.location_id
-        WHERE j.location_id = %s
-        ORDER BY j.created_at DESC
-    """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        cur.execute("""
+            SELECT j.*, l.name AS location_name
+            FROM remote_sensing_job j
+            JOIN location l ON l.id = j.location_id
+            WHERE j.location_id = %s
+            ORDER BY j.created_at DESC
+        """, (location_id,))
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def main(argv: list[str] | None = None) -> None:

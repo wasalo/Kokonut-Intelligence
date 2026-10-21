@@ -2425,7 +2425,7 @@ The location-scoped fetcher job list now matches through both CLIs with
 synthetic query rows; it binds the location and closes its cursor/connection.
 Missing or malformed scope fails before database setup. Five focused tests,
 Ruff, and Python compilation pass; no database/provider was contacted. Job
-creation, provider execution, and worker recovery remain open. Checklist: 831
+provider execution and worker recovery remain open. Checklist: 831
 complete / 25 open (856 total); capability classifications remain 66 rows:
 31 baseline-retained, 7 deployed, and 28 prepared. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-039-remote-sensing-job-list-parity.json`.
@@ -2442,3 +2442,15 @@ no provider was contacted. Provider execution, persisted job recovery, and
 operator authorization remain open. The checklist is 832 complete / 25 open
 (857 total); the 66-row matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared. See [evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-job-create-contract.json).
+
+
+### CAP-039 remote-sensing fetcher read cursor cleanup — 21 October 2026
+
+Active-job query, exact job lookup, location job listing, and both bbox lookup
+paths now close cursors when SQL execution or fetching fails. Ten synthetic
+failure cases pass in the focused 82-test fetcher/scheduler/automation
+selection; Ruff and compilation pass. No database or provider was contacted.
+Live database authorization, provider execution, and worker recovery remain
+open. Checklist: 833 complete / 25 open (858 total); matrix classifications
+remain 31 baseline-retained, 7 deployed, and 28 prepared. See
+[evidence](builds/2026-10-21-recovery/cap-039-remote-sensing-fetcher-cursor-cleanup.json).
