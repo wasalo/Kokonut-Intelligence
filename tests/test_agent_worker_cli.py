@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from services.agents import worker_cli
-from services.agents.base import SynthesisAgent
+from services.agents.bio_factory_agent import BioFactorySynthesisAgent
 
 LOCATION_ID = "00000000-0000-0000-0000-000000000123"
 REQUEST_ID = "00000000-0000-0000-0000-000000000456"
@@ -88,15 +88,14 @@ def test_worker_cli_does_not_write_after_source_generation_failure():
     writer.assert_not_called()
 
 
-class _SyntheticSynthesisAgent(SynthesisAgent):
-    task_key = "bio_factory_synthesis"
-    summary_type = "bio_factory"
-    read_collection = "ai_summary"
-    model_version = "synthetic-v1"
-    source_tables = ["harvest_event"]
-
-    def synthesize(self, conn, location_id=None):
-        return {"location_id": location_id, "synthesis": "Synthetic agent draft"}
+def _synthetic_synthesis_agent() -> BioFactorySynthesisAgent:
+    agent = BioFactorySynthesisAgent()
+    agent.synthesize = lambda _conn, location_id=None: {
+        "location_id": location_id,
+        "synthesis": "Synthetic agent draft",
+    }
+    agent.collect_source_references = lambda *_args: {}
+    return agent
 
 
 def _source_connection():
@@ -109,7 +108,7 @@ def _source_connection():
 def test_generic_synthesis_worker_replays_before_source_reads():
     prior = {"summary_id": "saved-id", "content": "original draft"}
     connection_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
             "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
@@ -132,7 +131,7 @@ def test_generic_synthesis_worker_replays_before_source_reads():
 
 
 def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     connection, cursor = _source_connection()
     writer = MagicMock(return_value={"summary_id": "saved-id", "replayed": False})
     with pytest.MonkeyPatch.context() as monkeypatch:
@@ -162,8 +161,8 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
         REQUEST_ID,
         {
             "content": "Synthetic agent draft",
-            "source_tables": ["harvest_event"],
-            "model_version": "synthetic-v1",
+            "source_tables": BioFactorySynthesisAgent.source_tables,
+            "model_version": BioFactorySynthesisAgent.model_version,
             "source_references": {},
         },
     )
@@ -193,7 +192,7 @@ def test_worker_summary_rejects_unregistered_type_before_request_lookup():
 
 
 def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     references = {
         "harvest_event": {
             "record_ids": ["e0000000-0000-4000-8000-000000000001"],
@@ -223,7 +222,7 @@ def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
 
 
 def test_generic_synthesis_worker_does_not_write_when_reference_collection_fails():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     agent.collect_source_references = MagicMock(
         side_effect=RuntimeError("source reference query failed")
     )
@@ -249,7 +248,7 @@ def test_generic_synthesis_worker_does_not_write_when_reference_collection_fails
 
 
 def test_generic_synthesis_worker_rejects_locationless_scope_before_connections():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     connection_factory = MagicMock(side_effect=AssertionError("DB must stay closed"))
     with pytest.raises(ValueError, match="location_id and request_id must be UUIDs"):
         worker_cli.run_worker_synthesis(
@@ -263,11 +262,11 @@ def test_generic_synthesis_worker_rejects_locationless_scope_before_connections(
 
 
 def test_generic_synthesis_worker_rejects_invalid_metadata_before_receipt_lookup():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     agent.source_tables = ["harvest_event", "harvest_event"]
     reader = MagicMock(side_effect=AssertionError("invalid metadata must fail first"))
     connection_factory = MagicMock(side_effect=AssertionError("DB must stay closed"))
-    with pytest.raises(ValueError, match="source_tables must be unique"):
+    with pytest.raises(ValueError, match="metadata differs from its registered class"):
         worker_cli.run_worker_synthesis(
             agent,
             LOCATION_ID,
@@ -279,8 +278,27 @@ def test_generic_synthesis_worker_rejects_invalid_metadata_before_receipt_lookup
     connection_factory.assert_not_called()
 
 
+def test_synthesis_worker_rejects_catalogue_only_task_before_receipt_lookup():
+    agent = _synthetic_synthesis_agent()
+    agent.task_key = "ebf_scorecard_draft"
+    reader = MagicMock(side_effect=AssertionError("unsupported task reached receipt lookup"))
+    connection_factory = MagicMock(side_effect=AssertionError("unsupported task opened source DB"))
+
+    with pytest.raises(ValueError, match="not a registered synthesis agent"):
+        worker_cli.run_worker_synthesis(
+            agent,
+            LOCATION_ID,
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=reader,
+        )
+
+    reader.assert_not_called()
+    connection_factory.assert_not_called()
+
+
 def test_generic_synthesis_worker_rolls_back_generation_failure_without_writing():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     agent.synthesize = MagicMock(side_effect=RuntimeError("source query failed"))
     connection, _cursor = _source_connection()
     writer = MagicMock()
@@ -303,7 +321,7 @@ def test_generic_synthesis_worker_rolls_back_generation_failure_without_writing(
 
 
 def test_generic_synthesis_worker_rejects_invalid_output_without_writing():
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     agent.synthesize = lambda _conn, _location_id: {"location_id": LOCATION_ID}
     connection, _cursor = _source_connection()
     writer = MagicMock()
@@ -344,7 +362,7 @@ def test_worker_cli_registry_resolves_all_declared_synthesis_tasks():
 def test_worker_cli_dispatches_registered_synthesis_task_without_content_output(
     monkeypatch, capsys
 ):
-    agent = _SyntheticSynthesisAgent()
+    agent = _synthetic_synthesis_agent()
     agent.task_key = "feedback_synthesis"
     monkeypatch.setattr(
         sys,

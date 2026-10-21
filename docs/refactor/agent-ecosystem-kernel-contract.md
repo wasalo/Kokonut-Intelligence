@@ -172,10 +172,12 @@ role that may switch only to the bounded worker execution role. A one-shot
 `services.agents.worker_cli` exercises this path for the four deterministic
 AI-summary types and the ten registered shared synthesis tasks. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
-`ai_summary` directly. The worker checks the stable request receipt before
-source queries, runs reads inside a bounded read-only transaction using the
-runtime database identity, and creates the draft through the separate signed
-worker connection. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
+`ai_summary` directly. The worker resolves every synthesis task through its explicit ten-module
+registry, checks the registered class and class-declared metadata before any
+receipt lookup, then checks the stable request receipt before source queries. It
+runs reads inside a bounded read-only transaction using the runtime database
+identity and creates the draft through the separate signed worker connection.
+Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
 farm-assigned Kokonut Commons synthesis attach bounded row IDs for thirty-four
 exact-location published summary views through the same private manifest. The base agent contract accepts a fixed

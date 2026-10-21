@@ -75,6 +75,11 @@ def run_worker_synthesis(
         request_id = str(UUID(str(request_id)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValueError("location_id and request_id must be UUIDs") from exc
+    if not isinstance(getattr(agent, "task_key", None), str):
+        raise ValueError("agent task is not registered for the synthesis worker")
+    registered_agent = resolve_synthesis_agent(agent.task_key)
+    if type(agent) is not type(registered_agent):
+        raise ValueError("agent instance does not match its registered synthesis task")
     if (
         not agent.task_key
         or not isinstance(agent.summary_type, str)
@@ -82,6 +87,18 @@ def run_worker_synthesis(
         or agent.summary_type not in SYNTHESIS_SUMMARY_TYPES
     ):
         raise ValueError("registered synthesis agent metadata is incomplete")
+    if any(
+        getattr(agent, name, None) != getattr(type(agent), name, None)
+        for name in (
+            "task_key",
+            "summary_type",
+            "read_collection",
+            "model_version",
+            "source_tables",
+            "source_reference_views",
+        )
+    ):
+        raise ValueError("synthesis agent metadata differs from its registered class")
     validate_task_capabilities(agent.task_key)
     input_errors = validate_task_inputs(
         agent.task_key, {"location_id": location_id, "store": True}
