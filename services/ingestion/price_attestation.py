@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -50,6 +51,15 @@ def attest_price(
 
     Creates an on-chain audit trail of the price data origin.
     """
+    _validate_attestation_inputs(
+        commodity=commodity,
+        price=price,
+        source=source,
+        source_count=source_count,
+        confidence=confidence,
+        currency=currency,
+        chain=chain,
+    )
     now = datetime.now(timezone.utc)
 
     # Log to oracle_price_log
@@ -93,6 +103,49 @@ def attest_price(
     }
 
 
+def _validate_attestation_inputs(
+    *,
+    commodity: str,
+    price: float,
+    source: str,
+    source_count: int,
+    confidence: float,
+    currency: str,
+    chain: str,
+) -> None:
+    """Reject malformed price records before they reach persistence or EAS."""
+    if not isinstance(commodity, str) or not commodity.strip():
+        raise ValueError("commodity must be a non-empty string")
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("source must be a non-empty string")
+    if not isinstance(currency, str) or not currency.strip():
+        raise ValueError("currency must be a non-empty string")
+    if not isinstance(chain, str) or not chain.strip():
+        raise ValueError("chain must be a non-empty string")
+    try:
+        valid_price = (
+            not isinstance(price, bool)
+            and math.isfinite(float(price))
+            and float(price) > 0
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid_price = False
+    if not valid_price:
+        raise ValueError("price must be a finite number greater than zero")
+    if isinstance(source_count, bool) or not isinstance(source_count, int) or source_count < 1:
+        raise ValueError("source_count must be a positive integer")
+    try:
+        valid_confidence = (
+            not isinstance(confidence, bool)
+            and math.isfinite(float(confidence))
+            and 0 <= float(confidence) <= 1
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid_confidence = False
+    if not valid_confidence:
+        raise ValueError("confidence must be a finite number between zero and one")
+
+
 def attest_daily_prices(conn) -> Dict[str, Any]:
     """Attest all daily price data on-chain."""
     # Get latest unattested prices
@@ -115,7 +168,9 @@ def attest_daily_prices(conn) -> Dict[str, Any]:
             price=float(price["price_usd_per_tonne"]),
             source=price.get("source", "unknown"),
             source_count=price.get("source_count", 1),
-            confidence=float(price.get("confidence", 1.0) or 1.0),
+            confidence=(
+                1.0 if price.get("confidence") is None else float(price["confidence"])
+            ),
         )
         results.append(result)
 
@@ -144,9 +199,26 @@ def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if not args.run_daily and not (args.commodity and args.price):
+    if args.run_daily and (args.commodity is not None or args.price is not None):
+        parser.error("--run-daily cannot be combined with --commodity or --price")
+
+    if not args.run_daily and (args.commodity is None or args.price is None):
         parser.print_help()
         return
+
+    if not args.run_daily:
+        try:
+            _validate_attestation_inputs(
+                commodity=args.commodity,
+                price=args.price,
+                source=args.source,
+                source_count=1,
+                confidence=1.0,
+                currency="USD",
+                chain="celo",
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
 
     conn = get_db()
     try:

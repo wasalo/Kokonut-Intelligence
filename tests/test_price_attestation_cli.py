@@ -18,9 +18,16 @@ class _Connection:
         self.closed = True
 
 
+def _invoke(unified: bool, arguments: list[str]) -> None:
+    if unified:
+        ingestion_cli.main(["price_attestation", *arguments])
+    else:
+        price_attestation.main(arguments)
+
+
 @pytest.mark.parametrize(
     "arguments",
-    [[], ["--commodity", "coffee"], ["--price", "2.50"], ["--commodity", "coffee", "--price", "0"]],
+    [[], ["--commodity", "coffee"], ["--price", "2.50"]],
 )
 def test_incomplete_invocation_shows_help_without_opening_database(
     monkeypatch, capsys, arguments: list[str]
@@ -32,6 +39,87 @@ def test_incomplete_invocation_shows_help_without_opening_database(
     price_attestation.main(arguments)
 
     assert "usage:" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
+@pytest.mark.parametrize(
+    ("arguments", "message"),
+    [
+        (["--commodity", "coffee", "--price", "0"], "greater than zero"),
+        (["--commodity", "coffee", "--price", "-2"], "greater than zero"),
+        (["--commodity", "coffee", "--price", "nan"], "finite number"),
+        (["--commodity", "coffee", "--price", "inf"], "finite number"),
+        (["--commodity", " ", "--price", "2"], "commodity must be"),
+        (["--commodity", "coffee", "--price", "2", "--source", " "], "source must be"),
+    ],
+)
+def test_invalid_manual_attestation_fails_before_database_access(
+    monkeypatch, capsys, unified: bool, arguments: list[str], message: str
+) -> None:
+    monkeypatch.setattr(
+        price_attestation,
+        "get_db",
+        lambda: pytest.fail("invalid price input must fail before DB access"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        _invoke(unified, arguments)
+
+    assert error.value.code == 2
+    assert message in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("unified", [False, True], ids=["standalone", "unified"])
+def test_daily_mode_rejects_manual_arguments_before_database_access(
+    monkeypatch, unified: bool
+) -> None:
+    monkeypatch.setattr(
+        price_attestation,
+        "get_db",
+        lambda: pytest.fail("conflicting operation modes must fail before DB access"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        _invoke(
+            unified,
+            ["--run-daily", "--commodity", "coffee", "--price", "2.5"],
+        )
+
+    assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"price": 0}, "greater than zero"),
+        ({"price": True}, "greater than zero"),
+        ({"price": float("nan")}, "finite number"),
+        ({"source_count": 0}, "positive integer"),
+        ({"source_count": True}, "positive integer"),
+        ({"confidence": -0.1}, "between zero and one"),
+        ({"confidence": float("inf")}, "between zero and one"),
+        ({"confidence": True}, "between zero and one"),
+        ({"commodity": " "}, "commodity must be"),
+    ],
+)
+def test_attest_price_validates_before_opening_cursor(overrides: dict, message: str) -> None:
+    class NoCursorConnection:
+        def cursor(self):
+            pytest.fail("invalid attestation input must fail before cursor creation")
+
+    arguments = {
+        "commodity": "coffee",
+        "price": 2.5,
+        "source": "test",
+        "source_count": 1,
+        "confidence": 1.0,
+        "currency": "USD",
+        "chain": "celo",
+    }
+    arguments.update(overrides)
+
+    with pytest.raises(ValueError, match=message):
+        price_attestation.attest_price(NoCursorConnection(), **arguments)
 
 
 def test_manual_attestation_dispatch_matches_standalone_and_unified(monkeypatch) -> None:

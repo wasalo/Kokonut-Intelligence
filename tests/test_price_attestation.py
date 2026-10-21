@@ -1,5 +1,6 @@
 """Regression tests for daily on-chain commodity price attestation."""
 
+from services.ingestion import price_attestation
 from services.ingestion.price_attestation import attest_daily_prices
 
 
@@ -32,4 +33,33 @@ def test_daily_price_attestation_handles_no_pending_prices():
     result = attest_daily_prices(conn)
 
     assert result == {"status": "success", "prices_attested": 0, "results": []}
+    assert conn.cursor_instance.closed
+
+
+def test_daily_attestation_preserves_explicit_zero_confidence(monkeypatch):
+    conn = _Connection()
+    conn.cursor_instance.fetchall = lambda: [
+        {
+            "commodity": "coffee",
+            "price_usd_per_tonne": 10,
+            "source": "test",
+            "source_count": 2,
+            "confidence": 0,
+        }
+    ]
+    attest_calls = []
+    monkeypatch.setattr(
+        price_attestation,
+        "attest_price",
+        lambda _conn, **kwargs: attest_calls.append(kwargs) or {"status": "success"},
+    )
+
+    result = attest_daily_prices(conn)
+
+    assert result == {
+        "status": "success",
+        "prices_attested": 1,
+        "results": [{"status": "success"}],
+    }
+    assert attest_calls[0]["confidence"] == 0.0
     assert conn.cursor_instance.closed
