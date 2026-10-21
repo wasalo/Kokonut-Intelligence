@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-20",
+  "scope": "Attempted full ordered PostgreSQL schema replay under ARM64 emulation",
+  "source_revision": "c96e32f9",
+  "status": "PARTIAL - stopped before completing the schema set",
+  "database": {
+    "image": "kokonut-kernel-postgis-arm64:local",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296",
+    "architecture": "linux/arm64",
+    "postgres_major": 16,
+    "runtime_uname": "aarch64"
+  },
+  "isolation": {
+    "compose_file": "docker-compose.schema-bootstrap.yml",
+    "compose_project": "kokonut-schema-525-arm64-416a4ff1",
+    "network_mode": "none",
+    "host_ports_published": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "candidate_or_legacy_targeted": false
+  },
+  "replay": {
+    "schema_files_discovered": 516,
+    "complete": false,
+    "last_logged_migration_start": "schema:068_impact_office.sql",
+    "stop_reason": "Manual interruption after approximately 9.5 minutes because emulated PostgreSQL replay throughput was too low for a practical local run.",
+    "migration_068_completion_claimed": false
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_database_volume_removed": true,
+    "post_cleanup_compose_ps_empty": true,
+    "candidate_or_legacy_changed": false
+  },
+  "result": "PARTIAL: the ARM64 image started healthy and reported aarch64; the complete 516-file replay was not finished and this attempt is not full ARM64 database acceptance.",
+  "existing_completed_arm64_database_replay": "Migration 434 remains the latest completed ARM64 schema replay recorded elsewhere.",
+  "limitations": [
+    "This uses local emulation and does not certify Raspberry Pi hardware or resource behavior.",
+    "No candidate or legacy database was accessed or changed."
+  ]
+}

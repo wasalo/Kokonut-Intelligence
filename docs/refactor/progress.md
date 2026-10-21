@@ -13145,3 +13145,16 @@ uses the separately built, locked `kokonut-kernel-postgis-arm64:local` image.
 Candidate and legacy databases remain untouched. Checklist remains 821 complete
 / 25 open (846 total); matrix classifications remain 66 rows: 31
 baseline-retained, 7 deployed, and 28 prepared ([Compose profile](../../docker-compose.schema-bootstrap.yml); [tests](../../tests/test_schema_bootstrap_profile.py)).
+
+
+### ARM64 full-schema emulation attempt — 20 October 2026
+
+The locked `kokonut-kernel-postgis-arm64:local` image reached healthy and
+reported `aarch64` using the network-disabled profile. A fresh full replay
+discovered 516 schema sources but was manually stopped while migration 068 was
+in progress after approximately 9.5 minutes because local emulated database
+throughput was impractical. Cleanup removed the scratch database, container,
+and volume. This is not full ARM64 schema acceptance; the latest completed
+ARM64 replay remains through migration 434. Candidate and legacy are untouched.
+Checklist remains 821 complete / 25 open (846 total); matrix classifications
+remain 66 rows: 31 baseline-retained, 7 deployed, and 28 prepared ([attempt evidence](builds/2026-10-20-recovery/arm64-schema-replay-attempt.json)).

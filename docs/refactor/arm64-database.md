@@ -49,6 +49,14 @@ migration remains 434. The separate ARM64 Gateway/runtime integration remains
 tested against schema 524. ARM64 database replay and physical-device acceptance
 are still open ([evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-525.json)).
 
+A separate full-schema ARM64 emulation attempt used the verified local
+`kokonut-kernel-postgis-arm64:local` image. The container reached healthy and
+reported `aarch64` with no network or host ports, but replay was manually
+stopped while migration 068 was in progress after approximately 9.5 minutes.
+The temporary database, container, and volume were removed. This is a partial
+attempt, not full ARM64 migration acceptance; the latest completed replay
+remains through migration 434 ([attempt evidence](builds/2026-10-20-recovery/arm64-schema-replay-attempt.json)).
+
 **Cross-architecture schema integration (20 October 2026):** the current
 ARM64 Gateway was started under QEMU against a fresh native AMD64 PostgreSQL 16
 database with all 515 current schemas through migration 524. The app reported
