@@ -14,6 +14,7 @@ from report_generator_helper_scope_inventory import (  # noqa: E402
     _import_bindings,
     _resolve_call_target,
     _resolve_function_cached,
+    build_inventory,
 )
 
 
@@ -51,4 +52,28 @@ def test_report_serializer_alias_resolves_without_importing_services():
     source_path, function = resolved
     assert source_path == ROOT / "services/common/utils.py"
     assert function.name == "serialize_rows"
+
+
+def test_reachable_helper_queries_inventory_static_positional_bind_arity():
+    inventory = build_inventory()
+    summary = inventory["summary"]
+    query_sites = [
+        site
+        for report in inventory["reports"]
+        for site in report["reachable_helper_query_sites"]
+    ]
+    static_sites = [
+        site for site in query_sites if site["positional_bind_arity"] is not None
+    ]
+    mismatches = [
+        site
+        for site in static_sites
+        if site["positional_bind_arity"]["mismatch"]
+    ]
+
+    assert summary["reachable_helper_query_sites_per_report"] == len(query_sites)
+    assert summary["helper_query_sites_with_static_positional_arity"] == len(static_sites)
+    assert summary["helper_query_sites_with_positional_arity_mismatch"] == len(mismatches)
+    assert static_sites
+    assert not mismatches
 

@@ -1,3 +1,18 @@
+### CAP-066 report helper SQL bind arity — 21 October 2026
+
+The report helper-scope inventory now records positional bind counts for
+statically resolved query calls in each bounded local helper closure. Across 94
+registered reports there are 175 report-to-helper query memberships; 116 have
+statically known positional arity, with zero mismatches. Dynamic parameter
+containers and named binds remain unresolved. The focused helper/source
+inventory selection passes six tests. Ruff, Python compilation, all three
+report inventory checks, and the capability matrix validator pass. No database,
+migration, candidate, legacy stack, or provider was used. This remains
+source-only evidence, not runtime SQL acceptance
+([evidence](builds/2026-10-21-recovery/cap-066-helper-query-bind-arity.json)).
+Checklist: 879 complete / 24 open (903 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared.
+
 ### CAP-066 report SQL bind arity inventory — 21 October 2026
 
 The report query inventory now counts positional `%s` placeholders outside SQL

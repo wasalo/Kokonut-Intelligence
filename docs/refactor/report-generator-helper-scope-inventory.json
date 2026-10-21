@@ -1,12 +1,14 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_helper_scope_inventory.py",
-  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites in the bounded local call closure without retaining SQL text or values. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
+  "scope": "AST-only report-to-helper source trace. It follows statically imported or same-module local functions that resolve to unique Python definitions under services/. It records direct execute/query sites and statically checkable positional bind arity in the bounded local call closure without retaining SQL text or values. A location-scope signal is not proof of correct tenant authorization. Unresolved imports, dynamic dispatch, indirect function values, external providers, runtime call selection, database views, and semantic report behavior are not proven. No service is imported or executed and no database, provider, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
     "helper_query_sites_with_location_scope_signal": 65,
+    "helper_query_sites_with_static_positional_arity": 116,
+    "helper_query_sites_with_positional_arity_mismatch": 0,
     "unresolved_local_helper_calls": 0
   },
   "reports": [
@@ -35,6 +37,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -63,6 +67,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -102,6 +108,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -117,6 +124,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -129,6 +137,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -168,6 +178,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -183,6 +194,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -195,6 +207,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -223,6 +237,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -251,6 +267,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -279,6 +297,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -307,6 +327,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -360,6 +382,7 @@
           "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -375,6 +398,7 @@
           "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -387,6 +411,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -432,6 +458,7 @@
           "line": 126,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -449,6 +476,11 @@
             "business_model_canvas"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -466,6 +498,11 @@
             "customer_job"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -483,6 +520,11 @@
             "pain_point"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -500,6 +542,11 @@
             "gain_creator"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -515,6 +562,11 @@
           "line": 525,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 3,
+            "supplied_count": 3,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -527,6 +579,8 @@
       ],
       "helper_query_site_count": 6,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 5,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -901,6 +955,11 @@
             "v_strategy_competitive_health"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -921,6 +980,11 @@
             "competitive_landscape"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -940,6 +1004,11 @@
             "strategy_position"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -959,6 +1028,11 @@
             "v_strategy_advantage_fit"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -976,6 +1050,7 @@
           "line": 632,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -993,6 +1068,7 @@
           "line": 645,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1013,6 +1089,11 @@
             "price_observation"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1033,6 +1114,11 @@
             "market_order"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1052,6 +1138,11 @@
             "strategy_coherence_finding"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1069,6 +1160,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1086,6 +1178,7 @@
           "line": 126,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1103,6 +1196,7 @@
           "line": 65,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1122,6 +1216,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1140,6 +1239,7 @@
           "line": 107,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1157,6 +1257,7 @@
           "line": 126,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1174,6 +1275,7 @@
           "line": 144,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1191,6 +1293,7 @@
           "line": 88,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1209,6 +1312,7 @@
           "line": 113,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1227,6 +1331,7 @@
           "line": 159,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1247,6 +1352,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1266,6 +1376,11 @@
             "noi_snapshot"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1284,6 +1399,7 @@
             "forecast_output"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1303,6 +1419,7 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1323,6 +1440,7 @@
             "noi_snapshot"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1340,6 +1458,7 @@
           "line": 94,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1358,6 +1477,7 @@
           "line": 20,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1380,6 +1500,11 @@
             "financial_plan"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1394,6 +1519,8 @@
       ],
       "helper_query_site_count": 27,
       "helper_query_sites_with_location_scope_signal": 5,
+      "helper_query_sites_with_static_positional_arity": 11,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -1478,6 +1605,7 @@
           "line": 284,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1497,6 +1625,11 @@
             "capability_service_map"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1515,6 +1648,11 @@
             "process_map"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1533,6 +1671,11 @@
             "service_registry"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1545,6 +1688,8 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 3,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -1629,6 +1774,7 @@
           "line": 284,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1648,6 +1794,11 @@
             "capability_service_map"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1666,6 +1817,11 @@
             "process_map"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1684,6 +1840,11 @@
             "service_registry"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1696,6 +1857,8 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 3,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -1812,6 +1975,11 @@
             "lateral"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1830,6 +1998,11 @@
             "revenue_event"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1848,6 +2021,11 @@
             "revenue_event"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1866,6 +2044,11 @@
             "anti_capture_governance_policy"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1884,6 +2067,11 @@
             "regenerative_credit_ledger"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1902,6 +2090,11 @@
             "regenerative_credit_ledger"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1918,6 +2111,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -1932,6 +2126,8 @@
       ],
       "helper_query_site_count": 7,
       "helper_query_sites_with_location_scope_signal": 6,
+      "helper_query_sites_with_static_positional_arity": 6,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -1960,6 +2156,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -1994,6 +2192,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2022,6 +2222,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2090,6 +2292,11 @@
             "ghg_emissions_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2107,6 +2314,11 @@
             "tree_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2124,6 +2336,11 @@
             "climate_impact_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2141,6 +2358,11 @@
             "climate_impact_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2158,6 +2380,11 @@
             "tree_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2175,6 +2402,11 @@
             "soil_carbon_measurement"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2192,6 +2424,11 @@
             "ghg_emissions_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2210,6 +2447,11 @@
             "regenerative_practice_checklist"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2225,6 +2467,7 @@
           "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2241,6 +2484,7 @@
           "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2254,6 +2498,8 @@
       ],
       "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 8,
+      "helper_query_sites_with_static_positional_arity": 8,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -2282,6 +2528,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2458,6 +2706,11 @@
             "lateral"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2477,6 +2730,11 @@
             "revenue_event"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2496,6 +2754,11 @@
             "revenue_event"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2515,6 +2778,11 @@
             "anti_capture_governance_policy"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2534,6 +2802,11 @@
             "regenerative_credit_ledger"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2553,6 +2826,11 @@
             "regenerative_credit_ledger"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2570,6 +2848,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2588,6 +2867,11 @@
           "line": 48,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2603,6 +2887,11 @@
           "line": 52,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2618,6 +2907,11 @@
           "line": 55,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2633,6 +2927,11 @@
           "line": 56,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2650,6 +2949,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2667,6 +2971,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2679,6 +2988,8 @@
       ],
       "helper_query_site_count": 13,
       "helper_query_sites_with_location_scope_signal": 6,
+      "helper_query_sites_with_static_positional_arity": 12,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -2700,6 +3011,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2712,6 +3025,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2740,6 +3055,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2761,6 +3078,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2773,6 +3092,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2807,6 +3128,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2859,6 +3182,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2894,6 +3219,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2912,6 +3242,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -2924,6 +3259,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -2936,6 +3273,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -2982,6 +3321,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3028,6 +3369,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3043,6 +3385,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3055,6 +3398,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -3083,6 +3428,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3095,6 +3442,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3122,6 +3471,11 @@
             "insight_transfer"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3139,6 +3493,7 @@
             "decision_log"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3151,6 +3506,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 1,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -3179,6 +3536,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3207,6 +3566,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3228,6 +3589,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3256,6 +3619,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3284,6 +3649,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3319,6 +3686,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3359,6 +3728,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3387,6 +3758,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3421,6 +3794,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3455,6 +3830,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3508,6 +3885,7 @@
           "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3523,6 +3901,7 @@
           "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3535,6 +3914,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -3569,6 +3950,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3603,6 +3986,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3637,6 +4022,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3683,6 +4070,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3698,6 +4086,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3710,6 +4099,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -3738,6 +4129,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -3765,6 +4158,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3782,6 +4180,11 @@
             "v_public_pest_trends"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3799,6 +4202,11 @@
             "v_public_biocontrol_effectiveness"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3811,6 +4219,8 @@
       ],
       "helper_query_site_count": 3,
       "helper_query_sites_with_location_scope_signal": 3,
+      "helper_query_sites_with_static_positional_arity": 3,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
@@ -3846,6 +4256,11 @@
             "pestel_analysis"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3864,6 +4279,11 @@
             "pestel_analysis"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3876,6 +4296,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -3928,6 +4350,11 @@
             "metric_value"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3945,6 +4372,11 @@
             "farm_registry_record"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3962,6 +4394,11 @@
             "climate_impact_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3979,6 +4416,11 @@
             "credit_retirement"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -3991,6 +4433,8 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 4,
+      "helper_query_sites_with_static_positional_arity": 4,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
@@ -4102,6 +4546,11 @@
             "pitch_template"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4120,6 +4569,11 @@
             "v_public_farm_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4139,6 +4593,11 @@
             "v_crisp_composite_rating"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4158,6 +4617,11 @@
             "v_public_revenue_streams"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4177,6 +4641,11 @@
             "harvest_event"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4196,6 +4665,11 @@
             "v_public_impact_claim_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4215,6 +4689,11 @@
             "v_public_attestation_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4234,6 +4713,11 @@
             "v_public_stakeholder_feedback_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4253,6 +4737,11 @@
             "v_public_carbon_credit_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4272,6 +4761,11 @@
             "species_observation"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4286,6 +4780,8 @@
       ],
       "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 9,
+      "helper_query_sites_with_static_positional_arity": 10,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -4613,6 +5109,7 @@
             "lifecycle_transition"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4632,6 +5129,11 @@
             "process_kpi_snapshot"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4651,6 +5153,11 @@
             "action_outcome"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4670,6 +5177,11 @@
             "process_target"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4688,6 +5200,11 @@
             "process_gap"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4706,6 +5223,11 @@
             "lifecycle_transition"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4723,6 +5245,7 @@
           "line": 46,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4739,6 +5262,7 @@
           "line": 52,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4755,6 +5279,7 @@
           "line": 58,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4774,6 +5299,7 @@
             "lifecycle_transition"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4792,6 +5318,7 @@
           "line": 88,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4808,6 +5335,7 @@
           "line": 113,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4824,6 +5352,7 @@
           "line": 159,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4837,6 +5366,8 @@
       ],
       "helper_query_site_count": 13,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 5,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -4868,6 +5399,7 @@
             "sensor_reading"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4880,6 +5412,8 @@
       ],
       "helper_query_site_count": 1,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
@@ -4928,6 +5462,11 @@
             "stakeholder_public"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4946,6 +5485,11 @@
             "stakeholder_public"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4964,6 +5508,11 @@
             "market_segment"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4982,6 +5531,11 @@
             "market_segment"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -4994,6 +5548,8 @@
       ],
       "helper_query_site_count": 4,
       "helper_query_sites_with_location_scope_signal": 2,
+      "helper_query_sites_with_static_positional_arity": 4,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -5033,6 +5589,7 @@
           "line": 25,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5048,6 +5605,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5060,6 +5618,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -5088,6 +5648,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5123,6 +5685,11 @@
             "regional_assessment"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5141,6 +5708,11 @@
             "regional_assessment"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5153,6 +5725,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -5181,6 +5755,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5209,6 +5785,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5237,6 +5815,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5312,6 +5892,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5330,6 +5915,11 @@
             "revenue_multiplier_config"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5344,6 +5934,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -5372,6 +5964,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5433,6 +6027,11 @@
             "token_reward_distribution"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5451,6 +6050,11 @@
             "token_reward_distribution"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5463,6 +6067,8 @@
       ],
       "helper_query_site_count": 2,
       "helper_query_sites_with_location_scope_signal": 2,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
@@ -5491,6 +6097,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5525,6 +6133,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5553,6 +6163,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5684,6 +6296,11 @@
             "simulation_config"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5702,6 +6319,11 @@
             "digital_twin"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5719,6 +6341,11 @@
             "digital_twin"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5737,6 +6364,11 @@
             "threat_flag"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5755,6 +6387,7 @@
             "metric_value"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5774,6 +6407,7 @@
             "strategic_reserve"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -5787,6 +6421,8 @@
       ],
       "helper_query_site_count": 6,
       "helper_query_sites_with_location_scope_signal": 2,
+      "helper_query_sites_with_static_positional_arity": 4,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -5808,6 +6444,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5820,6 +6458,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5841,6 +6481,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5853,6 +6495,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5865,6 +6509,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5877,6 +6523,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5889,6 +6537,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5910,6 +6560,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5931,6 +6583,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -5952,6 +6606,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -6044,6 +6700,11 @@
           "line": 48,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6061,6 +6722,11 @@
           "line": 52,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6078,6 +6744,11 @@
           "line": 55,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6095,6 +6766,11 @@
           "line": 56,
           "relations": [],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6114,6 +6790,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6131,6 +6812,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6148,6 +6834,11 @@
             "funding_round"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6165,6 +6856,11 @@
             "funding_round"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6183,6 +6879,11 @@
             "project_funding"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6200,6 +6901,11 @@
             "funding_round"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6212,6 +6918,8 @@
       ],
       "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 10,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -6280,6 +6988,11 @@
             "funding_round"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6299,6 +7012,11 @@
             "dao_proposal"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 4,
+            "supplied_count": 4,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6317,6 +7035,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6335,6 +7058,11 @@
             "farm_zone"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6354,6 +7082,11 @@
             "crop_cycle"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 5,
+            "supplied_count": 5,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6373,6 +7106,11 @@
             "period_start"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6391,6 +7129,11 @@
             "location"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6403,6 +7146,8 @@
       ],
       "helper_query_site_count": 7,
       "helper_query_sites_with_location_scope_signal": 3,
+      "helper_query_sites_with_static_positional_arity": 7,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -6497,6 +7242,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -6580,6 +7327,7 @@
             "metric_value"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6598,6 +7346,7 @@
             "strategic_reserve"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6616,6 +7365,11 @@
             "tree_inventory"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 2,
+            "supplied_count": 2,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6628,6 +7382,8 @@
       ],
       "helper_query_site_count": 3,
       "helper_query_sites_with_location_scope_signal": 1,
+      "helper_query_sites_with_static_positional_arity": 1,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -6717,6 +7473,11 @@
             "v_strategy_competitive_health"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6732,6 +7493,7 @@
           "line": 30,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6749,6 +7511,11 @@
             "strategy_map"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6761,6 +7528,8 @@
       ],
       "helper_query_site_count": 3,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 2,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -6906,6 +7675,11 @@
             "metric_value"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6923,6 +7697,11 @@
             "farm_registry_record"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6940,6 +7719,11 @@
             "climate_impact_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6957,6 +7741,11 @@
             "credit_retirement"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6978,6 +7767,7 @@
             "sensor_reading"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -6995,6 +7785,11 @@
             "insight_transfer"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7012,6 +7807,7 @@
             "decision_log"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7030,6 +7826,7 @@
             "feedback_loop"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7048,6 +7845,7 @@
             "threat_flag"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7066,6 +7864,11 @@
             "threat_cross_impact"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 1,
+            "supplied_count": 1,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7079,6 +7882,8 @@
       ],
       "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 8,
+      "helper_query_sites_with_static_positional_arity": 6,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -7100,6 +7905,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -7128,6 +7935,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -7156,6 +7965,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -7184,6 +7995,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -7224,6 +8037,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     },
@@ -7279,6 +8094,11 @@
             "v_value_stream_summary"
           ],
           "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 0,
+            "supplied_count": 0,
+            "mismatch": false
+          },
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7291,6 +8111,8 @@
       ],
       "helper_query_site_count": 1,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 1,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -7363,6 +8185,7 @@
           "line": 88,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7379,6 +8202,7 @@
           "line": 113,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7395,6 +8219,7 @@
           "line": 159,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
+          "positional_bind_arity": null,
           "bound_location_scope_signal": false,
           "location_scope_conditionally_added": false,
           "reachable_via": [
@@ -7408,6 +8233,8 @@
       ],
       "helper_query_site_count": 3,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
     },
@@ -7436,6 +8263,8 @@
       "reachable_helper_query_sites": [],
       "helper_query_site_count": 0,
       "helper_query_sites_with_location_scope_signal": 0,
+      "helper_query_sites_with_static_positional_arity": 0,
+      "helper_query_sites_with_positional_arity_mismatch": 0,
       "classification": "no_query_sites_in_resolved_local_helper_closure",
       "unresolved_local_helper_calls": []
     }

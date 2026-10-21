@@ -3,6 +3,15 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 report helper SQL bind arity — 21 October 2026:** the helper-scope
+inventory now records positional bind counts for statically resolved helper
+queries. Across 94 report types and 175 report-to-helper query memberships,
+116 sites are statically checkable and none mismatch; named and dynamic
+parameters remain unresolved. The six-test helper/source inventory selection,
+Ruff, compilation, three report inventory checks, and capability-matrix
+validation pass. No database or provider was used. This is source evidence,
+not runtime SQL acceptance ([evidence](builds/2026-10-21-recovery/cap-066-helper-query-bind-arity.json)).
+
 **CAP-066 report SQL bind arity inventory — 21 October 2026:** the query-scope
 inventory now compares positional `%s` placeholder counts with simple statically
 known parameter containers for unbranched static SQL. SQL string literals and
