@@ -75,6 +75,35 @@ INSERT INTO public.governance_throughput_observation VALUES
 INSERT INTO public.capital_provider_utility_scenario VALUES
     ('e0000000-0000-4000-8000-000000000231', 'a0000000-0000-0000-0000-000000000001', 'published');
 
+CREATE TABLE public.bio_factory_batch (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.bio_input_provenance (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.bio_recipe_library (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.bio_factory_quality_test (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE VIEW public.v_public_bio_factory_batch_summary AS
+    SELECT id, location_id FROM public.bio_factory_batch WHERE status = 'published';
+CREATE VIEW public.v_public_bio_input_provenance_summary AS
+    SELECT id, location_id FROM public.bio_input_provenance WHERE status = 'published';
+CREATE VIEW public.v_public_bio_recipe_library_summary AS
+    SELECT id, location_id FROM public.bio_recipe_library WHERE status = 'published';
+CREATE VIEW public.v_public_bio_factory_quality_test_summary AS
+    SELECT id, location_id FROM public.bio_factory_quality_test WHERE status = 'published';
+INSERT INTO public.bio_factory_batch VALUES
+    ('e0000000-0000-4000-8000-000000000301', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.bio_input_provenance VALUES
+    ('e0000000-0000-4000-8000-000000000311', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.bio_recipe_library VALUES
+    ('e0000000-0000-4000-8000-000000000321', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.bio_factory_quality_test VALUES
+    ('e0000000-0000-4000-8000-000000000331', 'a0000000-0000-0000-0000-000000000001', 'published');
+
 DO $$
 DECLARE
     source_table TEXT;

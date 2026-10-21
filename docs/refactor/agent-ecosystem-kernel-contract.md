@@ -175,18 +175,21 @@ AI-summary types and the ten registered shared synthesis tasks. Shared
 `ai_summary` directly. The worker checks the stable request receipt before
 source queries, runs reads inside a bounded read-only transaction using the
 runtime database identity, and creates the draft through the separate signed
-worker connection. The capital-efficiency synthesis attaches bounded row IDs
-for its four exact-location published summary views through the same private
-manifest. It collects those IDs inside the source read's repeatable-read
-snapshot, and the database rechecks each ID through its matching public view
-before attachment. Other generic synthesis tasks still persist table-name hints
-without row-level source manifests; the deterministic AI-summary path also
-attaches the bounded manifest. On replay, generic task callers receive the
+worker connection. Capital-efficiency and bio-factory synthesis attach bounded
+row IDs for eight exact-location published summary views through the same
+private manifest. The base agent contract accepts a fixed per-agent query and
+view map, collects IDs inside the source read's repeatable-read snapshot, and
+excludes the bio-factory's network-wide regional catalogue. Migration 532 stores
+the migration-owned view map; PostgreSQL rechecks exact counts and sampled IDs
+through the matching public view before attachment. Other generic synthesis
+tasks still persist table-name hints without row-level source manifests; the
+deterministic AI-summary path also attaches the bounded manifest. On replay,
+generic task callers receive the
 stored draft text and receipt rather than regenerating the task's full structured
 output. Compose exposes the dedicated DSN and high-entropy credential only to
 the opt-in `agent-summary-worker` service. An operator still needs to provision
 the runtime password, worker login/password, worker credential, and service DSN;
-migrations 529–531 are not rolled out to the candidate. Stored shared-agent CLI
+migrations 529–532 are not rolled out to the candidate. Stored shared-agent CLI
 output is reduced to the draft ID, request ID, status, and replay flag. For
 example, run a task through the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
@@ -196,11 +199,15 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 529](../../schemas/postgres/529_signed_agent_ai_summary_drafts.sql),
 [migration 530](../../schemas/postgres/530_signed_agent_ai_summary_source_references.sql),
 [migration 531](../../schemas/postgres/531_capital_efficiency_synthesis_source_references.sql),
+[migration 532](../../schemas/postgres/532_registered_agent_source_reference_views.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
+[bio-factory tests](../../tests/test_bio_factory_operations.py),
 [worker orchestration tests](../../tests/test_agent_worker_cli.py),
 [disposable checker](../../scripts/check-agent-worker-ai-summary-disposable.py),
-and [evidence](builds/2026-10-21-recovery/cap-038-capital-efficiency-source-references-disposable.json).
+and [capital-efficiency evidence](builds/2026-10-21-recovery/cap-038-capital-efficiency-source-references-disposable.json).
+The [registered-view evidence](builds/2026-10-21-recovery/cap-038-bio-factory-source-references-disposable.json)
+also covers migration 532 replay and the bio-factory mappings.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

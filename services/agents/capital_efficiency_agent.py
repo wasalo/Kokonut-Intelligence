@@ -120,68 +120,45 @@ class CapitalEfficiencySynthesisAgent(SynthesisAgent):
     model_version = "capital-efficiency-agent-v1"
     source_tables = ["capital_efficiency_scenario", "regenerative_efficiency_observation", "governance_throughput_observation", "capital_provider_utility_scenario"]
 
-    _source_reference_views = {
+    source_reference_views = {
         "capital_efficiency_scenario": "v_public_capital_efficiency_summary",
         "regenerative_efficiency_observation": "v_public_regenerative_efficiency_summary",
         "governance_throughput_observation": "v_public_governance_throughput_summary",
         "capital_provider_utility_scenario": "v_public_capital_provider_utility_summary",
     }
+    source_reference_query = """
+        WITH sources AS MATERIALIZED (
+            SELECT 'capital_efficiency_scenario'::text AS source_table, id
+            FROM v_public_capital_efficiency_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'regenerative_efficiency_observation'::text, id
+            FROM v_public_regenerative_efficiency_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'governance_throughput_observation'::text, id
+            FROM v_public_governance_throughput_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'capital_provider_utility_scenario'::text, id
+            FROM v_public_capital_provider_utility_summary WHERE location_id = %s
+        ), counts AS (
+            SELECT source_table, count(*) AS row_count
+            FROM sources
+            GROUP BY source_table
+        ), numbered AS (
+            SELECT source_table, id,
+                   row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
+            FROM sources
+        )
+        SELECT counts.source_table, counts.row_count,
+               array_agg(numbered.id ORDER BY numbered.ordinal)
+                   FILTER (WHERE numbered.ordinal <= 50) AS record_ids
+        FROM counts
+        JOIN numbered USING (source_table)
+        GROUP BY counts.source_table, counts.row_count
+        ORDER BY counts.source_table
+    """
 
     def synthesize(self, conn, location_id=None):
         return synthesize_capital_efficiency(conn, location_id)
-
-    def collect_source_references(self, conn, location_id):
-        """Capture only published rows visible through the public summary views."""
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        try:
-            cur.execute(
-                """
-                WITH sources AS MATERIALIZED (
-                    SELECT 'capital_efficiency_scenario'::text AS source_table, id
-                    FROM v_public_capital_efficiency_summary WHERE location_id = %s
-                    UNION ALL
-                    SELECT 'regenerative_efficiency_observation'::text, id
-                    FROM v_public_regenerative_efficiency_summary WHERE location_id = %s
-                    UNION ALL
-                    SELECT 'governance_throughput_observation'::text, id
-                    FROM v_public_governance_throughput_summary WHERE location_id = %s
-                    UNION ALL
-                    SELECT 'capital_provider_utility_scenario'::text, id
-                    FROM v_public_capital_provider_utility_summary WHERE location_id = %s
-                ), counts AS (
-                    SELECT source_table, count(*) AS row_count
-                    FROM sources
-                    GROUP BY source_table
-                ), numbered AS (
-                    SELECT source_table, id,
-                           row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
-                    FROM sources
-                )
-                SELECT counts.source_table, counts.row_count,
-                       array_agg(numbered.id ORDER BY numbered.ordinal)
-                           FILTER (WHERE numbered.ordinal <= 50) AS record_ids
-                FROM counts
-                JOIN numbered USING (source_table)
-                GROUP BY counts.source_table, counts.row_count
-                ORDER BY counts.source_table
-                """,
-                (location_id, location_id, location_id, location_id),
-            )
-            rows = cur.fetchall()
-        finally:
-            cur.close()
-        references: dict[str, dict[str, Any]] = {}
-        for row in rows:
-            source_table = row["source_table"]
-            row_count = int(row["row_count"])
-            record_ids = [str(record_id) for record_id in row["record_ids"]]
-            references[source_table] = {
-                "record_ids": record_ids,
-                "row_count": row_count,
-                "truncated": row_count > len(record_ids),
-            }
-        return references
-
 
 agent = CapitalEfficiencySynthesisAgent()
 

@@ -26,8 +26,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/529_signed_agent_ai_summary_drafts.sql",
     ROOT / "schemas/postgres/530_signed_agent_ai_summary_source_references.sql",
     ROOT / "schemas/postgres/531_capital_efficiency_synthesis_source_references.sql",
+    ROOT / "schemas/postgres/532_registered_agent_source_reference_views.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-capital-efficiency-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-bio-factory-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -74,7 +75,9 @@ def _worker_acceptance() -> str:
             looked_up RECORD;
             denied BOOLEAN;
             manifest JSONB;
+            bio_manifest JSONB;
             source_result JSONB;
+            bio_probe RECORD;
     BEGIN
         SELECT * INTO created
           FROM kokonut_security.create_location_ai_summary_worker_draft(
@@ -177,6 +180,45 @@ def _worker_acceptance() -> str:
         EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
         END;
         IF NOT denied THEN RAISE EXCEPTION 'other-location public row was accepted'; END IF;
+
+        SELECT * INTO bio_probe
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'bio_factory', 'Published bio-factory source references.',
+              ARRAY['bio_factory_batch', 'bio_input_provenance', 'bio_recipe_library',
+                    'bio_factory_quality_test'],
+              'bio-factory-agent-v1', 'd0000000-0000-4000-8000-000000000912'
+          );
+        bio_manifest := jsonb_build_object(
+            'bio_factory_batch', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000301'),
+                'row_count', 1, 'truncated', false
+            ),
+            'bio_input_provenance', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000311'),
+                'row_count', 1, 'truncated', false
+            ),
+            'bio_recipe_library', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000321'),
+                'row_count', 1, 'truncated', false
+            ),
+            'bio_factory_quality_test', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000331'),
+                'row_count', 1, 'truncated', false
+            )
+        );
+        source_result := kokonut_security.set_location_ai_summary_source_references(
+            '{LOCATION_ID}', bio_probe.summary_id, 'd0000000-0000-4000-8000-000000000912',
+            bio_manifest
+        );
+        IF source_result IS DISTINCT FROM bio_manifest THEN
+            RAISE EXCEPTION 'registered bio-factory views did not preserve source references';
+        END IF;
+        source_result := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', bio_probe.summary_id, 'd0000000-0000-4000-8000-000000000912'
+        );
+        IF source_result IS DISTINCT FROM bio_manifest THEN
+            RAISE EXCEPTION 'bio-factory source references were not returned under exact scope';
+        END IF;
 
         denied := FALSE;
         BEGIN
@@ -299,7 +341,9 @@ def _worker_acceptance() -> str:
            OR has_table_privilege('kokonut_worker_execution',
                                   'kokonut_security.ai_summary_source_reference', 'SELECT')
            OR has_table_privilege('kokonut_worker_execution', 'public.harvest_event', 'SELECT')
-           OR has_table_privilege('kokonut_worker_execution', 'public.capital_efficiency_scenario', 'SELECT') THEN
+           OR has_table_privilege('kokonut_worker_execution', 'public.capital_efficiency_scenario', 'SELECT')
+           OR has_table_privilege('kokonut_worker_execution', 'public.bio_factory_batch', 'SELECT')
+           OR has_table_privilege('kokonut_worker_execution', 'kokonut_security.ai_summary_source_reference_view', 'SELECT') THEN
             RAISE EXCEPTION 'worker execution role has direct source or manifest table access';
         END IF;
     END;
@@ -515,10 +559,11 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-531 apply; migrations 530 and 531 replay",
+        "migrations 405, 419, 521-524, 529-532 apply; migrations 530-532 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
+        "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
@@ -534,7 +579,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "capital-efficiency synthesis now attaches bounded IDs for four published-view sources; other generic synthesis agents retain table-name hints",
+        "source_lineage_note": "capital-efficiency and bio-factory synthesis now attach bounded IDs for eight published-view sources; other generic synthesis agents retain table-name hints",
         "checks": checks,
     }
     stage = "container_start"
@@ -549,12 +594,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_")):
+            if migration_path.name.startswith(("530_", "531_", "532_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())

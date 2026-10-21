@@ -1,0 +1,82 @@
+{
+  "capability": "CAP-038",
+  "batch": "bio-factory synthesis provenance",
+  "date": "2026-10-21",
+  "result": "passed",
+  "checks": [
+    {
+      "name": "focused tests",
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py -q",
+      "result": "passed",
+      "passed": 53
+    },
+    {
+      "name": "Ruff",
+      "command": "ruff check services/agents/base.py services/agents/bio_factory_agent.py services/agents/capital_efficiency_agent.py services/agents/worker_draft.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py scripts/check-agent-worker-ai-summary-disposable.py",
+      "result": "passed"
+    },
+    {
+      "name": "Python compilation",
+      "command": "python3 -m py_compile services/agents/base.py services/agents/bio_factory_agent.py services/agents/capital_efficiency_agent.py services/agents/worker_draft.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py scripts/check-agent-worker-ai-summary-disposable.py",
+      "result": "passed"
+    },
+    {
+      "name": "generated inventories and matrix",
+      "result": "passed",
+      "checks": [
+        "runtime SQL inventory",
+        "worker source closure",
+        "worker SQL inventory",
+        "agent write-boundary inventory",
+        "capability matrix: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+      ]
+    },
+    {
+      "name": "migration and authorization acceptance",
+      "command": "python3 scripts/check-agent-worker-ai-summary-disposable.py",
+      "database": "network-disabled disposable PostgreSQL 16 container",
+      "result": "passed",
+      "migrations": [
+        "405_signed_worker_tenant_context.sql",
+        "419_private_worker_context_functions.sql",
+        "521_location_scoped_ai_summary_review.sql",
+        "522_authenticated_ai_summary_drafts.sql",
+        "523_ai_summary_source_references.sql",
+        "524_ai_summary_global_source_references.sql",
+        "529_signed_agent_ai_summary_drafts.sql",
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql"
+      ],
+      "replayed_migrations": [
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql"
+      ],
+      "assertions_passed": 12,
+      "candidate_or_legacy_modified": false,
+      "coverage": [
+        "registered location-scoped bio-factory views resolve to published safe views",
+        "network-wide regional input catalogue is excluded",
+        "exact row counts and sampled IDs are checked through public views",
+        "cross-location, unpublished, and inexact-count references fail closed",
+        "runtime, worker, Directus, and public roles cannot read the private registry"
+      ]
+    },
+    {
+      "name": "diff whitespace validation",
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "rollout": {
+    "migration_532_applied_to_candidate": false,
+    "worker_credentials_provisioned": false,
+    "candidate_or_legacy_modified": false
+  },
+  "remaining_limits": [
+    "Other generic synthesis agents still lack row-level source manifests.",
+    "Runtime database least privilege, populated task parity, and MAN-CAP-038 owner acceptance remain open."
+  ],
+  "disposable_evidence": "cap-038-bio-factory-source-references-disposable.json"
+}

@@ -224,6 +224,42 @@ class BioFactorySynthesisAgent(SynthesisAgent):
     read_collection = "bio_factory_batch"
     model_version = "bio-factory-agent-v1"
     source_tables = ["bio_factory_batch", "bio_input_provenance", "bio_recipe_library", "bio_factory_quality_test", "bio_regional_input_availability"]
+    source_reference_views = {
+        "bio_factory_batch": "v_public_bio_factory_batch_summary",
+        "bio_input_provenance": "v_public_bio_input_provenance_summary",
+        "bio_recipe_library": "v_public_bio_recipe_library_summary",
+        "bio_factory_quality_test": "v_public_bio_factory_quality_test_summary",
+    }
+    source_reference_query = """
+        WITH sources AS MATERIALIZED (
+            SELECT 'bio_factory_batch'::text AS source_table, id
+            FROM v_public_bio_factory_batch_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'bio_input_provenance'::text, id
+            FROM v_public_bio_input_provenance_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'bio_recipe_library'::text, id
+            FROM v_public_bio_recipe_library_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'bio_factory_quality_test'::text, id
+            FROM v_public_bio_factory_quality_test_summary WHERE location_id = %s
+        ), counts AS (
+            SELECT source_table, count(*) AS row_count
+            FROM sources
+            GROUP BY source_table
+        ), numbered AS (
+            SELECT source_table, id,
+                   row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
+            FROM sources
+        )
+        SELECT counts.source_table, counts.row_count,
+               array_agg(numbered.id ORDER BY numbered.ordinal)
+                   FILTER (WHERE numbered.ordinal <= 50) AS record_ids
+        FROM counts
+        JOIN numbered USING (source_table)
+        GROUP BY counts.source_table, counts.row_count
+        ORDER BY counts.source_table
+    """
 
     def synthesize(self, conn, location_id=None):
         return synthesize_bio_factory(conn, location_id)

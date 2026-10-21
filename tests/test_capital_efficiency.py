@@ -188,7 +188,7 @@ def test_capital_efficiency_worker_lineage_is_bounded_and_uses_public_views() ->
                         for index in range(1, 51)
                     ],
                 }
-                for table in CapitalEfficiencySynthesisAgent._source_reference_views
+                for table in CapitalEfficiencySynthesisAgent.source_reference_views
             ]
 
         def close(self):
@@ -207,14 +207,14 @@ def test_capital_efficiency_worker_lineage_is_bounded_and_uses_public_views() ->
         conn, location_id
     )
 
-    assert set(references) == set(CapitalEfficiencySynthesisAgent._source_reference_views)
+    assert set(references) == set(CapitalEfficiencySynthesisAgent.source_reference_views)
     for table, reference in references.items():
         assert reference["row_count"] == 51
         assert len(reference["record_ids"]) == 50
         assert reference["truncated"] is True
         assert all(isinstance(record_id, str) for record_id in reference["record_ids"])
     query, params = conn.cursor_value.queries[0]
-    for view_name in CapitalEfficiencySynthesisAgent._source_reference_views.values():
+    for view_name in CapitalEfficiencySynthesisAgent.source_reference_views.values():
         assert view_name in query
     assert "WHERE location_id = %s" in query
     assert "row_number() OVER (PARTITION BY source_table ORDER BY id)" in query

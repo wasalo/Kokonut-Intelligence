@@ -37,6 +37,10 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "regenerative_efficiency_observation",
         "governance_throughput_observation",
         "capital_provider_utility_scenario",
+        "bio_factory_batch",
+        "bio_input_provenance",
+        "bio_recipe_library",
+        "bio_factory_quality_test",
     }
 )
 

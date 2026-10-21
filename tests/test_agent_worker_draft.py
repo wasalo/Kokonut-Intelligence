@@ -260,6 +260,26 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
             "row_count": 1,
             "truncated": False,
         },
+        "bio_factory_batch": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000301"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "bio_input_provenance": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000311"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "bio_recipe_library": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000321"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "bio_factory_quality_test": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000331"],
+            "row_count": 1,
+            "truncated": False,
+        },
     }
 
     result = worker_draft.create_worker_ai_summary_draft(

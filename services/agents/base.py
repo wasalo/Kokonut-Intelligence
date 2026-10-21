@@ -16,6 +16,8 @@ import re
 import uuid
 from typing import Any, Callable, Optional
 
+import psycopg2.extras
+
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import (
     validate_output,
@@ -72,6 +74,10 @@ class SynthesisAgent:
     model_version: str = "agent-v1"
     #: source tables recorded on stored drafts
     source_tables: list[str] = []
+    #: exact source-table to public-view mapping for private row manifests
+    source_reference_views: dict[str, str] = {}
+    #: fixed SQL that returns source_table, row_count, and ordered record_ids
+    source_reference_query: Optional[str] = None
 
     def synthesize(self, conn: Any, location_id: Optional[str] = None) -> dict[str, Any]:
         """Fetch and summarize context for a location. Implement in subclasses."""
@@ -82,11 +88,40 @@ class SynthesisAgent:
     ) -> dict[str, dict[str, Any]]:
         """Return bounded row references for sources that have a safe view contract.
 
-        This runs only for signed draft storage, in the same read-only database
-        snapshot as :meth:`synthesize`. Agents without an exact public-view
-        mapping retain their declared table-name hints and return no row refs.
+        The fixed query runs only for signed draft storage, in the same
+        repeatable-read transaction as :meth:`synthesize`. Agents without an
+        exact public-view mapping retain their declared table-name hints and
+        return no row refs.
         """
-        return {}
+        if not self.source_reference_views or self.source_reference_query is None:
+            return {}
+        if (
+            len(self.source_reference_views) > 10
+            or any(table not in self.source_tables for table in self.source_reference_views)
+        ):
+            raise ValueError("source reference views must match declared source tables")
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        try:
+            cur.execute(
+                self.source_reference_query,
+                (location_id,) * len(self.source_reference_views),
+            )
+            rows = cur.fetchall()
+        finally:
+            cur.close()
+        references: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            source_table = row["source_table"]
+            if source_table not in self.source_reference_views or source_table in references:
+                raise ValueError("source reference query returned an undeclared source table")
+            row_count = int(row["row_count"])
+            record_ids = [str(record_id) for record_id in row["record_ids"]]
+            references[source_table] = {
+                "record_ids": record_ids,
+                "row_count": row_count,
+                "truncated": row_count > len(record_ids),
+            }
+        return references
 
     def store_summary(
         self,
