@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "change": "Correlate positional bind counts across simple location-dependent SQL and parameter branches, including a shared static SQL suffix after the branch.",
+  "scope": {
+    "report_types": 94,
+    "direct_query_sites": 176,
+    "direct_static_positional_arity_sites": 175,
+    "direct_conditional_sql_queries": 5,
+    "helper_query_memberships": 175,
+    "helper_static_positional_arity_sites": 117,
+    "mismatches": 0,
+    "unresolved": "One direct named-bind query and complex/dynamic helper query sites remain outside positional arity checks; nested conditional parameter mutations remain unresolved."
+  },
+  "focused_test_command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+  "focused_tests_passed": 24,
+  "regressions": [
+    "A location branch that appends a matching positional value stays aligned after an unconditional static ORDER BY suffix.",
+    "Parameters appended on the opposite SQL branch are reported as a mismatch.",
+    "Nested conditional SQL and parameter mutations remain unresolved rather than being guessed.",
+    "The registry-wide direct inventory resolves the five simple location-dependent report queries; the remaining named bind stays unresolved."
+  ],
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "report_generator_source_inventory": "current",
+    "report_generator_query_scope_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_used": false,
+  "migration_added_or_applied": false,
+  "candidate_or_legacy_database_touched": false,
+  "runtime_sql_acceptance_claimed": false
+}

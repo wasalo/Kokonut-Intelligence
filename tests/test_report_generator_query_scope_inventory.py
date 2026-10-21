@@ -100,6 +100,7 @@ def generate(conn, location_id):
     else:
         query = "SELECT * FROM v_network_report"
         params = []
+    query += " ORDER BY created_at DESC"
     cur = conn.cursor()
     cur.execute(query, params)
 ''',
@@ -113,6 +114,110 @@ def generate(conn, location_id):
     assert query["location_id_in_bound_expression"] is True
     assert query["location_scope_conditionally_added"] is True
     assert query["bound_location_scope_signal"] is True
+    assert query["positional_bind_arity"]["mismatch"] is False
+    assert [
+        (variant["placeholder_count"], variant["supplied_count"])
+        for variant in query["positional_bind_arity"]["variants"]
+    ] == [(1, 1), (0, 0)]
+
+
+def test_classifier_correlates_conditionally_appended_parameters_with_sql_branch():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    query = "SELECT * FROM v_report"
+    params = []
+    if location_id:
+        query += " WHERE location_id = %s"
+        params.append(location_id)
+    query += " ORDER BY created_at DESC"
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    query = analysis["queries"][0]
+    assert query["positional_bind_arity"] == {
+        "mismatch": False,
+        "variants": [
+            {
+                "conditional_line": 5,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": False,
+            },
+            {
+                "conditional_line": 5,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": False,
+            },
+        ],
+    }
+
+
+def test_classifier_detects_parameters_appended_on_the_wrong_sql_branch():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    query = "SELECT * FROM v_report"
+    params = []
+    if location_id:
+        query += " WHERE location_id = %s"
+    else:
+        params.append("unexpected")
+    query += " ORDER BY created_at DESC"
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    arity = analysis["queries"][0]["positional_bind_arity"]
+    assert arity["mismatch"] is True
+    assert [(variant["placeholder_count"], variant["supplied_count"])
+            for variant in arity["variants"]] == [(1, 0), (0, 1)]
+
+
+def test_classifier_leaves_nested_conditional_parameter_mutations_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id, include_optional):
+    query = "SELECT * FROM v_report"
+    params = []
+    if location_id:
+        query += " WHERE location_id = %s"
+        if include_optional:
+            params.append(location_id)
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    assert analysis["queries"][0]["positional_bind_arity"] is None
+
+
+def test_classifier_leaves_nested_conditional_sql_mutations_unresolved():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id, include_location_filter):
+    query = "SELECT * FROM v_report"
+    params = []
+    if location_id:
+        if include_location_filter:
+            query += " WHERE location_id = %s"
+            params.append(location_id)
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    assert analysis["queries"][0]["positional_bind_arity"] is None
 
 
 def test_classifier_does_not_pair_location_filter_and_bind_from_different_branches():
@@ -290,7 +395,7 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
 
     assert inventory["summary"]["registered_report_types"] == 94
     assert inventory["summary"]["direct_query_sites"] == 176
-    assert inventory["summary"]["static_positional_arity_sites"] > 0
+    assert inventory["summary"]["static_positional_arity_sites"] == 175
     assert inventory["summary"]["positional_arity_mismatch_sites"] == 0
     assert inventory["summary"]["query_sites_with_bound_location_scope_signal"] > 0
     assert inventory["summary"]["unresolved_query_sites"] == 0
@@ -303,6 +408,25 @@ def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
         and helper["location_id_name_visible_in_arguments"]
         for helper in reports["pest_management"]["helper_calls"]
     )
+    branch_built_reports = {
+        "stakeholder_engagement",
+        "stakeholder_grievance",
+        "stakeholder_decision_lineage",
+        "stakeholder_outcomes",
+        "stakeholder_landscape",
+    }
+    for report_type in branch_built_reports:
+        assert all(
+            query["positional_bind_arity"] is not None
+            for query in reports[report_type]["queries"]
+        )
+    unresolved_arity = [
+        (report["report_type"], query["line"])
+        for report in reports.values()
+        for query in report["queries"]
+        if query["positional_bind_arity"] is None
+    ]
+    assert unresolved_arity == [("data_stream_summary", 29)]
 
 
 def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):

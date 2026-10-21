@@ -226,22 +226,164 @@ def _known_parameter_count(
     return 1
 
 
+def _parameter_list_mutation_branch(
+    mutation: ast.Call,
+    parents: dict[ast.AST, ast.AST],
+    conditional_path: tuple[int, int],
+) -> str | None:
+    """Classify a simple list mutation as unconditional or on one known branch."""
+    current: ast.AST = mutation
+    while current in parents:
+        parent = parents[current]
+        if isinstance(parent, ast.If):
+            if parent.lineno != conditional_path[0]:
+                return None
+            branch_root = current
+            while parents.get(branch_root) is not parent:
+                branch_root = parents[branch_root]
+            if branch_root in parent.body:
+                return "selected" if conditional_path[1] == 0 else "other"
+            if branch_root in parent.orelse:
+                return "selected" if conditional_path[1] == 1 else "other"
+            return None
+        if isinstance(parent, (ast.For, ast.AsyncFor, ast.While, ast.Try, ast.Match)):
+            return None
+        current = parent
+    return "unconditional"
+
+
+def _known_parameter_count_for_branch(
+    node: ast.AST | None,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+    before: int,
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    branch_path: tuple[int, int],
+) -> int | None:
+    """Resolve a positional list only when its mutations align with a SQL branch."""
+    if not isinstance(node, ast.Name):
+        return _known_parameter_count(node, assignments, before, function)
+
+    name = node.id
+    variants = _conditional_assignment_variants(function, name, assignments, before)
+    matching_variants = [
+        (line, value) for path, line, value in variants if path == branch_path
+    ]
+    if variants:
+        if len(matching_variants) != 1:
+            return None
+        assignment_line, value = matching_variants[0]
+        # A branch-selected literal is safe only when no later mutation changes
+        # the selected parameter list before execution.
+        if any(
+            isinstance(call, ast.Call)
+            and isinstance(call.func, ast.Attribute)
+            and isinstance(call.func.value, ast.Name)
+            and call.func.value.id == name
+            and assignment_line < call.lineno < before
+            for call in ast.walk(function)
+        ):
+            return None
+        return _known_parameter_count(value, assignments, assignment_line, function)
+
+    candidates = [
+        (line, value) for line, value in assignments.get(name, []) if line < before
+    ]
+    if not candidates:
+        return None
+    assignment_line, initial_value = candidates[-1]
+    if not isinstance(initial_value, (ast.List, ast.Tuple)) or any(
+        isinstance(item, ast.Starred) for item in initial_value.elts
+    ):
+        return None
+    count = len(initial_value.elts)
+
+    parents = {
+        child: parent
+        for parent in ast.walk(function)
+        for child in ast.iter_child_nodes(parent)
+    }
+    for node_in_function in ast.walk(function):
+        if isinstance(node_in_function, ast.AugAssign) and isinstance(
+            node_in_function.target, ast.Name
+        ) and node_in_function.target.id == name and assignment_line < node_in_function.lineno < before:
+            return None
+        if not isinstance(node_in_function, ast.Call) or not (
+            isinstance(node_in_function.func, ast.Attribute)
+            and isinstance(node_in_function.func.value, ast.Name)
+            and node_in_function.func.value.id == name
+            and assignment_line < node_in_function.lineno < before
+        ):
+            continue
+
+        method = node_in_function.func.attr
+        if method not in {"append", "extend"}:
+            return None
+        mutation_branch = _parameter_list_mutation_branch(
+            node_in_function, parents, branch_path
+        )
+        if mutation_branch is None:
+            return None
+        if mutation_branch == "other":
+            continue
+        if method == "append":
+            if len(node_in_function.args) != 1 or node_in_function.keywords:
+                return None
+            count += 1
+        else:
+            if len(node_in_function.args) != 1 or node_in_function.keywords:
+                return None
+            extension_count = _known_parameter_count(
+                node_in_function.args[0], assignments, node_in_function.lineno, function
+            )
+            if extension_count is None:
+                return None
+            count += extension_count
+    return count
+
+
 def _positional_bind_arity(
     sql: str | None,
     call: ast.Call,
     assignments: dict[str, list[tuple[int, ast.AST]]],
     function: ast.FunctionDef | ast.AsyncFunctionDef,
+    conditional_sql_variants: list[tuple[tuple[int, int], int, ast.AST]] | None = None,
 ) -> dict | None:
-    if sql is None:
-        return None
-    placeholder_count, named_binds = _sql_bind_counts(sql)
-    if named_binds:
-        return None
     positional_index = 2 if isinstance(call.func, ast.Name) and call.func.id == "query" else 1
     parameter_node = call.args[positional_index] if len(call.args) > positional_index else next(
         (keyword.value for keyword in call.keywords if keyword.arg in {"params", "parameters"}),
         None,
     )
+
+    if conditional_sql_variants:
+        variants = []
+        for branch_path, sql_line, sql_node in conditional_sql_variants:
+            branch_sql = _string_value(sql_node, assignments, sql_line)
+            if branch_sql is None:
+                return None
+            placeholder_count, named_binds = _sql_bind_counts(branch_sql)
+            if named_binds:
+                return None
+            supplied_count = _known_parameter_count_for_branch(
+                parameter_node, assignments, call.lineno, function, branch_path
+            )
+            if supplied_count is None:
+                return None
+            variants.append(
+                {
+                    "conditional_line": branch_path[0],
+                    "branch": branch_path[1],
+                    "placeholder_count": placeholder_count,
+                    "supplied_count": supplied_count,
+                    "mismatch": placeholder_count != supplied_count,
+                }
+            )
+        return {"mismatch": any(item["mismatch"] for item in variants), "variants": variants}
+
+    if sql is None:
+        return None
+    placeholder_count, named_binds = _sql_bind_counts(sql)
+    if named_binds:
+        return None
     supplied_count = _known_parameter_count(parameter_node, assignments, call.lineno, function)
     if supplied_count is None:
         return None
@@ -280,6 +422,7 @@ def _conditional_assignment_variants(
     name: str,
     assignments: dict[str, list[tuple[int, ast.AST]]],
     before: int,
+    include_unconditional_string_suffix: bool = False,
 ) -> list[tuple[tuple[int, int], int, ast.AST]]:
     """Resolve the last value assigned to a name in location-conditional branches."""
     variants: list[tuple[tuple[int, int], int, ast.AST]] = []
@@ -292,7 +435,8 @@ def _conditional_assignment_variants(
             continue
         branch_values: list[list[tuple[int, ast.AST]]] = []
         branch_lines: set[int] = set()
-        for branch_index, branch in enumerate((node.body, node.orelse)):
+        nested_branch_writes = False
+        for branch in (node.body, node.orelse):
             lines = set()
             for child in ast.walk(ast.Module(body=branch, type_ignores=[])):
                 if isinstance(child, ast.Assign) and any(
@@ -303,26 +447,96 @@ def _conditional_assignment_variants(
                     child.target, ast.Name
                 ) and child.target.id == name:
                     lines.add(child.lineno)
+            if include_unconditional_string_suffix:
+                direct_lines = set()
+                for statement in branch:
+                    if isinstance(statement, ast.Assign) and any(
+                        isinstance(target, ast.Name) and target.id == name
+                        for target in statement.targets
+                    ):
+                        direct_lines.add(statement.lineno)
+                    elif isinstance(statement, (ast.AnnAssign, ast.AugAssign)) and isinstance(
+                        statement.target, ast.Name
+                    ) and statement.target.id == name:
+                        direct_lines.add(statement.lineno)
+                nested_branch_writes = nested_branch_writes or bool(lines - direct_lines)
             branch_lines.update(lines)
             branch_values.append(
                 [(line, value) for line, value in assignments.get(name, []) if line in lines]
             )
         if not any(branch_values):
             continue
+        if nested_branch_writes:
+            continue
         latest_assignment = max(
             (line for line, _value in assignments.get(name, []) if line < before),
             default=-1,
         )
+        post_statements: list[ast.stmt] = []
         if latest_assignment not in branch_lines:
-            continue
+            if not include_unconditional_string_suffix:
+                continue
+            statement_block = next(
+                (
+                    values
+                    for parent in ast.walk(function)
+                    for _field, values in ast.iter_fields(parent)
+                    if isinstance(values, list)
+                    and node in values
+                    and all(isinstance(value, ast.stmt) for value in values)
+                ),
+                function.body,
+            )
+            post_lines = sorted(
+                line
+                for line, _value in assignments.get(name, [])
+                if node.lineno < line < before and line not in branch_lines
+            )
+            statement_by_line = {
+                statement.lineno: statement
+                for statement in statement_block
+                if hasattr(statement, "lineno")
+            }
+            if not post_lines or any(line not in statement_by_line for line in post_lines):
+                continue
+            post_statements = [statement_by_line[line] for line in post_lines]
+            if any(
+                not isinstance(statement, ast.AugAssign)
+                or not isinstance(statement.target, ast.Name)
+                or statement.target.id != name
+                or not isinstance(statement.op, ast.Add)
+                or _string_value(statement.value, assignments, statement.lineno) is None
+                for statement in post_statements
+            ):
+                continue
         prior = [(line, value) for line, value in assignments.get(name, []) if line < node.lineno]
         for branch_index, values in enumerate(branch_values):
             if values:
                 line, value = values[-1]
-                variants.append(((node.lineno, branch_index), line, value))
+                if not include_unconditional_string_suffix:
+                    variants.append(((node.lineno, branch_index), line, value))
+                    continue
+                branch_value = _string_value(value, assignments, line)
             elif prior:
                 line, value = prior[-1]
-                variants.append(((node.lineno, branch_index), line, value))
+                if not include_unconditional_string_suffix:
+                    variants.append(((node.lineno, branch_index), line, value))
+                    continue
+                branch_value = _string_value(value, assignments, line)
+            else:
+                continue
+            if branch_value is None:
+                continue
+            for statement in post_statements:
+                suffix = _string_value(statement.value, assignments, statement.lineno)
+                if suffix is None:
+                    branch_value = None
+                    break
+                branch_value += suffix
+            if branch_value is not None:
+                variants.append(
+                    ((node.lineno, branch_index), before, ast.Constant(value=branch_value))
+                )
     return variants
 
 
@@ -399,7 +613,11 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
         sql_variant_paths: list[tuple[tuple[int, int] | None, str | None]] = [(None, sql)]
         if isinstance(sql_node, ast.Name):
             conditional_sql_variants = _conditional_assignment_variants(
-                function, sql_node.id, assignments, node.lineno
+                function,
+                sql_node.id,
+                assignments,
+                node.lineno,
+                include_unconditional_string_suffix=True,
             )
             if conditional_sql_variants:
                 sql_variants = [
@@ -411,10 +629,12 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                     (path, _string_value(value, assignments, line))
                     for path, line, value in conditional_sql_variants
                 ]
-        positional_arity = (
-            None
-            if conditional_sql_variants
-            else _positional_bind_arity(sql, node, assignments, function)
+        positional_arity = _positional_bind_arity(
+            sql,
+            node,
+            assignments,
+            function,
+            conditional_sql_variants or None,
         )
         resolved_sql_variants = [value for value in sql_variants if value is not None]
         parameter_variable_names = {
@@ -649,8 +869,10 @@ def build_inventory() -> dict:
         "generated_by": "scripts/report_generator_query_scope_inventory.py",
         "scope": (
             "Conservative AST inventory of direct execute/query calls in registered report functions. "
-        "Location-dependent SQL assignment branches retain all statically resolved variants. "
-            "For unbranched static SQL and statically known positional parameter containers, it also compares %s placeholder and supplied-value counts; named and dynamic bindings are left unresolved. "
+            "Location-dependent SQL assignment branches retain statically resolved variants, including a simple "
+            "unconditional static string suffix after the branch. Positional bind arity is compared for static SQL "
+            "and branch-correlated SQL when parameter counts are statically known; named binds, dynamic containers, "
+            "and nested conditional mutations remain unresolved. "
             "A visible location predicate or bound location_id expression is only a source signal; it does not "
             "prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, "
             "database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, "

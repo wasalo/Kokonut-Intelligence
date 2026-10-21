@@ -3,6 +3,16 @@
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-066 conditional report query bind arity — 21 October 2026:** the static
+query analyzer now correlates SQL placeholders with parameters across simple
+location branches and a common static suffix. It checks 175/176 direct report
+queries and 117/175 report-to-helper query memberships with no mismatches.
+Regressions cover matching branches, opposite-branch parameter errors, and
+unresolved nested SQL/parameter mutations. The combined focused query/helper/source inventory
+selection passes 24 tests; Ruff, compilation, three inventory checks, and matrix
+validation pass. No database or provider was used. Named binds, complex helper
+queries, runtime SQL, and populated report parity remain open ([evidence](builds/2026-10-21-recovery/cap-066-conditional-query-bind-arity.json)).
+
 **CAP-066 report helper SQL bind arity — 21 October 2026:** the helper-scope
 inventory now records positional bind counts for statically resolved helper
 queries. Across 94 report types and 175 report-to-helper query memberships,

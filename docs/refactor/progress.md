@@ -1,3 +1,19 @@
+### CAP-066 conditional report query bind arity — 21 October 2026
+
+The report query analyzer now correlates static SQL and positional parameter
+counts across simple location-dependent branches, including a common static
+string suffix after the branch. It checks 175 of 176 direct report queries;
+five conditional queries are represented with per-branch counts. The helper
+inventory checks 117 of 175 report-to-helper query memberships. Neither scan
+found mismatches. An opposite-branch parameter regression fails as expected,
+while nested conditional SQL and parameter mutations remain unresolved. The
+focused query/helper/source inventory selection passes 24 tests; Ruff, compilation, all three
+report inventories, and the capability matrix validator pass. No database,
+migration, candidate, legacy stack, or provider was used. This remains static
+source evidence, not runtime SQL acceptance. Checklist: 880 complete / 24 open
+(904 total); matrix: 31 baseline-retained, 7 deployed, 28 prepared
+([evidence](builds/2026-10-21-recovery/cap-066-conditional-query-bind-arity.json)).
+
 ### CAP-066 report helper SQL bind arity — 21 October 2026
 
 The report helper-scope inventory now records positional bind counts for

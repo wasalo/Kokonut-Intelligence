@@ -1,18 +1,18 @@
 {
   "version": 1,
   "generated_by": "scripts/report_generator_query_scope_inventory.py",
-  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain all statically resolved variants. For unbranched static SQL and statically known positional parameter containers, it also compares %s placeholder and supplied-value counts; named and dynamic bindings are left unresolved. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
+  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. Location-dependent SQL assignment branches retain statically resolved variants, including a simple unconditional static string suffix after the branch. Positional bind arity is compared for static SQL and branch-correlated SQL when parameter counts are statically known; named binds, dynamic containers, and nested conditional mutations remain unresolved. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
   "summary": {
     "registered_report_types": 94,
     "direct_query_sites": 176,
-    "static_positional_arity_sites": 170,
+    "static_positional_arity_sites": 175,
     "positional_arity_mismatch_sites": 0,
     "query_sites_with_bound_location_scope_signal": 126,
-    "conditional_scope_query_sites": 1,
+    "conditional_scope_query_sites": 5,
     "unresolved_query_sites": 0,
     "classification_counts": {
-      "all_direct_queries_show_bound_location_scope": 37,
-      "conditional_direct_query_scope": 1,
+      "all_direct_queries_show_bound_location_scope": 35,
+      "conditional_direct_query_scope": 3,
       "helper_or_computed_without_direct_query": 28,
       "mixed_direct_query_scope": 15,
       "no_bound_location_scope_visible": 13
@@ -3839,12 +3839,12 @@
       "callable": "generate_stakeholder_decision_lineage",
       "source_file": "services/export/reports/strategy.py",
       "source_line": 357,
-      "classification": "all_direct_queries_show_bound_location_scope",
+      "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
-      "static_positional_arity_site_count": 0,
+      "static_positional_arity_site_count": 1,
       "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
-      "conditional_scope_query_count": 0,
+      "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
       "helper_calls": [],
       "queries": [
@@ -3861,9 +3861,27 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
-          "location_scope_conditionally_added": false,
+          "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
-          "positional_bind_arity": null
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditional_line": 361,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditional_line": 361,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          }
         }
       ]
     },
@@ -3974,10 +3992,10 @@
       "source_line": 277,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
-      "static_positional_arity_site_count": 1,
+      "static_positional_arity_site_count": 2,
       "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
-      "conditional_scope_query_count": 0,
+      "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
       "helper_calls": [],
       "queries": [
@@ -3994,9 +4012,27 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
-          "location_scope_conditionally_added": false,
+          "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
-          "positional_bind_arity": null
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditional_line": 281,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditional_line": 281,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          }
         },
         {
           "line": 290,
@@ -4026,12 +4062,12 @@
       "callable": "generate_stakeholder_grievance",
       "source_file": "services/export/reports/strategy.py",
       "source_line": 309,
-      "classification": "all_direct_queries_show_bound_location_scope",
+      "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
-      "static_positional_arity_site_count": 0,
+      "static_positional_arity_site_count": 1,
       "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
-      "conditional_scope_query_count": 0,
+      "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
       "helper_calls": [],
       "queries": [
@@ -4048,9 +4084,27 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
-          "location_scope_conditionally_added": false,
+          "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
-          "positional_bind_arity": null
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditional_line": 313,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditional_line": 313,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          }
         }
       ]
     },
@@ -4061,7 +4115,7 @@
       "source_line": 244,
       "classification": "conditional_direct_query_scope",
       "direct_query_count": 1,
-      "static_positional_arity_site_count": 0,
+      "static_positional_arity_site_count": 1,
       "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
       "conditional_scope_query_count": 1,
@@ -4084,7 +4138,25 @@
           "indirect_location_scope_visible": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
-          "positional_bind_arity": null
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditional_line": 246,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditional_line": 246,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          }
         }
       ]
     },
@@ -4095,10 +4167,10 @@
       "source_line": 410,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
-      "static_positional_arity_site_count": 1,
+      "static_positional_arity_site_count": 2,
       "positional_arity_mismatch_count": 0,
       "queries_with_bound_location_scope_signal": 1,
-      "conditional_scope_query_count": 0,
+      "conditional_scope_query_count": 1,
       "unresolved_query_count": 0,
       "helper_calls": [],
       "queries": [
@@ -4115,9 +4187,27 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
-          "location_scope_conditionally_added": false,
+          "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
-          "positional_bind_arity": null
+          "positional_bind_arity": {
+            "mismatch": false,
+            "variants": [
+              {
+                "conditional_line": 420,
+                "branch": 0,
+                "placeholder_count": 1,
+                "supplied_count": 1,
+                "mismatch": false
+              },
+              {
+                "conditional_line": 420,
+                "branch": 1,
+                "placeholder_count": 0,
+                "supplied_count": 0,
+                "mismatch": false
+              }
+            ]
+          }
         },
         {
           "line": 428,
