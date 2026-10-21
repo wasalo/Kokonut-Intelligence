@@ -636,6 +636,16 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
+**Current CAP-039 report CLI slice — 20 October 2026:** Standalone and unified
+`export --verify` and synthetic single-report generation now compare output;
+the generation case also checks read-only calculation, later snapshot persistence,
+and connection cleanup. The full focused selection passes 153 tests, with no
+database or provider calls. The checklist is 815 complete / 25 open (840 total),
+recounted from its nested checkboxes; the matrix remains 66 rows (31
+baseline-retained, 7 deployed, 28 prepared). Candidate and legacy databases
+were not touched. MAN-CAP-039 owner acceptance, operator authorization, and
+live report behavior remain open.
+
 The latest security-hardening batch was pushed to the PR branch as `efdd05b5`.
 Across these slices, raw exception messages, model paths, identifiers, and
 child output are replaced with bounded summaries while rollback, retry, and

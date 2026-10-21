@@ -1,12 +1,15 @@
 ### CAP-039 automatic report connection cleanup — 20 October 2026
 
 Automatic report generation now closes its database connection in a `finally`
-boundary. Standalone/unified parity now also covers successful `--verify` output with a
-stubbed verifier. Injected failures cover connection creation, snapshot listing,
+boundary. Standalone/unified parity now covers successful `--verify` output with a
+stubbed verifier and single-report generation through synthetic calculation
+and snapshot-store adapters. Injected failures cover connection creation, snapshot listing,
 snapshot verification, and run-record creation before per-report processing.
 All four pairs verify class-only errors; connection cleanup is asserted where a
-connection exists. The full CAP-039 offline parity selection passes 152 tests;
-no database or provider was contacted. Report output parity, operator authorization, and
+connection exists. The full CAP-039 offline parity selection passes 153 tests;
+no database or provider was contacted. Recounting the nested checklist items
+corrected the summary to 815 complete / 25 open (840 total); the previous
+header count was stale. Report output parity, operator authorization, and
 MAN-CAP-039 owner acceptance remain open
 ([evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 

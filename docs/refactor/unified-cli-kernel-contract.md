@@ -106,8 +106,9 @@ PostgreSQL URL so accidental secret/database setup fails instead of reaching a
 real service. Nine successful offline invocations, twenty-nine other
 PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
-service report, and three operator write invocations with fake connections
-match standalone output across all 37 mounted groups (152 tests including
+service report, one synthetic single-report generation path, and three operator
+write invocations with fake connections match standalone output across all 37
+mounted groups (153 tests including
 operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
@@ -120,12 +121,12 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 152-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 153-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The thirty query-backed success paths (including the operator inventory),
-one aggregate-service-stubbed tenant-preflight path, and three fake-connection
-operator writes exercise
+one aggregate-service-stubbed tenant-preflight path, one synthetic report
+generation path, and three fake-connection operator writes exercise
 their real parsers, forwarding, and JSON or text output paths from both entry
 points with synthetic results. The grant-revocation case confirms the required
 actor and reason reach the UPDATE; it does not test database authorization. The
@@ -151,9 +152,10 @@ deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
 Every mounted group now has at least one successful output-parity path. This
-selection covers nine offline invocations across eight groups, twenty-nine
+selection covers nine offline invocations across eight groups, thirty
 stubbed database-query paths (including the operator inventory), one
-aggregate-service path, and three fake-connection operator writes. Identity
+aggregate-service path, one synthetic report-generation path, and three
+fake-connection operator writes. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,

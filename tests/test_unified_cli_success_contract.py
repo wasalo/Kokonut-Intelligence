@@ -1911,3 +1911,98 @@ def test_export_snapshot_verify_matches_standalone_and_unified_cli(
     assert len(connections) == 2
     assert all(connection.closed for connection in connections)
     assert unified.stderr == ""
+
+
+def test_export_report_generation_matches_standalone_and_unified_cli(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    report_data = {"report_type": "farm_summary", "rows": [{"count": 3}]}
+    connections = []
+    calculations = []
+    snapshots = []
+
+    class FakeConnection:
+        def __init__(self):
+            self.autocommit = False
+            self.read_only = False
+            self.session_modes = []
+            self.rollbacks = 0
+            self.commits = 0
+            self.closed = False
+
+        def set_session(self, *, readonly):
+            self.read_only = readonly
+            self.session_modes.append(readonly)
+
+        def rollback(self):
+            self.rollbacks += 1
+            self.read_only = False
+
+        def commit(self):
+            self.commits += 1
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def generate_report(connection, selected_location, period_start, period_end):
+        calculations.append(
+            (connection.read_only, selected_location, period_start, period_end)
+        )
+        return report_data
+
+    def store_snapshot(connection, data, selected_location, period_start, period_end):
+        snapshots.append(
+            (connection.read_only, data, selected_location, period_start, period_end)
+        )
+        connection.commit()
+        return "synthetic-snapshot-id"
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    monkeypatch.setattr(report_generator, "REPORT_GENERATORS", {"farm_summary": generate_report})
+    monkeypatch.setattr(report_generator, "store_snapshot", store_snapshot)
+    monkeypatch.setattr(report_generator, "compute_hash", lambda _data: "synthetic-hash")
+    arguments = ["--type", "farm_summary", "--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert standalone_output.splitlines() == [
+        f"Generating farm_summary report for {location_id}...",
+        "Snapshot stored: synthetic-snapshot-id",
+        "Hash: synthetic-hash",
+        "Report type: farm_summary",
+    ]
+    assert calculations == [
+        (True, location_id, None, None),
+        (True, location_id, None, None),
+    ]
+    assert snapshots == [
+        (False, report_data, location_id, None, None),
+        (False, report_data, location_id, None, None),
+    ]
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(connection.rollbacks == 1 for connection in connections)
+    assert all(connection.session_modes == [True, False] for connection in connections)
+    assert all(connection.commits == 1 for connection in connections)
+    assert unified.stderr == ""
