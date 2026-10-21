@@ -4347,11 +4347,13 @@ location-scoped transaction. Both EventBus publishes leave commit ownership to
 the caller; CSV rows use savepoints so an individual failure does not roll back
 earlier accepted rows. Rejected manual readings persist their audit without
 creating a reading, while outbox failure rolls back both source and success
-audit. Six new mocked cases pass within a 25-test sensor ingestion/CLI
+audit. Seven new mocked cases pass within a 26-test sensor ingestion/CLI
 selection, with Ruff and Python compilation. No database, ClickHouse, or
-EventBus was contacted. Live tenant/RLS behavior and populated sensor parity
-remain open. Checklist: 859
-complete / 25 open (884 total); classifications remain 31 baseline-retained,
+EventBus was contacted. A synthetic successful manual-reading command also
+produces identical output and transactional effects through standalone and
+unified entrypoints. Live tenant/RLS behavior and populated sensor parity remain
+open. Checklist: 860
+complete / 25 open (885 total); classifications remain 31 baseline-retained,
 7 deployed, and 28 prepared
 ([implementation](../services/ingestion/sensor_ingester.py);
 [test](../tests/test_sensor_ingester_transaction_audit_scope.py);

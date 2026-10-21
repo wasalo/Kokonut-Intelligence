@@ -231,3 +231,67 @@ def test_failed_csv_row_does_not_roll_back_prior_accepted_row(tmp_path, monkeypa
     db.rollback.assert_not_called()
     db.close.assert_called_once()
 
+
+def test_single_reading_effects_and_output_match_standalone_and_unified(
+    monkeypatch,
+):
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+
+    connections = [MagicMock(), MagicMock()]
+    event_bus = MagicMock()
+    audit = MagicMock()
+    messages = []
+    validation = SimpleNamespace(
+        status="accepted",
+        warnings=[],
+        errors=[],
+        dedupe_key="dedupe-key",
+    )
+    monkeypatch.setattr(sensor_ingester, "get_db", lambda: connections.pop(0))
+    monkeypatch.setattr(sensor_ingester, "get_sensor_type_ranges", lambda *_args: {})
+    monkeypatch.setattr(sensor_ingester, "get_sensor_by_id_or_slug", lambda *_args: SENSOR_INFO)
+    monkeypatch.setattr(sensor_ingester, "validate_sensor_reading", lambda *_args, **_kwargs: validation)
+    monkeypatch.setattr(sensor_ingester, "insert_reading", lambda *_args, **_kwargs: "reading-id")
+    monkeypatch.setattr(sensor_ingester, "insert_reading_clickhouse", lambda *_args: None)
+    monkeypatch.setattr(sensor_ingester, "log_ingestion", audit)
+    monkeypatch.setattr(sensor_ingester, "_get_event_bus", lambda **_kwargs: event_bus)
+    monkeypatch.setattr(
+        sensor_ingester.logger,
+        "info",
+        lambda message, *args: messages.append(message % args if args else message),
+    )
+    arguments = [
+        "--sensor",
+        "soil-probe",
+        "--value",
+        "42",
+        "--date",
+        "2026-10-21",
+        "--time",
+        "12:00:00",
+        "--location-id",
+        LOCATION_ID,
+    ]
+
+    sensor_ingester.main(arguments)
+    standalone_messages = list(messages)
+    messages.clear()
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "sensor_ingester", *arguments],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert messages == standalone_messages == [
+        "✓ Soil probe: 42.00 (soil_moisture) at 2026-10-21 12:00:00"
+    ]
+    assert audit.call_count == 2
+    assert all(call.kwargs["location_id"] == LOCATION_ID for call in audit.call_args_list)
+    assert event_bus.publish.call_count == 2
+    assert all(call.kwargs["commit"] is False for call in event_bus.publish.call_args_list)
+    for connection in [call.kwargs["db"] for call in audit.call_args_list]:
+        connection.commit.assert_called_once()
+        connection.close.assert_called_once()
+

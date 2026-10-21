@@ -15,7 +15,7 @@
     "python3 -m py_compile services/ingestion/sensor_ingester.py tests/test_sensor_ingester_transaction_audit_scope.py tests/test_sensor_ingester_csv_audit_scope.py tests/test_sensor_ingester_error_redaction.py"
   ],
   "results": {
-    "pytest": "25 passed",
+    "pytest": "26 passed",
     "ruff": "passed",
     "py_compile": "passed"
   },
@@ -24,6 +24,7 @@
     "Manual and CSV EventBus writes use commit=False so the caller owns the transaction.",
     "CSV row savepoints preserve prior accepted rows when a later row fails and is audited.",
     "A synthetic two-row batch proves a failed second row does not globally roll back the first accepted row.",
+    "Standalone and unified successful manual-reading commands produce identical output and the same scoped transactional effects.",
     "Rejected readings create a location-scoped failure audit, commit that audit, and do not insert a sensor reading.",
     "Unknown sensors create a fixed-message location-scoped failure audit without echoing the supplied sensor identifier in logs.",
     "An outbox/event enqueue failure rolls back the reading and its previously inserted success audit and closes the connection."
