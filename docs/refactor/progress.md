@@ -13743,3 +13743,20 @@ misrepresented as farm data, but does not establish authorization or populated
 parity ([evidence](builds/2026-10-21-recovery/cap-066-strategic-reserve-scope.json)).
 Checklist: 872 complete / 24 open (896 total); matrix: 31 baseline-retained,
 7 deployed, 28 prepared across 66 rows.
+
+
+### CAP-066 report-scope branch correlation — 21 October 2026
+
+The static report query-scope analyzer now correlates SQL and parameter
+assignments by conditional branch and checks that a location predicate occurs
+on the branch that requires a location. Regressions prove it does not combine
+a location bind and predicate from opposite branches or treat a predicate in
+the no-location branch as farm scope; the valid farm/network branch pair still
+passes. The report query-scope/source-inventory/migration metadata selection
+passes 50 tests, and the stakeholder landscape mock checks pass two. Ruff,
+report source/query/helper inventory freshness, and capability-matrix
+validation pass. No database or migration was used. The inventory remains a
+source-review aid and does not prove authorization, RLS, or populated report
+parity ([evidence](builds/2026-10-21-recovery/cap-066-report-scope-branch-correlation.json)).
+Checklist: 873 complete / 24 open (897 total); matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows.

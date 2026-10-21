@@ -148,9 +148,9 @@ def _conditional_assignment_variants(
     name: str,
     assignments: dict[str, list[tuple[int, ast.AST]]],
     before: int,
-) -> list[tuple[int, ast.AST]]:
+) -> list[tuple[tuple[int, int], int, ast.AST]]:
     """Resolve the last value assigned to a name in location-conditional branches."""
-    variants: list[tuple[int, ast.AST]] = []
+    variants: list[tuple[tuple[int, int], int, ast.AST]] = []
     for node in ast.walk(function):
         if (
             not isinstance(node, ast.If)
@@ -160,7 +160,7 @@ def _conditional_assignment_variants(
             continue
         branch_values: list[list[tuple[int, ast.AST]]] = []
         branch_lines: set[int] = set()
-        for branch in (node.body, node.orelse):
+        for branch_index, branch in enumerate((node.body, node.orelse)):
             lines = set()
             for child in ast.walk(ast.Module(body=branch, type_ignores=[])):
                 if isinstance(child, ast.Assign) and any(
@@ -184,12 +184,55 @@ def _conditional_assignment_variants(
         if latest_assignment not in branch_lines:
             continue
         prior = [(line, value) for line, value in assignments.get(name, []) if line < node.lineno]
-        for values in branch_values:
+        for branch_index, values in enumerate(branch_values):
             if values:
-                variants.append(values[-1])
+                line, value = values[-1]
+                variants.append(((node.lineno, branch_index), line, value))
             elif prior:
-                variants.append(prior[-1])
+                line, value = prior[-1]
+                variants.append(((node.lineno, branch_index), line, value))
     return variants
+
+
+def _location_branch_index(
+    function: ast.FunctionDef | ast.AsyncFunctionDef, conditional_line: int
+) -> int | None:
+    """Return the branch index that requires a supplied location, if obvious."""
+    conditional = next(
+        (
+            node
+            for node in ast.walk(function)
+            if isinstance(node, ast.If) and node.lineno == conditional_line
+        ),
+        None,
+    )
+    if conditional is None:
+        return None
+
+    test = conditional.test
+    negated = False
+    while isinstance(test, ast.UnaryOp) and isinstance(test.op, ast.Not):
+        negated = not negated
+        test = test.operand
+    branch_for_present_location: int | None = None
+    if isinstance(test, ast.Name) and test.id == "location_id":
+        branch_for_present_location = 0
+    elif (
+        isinstance(test, ast.Compare)
+        and isinstance(test.left, ast.Name)
+        and test.left.id == "location_id"
+        and len(test.ops) == 1
+        and len(test.comparators) == 1
+        and isinstance(test.comparators[0], ast.Constant)
+        and test.comparators[0].value is None
+    ):
+        if isinstance(test.ops[0], (ast.IsNot, ast.NotEq)):
+            branch_for_present_location = 0
+        elif isinstance(test.ops[0], (ast.Is, ast.Eq)):
+            branch_for_present_location = 1
+    if branch_for_present_location is None:
+        return None
+    return 1 - branch_for_present_location if negated else branch_for_present_location
 
 
 def _query_argument(call: ast.Call) -> ast.AST | None:
@@ -221,32 +264,51 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
         sql = _string_value(sql_node, assignments, node.lineno) if sql_node else None
         sql_variants = [sql]
         conditional_sql_variants = []
+        sql_variant_paths: list[tuple[tuple[int, int] | None, str | None]] = [(None, sql)]
         if isinstance(sql_node, ast.Name):
             conditional_sql_variants = _conditional_assignment_variants(
                 function, sql_node.id, assignments, node.lineno
             )
             if conditional_sql_variants:
                 sql_variants = [
-                    _string_value(value, assignments, node.lineno)
-                    for _line, value in conditional_sql_variants
+                    _string_value(value, assignments, line)
+                    for _path, line, value in conditional_sql_variants
                 ]
                 sql = next((value for value in reversed(sql_variants) if value is not None), sql)
+                sql_variant_paths = [
+                    (path, _string_value(value, assignments, line))
+                    for path, line, value in conditional_sql_variants
+                ]
         resolved_sql_variants = [value for value in sql_variants if value is not None]
-        params_include_location = any(
-            _expression_mentions_location_id(param, assignments, node.lineno)
-            for param in parameter_nodes
-        )
         parameter_variable_names = {
             name.id for param in parameter_nodes for name in ast.walk(param) if isinstance(name, ast.Name)
         }
-        if not params_include_location:
-            params_include_location = any(
-                _expression_mentions_location_id(value, assignments, line)
-                for name in parameter_variable_names
-                for line, value in _conditional_assignment_variants(
-                    function, name, assignments, node.lineno
+        parameter_paths: set[tuple[int, int]] = set()
+        params_include_location = False
+        for param in parameter_nodes:
+            conditional_names = {
+                name.id
+                for name in ast.walk(param)
+                if isinstance(name, ast.Name)
+                and _conditional_assignment_variants(
+                    function, name.id, assignments, node.lineno
                 )
-            )
+            }
+            if not conditional_names and _expression_mentions_location_id(
+                param, assignments, node.lineno
+            ):
+                params_include_location = True
+        for name in parameter_variable_names:
+            for path, line, value in _conditional_assignment_variants(
+                function, name, assignments, node.lineno
+            ):
+                if _expression_mentions_location_id(value, assignments, line):
+                    parameter_paths.add(path)
+        if parameter_paths:
+            # A static SQL statement is shared by every parameter branch. When
+            # SQL is conditional, the path set below keeps its bind evidence
+            # paired with the matching SQL branch.
+            params_include_location = True
         if not params_include_location:
             for mutation in ast.walk(function):
                 if (
@@ -284,6 +346,25 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
             for query_sql in resolved_sql_variants
         )
         location_bound = params_include_location
+        scoped_sql_paths = {
+            path
+            for path, query_sql in sql_variant_paths
+            if query_sql
+            and (
+                _LOCATION_PREDICATE.search(query_sql)
+                or _LOCATION_ROW_LOOKUP.search(query_sql)
+                or any(pattern.search(query_sql) for pattern in _INDIRECT_LOCATION_SCOPE)
+            )
+            and (
+                path is None
+                or path[1] == _location_branch_index(function, path[0])
+            )
+        }
+        correlated_location_binding = location_bound and bool(scoped_sql_paths) and (
+            not conditional_sql_variants
+            or not parameter_paths
+            or any(path in parameter_paths for path in scoped_sql_paths)
+        )
         queries.append(
             {
                 "line": node.lineno,
@@ -304,7 +385,8 @@ def _query_calls(function: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict]
                 "indirect_location_scope_visible": indirect_location_scope,
                 "location_scope_conditionally_added": bool(conditional_sql_variants),
                 "bound_location_scope_signal": location_bound
-                and (location_predicate or location_row_lookup or indirect_location_scope),
+                and (location_predicate or location_row_lookup or indirect_location_scope)
+                and correlated_location_binding,
             }
         )
     return sorted(queries, key=lambda item: (item["line"], item["method"]))

@@ -115,6 +115,49 @@ def generate(conn, location_id):
     assert query["bound_location_scope_signal"] is True
 
 
+def test_classifier_does_not_pair_location_filter_and_bind_from_different_branches():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    if location_id:
+        query = "SELECT * FROM v_report WHERE display_name = %s"
+        params = [location_id]
+    else:
+        query = "SELECT * FROM v_report WHERE location_id = %s"
+        params = ["network"]
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    query = analysis["queries"][0]
+    assert query["location_predicate_visible"] is True
+    assert query["location_id_in_bound_expression"] is True
+    assert query["bound_location_scope_signal"] is False
+
+
+def test_classifier_requires_scope_filter_on_the_present_location_branch():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    if location_id:
+        query = "SELECT * FROM v_report WHERE display_name = %s"
+    else:
+        query = "SELECT * FROM v_report WHERE location_id = %s"
+    params = [location_id]
+    cur = conn.cursor()
+    cur.execute(query, params)
+''',
+        "generate",
+    )
+
+    query = analysis["queries"][0]
+    assert query["location_predicate_visible"] is True
+    assert query["location_id_in_bound_expression"] is True
+    assert query["bound_location_scope_signal"] is False
+
+
 def test_classifier_does_not_keep_stale_scope_after_unconditional_sql_reassignment():
     analysis = analyze_function_source(
         '''
