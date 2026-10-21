@@ -1,0 +1,25 @@
+{
+  "capability": "CAP-038",
+  "check": "wellbeing-agent-direct-query-source-alignment",
+  "date": "2026-10-20",
+  "result": "passed",
+  "change": {
+    "agent": "WellbeingSynthesisAgent",
+    "added_source_table": "stakeholder_feedback",
+    "reason": "synthesize_wellbeing directly aggregates this table by the requested location for language coverage and public-safe counts"
+  },
+  "tests": {
+    "command": "python3 -m pytest tests/test_agent_source_metadata.py tests/test_agents_base.py tests/test_ai_summary_safety.py tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agent_input_preflight.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_source_references.py tests/test_gateway_ai_summary_draft.py -q",
+    "passed": 92,
+    "skipped": 9,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 66 rows",
+    "database_or_provider_calls": 0
+  },
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "This corrects a table-name hint; it does not create immutable row-level evidence references for legacy/background agent runs.",
+    "It does not establish authenticated agent identity, database least privilege, tenant authorization, or MAN-CAP-038 acceptance."
+  ]
+}

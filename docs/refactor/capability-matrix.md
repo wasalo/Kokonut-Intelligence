@@ -3984,3 +3984,10 @@ pins the bio-factory and stakeholder-feedback metadata; 91 agent/summary/Gateway
 tests pass with nine PostgreSQL-dependent skips. This does not provide row-level
 provenance or close MAN-CAP-038
 ([evidence](builds/2026-10-20-recovery/cap-038-source-metadata-query-alignment.json)).
+
+**CAP-038 wellbeing source alignment — 20 October 2026:** the Wellbeing
+Synthesis Agent now declares its directly queried `stakeholder_feedback`
+aggregation source. The focused combined agent/summary/Gateway selection passes
+92 tests with nine PostgreSQL-dependent skips; Ruff and compilation pass. This
+aligns metadata only and does not establish row-level provenance or close
+MAN-CAP-038 ([evidence](builds/2026-10-20-recovery/cap-038-wellbeing-source-metadata.json)).

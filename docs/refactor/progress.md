@@ -1,3 +1,14 @@
+### CAP-038 Wellbeing synthesis source alignment — 20 October 2026
+
+The Wellbeing Synthesis Agent now declares `stakeholder_feedback`, which its
+location-scoped language and consent aggregate reads directly. A focused
+regression pins both the query and declaration. The combined agent,
+AI-summary, and Gateway draft selection passes 92 tests with nine
+PostgreSQL-dependent skips; Ruff and Python compilation pass. No database or
+provider was contacted. This corrects a table-name hint, not row-level evidence
+lineage or authenticated agent identity. Checklist: 820 complete / 25 open
+(845 total) ([evidence](builds/2026-10-20-recovery/cap-038-wellbeing-source-metadata.json)).
+
 ### CAP-039 operator identity disable audit — 20 October 2026
 
 Identity disablement now requires a bounded local actor label and reason, then
@@ -55,9 +66,8 @@ standalone/unified pairs verify class-only errors and cleanup when a connection
 exists. Separate cases inject close failures after listing and verification, and
 a per-report failure confirms auto mode continues safely. The full CAP-039 offline
 parity selection passes 157 tests;
-no database or provider was contacted. Recounting the nested checklist items
-corrected the summary to 818 complete / 25 open (843 total); the previous
-header count was stale. Report output parity, operator authorization, and
+no database or provider was contacted. The current checklist is 820 complete /
+25 open (845 total). Report output parity, operator authorization, and
 MAN-CAP-039 owner acceptance remain open
 ([evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 

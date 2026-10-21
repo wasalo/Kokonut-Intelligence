@@ -15,6 +15,14 @@ ordered migration rollout after a fresh encrypted checkpoint and restore
 rehearsal. ARM64 database replay remains through 434; the separate ARM64 Gateway
 runtime check remains against schema 524. [Replay evidence](builds/2026-10-20-recovery/clean-bootstrap-current-schema-525.json).
 
+**CAP-038 source metadata correction — 20 October 2026:** the Wellbeing
+Synthesis Agent's direct location-scoped `stakeholder_feedback` aggregation is
+now represented in its source-table declaration. Its regression pins the query
+and declaration; combined agent/summary/Gateway tests pass 92 cases with nine
+PostgreSQL-dependent skips. No database or provider was contacted. This aligns
+the source hint but does not add row-level provenance or authenticated agent
+identity ([evidence](builds/2026-10-20-recovery/cap-038-wellbeing-source-metadata.json)).
+
 **Bootstrap and ARM64 software acceptance — 20 October 2026:** A clean schema
 replay exposed migration 475's dependency on an optional Directus role in fresh
 installations. Bootstrap now provisions a restricted `NOLOGIN` placeholder
@@ -684,8 +692,8 @@ exact location forwarding, read-only calculation, snapshot ordering, and
 connection cleanup; an injected report failure is redacted while the next item
 continues and the batch is marked partial. Close failures are redacted too.
 The full focused selection passes 157 tests, with no database/provider calls.
-The checklist is 819 complete / 25 open (844 total), recounted from its nested
-checkboxes; the matrix remains 66 rows (31 baseline-retained, 7 deployed, 28 prepared). Candidate and
+The checklist is 820 complete / 25 open (845 total); the matrix remains 66 rows
+(31 baseline-retained, 7 deployed, 28 prepared). Candidate and
 legacy databases were not touched. MAN-CAP-039 owner acceptance, remaining
 operator authorization, and live report behavior remain open.
 

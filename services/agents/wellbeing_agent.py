@@ -102,7 +102,12 @@ class WellbeingSynthesisAgent(SynthesisAgent):
     summary_type = "holistic_wellbeing"
     read_collection = "wellbeing_metric_observation"
     model_version = "wellbeing-agent-v1"
-    source_tables = ["cultural_context_record", "wellbeing_metric_observation", "participatory_action_record"]
+    source_tables = [
+        "cultural_context_record",
+        "wellbeing_metric_observation",
+        "participatory_action_record",
+        "stakeholder_feedback",
+    ]
 
     def synthesize(self, conn, location_id=None):
         return synthesize_wellbeing(conn, location_id)
