@@ -42,6 +42,39 @@ INSERT INTO public.expense_event (id, location_id, category, amount, status) VAL
     ('e0000000-0000-4000-8000-000000000105', 'a0000000-0000-0000-0000-000000000001',
      'Operations', 10, 'verified');
 
+-- Published-view fixtures for capital-efficiency source manifests. Draft and
+-- other-location rows verify that the setter cannot reference hidden records.
+CREATE TABLE public.capital_efficiency_scenario (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.regenerative_efficiency_observation (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.governance_throughput_observation (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE TABLE public.capital_provider_utility_scenario (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+CREATE VIEW public.v_public_capital_efficiency_summary AS
+    SELECT id, location_id FROM public.capital_efficiency_scenario WHERE status = 'published';
+CREATE VIEW public.v_public_regenerative_efficiency_summary AS
+    SELECT id, location_id FROM public.regenerative_efficiency_observation WHERE status = 'published';
+CREATE VIEW public.v_public_governance_throughput_summary AS
+    SELECT id, location_id FROM public.governance_throughput_observation WHERE status = 'published';
+CREATE VIEW public.v_public_capital_provider_utility_summary AS
+    SELECT id, location_id FROM public.capital_provider_utility_scenario WHERE status = 'published';
+INSERT INTO public.capital_efficiency_scenario VALUES
+    ('e0000000-0000-4000-8000-000000000201', 'a0000000-0000-0000-0000-000000000001', 'published'),
+    ('e0000000-0000-4000-8000-000000000202', 'a0000000-0000-0000-0000-000000000001', 'draft'),
+    ('e0000000-0000-4000-8000-000000000203', 'a0000000-0000-0000-0000-000000000002', 'published');
+INSERT INTO public.regenerative_efficiency_observation VALUES
+    ('e0000000-0000-4000-8000-000000000211', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.governance_throughput_observation VALUES
+    ('e0000000-0000-4000-8000-000000000221', 'a0000000-0000-0000-0000-000000000001', 'published');
+INSERT INTO public.capital_provider_utility_scenario VALUES
+    ('e0000000-0000-4000-8000-000000000231', 'a0000000-0000-0000-0000-000000000001', 'published');
+
 DO $$
 DECLARE
     source_table TEXT;

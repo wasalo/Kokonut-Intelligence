@@ -239,7 +239,27 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
             "record_ids": ["e0000000-0000-4000-8000-000000000001"],
             "row_count": 1,
             "truncated": False,
-        }
+        },
+        "capital_efficiency_scenario": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000201"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "regenerative_efficiency_observation": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000211"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "governance_throughput_observation": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000221"],
+            "row_count": 1,
+            "truncated": False,
+        },
+        "capital_provider_utility_scenario": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000231"],
+            "row_count": 1,
+            "truncated": False,
+        },
     }
 
     result = worker_draft.create_worker_ai_summary_draft(
@@ -248,7 +268,7 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
         REQUEST_ID,
         {
             "content": "A source-linked worker draft",
-            "source_tables": ["harvest_event"],
+            "source_tables": list(source_references),
             "source_references": source_references,
         },
         connection_factory=lambda: connection,

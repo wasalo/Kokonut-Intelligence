@@ -2,7 +2,10 @@
 
 from pathlib import Path
 
-from services.agents.capital_efficiency_agent import synthesize_capital_efficiency
+from services.agents.capital_efficiency_agent import (
+    CapitalEfficiencySynthesisAgent,
+    synthesize_capital_efficiency,
+)
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
     REPORT_GENERATORS,
@@ -10,7 +13,6 @@ from services.export.report_generator import (
     generate_capital_provider_utility,
     generate_governance_throughput,
 )
-
 
 SCHEMA = Path("schemas/postgres/036_capital_efficiency_and_utility.sql")
 SEED = Path("schemas/seeds/037_capital_efficiency_and_utility.sql")
@@ -166,6 +168,58 @@ def test_capital_efficiency_agent_summarizes_public_safe_records() -> None:
     assert summary["capital_provider_utility_count"] == 1
     assert summary["average_decision_latency_days"] == 5.21
     assert "securities-style return promises" in summary["safety_note"]
+
+
+def test_capital_efficiency_worker_lineage_is_bounded_and_uses_public_views() -> None:
+    class Cursor:
+        def __init__(self):
+            self.queries = []
+
+        def execute(self, query, params=None):
+            self.queries.append((query, params))
+
+        def fetchall(self):
+            return [
+                {
+                    "source_table": table,
+                    "row_count": 51,
+                    "record_ids": [
+                        f"e0000000-0000-4000-8000-{index:012d}"
+                        for index in range(1, 51)
+                    ],
+                }
+                for table in CapitalEfficiencySynthesisAgent._source_reference_views
+            ]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    references = CapitalEfficiencySynthesisAgent().collect_source_references(
+        conn, location_id
+    )
+
+    assert set(references) == set(CapitalEfficiencySynthesisAgent._source_reference_views)
+    for table, reference in references.items():
+        assert reference["row_count"] == 51
+        assert len(reference["record_ids"]) == 50
+        assert reference["truncated"] is True
+        assert all(isinstance(record_id, str) for record_id in reference["record_ids"])
+    query, params = conn.cursor_value.queries[0]
+    for view_name in CapitalEfficiencySynthesisAgent._source_reference_views.values():
+        assert view_name in query
+    assert "WHERE location_id = %s" in query
+    assert "row_number() OVER (PARTITION BY source_table ORDER BY id)" in query
+    assert "numbered.ordinal <= 50" in query
+    assert params == (location_id,) * 4
 
 
 def test_capital_efficiency_report_generators_registered() -> None:

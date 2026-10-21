@@ -77,6 +77,17 @@ class SynthesisAgent:
         """Fetch and summarize context for a location. Implement in subclasses."""
         raise NotImplementedError
 
+    def collect_source_references(
+        self, conn: Any, location_id: str
+    ) -> dict[str, dict[str, Any]]:
+        """Return bounded row references for sources that have a safe view contract.
+
+        This runs only for signed draft storage, in the same read-only database
+        snapshot as :meth:`synthesize`. Agents without an exact public-view
+        mapping retain their declared table-name hints and return no row refs.
+        """
+        return {}
+
     def store_summary(
         self,
         conn: Any,

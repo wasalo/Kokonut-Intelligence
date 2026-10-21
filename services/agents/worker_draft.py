@@ -33,6 +33,10 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "weather_observation",
         "crop",
         "expense_category",
+        "capital_efficiency_scenario",
+        "regenerative_efficiency_observation",
+        "governance_throughput_observation",
+        "capital_provider_utility_scenario",
     }
 )
 

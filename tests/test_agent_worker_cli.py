@@ -149,7 +149,7 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
         )
 
     assert [call.args[0] for call in cursor.execute.call_args_list] == [
-        "SET TRANSACTION READ ONLY",
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
@@ -164,6 +164,7 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
             "content": "Synthetic agent draft",
             "source_tables": ["harvest_event"],
             "model_version": "synthetic-v1",
+            "source_references": {},
         },
     )
     assert result == {
@@ -172,6 +173,62 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
         "request_id": REQUEST_ID,
         "replayed": False,
     }
+
+
+def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
+    agent = _SyntheticSynthesisAgent()
+    references = {
+        "harvest_event": {
+            "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+            "row_count": 1,
+            "truncated": False,
+        }
+    }
+    agent.collect_source_references = MagicMock(return_value=references)
+    connection, _cursor = _source_connection()
+    writer = MagicMock(return_value={"summary_id": "saved-id", "replayed": False})
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        worker_cli.run_worker_synthesis(
+            agent,
+            LOCATION_ID,
+            REQUEST_ID,
+            connection_factory=lambda: connection,
+            existing_reader=lambda *_args: None,
+            draft_writer=writer,
+        )
+
+    agent.collect_source_references.assert_called_once_with(connection, LOCATION_ID)
+    assert writer.call_args.args[3]["source_references"] == references
+    connection.close.assert_called_once_with()
+
+
+def test_generic_synthesis_worker_does_not_write_when_reference_collection_fails():
+    agent = _SyntheticSynthesisAgent()
+    agent.collect_source_references = MagicMock(
+        side_effect=RuntimeError("source reference query failed")
+    )
+    connection, _cursor = _source_connection()
+    writer = MagicMock()
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        with pytest.raises(RuntimeError, match="source reference query failed"):
+            worker_cli.run_worker_synthesis(
+                agent,
+                LOCATION_ID,
+                REQUEST_ID,
+                connection_factory=lambda: connection,
+                existing_reader=lambda *_args: None,
+                draft_writer=writer,
+            )
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+    writer.assert_not_called()
 
 
 def test_generic_synthesis_worker_rejects_locationless_scope_before_connections():

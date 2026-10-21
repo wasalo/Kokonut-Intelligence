@@ -114,10 +114,11 @@ def run_worker_synthesis(
     connection = (connection_factory or get_db)()
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = agent.synthesize(connection, location_id)
+        source_references = agent.collect_source_references(connection, location_id)
         output_errors = validate_output(agent.task_key, {"summary": summary})
         if output_errors:
             raise ValueError("; ".join(output_errors))
@@ -132,6 +133,7 @@ def run_worker_synthesis(
             "content": synthesis,
             "source_tables": source_tables,
             "model_version": model_version,
+            "source_references": source_references,
         }
     except Exception:
         connection.rollback()

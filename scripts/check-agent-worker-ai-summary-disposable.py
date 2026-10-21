@@ -25,8 +25,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/524_ai_summary_global_source_references.sql",
     ROOT / "schemas/postgres/529_signed_agent_ai_summary_drafts.sql",
     ROOT / "schemas/postgres/530_signed_agent_ai_summary_source_references.sql",
+    ROOT / "schemas/postgres/531_capital_efficiency_synthesis_source_references.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-agent-worker-source-references-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-capital-efficiency-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -68,6 +69,7 @@ def _worker_acceptance() -> str:
     );
     DO $$
     DECLARE created RECORD;
+            lineage_probe RECORD;
             replayed RECORD;
             looked_up RECORD;
             denied BOOLEAN;
@@ -77,7 +79,9 @@ def _worker_acceptance() -> str:
         SELECT * INTO created
           FROM kokonut_security.create_location_ai_summary_worker_draft(
               '{LOCATION_ID}', 'wellbeing', 'Worker-produced synthetic draft.',
-              ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category'],
+              ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category',
+                    'capital_efficiency_scenario', 'regenerative_efficiency_observation',
+                    'governance_throughput_observation', 'capital_provider_utility_scenario'],
               'agent-v2', '{REQUEST_ID}'
           );
         IF created.summary_id IS NULL OR created.replayed
@@ -101,6 +105,22 @@ def _worker_acceptance() -> str:
             'expense_category', jsonb_build_object(
                 'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000104'),
                 'row_count', 1, 'truncated', false
+            ),
+            'capital_efficiency_scenario', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000201'),
+                'row_count', 1, 'truncated', false
+            ),
+            'regenerative_efficiency_observation', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000211'),
+                'row_count', 1, 'truncated', false
+            ),
+            'governance_throughput_observation', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000221'),
+                'row_count', 1, 'truncated', false
+            ),
+            'capital_provider_utility_scenario', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000231'),
+                'row_count', 1, 'truncated', false
             )
         );
         source_result := kokonut_security.set_location_ai_summary_source_references(
@@ -115,6 +135,49 @@ def _worker_acceptance() -> str:
         IF source_result IS DISTINCT FROM manifest THEN
             RAISE EXCEPTION 'exact worker source-reference read did not return attached rows';
         END IF;
+
+        SELECT * INTO lineage_probe
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'capital_efficiency', 'Published-view lineage rejection fixture.',
+              ARRAY['capital_efficiency_scenario'], 'agent-v2',
+              'd0000000-0000-4000-8000-000000000911'
+          );
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', lineage_probe.summary_id, 'd0000000-0000-4000-8000-000000000911',
+                '{{"capital_efficiency_scenario":{{"record_ids":["e0000000-0000-4000-8000-000000000202"],"row_count":1,"truncated":false}}}}'::jsonb
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'unpublished source row was accepted'; END IF;
+        source_result := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', lineage_probe.summary_id, 'd0000000-0000-4000-8000-000000000911'
+        );
+        IF source_result <> '{{}}'::jsonb THEN
+            RAISE EXCEPTION 'rejected unpublished source left a partial manifest';
+        END IF;
+
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', lineage_probe.summary_id, 'd0000000-0000-4000-8000-000000000911',
+                '{{"capital_efficiency_scenario":{{"record_ids":["e0000000-0000-4000-8000-000000000201"],"row_count":2,"truncated":true}}}}'::jsonb
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'inexact public-view row count was accepted'; END IF;
+
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', lineage_probe.summary_id, 'd0000000-0000-4000-8000-000000000911',
+                '{{"capital_efficiency_scenario":{{"record_ids":["e0000000-0000-4000-8000-000000000203"],"row_count":1,"truncated":false}}}}'::jsonb
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'other-location public row was accepted'; END IF;
+
         denied := FALSE;
         BEGIN
             PERFORM kokonut_security.get_location_ai_summary_worker_source_references(
@@ -136,7 +199,9 @@ def _worker_acceptance() -> str:
         SELECT * INTO replayed
           FROM kokonut_security.create_location_ai_summary_worker_draft(
               '{LOCATION_ID}', 'wellbeing', 'Changed generated text is ignored on exact request retry.',
-              ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category'],
+              ARRAY['harvest_event', 'crop_cycle', 'crop', 'expense_category',
+                    'capital_efficiency_scenario', 'regenerative_efficiency_observation',
+                    'governance_throughput_observation', 'capital_provider_utility_scenario'],
               'agent-v3', '{REQUEST_ID}'
           );
         IF replayed.summary_id IS DISTINCT FROM created.summary_id
@@ -233,7 +298,8 @@ def _worker_acceptance() -> str:
                                'kokonut_security.ai_summary_source_manifest', 'SELECT')
            OR has_table_privilege('kokonut_worker_execution',
                                   'kokonut_security.ai_summary_source_reference', 'SELECT')
-           OR has_table_privilege('kokonut_worker_execution', 'public.harvest_event', 'SELECT') THEN
+           OR has_table_privilege('kokonut_worker_execution', 'public.harvest_event', 'SELECT')
+           OR has_table_privilege('kokonut_worker_execution', 'public.capital_efficiency_scenario', 'SELECT') THEN
             RAISE EXCEPTION 'worker execution role has direct source or manifest table access';
         END IF;
     END;
@@ -449,11 +515,11 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529, and 530 apply; migration 530 replays",
+        "migrations 405, 419, 521-524, 529-531 apply; migrations 530 and 531 replay",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
-        "worker references include location-owned and globally shared rows linked through exact-location activity under forced source-table RLS",
-        "cross-location source references fail under forced RLS and leave no partial manifest; workers lack direct source-table access",
+        "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
+        "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
@@ -468,7 +534,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "signed-worker drafts now support bounded exact-location source IDs; legacy/background agents still expose table-name hints without source-record manifests",
+        "source_lineage_note": "capital-efficiency synthesis now attaches bounded IDs for four published-view sources; other generic synthesis agents retain table-name hints",
         "checks": checks,
     }
     stage = "container_start"
@@ -483,12 +549,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith("530_"):
+            if migration_path.name.startswith(("530_", "531_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
