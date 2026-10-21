@@ -1,0 +1,26 @@
+{
+  "result": "passed",
+  "migrations": [
+    "405_signed_worker_tenant_context.sql",
+    "419_private_worker_context_functions.sql",
+    "521_location_scoped_ai_summary_review.sql",
+    "522_authenticated_ai_summary_drafts.sql",
+    "529_signed_agent_ai_summary_drafts.sql"
+  ],
+  "database_target": "new disposable PostgreSQL 16 container with network disabled",
+  "candidate_or_legacy_modified": false,
+  "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
+  "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
+  "source_lineage_note": "table names remain worker-declared hints; this does not add source-record manifests for legacy/background agents",
+  "checks": [
+    "migrations 405, 419, 521, 522, and 529 apply; migration 529 replays",
+    "signed worker credential grants only ai_summary:draft for the exact owned location",
+    "worker draft is attributed to a database worker principal and exact request retries replay once",
+    "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
+    "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
+    "independent operator review sees the worker attribution and can verify only to verified",
+    "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
+    "runtime and Directus cannot call worker draft functions or read private worker receipts"
+  ],
+  "assertions_passed": 8
+}

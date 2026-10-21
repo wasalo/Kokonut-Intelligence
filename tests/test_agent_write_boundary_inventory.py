@@ -47,6 +47,9 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
     assert inventory["authenticated_operator_draft_function_calls"] == [
         {"source": "services/gateway/ai_summary_draft.py", "line": 106}
     ]
+    assert inventory["authenticated_worker_draft_function_calls"] == [
+        {"source": "services/agents/worker_draft.py", "line": 142}
+    ]
     assert inventory["set_agent_context_call_sites"] == []
     assert inventory["audit_agent_action_call_sites"] == []
     assert inventory["summary"] == {
@@ -54,6 +57,7 @@ def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route(
         "legacy_direct_ai_summary_insert_sites": 2,
         "agent_action_log_insert_sites": 1,
         "authenticated_operator_draft_function_calls": 1,
+        "authenticated_worker_draft_function_calls": 1,
         "set_agent_context_call_sites": 0,
         "audit_agent_action_call_sites": 0,
     }
@@ -71,6 +75,11 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
         "    cursor.execute(\"UPDATE ai_summary SET content = %s\", (content,))\n"
         "    cursor.execute(\"DELETE FROM agent_action_log WHERE agent_id = %s\", ('agent',))\n"
         "    set_agent_context(connection, 'not-a-principal')\n",
+        encoding="utf-8",
+    )
+    (agents / "worker.py").write_text(
+        "def create(cursor):\n"
+        "    cursor.execute(\"SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(%s)\", ('value',))\n",
         encoding="utf-8",
     )
     (gateway / "draft.py").write_text(
@@ -116,6 +125,9 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
     ]
     assert inventory["authenticated_operator_draft_function_calls"] == [
         {"source": "services/gateway/draft.py", "line": 2}
+    ]
+    assert inventory["authenticated_worker_draft_function_calls"] == [
+        {"source": "services/agents/worker.py", "line": 2}
     ]
     assert inventory["set_agent_context_call_sites"] == [
         {"source": "services/agents/legacy.py", "line": 6}

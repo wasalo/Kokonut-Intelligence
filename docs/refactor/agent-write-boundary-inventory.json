@@ -1,12 +1,13 @@
 {
   "version": 2,
   "generated_by": "scripts/agent_write_boundary_inventory.py",
-  "scope": "Static Python call-site inventory for literal direct DML in services/agents, the signed operator draft function call in services/gateway, and calls to the disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. Source locations classify code paths; they do not prove runtime identity, database privileges, query reachability, or tenant isolation.",
+  "scope": "Static Python call-site inventory for literal direct DML in services/agents, the signed operator draft function call in services/gateway, the signed worker draft function call in services/agents, and calls to the disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. Source locations classify code paths; they do not prove runtime identity, database privileges, query reachability, or tenant isolation.",
   "summary": {
     "direct_agent_write_sites": 3,
     "legacy_direct_ai_summary_insert_sites": 2,
     "agent_action_log_insert_sites": 1,
     "authenticated_operator_draft_function_calls": 1,
+    "authenticated_worker_draft_function_calls": 1,
     "set_agent_context_call_sites": 0,
     "audit_agent_action_call_sites": 0
   },
@@ -50,6 +51,12 @@
     {
       "source": "services/gateway/ai_summary_draft.py",
       "line": 106
+    }
+  ],
+  "authenticated_worker_draft_function_calls": [
+    {
+      "source": "services/agents/worker_draft.py",
+      "line": 142
     }
   ],
   "set_agent_context_call_sites": [],

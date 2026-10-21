@@ -24,6 +24,9 @@ DIRECT_DML = re.compile(
 AUTHENTICATED_DRAFT_CALL = re.compile(
     r"\bkokonut_security\.create_location_ai_summary_draft\s*\(", re.IGNORECASE
 )
+AUTHENTICATED_WORKER_DRAFT_CALL = re.compile(
+    r"\bkokonut_security\.create_location_ai_summary_worker_draft\s*\(", re.IGNORECASE
+)
 
 
 def _sql_text(node: ast.AST) -> str:
@@ -53,9 +56,10 @@ def _call_name(node: ast.expr) -> str | None:
 
 
 def build_inventory(root: Path = ROOT) -> dict:
-    """Classify direct agent writes and the authenticated Gateway draft path."""
+    """Classify direct agent writes and authenticated Gateway/worker draft paths."""
     direct_agent_writes: list[dict] = []
     authenticated_calls: list[dict] = []
+    authenticated_worker_calls: list[dict] = []
     legacy_context_calls: list[dict] = []
     audit_helper_calls: list[dict] = []
 
@@ -94,9 +98,12 @@ def build_inventory(root: Path = ROOT) -> dict:
                             )
                     if relative.startswith("services/gateway/") and AUTHENTICATED_DRAFT_CALL.search(query):
                         authenticated_calls.append({"source": relative, "line": node.lineno})
+                    if relative.startswith("services/agents/") and AUTHENTICATED_WORKER_DRAFT_CALL.search(query):
+                        authenticated_worker_calls.append({"source": relative, "line": node.lineno})
 
     direct_agent_writes.sort(key=lambda item: (item["source"], item["line"]))
     authenticated_calls.sort(key=lambda item: (item["source"], item["line"]))
+    authenticated_worker_calls.sort(key=lambda item: (item["source"], item["line"]))
     legacy_context_calls.sort(key=lambda item: (item["source"], item["line"]))
     audit_helper_calls.sort(key=lambda item: (item["source"], item["line"]))
     legacy_summary_writes = [
@@ -114,7 +121,8 @@ def build_inventory(root: Path = ROOT) -> dict:
         "generated_by": "scripts/agent_write_boundary_inventory.py",
         "scope": (
             "Static Python call-site inventory for literal direct DML in services/agents, "
-            "the signed operator draft function call in services/gateway, and calls to the "
+            "the signed operator draft function call in services/gateway, the signed worker "
+            "draft function call in services/agents, and calls to the "
             "disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. "
             "Source locations classify code paths; they do not prove runtime identity, database "
             "privileges, query reachability, or tenant isolation."
@@ -124,6 +132,7 @@ def build_inventory(root: Path = ROOT) -> dict:
             "legacy_direct_ai_summary_insert_sites": len(legacy_summary_writes),
             "agent_action_log_insert_sites": len(agent_action_log_writes),
             "authenticated_operator_draft_function_calls": len(authenticated_calls),
+            "authenticated_worker_draft_function_calls": len(authenticated_worker_calls),
             "set_agent_context_call_sites": len(legacy_context_calls),
             "audit_agent_action_call_sites": len(audit_helper_calls),
         },
@@ -135,6 +144,7 @@ def build_inventory(root: Path = ROOT) -> dict:
             {"source": site["source"], "line": site["line"]} for site in agent_action_log_writes
         ],
         "authenticated_operator_draft_function_calls": authenticated_calls,
+        "authenticated_worker_draft_function_calls": authenticated_worker_calls,
         "set_agent_context_call_sites": legacy_context_calls,
         "audit_agent_action_call_sites": audit_helper_calls,
     }

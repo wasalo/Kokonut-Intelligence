@@ -296,6 +296,30 @@ def test_sensor_ingestion_factory_requires_its_dedicated_database_login(monkeypa
     cursor.execute.assert_called_once_with("SELECT current_user")
 
 
+def test_agent_summary_draft_factory_requires_its_dedicated_worker_login(monkeypatch):
+    connection, cursor = _connection("kokonut_agent_summary_draft_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_agent_summary_draft_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "agent_summary_draft",
+        environ={
+            "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-agent_summary_draft",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+
+
 def test_sensor_ingestion_factory_has_no_shared_dsn_fallback(monkeypatch):
     connect = MagicMock()
     monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
