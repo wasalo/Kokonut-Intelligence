@@ -3962,3 +3962,11 @@ committing. Three fake-connection regressions pass inside an 88-test focused
 agent/summary/Gateway selection with nine PostgreSQL-dependent skips. This does
 not establish authenticated CLI access or MAN-CAP-038 acceptance
 ([evidence](builds/2026-10-20-recovery/cap-038-ai-summary-write-boundary.json)).
+
+**CAP-038 shared draft content-bound note — 20 October 2026:** both shared
+agent and standalone AI-summary draft writers reject content over the database
+review function's 20,000-character limit before cursor creation. The combined
+agent/summary/Gateway selection passes 89 tests with nine PostgreSQL-dependent
+skips; no database or provider was contacted. This remains input validation,
+not identity or least-privilege acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-agent-draft-content-bound.json)).

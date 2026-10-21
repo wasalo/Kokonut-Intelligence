@@ -44,6 +44,12 @@ def validate_source_tables(source_tables: Any, *, label: str) -> list[str]:
     return list(source_tables)
 
 
+def validate_draft_content_length(content: str, *, label: str) -> None:
+    """Enforce the PostgreSQL AI-summary content bound before persistence."""
+    if len(content) > 20_000:
+        raise ValueError(f"{label}: content must be at most 20000 characters")
+
+
 class SynthesisAgent:
     """A read-first synthesis agent.
 
@@ -87,6 +93,7 @@ class SynthesisAgent:
             raise ValueError(
                 "Invalid agent draft: summary.synthesis must be a non-empty string"
             )
+        validate_draft_content_length(synthesis, label="Invalid agent draft")
         inputs = {"store": True}
         location_id = summary.get("location_id")
         if location_id is not None:

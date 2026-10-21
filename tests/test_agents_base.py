@@ -127,6 +127,19 @@ def test_store_summary_rejects_missing_synthesis_before_cursor_access():
     assert conn.committed is False
 
 
+def test_store_summary_rejects_overlong_synthesis_before_cursor_access():
+    conn = _FakeConn()
+
+    with pytest.raises(ValueError, match="content must be at most 20000 characters"):
+        _DummyAgent().store_summary(
+            conn,
+            {"location_id": LOCATION_ID, "synthesis": "x" * 20_001},
+        )
+
+    assert conn.cursor_obj.executed is None
+    assert conn.committed is False
+
+
 def test_store_summary_rejects_malformed_location_before_cursor_access():
     conn = _FakeConn()
 

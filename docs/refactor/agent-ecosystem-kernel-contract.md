@@ -59,8 +59,8 @@ run without decrypting `.env.sops`.
   undefined rather than being implied by object/array type checks.
 - Both shared and standalone draft persistence helpers repeat their write-side
   checks before requesting a cursor. They reject malformed task scope,
-  incomplete/empty or over-limit persisted content, invalid source-table metadata, or an
-  invalid model-version label; callers cannot bypass the runner's validation
+  incomplete/empty or over-20,000-character persisted content, invalid
+  source-table metadata, or an invalid model-version label; callers cannot bypass the runner's validation
   by invoking the low-level write helper directly. These checks still create
   drafts only and do not approve or publish them. A common validator applies
   the source-table bounds to both shared and standalone writers. Both helpers

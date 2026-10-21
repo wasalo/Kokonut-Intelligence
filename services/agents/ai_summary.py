@@ -22,7 +22,7 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import validate_source_tables
+from services.agents.base import validate_draft_content_length, validate_source_tables
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import (
     validate_output,
@@ -446,8 +446,7 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
         raise ValueError("Unsupported AI summary type")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("AI summary content must be a non-empty string")
-    if len(content) > 20_000:
-        raise ValueError("AI summary content must be at most 20000 characters")
+    validate_draft_content_length(content, label="AI summary draft")
     source_tables = validate_source_tables(
         source_tables, label="Invalid AI summary draft"
     )

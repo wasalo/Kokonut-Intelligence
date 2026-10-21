@@ -1,3 +1,14 @@
+### CAP-038 shared-agent draft content bound — 20 October 2026
+
+Both shared and standalone persistence helpers now enforce the existing
+20,000-character database review bound before opening a cursor. The regression
+also retains standalone cursor-close/no-commit assertions for failed insert and
+fetch. The combined agent, summary-source, and Gateway draft selection passes
+89 tests with nine PostgreSQL-dependent skips, plus Ruff and compilation. This
+is payload preflight, not agent authentication, database least privilege, or
+MAN-CAP-038 acceptance
+([evidence](builds/2026-10-20-recovery/cap-038-agent-draft-content-bound.json)).
+
 ### CAP-038 standalone AI-summary write boundary — 20 October 2026
 
 The standalone draft writer now applies the database review contract's
