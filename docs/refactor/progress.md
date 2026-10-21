@@ -1,3 +1,20 @@
+### CAP-066 capital-accounting query contract — 21 October 2026
+
+The diversion calculation now uses a fixed `expense_event` query with a bound
+location, inclusive optional date bounds, and a bound capital-expenditure flag.
+This replaces dynamic SQL assembly and fixes the prior date-bounded reference to nonexistent `event_date` without changing the two aggregate totals.
+The helper inventory resolves the query as six placeholders and six supplied
+values; its location predicate is a source signal, not proof of tenant
+authorization or RLS. Focused capital-accounting/helper-inventory checks pass
+(24 tests). Ruff, Python compilation, all three report inventory checks, runtime
+SQL inventory, capability-matrix validation, and diff checks pass. Across 175
+report-to-helper query memberships, 159 SQL sites are static, 16 unresolved,
+and 145 positional plus two named contracts have zero mismatches. No database,
+provider, migration, candidate, or legacy stack was used. Populated output
+parity and MAN-CAP-066 owner acceptance remain open. Checklist: 890 complete /
+24 open (914 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows ([evidence](builds/2026-10-21-recovery/cap-066-capital-diversion-query-contract.json)).
+
 ### CAP-066 literal formatted SQL in shared-view callers — 21 October 2026
 
 The helper analyzer now resolves a wrapper whose SQL f-string interpolates

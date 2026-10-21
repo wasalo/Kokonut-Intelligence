@@ -6,10 +6,10 @@
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 34,
     "reachable_helper_query_sites_per_report": 175,
-    "helper_query_sites_with_location_scope_signal": 67,
-    "helper_query_sites_with_static_sql_source": 157,
-    "helper_query_sites_with_unresolved_sql_source": 18,
-    "helper_query_sites_with_static_positional_arity": 143,
+    "helper_query_sites_with_location_scope_signal": 69,
+    "helper_query_sites_with_static_sql_source": 159,
+    "helper_query_sites_with_unresolved_sql_source": 16,
+    "helper_query_sites_with_static_positional_arity": 145,
     "helper_query_sites_with_positional_arity_mismatch": 0,
     "helper_query_sites_with_static_named_bind_contract": 2,
     "helper_query_sites_with_named_bind_contract_mismatch": 0,
@@ -2721,7 +2721,7 @@
         "services/capital/credit.py:_clean",
         "services/capital/credit.py:credit_capacity",
         "services/capital/credit.py:list_draft_credits",
-        "services/capital/diversion.py:_sum",
+        "services/capital/diversion.py:_sum_expenses",
         "services/capital/diversion.py:compute_diversion_index",
         "services/common/errors.py:safe_exception_class"
       ],
@@ -2794,14 +2794,14 @@
         },
         {
           "caller": "services/capital/diversion.py:compute_diversion_index",
-          "callee": "services/capital/diversion.py:_sum",
-          "line": 56,
+          "callee": "services/capital/diversion.py:_sum_expenses",
+          "line": 70,
           "depth": 3
         },
         {
           "caller": "services/capital/diversion.py:compute_diversion_index",
-          "callee": "services/capital/diversion.py:_sum",
-          "line": 62,
+          "callee": "services/capital/diversion.py:_sum_expenses",
+          "line": 71,
           "depth": 3
         },
         {
@@ -2960,33 +2960,39 @@
         },
         {
           "source_file": "services/capital/diversion.py",
-          "callable": "_sum",
-          "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "callable": "_sum_expenses",
+          "line": 31,
+          "relations": [
+            "expense_event"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 6,
+            "supplied_count": 6,
+            "mismatch": false
+          },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
               "generate_capital_accounting",
               "services/capital/accounting_report.py:build_capital_accounting",
               "services/capital/diversion.py:compute_diversion_index",
-              "services/capital/diversion.py:_sum"
+              "services/capital/diversion.py:_sum_expenses"
             ]
           ]
         }
       ],
       "helper_query_site_count": 7,
-      "helper_query_sites_with_location_scope_signal": 6,
-      "helper_query_sites_with_static_sql_source": 6,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 6,
+      "helper_query_sites_with_location_scope_signal": 7,
+      "helper_query_sites_with_static_sql_source": 7,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 7,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,
-      "classification": "mixed_resolved_helper_query_scope_signals",
+      "classification": "all_resolved_helper_queries_show_location_scope_signal",
       "unresolved_local_helper_calls": []
     },
     {
@@ -3433,7 +3439,7 @@
         "services/capital/credit.py:_clean",
         "services/capital/credit.py:credit_capacity",
         "services/capital/credit.py:list_draft_credits",
-        "services/capital/diversion.py:_sum",
+        "services/capital/diversion.py:_sum_expenses",
         "services/capital/diversion.py:compute_diversion_index",
         "services/common/errors.py:safe_exception_class",
         "services/export/reports/state.py:_composite_section_savepoint",
@@ -3566,14 +3572,14 @@
         },
         {
           "caller": "services/capital/diversion.py:compute_diversion_index",
-          "callee": "services/capital/diversion.py:_sum",
-          "line": 56,
+          "callee": "services/capital/diversion.py:_sum_expenses",
+          "line": 70,
           "depth": 4
         },
         {
           "caller": "services/capital/diversion.py:compute_diversion_index",
-          "callee": "services/capital/diversion.py:_sum",
-          "line": 62,
+          "callee": "services/capital/diversion.py:_sum_expenses",
+          "line": 71,
           "depth": 4
         },
         {
@@ -3738,13 +3744,19 @@
         },
         {
           "source_file": "services/capital/diversion.py",
-          "callable": "_sum",
-          "line": 25,
-          "relations": [],
-          "sql_source": "dynamic_or_unresolved",
-          "positional_bind_arity": null,
+          "callable": "_sum_expenses",
+          "line": 31,
+          "relations": [
+            "expense_event"
+          ],
+          "sql_source": "static_or_resolved",
+          "positional_bind_arity": {
+            "placeholder_count": 6,
+            "supplied_count": 6,
+            "mismatch": false
+          },
           "named_bind_contract": null,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -3752,7 +3764,7 @@
               "services/export/reports/strategy.py:generate_capital_accounting",
               "services/capital/accounting_report.py:build_capital_accounting",
               "services/capital/diversion.py:compute_diversion_index",
-              "services/capital/diversion.py:_sum"
+              "services/capital/diversion.py:_sum_expenses"
             ]
           ]
         },
@@ -3888,10 +3900,10 @@
         }
       ],
       "helper_query_site_count": 13,
-      "helper_query_sites_with_location_scope_signal": 6,
-      "helper_query_sites_with_static_sql_source": 12,
-      "helper_query_sites_with_unresolved_sql_source": 1,
-      "helper_query_sites_with_static_positional_arity": 12,
+      "helper_query_sites_with_location_scope_signal": 7,
+      "helper_query_sites_with_static_sql_source": 13,
+      "helper_query_sites_with_unresolved_sql_source": 0,
+      "helper_query_sites_with_static_positional_arity": 13,
       "helper_query_sites_with_positional_arity_mismatch": 0,
       "helper_query_sites_with_static_named_bind_contract": 0,
       "helper_query_sites_with_named_bind_contract_mismatch": 0,

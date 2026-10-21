@@ -7,7 +7,7 @@ consumption crowds out reinvestment into the regenerative base.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from services.common.database import get_connection
 from services.common.logging import get_logger
@@ -21,8 +21,31 @@ def _clean(row: Any) -> Dict[str, Any]:
     return dict(row) if isinstance(row, dict) else dict(row)
 
 
-def _sum(cur, sql: str, params: Tuple) -> float:
-    cur.execute(sql, params)
+def _sum_expenses(
+    cur,
+    location_id: str,
+    period_start: Optional[str],
+    period_end: Optional[str],
+    is_capex: bool,
+) -> float:
+    cur.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM expense_event
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR expense_date >= %s::date)
+          AND (%s::date IS NULL OR expense_date <= %s::date)
+          AND COALESCE(is_capex, FALSE) = %s
+        """,
+        (
+            location_id,
+            period_start or None,
+            period_start or None,
+            period_end or None,
+            period_end or None,
+            is_capex,
+        ),
+    )
     row = cur.fetchone()
     if not row:
         return 0.0
@@ -44,27 +67,8 @@ def compute_diversion_index(
     """
     cur = conn.cursor()
     try:
-        where = "WHERE location_id = %s"
-        params: List[Any] = [location_id]
-        if period_start:
-            where += " AND event_date >= %s"
-            params.append(period_start)
-        if period_end:
-            where += " AND event_date <= %s"
-            params.append(period_end)
-
-        consumption = _sum(
-            cur,
-            f"SELECT COALESCE(SUM(amount),0) FROM expense_event {where} "
-            f"AND COALESCE(is_capex, FALSE) = FALSE",
-            tuple(params),
-        )
-        reinvestment = _sum(
-            cur,
-            f"SELECT COALESCE(SUM(amount),0) FROM expense_event {where} "
-            f"AND COALESCE(is_capex, FALSE) = TRUE",
-            tuple(params),
-        )
+        consumption = _sum_expenses(cur, location_id, period_start, period_end, False)
+        reinvestment = _sum_expenses(cur, location_id, period_start, period_end, True)
         total = consumption + reinvestment
         index = round(reinvestment / total, 4) if total else None
     finally:

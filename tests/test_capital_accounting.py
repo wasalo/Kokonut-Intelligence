@@ -87,11 +87,36 @@ def test_diversion_index_healthy():
     conn = MagicMock()
     conn.cursor.return_value = cur
 
-    out = diversion.compute_diversion_index(conn, "L")
+    out = diversion.compute_diversion_index(conn, "L", "2026-01-01", "2026-01-31")
     assert out["consumption_value"] == 40.0
     assert out["reinvestment_value"] == 60.0
     assert out["diversion_index"] == 0.6
     assert out["healthy"] is True
+    assert cur.execute.call_count == 2
+    for call, is_capex in zip(cur.execute.call_args_list, (False, True), strict=True):
+        sql, params = call.args
+        assert "location_id = %s" in sql
+        assert "expense_date >= %s::date" in sql
+        assert "expense_date <= %s::date" in sql
+        assert "WHERE event_date" not in sql
+        assert params == ("L", "2026-01-01", "2026-01-01", "2026-01-31", "2026-01-31", is_capex)
+
+
+def test_diversion_index_keeps_date_filters_optional():
+    cur = MagicMock()
+    cur.fetchone.side_effect = [(10.0,), (0.0,)]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    out = diversion.compute_diversion_index(conn, "L", "", "")
+
+    assert out["consumption_value"] == 10.0
+    assert out["period_start"] == ""
+    assert out["period_end"] == ""
+    assert [call.args[1][1:5] for call in cur.execute.call_args_list] == [
+        (None, None, None, None),
+        (None, None, None, None),
+    ]
 
 
 # --- capture ------------------------------------------------------------------

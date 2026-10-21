@@ -15,28 +15,28 @@
       "RELEASE": 16,
       "ROLLBACK": 10,
       "SAVEPOINT": 9,
-      "SELECT": 2700,
+      "SELECT": 2701,
       "SET": 384,
-      "UNKNOWN": 197,
+      "UNKNOWN": 196,
       "UPDATE": 433,
       "WITH": 26
     },
     "statement_groups": {
-      "read_candidate": 2700,
+      "read_candidate": 2701,
       "schema_change": 1,
       "transaction_or_session": 419,
-      "unknown_requires_manual_review": 197,
+      "unknown_requires_manual_review": 196,
       "with_requires_manual_review": 26,
       "write_candidate": 1134
     },
     "expression_kinds": {
       "composed": 17,
-      "composed_or_variable": 270,
+      "composed_or_variable": 269,
       "fstring": 287,
-      "literal": 3903
+      "literal": 3904
     },
     "relation_candidates": 1159,
-    "sites_without_relation_candidates": 840,
+    "sites_without_relation_candidates": 839,
     "service_packages": 67
   },
   "service_packages": {
@@ -119,13 +119,12 @@
       "source_files": 7,
       "execution_sites": 9,
       "statement_groups": {
-        "read_candidate": 7,
-        "unknown_requires_manual_review": 1,
+        "read_candidate": 8,
         "write_candidate": 1
       },
-      "candidate_relation_names": 6,
-      "sites_without_relation_candidates": 1,
-      "non_literal_sites": 1,
+      "candidate_relation_names": 7,
+      "sites_without_relation_candidates": 0,
+      "non_literal_sites": 0,
       "sites_with_worker_operation_refs": 0
     },
     "certificates": {
@@ -1126,7 +1125,7 @@
     "execution_role": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/mobile/tenant_preflight.py"]},
     "expense_category": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/ai_summary.py"]},
     "expense_date": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/systems/archetypes.py"]},
-    "expense_event": {"execution_site_count": 21,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/ai_summary.py","services/analytics/economic_performance.py","services/analytics/financial_sustainability.py","services/analytics/true_cost_accounting.py","services/crisp/financial_risk.py","services/export/reports/core.py","services/finance/financial_statements.py","services/forecast/cost_forecast.py","services/fortune500/calculator.py","services/metrics/calculators/allocated_shared_cost.py","services/metrics/calculators/direct_crop_cost.py","services/planning/sandop.py","services/predictions/service.py","services/revenue_multiplier/dimensions/bioinput.py","services/systems/archetypes.py"]},
+    "expense_event": {"execution_site_count": 22,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/ai_summary.py","services/analytics/economic_performance.py","services/analytics/financial_sustainability.py","services/analytics/true_cost_accounting.py","services/capital/diversion.py","services/crisp/financial_risk.py","services/export/reports/core.py","services/finance/financial_statements.py","services/forecast/cost_forecast.py","services/fortune500/calculator.py","services/metrics/calculators/allocated_shared_cost.py","services/metrics/calculators/direct_crop_cost.py","services/planning/sandop.py","services/predictions/service.py","services/revenue_multiplier/dimensions/bioinput.py","services/systems/archetypes.py"]},
     "expertise_category": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/abundance/estimates.py","services/abundance/periodic.py","services/abundance/validation.py"]},
     "export_log": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/export/exporter.py"]},
     "extension_module": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/extension.py"]},
@@ -3634,7 +3633,7 @@
     {"id": "services/capital/credit.py:128:12","source": "services/capital/credit.py","line": 128,"column": 12,"scope": "propose_credit","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["regenerative_credit_ledger"],"static_sql_sha256": "edb207a6baede9de9f769f19ee0aed9034e9cef11cc5f2faa848aa81d954bdf2","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/capital/credit.py:182:8","source": "services/capital/credit.py","line": 182,"column": 8,"scope": "list_draft_credits","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["regenerative_credit_ledger"],"static_sql_sha256": "31a8a2807be3ae91ee89ff9d8a680825f8251e79fff9d300db318ccdf3d1f4ff","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/capital/credit.py:203:8","source": "services/capital/credit.py","line": 203,"column": 8,"scope": "credit_capacity","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["regenerative_credit_ledger"],"static_sql_sha256": "4e1df48beb7776ddeca164bea1321d619ed72b8d639383c1ce474e4e424f1176","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/capital/diversion.py:25:4","source": "services/capital/diversion.py","line": 25,"column": 4,"scope": "_sum","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/capital/diversion.py:31:4","source": "services/capital/diversion.py","line": 31,"column": 4,"scope": "_sum_expenses","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["expense_event"],"static_sql_sha256": "95c05c80ced7ce9378671e96821efc3f945e7d3088440a31a2afaa74ae10efb8","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/certificates/cli.py:28:17","source": "services/certificates/cli.py","line": 28,"column": 17,"scope": "cmd_list","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["retirement_certificate"],"static_sql_sha256": "2131aa2eaae5e5505dad100589709d70acc4b279a134b46ed5f0f663fcbaa541","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/certificates/generator.py:19:10","source": "services/certificates/generator.py","line": 19,"column": 10,"scope": "_generate_certificate_number","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "c159a634f521bb92730e09cff6c3ddbfb7d4c7119e7f608e8f63abbffa7a8acf","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/certificates/generator.py:25:10","source": "services/certificates/generator.py","line": 25,"column": 10,"scope": "_generate_certificate_number","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["retirement_certificate"],"static_sql_sha256": "5d74e984ab0b87ae049f5b230d584ba7da0feb4b111f60bc59dc4d3c1843f7b7","operation_refs": [],"statement_group": "read_candidate"},
