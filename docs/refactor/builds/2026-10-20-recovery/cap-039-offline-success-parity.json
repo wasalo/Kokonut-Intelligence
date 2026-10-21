@@ -5,13 +5,13 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py tests/test_operator_cli_identity_provision.py tests/test_operator_cli_identity_lifecycle.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 148,
+    "tests_passed": 151,
     "new_success_path_cases": 42,
     "database_backed_or_aggregate_service_stubbed_cases": 30,
     "mutation_paths_with_fake_connections": 3,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0,
-    "failure_path_regressions": 1
+    "failure_path_regressions": 4
   },
   "environment": {
     "sops_identity": "intentionally unavailable",
@@ -300,6 +300,27 @@
       "injected_failure": "report_generation_run insert raises before batch processing begins",
       "standalone": "database connection closed; propagated error contains only the exception class",
       "unified": "database connection closed; CLI returns status 1 with only the exception class through the shared error wrapper",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list --location-id <synthetic-uuid>",
+      "injected_failure": "snapshot query raises a synthetic secret-bearing database error",
+      "standalone_and_unified": "database connection closed; both surfaces expose only the exception class",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --verify <synthetic-hash>",
+      "injected_failure": "snapshot verification raises a synthetic secret-bearing database error",
+      "standalone_and_unified": "database connection closed; both surfaces expose only the exception class",
+      "secret_exception_text_emitted": false,
+      "database_or_provider_calls": 0
+    },
+    {
+      "command": "export --list",
+      "injected_failure": "connection factory raises a synthetic secret-bearing error",
+      "standalone_and_unified": "both surfaces expose only the exception class; no connection object is created",
       "secret_exception_text_emitted": false,
       "database_or_provider_calls": 0
     }

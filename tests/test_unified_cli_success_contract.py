@@ -1793,3 +1793,69 @@ def test_export_auto_closes_connection_if_run_creation_fails(
     assert secret_detail not in unified.stderr
     assert len(connections) == 2
     assert all(connection.closed for connection in connections)
+
+
+@pytest.mark.parametrize(
+    ("arguments", "failure_point"),
+    [
+        (["--list"], "list"),
+        (["--verify", "synthetic-hash"], "verify"),
+        (["--list"], "connect"),
+    ],
+)
+def test_export_cli_redacts_database_connection_and_read_failures(
+    arguments: list[str],
+    failure_point: str,
+    monkeypatch,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    secret_detail = "database password=synthetic-secret"
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        if failure_point == "connect":
+            raise RuntimeError(secret_detail)
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fail_query(*_args, **_kwargs):
+        raise RuntimeError(secret_detail)
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    if failure_point == "list":
+        monkeypatch.setattr(report_generator, "list_snapshots", fail_query)
+    elif failure_point == "verify":
+        monkeypatch.setattr(report_generator, "_verify_snapshot", fail_query)
+
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        with pytest.raises(
+            RuntimeError,
+            match="report generation failed \\(RuntimeError\\)",
+        ) as error:
+            report_generator.main()
+    finally:
+        sys.argv = original_argv
+
+    assert secret_detail not in str(error.value)
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert isinstance(unified.exception, SystemExit)
+    assert unified.exception.code == 1
+    assert "Error: report generation failed (RuntimeError)" in unified.stderr
+    assert secret_detail not in unified.stderr
+    expected_connections = 0 if failure_point == "connect" else 2
+    assert len(connections) == expected_connections
+    assert all(connection.closed for connection in connections)

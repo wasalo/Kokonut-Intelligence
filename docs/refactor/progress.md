@@ -1,11 +1,11 @@
 ### CAP-039 automatic report connection cleanup — 20 October 2026
 
 Automatic report generation now closes its database connection in a `finally`
-boundary. A regression injects failure while creating the run record, before
-per-report processing, through both standalone and unified CLI entry points.
-The failure text is reduced to its exception class in both entry points. The
-full CAP-039 offline parity selection passes 148 tests; no database or provider
-was contacted. Report output parity, operator authorization, and
+boundary. Injected failures now cover database connection creation, snapshot listing,
+snapshot verification, and run-record creation before per-report processing.
+All four standalone/unified pairs verify class-only errors; connection cleanup
+is asserted where a connection exists. The full CAP-039 offline parity
+selection passes 151 tests; no database or provider was contacted. Report output parity, operator authorization, and
 MAN-CAP-039 owner acceptance remain open
 ([evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 

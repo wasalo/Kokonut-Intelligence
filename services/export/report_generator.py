@@ -246,6 +246,20 @@ def _report_failure_summary(exc: Exception) -> str:
     return f"report generation failed ({name})"
 
 
+def _get_report_connection():
+    try:
+        return get_pg()
+    except Exception as exc:
+        raise RuntimeError(_report_failure_summary(exc)) from None
+
+
+def _close_report_connection(conn) -> None:
+    try:
+        conn.close()
+    except Exception as exc:
+        raise RuntimeError(_report_failure_summary(exc)) from None
+
+
 def generate_report_data_read_only(conn, generator, location_arg, period_start, period_end):
     """Calculate a report in a read-only PostgreSQL transaction.
 
@@ -395,7 +409,7 @@ def main():
     args = parser.parse_args()
     validate_args(parser, args)
 
-    conn = get_pg()
+    conn = _get_report_connection()
 
     if args.list:
         list_loc = args.location_id[0] if args.location_id else None
@@ -410,15 +424,19 @@ def main():
                     print(
                         f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}"
                     )
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
-            conn.close()
+            _close_report_connection(conn)
         return
 
     if args.verify:
         try:
             _verify_snapshot(conn, args.verify)
+        except Exception as exc:
+            raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
-            conn.close()
+            _close_report_connection(conn)
         return
 
     # Normalize the location argument for single/all/multi selection.
@@ -449,7 +467,7 @@ def main():
         except Exception as exc:
             raise RuntimeError(_report_failure_summary(exc)) from None
         finally:
-            conn.close()
+            _close_report_connection(conn)
         return
 
     print(f"Generating {args.type} report for {location_label}...")
@@ -471,7 +489,7 @@ def main():
         print(safe_error)
         raise RuntimeError(safe_error) from None
     finally:
-        conn.close()
+        _close_report_connection(conn)
 
 
 
