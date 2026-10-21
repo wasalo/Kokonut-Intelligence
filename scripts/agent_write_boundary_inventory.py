@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inventory legacy and authenticated AI-summary draft write boundaries.
+"""Inventory direct agent writes and authenticated AI-summary draft boundaries.
 
 The inventory records source locations and statement classifications only. It
 does not persist SQL text, data values, credentials, or runtime database state.
@@ -17,7 +17,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-AI_SUMMARY_INSERT = re.compile(r"^\s*INSERT\s+INTO\s+(?:public\.)?ai_summary\b", re.IGNORECASE)
+DIRECT_DML = re.compile(
+    r"^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?([a-z_][a-z0-9_]*)\b",
+    re.IGNORECASE,
+)
 AUTHENTICATED_DRAFT_CALL = re.compile(
     r"\bkokonut_security\.create_location_ai_summary_draft\s*\(", re.IGNORECASE
 )
@@ -50,10 +53,11 @@ def _call_name(node: ast.expr) -> str | None:
 
 
 def build_inventory(root: Path = ROOT) -> dict:
-    """Classify direct legacy writes and the authenticated Gateway draft path."""
-    legacy_writes: list[dict] = []
+    """Classify direct agent writes and the authenticated Gateway draft path."""
+    direct_agent_writes: list[dict] = []
     authenticated_calls: list[dict] = []
     legacy_context_calls: list[dict] = []
+    audit_helper_calls: list[dict] = []
 
     for package in ("services",):
         package_path = root / package
@@ -72,34 +76,67 @@ def build_inventory(root: Path = ROOT) -> dict:
                 name = _call_name(node.func)
                 if name == "set_agent_context":
                     legacy_context_calls.append({"source": relative, "line": node.lineno})
+                if name == "audit_agent_action":
+                    audit_helper_calls.append({"source": relative, "line": node.lineno})
 
                 if name == "execute" and node.args:
                     query = _sql_text(node.args[0])
-                    if relative.startswith("services/agents/") and AI_SUMMARY_INSERT.search(query):
-                        legacy_writes.append({"source": relative, "line": node.lineno})
+                    if relative.startswith("services/agents/"):
+                        match = DIRECT_DML.search(query)
+                        if match:
+                            direct_agent_writes.append(
+                                {
+                                    "source": relative,
+                                    "line": node.lineno,
+                                    "statement_kind": match.group(1).split()[0].lower(),
+                                    "table": match.group(2).lower(),
+                                }
+                            )
                     if relative.startswith("services/gateway/") and AUTHENTICATED_DRAFT_CALL.search(query):
                         authenticated_calls.append({"source": relative, "line": node.lineno})
 
-    legacy_writes.sort(key=lambda item: (item["source"], item["line"]))
+    direct_agent_writes.sort(key=lambda item: (item["source"], item["line"]))
     authenticated_calls.sort(key=lambda item: (item["source"], item["line"]))
     legacy_context_calls.sort(key=lambda item: (item["source"], item["line"]))
+    audit_helper_calls.sort(key=lambda item: (item["source"], item["line"]))
+    legacy_summary_writes = [
+        site
+        for site in direct_agent_writes
+        if site["table"] == "ai_summary" and site["statement_kind"] == "insert"
+    ]
+    agent_action_log_writes = [
+        site
+        for site in direct_agent_writes
+        if site["table"] == "agent_action_log" and site["statement_kind"] == "insert"
+    ]
     return {
-        "version": 1,
+        "version": 2,
         "generated_by": "scripts/agent_write_boundary_inventory.py",
         "scope": (
-            "Static Python call-site inventory for direct AI-summary inserts in services/agents, "
+            "Static Python call-site inventory for literal direct DML in services/agents, "
             "the signed operator draft function call in services/gateway, and calls to the "
-            "disabled set_agent_context helper. Source locations classify code paths; they do "
-            "not prove runtime identity, database privileges, query reachability, or tenant isolation."
+            "disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. "
+            "Source locations classify code paths; they do not prove runtime identity, database "
+            "privileges, query reachability, or tenant isolation."
         ),
         "summary": {
-            "legacy_direct_ai_summary_insert_sites": len(legacy_writes),
+            "direct_agent_write_sites": len(direct_agent_writes),
+            "legacy_direct_ai_summary_insert_sites": len(legacy_summary_writes),
+            "agent_action_log_insert_sites": len(agent_action_log_writes),
             "authenticated_operator_draft_function_calls": len(authenticated_calls),
             "set_agent_context_call_sites": len(legacy_context_calls),
+            "audit_agent_action_call_sites": len(audit_helper_calls),
         },
-        "legacy_direct_ai_summary_inserts": legacy_writes,
+        "direct_agent_write_sites": direct_agent_writes,
+        "legacy_direct_ai_summary_inserts": [
+            {"source": site["source"], "line": site["line"]} for site in legacy_summary_writes
+        ],
+        "agent_action_log_insert_sites": [
+            {"source": site["source"], "line": site["line"]} for site in agent_action_log_writes
+        ],
         "authenticated_operator_draft_function_calls": authenticated_calls,
         "set_agent_context_call_sites": legacy_context_calls,
+        "audit_agent_action_call_sites": audit_helper_calls,
     }
 
 

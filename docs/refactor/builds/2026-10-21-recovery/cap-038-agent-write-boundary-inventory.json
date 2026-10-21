@@ -3,9 +3,12 @@
   "batch": "CAP-038 agent draft-write boundary inventory",
   "date": "2026-10-21",
   "source_inventory": {
+    "direct_agent_write_sites": 3,
     "legacy_direct_ai_summary_insert_sites": 2,
+    "agent_action_log_insert_sites": 1,
     "authenticated_operator_draft_function_calls": 1,
     "set_agent_context_call_sites": 0,
+    "audit_agent_action_call_sites": 0,
     "details": "docs/refactor/agent-write-boundary-inventory.json"
   },
   "verification": {
@@ -19,8 +22,8 @@
     "candidate_or_legacy_touched": false
   },
   "limitations": [
-    "Static source locations do not prove query reachability or runtime role privileges.",
-    "The two legacy writers still lack authenticated agent identity and least-privilege database access.",
+    "Static source locations do not prove query reachability or runtime role privileges; dynamic SQL may be missed.",
+    "The two legacy summary writers and agent action-log writer still lack authenticated agent identity and least-privilege database access.",
     "This does not establish tenant isolation or close MAN-CAP-038."
   ]
 }

@@ -1,13 +1,14 @@
 ### CAP-038 agent draft-write boundary inventory — 21 October 2026
 
-A generated source inventory now pins the two direct legacy `ai_summary`
-insert sites, the authenticated Gateway call to
-`kokonut_security.create_location_ai_summary_draft`, and zero calls to the
-disabled `set_agent_context()` helper. Three focused inventory tests pass with
-Ruff, Python compilation, inventory freshness, and diff checks. The report
-stores source locations only; it does not prove runtime reachability, database
-privileges, authenticated agent identity, or tenant isolation. No database,
-provider, candidate, or legacy stack was used. Checklist: 896 complete / 24
+A generated source inventory now pins three literal direct DML sites in
+`services/agents`: two legacy `ai_summary` inserts and one `agent_action_log`
+insert. It also records one Gateway call to
+`kokonut_security.create_location_ai_summary_draft`, with no calls to the
+disabled `set_agent_context()` or `audit_agent_action()` helpers. Three focused
+inventory tests pass with Ruff, Python compilation, inventory freshness, and
+diff checks. Dynamic SQL may be missed; the report does not prove runtime
+reachability, database privileges, authenticated agent identity, or tenant
+isolation. No database, provider, candidate, or legacy stack was used. Checklist: 896 complete / 24
 open (920 total); matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared. Evidence: [agent write boundary](builds/2026-10-21-recovery/cap-038-agent-write-boundary-inventory.json).
 

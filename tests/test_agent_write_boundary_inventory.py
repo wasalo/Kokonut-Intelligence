@@ -14,21 +14,48 @@ def test_saved_agent_write_boundary_inventory_matches_current_sources() -> None:
     assert INVENTORY_PATH.read_text(encoding="utf-8") == serialize(build_inventory())
 
 
-def test_current_inventory_pins_unattributed_writers_and_authenticated_route() -> None:
+def test_current_inventory_pins_all_direct_agent_writes_and_authenticated_route() -> None:
     inventory = build_inventory()
 
+    assert inventory["direct_agent_write_sites"] == [
+        {
+            "source": "services/agents/ai_summary.py",
+            "line": 459,
+            "statement_kind": "insert",
+            "table": "ai_summary",
+        },
+        {
+            "source": "services/agents/base.py",
+            "line": 116,
+            "statement_kind": "insert",
+            "table": "ai_summary",
+        },
+        {
+            "source": "services/agents/logging.py",
+            "line": 54,
+            "statement_kind": "insert",
+            "table": "agent_action_log",
+        },
+    ]
     assert inventory["legacy_direct_ai_summary_inserts"] == [
         {"source": "services/agents/ai_summary.py", "line": 459},
         {"source": "services/agents/base.py", "line": 116},
+    ]
+    assert inventory["agent_action_log_insert_sites"] == [
+        {"source": "services/agents/logging.py", "line": 54}
     ]
     assert inventory["authenticated_operator_draft_function_calls"] == [
         {"source": "services/gateway/ai_summary_draft.py", "line": 106}
     ]
     assert inventory["set_agent_context_call_sites"] == []
+    assert inventory["audit_agent_action_call_sites"] == []
     assert inventory["summary"] == {
+        "direct_agent_write_sites": 3,
         "legacy_direct_ai_summary_insert_sites": 2,
+        "agent_action_log_insert_sites": 1,
         "authenticated_operator_draft_function_calls": 1,
         "set_agent_context_call_sites": 0,
+        "audit_agent_action_call_sites": 0,
     }
 
 
@@ -40,6 +67,9 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
     (agents / "legacy.py").write_text(
         "def write(cursor, content):\n"
         "    cursor.execute(\"INSERT INTO ai_summary (content) VALUES (%s)\", (content,))\n"
+        "    cursor.execute(\"INSERT INTO agent_action_log (agent_id) VALUES (%s)\", ('agent',))\n"
+        "    cursor.execute(\"UPDATE ai_summary SET content = %s\", (content,))\n"
+        "    cursor.execute(\"DELETE FROM agent_action_log WHERE agent_id = %s\", ('agent',))\n"
         "    set_agent_context(connection, 'not-a-principal')\n",
         encoding="utf-8",
     )
@@ -55,12 +85,43 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
     assert inventory["legacy_direct_ai_summary_inserts"] == [
         {"source": "services/agents/legacy.py", "line": 2}
     ]
+    assert inventory["direct_agent_write_sites"] == [
+        {
+            "source": "services/agents/legacy.py",
+            "line": 2,
+            "statement_kind": "insert",
+            "table": "ai_summary",
+        },
+        {
+            "source": "services/agents/legacy.py",
+            "line": 3,
+            "statement_kind": "insert",
+            "table": "agent_action_log",
+        },
+        {
+            "source": "services/agents/legacy.py",
+            "line": 4,
+            "statement_kind": "update",
+            "table": "ai_summary",
+        },
+        {
+            "source": "services/agents/legacy.py",
+            "line": 5,
+            "statement_kind": "delete",
+            "table": "agent_action_log",
+        },
+    ]
+    assert inventory["agent_action_log_insert_sites"] == [
+        {"source": "services/agents/legacy.py", "line": 3}
+    ]
     assert inventory["authenticated_operator_draft_function_calls"] == [
         {"source": "services/gateway/draft.py", "line": 2}
     ]
     assert inventory["set_agent_context_call_sites"] == [
-        {"source": "services/agents/legacy.py", "line": 3}
+        {"source": "services/agents/legacy.py", "line": 6}
     ]
     assert "INSERT INTO" not in serialized
+    assert "DELETE FROM" not in serialized
+    assert "UPDATE" not in serialized
     assert "not-a-principal" not in serialized
     assert "content" not in serialized
