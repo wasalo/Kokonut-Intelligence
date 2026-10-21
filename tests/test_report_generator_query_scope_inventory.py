@@ -625,6 +625,60 @@ def generate(conn, location_id):
     assert analysis["queries"][1]["indirect_location_scope_visible"] is False
 
 
+def test_classifier_recognizes_child_query_scoped_by_location_bound_parent_row():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id FROM statement_of_work WHERE location_id = %s",
+        (location_id,),
+    )
+    sow = cur.fetchone()
+    if sow:
+        cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+''',
+        "generate",
+    )
+
+    assert analysis["direct_query_count"] == 2
+    assert analysis["queries"][0]["bound_location_scope_signal"] is True
+    child_query = analysis["queries"][1]
+    assert child_query["location_id_in_bound_expression"] is False
+    assert child_query["location_scope_via_parent_row"] is True
+    assert child_query["bound_location_scope_signal"] is True
+
+
+def test_classifier_does_not_inherit_scope_from_unscoped_or_replaced_parent_row():
+    unscoped = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM statement_of_work WHERE status = %s", ("active",))
+    sow = cur.fetchone()
+    cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+''',
+        "generate",
+    )
+    replaced = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM statement_of_work WHERE location_id = %s", (location_id,))
+    sow = cur.fetchone()
+    cur.execute("SELECT id FROM statement_of_work WHERE status = %s", ("active",))
+    sow = cur.fetchone()
+    cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+''',
+        "generate",
+    )
+
+    assert unscoped["queries"][1]["location_scope_via_parent_row"] is False
+    assert unscoped["queries"][1]["bound_location_scope_signal"] is False
+    assert replaced["queries"][2]["location_scope_via_parent_row"] is False
+    assert replaced["queries"][2]["bound_location_scope_signal"] is False
+
+
 def test_classifier_reports_extra_static_positional_parameters():
     analysis = analyze_function_source(
         '''

@@ -9,14 +9,14 @@
     "positional_arity_mismatch_sites": 0,
     "static_named_bind_contract_sites": 1,
     "named_bind_contract_mismatch_sites": 0,
-    "query_sites_with_bound_location_scope_signal": 126,
+    "query_sites_with_bound_location_scope_signal": 129,
     "conditional_scope_query_sites": 5,
     "unresolved_query_sites": 0,
     "classification_counts": {
-      "all_direct_queries_show_bound_location_scope": 35,
+      "all_direct_queries_show_bound_location_scope": 36,
       "conditional_direct_query_scope": 3,
       "helper_or_computed_without_direct_query": 28,
-      "mixed_direct_query_scope": 15,
+      "mixed_direct_query_scope": 14,
       "no_bound_location_scope_visible": 13
     }
   },
@@ -50,6 +50,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -72,6 +73,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -112,6 +114,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -134,6 +137,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -208,6 +212,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -230,6 +235,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -270,6 +276,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -292,6 +299,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -332,6 +340,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -354,6 +363,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -394,6 +404,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -416,6 +427,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -456,6 +468,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -525,6 +538,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -644,6 +658,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -666,6 +681,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -706,6 +722,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -728,6 +745,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -750,6 +768,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -790,6 +809,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -812,6 +832,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -873,6 +894,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -895,6 +917,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -917,6 +940,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -939,6 +963,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -979,6 +1004,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1001,6 +1027,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1064,6 +1091,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1086,6 +1114,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1129,6 +1158,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1169,6 +1199,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1191,6 +1222,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1231,6 +1263,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1254,6 +1287,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1294,6 +1328,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": null,
@@ -1376,6 +1411,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1398,6 +1434,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -1438,6 +1475,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1460,6 +1498,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1482,6 +1521,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1504,6 +1544,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1526,6 +1567,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1548,6 +1590,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1605,6 +1648,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1627,6 +1671,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1649,6 +1694,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1671,6 +1717,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1711,6 +1758,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1733,6 +1781,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1756,6 +1805,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1780,6 +1830,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1804,6 +1855,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1826,6 +1878,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1848,6 +1901,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1870,6 +1924,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1892,6 +1947,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1949,6 +2005,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -1971,6 +2028,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2011,6 +2069,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2034,6 +2093,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2056,6 +2116,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2113,6 +2174,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2135,6 +2197,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2175,6 +2238,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2197,6 +2261,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2237,6 +2302,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2259,6 +2325,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2281,6 +2348,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2303,6 +2371,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2325,6 +2394,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2365,6 +2435,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2387,6 +2458,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2427,6 +2499,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2449,6 +2522,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2489,6 +2563,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2529,6 +2604,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2551,6 +2627,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2573,6 +2650,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2595,6 +2673,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2635,6 +2714,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2657,6 +2737,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2697,6 +2778,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2719,6 +2801,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2741,6 +2824,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2781,6 +2865,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2803,6 +2888,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2825,6 +2911,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2865,6 +2952,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -2905,6 +2993,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2927,6 +3016,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2949,6 +3039,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2971,6 +3062,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -2993,6 +3085,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3033,6 +3126,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3055,6 +3149,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3077,6 +3172,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3117,6 +3213,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3139,6 +3236,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3161,6 +3259,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3218,6 +3317,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3240,6 +3340,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -3440,6 +3541,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3462,6 +3564,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3519,6 +3622,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3541,6 +3645,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3581,6 +3686,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3603,6 +3709,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -3643,6 +3750,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3665,6 +3773,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3687,6 +3796,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3744,6 +3854,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3766,6 +3877,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3806,6 +3918,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3828,6 +3941,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3850,6 +3964,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3890,6 +4005,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3912,6 +4028,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3952,6 +4069,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -3974,6 +4092,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -3996,6 +4115,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4036,6 +4156,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4058,6 +4179,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4115,6 +4237,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4137,6 +4260,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4177,6 +4301,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4231,6 +4356,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4253,6 +4379,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4275,6 +4402,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4297,6 +4425,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4337,6 +4466,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": true,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4373,6 +4503,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4413,6 +4544,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4468,6 +4600,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4522,6 +4655,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": true,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4558,6 +4692,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4598,6 +4733,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4620,6 +4756,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4660,6 +4797,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4682,6 +4820,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4704,6 +4843,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4726,6 +4866,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4766,6 +4907,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4788,6 +4930,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4810,6 +4953,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4832,6 +4976,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -4888,13 +5033,13 @@
       "callable": "generate_statement_of_work",
       "source_file": "services/export/reports/operations.py",
       "source_line": 555,
-      "classification": "mixed_direct_query_scope",
+      "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 13,
       "static_positional_arity_site_count": 13,
       "positional_arity_mismatch_count": 0,
       "static_named_bind_contract_site_count": 0,
       "named_bind_contract_mismatch_count": 0,
-      "queries_with_bound_location_scope_signal": 10,
+      "queries_with_bound_location_scope_signal": 13,
       "conditional_scope_query_count": 0,
       "unresolved_query_count": 0,
       "helper_calls": [],
@@ -4912,6 +5057,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4934,6 +5080,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4956,6 +5103,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -4978,6 +5126,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5000,6 +5149,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5022,6 +5172,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5046,6 +5197,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5068,6 +5220,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5090,6 +5243,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5112,6 +5266,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5134,8 +5289,9 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "positional_bind_arity": {
             "placeholder_count": 1,
             "supplied_count": 1,
@@ -5156,8 +5312,9 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "positional_bind_arity": {
             "placeholder_count": 1,
             "supplied_count": 1,
@@ -5178,8 +5335,9 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": true,
           "location_scope_conditionally_added": false,
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "positional_bind_arity": {
             "placeholder_count": 1,
             "supplied_count": 1,
@@ -5218,6 +5376,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5240,6 +5399,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -5326,6 +5486,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -5348,6 +5509,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -5372,6 +5534,7 @@
           "location_id_in_bound_expression": false,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": false,
           "positional_bind_arity": {
@@ -5412,6 +5575,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5434,6 +5598,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5474,6 +5639,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5496,6 +5662,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5518,6 +5685,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5558,6 +5726,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5580,6 +5749,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5620,6 +5790,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5642,6 +5813,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5664,6 +5836,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5686,6 +5859,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5766,6 +5940,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": true,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {
@@ -5788,6 +5963,7 @@
           "location_id_in_bound_expression": true,
           "location_row_lookup_by_id": false,
           "indirect_location_scope_visible": false,
+          "location_scope_via_parent_row": false,
           "location_scope_conditionally_added": false,
           "bound_location_scope_signal": true,
           "positional_bind_arity": {

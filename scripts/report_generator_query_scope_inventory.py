@@ -1020,6 +1020,82 @@ def _query_parameter_argument(call: ast.Call) -> ast.AST | None:
     )
 
 
+def _scoped_fetchone_aliases(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    assignments: dict[str, list[tuple[int, ast.AST]]],
+) -> dict[str, int]:
+    """Track direct fetchone aliases from location-bound SELECT statements.
+
+    This intentionally recognizes only straight-line ``cursor.execute`` /
+    ``cursor.fetchone`` assignments at function scope. It does not infer scope
+    through branches, loops, helpers, or arbitrary row transformations.
+    """
+    cursor_location_scope: dict[str, bool] = {}
+    row_aliases: dict[str, int] = {}
+
+    for statement in function.body:
+        call: ast.Call | None = None
+        target_name: str | None = None
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Call):
+            call = statement.value
+        elif isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Call):
+            call = statement.value
+            if len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
+                target_name = statement.targets[0].id
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.value, ast.Call):
+            call = statement.value
+            if isinstance(statement.target, ast.Name):
+                target_name = statement.target.id
+        if (
+            call is None
+            or not isinstance(call.func, ast.Attribute)
+            or not isinstance(call.func.value, ast.Name)
+        ):
+            continue
+
+        cursor_name = call.func.value.id
+        if call.func.attr == "fetchone":
+            if target_name is not None:
+                if cursor_location_scope.get(cursor_name, False):
+                    row_aliases[target_name] = statement.lineno
+                else:
+                    row_aliases.pop(target_name, None)
+            continue
+        if call.func.attr not in _QUERY_METHODS:
+            continue
+
+        sql_node = _query_argument(call)
+        sql = _string_value(sql_node, assignments, call.lineno) if sql_node else None
+        parameters = _query_parameter_argument(call)
+        location_bound = _expression_mentions_location_id(
+            parameters, assignments, call.lineno
+        )
+        has_location_scope = bool(
+            sql
+            and (
+                _LOCATION_PREDICATE.search(sql)
+                or _LOCATION_ROW_LOOKUP.search(sql)
+                or any(pattern.search(sql) for pattern in _INDIRECT_LOCATION_SCOPE)
+            )
+        )
+        cursor_location_scope[cursor_name] = location_bound and has_location_scope
+
+    return row_aliases
+
+
+def _parameter_uses_scoped_row_id(node: ast.AST | None, alias: str) -> bool:
+    if node is None:
+        return False
+    return any(
+        isinstance(item, ast.Subscript)
+        and isinstance(item.value, ast.Name)
+        and item.value.id == alias
+        and isinstance(item.slice, ast.Constant)
+        and item.slice.value == "id"
+        for item in ast.walk(node)
+    )
+
+
 def _local_query_callsite_variants(
     function: ast.FunctionDef | ast.AsyncFunctionDef,
     sql_node: ast.AST | None,
@@ -1873,6 +1949,7 @@ def _query_calls(
     module_tree: ast.Module | None = None,
 ) -> list[dict]:
     assignments = _assigned_values(function, module_tree)
+    scoped_row_aliases = _scoped_fetchone_aliases(function, assignments)
     queries = []
     for node in ast.walk(function):
         if not isinstance(node, ast.Call):
@@ -1979,6 +2056,20 @@ def _query_calls(
         parameter_variable_names = {
             name.id for param in parameter_nodes for name in ast.walk(param) if isinstance(name, ast.Name)
         }
+        location_scope_via_parent_row = any(
+            _parameter_uses_scoped_row_id(parameter, alias)
+            and max(
+                (
+                    line
+                    for line, _value in assignments.get(alias, [])
+                    if line < node.lineno
+                ),
+                default=None,
+            )
+            == scoped_row_aliases[alias]
+            for parameter in parameter_nodes
+            for alias in scoped_row_aliases
+        )
         parameter_paths: set[tuple[int, int]] = set()
         params_include_location = False
         for param in parameter_nodes:
@@ -2045,7 +2136,7 @@ def _query_calls(
             for pattern in _INDIRECT_LOCATION_SCOPE
             for query_sql in resolved_sql_variants
         )
-        location_bound = params_include_location or any(
+        location_bound = params_include_location or location_scope_via_parent_row or any(
             item["location_id_bound"] for item in local_helper_scope_variants
         )
         scoped_sql_paths = {
@@ -2062,7 +2153,10 @@ def _query_calls(
                 or path[1] == _location_branch_index(function, path[0])
             )
         }
-        correlated_location_binding = location_bound and bool(scoped_sql_paths) and (
+        correlated_location_binding = location_bound and (
+            location_scope_via_parent_row
+            or bool(scoped_sql_paths)
+        ) and (
             not conditional_sql_variants
             or not parameter_paths
             or any(path in parameter_paths for path in scoped_sql_paths)
@@ -2108,9 +2202,15 @@ def _query_calls(
                 "location_id_in_bound_expression": params_include_location,
                 "location_row_lookup_by_id": location_row_lookup,
                 "indirect_location_scope_visible": indirect_location_scope,
+                "location_scope_via_parent_row": location_scope_via_parent_row,
                 "location_scope_conditionally_added": location_scope_conditionally_added,
                 "bound_location_scope_signal": location_bound
-                and (location_predicate or location_row_lookup or indirect_location_scope)
+                and (
+                    location_predicate
+                    or location_row_lookup
+                    or indirect_location_scope
+                    or location_scope_via_parent_row
+                )
                 and correlated_location_binding,
                 **(
                     {"location_scope_variants": local_helper_scope_variants}
