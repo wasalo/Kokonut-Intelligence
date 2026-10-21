@@ -4000,3 +4000,10 @@ check. This is an offline
 CLI usability boundary only; it does not
 change alert routing, retention, runtime recovery, or MAN-CAP-047 acceptance
 ([evidence](builds/2026-10-20-recovery/freshness-cli-offline-preflight.json)).
+
+**CAP-039 ingestion help isolation — 20 October 2026:** every one of the 19
+mounted ingestion modules returns parser help with `KOKONUT_ENV=production`, no
+database identity, and an unavailable SOPS age key. The subprocess regression,
+Ruff, and compilation pass. This closes only help/import configuration
+preflight; non-help CLI parity and MAN-CAP-039 review remain open
+([evidence](builds/2026-10-20-recovery/cap-039-ingestion-help-isolation.json)).

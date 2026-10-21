@@ -13186,3 +13186,17 @@ total); capability matrix remains 66 rows: 31 baseline-retained, 7 deployed,
 and 28 prepared ([implementation](../../services/ingestion/data_freshness.py);
 [tests](../../tests/test_telemetry_freshness.py);
 [evidence](builds/2026-10-20-recovery/freshness-cli-offline-preflight.json)).
+
+
+### CAP-039 ingestion help isolation — 20 October 2026
+
+All 19 modules mounted under the ingestion CLI now have a fresh-process parser
+help regression under `KOKONUT_ENV=production`, with PostgreSQL credentials
+removed, the SOPS-loaded marker unset, and an unavailable age identity. Every
+entrypoint returns nonempty help successfully. The focused test passes; Ruff
+and Python compilation pass. No database or provider was contacted. This
+improves offline discoverability only; non-help parser/output coverage, the
+operator principal decision, and MAN-CAP-039 review remain open. Checklist:
+824 complete / 25 open (849 total); capability matrix remains 66 rows: 31
+baseline-retained, 7 deployed, and 28 prepared ([test](../../tests/test_ingestion_cli_help_isolation.py);
+[evidence](builds/2026-10-20-recovery/cap-039-ingestion-help-isolation.json)).
