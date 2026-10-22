@@ -249,3 +249,11 @@ and candidate contain no location rows, so this rehearsal does not establish
 populated ecological-data parity. Browser-origin acceptance, production OIDC and
 worker credentials, off-host backup/restore, and physical Raspberry Pi behavior
 remain open. See the [migration 551 rollout record](builds/2026-10-22-recovery/candidate-migration-551-rollout.json).
+
+A separate current-source ARM64/QEMU schema-only replay applied all 542 ordered
+schema files through migration 551 with zero pending or failed entries, no
+seeds, and `pg_stat_statements` not readable by `PUBLIC`. It ran in a temporary
+Compose project with networking disabled and no host ports; container and
+volume cleanup completed. Candidate and legacy services were not touched. This
+provides emulated migration compatibility evidence only; it does not test
+candidate data or physical Raspberry Pi/power behavior ([replay evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-551.json)).

@@ -52,6 +52,35 @@ def test_worker_summary_type_registry_covers_all_shared_synthesis_agents() -> No
     )
 
 
+def test_registered_agent_source_hints_are_only_the_reviewed_exceptions() -> None:
+    omissions = {
+        agent.task_key: set(agent.source_tables) - set(agent.source_reference_views)
+        for agent in AGENTS
+    }
+    omissions = {task: tables for task, tables in omissions.items() if tables}
+
+    assert omissions == {
+        "organic_readiness_synthesis": {"organic_compliance_checklist"},
+        "ecological_modeling_synthesis": {"location"},
+    }
+
+    organic_migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql"
+    ).read_text()
+    checklist_view = re.search(
+        r"CREATE OR REPLACE VIEW kokonut_agent_source\.organic_compliance_checklist.*?;",
+        organic_migration,
+        re.DOTALL,
+    )
+    assert checklist_view is not None
+    assert "SELECT source_row.id, source_row.location_id" in checklist_view.group()
+    assert not re.search(
+        r"\b(?:inspector_name|findings|non_conformances|evidence_urls|notes)\b",
+        checklist_view.group(),
+    )
+
+
 class _QueryRecordingCursor:
     def __init__(self) -> None:
         self.queries: list[tuple[str, Any]] = []

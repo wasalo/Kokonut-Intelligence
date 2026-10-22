@@ -1,3 +1,32 @@
+### Current-schema ARM64/QEMU replay through migration 551 — 22 October 2026
+
+A fresh, isolated ARM64 PostgreSQL 16 replay under QEMU applied all 542 current
+schema files through migration 551, with zero pending or failed schemas and no
+seeds or farm data. The temporary Compose project used `network_mode: none`,
+published no host ports, and was removed with its volume after verification.
+Candidate and legacy services were untouched. This verifies schema replay under
+software emulation only; physical Raspberry Pi, power-loss, sustained resource,
+and thermal acceptance remain open. Evidence:
+[ARM64/QEMU replay](builds/2026-10-22-recovery/arm64-qemu-current-schema-551.json).
+Checklist: 969 complete / 24 open (993 total); capability matrix: 30
+baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+
+### CAP-038 synthesis source-reference exception audit — 22 October 2026
+
+A regression now compares source tables with reviewer-manifest mappings across
+all 12 registered synthesis agents. Only two intentional hints remain:
+`location`, already bound as the summary subject, and
+`organic_compliance_checklist`. Checklist records lack a governed review state
+and contain inspector identities, findings, and evidence; their scoped worker
+view remains count-only and exposes only ID/location to the calculator, while
+row IDs are intentionally omitted from reviewer provenance. The focused
+synthesis/source/worker selection passes 123 tests; Ruff and Python compilation
+pass. This source contract does not establish populated data parity or MAN-CAP-038
+acceptance. Evidence: [source map and regression](../tests/test_synthesis_source_references.py),
+[organic source contract](../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql).
+Checklist: 969 complete / 24 open (993 total); capability matrix: 30 baseline-retained,
+7 deployed, and 29 prepared across 66 entries.
+
 ### CAP-038 ecological provenance capacity and candidate migration 551 rollout — 22 October 2026
 
 Migration 551 expands signed synthesis provenance from ten to twenty source

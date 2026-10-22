@@ -109,6 +109,10 @@ class OrganicReadinessSynthesisAgent(SynthesisAgent):
         "organic_certification_record": "v_public_organic_certifications",
         "prohibited_substance_record": "v_public_prohibited_substance_audit",
     }
+    # Compliance checklist rows have no governed review lifecycle and contain
+    # inspector identities, findings, and evidence. Keep the scoped ID-only
+    # view for the legacy completeness count, but do not publish row IDs as
+    # reviewer provenance until those records have an approved lifecycle.
 
     def synthesize(self, conn, location_id=None):
         return synthesize_organic_readiness(conn, location_id)
