@@ -200,6 +200,18 @@ def run_worker_summary(
         or summary_type not in DETERMINISTIC_SUMMARY_TYPES
     ):
         raise ValueError("summary_type is not a registered deterministic worker summary")
+    from services.agents.safety import assert_agent_action_allowed
+    from services.agents.tasks import validate_task_capabilities, validate_task_inputs
+
+    validate_task_capabilities("ai_summary_synthesis")
+    input_errors = validate_task_inputs(
+        "ai_summary_synthesis",
+        {"location_id": location_id, "summary_type": summary_type, "store": True},
+    )
+    if input_errors:
+        raise ValueError("; ".join(input_errors))
+    assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
+    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
     prior = read_existing(location_id, summary_type, request_id)
     if prior is not None:
         return prior

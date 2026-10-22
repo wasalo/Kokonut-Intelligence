@@ -236,6 +236,56 @@ def test_worker_summary_normalizes_ids_before_receipt_lookup():
     assert result == {"summary_id": "saved-id", "replayed": True}
 
 
+@pytest.mark.parametrize("denied_action", ["read", "create"])
+def test_worker_summary_enforces_safety_before_receipt_lookup(
+    monkeypatch, denied_action
+):
+    existing_reader = MagicMock(side_effect=AssertionError("denied action reached receipt lookup"))
+    connection_factory = MagicMock(side_effect=AssertionError("denied action opened source DB"))
+
+    def deny_selected_action(action, _collection, _payload):
+        if action == denied_action:
+            raise ValueError(f"{action} denied by test policy")
+
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", deny_selected_action
+    )
+
+    with pytest.raises(ValueError, match=f"{denied_action} denied by test policy"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "combined",
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=existing_reader,
+        )
+
+    existing_reader.assert_not_called()
+    connection_factory.assert_not_called()
+
+
+def test_worker_summary_rejects_unsafe_task_registry_before_receipt_lookup(monkeypatch):
+    from services.agents.tasks import TASK_CATALOGUE
+
+    writes = TASK_CATALOGUE["ai_summary_synthesis"]["writes"]
+    monkeypatch.setitem(TASK_CATALOGUE["ai_summary_synthesis"], "writes", ["ai_summary:published"])
+    existing_reader = MagicMock(side_effect=AssertionError("unsafe task reached receipt lookup"))
+    connection_factory = MagicMock(side_effect=AssertionError("unsafe task opened source DB"))
+
+    with pytest.raises(ValueError, match="unapproved write capability"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "combined",
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=existing_reader,
+        )
+
+    existing_reader.assert_not_called()
+    connection_factory.assert_not_called()
+    assert writes == ["ai_summary:draft"]
+
+
 def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
     agent = _synthetic_synthesis_agent()
     references = {

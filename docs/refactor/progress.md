@@ -14420,3 +14420,17 @@ preflight, not worker authentication or database least privilege. Checklist:
 936 complete / 24 open (960 total); the matrix remains 31 baseline-retained,
 7 deployed, and 28 prepared across 66 rows. Evidence:
 [worker UUID preflight](builds/2026-10-21-recovery/cap-038-worker-cli-uuid-preflight.json).
+
+
+### CAP-038 worker replay safety preflight — 21 October 2026
+
+The deterministic worker now revalidates its task capability declaration,
+required inputs, read permission, and draft-only creation permission before
+returning an idempotent receipt. A changed registry that allows publication
+fails before receipt lookup or source access. The combined worker/task/safety
+selection passes 53 tests; Ruff and diff checks pass. All checks use fakes, so
+no database or provider was contacted. This does not authenticate the worker
+or constrain its database source-read identity. Checklist: 937 complete / 24
+open (961 total); the matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence:
+[worker replay policy preflight](builds/2026-10-21-recovery/cap-038-worker-replay-safety-preflight.json).
