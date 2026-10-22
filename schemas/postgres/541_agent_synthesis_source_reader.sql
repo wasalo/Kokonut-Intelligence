@@ -63,6 +63,8 @@ $$;
 GRANT kokonut_agent_summary_source_reader TO kokonut_agent_summary_source_login
     WITH INHERIT FALSE, SET TRUE;
 GRANT USAGE ON SCHEMA public TO kokonut_agent_summary_source_reader;
+REVOKE CREATE ON SCHEMA public
+    FROM kokonut_agent_summary_source_reader;
 
 -- This role is dedicated to this allowlist. Revoke any stale table grants
 -- before installing the explicit view-only contract, including on replay.

@@ -2571,6 +2571,7 @@ def main() -> int:
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
+        "migration 541 removes stale public-schema CREATE from the NOLOGIN source reader as well as the source login",
         "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
@@ -2670,6 +2671,12 @@ def main() -> int:
                     "CREATE TABLE public.pg_stat_statements_info (dealloc bigint); END IF; "
                     "END $$; "
                     "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles "
+                    "WHERE rolname = 'kokonut_agent_summary_source_reader') THEN "
+                    "CREATE ROLE kokonut_agent_summary_source_reader NOLOGIN NOINHERIT "
+                    "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; "
+                    "END IF; END $$; "
+                    "GRANT CREATE ON SCHEMA public TO kokonut_agent_summary_source_reader; "
+                    "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles "
                     "WHERE rolname = 'kokonut_agent_summary_source_login') THEN "
                     "CREATE ROLE kokonut_agent_summary_source_login NOLOGIN NOINHERIT "
                     "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; "
@@ -2725,10 +2732,27 @@ def main() -> int:
                     "'public.kokonut_agent_source_acl_fixture_fn()', 'EXECUTE') THEN "
                     "RAISE EXCEPTION 'source login retained a direct function grant'; "
                     "END IF; "
+                    "IF has_schema_privilege('kokonut_agent_summary_source_reader', "
+                    "'public', 'CREATE') THEN "
+                    "RAISE EXCEPTION 'source reader retained public schema CREATE'; "
+                    "END IF; "
                     "IF has_schema_privilege('kokonut_agent_summary_source_login', "
                     "'public', 'CREATE') THEN "
                     "RAISE EXCEPTION 'source login retained public schema CREATE'; "
                     "END IF; END $$;",
+                )
+            if migration_path.name.startswith("542_"):
+                stage = "deterministic_reader_stale_schema_acl_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles "
+                    "WHERE rolname = 'kokonut_agent_summary_deterministic_reader') THEN "
+                    "CREATE ROLE kokonut_agent_summary_deterministic_reader NOLOGIN NOINHERIT "
+                    "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; "
+                    "END IF; END $$; "
+                    "GRANT CREATE ON SCHEMA public "
+                    "TO kokonut_agent_summary_deterministic_reader;",
                 )
             if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_", "547_", "548_")):
                 if migration_path.name.startswith("545_"):

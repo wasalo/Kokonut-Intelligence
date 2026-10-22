@@ -14953,3 +14953,21 @@ The capability matrix remains 30 baseline-retained, 7 deployed, and 29
 prepared across 66 entries; checklist status is 961 complete / 24 open
 (985 total). Evidence: [native check](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-disposable.json),
 [ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-arm64-disposable.json).
+
+
+### CAP-038 NOLOGIN reader public-schema ACL cleanup — 22 October 2026
+
+Migrations 541 and 542 now revoke stale `CREATE` on `public` from their
+NOLOGIN synthesis and deterministic-summary reader roles. This lets replay
+repair an existing grant instead of failing its postcondition with the
+privilege still present. The focused disposable PostgreSQL 16 chain through
+migration 548 passes 38 grouped assertions on native AMD64 and ARM64/QEMU
+(`aarch64`), with synthetic stale grants on both reader roles;
+`tests/test_migration.py` passes 36 tests. Ruff, Python compilation, and
+`git diff --check` pass. Candidate and legacy databases were untouched. This
+is source migration and emulation evidence only; credential provisioning,
+other agent identities, populated parity, and MAN-CAP-038 acceptance remain
+open. Matrix state remains 30 baseline-retained, 7 deployed, and 29 prepared
+across 66 capabilities; checklist state is 962 complete / 24 open (986 total).
+Evidence: [native check](builds/2026-10-22-recovery/cap-038-reader-schema-create-disposable.json),
+[ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-reader-schema-create-arm64-disposable.json).

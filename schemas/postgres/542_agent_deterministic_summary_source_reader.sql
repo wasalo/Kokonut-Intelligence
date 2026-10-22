@@ -63,6 +63,8 @@ GRANT kokonut_agent_summary_deterministic_reader
     TO kokonut_agent_summary_deterministic_source_login
     WITH INHERIT FALSE, SET TRUE;
 GRANT USAGE ON SCHEMA public TO kokonut_agent_summary_deterministic_reader;
+REVOKE CREATE ON SCHEMA public
+    FROM kokonut_agent_summary_deterministic_reader;
 
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
     FROM kokonut_agent_summary_deterministic_reader;

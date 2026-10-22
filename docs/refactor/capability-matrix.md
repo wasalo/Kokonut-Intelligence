@@ -32,6 +32,17 @@ MAN-CAP-038 acceptance
 [native evidence](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-arm64-disposable.json)).
 
+**CAP-038 NOLOGIN reader schema ACL cleanup — 22 October 2026:** migrations
+541 and 542 now revoke stale `public CREATE` from the synthesis and
+deterministic-summary reader roles before validating their allowlists. Synthetic
+pre-existing grants are removed during replay; the focused PostgreSQL 16 chain
+through migration 548 passes 38 grouped assertions on native AMD64 and
+ARM64/QEMU (`aarch64`). `tests/test_migration.py` passes 36 tests. Candidate and
+legacy databases remain untouched. This does not establish the deployed worker
+credential boundary or MAN-CAP-038 acceptance
+([native evidence](builds/2026-10-22-recovery/cap-038-reader-schema-create-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-reader-schema-create-arm64-disposable.json)).
+
 **CAP-038 synthesis execution fallback — 22 October 2026:** generic shared
 synthesis no longer has a shared-runtime database path. All ten registered
 classes require a signed source-view contract and exact location; read-only
