@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 import shutil
@@ -1353,7 +1354,21 @@ ROLLBACK;
 """
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--platform",
+        choices=("linux/amd64", "linux/arm64"),
+        help="Run the disposable PostgreSQL container for this Docker platform",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=OUTPUT,
+        help="Write JSON evidence to this path (default: the native evidence path)",
+    )
+    args = parser.parse_args(argv)
+    output = args.output if args.output.is_absolute() else ROOT / args.output
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-operating-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
@@ -1371,6 +1386,7 @@ def main() -> int:
             CAPACITY_SUBMISSION_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
+        "container_platform": args.platform or "docker-default",
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -1407,10 +1423,11 @@ def main() -> int:
         ],
     }
     try:
-        run(
+        container_command = [docker, "run"]
+        if args.platform:
+            container_command.extend(["--platform", args.platform])
+        container_command.extend(
             [
-                docker,
-                "run",
                 "--detach",
                 "--rm",
                 "--name",
@@ -1422,6 +1439,7 @@ def main() -> int:
                 "postgres:16",
             ]
         )
+        run(container_command)
         wait_ready(container, docker)
         psql(docker, container, FIXTURE)
         summary_migration = SUMMARY_MIGRATION.read_text(encoding="utf-8")
@@ -1471,8 +1489,8 @@ def main() -> int:
         result = 1
     finally:
         subprocess.run([docker, "rm", "--force", container], text=True, capture_output=True, check=False)
-        OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        OUTPUT.write_text(json.dumps(evidence, indent=2) + "\n")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(evidence, indent=2) + "\n")
     return result
 
 

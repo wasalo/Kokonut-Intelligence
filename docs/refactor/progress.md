@@ -16,11 +16,13 @@ including migration metadata coverage, the selection passes 95 tests. Ruff and
 compilation pass. Network-disabled disposable PostgreSQL 16 applies
 and replays migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, and 556
 with 40 grouped assertions ([evidence](builds/2026-10-22-recovery/cap-037-own-capacity-draft-submission-disposable.json)).
+The same migration and assertion suite also passes on `linux/arm64` under
+Docker/QEMU emulation ([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-capacity-draft-submission-arm64-disposable.json)); this is software portability evidence, not Raspberry Pi hardware, performance, power-loss, or recovery acceptance.
 Candidate and legacy databases remain untouched; migration 556 is not rolled
 out. CAP-037 remains prepared (`P`) with the review/approval workflow and other
 item workflows, populated parity, live OIDC/browser, production ACL/RLS and
 recovery, privacy/audience, and owner-acceptance gates still open. Checklist:
-981 complete / 24 open (1,005 total); capability matrix: 30 baseline-retained,
+982 complete / 24 open (1,006 total); capability matrix: 30 baseline-retained,
 7 deployed, and 29 prepared across 66 entries.
 
 ### CAP-037 own capacity draft revision — 22 October 2026
