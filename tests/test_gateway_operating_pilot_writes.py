@@ -684,6 +684,130 @@ def test_capacity_submission_route_policy_requires_exact_location_submit_own_gra
     assert auth_route_policy("POST", path, enabled=False) is None
 
 
+def test_demand_submission_sets_exact_submit_own_context_and_commits(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"signal_id": PROFILE_ID, "status": "submitted", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.submit_location_operating_pilot_demand_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "signal_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    assert contexts == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "operating_pilot",
+                "action": "submit_own",
+            },
+        )
+    ]
+    assert "SET LOCAL statement_timeout" in cursor.execute.call_args_list[0].args[0]
+    assert "submit_location_operating_pilot_demand_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (LOCATION_ID, PROFILE_ID, REQUEST_ID)
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_invalid_demand_submission_is_rejected_before_database_access():
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match="signal identifier"):
+        operating_pilot_writes.submit_location_operating_pilot_demand_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            "not-a-signal-id",
+            REQUEST_ID,
+            connection_factory=factory,
+        )
+
+    factory.assert_not_called()
+
+
+def _demand_submission_route_app(monkeypatch, action, provider=object()):
+    async def run_inline(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(operating_pilot_writes, "submit_location_operating_pilot_demand_draft", action)
+    router = APIRouter()
+    register_operating_pilot_routes(router, provider, run_inline, __import__("psycopg2"))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def attach_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(operator=SimpleNamespace(operator_id=OPERATOR_ID))
+        return await call_next(request)
+
+    return TestClient(app)
+
+
+def test_demand_submission_http_route_accepts_only_request_id_and_is_no_store(monkeypatch):
+    action = MagicMock(
+        return_value={"signal_id": PROFILE_ID, "status": "submitted", "replayed": False}
+    )
+    client = _demand_submission_route_app(monkeypatch, action)
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit"
+
+    invalid = client.post(path, json={"request_id": REQUEST_ID, "status": "approved"})
+    assert invalid.status_code == 400
+    action.assert_not_called()
+
+    response = client.post(path, json={"request_id": REQUEST_ID})
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["status"] == "submitted"
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+
+
+def test_demand_submission_http_route_denies_missing_submit_own_context(monkeypatch):
+    action = MagicMock(side_effect=TenantContextDenied("denied"))
+    client = _demand_submission_route_app(monkeypatch, action)
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit",
+        json={"request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 403
+    assert "submit-own access" in response.json()["error"]
+
+
+def test_demand_submission_route_policy_requires_exact_location_submit_own_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/demand-signals/{PROFILE_ID}/submit"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "submit_own",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=False) is None
+    assert auth_route_policy("POST", path + "/extra", enabled=True) is None
+
+
 def test_capacity_review_sets_exact_review_context_and_commits_append_result(monkeypatch):
     connection, cursor = _connection_with_result(
         {"profile_id": PROFILE_ID, "status": "rejected", "decision": "rejected", "replayed": False}

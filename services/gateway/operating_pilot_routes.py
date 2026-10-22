@@ -24,6 +24,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         review_location_operating_pilot_capacity,
         revise_location_operating_pilot_capacity_draft,
         submit_location_operating_pilot_capacity_draft,
+        submit_location_operating_pilot_demand_draft,
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -335,6 +336,86 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit"
+    )
+    async def submit_operating_pilot_demand_draft(
+        request: Request, location_id: str, signal_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Demand submission body must be valid JSON"},
+                headers=headers,
+            )
+        if not isinstance(payload, dict) or set(payload) != {"request_id"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Demand submission accepts only a request_id"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                submit_location_operating_pilot_demand_draft,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                signal_id,
+                payload["request_id"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operating-pilot submit-own access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location submit-own grant and owned demand draft are required"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The demand submission conflicts or this draft is already submitted"},
+                    headers=headers,
+                )
+            if pgcode == "40001":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The demand draft changed; refresh before trying again"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand submission unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get("/operator/api/operating-pilot/{location_id}/summary")
     async def location_operating_pilot_summary(request: Request, location_id: str):

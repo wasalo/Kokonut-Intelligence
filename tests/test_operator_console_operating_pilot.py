@@ -164,7 +164,7 @@ def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves()
     submit = _function(
         source,
         "async function submitOperatingPilotDemandDraft(event)",
-        "async function submitOperatingPilotCapacityDraft(event)",
+        "async function submitOperatingPilotDemandSignal()",
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit
@@ -252,6 +252,47 @@ def test_capacity_submission_is_explicit_idempotent_and_separately_granted():
     assert "Retry capacity submission" in own_row
     assert 'scope.action === "submit_own"' in source
     assert "/approve" not in submit.lower()
+
+
+def test_demand_submission_is_separate_confirmed_and_retries_with_same_request_id():
+    source = CONSOLE.read_text(encoding="utf-8")
+    create = _function(
+        source,
+        "async function submitOperatingPilotDemandDraft(event)",
+        "async function submitOperatingPilotDemandSignal()",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotDemandSignal()",
+        "async function submitOperatingPilotCapacityDraft(event)",
+    )
+    initialize = _function(
+        source,
+        "async function loadOperatingPilot()",
+        "function addSequentialEvidenceMetric(",
+    )
+    assert "isEditing" not in create
+    assert "result.signal_id" in create
+    assert 'id="operating-pilot-demand-submit"' in source
+    assert "operatingPilotPendingDemandSubmission" in create
+    assert "operatingPilotSubmitOwnDemandLocations.has(locationId)" in submit
+    assert "window.confirm(" in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "pending.request_id" in submit
+    assert "Retry unchanged to reuse the same request ID." in submit
+    assert "/demand-signals/${encodeURIComponent(pending.signal_id)}/submit" in submit
+    assert "Demand draft submitted for independent review. It has not been approved or fulfilled." in submit
+    assert '"verified", "published", "rejected"' in submit
+    assert "The prior submission was accepted. Current lifecycle status:" in submit
+    assert 'scope.action === "submit_own"' in source
+    assert "operatingPilotSubmitOwnDemandLocations = new Set(operatingPilotSubmitOwnDemandLocationIds)" in source
+    assert "syncOperatingPilotDemandSubmissionAction();" in initialize
+    assert "...operatingPilotSubmitOwnDemandLocationIds" in source
+    assert "/approve" not in submit.lower()
+    assert "/fulfill" not in submit.lower()
 
 
 def test_capacity_review_queue_has_separate_grant_and_omits_identity_and_notes():
