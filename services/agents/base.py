@@ -94,19 +94,25 @@ class SynthesisAgent:
         without an exact public-view mapping retain their declared table-name
         hints and return no row references.
         """
-        if not self.source_reference_views:
+        # These values define the reviewed provenance contract for the
+        # registered agent class. Ignore instance shadowing here; the worker
+        # entry point separately rejects metadata that differs from the class.
+        source_tables = type(self).source_tables
+        source_reference_views = type(self).source_reference_views
+        source_reference_query = type(self).source_reference_query
+        if not source_reference_views:
             return {}
         if (
-            len(self.source_reference_views) > 10
-            or any(table not in self.source_tables for table in self.source_reference_views)
+            len(source_reference_views) > 10
+            or any(table not in source_tables for table in source_reference_views)
         ):
             raise ValueError("source reference views must match declared source tables")
-        query = self.source_reference_query or self._build_source_reference_query()
+        query = source_reference_query or self._build_source_reference_query()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
             cur.execute(
                 query,
-                (location_id,) * len(self.source_reference_views),
+                (location_id,) * len(source_reference_views),
             )
             rows = cur.fetchall()
         finally:
@@ -114,7 +120,7 @@ class SynthesisAgent:
         references: dict[str, dict[str, Any]] = {}
         for row in rows:
             source_table = row["source_table"]
-            if source_table not in self.source_reference_views or source_table in references:
+            if source_table not in source_reference_views or source_table in references:
                 raise ValueError("source reference query returned an undeclared source table")
             row_count = int(row["row_count"])
             record_ids = [str(record_id) for record_id in row["record_ids"]]
@@ -128,7 +134,7 @@ class SynthesisAgent:
     def _build_source_reference_query(self) -> str:
         """Build bounded location-filtered SQL from static public-view metadata."""
         selects = []
-        for source_table, view_name in self.source_reference_views.items():
+        for source_table, view_name in type(self).source_reference_views.items():
             if (
                 _SOURCE_TABLE_NAME.fullmatch(source_table) is None
                 or _PUBLIC_SOURCE_VIEW_NAME.fullmatch(view_name) is None

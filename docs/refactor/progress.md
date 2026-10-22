@@ -1,3 +1,15 @@
+### CAP-038 synthesis source-query contract binding — 21 October 2026
+
+Synthesis source-reference collection now reads its view map and optional SQL
+from the registered agent class. The signed worker rejects instance-level
+source-query overrides before receipt lookup or opening a source connection.
+The focused source-reference and worker CLI selection passes 52 tests; Ruff,
+Python compilation, and `git diff --check` pass. Checks use fakes only; no
+database, candidate, legacy stack, or provider was touched. This closes an
+instance-metadata integrity gap, not authenticated worker identity, database
+least privilege, legacy/background source provenance, or MAN-CAP-038
+acceptance. Evidence: [source-query binding](builds/2026-10-21-recovery/cap-038-source-query-binding.json).
+
 ### ARM64/QEMU schema replay through migration 539 — 21 October 2026
 
 The local `linux/arm64` PostgreSQL image applied all 530 current schema files

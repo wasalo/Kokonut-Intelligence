@@ -184,6 +184,28 @@ def test_generic_synthesis_worker_stops_before_source_reads_when_retry_lookup_re
     connection_factory.assert_not_called()
 
 
+def test_generic_synthesis_worker_rejects_instance_source_query_override_preflight():
+    connection_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
+    existing_reader = MagicMock(side_effect=AssertionError("receipt lookup must stay closed"))
+    agent = _synthetic_synthesis_agent()
+    agent.source_reference_query = "SELECT 'harvest_event' AS source_table, id FROM harvest_event"
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        with pytest.raises(ValueError, match="metadata differs from its registered class"):
+            worker_cli.run_worker_synthesis(
+                agent,
+                LOCATION_ID,
+                REQUEST_ID,
+                connection_factory=connection_factory,
+                existing_reader=existing_reader,
+            )
+
+    connection_factory.assert_not_called()
+    existing_reader.assert_not_called()
+
+
 def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
     agent = _synthetic_synthesis_agent()
     connection, cursor = _source_connection()

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 939 checklist items complete and 24
-open (963 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 941 checklist items complete and 24
+open (965 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1980,3 +1980,7 @@ Checklist: 919 complete / 24 open (943 total); matrix: 31 baseline-retained,
 ### CAP-064 Python SDK secure gRPC channel helper — 21 October 2026
 
 - [x] Add an optional Python channel helper that uses system-trusted TLS for remote targets, plaintext for recognized loopback, private-CA TLS when bytes are supplied, and remote plaintext only with explicit `allow_insecure=True`. Importing the helper does not load grpcio; invalid configuration fails before channel creation. Sixteen focused tests pass, Ruff and compilation pass, and the Python wheel builds with `kokonut/grpc/channel.py` included. No RPC, database, or provider was contacted. This proves helper policy and package contents, not live TLS endpoint or production ingress behavior ([implementation](../../sdk/python/kokonut/grpc/channel.py); [tests](../../tests/test_python_grpc_channel_factory.py); [SDK guide](../../sdk/python/README.md); [evidence](builds/2026-10-21-recovery/cap-064-python-grpc-channel-factory.json)). Checklist: 933 complete / 24 open (957 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
+### CAP-038 synthesis source-query contract binding — 21 October 2026
+
+- [x] Bind synthesis provenance collection to registered class metadata. The worker rejects an instance-level `source_reference_query` override before receipt lookup or database access, and the collector reads its query and source-view map from the registered class contract. The focused worker/source-reference selection passes 52 tests; Ruff, compilation, and diff checks pass. No database or provider was contacted. This is code-level provenance integrity only; authenticated worker identity, database least privilege, legacy/background source coverage, and MAN-CAP-038 remain open ([collector](../../services/agents/base.py); [worker](../../services/agents/worker_cli.py); [tests](../../tests/test_synthesis_source_references.py); [worker tests](../../tests/test_agent_worker_cli.py); [evidence](builds/2026-10-21-recovery/cap-038-source-query-binding.json)). Checklist: 941 complete / 24 open (965 total).

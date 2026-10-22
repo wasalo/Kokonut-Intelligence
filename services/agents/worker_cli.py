@@ -96,6 +96,7 @@ def run_worker_synthesis(
             "model_version",
             "source_tables",
             "source_reference_views",
+            "source_reference_query",
         )
     ):
         raise ValueError("synthesis agent metadata differs from its registered class")

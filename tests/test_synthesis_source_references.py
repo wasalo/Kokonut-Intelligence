@@ -130,3 +130,16 @@ def test_feedback_sources_use_only_consent_approved_published_views() -> None:
     assert FeedbackSynthesisAgent.source_reference_views == {
         "stakeholder_feedback": "v_public_stakeholder_feedback_summary"
     }
+
+
+def test_instance_override_cannot_replace_registered_source_reference_query() -> None:
+    agent = CapitalEfficiencySynthesisAgent()
+    registered_query = CapitalEfficiencySynthesisAgent.source_reference_query
+    agent.source_reference_query = "SELECT 'harvest_event' AS source_table, id FROM harvest_event"
+    connection = _Connection(list(CapitalEfficiencySynthesisAgent.source_reference_views))
+
+    references = agent.collect_source_references(connection, LOCATION_ID)
+
+    assert connection.cursor_value.query == registered_query
+    assert "FROM harvest_event" not in connection.cursor_value.query
+    assert set(references) == set(CapitalEfficiencySynthesisAgent.source_reference_views)
