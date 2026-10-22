@@ -404,7 +404,7 @@ def _run_auto_generation(
             report_data = generate_report_data_read_only(
                 conn, generator, report_location_arg, period_start, period_end
             )
-            _check_report_empty(report_data, report_type)
+            report_has_empty_content = _check_report_empty(report_data, report_type)
             snapshot_id = store_snapshot(
                 conn, report_data, report_location_arg, period_start, period_end
             )
@@ -417,6 +417,7 @@ def _run_auto_generation(
                 )
             conn.commit()
             success += 1
+            empty += bool(report_has_empty_content)
         except Exception as exc:  # noqa: BLE001 - persist failure and continue the batch
             safe_error = _report_failure_summary(exc)
             print(f"  ✗ {report_type}: {safe_error}")

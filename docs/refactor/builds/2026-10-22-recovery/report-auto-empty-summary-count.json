@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-22",
+  "scope": "CAP-066 report auto-generation empty-content summary",
+  "behavior_before": "The auto-generation summary printed an empty-report count initialized to zero but never updated it, even when the existing checker warned that primary report sections had no rows.",
+  "behavior_after": "The checker returns whether any recognized primary content section is an empty list, and auto-generation counts that report only after its draft snapshot is stored successfully.",
+  "focused_test_command": "python3 -m pytest tests/test_report_generator_cli.py tests/test_unified_cli_success_contract.py -q",
+  "focused_test_result": "172 passed",
+  "new_regressions": [
+    "empty primary sections return an empty signal and preserve the warning",
+    "populated primary sections return a non-empty signal without a warning",
+    "auto-generation summary counts a successfully stored empty report"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "database_or_provider_access": false,
+  "candidate_or_legacy_access": false,
+  "migration_required": false,
+  "behavioral_scope": "Snapshot lifecycle, persisted success/failure statuses, report payloads, and SQL are unchanged. The empty count is diagnostic and does not change whether an empty report is stored as a draft."
+}

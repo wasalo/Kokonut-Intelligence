@@ -162,6 +162,44 @@ def test_network_only_generators_reject_direct_farm_scope_before_database_access
     connection.cursor.assert_not_called()
 
 
+def test_check_report_empty_reports_empty_primary_sections(capsys) -> None:
+    is_empty = report_generator._check_report_empty({"farms": []}, "farm_summary")
+
+    assert is_empty is True
+    assert "no rows in 'farms'" in capsys.readouterr().out
+
+
+def test_check_report_empty_returns_false_when_primary_rows_exist(capsys) -> None:
+    is_empty = report_generator._check_report_empty({"farms": [{"id": "farm-1"}]}, "farm_summary")
+
+    assert is_empty is False
+    assert capsys.readouterr().out == ""
+
+
+def test_auto_generation_counts_stored_reports_with_empty_primary_rows(monkeypatch, capsys) -> None:
+    connection = MagicMock()
+    monkeypatch.setattr(report_generator, "REPORT_GENERATORS", {"farm_summary": object()})
+    monkeypatch.setattr(
+        report_generator,
+        "generate_report_data_read_only",
+        lambda *_args: {"report_type": "farm_summary", "farms": []},
+    )
+    monkeypatch.setattr(report_generator, "store_snapshot", lambda *_args: "snapshot-1")
+    monkeypatch.setattr(report_generator, "compute_hash", lambda _data: "synthetic-hash")
+
+    report_generator._run_auto_generation(
+        connection,
+        location_arg=LOCATION_A,
+        location_label=LOCATION_A,
+        period_start=None,
+        period_end=None,
+    )
+
+    output = capsys.readouterr().out
+    assert "no rows in 'farms'" in output
+    assert "Done: 1 succeeded, 0 failed, 1 empty" in output
+
+
 @pytest.mark.parametrize("report_type", sorted(report_generator.NETWORK_SCOPE_ONLY_REPORTS))
 def test_auto_generation_stores_network_only_reports_without_farm_scope(monkeypatch, report_type) -> None:
     connection = MagicMock()

@@ -24,7 +24,7 @@
   "focused_test_command": "python3 -m pytest tests/test_report_state_cursor_cleanup.py tests/test_state_of_kokonut.py tests/test_report_state_error_redaction.py tests/test_strategic_reserve.py tests/test_capital_efficiency.py tests/test_comprehensive_status.py -q",
   "focused_test_result": "327 passed",
   "expanded_test_command": "python3 -m pytest tests/test_report_snapshot_cursor_cleanup.py tests/test_report_state_cursor_cleanup.py tests/test_report_governance.py tests/test_farm_activity_summary_report.py tests/test_report_state_error_redaction.py tests/test_state_of_kokonut.py tests/test_strategic_reserve.py tests/test_capital_efficiency.py tests/test_comprehensive_status.py tests/test_ecological_modeling_v2.py tests/test_report_generator_cli.py tests/test_report_generator_inventory.py -q",
-  "expanded_test_result": "490 passed",
+  "expanded_test_result": "493 passed",
   "generated_inventory_checks": "runtime SQL, report query scope, report helper scope, and report source inventories current",
   "ruff": "passed",
   "python_compilation": "passed",

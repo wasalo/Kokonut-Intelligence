@@ -15103,7 +15103,7 @@ insert/fetch failures also roll back before propagating; a missing farm location
 closes before raising. The failure-injection set covers 287 query/fetch points,
 including DAO voter-query errors and both network/farm branches. The focused
 report selection passes 327 tests, and the expanded report/snapshot/CLI/inventory
-selection passes 490. Ruff, Python compilation, four generated-inventory
+selection passes 493. Ruff, Python compilation, four generated-inventory
 freshness checks, capability-matrix validation, and `git diff --check` pass. SQL,
 parameters, transaction ownership, and output shapes are unchanged. A source scan
 found no direct report cursor left without context management or a `finally` close.
@@ -15112,3 +15112,16 @@ provider, candidate, legacy stack, or migration was used. CAP-066 remains prepar
 pending report/dashboard reference parity, runtime identity and tenant boundaries,
 and owner acceptance. Evidence:
 [report-generator cursor cleanup](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json).
+
+
+### CAP-066 report auto-generation empty-content count — 22 October 2026
+
+The auto-run completion line now counts reports that were successfully stored
+after the existing checker found an empty primary content section. Previously,
+the counter was initialized but never incremented. The warning remains advisory;
+empty reports still save as draft snapshots and keep the same persisted status.
+The focused report CLI and unified-CLI selection passes 172 tests, including
+empty/non-empty signals and the auto-summary count; Ruff, compilation, and diff
+checks pass. All generation and persistence boundaries in this check use
+synthetic data and mocks. Evidence:
+[empty-summary regression](builds/2026-10-22-recovery/report-auto-empty-summary-count.json).

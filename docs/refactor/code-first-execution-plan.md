@@ -22,7 +22,7 @@ write failures roll back, and 287 synthetic execute/fetch failures verify
 cleanup, including missing-location handling, DAO voter-query errors, and both
 network/farm report branches. The AI-summary/source/safety/CLI and input-preflight
 selection passes 45 tests; the focused report selection passes 327, and the
-expanded report/snapshot/CLI/inventory selection passes 490. Ruff, compilation,
+expanded report/snapshot/CLI/inventory selection passes 493. Ruff, compilation,
 all four generated-inventory freshness checks, and matrix validation pass
 ([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
 [report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json);

@@ -129,8 +129,8 @@ def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
         print("Result:     FAIL -- hash mismatch, report may have been tampered with")
 
 
-def _check_report_empty(report_data: dict, report_type: str) -> None:
-    """Warn if a report has no primary content rows."""
+def _check_report_empty(report_data: dict, report_type: str) -> bool:
+    """Warn and report whether a primary content section has no rows."""
     content_keys = [
         k
         for k in report_data
@@ -169,10 +169,13 @@ def _check_report_empty(report_data: dict, report_type: str) -> None:
             "risk_mitigation",
         }
     ]
+    has_empty_content = False
     for key in content_keys:
         value = report_data.get(key)
         if isinstance(value, list) and len(value) == 0:
+            has_empty_content = True
             print(f"  ⚠ {report_type}: no rows in '{key}' — report may be empty")
+    return has_empty_content
 
 
 # ---------------------------------------------------------------------------
