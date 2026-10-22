@@ -15,12 +15,18 @@ native AMD64 and ARM64/QEMU, and the full QEMU replay applied all 542 current
 schemas through 551. This is emulation evidence, not physical Raspberry Pi or
 power acceptance. The public-interest report context and the deterministic
 AI-summary registry/operations/financial/environmental query paths now close
-cursors after both success and failure. The focused AI-summary, source, safety,
-CLI, and input-preflight selection passes 45 tests; Ruff, compilation, current
-runtime SQL inventory, and matrix validation pass ([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
-[report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json)).
-No database or provider was accessed for this cleanup, and no migration was
-needed. Checklist: 971 complete / 24 open (995 total); the 66-row matrix
+cursors after both success and failure. Farm-summary, state, and operational
+report queries now do the same; 54 synthetic execute/fetch failures verify
+cursor cleanup across these paths, including missing-location handling. The
+AI-summary/source/safety/CLI/input-preflight selection passes 45 tests; the
+focused report selection passes 92, and the expanded report/CLI/inventory
+selection passes 241. Ruff, compilation, all
+four generated-inventory freshness checks, and matrix validation pass
+([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
+[report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json);
+[report-generator evidence](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json)).
+No database or provider was accessed for these cleanups, and no migration was
+needed. Checklist: 972 complete / 24 open (996 total); the 66-row matrix
 remains 30 baseline-retained, 7 deployed, and 29 prepared, with all MAN-CAP
 approvals still open. Populated farm parity, runtime credentials, broader
 least privilege, physical device acceptance, and human review gates remain

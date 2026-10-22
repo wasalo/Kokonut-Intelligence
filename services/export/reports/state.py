@@ -110,15 +110,17 @@ def _harvest_quantity_overview(entries):
 def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
     """Compose per-location reports across one, many, or all locations."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_ids:
-        cur.execute(
-            "SELECT id, name, slug, country, region, status FROM location WHERE id = ANY(%s) ORDER BY name",
-            (list(location_ids),),
-        )
-    else:
-        cur.execute("SELECT id, name, slug, country, region, status FROM location ORDER BY name")
-    locations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_ids:
+            cur.execute(
+                "SELECT id, name, slug, country, region, status FROM location WHERE id = ANY(%s) ORDER BY name",
+                (list(location_ids),),
+            )
+        else:
+            cur.execute("SELECT id, name, slug, country, region, status FROM location ORDER BY name")
+        locations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     composed = []
     for loc in locations:
@@ -162,60 +164,63 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
     """
     params = [period_start, period_start, period_end, period_end]
 
-    cur.execute(
-        f"""
-        SELECT fr.actor_type, fr.actor_name,
-               COUNT(*) AS rounds,
-               COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
-               fr.currency
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        GROUP BY fr.actor_type, fr.actor_name, fr.currency
-        ORDER BY fr.actor_type
-        """,
-        params,
-    )
-    by_actor = [dict(r) for r in cur.fetchall()]
+    try:
+        cur.execute(
+            f"""
+            SELECT fr.actor_type, fr.actor_name,
+                   COUNT(*) AS rounds,
+                   COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
+                   fr.currency
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            GROUP BY fr.actor_type, fr.actor_name, fr.currency
+            ORDER BY fr.actor_type
+            """,
+            params,
+        )
+        by_actor = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT fr.source_type, fr.currency,
-               COALESCE(SUM(fr.raised_amount), 0) AS total_raised
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        GROUP BY fr.source_type, fr.currency
-        ORDER BY total_raised DESC, fr.source_type, fr.currency
-        """,
-        params,
-    )
-    by_source = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT fr.source_type, fr.currency,
+                   COALESCE(SUM(fr.raised_amount), 0) AS total_raised
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            GROUP BY fr.source_type, fr.currency
+            ORDER BY total_raised DESC, fr.source_type, fr.currency
+            """,
+            params,
+        )
+        by_source = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT pf.actor_type, pf.decision_status, pf.token,
-               COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
-        FROM project_funding pf
-        JOIN funding_round fr ON fr.id = pf.funding_round_id
-        WHERE 1=1 {period_filter}
-        GROUP BY pf.actor_type, pf.decision_status, pf.token
-        ORDER BY pf.actor_type, pf.decision_status, pf.token
-        """,
-        params,
-    )
-    participation = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT pf.actor_type, pf.decision_status, pf.token,
+                   COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
+            FROM project_funding pf
+            JOIN funding_round fr ON fr.id = pf.funding_round_id
+            WHERE 1=1 {period_filter}
+            GROUP BY pf.actor_type, pf.decision_status, pf.token
+            ORDER BY pf.actor_type, pf.decision_status, pf.token
+            """,
+            params,
+        )
+        participation = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT fr.round_code, fr.actor_type, fr.actor_name, fr.round_name,
-               fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
-               fr.location_id
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        ORDER BY fr.period_start, fr.actor_type
-        """,
-        params,
-    )
-    rounds = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT fr.round_code, fr.actor_type, fr.actor_name, fr.round_name,
+                   fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
+                   fr.location_id
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            ORDER BY fr.period_start, fr.actor_type
+            """,
+            params,
+        )
+        rounds = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     total_raised_by_currency = {}
     for row in by_actor:
@@ -470,15 +475,17 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_ids:
-        cur.execute(
-            "SELECT id, name FROM location WHERE id = ANY(%s) ORDER BY name",
-            (list(location_ids),),
-        )
-    else:
-        cur.execute("SELECT id, name FROM location ORDER BY name")
-    locations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_ids:
+            cur.execute(
+                "SELECT id, name FROM location WHERE id = ANY(%s) ORDER BY name",
+                (list(location_ids),),
+            )
+        else:
+            cur.execute("SELECT id, name FROM location ORDER BY name")
+        locations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     # Network reserve health can contain records across farms, so only attach
     # it to an unassigned network snapshot.
@@ -542,19 +549,21 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_capital_provider_utility_summary
-        WHERE location_id = %s
-        ORDER BY utility_score DESC NULLS LAST, scenario_name
-        """,
-        (location_id,),
-    )
-    scenarios = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_capital_provider_utility_summary
+            WHERE location_id = %s
+            ORDER BY utility_score DESC NULLS LAST, scenario_name
+            """,
+            (location_id,),
+        )
+        scenarios = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "capital_provider_utility",
         "location_id": location_id,

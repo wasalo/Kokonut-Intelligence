@@ -15,157 +15,158 @@ from .common import (
 def generate_farm_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a farm summary report for a location."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Location info
+        cur.execute("SELECT * FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        if not location:
+            raise ValueError(f"Location {location_id} not found")
 
-    # Location info
-    cur.execute("SELECT * FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    if not location:
-        raise ValueError(f"Location {location_id} not found")
+        # Farms
+        cur.execute("SELECT * FROM farm WHERE location_id = %s", (location_id,))
+        farms = [dict(r) for r in cur.fetchall()]
 
-    # Farms
-    cur.execute("SELECT * FROM farm WHERE location_id = %s", (location_id,))
-    farms = [dict(r) for r in cur.fetchall()]
-
-    # Plots
-    cur.execute(
-        """
-        SELECT p.*, f.name as farm_name
-        FROM plot p JOIN farm f ON p.farm_id = f.id
-        WHERE f.location_id = %s
-    """,
-        (location_id,),
-    )
-    plots = [dict(r) for r in cur.fetchall()]
-
-    # Active crop cycles
-    cur.execute(
-        """
-        SELECT cc.*, c.name as crop_name, p.name as plot_name
-        FROM crop_cycle cc
-        JOIN crop c ON cc.crop_id = c.id
-        JOIN plot p ON cc.plot_id = p.id
-        WHERE cc.location_id = %s
-    """,
-        (location_id,),
-    )
-    crop_cycles = [dict(r) for r in cur.fetchall()]
-
-    # Harvest summary. Quantities from different units cannot be added or
-    # averaged; retain unit totals and expose scalar measures only for one unit.
-    cur.execute(
-        """
-        WITH filtered_harvest AS (
-            SELECT quantity, unit, crop_cycle_id
-            FROM harvest_event
-            WHERE location_id = %s
-              AND status IN ('verified', 'published')
-              AND (%s::date IS NULL OR harvest_date >= %s::date)
-              AND (%s::date IS NULL OR harvest_date <= %s::date)
-        ), unit_totals AS (
-            SELECT unit, SUM(quantity) AS total_quantity
-            FROM filtered_harvest
-            GROUP BY unit
-        )
-        SELECT COUNT(*) AS total_harvests,
-               CASE WHEN COUNT(DISTINCT unit) <= 1
-                    THEN COALESCE(SUM(quantity), 0) END AS total_quantity,
-               CASE WHEN COUNT(DISTINCT unit) <= 1
-                    THEN COALESCE(AVG(quantity), 0) END AS avg_harvest_size,
-               COUNT(DISTINCT crop_cycle_id) AS cycles_with_harvest,
-               CASE WHEN COUNT(DISTINCT unit) = 1 THEN MIN(unit) END AS quantity_unit,
-               COALESCE(
-                   (SELECT jsonb_object_agg(unit, total_quantity) FROM unit_totals),
-                   '{}'::JSONB
-               ) AS total_quantity_by_unit
-        FROM filtered_harvest
-    """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    harvest_summary = dict(cur.fetchone())
-
-    # Financial summary
-    cur.execute(
-        """
-        SELECT
-            COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount_usd ELSE 0 END), 0) as total_revenue,
-            COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount_usd ELSE 0 END), 0) as total_expenses,
-            COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount_usd ELSE 0 END)
-                - SUM(CASE WHEN transaction_type = 'expense' THEN amount_usd ELSE 0 END), 0) as net_income
-        FROM financial_transaction
-        WHERE location_id = %s
-        AND (%s::date IS NULL OR transaction_date >= %s::date)
-        AND (%s::date IS NULL OR transaction_date <= %s::date)
-    """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    financial = dict(cur.fetchone())
-
-    # Expense breakdown
-    cur.execute(
-        """
-        SELECT ee.category, COALESCE(SUM(ee.amount), 0) as total
-        FROM expense_event ee
-        WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
-          AND (%s::date IS NULL OR ee.expense_date >= %s::date)
-          AND (%s::date IS NULL OR ee.expense_date <= %s::date)
-        GROUP BY ee.category ORDER BY total DESC
-    """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    expense_breakdown = [dict(r) for r in cur.fetchall()]
-
-    # Attestation coverage
-    cur.execute(
-        """
-        SELECT
-            COUNT(*) as total_records,
-            COUNT(CASE WHEN status = 'published' THEN 1 END) as attested,
-            COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft
-        FROM attestation_record
-        WHERE subject_type = 'location' AND subject_id = %s
-    """,
-        (location_id,),
-    )
-    attestation = dict(cur.fetchone())
-
-    # Only published farm activity is eligible for this report. The projection
-    # contains aggregate counts and reported hours; private free text, media,
-    # participant identity, source lineage, and record IDs stay out of reports.
-    cur.execute(
-        """
-        SELECT activity_type,
-               COUNT(*) AS activity_count,
-               COALESCE(SUM(labor_hours), 0) AS reported_labor_hours
-        FROM farm_activity
-        WHERE location_id = %s
-          AND status = 'published'
-          AND farm_activity_source_eligible_for_use(
-              source_system, source_id, source_raw, location_id
-          )
-          AND (%s::date IS NULL OR activity_date >= %s::date)
-          AND (%s::date IS NULL OR activity_date <= %s::date)
-        GROUP BY activity_type
-        ORDER BY activity_type
+        # Plots
+        cur.execute(
+            """
+            SELECT p.*, f.name as farm_name
+            FROM plot p JOIN farm f ON p.farm_id = f.id
+            WHERE f.location_id = %s
         """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    activity_rows = [dict(r) for r in cur.fetchall()]
-    activity_count = sum(int(row["activity_count"] or 0) for row in activity_rows)
-    labor_hours = sum(
-        (Decimal(str(row["reported_labor_hours"] or 0)) for row in activity_rows),
-        Decimal("0"),
-    )
-    activity_type_breakdown = [
-        {
-            "activity_type": row["activity_type"],
-            "activity_count": int(row["activity_count"] or 0),
-            "reported_labor_hours": float(row["reported_labor_hours"] or 0),
-            "reported_labor_hours_unit": "hours",
-        }
-        for row in activity_rows
-    ]
+            (location_id,),
+        )
+        plots = [dict(r) for r in cur.fetchall()]
 
-    cur.close()
+        # Active crop cycles
+        cur.execute(
+            """
+            SELECT cc.*, c.name as crop_name, p.name as plot_name
+            FROM crop_cycle cc
+            JOIN crop c ON cc.crop_id = c.id
+            JOIN plot p ON cc.plot_id = p.id
+            WHERE cc.location_id = %s
+        """,
+            (location_id,),
+        )
+        crop_cycles = [dict(r) for r in cur.fetchall()]
+
+        # Harvest summary. Quantities from different units cannot be added or
+        # averaged; retain unit totals and expose scalar measures only for one unit.
+        cur.execute(
+            """
+            WITH filtered_harvest AS (
+                SELECT quantity, unit, crop_cycle_id
+                FROM harvest_event
+                WHERE location_id = %s
+                  AND status IN ('verified', 'published')
+                  AND (%s::date IS NULL OR harvest_date >= %s::date)
+                  AND (%s::date IS NULL OR harvest_date <= %s::date)
+            ), unit_totals AS (
+                SELECT unit, SUM(quantity) AS total_quantity
+                FROM filtered_harvest
+                GROUP BY unit
+            )
+            SELECT COUNT(*) AS total_harvests,
+                   CASE WHEN COUNT(DISTINCT unit) <= 1
+                        THEN COALESCE(SUM(quantity), 0) END AS total_quantity,
+                   CASE WHEN COUNT(DISTINCT unit) <= 1
+                        THEN COALESCE(AVG(quantity), 0) END AS avg_harvest_size,
+                   COUNT(DISTINCT crop_cycle_id) AS cycles_with_harvest,
+                   CASE WHEN COUNT(DISTINCT unit) = 1 THEN MIN(unit) END AS quantity_unit,
+                   COALESCE(
+                       (SELECT jsonb_object_agg(unit, total_quantity) FROM unit_totals),
+                       '{}'::JSONB
+                   ) AS total_quantity_by_unit
+            FROM filtered_harvest
+        """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        harvest_summary = dict(cur.fetchone())
+
+        # Financial summary
+        cur.execute(
+            """
+            SELECT
+                COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount_usd ELSE 0 END), 0) as total_revenue,
+                COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount_usd ELSE 0 END), 0) as total_expenses,
+                COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount_usd ELSE 0 END)
+                    - SUM(CASE WHEN transaction_type = 'expense' THEN amount_usd ELSE 0 END), 0) as net_income
+            FROM financial_transaction
+            WHERE location_id = %s
+            AND (%s::date IS NULL OR transaction_date >= %s::date)
+            AND (%s::date IS NULL OR transaction_date <= %s::date)
+        """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        financial = dict(cur.fetchone())
+
+        # Expense breakdown
+        cur.execute(
+            """
+            SELECT ee.category, COALESCE(SUM(ee.amount), 0) as total
+            FROM expense_event ee
+            WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
+              AND (%s::date IS NULL OR ee.expense_date >= %s::date)
+              AND (%s::date IS NULL OR ee.expense_date <= %s::date)
+            GROUP BY ee.category ORDER BY total DESC
+        """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        expense_breakdown = [dict(r) for r in cur.fetchall()]
+
+        # Attestation coverage
+        cur.execute(
+            """
+            SELECT
+                COUNT(*) as total_records,
+                COUNT(CASE WHEN status = 'published' THEN 1 END) as attested,
+                COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft
+            FROM attestation_record
+            WHERE subject_type = 'location' AND subject_id = %s
+        """,
+            (location_id,),
+        )
+        attestation = dict(cur.fetchone())
+
+        # Only published farm activity is eligible for this report. The projection
+        # contains aggregate counts and reported hours; private free text, media,
+        # participant identity, source lineage, and record IDs stay out of reports.
+        cur.execute(
+            """
+            SELECT activity_type,
+                   COUNT(*) AS activity_count,
+                   COALESCE(SUM(labor_hours), 0) AS reported_labor_hours
+            FROM farm_activity
+            WHERE location_id = %s
+              AND status = 'published'
+              AND farm_activity_source_eligible_for_use(
+                  source_system, source_id, source_raw, location_id
+              )
+              AND (%s::date IS NULL OR activity_date >= %s::date)
+              AND (%s::date IS NULL OR activity_date <= %s::date)
+            GROUP BY activity_type
+            ORDER BY activity_type
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        activity_rows = [dict(r) for r in cur.fetchall()]
+        activity_count = sum(int(row["activity_count"] or 0) for row in activity_rows)
+        labor_hours = sum(
+            (Decimal(str(row["reported_labor_hours"] or 0)) for row in activity_rows),
+            Decimal("0"),
+        )
+        activity_type_breakdown = [
+            {
+                "activity_type": row["activity_type"],
+                "activity_count": int(row["activity_count"] or 0),
+                "reported_labor_hours": float(row["reported_labor_hours"] or 0),
+                "reported_labor_hours_unit": "hours",
+            }
+            for row in activity_rows
+        ]
+
+    finally:
+        cur.close()
 
     report = {
         "report_type": "farm_summary",

@@ -15089,3 +15089,20 @@ provider, candidate, or legacy stack was accessed. No migration is needed. CAP-0
 remains prepared pending runtime credential rollout, populated parity, broader
 least privilege, and owner acceptance. Evidence:
 [AI-summary cursor cleanup](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json).
+
+
+### CAP-066 report-generator cursor cleanup — 22 October 2026
+
+The farm summary, location and actor rollups, strategic-reserve and
+capital-provider reports, and four operational report generators now close
+their cursors in `finally` when SQL execution or fetching fails. A missing farm
+location also closes before raising. Fifty-four synthetic failure-injection
+cases cover each query and fetch boundary; the focused report selection passes
+92 tests, and the expanded report/CLI/inventory selection passes 241. Ruff,
+Python compilation, four generated-inventory freshness checks, capability-matrix
+validation, and `git diff --check` pass. SQL, parameters,
+transaction ownership, and output shapes are unchanged. No database, provider,
+candidate, legacy stack, or migration was used. CAP-066 remains prepared pending
+report/dashboard reference parity, runtime identity and tenant boundaries, and
+owner acceptance. Evidence:
+[report-generator cursor cleanup](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json).

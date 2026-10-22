@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (22 October 2026):** 971 checklist items complete and 24
-open (995 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (22 October 2026):** 972 checklist items complete and 24
+open (996 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 30 baseline-retained, 7 deployed, and 29 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -2036,3 +2036,5 @@ complete / 24 open (983 total); matrix: 30 baseline-retained, 7 deployed, and
 
 
 - [x] Pin the intentional source-reference exceptions across the registered synthesis agents. A regression now requires all 12 source maps to account for every query source except the summary’s already-bound `location` and `organic_compliance_checklist`. The checklist lacks a governed review lifecycle and contains inspector identity, findings, and evidence; its signed worker projection remains count-only, and its IDs are omitted from reviewer provenance. The focused source/worker/draft selection passes 123 tests, with Ruff and Python compilation passing. This documents and guards a deliberate privacy boundary; populated output parity and MAN-CAP-038 acceptance remain open ([agent contract](../../services/agents/organic_readiness_agent.py); [migration](../../schemas/postgres/549_signed_organic_readiness_synthesis_source.sql); [tests](../../tests/test_synthesis_source_references.py)). Checklist: 970 complete / 24 open (994 total); matrix: 30 baseline-retained, 7 deployed, 29 prepared across 66 rows.
+
+- [x] Close report cursor failure paths for CAP-066 farm summary and location/actor rollups, strategic-reserve and capital-provider queries, and resource-efficiency, training-impact, revenue-stream, and model-validation reports. SQL, parameters, transaction ownership, and result shapes are unchanged; 54 synthetic execute/fetch failures and a missing-location case verify cursor closure. The focused report selection passes 92 tests; the expanded report/CLI/inventory selection passes 241. Ruff, Python compilation, four generated-inventory freshness checks, capability-matrix validation, and `git diff --check` pass. No database, provider, candidate, legacy stack, or migration was used. Report parity and MAN-CAP-066 remain open ([implementation](../../services/export/reports/core.py); [state](../../services/export/reports/state.py); [operations](../../services/export/reports/operations.py); [tests](../../tests/test_report_state_cursor_cleanup.py); [evidence](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json)). Checklist: 972 complete / 24 open (996 total); matrix classifications remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.

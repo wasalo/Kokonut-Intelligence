@@ -31,31 +31,33 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
 def generate_resource_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe resource efficiency report with labor, energy, and water intensity."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT * FROM v_public_resource_efficiency
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR period_start >= %s::date)
-          AND (%s::date IS NULL OR period_start <= %s::date)
-        ORDER BY resource_type, period_start DESC
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    resources = [dict(r) for r in cur.fetchall()]
-    cur.execute(
-        """
-        SELECT SUM(he.quantity) AS total_harvest_kg
-        FROM harvest_event he
-        WHERE he.location_id = %s AND he.status IN ('verified', 'published')
-          AND (%s::date IS NULL OR he.event_date >= %s::date)
-          AND (%s::date IS NULL OR he.event_date <= %s::date)
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    harvest = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT * FROM v_public_resource_efficiency
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR period_start >= %s::date)
+              AND (%s::date IS NULL OR period_start <= %s::date)
+            ORDER BY resource_type, period_start DESC
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        resources = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT SUM(he.quantity) AS total_harvest_kg
+            FROM harvest_event he
+            WHERE he.location_id = %s AND he.status IN ('verified', 'published')
+              AND (%s::date IS NULL OR he.event_date >= %s::date)
+              AND (%s::date IS NULL OR he.event_date <= %s::date)
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        harvest = cur.fetchone()
+    finally:
+        cur.close()
     total_harvest = float(harvest["total_harvest_kg"] or 0) if harvest else 0
     by_type = {}
     for r in resources:
@@ -97,17 +99,19 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
 def generate_training_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe training impact report with participation and improvement metrics."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT * FROM v_public_training_impact
-        WHERE location_id = %s ORDER BY session_date DESC
-        """,
-        (location_id,),
-    )
-    sessions = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT * FROM v_public_training_impact
+            WHERE location_id = %s ORDER BY session_date DESC
+            """,
+            (location_id,),
+        )
+        sessions = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     unique_participants = len(set(s.get("participant_name") for s in sessions if s.get("participant_name")))
     avg_improvement = sum(s.get("improvement_pct", 0) or 0 for s in sessions) / max(len(sessions), 1)
     total_hours = sum(float(s.get("duration_hours", 0) or 0) for s in sessions)
@@ -137,17 +141,19 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
 def generate_revenue_streams(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe revenue streams report showing contribution to profitability."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT * FROM v_public_revenue_streams
-        WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC
-        """,
-        (location_id,),
-    )
-    streams = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT * FROM v_public_revenue_streams
+            WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC
+            """,
+            (location_id,),
+        )
+        streams = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     total_gross = sum(float(s.get("gross_revenue", 0) or 0) for s in streams)
     total_net = sum(float(s.get("net_contribution", 0) or 0) for s in streams)
     return {
@@ -175,25 +181,27 @@ def generate_revenue_streams(conn, location_id: str, period_start: str = None, p
 def generate_model_validation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe model validation report with prediction accuracy and feature importance."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT * FROM v_public_prediction_accuracy
-        WHERE location_id = %s ORDER BY prediction_date DESC
-        """,
-        (location_id,),
-    )
-    predictions = [dict(r) for r in cur.fetchall()]
-    cur.execute(
-        """
-        SELECT * FROM v_public_feature_importance
-        WHERE location_id = %s ORDER BY importance_score DESC
-        """,
-        (location_id,),
-    )
-    features = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT * FROM v_public_prediction_accuracy
+            WHERE location_id = %s ORDER BY prediction_date DESC
+            """,
+            (location_id,),
+        )
+        predictions = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT * FROM v_public_feature_importance
+            WHERE location_id = %s ORDER BY importance_score DESC
+            """,
+            (location_id,),
+        )
+        features = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     avg_mape = sum(p.get("mape", 0) or 0 for p in predictions) / max(len(predictions), 1)
     overall_accuracy = 100 - avg_mape
     return {
