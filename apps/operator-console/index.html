@@ -618,6 +618,7 @@
               <label for="operating-pilot-capacity-create-notes">Private note (optional)</label>
               <textarea id="operating-pilot-capacity-create-notes" maxlength="2000" rows="3"></textarea>
               <button id="operating-pilot-capacity-create-submit" type="submit">Save capacity draft</button>
+              <button id="operating-pilot-capacity-edit-cancel" class="secondary" type="button" hidden>Cancel draft edit</button>
             </form>
             <p id="operating-pilot-capacity-create-status" class="muted" role="status" aria-live="polite"></p>
           </section>
@@ -627,7 +628,7 @@
             <p id="operating-pilot-own-capacity-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Status</th><th>Source</th><th>Private note</th><th>Updated</th></tr></thead>
+                <thead><tr><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Status</th><th>Source</th><th>Private note</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-own-capacity-rows"></tbody>
               </table>
             </div>
@@ -1796,6 +1797,8 @@
       const operatingPilotCapacityCreate = document.querySelector("#operating-pilot-capacity-create");
       const operatingPilotCapacityCreateForm = document.querySelector("#operating-pilot-capacity-create-form");
       const operatingPilotCapacityCreateStatus = document.querySelector("#operating-pilot-capacity-create-status");
+      const operatingPilotCapacityEditCancel = document.querySelector("#operating-pilot-capacity-edit-cancel");
+      const operatingPilotCapacityCreateHeading = document.querySelector("#operating-pilot-capacity-create-heading");
       const operatingPilotDemandStatus = document.querySelector("#operating-pilot-demand-status");
       const operatingPilotDemandRows = document.querySelector("#operating-pilot-demand-rows");
       const operatingPilotDemandMore = document.querySelector("#operating-pilot-demand-more");
@@ -1815,8 +1818,10 @@
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
+      let operatingPilotEditOwnCapacityLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
       let operatingPilotPendingCapacityCreate = null;
+      let operatingPilotPendingCapacityEdit = null;
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
@@ -2556,7 +2561,9 @@
           );
           const result = await response.json().catch(() => ({}));
           if (response.status === 401 || response.status === 403) {
-            throw new Error("Your session or location create grant is no longer valid.");
+            throw new Error(isEditing
+              ? "Your session or location edit-own grant is no longer valid."
+              : "Your session or location create grant is no longer valid.");
           }
           if (!response.ok) throw new Error(result.error || "The demand draft could not be saved.");
           operatingPilotPendingDemandCreate = null;
@@ -2576,8 +2583,13 @@
       async function submitOperatingPilotCapacityDraft(event) {
         event.preventDefault();
         const locationId = operatingPilotLocation.value;
-        if (!operatingPilotCreateLocations.has(locationId)) {
-          operatingPilotCapacityCreateStatus.textContent = "A current location create grant is required.";
+        const profileId = operatingPilotPendingCapacityEdit?.profile_id || null;
+        const isEditing = profileId !== null;
+        if (isEditing ? !operatingPilotEditOwnCapacityLocations.has(locationId)
+          : !operatingPilotCreateLocations.has(locationId)) {
+          operatingPilotCapacityCreateStatus.textContent = isEditing
+            ? "A current location edit-own grant is required."
+            : "A current location create grant is required.";
           return;
         }
         const csrf = csrfToken();
@@ -2593,19 +2605,23 @@
           protected_hours: document.querySelector("#operating-pilot-capacity-create-protected").value,
           notes: document.querySelector("#operating-pilot-capacity-create-notes").value || null
         };
-        const fingerprint = JSON.stringify({ locationId, ...payload });
+        const fingerprint = JSON.stringify({ locationId, profileId, ...payload });
         if (!operatingPilotPendingCapacityCreate
             || operatingPilotPendingCapacityCreate.fingerprint !== fingerprint) {
           operatingPilotPendingCapacityCreate = { fingerprint, request_id: crypto.randomUUID() };
         }
         const submit = document.querySelector("#operating-pilot-capacity-create-submit");
         submit.disabled = true;
-        operatingPilotCapacityCreateStatus.textContent = "Saving your private capacity draft…";
+        operatingPilotCapacityCreateStatus.textContent = isEditing
+          ? "Saving a revised private capacity draft…"
+          : "Saving your private capacity draft…";
         try {
           const response = await fetch(
-            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/capacity-profiles`,
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/capacity-profiles${
+              isEditing ? `/${encodeURIComponent(profileId)}` : ""
+            }`,
             {
-              method: "POST", credentials: "same-origin", cache: "no-store",
+              method: isEditing ? "PUT" : "POST", credentials: "same-origin", cache: "no-store",
               headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
               body: JSON.stringify({ ...payload, request_id: operatingPilotPendingCapacityCreate.request_id })
             }
@@ -2616,10 +2632,18 @@
           }
           if (!response.ok) throw new Error(result.error || "The capacity draft could not be saved.");
           operatingPilotPendingCapacityCreate = null;
+          operatingPilotPendingCapacityEdit = null;
           operatingPilotCapacityCreateForm.reset();
-          operatingPilotCapacityCreateStatus.textContent = result.replayed
-            ? "Your original capacity draft was confirmed after retry; it remains a draft."
-            : "Capacity draft saved. It remains private and unsubmitted.";
+          operatingPilotCapacityEditCancel.hidden = true;
+          operatingPilotCapacityCreateHeading.textContent = "Record your capacity draft";
+          document.querySelector("#operating-pilot-capacity-create-submit").textContent = "Save capacity draft";
+          operatingPilotCapacityCreateStatus.textContent = isEditing
+            ? result.replayed
+              ? "Your revised draft was confirmed after retry; the prior version is retained as superseded."
+              : "Revised draft saved. The prior version is retained as superseded; the replacement remains private and unsubmitted."
+            : result.replayed
+              ? "Your original capacity draft was confirmed after retry; it remains a draft."
+              : "Capacity draft saved. It remains private and unsubmitted.";
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
             await loadOperatingPilotOwnCapacityProfiles();
           }
@@ -2628,6 +2652,69 @@
         } finally {
           submit.disabled = false;
         }
+      }
+
+      function cancelOperatingPilotCapacityEdit() {
+        operatingPilotPendingCapacityEdit = null;
+        operatingPilotPendingCapacityCreate = null;
+        operatingPilotCapacityCreateForm.reset();
+        operatingPilotCapacityEditCancel.hidden = true;
+        operatingPilotCapacityCreateHeading.textContent = "Record your capacity draft";
+        document.querySelector("#operating-pilot-capacity-create-submit").textContent = "Save capacity draft";
+        operatingPilotCapacityCreateStatus.textContent = "Draft edit canceled.";
+      }
+
+      function startOperatingPilotCapacityEdit(item, locationId) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotOwnCapacityLocations.has(locationId)
+            || !operatingPilotEditOwnCapacityLocations.has(locationId)
+            || item.status !== "draft"
+            || item.source !== "self_reported") return;
+        operatingPilotPendingCapacityEdit = { profile_id: item.profile_id, location_id: locationId };
+        operatingPilotPendingCapacityCreate = null;
+        document.querySelector("#operating-pilot-capacity-create-start").value = item.period_start || "";
+        document.querySelector("#operating-pilot-capacity-create-end").value = item.period_end || "";
+        document.querySelector("#operating-pilot-capacity-create-available").value = item.available_hours ?? "";
+        document.querySelector("#operating-pilot-capacity-create-committed").value = item.committed_hours ?? "0";
+        document.querySelector("#operating-pilot-capacity-create-protected").value = item.protected_hours ?? "0";
+        document.querySelector("#operating-pilot-capacity-create-notes").value = item.notes || "";
+        operatingPilotCapacityCreateHeading.textContent = "Revise your private capacity draft";
+        document.querySelector("#operating-pilot-capacity-create-submit").textContent = "Save revised draft";
+        operatingPilotCapacityEditCancel.hidden = false;
+        operatingPilotCapacityCreateStatus.textContent = "Only your self-reported draft can be revised. The previous version will remain in your history.";
+        operatingPilotCapacityCreate.scrollIntoView({ block: "nearest" });
+      }
+
+      function appendOperatingPilotOwnCapacityRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+          item.available_hours,
+          item.committed_hours,
+          item.protected_hours,
+          item.status,
+          item.source,
+          item.notes,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        if (operatingPilotEditOwnCapacityLocations.has(locationId)
+            && item.status === "draft" && item.source === "self_reported") {
+          const edit = document.createElement("button");
+          edit.type = "button";
+          edit.className = "secondary";
+          edit.textContent = "Edit your draft";
+          edit.addEventListener("click", () => startOperatingPilotCapacityEdit(item, locationId));
+          actionCell.append(edit);
+        } else {
+          actionCell.textContent = "—";
+        }
+        row.append(actionCell);
+        operatingPilotOwnCapacityRows.append(row);
       }
 
       async function loadOperatingPilotSummary() {
@@ -2853,16 +2940,7 @@
           if (requestVersion !== operatingPilotOwnCapacityRequestVersion
               || locationId !== operatingPilotLocation.value) return;
           for (const item of result.items || []) {
-            appendOperatingPilotRow(operatingPilotOwnCapacityRows, [
-              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
-              item.available_hours,
-              item.committed_hours,
-              item.protected_hours,
-              item.status,
-              item.source,
-              item.notes,
-              item.updated_at
-            ]);
+            appendOperatingPilotOwnCapacityRow(item, locationId);
           }
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
@@ -2887,7 +2965,9 @@
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
-        operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId);
+        operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)
+          && !(operatingPilotOwnCapacityLocations.has(locationId)
+            && operatingPilotEditOwnCapacityLocations.has(locationId));
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
@@ -11724,10 +11804,17 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotOwnCapacityLocations = new Set(operatingPilotOwnCapacityLocationIds);
+          const operatingPilotEditOwnCapacityLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "edit_own")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotEditOwnCapacityLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
             ...operatingPilotLocationIds,
             ...operatingPilotCreateLocationIds,
-            ...operatingPilotOwnCapacityLocationIds
+            ...operatingPilotOwnCapacityLocationIds,
+            ...operatingPilotEditOwnCapacityLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -15679,9 +15766,16 @@
       document.querySelector("#mobile-operations-refresh").addEventListener("click", loadMobileOperationsInventory);
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
-      operatingPilotLocation.addEventListener("change", loadOperatingPilot);
+      operatingPilotLocation.addEventListener("change", () => {
+        if (operatingPilotPendingCapacityEdit
+            && operatingPilotPendingCapacityEdit.location_id !== operatingPilotLocation.value) {
+          cancelOperatingPilotCapacityEdit();
+        }
+        loadOperatingPilot();
+      });
       operatingPilotDemandCreateForm.addEventListener("submit", submitOperatingPilotDemandDraft);
       operatingPilotCapacityCreateForm.addEventListener("submit", submitOperatingPilotCapacityDraft);
+      operatingPilotCapacityEditCancel.addEventListener("click", cancelOperatingPilotCapacityEdit);
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));

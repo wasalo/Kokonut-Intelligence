@@ -1833,6 +1833,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    operating_pilot_capacity_revision_match = re.fullmatch(
+        r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/capacity-profiles/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if operating_pilot_capacity_revision_match and method.upper() == "PUT" and enabled:
+        return {
+            "resource": "operating_pilot",
+            "action": "edit_own",
+            "public": False,
+            "location_id": operating_pilot_capacity_revision_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     operating_pilot_capacity_match = re.fullmatch(
         r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/capacity-periods", path
     )

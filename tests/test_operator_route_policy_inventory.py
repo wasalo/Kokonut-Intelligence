@@ -46,6 +46,7 @@ _PARAMETER_SAMPLES = {
     "program_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
     "summary_id": "99999999-9999-4999-8999-999999999996",
@@ -533,6 +534,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/capacity-profiles",
     ): _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PUT",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/capacity-profiles/dddddddd-dddd-4ddd-8ddd-dddddddddddc",
+    ): _expected("operating_pilot", "edit_own", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/my-capacity-profiles",

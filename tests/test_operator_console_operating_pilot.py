@@ -110,7 +110,8 @@ def test_summary_renders_only_fixed_aggregate_allowlists():
 
 def test_location_changes_and_load_more_are_wired_with_bounded_paging():
     source = CONSOLE.read_text(encoding="utf-8")
-    assert 'operatingPilotLocation.addEventListener("change", loadOperatingPilot)' in source
+    assert 'operatingPilotLocation.addEventListener("change", () =>' in source
+    assert "cancelOperatingPilotCapacityEdit();" in source
     assert 'operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true))' in source
     assert 'operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true))' in source
     assert 'operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true))' in source
@@ -134,10 +135,16 @@ def test_own_capacity_records_use_separate_grant_private_no_store_route_and_safe
     assert "my-capacity-profiles?${params}" in reader
     assert 'credentials: "same-origin"' in reader
     assert 'cache: "no-store"' in reader
-    assert "appendOperatingPilotRow(operatingPilotOwnCapacityRows" in reader
-    assert "item.notes" in reader
+    assert "appendOperatingPilotOwnCapacityRow(item, locationId)" in reader
     assert "innerHTML" not in reader
     assert "nextOffset <= 10000" in reader
+    own_row = _function(
+        source,
+        "function appendOperatingPilotOwnCapacityRow(item, locationId)",
+        "async function loadOperatingPilotOwnCapacityProfiles(append = false)",
+    )
+    assert "item.notes" in own_row
+    assert "textContent" in own_row
 
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
     no_aggregate_read = initialize.index("if (!operatingPilotLocations.has(locationId))")
@@ -176,7 +183,7 @@ def test_capacity_draft_form_is_create_grant_gated_and_never_submits_or_approves
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit
-    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit
+    assert 'method: isEditing ? "PUT" : "POST", credentials: "same-origin", cache: "no-store"' in submit
     assert '"X-CSRF-Token": csrf' in submit
     assert "crypto.randomUUID()" in submit
     assert "operatingPilotPendingCapacityCreate.request_id" in submit
@@ -184,7 +191,34 @@ def test_capacity_draft_form_is_create_grant_gated_and_never_submits_or_approves
     assert "private and unsubmitted" in submit
     assert "/approve" not in submit.lower()
     assert "/submit" not in submit.lower()
-    assert 'operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)' in source
+    assert "operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)\n          && !(operatingPilotOwnCapacityLocations.has(locationId)" in source
+    assert 'scope.action === "edit_own"' in source
+
+
+def test_capacity_revision_replaces_only_own_draft_under_separate_edit_own_grant():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotCapacityDraft(event)",
+        "function cancelOperatingPilotCapacityEdit()",
+    )
+    edit_row = _function(
+        source,
+        "function appendOperatingPilotOwnCapacityRow(item, locationId)",
+        "async function loadOperatingPilotOwnCapacityProfiles(append = false)",
+    )
+    assert "operatingPilotEditOwnCapacityLocations.has(locationId)" in submit
+    assert "method: isEditing ? \"PUT\" : \"POST\"" in submit
+    assert "encodeURIComponent(profileId)" in submit
+    assert "profileId, ...payload" in submit
+    assert "operatingPilotPendingCapacityCreate.request_id" in submit
+    assert "prior version is retained as superseded" in submit
+    assert 'item.status === "draft" && item.source === "self_reported"' in edit_row
+    assert "startOperatingPilotCapacityEdit(item, locationId)" in edit_row
+    assert "innerHTML" not in edit_row
+    assert "operatingPilotOwnCapacityLocations.has(locationId)" in source
+    assert "operatingPilotEditOwnCapacityLocations.has(locationId)" in source
+    assert 'id="operating-pilot-capacity-edit-cancel"' in source
 
 
 def test_create_only_location_can_open_draft_form_without_reading_queues():

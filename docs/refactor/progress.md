@@ -1,3 +1,28 @@
+### CAP-037 own capacity draft revision — 22 October 2026
+
+The operating-pilot Gateway can now revise an operator's own unsubmitted,
+self-reported capacity draft through the separate exact
+`operating_pilot:edit_own` location grant. Migration 555 checks signed scope,
+operator identity and binding, active Adelphi mapping, and ownership. It
+preserves the prior record as superseded and creates a replacement draft in
+one transaction. Private revision receipts make exact retries idempotent and
+reject changed retries; validation, authorization, and person-period
+collisions leave the original unchanged. The console requires both own-history
+read and edit-own grants to expose revision controls. No review or lifecycle
+action is included.
+
+The focused Gateway, policy, console, and write-contract selection passes 53
+tests. Ruff, compilation, and `git diff --check` pass. Network-disabled
+disposable PostgreSQL 16 applies/replays migrations 461, 479, 480, 526, 538,
+552, 553, 554, and 555 with 39 grouped assertions, including privilege and
+replay checks ([evidence](builds/2026-10-22-recovery/cap-037-own-capacity-draft-revision-disposable.json)).
+Candidate and legacy databases remain untouched; migration 555 is not rolled
+out. CAP-037 remains prepared (`P`) pending the remaining workflow, populated
+parity, live OIDC/browser, production ACL/RLS and recovery, audience/privacy,
+and owner-acceptance gates. Checklist: 980 complete / 24 open (1,004 total);
+capability matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66
+entries.
+
 ### CAP-037 private own-capacity history — 22 October 2026
 
 Added `GET /operator/api/operating-pilot/{location_id}/my-capacity-profiles` under a separate exact `operating_pilot:read_own` grant. Migration 554 rechecks signed location context, the active operator-to-person binding, and the active Adelphi scope, then returns only the caller’s own profiles and notes with bounded deterministic pagination. Generic `read` and `create` grants do not authorize this path. The console exposes the personal history separately and uses same-origin no-store requests and text-only rendering. The focused Gateway, policy, console, and migration-runner selection passes 112 tests; Ruff and compilation pass. Network-disabled disposable PostgreSQL 16 applies and replays migrations 461, 479, 480, 526, 538, 552, 553, and 554 with 32 grouped assertions, including own-row isolation, no-grant denial, signed-location mismatch, paging, and runtime/Directus privilege checks. Candidate and legacy databases remain untouched; migration 554 is not rolled out. CAP-037 remains prepared pending broader workflow parity, populated fixtures, live OIDC/browser acceptance, production ACL/RLS and recovery, and owner acceptance. Evidence: [own-capacity disposable acceptance](builds/2026-10-22-recovery/cap-037-own-capacity-private-read-disposable.json). Checklist: 979 complete / 24 open (1,003 total); matrix remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 entries.

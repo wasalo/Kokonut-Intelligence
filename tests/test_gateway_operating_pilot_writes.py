@@ -17,6 +17,7 @@ from services.gateway.operator_auth import auth_route_policy
 OPERATOR_ID = "a0000000-0000-4000-8000-000000000001"
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
 REQUEST_ID = "c0000000-0000-4000-8000-000000000001"
+PROFILE_ID = "d0000000-0000-4000-8000-000000000001"
 CAPACITY_PAYLOAD = {
     "period_start": "2026-11-01",
     "period_end": "2026-11-30",
@@ -384,3 +385,177 @@ def test_capacity_draft_route_policy_requires_exact_location_create_grant():
         )
         is None
     )
+
+
+def test_capacity_revision_sets_exact_edit_own_context_and_commits_result(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {
+            "profile_id": "e0000000-0000-4000-8000-000000000001",
+            "replaced_profile_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.revise_location_operating_pilot_capacity_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        CAPACITY_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "profile_id": "e0000000-0000-4000-8000-000000000001",
+        "replaced_profile_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "operating_pilot",
+                "action": "edit_own",
+            },
+        )
+    ]
+    assert "SET LOCAL statement_timeout" in cursor.execute.call_args_list[0].args[0]
+    assert "revise_location_operating_pilot_capacity_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        operating_pilot_writes.date(2026, 11, 1),
+        operating_pilot_writes.date(2026, 11, 30),
+        operating_pilot_writes.Decimal("40.25"),
+        operating_pilot_writes.Decimal("18.50"),
+        operating_pilot_writes.Decimal("2.25"),
+        "Private synthetic capacity note",
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_invalid_capacity_revision_is_rejected_before_database_access():
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match="profile identifier"):
+        operating_pilot_writes.revise_location_operating_pilot_capacity_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            "not-a-profile-id",
+            REQUEST_ID,
+            CAPACITY_PAYLOAD,
+            connection_factory=factory,
+        )
+
+    factory.assert_not_called()
+
+
+def test_capacity_revision_failure_rolls_back_and_closes_connection(monkeypatch):
+    connection, _cursor = _connection_with_result(None)
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(RuntimeError, match="revision returned no result"):
+        operating_pilot_writes.revise_location_operating_pilot_capacity_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            PROFILE_ID,
+            REQUEST_ID,
+            CAPACITY_PAYLOAD,
+            connection_factory=lambda: connection,
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
+def _capacity_revision_route_app(monkeypatch, action, provider=object()):
+    async def run_inline(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(operating_pilot_writes, "revise_location_operating_pilot_capacity_draft", action)
+    router = APIRouter()
+    register_operating_pilot_routes(router, provider, run_inline, __import__("psycopg2"))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def attach_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(operator=SimpleNamespace(operator_id=OPERATOR_ID))
+        return await call_next(request)
+
+    return TestClient(app)
+
+
+def test_capacity_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "profile_id": REQUEST_ID,
+            "replaced_profile_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
+    client = _capacity_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["status"] == "draft"
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, CAPACITY_PAYLOAD)
+
+
+def test_capacity_revision_http_route_denies_missing_edit_own_context(monkeypatch):
+    action = MagicMock(side_effect=TenantContextDenied("denied"))
+    client = _capacity_revision_route_app(monkeypatch, action)
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        json={**CAPACITY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 403
+    assert "edit-own access" in response.json()["error"]
+
+
+def test_capacity_revision_route_policy_requires_exact_location_edit_own_grant():
+    assert auth_route_policy(
+        "PUT",
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        enabled=True,
+    ) == {
+        "resource": "operating_pilot",
+        "action": "edit_own",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy(
+        "PUT",
+        f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-profiles/{PROFILE_ID}",
+        enabled=False,
+    ) is None

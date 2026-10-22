@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, personal capacity history and own-draft revision, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`
 
 ## Route and authorization
 
@@ -143,6 +143,34 @@ their owner. This is a read-only personal history view, not a review or
 lifecycle decision surface. Responses are same-origin and `no-store`, and the
 console renders fields through text nodes.
 
+## Capacity draft revision
+
+`PUT /operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}`
+uses a separate exact `operating_pilot:edit_own` location grant. The operator
+must also be able to read their own capacity history through
+`operating_pilot:read_own` to discover and select an editable record. Neither
+`create` nor general `read` implies `edit_own`; editing does not grant access to
+another person's records.
+
+The Gateway validates the location, profile, and request UUIDs and applies the
+same bounded period, decimal-hour, committed-plus-protected, and private-note
+rules as draft creation before connecting to PostgreSQL. Migration 555 then
+rechecks the signed location context, exact edit-own grant, enabled operator,
+unique active human-party binding, and active Adelphi mapping. It accepts only
+the caller's own `source='self_reported'`, `status='draft'` profile. It marks
+that version `superseded` and inserts a new self-attributed `draft` in the same
+transaction; submitted, approved, reviewed, or other-party profiles cannot be
+revised. It does not submit, verify, approve, reject, or publish either
+version.
+
+The private revision receipt binds the operator/request ID to the location,
+original profile, replacement profile, and canonical input digest. An
+identical retry returns the same replacement; a changed payload, location, or
+original profile under that request ID conflicts. Period collisions and all
+validation or authorization errors roll the transaction back, preserving the
+original draft. The response contains only the two profile IDs, current draft
+status, and replay indicator; private notes and hour values are not returned.
+
 ## Capacity draft creation
 
 The capacity POST accepts `period_start`, `period_end`, `available_hours`,
@@ -231,11 +259,14 @@ Directus receive no direct request-table access from migration 538.
 The operator console exposes five aggregate/read routes under exact
 `operating_pilot:read` grants and personal capacity history under the separate
 exact `operating_pilot:read_own` grant. Demand and capacity draft forms are
-separately gated by `operating_pilot:create`. The location selector uses the
-union of read, read-own, and create locations without allowing one grant to
-activate another surface. Requests are same-origin and `no-store`, and stale
-responses are discarded when the selected location changes. Pages are bounded
-and provide explicit load-more controls. Aggregate capacity hours, work-claim
+separately gated by `operating_pilot:create`. Revision controls appear only
+for a caller-owned `self_reported` draft when the location also has the exact
+`operating_pilot:edit_own` grant; history read and revision write remain
+independent permissions. The location selector uses the union of read,
+read-own, create, and edit-own locations without allowing one grant to activate
+another surface. Requests are same-origin and `no-store`, and stale responses
+are discarded when the selected location changes. Pages are bounded and
+provide explicit load-more controls. Aggregate capacity hours, work-claim
 counts, and resource-request counts remain suppressed below three contributors.
 Fixed allowlists and text-only DOM rendering are used. Draft forms add no
 lifecycle review actions and this does not constitute live OIDC/browser
@@ -259,8 +290,12 @@ direct write privileges on demand signals and capacity profiles from the
 legacy runtime and Directus logins. Migration 554 grants the non-login reader
 only the additional capacity columns required by the own-record function. The
 runtime and Directus roles receive no direct SELECT access to private notes;
-Directus cannot execute the own-record function, and the reader has no login or
-role memberships. Capacity retry receipts remain private.
+Directus cannot execute the own-record or revision function, and the reader
+has no login or role memberships. Migration 555 gives the non-login function
+owner only `status` UPDATE on capacity profiles and the bounded receipt
+columns needed to replay a revision. Runtime can execute the revision function
+but has no direct receipt access or profile write privilege. Capacity retry
+receipts remain private.
 This is a scoped ACL boundary, not universal least privilege or forced
 RLS: other tables, inherited memberships, and deployed ACL state still require
 review.
@@ -271,18 +306,18 @@ The Gateway contract and exact route policy are covered by
 `tests/test_gateway_operating_pilot_reads.py` and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-and 554,
-exercises active and internal scopes, checks aggregate values,
+554, and 555, exercises active and internal scopes, checks aggregate values,
 demand/capacity/own-capacity/claim/resource-category paging, small-cohort
-suppression, separate read-own grant enforcement, and data redaction; it also
+suppression, separate read-own and edit-own grant enforcement, revision replay,
+old-version preservation, collision rollback, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-or 554 are applied, retain their ordered functions, receipts, roles, and ACLs;
-disable only the affected route. Do not delete created demand drafts or edit or
+554, or 555 are applied, retain their ordered functions, receipts, roles, and
+ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
 
