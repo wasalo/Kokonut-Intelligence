@@ -14,7 +14,7 @@
       "callable": "generate_adaptive_stewardship",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 131,
+      "source_line": 137,
       "parameters": [
         "conn",
         "location_id",
@@ -399,7 +399,7 @@
       "callable": "generate_community_governance",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 46,
+      "source_line": 48,
       "parameters": [
         "conn",
         "location_id",
@@ -484,7 +484,7 @@
       "callable": "generate_cultural_preservation",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 47,
+      "source_line": 49,
       "parameters": [
         "conn",
         "location_id",
@@ -745,7 +745,7 @@
       "callable": "generate_foundational_wellbeing",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 151,
+      "source_line": 159,
       "parameters": [
         "conn",
         "location_id",
@@ -1306,7 +1306,7 @@
       "callable": "generate_renewable_energy",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 81,
+      "source_line": 85,
       "parameters": [
         "conn",
         "location_id",
@@ -1328,7 +1328,7 @@
       "callable": "generate_replication_readiness",
       "source_module": "services.export.reports.commons.stewardship",
       "source_file": "services/export/reports/commons/stewardship.py",
-      "source_line": 86,
+      "source_line": 90,
       "parameters": [
         "conn",
         "location_id",
@@ -2010,7 +2010,7 @@
       "callable": "generate_vulnerable_access",
       "source_module": "services.export.reports.commons.wellbeing",
       "source_file": "services/export/reports/commons/wellbeing.py",
-      "source_line": 117,
+      "source_line": 123,
       "parameters": [
         "conn",
         "location_id",

@@ -15095,13 +15095,14 @@ least privilege, and owner acceptance. Evidence:
 
 Core farm, crop, environmental, forecast and climate reports, state/location
 and actor rollups, strategic-reserve and capital-provider reports, four
-operational reports, all nine wellbeing-module reports, and report snapshot
-storage/verification now close cursors in `finally` when SQL execution or
-fetching fails. Snapshot insert/fetch failures also roll back before propagating;
-a missing farm location closes before raising. The failure-injection set covers
-120 query/fetch points, including DAO voter-query errors and both network/farm
-branches. The focused report selection passes 155 tests, and the expanded
-report/snapshot/CLI/inventory selection passes 318. Ruff,
+operational reports, all nine primary wellbeing reports, five commons wellbeing
+reports, four stewardship reports, and report snapshot storage/verification now
+close cursors in `finally` when SQL execution or fetching fails. Snapshot
+insert/fetch failures also roll back before propagating; a missing farm location
+closes before raising. The failure-injection set covers 156 query/fetch points,
+including DAO voter-query errors and both network/farm branches. The focused
+report selection passes 191 tests, and the expanded report/snapshot/CLI/inventory
+selection passes 354. Ruff,
 Python compilation, four generated-inventory freshness checks, capability-matrix
 validation, and `git diff --check` pass. SQL, parameters,
 transaction ownership, and output shapes are unchanged. No database, provider,

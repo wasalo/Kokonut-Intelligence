@@ -30,7 +30,7 @@
         {
           "caller": "generate_adaptive_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 153,
+          "line": 161,
           "depth": 1
         },
         {
@@ -3605,7 +3605,7 @@
         {
           "caller": "generate_community_governance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 74,
+          "line": 78,
           "depth": 1
         },
         {
@@ -4184,7 +4184,7 @@
         {
           "caller": "generate_cultural_preservation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 69,
+          "line": 73,
           "depth": 1
         },
         {
@@ -4827,7 +4827,7 @@
         {
           "caller": "generate_foundational_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 173,
+          "line": 183,
           "depth": 1
         },
         {
@@ -4862,7 +4862,7 @@
         {
           "caller": "generate_gnh_alignment",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 34,
+          "line": 36,
           "depth": 1
         },
         {
@@ -7422,7 +7422,7 @@
         {
           "caller": "generate_regenerative_outcomes",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 33,
+          "line": 35,
           "depth": 1
         },
         {
@@ -7543,7 +7543,7 @@
         {
           "caller": "generate_renewable_energy",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 103,
+          "line": 109,
           "depth": 1
         },
         {
@@ -7578,7 +7578,7 @@
         {
           "caller": "generate_replication_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 119,
+          "line": 125,
           "depth": 1
         },
         {
@@ -10586,7 +10586,7 @@
         {
           "caller": "generate_vulnerable_access",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 139,
+          "line": 147,
           "depth": 1
         },
         {

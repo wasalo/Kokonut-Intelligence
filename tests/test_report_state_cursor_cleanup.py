@@ -5,6 +5,8 @@ from __future__ import annotations
 import pytest
 
 from services.export.reports import core, operations, state, wellbeing
+from services.export.reports.commons import stewardship as commons_stewardship
+from services.export.reports.commons import wellbeing as commons_wellbeing
 
 
 class _FailingCursor:
@@ -44,6 +46,35 @@ class _Connection:
 
 
 _CASES = [
+    *((commons_wellbeing.generate_gnh_alignment, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_wellbeing.generate_gnh_alignment, ("location-1",), ("fetchone", 1)),
+    (commons_wellbeing.generate_gnh_alignment, ("location-1",), ("fetchall", 1)),
+    *((commons_wellbeing.generate_cultural_preservation, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_wellbeing.generate_cultural_preservation, ("location-1",), ("fetchone", 1)),
+    (commons_wellbeing.generate_cultural_preservation, ("location-1",), ("fetchall", 1)),
+    *((commons_wellbeing.generate_renewable_energy, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_wellbeing.generate_renewable_energy, ("location-1",), ("fetchone", 1)),
+    (commons_wellbeing.generate_renewable_energy, ("location-1",), ("fetchall", 1)),
+    *((commons_wellbeing.generate_vulnerable_access, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_wellbeing.generate_vulnerable_access, ("location-1",), ("fetchone", 1)),
+    (commons_wellbeing.generate_vulnerable_access, ("location-1",), ("fetchall", 1)),
+    *((commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("fetchone", 1)),
+    (commons_wellbeing.generate_foundational_wellbeing, ("location-1",), ("fetchall", 1)),
+    *((commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("fetchone", 1)),
+    (commons_stewardship.generate_regenerative_outcomes, ("location-1",), ("fetchall", 1)),
+    (commons_stewardship.generate_community_governance, ("location-1",), ("execute", 1)),
+    (commons_stewardship.generate_community_governance, ("location-1",), ("fetchall", 1)),
+    (commons_stewardship.generate_community_governance, (None,), ("execute", 1)),
+    (commons_stewardship.generate_community_governance, (None,), ("fetchall", 1)),
+    (commons_stewardship.generate_replication_readiness, ("location-1",), ("execute", 1)),
+    (commons_stewardship.generate_replication_readiness, ("location-1",), ("fetchall", 1)),
+    (commons_stewardship.generate_replication_readiness, (None,), ("execute", 1)),
+    (commons_stewardship.generate_replication_readiness, (None,), ("fetchall", 1)),
+    *((commons_stewardship.generate_adaptive_stewardship, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_stewardship.generate_adaptive_stewardship, ("location-1",), ("fetchone", 1)),
+    (commons_stewardship.generate_adaptive_stewardship, ("location-1",), ("fetchall", 1)),
     *((wellbeing.generate_risk_mitigation, ("location-1",), ("execute", index)) for index in range(1, 3)),
     (wellbeing.generate_risk_mitigation, ("location-1",), ("fetchone", 1)),
     (wellbeing.generate_risk_mitigation, ("location-1",), ("fetchall", 1)),
