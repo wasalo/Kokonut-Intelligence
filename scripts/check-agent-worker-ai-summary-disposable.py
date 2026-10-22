@@ -37,12 +37,17 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/540_scoped_agent_source_references.sql",
     ROOT / "schemas/postgres/541_agent_synthesis_source_reader.sql",
     ROOT / "schemas/postgres/542_agent_deterministic_summary_source_reader.sql",
+    ROOT / "schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql",
+    ROOT / "schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
+PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
+if PLATFORM not in {"", "linux/amd64", "linux/arm64"}:
+    raise SystemExit("KOKONUT_AGENT_WORKER_TEST_PLATFORM must be linux/amd64 or linux/arm64")
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
@@ -50,6 +55,16 @@ OTHER_LOCATION_ID = "a0000000-0000-0000-0000-000000000002"
 REQUEST_ID = "d0000000-0000-4000-8000-000000000901"
 RAW_CREDENTIAL = "synthetic-agent-summary-worker-credential-2026-10-21"
 CREDENTIAL_HASH = hashlib.sha256(RAW_CREDENTIAL.encode("utf-8")).hexdigest()
+SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000902"
+SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-source-credential-2026-10-22"
+SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+DETERMINISTIC_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000903"
+DETERMINISTIC_SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-deterministic-source-credential"
+DETERMINISTIC_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    DETERMINISTIC_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
 ADDITIONAL_SOURCE_TABLES = [
     "time_liberation_observation",
     "capital_alignment_assessment",
@@ -165,15 +180,8 @@ DETERMINISTIC_SOURCE_TABLES = (
 
 
 def _source_reader_acceptance() -> str:
-    expected_view_checks = " OR ".join(
-        "NOT has_table_privilege('kokonut_agent_summary_source_reader', "
-        f"'public.{view_name}', 'SELECT')"
-        for view_name in SOURCE_READER_VIEWS
-    )
-    approved_relation_list = ", ".join(
-        f"'{relation_name}'"
-        for relation_name in (*SOURCE_READER_VIEWS, "geography_columns", "geometry_columns", "spatial_ref_sys")
-    )
+    approved_view_list = ", ".join(f"'{view_name}'" for view_name in SOURCE_READER_VIEWS)
+    approved_metadata = "'geography_columns', 'geometry_columns', 'spatial_ref_sys'"
     return f"""
     BEGIN;
     SET LOCAL ROLE kokonut_agent_summary_source_login;
@@ -182,17 +190,54 @@ def _source_reader_acceptance() -> str:
         IF current_user <> 'kokonut_agent_summary_source_login' THEN
             RAISE EXCEPTION 'source login role was not selected';
         END IF;
-        IF has_table_privilege(current_user, 'public.v_public_capital_efficiency_summary', 'SELECT') THEN
-            RAISE EXCEPTION 'NOINHERIT source login unexpectedly inherited reader privileges';
+        IF has_table_privilege(
+            current_user,
+            (SELECT relation.oid
+               FROM pg_catalog.pg_class AS relation
+               JOIN pg_catalog.pg_namespace AS namespace
+                 ON namespace.oid = relation.relnamespace
+              WHERE namespace.nspname = 'kokonut_agent_source'
+                AND relation.relname = 'v_public_capital_efficiency_summary'),
+            'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'NOINHERIT source login unexpectedly inherited scoped-reader privileges';
         END IF;
         IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.ai_summary', 'SELECT') THEN
             RAISE EXCEPTION 'source reader can select private ai_summary rows';
         END IF;
-        IF {expected_view_checks} THEN
-            RAISE EXCEPTION 'source reader is missing an approved public view grant';
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_security.worker_credential', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'source reader can inspect worker credentials';
         END IF;
-        IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.v_public_capital_efficiency_summary', 'INSERT') THEN
-            RAISE EXCEPTION 'source reader can write to an approved public view';
+        IF has_function_privilege(
+            current_user,
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) THEN
+            RAISE EXCEPTION 'source login can use worker-scope inspection directly';
+        END IF;
+        IF NOT has_function_privilege(
+            current_user,
+            'kokonut_security.set_worker_tenant_context(text,uuid,text,text)', 'EXECUTE'
+        ) THEN
+            RAISE EXCEPTION 'source login cannot establish its signed read scope';
+        END IF;
+        IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.v_public_capital_efficiency_summary', 'SELECT') THEN
+            RAISE EXCEPTION 'source reader can bypass the location-scoped wrapper';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'kokonut_agent_source'
+               AND relation.relname::text = ANY(ARRAY[{approved_view_list}]::text[])
+               AND NOT has_table_privilege(
+                   'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
+               )
+        ) THEN
+            RAISE EXCEPTION 'source reader is missing an approved scoped view grant';
         END IF;
         IF EXISTS (
             SELECT 1
@@ -204,9 +249,9 @@ def _source_reader_acceptance() -> str:
                AND has_table_privilege(
                    'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
                )
-               AND relation.relname::text <> ALL (ARRAY[{approved_relation_list}]::text[])
+               AND relation.relname::text <> ALL (ARRAY[{approved_metadata}]::text[])
         ) THEN
-            RAISE EXCEPTION 'source reader can select an unapproved public relation';
+            RAISE EXCEPTION 'source reader can select a public relation directly';
         END IF;
         IF EXISTS (
             SELECT 1
@@ -227,35 +272,160 @@ def _source_reader_acceptance() -> str:
         IF has_schema_privilege('kokonut_agent_summary_source_reader', 'public', 'CREATE') THEN
             RAISE EXCEPTION 'source reader can create public objects';
         END IF;
+        IF has_schema_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source', 'CREATE') THEN
+            RAISE EXCEPTION 'source reader can replace scoped views';
+        END IF;
     END;
     $$;
     SET LOCAL ROLE kokonut_agent_summary_source_reader;
-    SELECT count(*) FROM public.v_public_capital_efficiency_summary;
-    SELECT count(*) FROM public.v_public_bio_regional_input_summary;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows
+          FROM kokonut_agent_source.v_public_capital_efficiency_summary;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'scoped source view returned rows without signed context';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.v_public_capital_efficiency_summary;
+            RAISE EXCEPTION 'source reader can query an unfiltered source view';
+        EXCEPTION WHEN insufficient_privilege THEN
+            NULL;
+        END;
+    END;
+    $$;
+    ROLLBACK;
+    """
+
+
+def _source_reader_scope_acceptance() -> str:
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{SOURCE_WORKER_ID}', 'agent-summary-source');
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{SOURCE_WORKER_ID}', '{SOURCE_CREDENTIAL_HASH}');
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic source-reader acceptance fixture'
+    );
+
+    SET ROLE kokonut_agent_summary_source_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows
+          FROM kokonut_agent_source.v_public_capital_efficiency_summary;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'source rows were visible before context setup';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE
+        exact_count BIGINT;
+        mixed_count BIGINT;
+        network_count BIGINT;
+        foreign_row BOOLEAN;
+    BEGIN
+        SELECT count(*) INTO exact_count
+          FROM kokonut_agent_source.v_public_capital_efficiency_summary;
+        IF exact_count <> 1 THEN
+            RAISE EXCEPTION 'exact-location source wrapper returned % rows, expected 1', exact_count;
+        END IF;
+        SELECT EXISTS (
+            SELECT 1
+              FROM kokonut_agent_source.v_public_capital_efficiency_summary
+             WHERE id = 'e0000000-0000-4000-8000-000000000203'
+        ) INTO foreign_row;
+        IF foreign_row THEN
+            RAISE EXCEPTION 'exact-location source wrapper returned a foreign row';
+        END IF;
+        SELECT count(*) INTO mixed_count
+          FROM kokonut_agent_source.v_public_farm_launch_unit_economics;
+        IF mixed_count <> 2 THEN
+            RAISE EXCEPTION 'mixed-scope source wrapper returned % rows, expected one location and one unassigned row', mixed_count;
+        END IF;
+        SELECT EXISTS (
+            SELECT 1
+              FROM kokonut_agent_source.v_public_farm_launch_unit_economics
+             WHERE id = 'e0000000-0000-4000-8000-000000000809'
+        ) INTO foreign_row;
+        IF foreign_row THEN
+            RAISE EXCEPTION 'mixed-scope source wrapper returned another location row';
+        END IF;
+        SELECT count(*) INTO network_count
+          FROM kokonut_agent_source.v_public_bio_regional_input_summary;
+        IF network_count <> 1 THEN
+            RAISE EXCEPTION 'network source wrapper requires context but preserves its public catalogue';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.v_public_capital_efficiency_summary;
+            RAISE EXCEPTION 'source reader can query the original unfiltered view';
+        EXCEPTION WHEN insufficient_privilege THEN
+            NULL;
+        END;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows
+          FROM kokonut_agent_source.v_public_capital_efficiency_summary;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'location without a worker grant acquired source access';
+        END IF;
+    END;
+    $$;
     ROLLBACK;
     """
 
 
 def _deterministic_source_reader_acceptance() -> str:
-    expected_table_checks = " OR ".join(
+    wrappers = DETERMINISTIC_SOURCE_TABLES
+    wrapper_read_checks = " OR ".join(
         "NOT has_table_privilege('kokonut_agent_summary_deterministic_reader', "
+        f"'kokonut_agent_source.{wrapper_name}', 'SELECT')"
+        for wrapper_name in wrappers
+    )
+    raw_read_checks = " OR ".join(
+        "has_table_privilege('kokonut_agent_summary_deterministic_reader', "
         f"'public.{table_name}', 'SELECT')"
         for table_name in DETERMINISTIC_SOURCE_TABLES
     )
-    approved_relation_list = ", ".join(
-        f"'{relation_name}'"
-        for relation_name in (
-            *DETERMINISTIC_SOURCE_TABLES,
-            "geography_columns",
-            "geometry_columns",
-            "spatial_ref_sys",
-        )
-    )
-    table_reads = "\n".join(
-        f"SELECT count(*) FROM public.{table_name};"
-        for table_name in DETERMINISTIC_SOURCE_TABLES
+    wrapper_reads = "\n".join(
+        f"PERFORM count(*) FROM kokonut_agent_source.{wrapper_name};"
+        for wrapper_name in wrappers
     )
     return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{DETERMINISTIC_SOURCE_WORKER_ID}', 'agent-summary-deterministic-source');
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{DETERMINISTIC_SOURCE_WORKER_ID}', '{DETERMINISTIC_SOURCE_CREDENTIAL_HASH}');
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{DETERMINISTIC_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic deterministic source-reader fixture'
+    );
+
     BEGIN;
     SET LOCAL ROLE kokonut_agent_summary_deterministic_source_login;
     DO $$
@@ -263,18 +433,27 @@ def _deterministic_source_reader_acceptance() -> str:
         IF current_user <> 'kokonut_agent_summary_deterministic_source_login' THEN
             RAISE EXCEPTION 'deterministic source login role was not selected';
         END IF;
-        IF has_table_privilege(
-            current_user, 'public.harvest_event', 'SELECT'
+        IF has_table_privilege(current_user, 'public.harvest_event', 'SELECT')
+           OR has_table_privilege(
+               current_user, 'kokonut_agent_source.harvest_event', 'SELECT'
+           ) THEN
+            RAISE EXCEPTION 'deterministic source login can bypass its reader role';
+        END IF;
+        IF has_function_privilege(
+            current_user,
+            'kokonut_security.current_worker_scope(text,text)',
+            'EXECUTE'
+        ) OR NOT has_function_privilege(
+            current_user,
+            'kokonut_security.set_worker_tenant_context(text,uuid,text,text)',
+            'EXECUTE'
         ) THEN
-            RAISE EXCEPTION 'NOINHERIT deterministic source login unexpectedly inherited reader privileges';
+            RAISE EXCEPTION 'deterministic source login has broader than setter-only function access';
         END IF;
         IF has_table_privilege(
             'kokonut_agent_summary_deterministic_reader', 'public.ai_summary', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'deterministic source reader can select private ai_summary rows';
-        END IF;
-        IF {expected_table_checks} THEN
-            RAISE EXCEPTION 'deterministic source reader is missing an approved table grant';
         END IF;
         IF EXISTS (
             SELECT 1
@@ -286,9 +465,17 @@ def _deterministic_source_reader_acceptance() -> str:
                AND has_table_privilege(
                    'kokonut_agent_summary_deterministic_reader', relation.oid, 'SELECT'
                )
-               AND relation.relname::text <> ALL (ARRAY[{approved_relation_list}]::text[])
+               AND relation.relname::text <> ALL (
+                   ARRAY['geography_columns', 'geometry_columns', 'spatial_ref_sys']::text[]
+               )
         ) THEN
-            RAISE EXCEPTION 'deterministic source reader can select an unapproved public relation';
+            RAISE EXCEPTION 'deterministic source reader retains raw public relation access';
+        END IF;
+        IF {raw_read_checks} THEN
+            RAISE EXCEPTION 'deterministic source reader can select a raw source relation';
+        END IF;
+        IF {wrapper_read_checks} THEN
+            RAISE EXCEPTION 'deterministic source reader is missing a scoped view grant';
         END IF;
         IF EXISTS (
             SELECT 1
@@ -307,14 +494,81 @@ def _deterministic_source_reader_acceptance() -> str:
             RAISE EXCEPTION 'deterministic source reader has public write privileges';
         END IF;
         IF has_schema_privilege(
-            'kokonut_agent_summary_deterministic_reader', 'public', 'CREATE'
+            'kokonut_agent_summary_deterministic_reader', 'kokonut_agent_source', 'CREATE'
+        ) OR has_schema_privilege(
+            'kokonut_agent_summary_deterministic_source_login', 'kokonut_agent_source', 'CREATE'
         ) THEN
-            RAISE EXCEPTION 'deterministic source reader can create public objects';
+            RAISE EXCEPTION 'deterministic source roles can create source objects';
         END IF;
     END;
     $$;
+
     SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
-    {table_reads}
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM harvest_event;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'deterministic location data was visible without signed context';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.harvest_event;
+            RAISE EXCEPTION 'deterministic reader can query the raw public table';
+        EXCEPTION WHEN insufficient_privilege THEN
+            NULL;
+        END;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_source_login;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{DETERMINISTIC_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE exact_count BIGINT; crop_count BIGINT;
+            foreign_row BOOLEAN;
+    BEGIN
+        {wrapper_reads}
+        SELECT count(*) INTO exact_count FROM harvest_event;
+        IF exact_count <> 1 THEN
+            RAISE EXCEPTION 'deterministic view returned % harvest rows; expected only the signed location row', exact_count;
+        END IF;
+        SELECT EXISTS (
+            SELECT 1 FROM harvest_event
+             WHERE id = 'e0000000-0000-4000-8000-000000000002'
+        ) INTO foreign_row;
+        IF foreign_row THEN
+            RAISE EXCEPTION 'deterministic view exposed another location harvest';
+        END IF;
+        SELECT count(*) INTO crop_count FROM crop;
+        IF crop_count <> 1 THEN
+            RAISE EXCEPTION 'shared crop catalog is unavailable under valid signed scope';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_source_login;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{DETERMINISTIC_SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM harvest_event;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'location without a deterministic worker grant acquired source rows';
+        END IF;
+    END;
+    $$;
     ROLLBACK;
     """
 
@@ -1555,7 +1809,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, and 539-542 apply; migrations 530-537 and 539-542 replay",
+        "migrations 405, 419, 521-524, 529-537, and 539-544 apply; migrations 530-537 and 539-544 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -1581,9 +1835,9 @@ def main() -> int:
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
-        "synthesis source login has explicit access to the 40 approved public views, permits only three PostGIS metadata catalogs if installed, cannot read private summaries or other public relations, and cannot write data",
-        "deterministic summary source login has explicit SELECT on its 13 source relations only, cannot read private summaries or other public relations, and cannot write data",
-        "migration 542 replay removes stale private-summary reads and writes before reapplying the deterministic source allowlist",
+        "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
+        "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
+        "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
     ]
@@ -1592,32 +1846,42 @@ def main() -> int:
         "migrations": [path.name for path in MIGRATIONS],
         "database_target": "new disposable PostgreSQL 16 container with network disabled",
         "postgres_image": IMAGE,
+        "requested_platform": PLATFORM or "native",
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis and deterministic summary reads use separate relation-level identities; synthesis reads are limited to 40 registered views plus three optional PostGIS metadata catalogs, deterministic summaries to 13 fixed source relations; location filters remain in application queries and these identities do not establish row-level tenant isolation",
+        "source_reader_note": "shared synthesis and deterministic summary reads require separate database-signed ai_summary/read worker grants and use 40 shared-agent wrappers plus 13 deterministic wrappers; every operational relation is exact-location filtered, while crop and expense-category remain network reference catalogs",
         "checks": checks,
     }
     stage = "container_start"
     try:
-        base.run([
-            docker, "run", "--rm", "--detach", "--name", container,
+        docker_run = [docker, "run"]
+        if PLATFORM:
+            docker_run.extend(["--platform", PLATFORM])
+        docker_run.extend([
+            "--rm", "--detach", "--name", container,
             "--network", "none", "--env", "POSTGRES_HOST_AUTH_METHOD=trust", IMAGE,
         ])
+        base.run(docker_run)
         base.wait_ready(docker, container)
         evidence["container_uname"] = base.run([docker, "exec", container, "uname", "-m"])
+        expected_architecture = {"linux/amd64": "x86_64", "linux/arm64": "aarch64"}.get(PLATFORM)
+        if expected_architecture and evidence["container_uname"] != expected_architecture:
+            raise RuntimeError(
+                f"container architecture {evidence['container_uname']!r} does not match {PLATFORM}"
+            )
         stage = "worker_fixture_and_migrations_405_419"
         base.psql(docker, container, WORKER_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_")):
                 if migration_path.name.startswith("542_"):
                     base.psql(
                         docker,
@@ -1625,10 +1889,27 @@ def main() -> int:
                         "GRANT SELECT, INSERT ON public.ai_summary "
                         "TO kokonut_agent_summary_deterministic_reader;",
                     )
+                if migration_path.name.startswith("543_"):
+                    base.psql(
+                        docker,
+                        container,
+                        "GRANT SELECT, INSERT ON public.ai_summary "
+                        "TO kokonut_agent_summary_source_reader;",
+                    )
+                if migration_path.name.startswith("544_"):
+                    base.psql(
+                        docker,
+                        container,
+                        "GRANT SELECT, INSERT ON public.harvest_event "
+                        "TO kokonut_agent_summary_deterministic_reader, "
+                        "kokonut_agent_summary_deterministic_source_login;",
+                    )
                 base.psql(docker, container, sql)
         stage = "synthesis_source_reader_role_acceptance"
         base.psql(docker, container, _source_reader_acceptance())
-        stage = "deterministic_summary_source_reader_role_acceptance"
+        stage = "synthesis_source_reader_signed_location_scope_acceptance"
+        base.psql(docker, container, _source_reader_scope_acceptance())
+        stage = "deterministic_summary_signed_source_view_acceptance"
         base.psql(docker, container, _deterministic_source_reader_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())

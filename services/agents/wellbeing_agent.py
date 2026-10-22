@@ -23,7 +23,7 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         """
         SELECT practice_name, practice_type, stakeholder_group, language,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_context_summary
+        FROM kokonut_agent_source.v_public_cultural_context_summary
         WHERE location_id = %s
         ORDER BY practice_type, practice_name
         """,
@@ -36,7 +36,7 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         SELECT metric_key, metric_name, observation_date, stakeholder_group,
                language, score_value, count_value, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_wellbeing_metric_summary
+        FROM kokonut_agent_source.v_public_wellbeing_metric_summary
         WHERE location_id = %s
         ORDER BY observation_date DESC, metric_key
         """,
@@ -49,7 +49,7 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         SELECT action_type, action_date, stakeholder_group, feedback_type,
                sentiment, metric_name, metric_proposal_status, decision_status,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_participatory_governance_summary
+        FROM kokonut_agent_source.v_public_participatory_governance_summary
         WHERE location_id = %s
         ORDER BY action_date DESC, action_type
         """,

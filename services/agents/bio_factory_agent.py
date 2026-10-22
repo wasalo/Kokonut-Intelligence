@@ -29,7 +29,7 @@ def _synthesize_batches(cur, location_id: str | None) -> list[dict[str, Any]]:
                input_kg_total, output_kg_total, output_liters_total, batch_yield_pct,
                moisture_pct, temperature_c, ph_level, microbial_strain,
                public_summary, limitations, evidence_maturity, evidence_maturity_label
-        FROM v_public_bio_factory_batch_summary
+        FROM kokonut_agent_source.v_public_bio_factory_batch_summary
         {where}
         ORDER BY production_start_date DESC, batch_name
         """,
@@ -47,7 +47,7 @@ def _synthesize_provenance(cur, location_id: str | None) -> list[dict[str, Any]]
                origin_country, origin_region, input_kg,
                nutrient_n_pct, nutrient_p_pct, nutrient_k_pct,
                quality_warnings, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_bio_input_provenance_summary
+        FROM kokonut_agent_source.v_public_bio_input_provenance_summary
         {where}
         ORDER BY input_category, input_name
         """,
@@ -65,7 +65,7 @@ def _synthesize_recipes(cur, location_id: str | None) -> list[dict[str, Any]]:
                target_temperature_c, target_ph, dilution_ratio, application_method,
                quality_warnings, source_reference,
                public_summary, limitations, evidence_maturity, evidence_maturity_label
-        FROM v_public_bio_recipe_library_summary
+        FROM kokonut_agent_source.v_public_bio_recipe_library_summary
         {where}
         ORDER BY recipe_type, recipe_name
         """,
@@ -82,7 +82,7 @@ def _synthesize_quality(cur, location_id: str | None) -> list[dict[str, Any]]:
                measured_value, unit, target_min, target_max, pass_fail,
                lab_name, lab_accredited,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_bio_factory_quality_test_summary
+        FROM kokonut_agent_source.v_public_bio_factory_quality_test_summary
         {where}
         ORDER BY test_date DESC, parameter_name
         """,
@@ -97,7 +97,7 @@ def _synthesize_regional(cur) -> list[dict[str, Any]]:
         SELECT region_scope, input_name, input_category, country, subregion,
                seasonality, cautions, quality_considerations, typical_suppliers,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_bio_regional_input_summary
+        FROM kokonut_agent_source.v_public_bio_regional_input_summary
         ORDER BY region_scope, input_name
         """
     )

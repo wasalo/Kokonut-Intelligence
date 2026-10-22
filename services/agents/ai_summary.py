@@ -71,9 +71,9 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
                     SELECT selected.id::text, COUNT(*) OVER () AS row_count
                       FROM (
                           SELECT DISTINCT crop.id
-                            FROM public.crop AS crop
-                            JOIN public.crop_cycle AS cycle ON cycle.crop_id = crop.id
-                            JOIN public.sales_event AS sale ON sale.crop_cycle_id = cycle.id
+                            FROM crop AS crop
+                            JOIN crop_cycle AS cycle ON cycle.crop_id = crop.id
+                            JOIN sales_event AS sale ON sale.crop_cycle_id = cycle.id
                            WHERE cycle.location_id = %s
                              AND sale.location_id = %s
                              AND cycle.location_id = sale.location_id
@@ -91,8 +91,8 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
                     SELECT selected.id::text, COUNT(*) OVER () AS row_count
                       FROM (
                           SELECT category.id
-                            FROM public.expense_category AS category
-                            JOIN public.expense_event AS expense
+                            FROM expense_category AS category
+                            JOIN expense_event AS expense
                               ON expense.category = category.name
                            WHERE expense.location_id = %s
                              AND expense.status IN ('verified', 'published')
@@ -108,7 +108,7 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
                 query = f"""
                     SELECT selected.id::text, COUNT(*) OVER () AS row_count
                       FROM (
-                          SELECT id FROM public.{table}
+                          SELECT id FROM {table}
                            WHERE location_id = %s AND ({predicate})
                            ORDER BY {ordering}
                            LIMIT 1
@@ -118,7 +118,7 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
             else:
                 query = f"""
                     SELECT id::text, COUNT(*) OVER () AS row_count
-                      FROM public.{table}
+                      FROM {table}
                      WHERE location_id = %s AND ({predicate})
                      ORDER BY {ordering}
                      LIMIT %s
@@ -205,7 +205,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
         "crop_cycle": ("status = 'active'", (), "id", False),
         "sensor_reading": (
             "reading_date >= CURRENT_DATE - INTERVAL '30 days' AND EXISTS ("
-            "SELECT 1 FROM (SELECT sensor_type FROM public.sensor_reading "
+            "SELECT 1 FROM (SELECT sensor_type FROM sensor_reading "
             "WHERE location_id = %s AND reading_date >= CURRENT_DATE - INTERVAL '30 days' "
             "GROUP BY sensor_type ORDER BY COUNT(*) DESC, sensor_type NULLS LAST LIMIT 3) "
             "AS top_sensor_types WHERE top_sensor_types.sensor_type "
@@ -270,13 +270,13 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     source_references = _collect_source_references(conn, location_id, {
         "sales_event": (
             "status IN ('verified', 'published') AND EXISTS ("
-            "SELECT 1 FROM public.crop_cycle AS cycle "
+            "SELECT 1 FROM crop_cycle AS cycle "
             "WHERE cycle.id = sales_event.crop_cycle_id "
             "AND cycle.location_id = sales_event.location_id)",
             (), "sale_date, id", False,
         ),
         "crop_cycle": (
-            "id IN (SELECT DISTINCT se.crop_cycle_id FROM public.sales_event AS se "
+            "id IN (SELECT DISTINCT se.crop_cycle_id FROM sales_event AS se "
             "WHERE se.location_id = %s AND se.status IN ('verified', 'published') "
             "AND se.crop_cycle_id IS NOT NULL)",
             (location_id,),
@@ -285,8 +285,8 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         ),
         "expense_event": (
             "status IN ('verified', 'published') AND category IN ("
-            "SELECT ee.category FROM public.expense_event AS ee "
-            "JOIN public.expense_category AS ec ON ee.category = ec.name "
+            "SELECT ee.category FROM expense_event AS ee "
+            "JOIN expense_category AS ec ON ee.category = ec.name "
             "WHERE ee.location_id = %s AND ee.status IN ('verified', 'published') "
             "GROUP BY ee.category ORDER BY SUM(ee.amount) DESC, ee.category LIMIT 5)",
             (location_id,), "expense_date, id", False,

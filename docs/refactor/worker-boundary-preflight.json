@@ -187,17 +187,17 @@
         "import_closure_operation_count": 32
       },
       {
-        "site": "services/common/tenant_context.py:215:8",
+        "site": "services/common/tenant_context.py:258:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },
       {
-        "site": "services/common/tenant_context.py:295:8",
+        "site": "services/common/tenant_context.py:338:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },
       {
-        "site": "services/common/tenant_context.py:361:8",
+        "site": "services/common/tenant_context.py:404:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },

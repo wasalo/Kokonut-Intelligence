@@ -8,9 +8,15 @@ import pytest
 
 from services.agents import worker_cli
 from services.agents.bio_factory_agent import BioFactorySynthesisAgent
+from services.common.worker_database import WorkerDatabaseConfigurationError
 
 LOCATION_ID = "00000000-0000-0000-0000-000000000123"
 REQUEST_ID = "00000000-0000-0000-0000-000000000456"
+
+
+@pytest.fixture(autouse=True)
+def _source_worker_credential(monkeypatch):
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "s" * 40)
 
 
 def test_worker_cli_replays_before_opening_source_database():
@@ -29,9 +35,7 @@ def test_worker_cli_replays_before_opening_source_database():
 
 
 def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
-    cursor = MagicMock()
-    connection = MagicMock()
-    connection.cursor.return_value.__enter__.return_value = cursor
+    connection, cursor = _source_connection()
     summary = {
         "content": "Synthetic summary",
         "source_tables": ["harvest_event"],
@@ -51,12 +55,21 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
         draft_writer=writer,
     )
 
-    assert [call.args[0] for call in cursor.execute.call_args_list] == [
-        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+    statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
+    assert statements[0] == "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+    assert "set_config(%s, '', TRUE)" in statements[1]
+    assert "kokonut_security.set_worker_tenant_context" in statements[2]
+    assert statements[3:] == [
         "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader",
+        "SET LOCAL search_path = kokonut_agent_source, public",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
+    assert cursor.execute.call_args_list[2].args[1][1:] == (
+        LOCATION_ID,
+        "ai_summary",
+        "read",
+    )
     connection.commit.assert_not_called()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
@@ -74,7 +87,7 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
 
 
 def test_worker_cli_does_not_write_after_source_generation_failure():
-    connection = MagicMock()
+    connection, _cursor = _source_connection()
     writer = MagicMock()
 
     with pytest.raises(RuntimeError, match="source query failed"):
@@ -105,7 +118,14 @@ def _synthetic_synthesis_agent() -> BioFactorySynthesisAgent:
 
 def _source_connection():
     cursor = MagicMock()
+    cursor.fetchone.return_value = (
+        "a0000000-0000-0000-0000-000000000801",
+        LOCATION_ID,
+        "a0000000-0000-0000-0000-000000000901",
+        "system_worker",
+    )
     connection = MagicMock()
+    connection.autocommit = False
     connection.cursor.return_value.__enter__.return_value = cursor
     return connection, cursor
 
@@ -224,12 +244,16 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
             draft_writer=writer,
         )
 
-    assert [call.args[0] for call in cursor.execute.call_args_list] == [
-        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+    statements = [call.args[0] for call in cursor.execute.call_args_list]
+    assert statements[0] == "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+    assert "set_config(%s, '', TRUE)" in statements[1]
+    assert "kokonut_security.set_worker_tenant_context" in statements[2]
+    assert statements[3:] == [
         "SET LOCAL ROLE kokonut_agent_summary_source_reader",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
+    assert "SET LOCAL ROLE kokonut_worker_execution" not in statements
     connection.commit.assert_not_called()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
@@ -278,6 +302,29 @@ def test_synthesis_worker_defaults_to_isolated_source_login_not_shared_database(
     source_factory.assert_called_once_with("agent_summary_source")
 
 
+def test_synthesis_worker_requires_source_credential_before_opening_source_database(
+    monkeypatch,
+):
+    agent = _synthetic_synthesis_agent()
+    source_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
+    credential_reader = MagicMock(
+        side_effect=WorkerDatabaseConfigurationError("source credential is required")
+    )
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+
+    with pytest.raises(WorkerDatabaseConfigurationError, match="source credential is required"):
+        worker_cli.run_worker_synthesis(
+            agent,
+            LOCATION_ID,
+            REQUEST_ID,
+            connection_factory=source_factory,
+            existing_reader=lambda *_args: None,
+        )
+
+    credential_reader.assert_called_once_with("agent_summary_source")
+    source_factory.assert_not_called()
+
+
 def test_deterministic_worker_defaults_to_its_own_source_login(monkeypatch):
     connection, _cursor = _source_connection()
     source_factory = MagicMock(return_value=connection)
@@ -294,6 +341,30 @@ def test_deterministic_worker_defaults_to_its_own_source_login(monkeypatch):
 
     source_factory.assert_called_once_with("agent_summary_deterministic_source")
     assert result["summary_id"] == "saved-id"
+
+
+def test_deterministic_worker_requires_source_credential_before_opening_source_db(
+    monkeypatch,
+):
+    connection_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
+    credential_reader = MagicMock(
+        side_effect=WorkerDatabaseConfigurationError(
+            "deterministic source credential is required"
+        )
+    )
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+
+    with pytest.raises(WorkerDatabaseConfigurationError, match="source credential is required"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=lambda *_args: None,
+        )
+
+    credential_reader.assert_called_once_with("agent_summary_deterministic_source")
+    connection_factory.assert_not_called()
 
 
 def test_worker_summary_rejects_unregistered_type_before_request_lookup():

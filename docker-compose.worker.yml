@@ -91,8 +91,8 @@ services:
     profiles:
       - worker
 
-  # Deterministic AI-summary reads use a 13-relation read-only login. Shared
-  # synthesis reads use a separate public-view-only database login below.
+  # Deterministic AI-summary reads use a signed, 13-view location-scoped login.
+  # Shared synthesis reads use a separate public-view-only database login below.
   # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
   #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID \
   #     --summary-type combined --request-id UUID
@@ -111,6 +111,7 @@ services:
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
       KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
@@ -122,7 +123,7 @@ services:
       - agent-summary-worker
 
   # Shared synthesis has no PG_* or shared DATABASE_URL credentials. Its
-  # source login is restricted to the migration-owned public-view allowlist;
+  # source login can read only signed, location-filtered wrapper views;
   # signed draft persistence uses the separate agent_summary_draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
@@ -143,6 +144,7 @@ services:
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
       KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"

@@ -32,7 +32,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                grant_dependency_pct, reinvestment_pct, public_goods_allocation_pct,
                runway_months, projected_annual_revenue_usd, projected_annual_noi_usd,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_financial_sustainability_summary
+        FROM kokonut_agent_source.v_public_financial_sustainability_summary
         {where}
         ORDER BY plan_period_start DESC, plan_name
         """,
@@ -47,7 +47,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                owner_role, review_cadence, next_review_date, insurance_scope,
                oversight_mechanism, technical_support_provider, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_risk_mitigation_summary
+        FROM kokonut_agent_source.v_public_risk_mitigation_summary
         {where}
         ORDER BY next_review_date NULLS LAST, risk_category
         """,
@@ -62,7 +62,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                capital_required_usd, partner_requirements, operational_dependencies,
                risk_gates, target_date, milestone_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_scaling_roadmap_summary
+        FROM kokonut_agent_source.v_public_scaling_roadmap_summary
         {where}
         ORDER BY target_date, roadmap_name
         """,
@@ -76,7 +76,7 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
                target_publication_date, open_question_count, approval_record_count,
                publication_cid, publication_hash, published_at, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_green_paper_publication_status
+        FROM kokonut_agent_source.v_public_green_paper_publication_status
         ORDER BY target_publication_date DESC, version DESC
         """
     )

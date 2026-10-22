@@ -22,7 +22,7 @@ def synthesize_feedback(conn, location_id: str) -> dict[str, Any]:
         """
         SELECT stakeholder_group, feedback_type, sentiment, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_stakeholder_feedback_summary
+        FROM kokonut_agent_source.v_public_stakeholder_feedback_summary
         WHERE location_id = %s
         ORDER BY feedback_date DESC, id
         """,

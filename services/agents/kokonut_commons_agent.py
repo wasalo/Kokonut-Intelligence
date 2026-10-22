@@ -16,9 +16,13 @@ from services.agents.base import (
 
 def _fetch(cur, view: str, location_id: str | None = None) -> list[dict[str, Any]]:
     if location_id:
-        cur.execute(f"SELECT * FROM {view} WHERE location_id = %s OR location_id IS NULL", (location_id,))
+        cur.execute(
+            f"SELECT * FROM kokonut_agent_source.{view} "
+            "WHERE location_id = %s OR location_id IS NULL",
+            (location_id,),
+        )
     else:
-        cur.execute(f"SELECT * FROM {view}")
+        cur.execute(f"SELECT * FROM kokonut_agent_source.{view}")
     return [dict(r) for r in cur.fetchall()]
 
 

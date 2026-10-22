@@ -32,7 +32,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                hours_reclaimed, burden_reduction_pct, automation_or_agent_used,
                automation_type, beneficiary_group, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_time_liberation_summary
+        FROM kokonut_agent_source.v_public_time_liberation_summary
         {where}
         ORDER BY observation_date DESC, workflow_area
         """,
@@ -47,7 +47,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                alignment_status, extractive_risk_level, community_control_terms,
                profit_extraction_limits, commons_reinvestment_commitment_pct,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_capital_alignment_summary
+        FROM kokonut_agent_source.v_public_capital_alignment_summary
         {where}
         ORDER BY assessment_date DESC, provider_type
         """,
@@ -63,7 +63,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                marginalized_voice_count, total_participant_count,
                representation_coverage_pct, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_governance_inclusion_summary
+        FROM kokonut_agent_source.v_public_governance_inclusion_summary
         {where}
         ORDER BY observation_date DESC, governance_body
         """,
@@ -77,7 +77,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT stewardship_model, location_id, commitment_date, landlord_dependency_risk,
                anti_speculation_terms, community_benefit_rights, commons_transition_path,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_land_stewardship_summary
+        FROM kokonut_agent_source.v_public_land_stewardship_summary
         {where}
         ORDER BY commitment_date DESC, stewardship_model
         """,

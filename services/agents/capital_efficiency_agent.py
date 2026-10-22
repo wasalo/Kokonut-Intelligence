@@ -32,7 +32,7 @@ def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[
                capital_deployed_usd, gross_output_value_usd, net_output_value_usd,
                public_goods_value_usd, capital_leverage_ratio, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_capital_efficiency_summary
+        FROM kokonut_agent_source.v_public_capital_efficiency_summary
         {where}
         ORDER BY period_start DESC, scenario_name
         """,
@@ -47,7 +47,7 @@ def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[
                observed_cost_usd, cost_savings_pct, incremental_output_value_usd,
                implementation_cost_usd, payback_months, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_regenerative_efficiency_summary
+        FROM kokonut_agent_source.v_public_regenerative_efficiency_summary
         {where}
         ORDER BY observation_date DESC, practice_type
         """,
@@ -61,7 +61,7 @@ def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[
         SELECT proposal_code, location_id, venue, proposal_type, proposal_created_at,
                decision_at, executed_at, decision_latency_days, execution_latency_days,
                decision_result, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_governance_throughput_summary
+        FROM kokonut_agent_source.v_public_governance_throughput_summary
         {where}
         ORDER BY proposal_created_at DESC, proposal_code
         """,
@@ -76,7 +76,7 @@ def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[
                expected_financial_return_usd, expected_public_goods_value_usd,
                expected_verification_outputs, expected_payback_months, utility_score,
                public_summary, limitations, evidence_maturity, evidence_maturity_label
-        FROM v_public_capital_provider_utility_summary
+        FROM kokonut_agent_source.v_public_capital_provider_utility_summary
         {where}
         ORDER BY utility_score DESC NULLS LAST, scenario_name
         """,
@@ -134,16 +134,16 @@ class CapitalEfficiencySynthesisAgent(SynthesisAgent):
     source_reference_query = """
         WITH sources AS MATERIALIZED (
             SELECT 'capital_efficiency_scenario'::text AS source_table, id
-            FROM v_public_capital_efficiency_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_capital_efficiency_summary WHERE location_id = %s
             UNION ALL
             SELECT 'regenerative_efficiency_observation'::text, id
-            FROM v_public_regenerative_efficiency_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_regenerative_efficiency_summary WHERE location_id = %s
             UNION ALL
             SELECT 'governance_throughput_observation'::text, id
-            FROM v_public_governance_throughput_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_governance_throughput_summary WHERE location_id = %s
             UNION ALL
             SELECT 'capital_provider_utility_scenario'::text, id
-            FROM v_public_capital_provider_utility_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_capital_provider_utility_summary WHERE location_id = %s
         ), counts AS (
             SELECT source_table, count(*) AS row_count
             FROM sources

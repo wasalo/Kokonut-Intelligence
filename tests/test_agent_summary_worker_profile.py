@@ -33,6 +33,7 @@ def test_deterministic_summary_profile_uses_only_its_source_and_draft_identities
     assert service["profiles"] == ["agent-summary-worker"]
     _assert_no_shared_database_environment(service)
     assert "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL" in service["environment"]
+    assert "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL" in service["environment"]
 
@@ -49,4 +50,5 @@ def test_shared_synthesis_profile_remains_separate_and_source_only():
     assert service["profiles"] == ["agent-synthesis-worker"]
     _assert_no_shared_database_environment(service)
     assert "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL" in service["environment"]
+    assert "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL" in service["environment"]

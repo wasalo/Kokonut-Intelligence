@@ -157,7 +157,7 @@ class SynthesisAgent:
         return references
 
     def _build_source_reference_query(self) -> str:
-        """Build bounded location-filtered SQL from static public-view metadata."""
+        """Build bounded location-filtered SQL from scoped source-view metadata."""
         selects = []
         for source_table, view_name in type(self).source_reference_views.items():
             if (
@@ -175,7 +175,7 @@ class SynthesisAgent:
             }[scope]
             selects.append(
                 f"SELECT '{source_table}'::text AS source_table, id "
-                f"FROM public.{view_name}{predicate}"
+                f"FROM kokonut_agent_source.{view_name}{predicate}"
             )
         return f"""
             WITH sources AS MATERIALIZED (

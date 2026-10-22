@@ -135,6 +135,48 @@ def set_worker_tenant_context(
     transaction-local role switch also prevents the shared runtime login from
     calling the worker context setter.
     """
+    return _set_worker_context(
+        connection,
+        credential=credential,
+        location_id=location_id,
+        resource=resource,
+        action=action,
+        switch_to_execution_role=True,
+    )
+
+
+def set_agent_summary_source_tenant_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+) -> WorkerTenantContext:
+    """Set a signed read scope on an isolated AI-summary source login.
+
+    Unlike general workers, these source-only logins must not join
+    ``kokonut_worker_execution``: that role can call unrelated worker
+    functions. Migrations 543 and 544 grant each login only the bounded
+    context setter and its NOLOGIN source-view reader role.
+    """
+    return _set_worker_context(
+        connection,
+        credential=credential,
+        location_id=location_id,
+        resource="ai_summary",
+        action="read",
+        switch_to_execution_role=False,
+    )
+
+
+def _set_worker_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+    resource: str,
+    action: str,
+    switch_to_execution_role: bool,
+) -> WorkerTenantContext:
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
 
@@ -157,7 +199,8 @@ def set_worker_tenant_context(
 
     credential_hash = hashlib.sha256(credential_bytes).hexdigest()
     with connection.cursor() as cursor:
-        cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
+        if switch_to_execution_role:
+            cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
         cursor.execute(
             """
             SELECT tenant_id::text, location_id::text, actor_id::text, actor_type

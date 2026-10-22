@@ -973,11 +973,11 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:160:8",
+      "id": "services/common/tenant_context.py:203:12",
       "source": "services/common/tenant_context.py",
-      "line": 160,
-      "column": 8,
-      "scope": "set_worker_tenant_context",
+      "line": 203,
+      "column": 12,
+      "scope": "_set_worker_context",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SET",
@@ -999,11 +999,11 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:161:8",
+      "id": "services/common/tenant_context.py:204:8",
       "source": "services/common/tenant_context.py",
-      "line": 161,
+      "line": 204,
       "column": 8,
-      "scope": "set_worker_tenant_context",
+      "scope": "_set_worker_context",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "SELECT",
@@ -1027,9 +1027,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:215:8",
+      "id": "services/common/tenant_context.py:258:8",
       "source": "services/common/tenant_context.py",
-      "line": 215,
+      "line": 258,
       "column": 8,
       "scope": "set_mobile_device_tenant_context",
       "method": "execute",
@@ -1055,9 +1055,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:295:8",
+      "id": "services/common/tenant_context.py:338:8",
       "source": "services/common/tenant_context.py",
-      "line": 295,
+      "line": 338,
       "column": 8,
       "scope": "set_operator_tenant_context",
       "method": "execute",
@@ -1083,9 +1083,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:361:8",
+      "id": "services/common/tenant_context.py:404:8",
       "source": "services/common/tenant_context.py",
-      "line": 361,
+      "line": 404,
       "column": 8,
       "scope": "set_gateway_tenant_context",
       "method": "execute",

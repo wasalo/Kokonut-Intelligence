@@ -31,7 +31,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT gnh_domain, location_id, assessment_date, principle_refs, alignment_score,
                strengths, gaps, safeguards, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_gnh_alignment_summary
+        FROM kokonut_agent_source.v_public_gnh_alignment_summary
         {where}
         ORDER BY assessment_date DESC, gnh_domain
         """,
@@ -46,7 +46,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                local_language, digital_integration_strategy, consent_protocol,
                local_reviewer_role, implementation_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_preservation_summary
+        FROM kokonut_agent_source.v_public_cultural_preservation_summary
         {where}
         ORDER BY plan_date DESC, cultural_element
         """,
@@ -62,7 +62,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                estimated_annual_kwh, renewable_share_pct,
                fossil_displacement_estimate_co2e_tonnes, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_renewable_energy_summary
+        FROM kokonut_agent_source.v_public_renewable_energy_summary
         {where}
         ORDER BY plan_date DESC, energy_use_case
         """,
@@ -77,7 +77,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
                accommodations, participation_pathways, accountable_role,
                implementation_status, access_coverage_pct, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_vulnerable_access_summary
+        FROM kokonut_agent_source.v_public_vulnerable_access_summary
         {where}
         ORDER BY plan_date DESC, access_scope
         """,
@@ -91,7 +91,7 @@ def synthesize_gnh(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT wellbeing_domain, location_id, observation_date, stakeholder_group,
                score_value, count_value, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_foundational_wellbeing_summary
+        FROM kokonut_agent_source.v_public_foundational_wellbeing_summary
         {where}
         ORDER BY observation_date DESC, wellbeing_domain
         """,

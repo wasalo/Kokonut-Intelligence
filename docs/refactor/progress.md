@@ -1,3 +1,57 @@
+### CAP-038 signed tenant scope for deterministic summaries — 22 October 2026
+
+Migration 544 extends signed, database-enforced source scoping to the four
+deterministic AI-summary types. The source login can call only the bounded
+`ai_summary/read` context setter, then switch to the NOLOGIN reader role. Its
+13 security-barrier wrappers filter 11 operational relations to the granted
+location; shared crop and expense-category catalogs remain available only
+inside a valid signed location scope. `run_worker_summary` sets the context and
+uses `kokonut_agent_source` first in its transaction-local search path, so
+existing query text resolves through the wrappers while the legacy CLI retains
+its normal search path. Migration 544 revokes the deterministic reader's raw
+public-table grants on apply and replay.
+
+The focused worker/context/profile/source selection passes 134 tests; the
+broader CAP-038 worker/context regression set passes 190. The native PostgreSQL
+16 chain through migration 544 applies and replays with 31
+grouped checks for exact-location filtering, no-context and ungranted-location
+denial, shared catalog access, raw-table denial, and stale-grant cleanup. Ruff
+and Python compilation pass. The same 31-check migration chain passes in a
+network-disabled ARM64 PostGIS image under QEMU emulation (`aarch64`). This is
+software-emulation evidence, not physical Raspberry Pi acceptance. The source
+password, worker credential and per-location grant are not provisioned;
+candidate and legacy databases remain untouched. Other agent/worker paths,
+universal RLS, populated parity, and MAN-CAP-038 acceptance remain open.
+Evidence:
+[migration](../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
+[worker](../services/agents/worker_cli.py),
+[native database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json),
+[ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json).
+
+### CAP-038 signed tenant scope for shared synthesis reads — 22 October 2026
+
+Migration 543 replaces the synthesis source login's raw public-view grants with
+40 security-barrier wrapper views. Each wrapper requires a database-signed
+`ai_summary/read` scope and enforces its registered exact-location,
+location-plus-unassigned, or network policy. The source login can invoke only
+the bounded context setter before switching to the separate NOLOGIN reader;
+the reader cannot access raw views, worker credential/grant tables, or writes.
+All ten shared agents and the provenance collector now use these wrappers.
+The focused worker, agent, context, profile, and database selection passes 189
+tests. Ruff, Python compilation, and diff checks pass. Disposable PostgreSQL 16
+applies and replays migrations 529–543 with 31 grouped assertions covering
+scope setup, no-context denial, exact and mixed/network reads, denial for an
+ungranted location, and raw-view/security-table access. Candidate and legacy
+databases remain untouched. Migration 543, its source credential, and exact
+location grants are not deployed. Deterministic-summary source isolation,
+non-synthesis worker coverage, populated parity, and MAN-CAP-038 acceptance
+remain open. Evidence:
+[migration](../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
+[worker tests](../tests/test_agent_worker_cli.py),
+[database acceptance](builds/2026-10-22-recovery/cap-038-tenant-scoped-agent-synthesis-source-views-disposable.json).
+Checklist: 948 complete / 24 open (972 total); no capability acceptance status
+changed.
+
 ### CAP-038 consent-safe feedback source reads — 22 October 2026
 
 The wellbeing and stakeholder-feedback synthesis agents now use only their

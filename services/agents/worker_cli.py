@@ -16,7 +16,8 @@ from services.agents.worker_draft import (
     create_worker_ai_summary_draft,
     get_worker_ai_summary_draft,
 )
-from services.common.worker_database import get_worker_db
+from services.common.tenant_context import set_agent_summary_source_tenant_context
+from services.common.worker_database import get_worker_credential, get_worker_db
 
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
 _SUMMARY_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
@@ -60,8 +61,10 @@ def run_worker_synthesis(
 
     Exact request lookup precedes source queries. All source reads use the
     dedicated public-view reader login in a repeatable-read, read-only
-    transaction; persistence uses the separate signed worker connection and
-    immutable retry receipt.
+    transaction after installing a signed exact-location context; scoped
+    database wrapper views enforce that context independently of query filters.
+    Persistence uses the separate signed worker connection and immutable retry
+    receipt.
     """
     from services.agents.base import validate_source_tables
     from services.agents.safety import assert_agent_action_allowed
@@ -137,6 +140,7 @@ def run_worker_synthesis(
             "replayed": True,
         }
 
+    source_credential = get_worker_credential("agent_summary_source")
     open_source_connection = connection_factory or (
         lambda: get_worker_db("agent_summary_source")
     )
@@ -144,6 +148,12 @@ def run_worker_synthesis(
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_summary_source_tenant_context(
+            connection,
+            credential=source_credential,
+            location_id=location_id,
+        )
+        with connection.cursor() as cursor:
             cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
@@ -195,9 +205,10 @@ def run_worker_summary(
 
     The request lookup happens before generation so an exact retry returns its
     original result without repeating source queries. Source data is read in a
-    repeatable-read, read-only transaction under the deterministic source
-    reader role; draft creation and provenance attachment use the separate
-    signed worker connection in :mod:`worker_draft`.
+    repeatable-read, read-only transaction after a database-signed location
+    context selects the deterministic source reader role and its filtered
+    views; draft creation and provenance attachment use the separate signed
+    worker connection in :mod:`worker_draft`.
     """
     try:
         location_id = str(UUID(str(location_id)))
@@ -231,13 +242,21 @@ def run_worker_summary(
     open_source_connection = connection_factory or (
         lambda: get_worker_db("agent_summary_deterministic_source")
     )
+    source_credential = get_worker_credential("agent_summary_deterministic_source")
     connection = open_source_connection()
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_summary_source_tenant_context(
+            connection,
+            credential=source_credential,
+            location_id=location_id,
+        )
+        with connection.cursor() as cursor:
             cursor.execute(
                 "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
             )
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = generate(connection, location_id, summary_type)

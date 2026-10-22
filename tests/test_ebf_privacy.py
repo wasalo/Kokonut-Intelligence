@@ -21,7 +21,10 @@ def test_equity_feedback_synthesis_omits_private_raw_text() -> None:
     assert summary["private_or_no_consent_count"] is None
     assert summary["harm_or_unintended_consequence_count"] is None
     assert "private/no-consent counts" in summary["safety_note"].lower()
-    assert "FROM v_public_stakeholder_feedback_summary" in conn.cursor_instance.query
+    assert (
+        "FROM kokonut_agent_source.v_public_stakeholder_feedback_summary"
+        in conn.cursor_instance.query
+    )
     assert "FROM stakeholder_feedback" not in conn.cursor_instance.query
 
 

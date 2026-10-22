@@ -33,7 +33,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                trees_planted_count, tree_survival_rate_pct, regenerative_score,
                jobs_or_roles_supported_count, training_hours, beneficiary_count,
                evidence_confidence, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_regenerative_outcome_summary
+        FROM kokonut_agent_source.v_public_regenerative_outcome_summary
         {where}
         ORDER BY period_end DESC, summary_name
         """,
@@ -48,7 +48,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                decision_method, quorum_rule, voting_or_consensus_rights,
                community_veto_rights, escalation_path, power_distribution_summary,
                participation_cadence, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_community_governance_mechanism
+        FROM kokonut_agent_source.v_public_community_governance_mechanism
         {where}
         ORDER BY governance_level, mechanism_name
         """,
@@ -64,7 +64,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                infrastructure_prerequisites, barriers, enablers, support_structures,
                minimum_evidence_maturity, replication_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_replication_readiness_summary
+        FROM kokonut_agent_source.v_public_replication_readiness_summary
         {where}
         ORDER BY assessment_date DESC, target_region
         """,
@@ -80,7 +80,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                corrective_actions, action_completion_pct, responsible_role,
                funding_continuity_plan, next_review_date, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_adaptive_stewardship_summary
+        FROM kokonut_agent_source.v_public_adaptive_stewardship_summary
         {where}
         ORDER BY review_date DESC, stewardship_scope
         """,
@@ -134,16 +134,16 @@ class RegeneratorSynthesisAgent(SynthesisAgent):
     source_reference_query = """
         WITH sources AS MATERIALIZED (
             SELECT 'regenerative_outcome_summary'::text AS source_table, id
-            FROM v_public_regenerative_outcome_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_regenerative_outcome_summary WHERE location_id = %s
             UNION ALL
             SELECT 'community_governance_mechanism'::text, id
-            FROM v_public_community_governance_mechanism WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_community_governance_mechanism WHERE location_id = %s
             UNION ALL
             SELECT 'replication_readiness_assessment'::text, id
-            FROM v_public_replication_readiness_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_replication_readiness_summary WHERE location_id = %s
             UNION ALL
             SELECT 'adaptive_stewardship_review'::text, id
-            FROM v_public_adaptive_stewardship_summary WHERE location_id = %s
+            FROM kokonut_agent_source.v_public_adaptive_stewardship_summary WHERE location_id = %s
         ), counts AS (
             SELECT source_table, count(*) AS row_count
             FROM sources

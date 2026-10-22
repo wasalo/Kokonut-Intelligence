@@ -35,7 +35,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                projected_annual_noi_usd, projected_roi_pct, payback_months,
                launch_timeline_months, assumptions, evidence_confidence,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_farm_launch_unit_economics
+        FROM kokonut_agent_source.v_public_farm_launch_unit_economics
         {where}
         ORDER BY target_region, economics_name
         """,
@@ -51,7 +51,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                expected_verification_outputs, readiness_score, dependency_summary,
                risk_gate_summary, target_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_network_scaling_target
+        FROM kokonut_agent_source.v_public_network_scaling_target
         ORDER BY target_date, target_name
         """
     )
@@ -64,7 +64,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                severity, likelihood, resolution_status, owner_role,
                estimated_mitigation_cost_usd, target_resolution_date,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_adoption_barrier_assessment
+        FROM kokonut_agent_source.v_public_adoption_barrier_assessment
         {where}
         ORDER BY assessment_date DESC, barrier_category, barrier_name
         """,
@@ -81,7 +81,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                baseline_noi_usd, downside_noi_usd, solvency_status,
                mitigation_actions, public_summary, evidence_maturity,
                evidence_maturity_label
-        FROM v_public_perpetual_value_stress_test
+        FROM kokonut_agent_source.v_public_perpetual_value_stress_test
         {where}
         ORDER BY scenario_date DESC, stress_type, scenario_name
         """,
@@ -95,7 +95,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                license, version, reuse_status, reuse_count, supported_use_cases,
                verification_outputs, maintenance_owner, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_open_source_impact_artifact
+        FROM kokonut_agent_source.v_public_open_source_impact_artifact
         ORDER BY reuse_count DESC, artifact_type, artifact_name
         """
     )

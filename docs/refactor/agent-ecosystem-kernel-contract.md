@@ -190,22 +190,37 @@ by collection and rejected before receipt lookup. This protects the reviewed
 in-process provenance contract; it does not authenticate Python code or replace
 the worker's signed database scope. The worker then checks the stable request
 receipt before source queries. It runs reads inside a bounded repeatable-read,
-read-only transaction using `kokonut_agent_summary_source_login`, which can
-assume only `kokonut_agent_summary_source_reader`. Migration 541 explicitly
-grants that reader SELECT on the 40 registered public views and revokes its
-stale table, sequence, and function grants on replay. It permits the three
-public PostGIS metadata catalog names only when installed and already readable
-through `PUBLIC`; it rejects any other effective public-relation access and all public write or
-schema-create privileges. Draft creation still uses the separate signed worker
-connection. Application query filters enforce the registered location/network
-scope; this relation-level boundary does not provide row-level tenant
-isolation or replace the still-open broader RLS review.
-The native PostgreSQL 16 chain through migration 541 passes 29 grouped checks.
-With migration 542's deterministic source-reader allowlist added, the chain
-through 542 passes 31 grouped checks in both native PostgreSQL 16 and the
-network-disabled ARM64/QEMU image (`aarch64`). This is not physical Raspberry
-Pi or full-schema acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json);
-[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-arm64-disposable.json)).
+read-only transaction using `kokonut_agent_summary_source_login`. Migration
+543 gives this identity no direct source-view or worker-table reads. It can
+call only the bounded worker-context setter, then switch to the separate
+NOLOGIN `kokonut_agent_summary_source_reader` role. The worker presents its
+source credential for an exact `ai_summary/read` grant before querying. The
+reader's 40 security-barrier wrappers call the database-signed
+`current_worker_scope` function on every view read: location views expose only
+the granted location, mixed views add explicitly unassigned records, and
+network views expose public catalogs only after the same exact-location grant.
+The raw public views, worker credential/grant tables, writes, and schema CREATE
+remain denied to that source identity. Python filters mirror those database
+scopes as defense in depth. Migration 544 applies the same signed-location
+pattern to the deterministic summary worker's 13 relations: 11 operational
+sources are exact-location filtered, while crop and expense category remain
+shared network catalogs. That worker installs the wrapper schema first in its
+transaction-local search path, so its legacy query text resolves to filtered
+views and the source login cannot read the original public relations. The
+legacy CLI keeps its existing search path. These are scoped source boundaries
+for the two AI-summary worker profiles, not a universal RLS rollout. Other
+service/database paths retain separate tenant-boundary reviews.
+
+The native PostgreSQL 16 chain through migration 544 passes 31 grouped checks,
+including migration replay, no-context denial, exact-location filtering,
+mixed/network behavior, denial for an ungranted location, and raw-view and
+credential-table access denial. The 189-test focused source/worker/context
+selection, Ruff, Python compilation, and diff checks pass. Candidate and legacy
+databases remain untouched; migrations 543–544, source credentials, and exact
+location grants have not been deployed. ARM64/QEMU emulation covers migration
+544's disposable source boundary, but does not establish physical Raspberry Pi
+or full-schema acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json)).
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
 Kokonut Commons synthesis attach bounded row IDs for forty approved public
@@ -238,13 +253,14 @@ synthesis. `agent-summary-worker` uses a dedicated source login limited to the
 13 source relations read by the four built-in summaries, requires the fixed
 `--deterministic-only` mode, and receives no shared `PG_*`, `DATABASE_URL`, or
 `POSTGRES_PASSWORD` values. `agent-synthesis-worker` likewise receives no
-shared database settings, requires `--task-key`, and uses the separate
-public-view-only source login. Each profile uses the signed worker identity for
-draft persistence. These are relation-level limits; exact location filters
-remain application-enforced and neither role provides tenant RLS. An operator
+shared database settings, requires `--task-key`, and uses the signed, filtered
+source login. Each profile uses the signed worker identity for draft
+persistence. Shared synthesis reads enforce each location grant at the
+database view boundary, and deterministic summaries use a separate signed,
+location-filtered view boundary. The remaining runtime/RLS review is open. An operator
 still needs to provision the runtime password, both source login/password pairs,
-worker login/password, worker credential, and service DSNs; migrations 529–542
-are not rolled out to the candidate. Stored shared-agent CLI output is reduced to the
+worker login/password, both worker credentials, location grants, and service
+DSNs; migrations 529–544 are not rolled out to the candidate. Stored shared-agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
@@ -263,6 +279,8 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 540](../../schemas/postgres/540_scoped_agent_source_references.sql),
 [migration 541](../../schemas/postgres/541_agent_synthesis_source_reader.sql),
 [migration 542](../../schemas/postgres/542_agent_deterministic_summary_source_reader.sql),
+[migration 543](../../schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql),
+[migration 544](../../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),
@@ -290,6 +308,14 @@ the source-reader's explicit SELECT grants on the 40 approved public views,
 the permitted PostGIS metadata catalog names, denial of private summary and other
 application-relation reads, and no-write privileges. That database identity
 reduces relation access but remains separate from tenant RLS acceptance.
+The [signed synthesis source-view evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-agent-synthesis-source-views-disposable.json)
+covers migration 543 replay, no-context and ungranted-location denial, exact
+location filtering, shared and network scope, and denial of direct raw-view and
+credential-table access.
+The [deterministic summary source-view evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json)
+covers migration 544 replay, setter-only source-login access, no-context and
+ungranted-location denial, exact-location operational filtering, network
+catalog access, and denial of raw relations and writes.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

@@ -35,7 +35,8 @@ AGENTS = [
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 SYNTHESIS_RELATION = re.compile(
-    r"\b(?:FROM|JOIN)\s+(?:public\.)?([a-zA-Z_][\w$]*)", re.IGNORECASE
+    r"\b(?:FROM|JOIN)\s+(?:(?:public|kokonut_agent_source)\.)?([a-zA-Z_][\w$]*)",
+    re.IGNORECASE,
 )
 
 
@@ -70,7 +71,7 @@ class _QueryRecordingConnection:
 
 
 @pytest.mark.parametrize("agent_class", AGENTS)
-def test_synthesis_queries_read_only_registered_public_views(agent_class: Any) -> None:
+def test_synthesis_queries_read_only_registered_scoped_views(agent_class: Any) -> None:
     connection = _QueryRecordingConnection()
 
     agent_class().synthesize(connection, LOCATION_ID)
@@ -146,18 +147,18 @@ def test_agent_run_rejects_missing_location_before_database_access(
 def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
     migration = (
         Path(__file__).resolve().parents[1]
-        / "schemas/postgres/541_agent_synthesis_source_reader.sql"
+        / "schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql"
     ).read_text()
-    grant = migration.split("GRANT SELECT ON TABLE", 1)[1].split(
-        "TO kokonut_agent_summary_source_reader;", 1
-    )[0]
-    granted_views = set(re.findall(r"public\.([a-z][a-z0-9_]*)", grant))
+    expected_views = set(re.findall(r"'v_public_[a-z0-9_]+'", migration))
+    expected_views = {view.strip("'") for view in expected_views}
     registered_views = {
         view for agent_class in AGENTS for view in agent_class.source_reference_views.values()
     }
 
     assert len(registered_views) == 40
-    assert granted_views == registered_views
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source." in migration
+    assert all("'" + view + "'" in migration for view in registered_views)
+    assert expected_views.issuperset(registered_views)
 
 
 class _Cursor:
@@ -196,7 +197,7 @@ class _Connection:
 
 
 @pytest.mark.parametrize("agent_class", AGENTS)
-def test_location_source_reference_collector_uses_bounded_public_views(agent_class: Any) -> None:
+def test_location_source_reference_collector_uses_bounded_scoped_views(agent_class: Any) -> None:
     connection = _Connection(list(agent_class.source_reference_views))
     agent = agent_class()
 
@@ -205,7 +206,7 @@ def test_location_source_reference_collector_uses_bounded_public_views(agent_cla
     assert set(references) == set(agent.source_reference_views)
     assert all(
         re.search(
-            rf"\bFROM\s+(?:public\.)?{re.escape(view)}\b",
+            rf"\bFROM\s+kokonut_agent_source\.{re.escape(view)}\b",
             connection.cursor_value.query,
             re.IGNORECASE,
         )
