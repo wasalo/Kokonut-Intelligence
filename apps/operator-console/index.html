@@ -621,6 +621,18 @@
             </form>
             <p id="operating-pilot-capacity-create-status" class="muted" role="status" aria-live="polite"></p>
           </section>
+          <section id="operating-pilot-own-capacity" hidden aria-labelledby="operating-pilot-own-capacity-heading">
+            <h3 id="operating-pilot-own-capacity-heading">Your capacity records</h3>
+            <p class="muted">This separate exact-location grant shows only records linked to your active human identity, including your private notes. It does not grant access to anyone else’s capacity or create a review decision.</p>
+            <p id="operating-pilot-own-capacity-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Status</th><th>Source</th><th>Private note</th><th>Updated</th></tr></thead>
+                <tbody id="operating-pilot-own-capacity-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-own-capacity-more" class="secondary" type="button" hidden>Load more of your records</button>
+          </section>
           <h3>Demand signals</h3>
           <p id="operating-pilot-demand-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
@@ -1796,8 +1808,13 @@
       const operatingPilotResourceStatus = document.querySelector("#operating-pilot-resource-status");
       const operatingPilotResourceRows = document.querySelector("#operating-pilot-resource-rows");
       const operatingPilotResourceMore = document.querySelector("#operating-pilot-resource-more");
+      const operatingPilotOwnCapacity = document.querySelector("#operating-pilot-own-capacity");
+      const operatingPilotOwnCapacityStatus = document.querySelector("#operating-pilot-own-capacity-status");
+      const operatingPilotOwnCapacityRows = document.querySelector("#operating-pilot-own-capacity-rows");
+      const operatingPilotOwnCapacityMore = document.querySelector("#operating-pilot-own-capacity-more");
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
+      let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
       let operatingPilotPendingCapacityCreate = null;
       let operatingPilotSummaryRequestVersion = 0;
@@ -1805,10 +1822,12 @@
       let operatingPilotCapacityRequestVersion = 0;
       let operatingPilotWorkClaimsRequestVersion = 0;
       let operatingPilotResourceRequestVersion = 0;
+      let operatingPilotOwnCapacityRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
       let operatingPilotResourceOffset = 0;
+      let operatingPilotOwnCapacityOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -2601,6 +2620,9 @@
           operatingPilotCapacityCreateStatus.textContent = result.replayed
             ? "Your original capacity draft was confirmed after retry; it remains a draft."
             : "Capacity draft saved. It remains private and unsubmitted.";
+          if (operatingPilotOwnCapacityLocations.has(locationId)) {
+            await loadOperatingPilotOwnCapacityProfiles();
+          }
         } catch (error) {
           operatingPilotCapacityCreateStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
@@ -2808,10 +2830,65 @@
         }
       }
 
+      async function loadOperatingPilotOwnCapacityProfiles(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotOwnCapacityRequestVersion;
+        if (!operatingPilotOwnCapacityLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotOwnCapacityOffset = 0;
+          operatingPilotOwnCapacityRows.replaceChildren();
+          operatingPilotOwnCapacityMore.hidden = true;
+        }
+        const offset = append ? operatingPilotOwnCapacityOffset : 0;
+        operatingPilotOwnCapacityMore.disabled = true;
+        operatingPilotOwnCapacityStatus.textContent = "Loading your capacity records…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/my-capacity-profiles?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotOwnCapacityRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotRow(operatingPilotOwnCapacityRows, [
+              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+              item.available_hours,
+              item.committed_hours,
+              item.protected_hours,
+              item.status,
+              item.source,
+              item.notes,
+              item.updated_at
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotOwnCapacityMore.hidden = !canContinue;
+          operatingPilotOwnCapacityOffset = canContinue ? nextOffset : 0;
+          operatingPilotOwnCapacityStatus.textContent = canContinue
+            ? "Showing a bounded page of your own capacity records."
+            : operatingPilotOwnCapacityRows.childElementCount
+              ? "Your capacity records are loaded."
+              : "You have no capacity records for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotOwnCapacityRequestVersion) return;
+          operatingPilotOwnCapacityMore.hidden = true;
+          operatingPilotOwnCapacityStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotOwnCapacityRequestVersion) {
+            operatingPilotOwnCapacityMore.disabled = false;
+          }
+        }
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
         operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId);
+        operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
           operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
@@ -2823,15 +2900,28 @@
           operatingPilotWorkClaimsStatus.textContent = "A location read grant is required to view work-claim activity.";
           operatingPilotResourceRows.replaceChildren();
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
+          if (operatingPilotOwnCapacityLocations.has(locationId)) {
+            await loadOperatingPilotOwnCapacityProfiles();
+          } else {
+            operatingPilotOwnCapacityRows.replaceChildren();
+            operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+          }
           return;
         }
-        await Promise.all([
+        const reads = [
           loadOperatingPilotSummary(),
           loadOperatingPilotDemand(),
           loadOperatingPilotCapacity(),
           loadOperatingPilotWorkClaims(),
           loadOperatingPilotResources()
-        ]);
+        ];
+        if (operatingPilotOwnCapacityLocations.has(locationId)) {
+          reads.push(loadOperatingPilotOwnCapacityProfiles());
+        } else {
+          operatingPilotOwnCapacityRows.replaceChildren();
+          operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+        }
+        await Promise.all(reads);
       }
 
       function addSequentialEvidenceMetric(label, value) {
@@ -11628,8 +11718,16 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotCreateLocations = new Set(operatingPilotCreateLocationIds);
+          const operatingPilotOwnCapacityLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "read_own")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotOwnCapacityLocations = new Set(operatingPilotOwnCapacityLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
-            ...operatingPilotLocationIds, ...operatingPilotCreateLocationIds
+            ...operatingPilotLocationIds,
+            ...operatingPilotCreateLocationIds,
+            ...operatingPilotOwnCapacityLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -15588,6 +15686,7 @@
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
       operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true));
+      operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true));
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));

@@ -25,10 +25,13 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert "Location-scoped operating summary" in panel.group()
     assert 'id="operating-pilot-demand-create-form"' in panel.group()
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
+    assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
+    assert "including your private notes" in panel.group()
     assert "Work-claim activity" in panel.group()
     assert "Resource-request categories" in panel.group()
     assert 'scope.resource === "operating_pilot" && scope.action === "read"' in source
     assert 'scope.resource === "operating_pilot" && scope.action === "create"' in source
+    assert 'scope.resource === "operating_pilot" && scope.action === "read_own"' in source
     assert "operatingPilotLocations = new Set(operatingPilotLocationIds)" in source
     assert 'operatingPilot.hidden = false' in source
     assert "operating-pilot" in source
@@ -112,11 +115,37 @@ def test_location_changes_and_load_more_are_wired_with_bounded_paging():
     assert 'operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true))' in source
     assert 'operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true))' in source
     assert 'operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true))' in source
+    assert 'operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true))' in source
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in source
     assert source.count("nextOffset <= 10000") >= 4
     ids = re.findall(r'\bid="([^"]+)"', source)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+
+
+def test_own_capacity_records_use_separate_grant_private_no_store_route_and_safe_cells():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadOperatingPilotOwnCapacityProfiles(append = false)",
+        "async function loadOperatingPilot()",
+    )
+    assert "operatingPilotOwnCapacityLocations.has(locationId)" in reader
+    assert "my-capacity-profiles?${params}" in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "appendOperatingPilotRow(operatingPilotOwnCapacityRows" in reader
+    assert "item.notes" in reader
+    assert "innerHTML" not in reader
+    assert "nextOffset <= 10000" in reader
+
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    no_aggregate_read = initialize.index("if (!operatingPilotLocations.has(locationId))")
+    own_profile_fetch = initialize.index("await loadOperatingPilotOwnCapacityProfiles();", no_aggregate_read)
+    early_return = initialize.index("return;", own_profile_fetch)
+    assert no_aggregate_read < own_profile_fetch < early_return
+    assert "operatingPilotOwnCapacityLocations.has(locationId)" in source
+    assert "...operatingPilotOwnCapacityLocationIds" in source
 
 
 def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves():
@@ -165,7 +194,7 @@ def test_create_only_location_can_open_draft_form_without_reading_queues():
     assert "operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in initialize
     read_denial = initialize.index('if (!operatingPilotLocations.has(locationId))')
     early_return = initialize.index("return;", read_denial)
-    queue_reads = initialize.index("await Promise.all([", read_denial)
+    queue_reads = initialize.index("const reads = [", read_denial)
     assert early_return < queue_reads
 
 

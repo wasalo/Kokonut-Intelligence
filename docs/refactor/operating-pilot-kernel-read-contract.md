@@ -124,6 +124,25 @@ and resets only after confirmed success. A create-only grant can use either
 draft form without exposing the summary or any read queue; read requests still
 require the separate read grant.
 
+## Own capacity records
+
+`GET /operator/api/operating-pilot/{location_id}/my-capacity-profiles` uses a
+separate exact `operating_pilot:read_own` grant. General `read` does not imply
+access to person-linked records or notes, and `create` does not imply read
+access. The function rechecks signed operator/location context, the active
+grant, enabled operator identity, active human-party binding, and active
+Adelphi farm mapping. It returns only profiles whose `party_id` matches the
+authenticated operator's bound person; other participants' records and notes
+are excluded in PostgreSQL.
+
+The response includes the operator's own period, hours, private note, source,
+status, and timestamps while omitting party identity and internal scope IDs.
+Rows are ordered by update time and profile ID, newest first, with pages capped
+at 50 rows and offset 10,000. Historical superseded profiles remain visible to
+their owner. This is a read-only personal history view, not a review or
+lifecycle decision surface. Responses are same-origin and `no-store`, and the
+console renders fields through text nodes.
+
 ## Capacity draft creation
 
 The capacity POST accepts `period_start`, `period_end`, `available_hours`,
@@ -209,32 +228,39 @@ Directus receive no direct request-table access from migration 538.
 
 ## Operator console
 
-The operator console exposes the five read routes in a single operating-pilot
-panel only when the signed session contains an exact `operating_pilot:read`
-location grant, and exposes the demand and capacity draft forms separately
-for exact `operating_pilot:create` grants. The location selector is populated from the
-union of those grants; the browser sends same-origin, no-store requests and discards stale responses when
-the selected location changes. Demand and capacity pages are bounded to 25
-rows per request and provide explicit load-more controls. Capacity hours,
-work-claim counts, and resource-request counts are rendered as suppressed
-whenever their groups have fewer than three contributors. Fixed allowlists and
-text-only DOM rendering are used. Draft forms add no lifecycle review actions
-and do not constitute live OIDC/browser acceptance.
+The operator console exposes five aggregate/read routes under exact
+`operating_pilot:read` grants and personal capacity history under the separate
+exact `operating_pilot:read_own` grant. Demand and capacity draft forms are
+separately gated by `operating_pilot:create`. The location selector uses the
+union of read, read-own, and create locations without allowing one grant to
+activate another surface. Requests are same-origin and `no-store`, and stale
+responses are discarded when the selected location changes. Pages are bounded
+and provide explicit load-more controls. Aggregate capacity hours, work-claim
+counts, and resource-request counts remain suppressed below three contributors.
+Fixed allowlists and text-only DOM rendering are used. Draft forms add no
+lifecycle review actions and this does not constitute live OIDC/browser
+acceptance.
 
 ## Database boundary
 
 The non-login `kokonut_operating_pilot_reader` role can select only the source
-columns needed by these projections and has no identity-table access or
-mutation privileges, except the minimal INSERT columns and receipt access
-needed by the migration-552 definer function. It cannot select demand
-descriptions or receipt digests. Migrations 526 and 538 add only
+columns needed by these projections. Its column-level reads include the small
+operator/person-binding allowlist required by the draft and own-record
+functions; it has no broad identity-table access or unrelated mutation
+privileges. It receives only the minimal INSERT columns and receipt access
+needed by the demand- and capacity-draft definer functions. It cannot select
+demand descriptions or receipt digests. Migrations 526 and 538 add only
 `work_item.work_type` and `operating_resource_request.resource_type`; titles,
 descriptions, and decision reasons remain unavailable to the reader.
 `kokonut_runtime` is granted execution of the security-definer functions,
 which recheck signed operator location context and the active exact database
 grant on every call. Migrations 552 and 553 remove table-level and per-column
 direct write privileges on demand signals and capacity profiles from the
-legacy runtime and Directus logins. Capacity retry receipts remain private.
+legacy runtime and Directus logins. Migration 554 grants the non-login reader
+only the additional capacity columns required by the own-record function. The
+runtime and Directus roles receive no direct SELECT access to private notes;
+Directus cannot execute the own-record function, and the reader has no login or
+role memberships. Capacity retry receipts remain private.
 This is a scoped ACL boundary, not universal least privilege or forced
 RLS: other tables, inherited memberships, and deployed ACL state still require
 review.
@@ -244,20 +270,21 @@ review.
 The Gateway contract and exact route policy are covered by
 `tests/test_gateway_operating_pilot_reads.py` and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
-acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, and 553,
+acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
+and 554,
 exercises active and internal scopes, checks aggregate values,
-demand/capacity/claim/resource-category paging, small-cohort suppression,
-tenant/grant denials and data redaction, and
+demand/capacity/own-capacity/claim/resource-category paging, small-cohort
+suppression, separate read-own grant enforcement, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
-registration and route policy. If migrations 461, 479, 480, 526, 538, 552, or 553
-are applied, retain their ordered functions, receipts, roles, and ACLs; disable
-only the affected route. Do not delete created demand drafts or edit or reverse
-an applied migration. Re-enabling any prior direct-write path requires a
-separately reviewed forward migration.
+registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
+or 554 are applied, retain their ordered functions, receipts, roles, and ACLs;
+disable only the affected route. Do not delete created demand drafts or edit or
+reverse an applied migration. Re-enabling any prior direct-write path requires
+a separately reviewed forward migration.
 
 ## Remaining gates
 
