@@ -3,15 +3,16 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 Delphi CLI read boundary:** the legacy `live-summary`
-and `consensus` commands require explicit study/location UUIDs and use the
-consent-aware signed source reader. Unscoped `list-studies` now exits before
-opening the shared runtime database; the authenticated location-scoped Gateway
-remains the inventory path. The focused Delphi/worker/preflight/unified CLI
-selection passes 173 tests, with Ruff, compilation, matrix validation, and diff
-checks passing. No migration or database was used. Checklist: 957 complete / 24
-open (981 total); the 66-row matrix remains 30 baseline-retained, 7 deployed,
-and 29 prepared, with all MAN-CAP approvals still open.
+**Current batch — CAP-038 synthesis shared-database fallback retirement:** all
+ten registered synthesis classes require their signed source-view map and exact
+location; both read-only runs and draft runs delegate to the registered worker.
+Unmapped classes fail before database access, and the unused `run_fetch()`
+helper is now a fail-closed compatibility error. The focused agent-base,
+synthesis-source, and worker selection passes 134 tests, with Ruff and Python
+compilation passing. No migration, database, provider, candidate, or legacy
+stack was used. Checklist: 958 complete / 24 open (982 total); the 66-row
+matrix remains 30 baseline-retained, 7 deployed, and 29 prepared, with all
+MAN-CAP approvals still open.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

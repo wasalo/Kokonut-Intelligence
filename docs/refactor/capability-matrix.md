@@ -6,6 +6,15 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 synthesis execution fallback — 22 October 2026:** generic shared
+synthesis no longer has a shared-runtime database path. All ten registered
+classes require a signed source-view contract and exact location; read-only
+and draft runs delegate to the registered worker. The unused `run_fetch()`
+helper fails closed before database access or callback execution. The focused
+agent/source/worker selection passes 134 tests with Ruff and compilation. This
+closes only the generic fallback; MAN-CAP-038 and credential, populated-parity,
+operator-attribution, and non-synthesis gates remain open.
+
 **CAP-038 Delphi CLI read boundary — 22 October 2026:** the legacy
 `services.delphi.cli live-summary` and `consensus` commands now require an
 explicit location UUID and call the consent-aware signed source adapter rather

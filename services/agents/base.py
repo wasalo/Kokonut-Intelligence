@@ -1,12 +1,10 @@
 """Shared base for Kokonut synthesis agents.
 
-Collapses the per-agent boilerplate that used to be copied across
-``services/agents/*_agent.py``: connection handling, the
-fetch -> synthesize -> (store draft) -> ``validate_output`` flow, and the
-standard ``--location-id``/``--store`` CLI. Agent modules keep their
-domain-specific ``synthesize_*`` query and declare task/output metadata on a
-small subclass; everything else lives here (or in the existing
-:mod:`services.agents.tasks` / :mod:`services.agents.safety` modules).
+Collapses shared orchestration for ``services/agents/*_agent.py``: the
+registered signed source-reader path, optional draft persistence, output
+validation, and the standard ``--location-id``/``--store`` CLI. Agent modules
+keep their domain-specific queries and declare task/output/source metadata on
+a small subclass; task and safety rules live in their dedicated modules.
 """
 
 from __future__ import annotations
@@ -25,7 +23,6 @@ from services.agents.tasks import (
     validate_task_inputs,
 )
 from services.common.cli import print_json
-from services.common.database import get_db
 
 _SOURCE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 _PUBLIC_SOURCE_VIEW_NAME = re.compile(r"^v_public_[a-z0-9_]{1,55}$")
@@ -71,9 +68,8 @@ class SynthesisAgent:
     Subclasses declare their task/output metadata and implement
     :meth:`synthesize`; :meth:`run` provides the shared orchestration:
 
-    * assert the read against the agent safety policy;
-    * open one connection and always close it (even on error); registered
-      synthesis agents use their dedicated signed source-reader identity;
+    * require a reviewed source-view contract and exact location;
+    * dispatch through the dedicated signed source-reader identity;
     * optionally store a draft ``ai_summary`` for human review;
     * validate the output against the registered task schema.
     """
@@ -266,46 +262,35 @@ class SynthesisAgent:
     ) -> dict[str, Any]:
         """Run the agent: synthesize, optionally store a draft, and validate."""
         validate_task_capabilities(self.task_key)
-        if type(self).source_reference_views and location_id is None:
+        if location_id is None:
             raise ValueError("Synthesis requires an exact location_id")
         inputs = {"store": store}
-        if location_id is not None:
-            inputs["location_id"] = location_id
+        inputs["location_id"] = location_id
         errors = validate_task_inputs(self.task_key, inputs)
         if errors:
             raise ValueError("; ".join(errors))
+        if not type(self).source_reference_views:
+            raise ValueError(
+                "Synthesis requires a registered signed source-reference view map"
+            )
         if store:
-            if location_id is None:
-                raise ValueError("Agent draft storage requires an exact location_id")
             stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
             from services.agents.worker_cli import run_worker_synthesis
 
             return run_worker_synthesis(self, location_id, stable_request_id)
         if request_id is not None:
             raise ValueError("request_id is only valid when storing an agent draft")
-        if type(self).source_reference_views:
-            # Registered shared-synthesis agents must use the same dedicated,
-            # signed location-scoped source identity for read-only runs as for
-            # stored drafts. Never fall back to the broad application login.
-            from services.agents.worker_cli import run_worker_synthesis
+        # Registered shared-synthesis agents use the dedicated signed,
+        # location-scoped source identity for every read. There is no shared
+        # application-database fallback for unmapped subclasses.
+        from services.agents.worker_cli import run_worker_synthesis
 
-            return run_worker_synthesis(
-                self,
-                location_id,
-                None,
-                persist_draft=False,
-            )
-        assert_agent_action_allowed("read", self.read_collection, {"location_id": location_id})
-        conn = get_db()
-        try:
-            summary = self.synthesize(conn, location_id)
-            output: dict[str, Any] = {"summary": summary}
-            errors = validate_output(self.task_key, output)
-            if errors:
-                raise ValueError("; ".join(errors))
-        finally:
-            conn.close()
-        return output
+        return run_worker_synthesis(
+            self,
+            location_id,
+            None,
+            persist_draft=False,
+        )
 
 
 def run_fetch(
@@ -314,28 +299,16 @@ def run_fetch(
     fetch: Callable[[Any, Any], dict[str, Any]],
     **ctx: Any,
 ) -> dict[str, Any]:
-    """Shared flow for read-only agents (no draft storage).
+    """Reject the retired shared-database helper before any callback or I/O.
 
-    Asserts the read against the agent safety policy, fetches with a managed
-    connection (always closed), and validates the output against the task
-    schema. ``ctx`` kwargs are forwarded to ``fetch(conn, **ctx)`` and also
-    used as the safety-policy payload.
+    Read-only agents must use a registered source-view contract and the signed
+    worker adapter. The arguments remain in the signature for a clear error to
+    older callers, but are intentionally not inspected or executed here.
     """
-    validate_task_capabilities(task_key)
-    errors = validate_task_inputs(task_key, ctx)
-    if errors:
-        raise ValueError("; ".join(errors))
-    assert_agent_action_allowed("read", read_collection, ctx)
-    conn = get_db()
-    try:
-        output = fetch(conn, **ctx)
-    finally:
-        conn.close()
-
-    errors = validate_output(task_key, output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    del task_key, read_collection, fetch, ctx
+    raise RuntimeError(
+        "run_fetch is retired; use a registered signed source-reader adapter"
+    )
 
 
 def agent_cli(agent: SynthesisAgent, description: str = "", location_required: bool = True) -> None:

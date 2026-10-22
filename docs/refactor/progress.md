@@ -1,3 +1,19 @@
+### CAP-038 synthesis shared-database fallback retirement — 22 October 2026
+
+`SynthesisAgent.run()` now requires an exact location and a declared signed
+source-view map for every run; both read-only synthesis and draft storage use
+the registered worker. Unmapped subclasses fail before database access. The
+unused `run_fetch()` helper now raises a clear retirement error before
+validating or calling its callback, and it has no production callers. The
+focused agent-base, synthesis-source, and worker selection passes 134 tests;
+Ruff and Python compilation pass. No migration, database, provider, candidate,
+or legacy stack was used. Registered worker identity/grants, operator
+attribution, other non-synthesis agents, populated parity, and MAN-CAP-038
+remain open. Evidence:
+[fallback retirement](builds/2026-10-22-recovery/cap-038-agent-shared-db-fallback-retirement.json).
+Checklist: 958 complete / 24 open (982 total); capability classifications
+remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-038 Delphi study-list CLI boundary — 22 October 2026
 
 The legacy standalone and unified `delphi list-studies` path now exits before

@@ -138,7 +138,9 @@ def test_agent_run_rejects_missing_location_before_database_access(
     def fail_if_database_opens() -> None:
         raise AssertionError("locationless synthesis must not open the database")
 
-    monkeypatch.setattr("services.agents.base.get_db", fail_if_database_opens)
+    monkeypatch.setattr(
+        "services.agents.base.get_db", fail_if_database_opens, raising=False
+    )
 
     with pytest.raises(ValueError, match="requires an exact location_id"):
         agent_class().run()

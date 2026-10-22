@@ -16,6 +16,16 @@ draft tasks, and Delphi facilitator validate this contract before any database
 connection or task work begins. The catalogue validator also asks the common
 agent safety policy whether each write is allowed.
 
+Every `SynthesisAgent.run()` now requires an exact location and a class-declared
+source-reference view map, then dispatches both read-only and draft work through
+the registered signed worker. An unmapped subclass fails before any database
+access. The legacy generic `run_fetch()` symbol remains only to return a clear
+retirement error before invoking its callback or accessing a database; the
+repository has no production call sites. This prevents future subclasses from
+silently inheriting the broad runtime login. It does not provision worker
+credentials or grants, authenticate the human operator, or cover non-synthesis
+agent tasks.
+
 Before processing, those same task entry points validate declared top-level
 inputs from the task catalogue: required fields, primitive types, UUID formats,
 and exact `YYYY-MM-DD` dates. Malformed IDs and dates fail before the shared or

@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 902,
-    "execution_sites": 4514,
+    "execution_sites": 4513,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 333,
-    "sites_without_worker_operation_refs": 4181,
+    "sites_without_worker_operation_refs": 4180,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,14 +15,14 @@
       "RELEASE": 16,
       "ROLLBACK": 10,
       "SAVEPOINT": 9,
-      "SELECT": 2708,
+      "SELECT": 2707,
       "SET": 417,
       "UNKNOWN": 199,
       "UPDATE": 430,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2708,
+      "read_candidate": 2707,
       "schema_change": 1,
       "transaction_or_session": 452,
       "unknown_requires_manual_review": 199,
@@ -33,7 +33,7 @@
       "composed": 17,
       "composed_or_variable": 272,
       "fstring": 286,
-      "literal": 3939
+      "literal": 3938
     },
     "relation_candidates": 1200,
     "sites_without_relation_candidates": 876,
@@ -248,9 +248,9 @@
     },
     "delphi": {
       "source_files": 8,
-      "execution_sites": 32,
+      "execution_sites": 31,
       "statement_groups": {
-        "read_candidate": 18,
+        "read_candidate": 17,
         "write_candidate": 14
       },
       "candidate_relation_names": 10,
@@ -1078,7 +1078,7 @@
     "delphi_item": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/delphi/facilitator.py"]},
     "delphi_minority_report": {"execution_site_count": 2,"statement_kinds": ["INSERT","UPDATE"],"statement_groups": ["write_candidate"],"source_files": ["services/delphi/minority.py"]},
     "delphi_panel_member": {"execution_site_count": 11,"statement_kinds": ["DELETE","INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/delphi/facilitator.py","services/delphi/panel.py"]},
-    "delphi_study": {"execution_site_count": 9,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/delphi/cli.py","services/delphi/facilitator.py","services/export/reports/common.py"]},
+    "delphi_study": {"execution_site_count": 8,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/delphi/facilitator.py","services/export/reports/common.py"]},
     "department": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/export/reports/operations.py"]},
     "development_phase": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/impact_value_chain.py","services/export/reports/operations.py"]},
     "device_health": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/regional_readiness.py"]},
@@ -2163,7 +2163,7 @@
     {"id": "services/agents/ai_summary.py:338:4","source": "services/agents/ai_summary.py","line": 338,"column": 4,"scope": "generate_environmental_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["species_observation"],"static_sql_sha256": "1a14f29666c8f1722d1fab51d939ca297d9e9ab8b6978cdb687a985d44616dde","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/ai_summary.py:345:4","source": "services/agents/ai_summary.py","line": 345,"column": 4,"scope": "generate_environmental_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["remote_sensing_observation"],"static_sql_sha256": "ff3e1b1cfa372aafbbfe4a5463ce94f7d002825d64723eb3f7c273efdc176b4d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/ai_summary.py:353:4","source": "services/agents/ai_summary.py","line": 353,"column": 4,"scope": "generate_environmental_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["weather_observation"],"static_sql_sha256": "0701aebc299dabfa81558a7f1b5dc4883f9683c4e0b2c201d112524125e5110d","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/agents/base.py:138:12","source": "services/agents/base.py","line": 138,"column": 12,"scope": "SynthesisAgent.collect_source_references","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/agents/base.py:134:12","source": "services/agents/base.py","line": 134,"column": 12,"scope": "SynthesisAgent.collect_source_references","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/agents/bio_factory_agent.py:25:4","source": "services/agents/bio_factory_agent.py","line": 25,"column": 4,"scope": "_synthesize_batches","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["kokonut_agent_source.v_public_bio_factory_batch_summary"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/bio_factory_agent.py:43:4","source": "services/agents/bio_factory_agent.py","line": 43,"column": 4,"scope": "_synthesize_provenance","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["kokonut_agent_source.v_public_bio_input_provenance_summary"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/agents/bio_factory_agent.py:61:4","source": "services/agents/bio_factory_agent.py","line": 61,"column": 4,"scope": "_synthesize_recipes","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["kokonut_agent_source.v_public_bio_recipe_library_summary"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
@@ -4018,7 +4018,6 @@
     {"id": "services/decision/sequential_integration.py:34:12","source": "services/decision/sequential_integration.py","line": 34,"column": 12,"scope": "evaluate_hypothesis","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["strategy_review_task"],"static_sql_sha256": "815b5f58e694b61f47f37679402685a5e592599f76c81f2b1aa1a66c5d1e495b","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/decision/sequential_integration.py:52:8","source": "services/decision/sequential_integration.py","line": 52,"column": 8,"scope": "evaluate_solution_gate_from_hypothesis","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["decision_evidence_event","decision_posterior_update"],"static_sql_sha256": "4da4270988952299bc9ad4fbc765cebd022308eb7576dec76ad8544d6da149a8","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/decision/sequential_integration.py:59:8","source": "services/decision/sequential_integration.py","line": 59,"column": 8,"scope": "evaluate_solution_gate_from_hypothesis","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["decision_posterior_update","decision_threshold_evaluation"],"static_sql_sha256": "5dd52c54055a0a36fb304bb72f9f5e40fa6dbf86cb765fd313818cd3822d54a4","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/delphi/cli.py:166:12","source": "services/delphi/cli.py","line": 166,"column": 12,"scope": "cmd_list_studies","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["delphi_study"],"static_sql_sha256": "cbb9344dda33b3281506e1842bccab43ad1c3b698d38549efb35f98bd0a5f57d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/delphi/facilitator.py:65:8","source": "services/delphi/facilitator.py","line": 65,"column": 8,"scope": "Facilitator.create_study","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["delphi_study"],"static_sql_sha256": "9ac15ca3a36b6d3f0bcd87d4a35f0559c09513c58755432eb257668b5aeb5778","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/delphi/facilitator.py:87:8","source": "services/delphi/facilitator.py","line": 87,"column": 8,"scope": "Facilitator.open_study","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["delphi_study"],"static_sql_sha256": "ee8b67b058531e2a55ab96e9acbb6e6de9752aa8f0b8d2d4603f3b5ae11ea30f","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/delphi/facilitator.py:107:8","source": "services/delphi/facilitator.py","line": 107,"column": 8,"scope": "Facilitator.close_study","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["delphi_study"],"static_sql_sha256": "cae4e0dd0741f4735b9cfa9f16c915689468d109ae9f739d03ff770c1705f4ec","operation_refs": [],"statement_group": "write_candidate"},
