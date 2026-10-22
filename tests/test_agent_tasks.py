@@ -75,7 +75,8 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
 
 def test_task_input_validation_checks_required_types_and_formats() -> None:
     assert validate_task_inputs("ebf_evidence_gap", {}) == [
-        "Missing required task input: scorecard_id"
+        "Missing required task input: scorecard_id",
+        "Missing required task input: location_id",
     ]
     assert validate_task_inputs("financial_resilience_synthesis", {"store": False}) == []
 

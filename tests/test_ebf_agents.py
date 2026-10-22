@@ -1,8 +1,14 @@
 """Standalone EBF agent module tests."""
 
+import pytest
+
+from services.agents import ebf_evidence_gap_agent
 from services.agents.ebf_calibration_agent import draft_calibration_memo
 from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps
 from services.agents.ebf_scorecard_agent import draft_scorecard
+
+LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+SCORECARD_ID = "a0000000-0000-0000-0000-000000000100"
 
 
 def test_scorecard_agent_outputs_draft_only() -> None:
@@ -19,18 +25,30 @@ def test_calibration_agent_outputs_draft_memo() -> None:
 
 def test_evidence_gap_agent_summarizes_rows() -> None:
     class Cursor:
+        query = None
+        params = None
+
         def execute(self, query, params):
-            pass
+            self.query = query
+            self.params = params
+
         def fetchall(self):
             return [{"pillar_key": "soil_health", "pillar_name": "Soil Health", "gap_status": "missing_evidence"}]
+
         def close(self):
             pass
+
+    cursor = Cursor()
+
     class Conn:
         def cursor(self, cursor_factory=None):
-            return Cursor()
-    output = analyze_evidence_gaps(Conn(), "a0000000-0000-0000-0000-000000000100")
+            return cursor
+
+    output = analyze_evidence_gaps(Conn(), SCORECARD_ID, LOCATION_ID)
     assert output["evidence_gaps"][0]["pillar_key"] == "soil_health"
     assert output["recommendations"]
+    assert "scorecard_id = %s AND location_id = %s" in cursor.query
+    assert cursor.params == (SCORECARD_ID, LOCATION_ID)
 
 
 def test_scorecard_agent_includes_rubric_version() -> None:
@@ -57,9 +75,21 @@ def test_evidence_gap_agent_generates_recommendations_for_non_ready() -> None:
     class Conn:
         def cursor(self, cursor_factory=None):
             return Cursor()
-    output = analyze_evidence_gaps(Conn(), "a0000000-0000-0000-0000-000000000100")
+    output = analyze_evidence_gaps(Conn(), SCORECARD_ID, LOCATION_ID)
     assert len(output["recommendations"]) == 1
     assert output["recommendations"][0]["pillar_key"] == "soil_health"
+
+
+def test_evidence_gap_cli_requires_location(monkeypatch) -> None:
+    monkeypatch.setattr("sys.argv", ["ebf-evidence-gap", "--scorecard-id", SCORECARD_ID])
+    monkeypatch.setattr(
+        ebf_evidence_gap_agent,
+        "run_ebf_evidence_gap",
+        lambda *_args: pytest.fail("CLI must reject missing location before running the agent"),
+    )
+    with pytest.raises(SystemExit) as exc:
+        ebf_evidence_gap_agent.main()
+    assert exc.value.code == 2
 
 
 if __name__ == "__main__":

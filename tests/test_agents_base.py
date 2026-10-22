@@ -220,17 +220,25 @@ def test_run_store_delegates_before_opening_shared_database():
 def test_run_fetch_validates_and_closes():
     conn = _FakeConn()
 
-    def fetch(conn, scorecard_id):
-        return {"scorecard_id": scorecard_id}
+    def fetch(conn, scorecard_id, location_id):
+        return {"scorecard_id": scorecard_id, "location_id": location_id}
 
     with mock.patch("services.agents.base.get_db", return_value=conn):
         with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
             with mock.patch("services.agents.base.validate_output", return_value=[]):
                 out = run_fetch(
-                    "ebf_evidence_gap", "ebf_scorecard", fetch, scorecard_id=SCORECARD_ID
+                    "ebf_evidence_gap",
+                    "ebf_scorecard",
+                    fetch,
+                    scorecard_id=SCORECARD_ID,
+                    location_id=LOCATION_ID,
                 )
-    assert out == {"scorecard_id": SCORECARD_ID}
-    safety.assert_called_once_with("read", "ebf_scorecard", {"scorecard_id": SCORECARD_ID})
+    assert out == {"scorecard_id": SCORECARD_ID, "location_id": LOCATION_ID}
+    safety.assert_called_once_with(
+        "read",
+        "ebf_scorecard",
+        {"scorecard_id": SCORECARD_ID, "location_id": LOCATION_ID},
+    )
     assert conn.closed is True
 
 
@@ -250,11 +258,34 @@ def test_run_fetch_rejects_malformed_scope_before_database_access():
     with mock.patch("services.agents.base.get_db", side_effect=AssertionError("database opened")):
         with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
             try:
-                run_fetch("ebf_evidence_gap", "ebf_scorecard", lambda *_args: {}, scorecard_id="bad")
+                run_fetch(
+                    "ebf_evidence_gap",
+                    "ebf_scorecard",
+                    lambda *_args: {},
+                    scorecard_id="bad",
+                    location_id=LOCATION_ID,
+                )
             except ValueError as exc:
                 assert "Invalid task input format for field: scorecard_id" in str(exc)
             else:
                 raise AssertionError("expected malformed scorecard rejection")
+    safety.assert_not_called()
+
+
+def test_run_fetch_rejects_missing_location_before_database_access():
+    with mock.patch("services.agents.base.get_db", side_effect=AssertionError("database opened")):
+        with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
+            try:
+                run_fetch(
+                    "ebf_evidence_gap",
+                    "ebf_scorecard",
+                    lambda *_args: {},
+                    scorecard_id=SCORECARD_ID,
+                )
+            except ValueError as exc:
+                assert "Missing required task input: location_id" in str(exc)
+            else:
+                raise AssertionError("expected missing location rejection")
     safety.assert_not_called()
 
 

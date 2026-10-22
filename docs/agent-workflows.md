@@ -95,7 +95,7 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 | Command | Required | Description |
 |---------|----------|-------------|
 | `python3 -m services.agents.ebf_scorecard_agent` | `--location-id UUID`, `--period-start YYYY-MM-DD`, `--period-end YYYY-MM-DD` | Draft EBF scorecard workspace |
-| `python3 -m services.agents.ebf_evidence_gap_agent` | `--scorecard-id UUID` | Analyze evidence gaps for a scorecard |
+| `python3 -m services.agents.ebf_evidence_gap_agent` | `--scorecard-id UUID`, `--location-id UUID` | Analyze evidence gaps for a scorecard within an explicit location |
 | `python3 -m services.agents.ebf_calibration_agent` | `--session-id UUID` | Draft calibration memo |
 
 ### Delphi Facilitator

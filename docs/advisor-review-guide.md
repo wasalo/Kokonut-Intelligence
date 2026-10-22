@@ -221,7 +221,7 @@ of five gap statuses:
 ### Evidence gap agent
 
 ```bash
-python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID
+python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID --location-id UUID
 ```
 
 Read-only analysis that queries `v_ebf_evidence_gap_summary` and generates
@@ -285,7 +285,7 @@ to the database. Output: `{memo, proposed_decisions, safety_note}`.
 ### EBF evidence gap agent
 
 ```bash
-python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID
+python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID --location-id UUID
 ```
 
 Read-only analysis of evidence gaps. Queries `v_ebf_evidence_gap_summary`.
@@ -337,7 +337,7 @@ python3 -m services.scoring --trust-graph UUID --mermaid
 ```bash
 python3 -m services.agents.ebf_scorecard_agent --location-id UUID --period-start DATE --period-end DATE
 python3 -m services.agents.ebf_calibration_agent --session-id UUID
-python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID
+python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID --location-id UUID
 ```
 
 ### Report generator

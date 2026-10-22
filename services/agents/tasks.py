@@ -215,6 +215,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "risk": "low",
         "inputs": {
             "scorecard_id": {"type": "string", "format": "uuid", "required": True},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
         },
         "outputs": {
             "evidence_gaps": {"type": "array", "required": True},

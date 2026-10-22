@@ -15,7 +15,9 @@ from services.agents.base import run_fetch
 from services.common.cli import print_json
 
 
-def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:
+def analyze_evidence_gaps(
+    conn, scorecard_id: str, location_id: str
+) -> dict[str, Any]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """
@@ -23,10 +25,10 @@ def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:
                evidence_maturity_level, evidence_maturity_label, evidence_count,
                public_safe_evidence_count, gap_status
         FROM v_ebf_evidence_gap_summary
-        WHERE scorecard_id = %s
+        WHERE scorecard_id = %s AND location_id = %s
         ORDER BY pillar_key
         """,
-        (scorecard_id,),
+        (scorecard_id, location_id),
     )
     gaps = [dict(row) for row in cur.fetchall()]
     cur.close()
@@ -42,21 +44,23 @@ def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:
     return {"evidence_gaps": gaps, "recommendations": recommendations}
 
 
-def run_ebf_evidence_gap(scorecard_id: str) -> dict[str, Any]:
+def run_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str, Any]:
     """Summarize evidence gaps; delegates to the shared read-only agent flow."""
     return run_fetch(
         "ebf_evidence_gap",
         "ebf_scorecard",
         analyze_evidence_gaps,
         scorecard_id=scorecard_id,
+        location_id=location_id,
     )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the EBF evidence gap agent")
     parser.add_argument("--scorecard-id", required=True, help="EBF scorecard UUID")
+    parser.add_argument("--location-id", required=True, help="Location UUID")
     args = parser.parse_args()
-    print_json(run_ebf_evidence_gap(args.scorecard_id))
+    print_json(run_ebf_evidence_gap(args.scorecard_id, args.location_id))
 
 
 if __name__ == "__main__":

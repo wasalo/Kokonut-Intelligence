@@ -1,3 +1,16 @@
+### CAP-038 EBF evidence-gap location query — 21 October 2026
+
+The read-only EBF evidence-gap agent now requires both scorecard and location
+UUIDs and binds both against `v_ebf_evidence_gap_summary`. Missing or malformed
+location input fails in shared task validation before the database opens. The
+focused EBF/agent-base/task selection passes 44 tests; Ruff, Python compilation,
+runtime SQL inventory, capability-matrix validation, and diff checks pass. No
+database or provider was contacted. This adds query scope only; authenticated
+tenant authorization, RLS, and a least-privilege runtime identity remain open.
+Checklist: 920 complete / 24 open (944 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[EBF location query scope](builds/2026-10-21-recovery/cap-038-ebf-evidence-location-scope.json).
+
 ### Full ARM64 schema replay through migration 538 — 21 October 2026
 
 A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS image completed all 529
