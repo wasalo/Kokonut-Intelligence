@@ -1,3 +1,18 @@
+### Separate event and notification worker recovery — 21 October 2026
+
+The disposable PostgreSQL recovery acceptance now starts `cmd_event_worker`
+and `cmd_notification_worker` as separate processes. Both remain alive across a
+database stop/start; event processing and notification delivery resume, the
+synthetic 503 retry preserves its idempotency key, and a killed notification
+worker's lease is reclaimed with `lease_lost,succeeded` history. All five
+webhook requests went to a synthetic loopback server. The minimal fixture
+replayed migrations 116, 165, and 375 and added only the `location_id` column
+introduced by migration 406; the full schema ledger and unrelated sensor
+tables were not applied. The disposable container had no volume and was
+loopback-only; candidate/legacy databases and external providers were
+untouched. The runner passes Ruff, compilation, and diff checks. Evidence:
+[dedicated worker recovery](builds/2026-10-21-recovery/dedicated-event-notification-worker-reconnect.json).
+
 ### CAP-038 synthesis source-query contract binding — 21 October 2026
 
 Synthesis source-reference collection now reads its view map and optional SQL

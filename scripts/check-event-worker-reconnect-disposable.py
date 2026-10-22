@@ -43,11 +43,12 @@ def _wait_for_log(
     output: queue.Queue[str | None],
     expected: str,
     timeout: float,
+    worker_name: str,
 ) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if process.poll() is not None:
-            raise RuntimeError(f"Event worker exited with status {process.returncode}")
+            raise RuntimeError(f"{worker_name} exited with status {process.returncode}")
         try:
             line = output.get(timeout=min(0.2, deadline - time.monotonic()))
         except queue.Empty:
@@ -57,7 +58,50 @@ def _wait_for_log(
         lines.append(line)
         if expected in line:
             return
-    raise TimeoutError(f"Event worker did not log {expected!r} within {timeout:g}s")
+    raise TimeoutError(
+        f"{worker_name} did not log {expected!r} within {timeout:g}s"
+    )
+
+
+def _start_worker_process(
+    command: str,
+    worker_id: str,
+    env: dict[str, str],
+) -> tuple[subprocess.Popen[str], list[str], queue.Queue[str | None]]:
+    if command not in {"cmd_event_worker", "cmd_notification_worker"}:
+        raise ValueError("unsupported worker command")
+    lines: list[str] = []
+    output: queue.Queue[str | None] = queue.Queue()
+    worker_code = f"""
+from types import SimpleNamespace
+from services.events.cli import {command}
+
+args = SimpleNamespace(
+    poll_interval=0.25,
+    batch_size=10,
+    worker_id={worker_id!r},
+    lease_seconds=30,
+)
+raise SystemExit({command}(args))
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-u", "-c", worker_code],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+
+    def collect_output() -> None:
+        assert process.stdout is not None
+        for output_line in process.stdout:
+            output.put(output_line.rstrip())
+        output.put(None)
+
+    threading.Thread(target=collect_output, daemon=True).start()
+    return process, lines, output
 
 
 def _wait_until_ready(name: str, timeout: float) -> None:
@@ -192,6 +236,17 @@ def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, 
     raise TimeoutError("EventBus worker did not complete the synthetic event")
 
 
+def _drain_output(output: queue.Queue[str | None], lines: list[str]) -> None:
+    while True:
+        try:
+            line = output.get_nowait()
+        except queue.Empty:
+            return
+        if line is None:
+            return
+        lines.append(line)
+
+
 def _wait_for_notification_state(
     name: str,
     event_id: str,
@@ -253,10 +308,12 @@ def main() -> int:
     name = f"kokonut-event-worker-reconnect-{uuid.uuid4().hex[:8]}"
     port = _free_port()
     password = secrets.token_urlsafe(24)
-    process: subprocess.Popen[str] | None = None
-    lines: list[str] = []
-    output: queue.Queue[str | None] = queue.Queue()
+    event_process: subprocess.Popen[str] | None = None
+    notification_process: subprocess.Popen[str] | None = None
     worker_id = "event-worker-reconnect-probe"
+    notification_worker_id = "notification-worker-reconnect-probe"
+    notification_lines: list[str] = []
+    notification_output: queue.Queue[str | None] = queue.Queue()
     event_type = "threshold_breached"
     webhook_server: ThreadingHTTPServer | None = None
     webhook_thread: threading.Thread | None = None
@@ -313,6 +370,15 @@ def main() -> int:
                 check=True,
                 stdin=sql,
             )
+        # The bounded fixture intentionally replays only the event/outbox
+        # migrations. Current handlers also persist optional location lineage,
+        # added to the outbox by migration 406; add only that column because
+        # the unrelated sensor tables required by the full migration are not
+        # part of this recovery acceptance.
+        _sql(
+            name,
+            "ALTER TABLE public.notification_outbox ADD COLUMN location_id UUID",
+        )
         (
             webhook_server,
             webhook_thread,
@@ -341,44 +407,48 @@ def main() -> int:
                 "no_proxy": "127.0.0.1,localhost",
                 "KOKONUT_FEATURE_DIRECTUS": "false",
                 "KOKONUT_FEATURE_CLICKHOUSE": "false",
+                "KOKONUT_FEATURE_EVENT_BUS": "true",
                 "KOKONUT_FEATURE_GRPC": "false",
                 "KOKONUT_FEATURE_METABASE": "false",
                 "KOKONUT_FEATURE_MQTT": "false",
                 "KOKONUT_FEATURE_PREFECT": "false",
+                "KOKONUT_FEATURE_NOTIFICATION_DELIVERY": "true",
                 "KOKONUT_FEATURE_LEGACY_DATASET_SQL": "false",
             }
         )
-        worker_code = f"""
-from types import SimpleNamespace
-from services.events.cli import cmd_worker
-
-args = SimpleNamespace(
-    poll_interval=0.25,
-    batch_size=10,
-    worker_id={worker_id!r},
-    lease_seconds=30,
-)
-raise SystemExit(cmd_worker(args))
-"""
-        process = subprocess.Popen(
-            [sys.executable, "-u", "-c", worker_code],
-            cwd=ROOT,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
+        event_process, lines, output = _start_worker_process(
+            "cmd_event_worker", worker_id, env
         )
-
-        def collect_output() -> None:
-            assert process is not None and process.stdout is not None
-            for output_line in process.stdout:
-                output.put(output_line.rstrip())
-            output.put(None)
-
-        threading.Thread(target=collect_output, daemon=True).start()
+        notification_process, notification_lines, notification_output = (
+            _start_worker_process(
+                "cmd_notification_worker", notification_worker_id, env
+            )
+        )
         event_before = _enqueue(name, event_type)
-        before_worker, before_handler_status = _wait_for_completed(name, event_before, timeout)
+        try:
+            before_worker, before_handler_status = _wait_for_completed(
+                name, event_before, timeout
+            )
+        except TimeoutError as exc:
+            _drain_output(output, lines)
+            _drain_output(notification_output, notification_lines)
+            event_state = _sql(
+                name,
+                "SELECT e.status || '|' || COALESCE(e.worker_id, '') || '|' || "
+                "COALESCE(e.error_message, '') || '|' || COALESCE(d.status, '') || '|' || "
+                "COALESCE(d.last_error, '') || '|' || COALESCE(dl.last_error, '') "
+                "FROM platform_event e LEFT JOIN event_handler_delivery d "
+                "ON d.event_id = e.id LEFT JOIN event_dead_letter dl "
+                "ON dl.original_event_id = e.id "
+                f"WHERE e.id = '{event_before}'",
+            )
+            raise RuntimeError(
+                f"{exc}; event worker logs={lines[-20:]}; "
+                f"notification worker logs={notification_lines[-20:]}; "
+                f"event process exit={event_process.poll()}; "
+                f"notification process exit={notification_process.poll()}; "
+                f"event state={event_state!r}"
+            ) from exc
         if before_worker != worker_id:
             raise RuntimeError("synthetic pre-outage event was not claimed by the probe worker")
         if before_handler_status != "success":
@@ -402,9 +472,20 @@ raise SystemExit(cmd_worker(args))
             raise RuntimeError("notification retry did not reuse its idempotency key")
 
         _docker("stop", "--time", "1", name)
-        _wait_for_log(process, lines, output, "Event worker iteration failed", timeout)
-        if process.poll() is not None:
-            raise RuntimeError("Event worker exited during the database outage")
+        _wait_for_log(
+            event_process, lines, output, "Event worker iteration failed", timeout,
+            "event worker",
+        )
+        _wait_for_log(
+            notification_process,
+            notification_lines,
+            notification_output,
+            "Event worker iteration failed",
+            timeout,
+            "notification worker",
+        )
+        if event_process.poll() is not None or notification_process.poll() is not None:
+            raise RuntimeError("a dedicated worker exited during the database outage")
 
         _docker("start", name)
         _wait_until_ready(name, timeout)
@@ -440,10 +521,10 @@ raise SystemExit(cmd_worker(args))
             raise RuntimeError("crash probe did not reach the expected blocked webhook request")
         if accepted_before_crash["idempotency_key"] != notification_during_crash:
             raise RuntimeError("crash-probe request used the wrong notification idempotency key")
-        if process is None or process.poll() is not None:
-            raise RuntimeError("EventBus worker exited before the crash-probe request")
-        process.kill()
-        process.wait(timeout=5)
+        if notification_process.poll() is not None:
+            raise RuntimeError("notification worker exited before the crash-probe request")
+        notification_process.kill()
+        notification_process.wait(timeout=5)
         assert release_crash_probe is not None
         release_crash_probe.set()
         _expire_notification_lease(name, notification_during_crash)
@@ -490,6 +571,8 @@ raise SystemExit(cmd_worker(args))
             {
                 "result": "passed",
                 "worker_alive_during_outage": True,
+                "event_worker_alive_during_outage": True,
+                "notification_worker_alive_during_outage": True,
                 "database_restart_reconnected": True,
                 "event_before_restart_completed": True,
                 "event_after_restart_completed": True,
@@ -508,13 +591,18 @@ raise SystemExit(cmd_worker(args))
                 "source_notification_idempotency_keys_distinct": True,
                 "loopback_webhook_calls": 5,
                 "worker_id": worker_id,
+                "notification_worker_id": notification_worker_id,
                 "migrations_replayed": [
                     "116_event_bus.sql",
                     "165_event_bus_durability.sql",
                     "375_notification_outbox.sql",
                 ],
+                "fixture_schema_shims": [
+                    "notification_outbox.location_id from migration 406",
+                ],
                 "limitations": [
                     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
+                    "The current optional notification location column was added as a minimal fixture shim instead of replaying migration 406, whose unrelated sensor-table prerequisites are outside this recovery test.",
                     "The real allowlisted alert-notification handler ran in its spawned child process and queued webhooks to a temporary HTTP server bound to 127.0.0.1; no remote provider was contacted.",
                     "The local server returned one synthetic 503, then accepted the retry and the post-restart notification. The first notification recovered from retryable/failed to succeeded/succeeded; its retry reused the same durable notification ID as the idempotency key.",
                     "A third notification request was received while its worker was blocked before receiving the HTTP response. The process was killed, its lease expired in the fixture, and a one-shot replacement worker reclaimed it; the attempt history was lease_lost then succeeded, and the duplicate request reused the same idempotency key.",
@@ -524,13 +612,14 @@ raise SystemExit(cmd_worker(args))
             }
         )
     finally:
-        if process is not None and process.poll() is None:
-            process.send_signal(signal.SIGINT)
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait(timeout=5)
+        for process in (event_process, notification_process):
+            if process is not None and process.poll() is None:
+                process.send_signal(signal.SIGINT)
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait(timeout=5)
         _docker("rm", "--force", name, check=False)
         if release_crash_probe is not None:
             release_crash_probe.set()
