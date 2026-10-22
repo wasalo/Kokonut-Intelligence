@@ -24,7 +24,7 @@
         "OpenWeatherMap HTTP requests"
       ],
       "idempotency": "Legacy weather_observation insert has no explicit conflict clause; ClickHouse projection is keyed by payload hash. A replay may create a second PostgreSQL observation.",
-      "retry_boundary": "Legacy persisted-task retries may repeat provider reads and PostgreSQL inserts; no source watermark is recorded by this entrypoint. Reconcile legacy tasks before using this shared-identity path.",
+      "retry_boundary": "Legacy location writes and success audits now share a savepoint/transaction; failed provider/database operations record a sanitized same-connection failure audit, and a failed projection rolls back both observations and audits. Retries may still repeat provider reads and PostgreSQL inserts because this compatibility entrypoint has no source receipt or watermark. Reconcile legacy tasks before using this shared-identity path.",
       "sources": [
         "services/ingestion/weather.py",
         "services/ingestion/base.py",

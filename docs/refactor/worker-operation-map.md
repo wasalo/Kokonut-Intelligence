@@ -217,15 +217,23 @@ application-wide RLS or proof for other workers.
   delete operation. These commands now fail the Kernel argument contract. The
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
-  compares all 16 shared job templates with the Kernel module allowlist and
-  command validation. Five no-input defaults pass and eleven jobs require
+  compares all 18 shared job templates with the Kernel module allowlist and
+  command validation. Five no-input defaults pass and thirteen jobs require
   validated runtime inputs; EAS and RPC each require one supported chain.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
   enabled sensor instance assigned to that exact location, and the loaded
   driver must explicitly opt into scheduled pull. The built-in CSV driver is
   pull-capable; MQTT remains event-driven. This source contract does not prove
-  a configured instance, active schedule, tenant authorization, or RLS. Remote
+  a configured instance, active schedule, tenant authorization, or RLS. The
+  legacy current-weather entrypoint now writes each observation and success
+  audit in the same transaction, with a savepoint per location; a failed
+  location is rolled back before its sanitized failure audit, and projection
+  failure rolls back observations and audits together. This compatibility path
+  still has no receipt or source watermark, so a retry can duplicate a
+  PostgreSQL observation. The native default-off current-weather JobSpec uses
+  its isolated signed worker; persisted legacy schedules still need owner
+  reconciliation. Remote
   sensing requires one `--location-id` for every legacy CLI mode and its
   due-job API. New native JobSpecs use the default-off
   `services.ingestion.remote_sensing_worker`; migration 432 gives it a distinct

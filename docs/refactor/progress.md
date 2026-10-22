@@ -15125,3 +15125,8 @@ empty/non-empty signals and the auto-summary count; Ruff, compilation, and diff
 checks pass. All generation and persistence boundaries in this check use
 synthetic data and mocks. Evidence:
 [empty-summary regression](builds/2026-10-22-recovery/report-auto-empty-summary-count.json).
+
+
+### CAP-040 legacy current-weather transaction integrity — 22 October 2026
+
+The legacy current-weather compatibility path now keeps each observation and its success audit in the same transaction/savepoint. Per-location failures roll back their savepoint before writing a sanitized failure audit on the same connection, so a failed location does not poison the rest of an aggregate run. ClickHouse projection failure rolls back observations and audits together. The focused weather/worker/JobSpec-inventory/CLI selection passes 48 tests; Ruff, Python compilation, and diff checks pass. All provider and database operations were mocked. Legacy replay can still create duplicate PostgreSQL observations because this path has no receipt or source watermark; the default-off signed worker and persisted schedule ownership remain open. Evidence: [current-weather transaction acceptance](builds/2026-10-22-recovery/weather-legacy-transaction-atomicity.json). Checklist: 973 complete / 24 open (997 total); matrix classifications remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.

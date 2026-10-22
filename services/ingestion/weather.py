@@ -227,15 +227,20 @@ def run(location_id: str = None, *, all_locations: bool = False):
     errors = 0
 
     for loc_id, name, lat, lng in locations:
+        location_id_text = str(loc_id)
+        savepoint_created = False
         try:
             start = time.time()
             raw = fetch_weather(lat, lng)
             elapsed_ms = int((time.time() - start) * 1000)
 
             record = parse_weather(raw, loc_id)
+            # Keep each location's observation and audit atomic while allowing
+            # the rest of an aggregate run to continue after one bad location.
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT weather_location")
+            savepoint_created = True
             pg_id = insert_weather(db, record, source_raw=raw)
-            records.append(record)
-
             log_ingestion(
                 source_system="openweathermap",
                 source_table="weather_api",
@@ -247,26 +252,54 @@ def run(location_id: str = None, *, all_locations: bool = False):
                 status="success",
                 rows_affected=1,
                 processing_time_ms=elapsed_ms,
+                db=db,
+                location_id=location_id_text,
             )
-            success += 1
             logger.info("  ✓ %s: %.1f°C, %d%% humidity", name, record['temperature_c'], record['humidity_pct'])
             time.sleep(0.5)  # Rate limiting
-
+            with db.cursor() as cur:
+                cur.execute("RELEASE SAVEPOINT weather_location")
+            savepoint_created = False
         except Exception as e:
+            try:
+                if savepoint_created:
+                    with db.cursor() as cur:
+                        cur.execute("ROLLBACK TO SAVEPOINT weather_location")
+                        cur.execute("RELEASE SAVEPOINT weather_location")
+                safe_error = f"weather location processing failed ({type(e).__name__})"
+                log_ingestion(
+                    source_system="openweathermap",
+                    source_table="weather_api",
+                    source_id="",
+                    target_table="weather_observation",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash="",
+                    status="failed",
+                    error_message=safe_error,
+                    db=db,
+                    location_id=location_id_text,
+                )
+            except Exception:
+                try:
+                    db.rollback()
+                except Exception as rollback_error:
+                    logger.warning(
+                        "Database rollback failed (%s)", type(rollback_error).__name__
+                    )
+                try:
+                    db.close()
+                except Exception as close_error:
+                    logger.warning(
+                        "Database close failed (%s)", type(close_error).__name__
+                    )
+                raise
             errors += 1
-            safe_error = f"weather location processing failed ({type(e).__name__})"
-            log_ingestion(
-                source_system="openweathermap",
-                source_table="weather_api",
-                source_id="",
-                target_table="weather_observation",
-                target_id=None,
-                operation="insert",
-                payload_hash="",
-                status="failed",
-                error_message=safe_error,
-            )
             logger.error("  ✗ %s failed (%s)", name, type(e).__name__)
+            continue
+
+        records.append(record)
+        success += 1
 
     try:
         if records:

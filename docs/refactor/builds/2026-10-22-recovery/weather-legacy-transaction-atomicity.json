@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-22",
+  "scope": "CAP-040 legacy current-weather transaction integrity",
+  "behavior_before": "The legacy current-weather path persisted success audits on a separate connection from observations, and a failed per-location insert could leave the shared transaction unusable for later locations.",
+  "behavior_after": "Each location write and success audit now share one database transaction/savepoint. A location failure rolls back only that location before its failure audit is written on the shared connection; projection failure rolls back observations and audits together.",
+  "focused_test_command": "python3 -m pytest tests/test_weather_legacy_atomicity.py tests/test_weather_legacy_error_redaction.py tests/test_weather_worker.py tests/test_weather_cli_scope.py tests/test_weather_cli_parity.py tests/test_worker_operation_map.py tests/test_worker_job_contract_inventory.py -q",
+  "focused_test_result": "48 passed",
+  "new_regressions": [
+    "a failed location write rolls back to its savepoint, writes a same-connection failure audit, and allows a later location to commit",
+    "a ClickHouse outbox/projection failure rolls back the observation and its same-transaction success audit"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_access": false,
+  "candidate_or_legacy_access": false,
+  "migration_required": false,
+  "remaining_limitations": "Legacy retry can still insert a duplicate PostgreSQL observation because the compatibility path has no source watermark or receipt. The native signed weather worker remains default-off, and persisted task/schedule ownership still needs reconciliation."
+}
