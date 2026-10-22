@@ -127,7 +127,7 @@ def list_classes(conn, credit_type: str = None, status: str = None) -> list[dict
         params["s"] = status
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_class {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_class {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]

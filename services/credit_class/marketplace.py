@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
@@ -162,7 +160,7 @@ def list_sell_orders(conn, credit_batch_id: str = None, seller_address: str = No
         params["seller"] = seller_address
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_sell_order {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_sell_order {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]

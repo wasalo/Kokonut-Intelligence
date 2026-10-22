@@ -100,10 +100,11 @@ client.close();
 The EcocreditService list methods accept an optional `GrpcPageRequest` with a
 `limit` and byte `offset`. Paginated responses expose `pagination.next_key`
 and `pagination.total` when the server supplies metadata, matching the
-proto-loader's raw `keepCase` field names. The Python gRPC service currently
-ignores these proto pagination fields, so the cursor API is wired but runtime
-pagination remains an open capability gap. Existing calls without a pagination
-argument keep their previous behavior.
+proto-loader's raw `keepCase` field names. The server defaults to 100 rows,
+accepts limits up to 500, and returns the next cursor as ASCII decimal offset
+bytes; pass it back unchanged. Existing calls without a pagination argument
+keep their previous behavior. See the gRPC API guide for pagination limits and
+the consistency boundary across multiple requests.
 
 ## Authentication
 

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Apply bounded cursor pagination in EcocreditService list handlers",
+  "result": "PASS",
+  "contract": {
+    "methods": [
+      "Classes",
+      "ClassesByAdmin",
+      "Projects",
+      "ProjectsByClass",
+      "Batches",
+      "BatchesByClass",
+      "BatchesByProject",
+      "Baskets",
+      "SellOrders"
+    ],
+    "cursor": "ASCII decimal row-offset bytes; clients pass next_key back unchanged as offset",
+    "default_page_size": 100,
+    "maximum_page_size": 500,
+    "invalid_request": "Malformed/out-of-range cursors and limits over 500 return INVALID_ARGUMENT before service DB acquisition",
+    "legacy_calls": "Requests without the pagination message retain their current response shape"
+  },
+  "verification": {
+    "pagination_and_enabled_transport": "16 passed; includes two-page loopback round trip and invalid-input preflight",
+    "credit_list_regressions": "71 passed, 1 skipped, 17 subtests",
+    "ruff": "passed",
+    "capability_matrix": "66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+  },
+  "data_access": {
+    "database": false,
+    "provider": false,
+    "loopback": "Ephemeral localhost transport with synthetic rows and mocked DB factory"
+  },
+  "limitations": [
+    "Handlers currently materialize their existing manager result lists before slicing, so response size is bounded but database read volume and peak list memory are not.",
+    "Each page reads a fresh result set; concurrent inserts or deletes can shift offset pages.",
+    "Authentication/tenant policy parity, TLS, and REST parity remain open; MAN-CAP-064 is not accepted."
+  ]
+}

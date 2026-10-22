@@ -14232,11 +14232,31 @@ cursor request and model the proto pagination response metadata as optional;
 existing no-pagination calls retain their prior request shape. Focused
 TypeScript tests pass 25 cases, including pagination forwarding and
 compatibility for all nine methods; the TypeScript build passes. The SDK README
-documents cursor use. Source inspection confirmed the Python gRPC service
-currently ignores the proto pagination fields and does not return page
-metadata, so this closes only TypeScript SDK wiring. No database, provider, or
-network was contacted. Server pagination semantics, authorization, tenant
-scope, TLS, and REST parity remain open. CAP-064 remains open.
+documents cursor use. At this SDK-only checkpoint, source review found the Python service did not
+consume these fields; the following CAP-064 entry records the server-side
+implementation. This SDK change itself contacted no database or provider.
+Authorization, tenant scope, TLS, and REST parity remain open. CAP-064 remains
+open.
 Checklist: 924 complete / 24 open (948 total); matrix remains 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
 [Ecocredit pagination](builds/2026-10-21-recovery/cap-064-typescript-pagination.json).
+
+
+### CAP-064 bounded EcocreditService server pagination — 21 October 2026
+
+The nine EcocreditService list handlers now apply the proto page request and
+return `next_key` plus the pre-page total. Cursor bytes are a strict ASCII
+decimal row offset; zero limit selects 100 rows, limits above 500 and malformed
+cursors fail with `INVALID_ARGUMENT` before service database acquisition. The
+underlying class, batch, basket, and sell-order lists now have deterministic
+tie-break ordering, and project collections are sorted by ID. Calls without a
+pagination message retain their existing response behavior. The focused unit
+and enabled-transport selection passes 16 tests, including a two-page loopback
+round trip and invalid-input preflight; related credit-list tests pass 71 tests,
+one skip, and 17 subtests. Ruff passes. No database or provider was contacted.
+Pages use current independent result sets and handlers still materialize the
+existing full source lists before slicing, so concurrent writes can shift pages
+and the response cap does not bound source query memory/volume. Auth/tenant
+scope, TLS, and REST parity remain open. Checklist: 925 complete / 24 open
+(949 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared
+across 66 rows. Evidence: [gRPC pagination server checks](builds/2026-10-21-recovery/cap-064-grpc-pagination-server.json).

@@ -190,7 +190,7 @@ def list_batches(conn, credit_class_id: str = None, location_id: str = None) -> 
         params["lid"] = location_id
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_batch {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_batch {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]

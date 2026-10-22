@@ -236,6 +236,23 @@ Do not assume every list RPC is paginated. For example, `ClassIssuers`,
 operations use their declared repeated response fields without a pagination
 message.
 
+The EcocreditService paging contract applies to `Classes`, `ClassesByAdmin`,
+`Projects`, `ProjectsByClass`, `Batches`, `BatchesByClass`, `BatchesByProject`,
+`Baskets`, and `SellOrders`. A zero `limit` selects the default of 100; requests
+above 500 fail with `INVALID_ARGUMENT`. `offset` is an opaque cursor to clients;
+the current implementation encodes a decimal row offset as ASCII bytes.
+`PageResponse.total` is the matching result count before slicing, and an empty
+`next_key` means there is no next page. Pass a non-empty `next_key` unchanged
+into the next request's `offset`.
+
+The source queries use deterministic ordering for page sequences. Each request
+reads a new result set, so inserts or deletes between requests can shift offset
+pages; pagination does not provide a multi-request snapshot. The handlers also
+materialize the existing manager result lists before slicing, so this bounds
+response size but not database read volume or peak list memory. Calls without a
+`pagination` message retain their existing unpaged behavior (the `Projects`
+legacy call remains capped at 100 results).
+
 ### Data Types
 
 The complete domain message and field definitions are in:

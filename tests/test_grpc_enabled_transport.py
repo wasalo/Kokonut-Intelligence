@@ -220,7 +220,86 @@ def test_registered_server_enforces_api_key_and_scope_over_loopback(running_serv
     assert len(classes.classes) == 1
     assert classes.classes[0].id == "class-1"
     assert classes.classes[0].name == "Synthetic"
+    assert not classes.HasField("pagination")
     assert len(database_factory.connections) == 5
+    assert database_factory.released == database_factory.connections
+
+
+def test_ecocredit_classes_support_cursor_pagination_over_loopback(running_server, monkeypatch):
+    from services.grpc.common import pagination_pb2
+    from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+    from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
+
+    channel, database_factory, _services = running_server
+    monkeypatch.setattr(
+        "services.credit_class.class_manager.list_classes",
+        lambda _connection: [
+            {
+                "id": "class-1",
+                "name": "First",
+                "description": "",
+                "credit_type": "carbon",
+                "admin_address": "admin-1",
+                "status": "published",
+            },
+            {
+                "id": "class-2",
+                "name": "Second",
+                "description": "",
+                "credit_type": "carbon",
+                "admin_address": "admin-1",
+                "status": "published",
+            },
+        ],
+    )
+    client = ecocredit_service_pb2_grpc.EcocreditServiceStub(channel)
+    metadata = (("x-api-key", "ecocredit-reader"),)
+
+    first = client.Classes(
+        ecocredit_service_pb2.ClassesRequest(
+            pagination=pagination_pb2.PageRequest(limit=1),
+        ),
+        metadata=metadata,
+        timeout=3,
+    )
+    second = client.Classes(
+        ecocredit_service_pb2.ClassesRequest(
+            pagination=pagination_pb2.PageRequest(
+                limit=1,
+                offset=first.pagination.next_key,
+            ),
+        ),
+        metadata=metadata,
+        timeout=3,
+    )
+
+    assert [item.id for item in first.classes] == ["class-1"]
+    assert first.pagination.next_key == b"1"
+    assert first.pagination.total == 2
+    assert [item.id for item in second.classes] == ["class-2"]
+    assert second.pagination.next_key == b""
+    assert second.pagination.total == 2
+    assert database_factory.released == database_factory.connections
+
+
+def test_invalid_ecocredit_page_request_fails_before_service_database_acquisition(running_server):
+    from services.grpc.common import pagination_pb2
+    from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+    from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
+
+    channel, database_factory, _services = running_server
+
+    with pytest.raises(grpc.RpcError) as invalid_page:
+        ecocredit_service_pb2_grpc.EcocreditServiceStub(channel).Classes(
+            ecocredit_service_pb2.ClassesRequest(
+                pagination=pagination_pb2.PageRequest(limit=501),
+            ),
+            metadata=(("x-api-key", "ecocredit-reader"),),
+            timeout=3,
+        )
+
+    assert invalid_page.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+    assert len(database_factory.connections) == 1
     assert database_factory.released == database_factory.connections
 
 
