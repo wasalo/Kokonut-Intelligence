@@ -106,14 +106,12 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 
 ## Library-Only Agents
 
-Two agent modules expose programmatic `synthesize_*()` functions but have no CLI entry point. They are not registered in the task catalogue and must be called from Python code:
+The ecological-modeling module exposes a programmatic `synthesize_*()` function but has no signed worker registration yet and must be called from Python code:
 
 | Module | Function | Signature |
 |--------|----------|-----------|
 | `services.agents.ecological_modeling_agent` | `synthesize_ecological_modeling` | `(conn, location_id: str) -> dict[str, Any]` |
-| `services.agents.organic_readiness_agent` | `synthesize_organic_readiness` | `(conn, location_id: str) -> dict[str, Any]` |
-
-Both are advisory-only — outputs are not deterministic predictions or certification guarantees.
+Organic readiness runs through the signed worker and remains an advisory draft, not a certification guarantee. Ecological modeling does not produce a deterministic prediction.
 
 ## Common Patterns
 

@@ -31,6 +31,7 @@ SYNTHESIS_SUMMARY_TYPES = frozenset(
         "open_source_capitalist",
         "financial_resilience",
         "regenerative_outcomes",
+        "organic_readiness",
     }
 )
 SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
@@ -92,6 +93,13 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "green_paper_publication_review",
         "federation_protocol",
         "participatory_signal_experiment",
+        "organic_readiness_assessment",
+        "organic_transition_plan",
+        "organic_input_audit",
+        "buffer_zone",
+        "harvest_handling_record",
+        "organic_certification_record",
+        "prohibited_substance_record",
     }
 )
 

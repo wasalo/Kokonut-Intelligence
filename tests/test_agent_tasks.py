@@ -133,7 +133,7 @@ def test_unsafe_catalogue_write_fails_before_agent_database_access(monkeypatch) 
         calls.append("database")
         raise AssertionError("unsafe catalogue must be rejected before database access")
 
-    monkeypatch.setattr(agent_base, "get_db", unexpected_database_access)
+    monkeypatch.setattr(agent_base, "get_db", unexpected_database_access, raising=False)
     original_writes = TASK_CATALOGUE["ai_summary_synthesis"]["writes"]
     monkeypatch.setitem(
         TASK_CATALOGUE,

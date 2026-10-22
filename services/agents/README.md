@@ -30,7 +30,7 @@ python3 -m services.agents.cli --help
 - `logging` — Agent Action Logging
 - `manifest` — Capability manifest helpers for Kokonut Agentic Marketplace metadata.
 - `open_source_capitalist_agent` — Open Source Capitalist scaling economics synthesis agent.
-- `organic_readiness_agent` — Organic readiness agent: synthesizes organic certification readiness, transition progress, input compliance, buffer zones, and harvest segregation data.
+- `organic_readiness_agent` — Organic readiness synthesis registered with the signed worker; its legacy analytics resolve only through narrow, signed location views.
 - `regenerator_agent` — Regenerative outcomes and stewardship synthesis agent.
 - `resilience_agent` — Financial resilience and scaling synthesis agent.
 - `safety` — Agent safety helpers for bounded write and audit behavior.

@@ -39,6 +39,7 @@ _SYNTHESIS_AGENT_MODULES = {
     "open_source_capitalist_synthesis": "services.agents.open_source_capitalist_agent",
     "financial_resilience_synthesis": "services.agents.resilience_agent",
     "regenerator_synthesis": "services.agents.regenerator_agent",
+    "organic_readiness_synthesis": "services.agents.organic_readiness_agent",
 }
 
 

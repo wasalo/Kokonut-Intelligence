@@ -1,0 +1,21 @@
+{
+  "check": "CAP-038 organic-readiness signed source migration 549",
+  "image": "sogis/postgis:16-3.4",
+  "requested_platform": "linux/arm64",
+  "candidate_or_legacy_modified": false,
+  "real_credentials_used": false,
+  "result": "passed",
+  "assertions": [
+    "migration 549 applies on PostgreSQL 16",
+    "organic_readiness is accepted by the worker receipt constraint",
+    "all seven provenance views are registered",
+    "scoped views return no rows without context",
+    "replay clears stale raw/public-view grants and schema/write privileges",
+    "synthetic location-context wrapper filters foreign location rows",
+    "organic assessment projection omits private narrative/source fields",
+    "view owner has only the checklist row-count columns on raw tables"
+  ],
+  "server_architecture": "aarch64",
+  "assertions_passed": 8,
+  "scope_note": "This isolated migration test substitutes a synthetic transaction-local location context; signature validation is covered by the existing worker-context disposable checks."
+}

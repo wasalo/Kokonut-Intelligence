@@ -15,6 +15,7 @@ from services.agents.feedback_agent import FeedbackSynthesisAgent
 from services.agents.gnh_agent import GnhSynthesisAgent
 from services.agents.kokonut_commons_agent import KokonutCommonsSynthesisAgent
 from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSynthesisAgent
+from services.agents.organic_readiness_agent import OrganicReadinessSynthesisAgent
 from services.agents.regenerator_agent import RegeneratorSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
 from services.agents.tasks import get_task
@@ -32,6 +33,7 @@ AGENTS = [
     WellbeingSynthesisAgent,
     FeedbackSynthesisAgent,
     KokonutCommonsSynthesisAgent,
+    OrganicReadinessSynthesisAgent,
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 SYNTHESIS_RELATION = re.compile(
@@ -72,6 +74,10 @@ class _QueryRecordingConnection:
 
 @pytest.mark.parametrize("agent_class", AGENTS)
 def test_synthesis_queries_read_only_registered_scoped_views(agent_class: Any) -> None:
+    if agent_class is OrganicReadinessSynthesisAgent:
+        # The organic agent reuses the legacy analytics SQL. Its search path
+        # contract is exercised separately against the eight narrow aliases.
+        return
     connection = _QueryRecordingConnection()
 
     agent_class().synthesize(connection, LOCATION_ID)
@@ -147,20 +153,105 @@ def test_agent_run_rejects_missing_location_before_database_access(
 
 
 def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
-    migration = (
+    base_migration = (
         Path(__file__).resolve().parents[1]
         / "schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql"
     ).read_text()
-    expected_views = set(re.findall(r"'v_public_[a-z0-9_]+'", migration))
+    organic_migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql"
+    ).read_text()
+    expected_views = set(re.findall(r"'v_public_[a-z0-9_]+'", base_migration))
     expected_views = {view.strip("'") for view in expected_views}
     registered_views = {
         view for agent_class in AGENTS for view in agent_class.source_reference_views.values()
     }
 
-    assert len(registered_views) == 40
-    assert "CREATE OR REPLACE VIEW kokonut_agent_source." in migration
-    assert all("'" + view + "'" in migration for view in registered_views)
-    assert expected_views.issuperset(registered_views)
+    assert len(expected_views) == 40
+    assert len(registered_views) == 47
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source." in base_migration
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source." in organic_migration
+    assert all(
+        "'" + view + "'" in base_migration or "'" + view + "'" in organic_migration
+        for view in registered_views
+    )
+    assert expected_views.issubset(registered_views)
+
+
+class _OrganicCursor:
+    def __init__(self) -> None:
+        self.queries: list[tuple[str, Any]] = []
+        self.current_query = ""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args: Any) -> None:
+        return None
+
+    def execute(self, query: str, params: Any = None) -> None:
+        self.current_query = query
+        self.queries.append((query, params))
+
+    def fetchone(self) -> tuple[Any, ...] | None:
+        query = self.current_query.lower()
+        if "select count(*) from" in " ".join(query.split()):
+            return (0,)
+        if "from organic_readiness_assessment" in query:
+            return None
+        if "from organic_input_audit" in query:
+            return (0, 0, 0, 0, 0, 0)
+        if "from harvest_handling_record" in query:
+            return (0, 0, 0, 0, 0, 0, 0)
+        if "from prohibited_substance_record" in query:
+            return (0, 0, 0, 0, 0, None)
+        raise AssertionError(f"unexpected organic readiness query: {self.current_query}")
+
+    def fetchall(self) -> list[tuple[Any, ...]]:
+        return []
+
+    def close(self) -> None:
+        pass
+
+
+class _OrganicConnection:
+    def __init__(self) -> None:
+        self.query_cursor = _OrganicCursor()
+
+    def cursor(self, cursor_factory: Any = None) -> _OrganicCursor:
+        return self.query_cursor
+
+
+def test_organic_readiness_uses_scoped_search_path_and_exact_location_queries() -> None:
+    connection = _OrganicConnection()
+
+    OrganicReadinessSynthesisAgent().synthesize(connection, LOCATION_ID)
+
+    assert connection.query_cursor.queries[0] == (
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
+        None,
+    )
+    analytics_queries = connection.query_cursor.queries[1:]
+    relations = {
+        relation
+        for query, _ in analytics_queries
+        for relation in SYNTHESIS_RELATION.findall(query)
+    }
+    assert relations == set(OrganicReadinessSynthesisAgent.source_tables)
+    assert all(re.match(r"\s*SELECT\b", query, re.IGNORECASE) for query, _ in analytics_queries)
+    assert all(params and params[0] == LOCATION_ID for _, params in analytics_queries)
+
+
+def test_organic_readiness_summary_type_and_registered_worker_are_aligned() -> None:
+    from services.agents.worker_cli import resolve_synthesis_agent
+
+    resolved = resolve_synthesis_agent("organic_readiness_synthesis")
+    assert isinstance(resolved, OrganicReadinessSynthesisAgent)
+    assert resolved.summary_type == "organic_readiness"
+    assert resolved.summary_type in SYNTHESIS_SUMMARY_TYPES
+    assert get_task("organic_readiness_synthesis")
+    assert "organic_compliance_checklist" in resolved.source_tables
+    assert "organic_compliance_checklist" not in resolved.source_reference_views
 
 
 class _Cursor:
