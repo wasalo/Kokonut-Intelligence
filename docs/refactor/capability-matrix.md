@@ -20,6 +20,18 @@ MAN-CAP-038 acceptance remain open
 [native evidence](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-arm64-disposable.json)).
 
+**CAP-038 deterministic source-login schema ACL cleanup — 22 October 2026:**
+migration 544 now revokes stale `CREATE` on `public` from the deterministic
+summary source login and fails closed if that privilege remains. The disposable
+PostgreSQL 16 chain through migration 548 passes 37 grouped assertions on native
+AMD64 and ARM64/QEMU (`aarch64`), including a synthetic pre-existing grant.
+Migration tests pass (36); candidate and legacy databases remain untouched.
+This does not complete broader agent credential, populated-parity, or
+MAN-CAP-038 acceptance
+([migration](../schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql);
+[native evidence](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-arm64-disposable.json)).
+
 **CAP-038 synthesis execution fallback — 22 October 2026:** generic shared
 synthesis no longer has a shared-runtime database path. All ten registered
 classes require a signed source-view contract and exact location; read-only

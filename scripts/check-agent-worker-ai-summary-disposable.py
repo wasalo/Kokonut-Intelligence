@@ -958,8 +958,10 @@ def _deterministic_source_reader_acceptance() -> str:
             'kokonut_agent_summary_deterministic_reader', 'kokonut_agent_source', 'CREATE'
         ) OR has_schema_privilege(
             'kokonut_agent_summary_deterministic_source_login', 'kokonut_agent_source', 'CREATE'
+        ) OR has_schema_privilege(
+            'kokonut_agent_summary_deterministic_source_login', 'public', 'CREATE'
         ) THEN
-            RAISE EXCEPTION 'deterministic source roles can create source objects';
+            RAISE EXCEPTION 'deterministic source roles retain schema CREATE privileges';
         END IF;
     END;
     $$;
@@ -2569,6 +2571,7 @@ def main() -> int:
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
+        "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
         "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
@@ -2773,7 +2776,9 @@ def main() -> int:
                         container,
                         "GRANT SELECT, INSERT ON public.harvest_event "
                         "TO kokonut_agent_summary_deterministic_reader, "
-                        "kokonut_agent_summary_deterministic_source_login;",
+                        "kokonut_agent_summary_deterministic_source_login; "
+                        "GRANT CREATE ON SCHEMA public "
+                        "TO kokonut_agent_summary_deterministic_source_login;",
                     )
                 if migration_path.name.startswith("547_"):
                     base.psql(

@@ -14935,3 +14935,21 @@ continues to show 30 baseline-retained, 7 deployed, and 29 prepared entries
 across 66 capabilities; the checklist is 960 complete / 24 open (984 total).
 Evidence: [native source-reader check](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-disposable.json),
 [ARM64/QEMU source-reader check](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-arm64-disposable.json).
+
+
+### CAP-038 deterministic source-login public-schema ACL cleanup — 22 October 2026
+
+Migration 544 now revokes a stale direct `CREATE` grant on the `public` schema
+from `kokonut_agent_summary_deterministic_source_login` and verifies the
+postcondition before commit. The focused disposable PostgreSQL 16 chain through
+migration 548 passes 37 grouped assertions on native AMD64 and ARM64/QEMU
+(`aarch64`), including a synthetic grant applied before migration 544;
+`tests/test_migration.py` passes 36 tests. Ruff, Python compilation, and
+`git diff --check` pass. Both disposable runs used synthetic roles and
+network-disabled containers; candidate and legacy databases were untouched.
+This closes one stale-ACL replay path only; source credential provisioning,
+other agent paths, populated parity, and MAN-CAP-038 acceptance remain open.
+The capability matrix remains 30 baseline-retained, 7 deployed, and 29
+prepared across 66 entries; checklist status is 961 complete / 24 open
+(985 total). Evidence: [native check](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-disposable.json),
+[ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-deterministic-login-schema-create-arm64-disposable.json).

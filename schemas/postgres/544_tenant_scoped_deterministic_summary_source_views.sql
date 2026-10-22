@@ -163,6 +163,10 @@ REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA kokonut_security
 REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA kokonut_security
     FROM kokonut_agent_summary_deterministic_reader,
          kokonut_agent_summary_deterministic_source_login;
+REVOKE CREATE ON SCHEMA public
+    FROM kokonut_agent_summary_deterministic_source_login;
+REVOKE CREATE ON SCHEMA public
+    FROM kokonut_agent_summary_deterministic_source_login;
 
 GRANT USAGE ON SCHEMA kokonut_security TO kokonut_agent_summary_deterministic_source_login;
 GRANT USAGE ON SCHEMA kokonut_agent_source TO kokonut_agent_summary_deterministic_reader;
@@ -222,6 +226,12 @@ BEGIN
         'kokonut_agent_source.harvest_event', 'SELECT'
     ) THEN
         RAISE EXCEPTION 'deterministic summary source login can bypass its reader role';
+    END IF;
+
+    IF pg_catalog.has_schema_privilege(
+        'kokonut_agent_summary_deterministic_source_login', 'public', 'CREATE'
+    ) THEN
+        RAISE EXCEPTION 'deterministic summary source login can create public objects';
     END IF;
 
     SELECT pg_catalog.string_agg(wrapper.relname::TEXT, ', ' ORDER BY wrapper.relname::TEXT)
