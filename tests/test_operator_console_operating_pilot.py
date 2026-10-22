@@ -174,7 +174,7 @@ def test_own_demand_history_uses_read_own_grant_private_no_store_route_and_safe_
     )
     row = _function(
         source,
-        "function appendOperatingPilotOwnDemandRow(item)",
+        "function appendOperatingPilotOwnDemandRow(item, locationId)",
         "async function loadOperatingPilotOwnDemandSignals(",
     )
     assert "operatingPilotOwnDemandLocations.has(locationId)" in reader
@@ -184,10 +184,47 @@ def test_own_demand_history_uses_read_own_grant_private_no_store_route_and_safe_
     assert "locationId !== operatingPilotLocation.value" in reader
     assert "item.description" in row
     assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert 'id="operating-pilot-demand-edit-cancel"' in source
+    assert "Action</th></tr></thead>" in panel.group()
+    assert "operatingPilotEditOwnDemandLocations.has(locationId)" in row
+    assert '["draft", "rejected"].includes(item.status)' in row
+    assert "startOperatingPilotDemandEdit(item, locationId)" in row
     assert "innerHTML" not in row
     assert 'method: "POST"' not in reader
     assert "loadOperatingPilotOwnDemandSignals();" in source
     assert 'operatingPilotOwnDemandMore.addEventListener("click", () => loadOperatingPilotOwnDemandSignals(true))' in source
+
+
+def test_demand_draft_revision_is_owner_only_idempotent_and_draft_preserving():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotDemandDraft(event)",
+        "function cancelOperatingPilotDemandEdit()",
+    )
+    start = _function(
+        source,
+        "function startOperatingPilotDemandEdit(item, locationId)",
+        "async function submitOperatingPilotDemandSignal()",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    assert "operatingPilotEditOwnDemandLocations.has(locationId)" in submit
+    assert "operatingPilotOwnDemandLocations.has(locationId)" in start
+    assert '["draft", "rejected"].includes(item.status)' in start
+    assert "operatingPilotPendingDemandEdit = { signal_id: item.signal_id, location_id: locationId }" in start
+    assert "item.description || \"\"" in start
+    assert "method: isEditing ? \"PUT\" : \"POST\"" in submit
+    assert "encodeURIComponent(signalId)" in submit
+    assert "signalId, ...payload" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'cache: "no-store"' in submit
+    assert "operatingPilotPendingDemandCreate.request_id" in submit
+    assert "prior version is retained as superseded" in submit
+    assert "replacement remains private and unsubmitted" in submit
+    assert "operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in initialize
+    assert "operatingPilotOwnDemandLocations.has(locationId)" in initialize
+    assert "operatingPilotEditOwnDemandLocations.has(locationId)" in initialize
+    assert "loadOperatingPilotOwnDemandSignals();" in submit
 
 
 def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves():
@@ -195,11 +232,11 @@ def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves()
     submit = _function(
         source,
         "async function submitOperatingPilotDemandDraft(event)",
-        "async function submitOperatingPilotDemandSignal()",
+        "function cancelOperatingPilotDemandEdit()",
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit
-    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit
+    assert 'method: isEditing ? "PUT" : "POST", credentials: "same-origin", cache: "no-store"' in submit
     assert '"X-CSRF-Token": csrf' in submit
     assert "crypto.randomUUID()" in submit
     assert "operatingPilotPendingDemandCreate.request_id" in submit
@@ -290,7 +327,7 @@ def test_demand_submission_is_separate_confirmed_and_retries_with_same_request_i
     create = _function(
         source,
         "async function submitOperatingPilotDemandDraft(event)",
-        "async function submitOperatingPilotDemandSignal()",
+        "function cancelOperatingPilotDemandEdit()",
     )
     submit = _function(
         source,
@@ -302,8 +339,8 @@ def test_demand_submission_is_separate_confirmed_and_retries_with_same_request_i
         "async function loadOperatingPilot()",
         "function addSequentialEvidenceMetric(",
     )
-    assert "isEditing" not in create
     assert "result.signal_id" in create
+    assert 'method: isEditing ? "PUT" : "POST"' in create
     assert 'id="operating-pilot-demand-submit"' in source
     assert "operatingPilotPendingDemandSubmission" in create
     assert "operatingPilotSubmitOwnDemandLocations.has(locationId)" in submit

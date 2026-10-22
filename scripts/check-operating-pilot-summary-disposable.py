@@ -28,7 +28,8 @@ CAPACITY_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/558_location_opera
 DEMAND_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql"
 DEMAND_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/560_location_operating_pilot_demand_review_queue.sql"
 OWN_DEMAND_MIGRATION = ROOT / "schemas/postgres/561_location_own_operating_pilot_demand.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json"
+OWN_DEMAND_REVISION_MIGRATION = ROOT / "schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -140,7 +141,9 @@ CREATE TABLE public.operating_demand_signal (
     scope_type text NOT NULL, scope_id uuid NOT NULL,
     work_type text NOT NULL, period_start date NOT NULL, period_end date NOT NULL,
     required_hours numeric NOT NULL, priority text NOT NULL, source text NOT NULL,
-    source_ref uuid, description text, status text NOT NULL,
+    source_ref uuid, description text,
+    status text NOT NULL CONSTRAINT operating_demand_signal_status_check
+        CHECK (status IN ('draft', 'submitted', 'approved', 'fulfilled', 'cancelled')),
     created_by_party_id uuid, created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -2066,6 +2069,254 @@ END $$;
 ROLLBACK;
 """
 
+OWN_DEMAND_REVISION_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000020', 'person', 'active', 'Synthetic second submitter');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000021',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000020', NULL);
+INSERT INTO public.operating_demand_signal
+    (id, scope_type, scope_id, work_type, period_start, period_end,
+     required_hours, priority, source, description, status, created_by_party_id)
+VALUES
+ ('d1000000-0000-4000-8000-000000000075', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'draft revise', CURRENT_DATE + 900, CURRENT_DATE + 905, 8, 'medium', 'planning',
+  'PRIVATE original demand draft', 'draft', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000076', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'rejected revise', CURRENT_DATE + 910, CURRENT_DATE + 915, 9, 'high', 'planning',
+  'PRIVATE rejected demand', 'rejected', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000077', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'submitted locked', CURRENT_DATE + 920, CURRENT_DATE + 925, 10, 'critical', 'planning',
+  'PRIVATE submitted demand', 'submitted', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000078', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'foreign owner', CURRENT_DATE + 930, CURRENT_DATE + 935, 11, 'low', 'planning',
+  'PRIVATE foreign demand', 'draft', 'd8000000-0000-4000-8000-000000000020'),
+ ('d1000000-0000-4000-8000-000000000079', 'adelphi', 'e9000000-0000-4000-8000-000000000002',
+  'other farm', CURRENT_DATE + 940, CURRENT_DATE + 945, 12, 'low', 'planning',
+  'PRIVATE other farm demand', 'draft', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000080', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'legacy no receipt', CURRENT_DATE + 950, CURRENT_DATE + 955, 13, 'low', 'planning',
+  'PRIVATE legacy demand', 'draft', 'd8000000-0000-4000-8000-000000000001');
+INSERT INTO public.operating_demand_draft_receipt
+    (operator_id, request_id, location_id, signal_id, input_digest)
+VALUES
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000075', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000075', decode(repeat('75', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000076', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000076', decode(repeat('76', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000077', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000077', decode(repeat('77', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000002', 'd9200000-0000-4000-8000-000000000078', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000078', decode(repeat('78', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000079', 'b0000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000079', decode(repeat('79', 32), 'hex'));
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE revised jsonb; replay jsonb; rejected_revision jsonb; history jsonb;
+        original_id uuid := 'd1000000-0000-4000-8000-000000000075';
+        rejected_id uuid := 'd1000000-0000-4000-8000-000000000076';
+        submitted_id uuid := 'd1000000-0000-4000-8000-000000000077';
+        foreign_id uuid := 'd1000000-0000-4000-8000-000000000078';
+        other_farm_id uuid := 'd1000000-0000-4000-8000-000000000079';
+        legacy_id uuid := 'd1000000-0000-4000-8000-000000000080';
+        replacement_id uuid; rejected_replacement_id uuid;
+        collision_denied boolean := false; submitted_denied boolean := false;
+        foreign_denied boolean := false; other_farm_denied boolean := false;
+        legacy_denied boolean := false; missing_grant_denied boolean := false;
+        direct_receipt_denied boolean := false; direct_insert_denied boolean := false;
+        direct_update_denied boolean := false; direct_delete_denied boolean := false;
+BEGIN
+    revised := kokonut_security.revise_location_operating_pilot_demand_draft(
+        'b0000000-0000-4000-8000-000000000001', original_id,
+        'd9300000-0000-4000-8000-000000000075', 'mulch application',
+        CURRENT_DATE + 901, CURRENT_DATE + 906, 14.50, 'high',
+        'PRIVATE revised demand note'
+    );
+    replay := kokonut_security.revise_location_operating_pilot_demand_draft(
+        'b0000000-0000-4000-8000-000000000001', original_id,
+        'd9300000-0000-4000-8000-000000000075', 'mulch application',
+        CURRENT_DATE + 901, CURRENT_DATE + 906, 14.50, 'high',
+        'PRIVATE revised demand note'
+    );
+    replacement_id := (revised->>'signal_id')::uuid;
+    IF replacement_id IS NULL OR replacement_id = original_id
+       OR revised->>'replaced_signal_id' <> original_id::text
+       OR revised->>'status' <> 'draft' OR revised->>'replayed' <> 'false'
+       OR replay->>'signal_id' <> replacement_id::text
+       OR replay->>'replayed' <> 'true'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(original_id)) <> 'superseded'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(replacement_id)) <> 'draft'
+       OR revised::text ~* '(PRIVATE|description|party_id|created_by)' THEN
+        RAISE EXCEPTION 'demand revision or exact retry failed: %, %', revised, replay;
+    END IF;
+
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001', original_id,
+            'd9300000-0000-4000-8000-000000000075', 'changed retry',
+            CURRENT_DATE + 901, CURRENT_DATE + 906, 14.50, 'high',
+            'PRIVATE revised demand note'
+        );
+    EXCEPTION WHEN unique_violation THEN collision_denied := true;
+    END;
+    IF NOT collision_denied THEN RAISE EXCEPTION 'revision request ID accepted changed input'; END IF;
+
+    rejected_revision := kokonut_security.revise_location_operating_pilot_demand_draft(
+        'b0000000-0000-4000-8000-000000000001', rejected_id,
+        'd9300000-0000-4000-8000-000000000076', 'reworked after review',
+        CURRENT_DATE + 911, CURRENT_DATE + 916, 15, 'medium',
+        'PRIVATE revised rejected note'
+    );
+    rejected_replacement_id := (rejected_revision->>'signal_id')::uuid;
+    IF rejected_revision->>'status' <> 'draft'
+       OR rejected_revision->>'replayed' <> 'false'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(rejected_id)) <> 'superseded'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(rejected_replacement_id)) <> 'draft' THEN
+        RAISE EXCEPTION 'rejected demand was not safely returned to a replacement draft: %', rejected_revision;
+    END IF;
+
+    history := kokonut_security.location_operating_pilot_own_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 50, 0
+    );
+    IF NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(history->'items') AS item
+         WHERE item->>'signal_id' = replacement_id::text
+           AND item->>'work_type' = 'mulch application'
+           AND item->>'description' = 'PRIVATE revised demand note'
+           AND item->>'status' = 'draft'
+    ) OR NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(history->'items') AS item
+         WHERE item->>'signal_id' = original_id::text
+           AND item->>'status' = 'superseded'
+    ) THEN
+        RAISE EXCEPTION 'replacement or superseded version is missing from own history: %', history;
+    END IF;
+
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001', submitted_id,
+            'd9300000-0000-4000-8000-000000000077', 'changed submitted',
+            CURRENT_DATE + 920, CURRENT_DATE + 925, 10, 'critical', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN submitted_denied := true;
+    END;
+    IF NOT submitted_denied THEN RAISE EXCEPTION 'submitted demand was editable'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001', foreign_id,
+            'd9300000-0000-4000-8000-000000000078', 'foreign edit',
+            CURRENT_DATE + 930, CURRENT_DATE + 935, 11, 'low', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN foreign_denied := true;
+    END;
+    IF NOT foreign_denied THEN RAISE EXCEPTION 'operator revised another submitter demand'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000002', other_farm_id,
+            'd9300000-0000-4000-8000-000000000079', 'other farm edit',
+            CURRENT_DATE + 940, CURRENT_DATE + 945, 12, 'low', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN other_farm_denied := true;
+    END;
+    IF NOT other_farm_denied THEN RAISE EXCEPTION 'revision accepted a mismatched signed location'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001', legacy_id,
+            'd9300000-0000-4000-8000-000000000080', 'legacy edit',
+            CURRENT_DATE + 950, CURRENT_DATE + 955, 13, 'low', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN legacy_denied := true;
+    END;
+    IF NOT legacy_denied THEN RAISE EXCEPTION 'receiptless legacy demand was editable'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.revise_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001', foreign_id,
+            'd9300000-0000-4000-8000-000000000081', 'missing grant',
+            CURRENT_DATE + 930, CURRENT_DATE + 935, 11, 'low', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN missing_grant_denied := true;
+    END;
+    IF NOT missing_grant_denied THEN RAISE EXCEPTION 'demand revision succeeded without edit-own grant'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+
+    IF (SELECT signal_status FROM public.test_demand_signal_metadata(submitted_id)) <> 'submitted'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(foreign_id)) <> 'draft'
+       OR (SELECT signal_status FROM public.test_demand_signal_metadata(legacy_id)) <> 'draft' THEN
+        RAISE EXCEPTION 'denied demand revision changed a protected original';
+    END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE receipt_function regprocedure :=
+    'kokonut_security.revise_location_operating_pilot_demand_draft(uuid,uuid,uuid,text,date,date,numeric,text,text)'::regprocedure;
+        denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.operating_demand_draft_revision_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can read private demand revision receipts'; END IF;
+    denied := false;
+    BEGIN
+        INSERT INTO public.operating_demand_signal
+            (scope_type, scope_id, work_type, period_start, period_end,
+             required_hours, priority, source, status)
+        VALUES ('adelphi', 'e9000000-0000-4000-8000-000000000001', 'direct-write',
+                CURRENT_DATE, CURRENT_DATE, 1, 'low', 'planning', 'draft');
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can insert demand rows directly'; END IF;
+    denied := false;
+    BEGIN
+        UPDATE public.operating_demand_signal SET status = 'approved'
+         WHERE id = 'd1000000-0000-4000-8000-000000000075';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can change demand lifecycle directly'; END IF;
+    IF NOT has_function_privilege('kokonut_runtime', receipt_function, 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime', receipt_function, 'EXECUTE')
+       OR (SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = receipt_function)
+            <> 'kokonut_operating_pilot_reader'
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_revision_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_revision_receipt', 'INSERT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_revision_receipt', 'input_digest', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_revision_receipt', 'input_digest', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_draft_revision_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_draft_revision_receipt', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'status', 'UPDATE') THEN
+        RAISE EXCEPTION 'demand revision function or role boundary failed';
+    END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_directus_runtime;
+DO $$
+DECLARE denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.operating_demand_draft_revision_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'Directus can read private demand revision receipts'; END IF;
+    denied := false;
+    BEGIN
+        DELETE FROM public.operating_demand_signal
+         WHERE id = 'd1000000-0000-4000-8000-000000000075';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'Directus can delete demand rows'; END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+"""
+
 PRIVACY_SUPPRESSION = r"""
 BEGIN;
 SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
@@ -2152,13 +2403,14 @@ def main(argv: list[str] | None = None) -> int:
             DEMAND_SUBMISSION_MIGRATION.name,
             DEMAND_REVIEW_QUEUE_MIGRATION.name,
             OWN_DEMAND_MIGRATION.name,
+            OWN_DEMAND_REVISION_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
         "container_platform": args.platform or "docker-default",
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, 538, and 552–561 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, and 552–562 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -2207,6 +2459,10 @@ def main(argv: list[str] | None = None) -> int:
             "own demand history requires exact read_own, one active human binding, matching signed location, active farm mapping, and the authenticated operator's creation receipt",
             "own demand history includes only receipt-backed records from the bound person, exposes private descriptions only through the scoped function, and pages drafts and later lifecycle states deterministically",
             "own demand denies missing grants, ambiguous bindings, mismatched locations, and invalid paging; runtime alone can execute while Directus and both runtime roles lack direct description/source access",
+            "own demand revisions require exact signed edit-own scope, one active human binding, an active farm mapping, and an operator/location receipt for a draft or rejected planning signal",
+            "demand revisions atomically supersede the prior eligible record, create a new private draft and history receipt, replay exact retries, and reject changed request reuse",
+            "submitted, receiptless legacy, foreign-owner, other-farm, signed-location mismatch, and missing-grant revisions fail closed without changing their source rows",
+            "runtime alone can execute demand revision; runtime and Directus cannot access revision receipts or mutate demand rows directly, and the non-login function owner has only status lifecycle updates",
         ],
     }
     try:
@@ -2274,6 +2530,9 @@ def main(argv: list[str] | None = None) -> int:
         own_demand_migration = OWN_DEMAND_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, own_demand_migration)
         psql(docker, container, own_demand_migration)
+        own_demand_revision_migration = OWN_DEMAND_REVISION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, own_demand_revision_migration)
+        psql(docker, container, own_demand_revision_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -2282,12 +2541,13 @@ def main(argv: list[str] | None = None) -> int:
         psql(docker, container, DEMAND_SUBMISSION_ACCEPTANCE)
         psql(docker, container, DEMAND_REVIEW_QUEUE_ACCEPTANCE)
         psql(docker, container, OWN_DEMAND_ACCEPTANCE)
+        psql(docker, container, OWN_DEMAND_REVISION_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 58
+        evidence["assertion_groups_passed"] = 61
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         print(
-            "PASS: migrations 461/479/480/526/538/552–561 apply/replay and all fifty-eight grouped PostgreSQL assertions passed"
+            "PASS: migrations 461/479/480/526/538/552–562 apply/replay and all sixty-one grouped PostgreSQL assertions passed"
         )
         result = 0
     except Exception as exc:

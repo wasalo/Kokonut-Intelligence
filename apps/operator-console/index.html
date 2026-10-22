@@ -580,7 +580,7 @@
           <dl id="operating-pilot-summary"></dl>
           <section id="operating-pilot-demand-create" hidden aria-labelledby="operating-pilot-demand-create-heading">
             <h3 id="operating-pilot-demand-create-heading">Record a demand draft</h3>
-            <p class="muted">Requires an exact location create grant and active human-party binding. This creates a private draft only; it does not submit, approve, or fulfill the demand.</p>
+            <p class="muted">Creating requires an exact location create grant; revising requires your separate edit-own grant and active human-party binding. Both actions create a private draft only; neither submits, approves, or fulfills demand.</p>
             <form id="operating-pilot-demand-create-form" class="stacked-form">
               <label for="operating-pilot-demand-create-work-type">Work type</label>
               <input id="operating-pilot-demand-create-work-type" type="text" required maxlength="50" autocomplete="off">
@@ -598,6 +598,7 @@
               <label for="operating-pilot-demand-create-description">Private planning note (optional)</label>
               <textarea id="operating-pilot-demand-create-description" maxlength="2000" rows="3"></textarea>
               <button id="operating-pilot-demand-create-submit" type="submit">Save demand draft</button>
+              <button id="operating-pilot-demand-edit-cancel" class="secondary" type="button" hidden>Cancel draft edit</button>
             </form>
             <button id="operating-pilot-demand-submit" class="secondary" type="button" hidden>Submit this draft for independent review</button>
             <p id="operating-pilot-demand-create-status" class="muted" role="status" aria-live="polite"></p>
@@ -641,7 +642,7 @@
             <p id="operating-pilot-own-demand-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Status</th><th>Private planning note</th><th>Updated</th></tr></thead>
+                <thead><tr><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Status</th><th>Private planning note</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-own-demand-rows"></tbody>
               </table>
             </div>
@@ -1851,6 +1852,7 @@
       const operatingPilotDemandCreateForm = document.querySelector("#operating-pilot-demand-create-form");
       const operatingPilotDemandCreateStatus = document.querySelector("#operating-pilot-demand-create-status");
       const operatingPilotDemandSubmit = document.querySelector("#operating-pilot-demand-submit");
+      const operatingPilotDemandEditCancel = document.querySelector("#operating-pilot-demand-edit-cancel");
       const operatingPilotCapacityCreate = document.querySelector("#operating-pilot-capacity-create");
       const operatingPilotCapacityCreateForm = document.querySelector("#operating-pilot-capacity-create-form");
       const operatingPilotCapacityCreateStatus = document.querySelector("#operating-pilot-capacity-create-status");
@@ -1900,9 +1902,11 @@
       let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
+      let operatingPilotEditOwnDemandLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
+      let operatingPilotPendingDemandEdit = null;
       let operatingPilotPendingDemandSubmission = null;
       let operatingPilotPendingCapacityCreate = null;
       let operatingPilotPendingCapacityEdit = null;
@@ -2624,8 +2628,13 @@
       async function submitOperatingPilotDemandDraft(event) {
         event.preventDefault();
         const locationId = operatingPilotLocation.value;
-        if (!operatingPilotCreateLocations.has(locationId)) {
-          operatingPilotDemandCreateStatus.textContent = "A current location create grant is required.";
+        const signalId = operatingPilotPendingDemandEdit?.signal_id || null;
+        const isEditing = signalId !== null;
+        if (isEditing ? !operatingPilotEditOwnDemandLocations.has(locationId)
+          : !operatingPilotCreateLocations.has(locationId)) {
+          operatingPilotDemandCreateStatus.textContent = isEditing
+            ? "A current location edit-own grant is required."
+            : "A current location create grant is required.";
           return;
         }
         const csrf = csrfToken();
@@ -2641,38 +2650,53 @@
           priority: document.querySelector("#operating-pilot-demand-create-priority").value,
           description: document.querySelector("#operating-pilot-demand-create-description").value || null
         };
-        const fingerprint = JSON.stringify({ locationId, ...payload });
+        const fingerprint = JSON.stringify({ locationId, signalId, ...payload });
         if (!operatingPilotPendingDemandCreate
             || operatingPilotPendingDemandCreate.fingerprint !== fingerprint) {
           operatingPilotPendingDemandCreate = { fingerprint, request_id: crypto.randomUUID() };
         }
         const submit = document.querySelector("#operating-pilot-demand-create-submit");
         submit.disabled = true;
-        operatingPilotDemandCreateStatus.textContent = "Saving a private demand draft…";
+        operatingPilotDemandCreateStatus.textContent = isEditing
+          ? "Saving a revised private demand draft…"
+          : "Saving a private demand draft…";
         try {
           const response = await fetch(
-            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals`,
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals${
+              isEditing ? `/${encodeURIComponent(signalId)}` : ""
+            }`,
             {
-              method: "POST", credentials: "same-origin", cache: "no-store",
+              method: isEditing ? "PUT" : "POST", credentials: "same-origin", cache: "no-store",
               headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
               body: JSON.stringify({ ...payload, request_id: operatingPilotPendingDemandCreate.request_id })
             }
           );
           const result = await response.json().catch(() => ({}));
           if (response.status === 401 || response.status === 403) {
-            throw new Error("Your session or location create grant is no longer valid.");
+            throw new Error(isEditing
+              ? "Your session or location edit-own grant is no longer valid."
+              : "Your session or location create grant is no longer valid.");
           }
           if (!response.ok) throw new Error(result.error || "The demand draft could not be saved.");
+          if (locationId !== operatingPilotLocation.value) return;
           operatingPilotPendingDemandCreate = null;
+          operatingPilotPendingDemandEdit = null;
           operatingPilotPendingDemandSubmission = typeof result.signal_id === "string"
             && result.status === "draft"
             ? { signal_id: result.signal_id, location_id: locationId, request_id: crypto.randomUUID() }
             : null;
           syncOperatingPilotDemandSubmissionAction();
           operatingPilotDemandCreateForm.reset();
-          operatingPilotDemandCreateStatus.textContent = result.replayed
-            ? "The original demand draft was confirmed after retry; it remains private and unsubmitted."
-            : "Demand draft saved. It remains private and unsubmitted.";
+          operatingPilotDemandEditCancel.hidden = true;
+          document.querySelector("#operating-pilot-demand-create-heading").textContent = "Record a demand draft";
+          document.querySelector("#operating-pilot-demand-create-submit").textContent = "Save demand draft";
+          operatingPilotDemandCreateStatus.textContent = isEditing
+            ? result.replayed
+              ? "Your revised draft was confirmed after retry; the prior version is retained as superseded."
+              : "Revised draft saved. The prior version is retained as superseded; the replacement remains private and unsubmitted."
+            : result.replayed
+              ? "The original demand draft was confirmed after retry; it remains private and unsubmitted."
+              : "Demand draft saved. It remains private and unsubmitted.";
           if (operatingPilotPendingDemandSubmission
               && operatingPilotSubmitOwnDemandLocations.has(locationId)) {
             operatingPilotDemandCreateStatus.textContent += " Submit it separately for independent review when ready.";
@@ -2681,10 +2705,43 @@
           if (operatingPilotOwnDemandLocations.has(locationId)) await loadOperatingPilotOwnDemandSignals();
           await loadOperatingPilotSummary();
         } catch (error) {
+          if (locationId !== operatingPilotLocation.value) return;
           operatingPilotDemandCreateStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
           submit.disabled = false;
         }
+      }
+
+      function cancelOperatingPilotDemandEdit() {
+        operatingPilotPendingDemandEdit = null;
+        operatingPilotPendingDemandCreate = null;
+        operatingPilotDemandCreateForm.reset();
+        operatingPilotDemandEditCancel.hidden = true;
+        document.querySelector("#operating-pilot-demand-create-heading").textContent = "Record a demand draft";
+        document.querySelector("#operating-pilot-demand-create-submit").textContent = "Save demand draft";
+        operatingPilotDemandCreateStatus.textContent = "Draft edit canceled.";
+      }
+
+      function startOperatingPilotDemandEdit(item, locationId) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotOwnDemandLocations.has(locationId)
+            || !operatingPilotEditOwnDemandLocations.has(locationId)
+            || !["draft", "rejected"].includes(item.status)) return;
+        operatingPilotPendingDemandEdit = { signal_id: item.signal_id, location_id: locationId };
+        operatingPilotPendingDemandCreate = null;
+        document.querySelector("#operating-pilot-demand-create-work-type").value = item.work_type || "";
+        document.querySelector("#operating-pilot-demand-create-start").value = item.period_start || "";
+        document.querySelector("#operating-pilot-demand-create-end").value = item.period_end || "";
+        document.querySelector("#operating-pilot-demand-create-hours").value = item.required_hours ?? "";
+        document.querySelector("#operating-pilot-demand-create-priority").value = item.priority || "medium";
+        document.querySelector("#operating-pilot-demand-create-description").value = item.description || "";
+        document.querySelector("#operating-pilot-demand-create-heading").textContent = item.status === "rejected"
+          ? "Revise your rejected demand submission"
+          : "Revise your private demand draft";
+        document.querySelector("#operating-pilot-demand-create-submit").textContent = "Save revised draft";
+        operatingPilotDemandEditCancel.hidden = false;
+        operatingPilotDemandCreateStatus.textContent = "Only your own receipt-backed draft or rejected demand record can be revised. The prior version remains in history as superseded.";
+        operatingPilotDemandCreate.scrollIntoView({ block: "nearest" });
       }
 
       async function submitOperatingPilotDemandSignal() {
@@ -3194,7 +3251,7 @@
         }
       }
 
-      function appendOperatingPilotOwnDemandRow(item) {
+      function appendOperatingPilotOwnDemandRow(item, locationId) {
         const row = document.createElement("tr");
         for (const value of [
           item.work_type,
@@ -3209,6 +3266,17 @@
           cell.textContent = operatingPilotDisplayValue(value);
           row.append(cell);
         }
+        const actionCell = document.createElement("td");
+        if (operatingPilotEditOwnDemandLocations.has(locationId)
+            && ["draft", "rejected"].includes(item.status)) {
+          const edit = document.createElement("button");
+          edit.type = "button";
+          edit.className = "secondary";
+          edit.textContent = item.status === "rejected" ? "Revise rejected demand" : "Edit your draft";
+          edit.addEventListener("click", () => startOperatingPilotDemandEdit(item, locationId));
+          actionCell.append(edit);
+        }
+        row.append(actionCell);
         operatingPilotOwnDemandRows.append(row);
       }
 
@@ -3234,7 +3302,7 @@
           const result = await response.json();
           if (requestVersion !== operatingPilotOwnDemandRequestVersion
               || locationId !== operatingPilotLocation.value) return;
-          for (const item of result.items || []) appendOperatingPilotOwnDemandRow(item);
+          for (const item of result.items || []) appendOperatingPilotOwnDemandRow(item, locationId);
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
           operatingPilotOwnDemandMore.hidden = !canContinue;
@@ -3479,7 +3547,9 @@
 
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
-        operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
+        operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId)
+          && !(operatingPilotOwnDemandLocations.has(locationId)
+            && operatingPilotEditOwnDemandLocations.has(locationId));
         syncOperatingPilotDemandSubmissionAction();
         operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)
           && !(operatingPilotOwnCapacityLocations.has(locationId)
@@ -12372,6 +12442,7 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotEditOwnCapacityLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
+          operatingPilotEditOwnDemandLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           const operatingPilotCapacityReviewLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "review")
             .map((scope) => scope.location_id)
@@ -16337,6 +16408,10 @@
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
       operatingPilotLocation.addEventListener("change", () => {
+        if (operatingPilotPendingDemandEdit
+            && operatingPilotPendingDemandEdit.location_id !== operatingPilotLocation.value) {
+          cancelOperatingPilotDemandEdit();
+        }
         if (operatingPilotPendingCapacityEdit
             && operatingPilotPendingCapacityEdit.location_id !== operatingPilotLocation.value) {
           cancelOperatingPilotCapacityEdit();
@@ -16344,6 +16419,7 @@
         loadOperatingPilot();
       });
       operatingPilotDemandCreateForm.addEventListener("submit", submitOperatingPilotDemandDraft);
+      operatingPilotDemandEditCancel.addEventListener("click", cancelOperatingPilotDemandEdit);
       operatingPilotDemandSubmit.addEventListener("click", submitOperatingPilotDemandSignal);
       operatingPilotCapacityCreateForm.addEventListener("submit", submitOperatingPilotCapacityDraft);
       operatingPilotCapacityEditCancel.addEventListener("click", cancelOperatingPilotCapacityEdit);
