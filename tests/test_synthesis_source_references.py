@@ -167,6 +167,10 @@ def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
         Path(__file__).resolve().parents[1]
         / "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql"
     ).read_text()
+    provenance_migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/551_ecological_synthesis_provenance_capacity.sql"
+    ).read_text()
     expected_views = set(re.findall(r"'v_public_[a-z0-9_]+'", base_migration))
     expected_views = {view.strip("'") for view in expected_views}
     registered_views = {
@@ -174,7 +178,7 @@ def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
     }
 
     assert len(expected_views) == 40
-    assert len(registered_views) == 57
+    assert len(registered_views) == 60
     assert "CREATE OR REPLACE VIEW kokonut_agent_source." in base_migration
     assert "CREATE OR REPLACE VIEW kokonut_agent_source." in organic_migration
     assert "CREATE OR REPLACE VIEW kokonut_agent_source.ecological_harvest_event" in ecological_migration
@@ -185,6 +189,7 @@ def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
         "'" + view + "'" in base_migration
         or "'" + view + "'" in organic_migration
         or "'" + view + "'" in ecological_migration
+        or "'" + view + "'" in provenance_migration
         for view in registered_views
     )
     assert expected_views.issubset(registered_views)
@@ -275,7 +280,8 @@ def test_ecological_modeling_summary_type_and_registered_worker_are_aligned() ->
     assert resolved.summary_type in SYNTHESIS_SUMMARY_TYPES
     assert get_task("ecological_modeling_synthesis")
     assert len(resolved.source_tables) == 14
-    assert len(resolved.source_reference_views) == 10
+    assert len(resolved.source_reference_views) == 13
+    assert "location" not in resolved.source_reference_views
 
 
 class _EcologicalCursor(_OrganicCursor):
@@ -381,6 +387,45 @@ def test_location_source_reference_collector_uses_bounded_scoped_views(agent_cla
         == agent_class.source_reference_scopes.get(table, "location")
         for table, reference in references.items()
     )
+
+
+def test_source_reference_validator_accepts_twenty_registered_sources() -> None:
+    source_tables = list(dict.fromkeys(
+        source
+        for agent_class in AGENTS
+        for source in agent_class.source_reference_views
+    ))[:20]
+    references = {
+        table: {
+            "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+            "row_count": 1,
+            "truncated": False,
+        }
+        for table in source_tables
+    }
+
+    validated, _ = _validate_source_references(references, source_tables)
+
+    assert len(validated) == 20
+
+
+def test_source_reference_validator_rejects_more_than_twenty_registered_sources() -> None:
+    source_tables = list(dict.fromkeys(
+        source
+        for agent_class in AGENTS
+        for source in agent_class.source_reference_views
+    ))[:21]
+    references = {
+        table: {
+            "record_ids": [f"e0000000-0000-4000-8000-{index:012d}"],
+            "row_count": 1,
+            "truncated": False,
+        }
+        for index, table in enumerate(source_tables, start=1)
+    }
+
+    with pytest.raises(ValueError, match="at most 20 source tables"):
+        _validate_source_references(references, source_tables)
 
 
 @pytest.mark.parametrize("agent_class", AGENTS)

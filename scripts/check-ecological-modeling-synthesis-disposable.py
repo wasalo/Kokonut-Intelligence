@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay migration 550 against isolated PostgreSQL 16 source fixtures."""
+"""Replay ecological synthesis source migrations on isolated PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -15,9 +15,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION_549 = ROOT / "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql"
 MIGRATION_550 = ROOT / "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql"
+MIGRATION_551 = ROOT / "schemas/postgres/551_ecological_synthesis_provenance_capacity.sql"
 OUTPUT = Path(os.environ.get(
     "KOKONUT_ECOLOGICAL_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-ecological-modeling-source-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-disposable.json",
 ))
 PLATFORM = os.environ.get("KOKONUT_ECOLOGICAL_WORKER_TEST_PLATFORM", "")
 if PLATFORM not in {"", "linux/amd64", "linux/arm64"}:
@@ -120,16 +121,20 @@ INSERT INTO public.resource_consumption VALUES
 ('b0000000-0000-4000-8000-000000000207','{OTHER_LOCATION_ID}','water_liters','L','irrigation',200,false,'published','foreign note');
 INSERT INTO public.harvest_event VALUES
 ('b0000000-0000-4000-8000-000000000108','{LOCATION_ID}',12,'verified','private note'),
-('b0000000-0000-4000-8000-000000000208','{OTHER_LOCATION_ID}',24,'published','foreign note');
+('b0000000-0000-4000-8000-000000000208','{OTHER_LOCATION_ID}',24,'published','foreign note'),
+('b0000000-0000-4000-8000-000000000308','{LOCATION_ID}',36,'draft','unreviewed note');
 INSERT INTO public.species_observation VALUES
 ('b0000000-0000-4000-8000-000000000109','{LOCATION_ID}','species-a','endangered',3,'verified','observer a','private note',ARRAY['private']),
 ('b0000000-0000-4000-8000-000000000209','{OTHER_LOCATION_ID}','species-b','vulnerable',4,'published','observer b','foreign note',ARRAY['private']);
 INSERT INTO public.livestock_group VALUES
 ('b0000000-0000-4000-8000-000000000110','{LOCATION_ID}','group-a','goat','local',2,'hay',30,'active','private note'),
-('b0000000-0000-4000-8000-000000000210','{OTHER_LOCATION_ID}','group-b','goat','local',3,'hay',31,'active','foreign note');
+('b0000000-0000-4000-8000-000000000210','{OTHER_LOCATION_ID}','group-b','goat','local',3,'hay',31,'active','foreign note'),
+('b0000000-0000-4000-8000-000000000310','{LOCATION_ID}','group-c','goat','local',1,'hay',30,'inactive','retired group');
 INSERT INTO public.feed_intake_record VALUES
 ('b0000000-0000-4000-8000-000000000111','{LOCATION_ID}','b0000000-0000-4000-8000-000000000110',CURRENT_DATE,2,1,'verified','private note'),
-('b0000000-0000-4000-8000-000000000211','{OTHER_LOCATION_ID}','b0000000-0000-4000-8000-000000000210',CURRENT_DATE,3,1,'published','foreign note');
+('b0000000-0000-4000-8000-000000000211','{OTHER_LOCATION_ID}','b0000000-0000-4000-8000-000000000210',CURRENT_DATE,3,1,'published','foreign note'),
+('b0000000-0000-4000-8000-000000000311','{LOCATION_ID}','b0000000-0000-4000-8000-000000000310',CURRENT_DATE,5,2,'verified','inactive group record'),
+('b0000000-0000-4000-8000-000000000312','{LOCATION_ID}','b0000000-0000-4000-8000-000000000110',CURRENT_DATE,6,3,'draft','unreviewed feed record');
 INSERT INTO public.token_reward_distribution VALUES
 ('b0000000-0000-4000-8000-000000000112','{LOCATION_ID}','harvest','KOKO',1,1,'yield',2,'manual',false,'verified','private recipient','private note'),
 ('b0000000-0000-4000-8000-000000000212','{OTHER_LOCATION_ID}','harvest','KOKO',2,2,'yield',3,'manual',false,'published','foreign recipient','foreign note');
@@ -147,6 +152,15 @@ CREATE VIEW public.v_public_resource_efficiency AS SELECT row.id,row.location_id
 CREATE VIEW public.v_public_livestock_feed_intake AS SELECT intake.id,intake.location_id,intake.livestock_group_id,intake.record_date,intake.quantity_kg,intake.per_animal_kg,intake.status FROM public.feed_intake_record intake JOIN public.location farm ON farm.id=intake.location_id JOIN public.livestock_group livestock ON livestock.id=intake.livestock_group_id WHERE farm.status='active' AND intake.status IN ('verified','published') AND EXISTS (SELECT 1 FROM public.farm_registry_record registry WHERE registry.location_id=farm.id AND registry.status IN ('verified','published'));
 CREATE VIEW public.v_public_token_reward_distribution AS SELECT row.id,row.location_id,row.reward_type,row.token_type,row.token_amount,row.usd_value,row.linked_metric_key,row.linked_metric_value,row.distribution_method,row.is_onchain,row.status FROM public.token_reward_distribution row JOIN public.location farm ON farm.id=row.location_id WHERE farm.status='active' AND row.status IN ('verified','published') AND EXISTS (SELECT 1 FROM public.farm_registry_record registry WHERE registry.location_id=farm.id AND registry.status IN ('verified','published'));
 CREATE VIEW public.v_public_reward_calibration AS SELECT row.id,row.location_id,row.model_name,row.model_type,row.run_date,row.input_metrics,row.output_weights,row.calibration_score,row.total_tokens_distributed,row.token_per_unit_output,row.epoch,row.confidence_level,row.status FROM public.reward_calibration_model row JOIN public.location farm ON farm.id=row.location_id WHERE farm.status='active' AND row.status IN ('verified','published') AND EXISTS (SELECT 1 FROM public.farm_registry_record registry WHERE registry.location_id=farm.id AND registry.status IN ('verified','published'));
+
+CREATE FUNCTION kokonut_security.set_location_ai_summary_source_references(
+    UUID, UUID, UUID, JSONB
+) RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog
+AS $$ DECLARE expected_keys INTEGER; BEGIN
+    IF expected_keys NOT BETWEEN 1 AND 10 THEN RETURN FALSE; END IF;
+    RETURN TRUE;
+END $$;
 """
 
 
@@ -168,7 +182,7 @@ def main() -> int:
         raise SystemExit("docker CLI is unavailable")
     container = f"kokonut-ecological-source-{uuid.uuid4().hex[:10]}"
     evidence: dict[str, object] = {
-        "check": "CAP-038 ecological-modeling signed source migration 550",
+        "check": "CAP-038 ecological-modeling source migrations 550-551",
         "image": IMAGE,
         "requested_platform": PLATFORM or "native",
         "candidate_or_legacy_modified": False,
@@ -241,6 +255,26 @@ TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login,
         stage = "migration 550 replay"
         psql(docker, container, MIGRATION_550.read_text(encoding="utf-8"))
         checks.append("migration 550 applies and replays on isolated PostgreSQL 16")
+        stage = "migration 551 initial apply and replay"
+        migration_551 = MIGRATION_551.read_text(encoding="utf-8")
+        psql(docker, container, migration_551)
+        psql(docker, container, migration_551)
+        checks.append("migration 551 applies and replays on isolated PostgreSQL 16")
+        psql(docker, container, """
+DO $$
+DECLARE function_definition TEXT;
+BEGIN
+    function_definition := pg_catalog.pg_get_functiondef(
+        'kokonut_security.set_location_ai_summary_source_references(uuid, uuid, uuid, jsonb)'::pg_catalog.regprocedure
+    );
+    IF position('expected_keys NOT BETWEEN 1 AND 20' IN function_definition) = 0
+       OR position('expected_keys NOT BETWEEN 1 AND 10' IN function_definition) > 0 THEN
+        RAISE EXCEPTION 'source-reference setter capacity was not raised to twenty';
+    END IF;
+END;
+$$;
+""")
+        checks.append("source-reference setter enforces a replay-safe 20-source bound")
         psql(docker, container, """
 INSERT INTO public.ai_summary_agent_draft_request(summary_type)
 VALUES ('ecological_modeling');
@@ -251,13 +285,14 @@ DO $$ BEGIN
              'population_dynamics_record', 'soil_input_application',
              'pest_observation', 'biocontrol_release', 'resource_consumption',
              'species_observation', 'token_reward_distribution',
-             'reward_calibration_model'
-         )) <> 10 THEN
+             'reward_calibration_model', 'harvest_event', 'livestock_group',
+             'feed_intake_record'
+         )) <> 13 THEN
         RAISE EXCEPTION 'ecological source-reference registry is incomplete';
     END IF;
 END $$;
 """)
-        checks.append("worker receipt and ten-source provenance registries accept the task")
+        checks.append("worker receipt and thirteen-source provenance registries accept the task")
         psql(docker, container, f"""
 BEGIN;
 SELECT set_config('kokonut.test_location', '{LOCATION_ID}', TRUE);
@@ -282,7 +317,10 @@ BEGIN
         RAISE EXCEPTION 'one or more source projections did not enforce exact location scope';
     END IF;
     IF EXISTS (SELECT 1 FROM kokonut_agent_source.ecological_interaction WHERE location_id <> '{LOCATION_ID}')
-       OR EXISTS (SELECT 1 FROM kokonut_agent_source.feed_intake_record WHERE location_id <> '{LOCATION_ID}') THEN
+       OR EXISTS (SELECT 1 FROM kokonut_agent_source.feed_intake_record WHERE location_id <> '{LOCATION_ID}')
+       OR EXISTS (SELECT 1 FROM kokonut_agent_source.v_public_ecological_harvest_event_reference WHERE location_id <> '{LOCATION_ID}')
+       OR EXISTS (SELECT 1 FROM kokonut_agent_source.v_public_ecological_livestock_group_reference WHERE location_id <> '{LOCATION_ID}')
+       OR EXISTS (SELECT 1 FROM kokonut_agent_source.v_public_ecological_feed_intake_reference WHERE location_id <> '{LOCATION_ID}') THEN
         RAISE EXCEPTION 'source projection returned a foreign-location row';
     END IF;
     IF (SELECT count(*) FROM kokonut_agent_source.v_public_ecological_interaction_summary) <> 1
@@ -294,7 +332,10 @@ BEGIN
         'v_public_population_dynamics_summary', 'v_public_soil_input_retention',
         'v_public_pest_trends', 'v_public_biocontrol_effectiveness',
         'v_public_resource_efficiency', 'v_public_ecological_species_conservation',
-        'v_public_token_reward_distribution', 'v_public_reward_calibration'
+        'v_public_token_reward_distribution', 'v_public_reward_calibration',
+        'v_public_ecological_harvest_event_reference',
+        'v_public_ecological_livestock_group_reference',
+        'v_public_ecological_feed_intake_reference'
     ] LOOP
         EXECUTE format('SELECT count(*) FROM kokonut_agent_source.%I', source_view) INTO n;
         IF n <> 1 THEN
@@ -306,6 +347,15 @@ BEGIN
           AND table_name IN ('pest_observation','biocontrol_release','ecological_species_observation','token_reward_distribution','ecological_harvest_event')
           AND column_name IN ('notes','observer','evidence_urls','recipient_name','source_raw')) THEN
         RAISE EXCEPTION 'scoped ecological projections expose private fields';
+    END IF;
+    IF (SELECT count(*) FROM information_schema.columns
+         WHERE table_schema='kokonut_agent_source'
+           AND table_name IN (
+               'v_public_ecological_harvest_event_reference',
+               'v_public_ecological_livestock_group_reference',
+               'v_public_ecological_feed_intake_reference'
+           )) <> 6 THEN
+        RAISE EXCEPTION 'ecological row-reference views expose fields beyond id/location';
     END IF;
     IF (SELECT count(*) FROM information_schema.columns
          WHERE table_schema='kokonut_agent_source' AND table_name='harvest_event'
@@ -337,7 +387,7 @@ BEGIN
 END $$;
 ROLLBACK;
 """)
-        checks.append("signed context scopes all 14 query projections and 10 row-reference views")
+        checks.append("signed context scopes all ecological projections and 13 row-reference views")
         checks.append("migration replay removes stale raw/public-view and schema-create grants")
         psql(docker, container, """
 BEGIN;
@@ -356,7 +406,10 @@ BEGIN
         'v_public_soil_input_retention', 'v_public_pest_trends',
         'v_public_biocontrol_effectiveness', 'v_public_resource_efficiency',
         'v_public_ecological_species_conservation',
-        'v_public_token_reward_distribution', 'v_public_reward_calibration'
+        'v_public_token_reward_distribution', 'v_public_reward_calibration',
+        'v_public_ecological_harvest_event_reference',
+        'v_public_ecological_livestock_group_reference',
+        'v_public_ecological_feed_intake_reference'
     ] LOOP
         EXECUTE format('SELECT count(*) FROM kokonut_agent_source.%I', source_view) INTO n;
         IF n <> 0 THEN

@@ -227,3 +227,25 @@ and grants, other databases, external media/providers, and host-loss recovery.
 It remains on the same host disk as the repository. Independent off-host copy,
 R2 backup/restore, provider recovery, Raspberry Pi hardware acceptance, and
 production/cutover acceptance remain open.
+
+
+### Candidate migration 551 checkpoint, restore, and rollout — 22 October 2026
+
+A fresh age-encrypted PostgreSQL checkpoint of the local candidate was
+authenticated and restored into an internal-only PostgreSQL 16 clone created
+from `template0`. The pre-migration schema ledger fingerprint matched the
+candidate at 541 entries through migration 550. Migration 551 was applied to the
+clone and candidate through the ordered checksummed runner; both now record 542
+schema migrations through 551 and zero pending. No seed or farm records were
+written. The candidate app alone was rebuilt and recreated, then passed its
+in-container health request; candidate PostgreSQL, Metabase, proxy, and the
+legacy stack were not recreated. The previous app image is retained under
+`kokonut-kernel-candidate-app:rollback-pre-551-20261022`. The restored database
+container is stopped while its volume is retained.
+
+The checkpoint covers only the Kokonut database and remains on the same host; it
+excludes roles/grants, other databases, and external media. The restored clone
+and candidate contain no location rows, so this rehearsal does not establish
+populated ecological-data parity. Browser-origin acceptance, production OIDC and
+worker credentials, off-host backup/restore, and physical Raspberry Pi behavior
+remain open. See the [migration 551 rollout record](builds/2026-10-22-recovery/candidate-migration-551-rollout.json).

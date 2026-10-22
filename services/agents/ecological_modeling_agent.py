@@ -105,8 +105,9 @@ class EcologicalModelingSynthesisAgent(SynthesisAgent):
         "harvest_event", "location", "species_observation", "livestock_group",
         "feed_intake_record", "token_reward_distribution", "reward_calibration_model",
     ]
-    # The shared manifest intentionally caps row-level provenance at ten
-    # source tables. The remaining four query inputs remain table-name hints.
+    # Row-level provenance records only IDs from reviewed public projections.
+    # The farm row itself is the already-bound summary subject, so it remains
+    # a source-table hint rather than a redundant manifest entry.
     source_reference_views = {
         "ecological_interaction": "v_public_ecological_interaction_summary",
         "energy_flow_measurement": "v_public_energy_flow_summary",
@@ -116,6 +117,9 @@ class EcologicalModelingSynthesisAgent(SynthesisAgent):
         "biocontrol_release": "v_public_biocontrol_effectiveness",
         "resource_consumption": "v_public_resource_efficiency",
         "species_observation": "v_public_ecological_species_conservation",
+        "harvest_event": "v_public_ecological_harvest_event_reference",
+        "livestock_group": "v_public_ecological_livestock_group_reference",
+        "feed_intake_record": "v_public_ecological_feed_intake_reference",
         "token_reward_distribution": "v_public_token_reward_distribution",
         "reward_calibration_model": "v_public_reward_calibration",
     }

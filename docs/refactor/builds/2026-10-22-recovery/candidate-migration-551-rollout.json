@@ -1,0 +1,98 @@
+{
+  "verified_at": "2026-10-22T17:24:00Z",
+  "environment": "local Kokonut Kernel candidate",
+  "migration": {
+    "id": "schema:551_ecological_synthesis_provenance_capacity.sql",
+    "checksum": "39d0fe8b5b85a375da094d85e5c1cdc3a5bf44bdeb95adc5c3038ded224f7622",
+    "ordered_runner": "python3 -m services.migration.cli migrate --schemas-only --only-migration schema:551_ecological_synthesis_provenance_capacity.sql",
+    "candidate_applied": true,
+    "restore_clone_applied": true,
+    "seed_sql_applied": false,
+    "pending_schema_migrations_after_candidate": 0,
+    "candidate_schema_migrations_after": 542,
+    "candidate_latest_schema": "schema:551_ecological_synthesis_provenance_capacity.sql",
+    "candidate_ledger_fingerprint": "19eaa12aba24c2a2c5da6b56123340aa"
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-551-20261022T171501Z",
+    "format": "age-encrypted PostgreSQL custom-format archive",
+    "sha256": "136c9bec8f389b7fe6b79f8fcaf00e64ff2c9078bc7fbe431c38a7bd2d52c9ca",
+    "bytes": 8403804,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsed": true,
+    "scope": "kokonut_intelligence database only; excludes roles/grants, other databases, volumes, and external media"
+  },
+  "restore_rehearsal": {
+    "project": "kokonut-kernel-recovery-551-20261022",
+    "container": "kokonut-kernel-recovery-551-20261022-database-1",
+    "database": "kokonut_restore",
+    "network": "internal-only; no published ports or application services",
+    "target_created_from": "template0; zero public tables before restore",
+    "healthcheck": "passed",
+    "role_prerequisites": "narrow repository NOLOGIN bootstrap applied",
+    "pre_migration_schema_count": 541,
+    "pre_migration_latest": 550,
+    "pre_migration_fingerprint_excluding_551": "1dd51b8374d61b65f5fc901a8a4852d8",
+    "candidate_restore_pre_551_fingerprint_match": true,
+    "public_relations_before_551": 1461,
+    "public_relations_after_551": 1464,
+    "new_public_relations": [
+      "v_public_ecological_harvest_event_reference",
+      "v_public_ecological_livestock_group_reference",
+      "v_public_ecological_feed_intake_reference"
+    ],
+    "selected_row_counts_matched": [
+      "ai_summary",
+      "ai_summary_source_manifest",
+      "ai_summary_agent_draft_request",
+      "location",
+      "harvest_event",
+      "livestock_group",
+      "feed_intake_record"
+    ],
+    "post_migration_schema_count": 542,
+    "post_migration_latest": 551,
+    "post_migration_pending": 0,
+    "container_stopped": true,
+    "recovery_volume_retained": "kokonut-kernel-recovery-551-20261022_recovery-postgres-data"
+  },
+  "candidate_app": {
+    "image_id": "sha256:f37bae383aa81f29d9ae760345f985d76fbab3974e6223304e7bb4b185d9faf9",
+    "container_id": "6fe751f9e0f379fa3a2750d478060789a1960dff0edf5b79d306dfcf1340156e",
+    "health": "healthy",
+    "in_container_health_route_status": 200,
+    "previous_image_id": "sha256:e549580976c04e58c8cf5a9c40df45cd268d6a4e65656babd27301fce52aae49",
+    "previous_image_rollback_tag": "kokonut-kernel-candidate-app:rollback-pre-551-20261022",
+    "recreated_service": "app only"
+  },
+  "not_recreated_or_modified": [
+    "candidate PostgreSQL container and persistent volume (only its additive schema changed)",
+    "candidate Metabase",
+    "candidate proxy",
+    "legacy kokonut-intelligence stack"
+  ],
+  "data_actions": [
+    "migration 551 applied through the ordered checksummed runner to restore clone and candidate",
+    "no seed SQL or farm records applied",
+    "no worker credential or provider secret provisioned"
+  ],
+  "verification": {
+    "focused_python_tests": "122 passed",
+    "network_disabled_postgresql16_native": "passed; seven grouped checks",
+    "network_disabled_postgresql16_arm64_qemu": "passed; seven grouped checks; server reported aarch64",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "migration_source_validation": "passed; 542 files",
+    "capability_matrix": "passed; 66 rows, 30 baseline-retained, 7 deployed, 29 prepared"
+  },
+  "limitations": [
+    "Disposable worker context is synthetic; signed-scope cryptographic behavior is covered by separate worker-context acceptance.",
+    "The candidate and checkpoint contain no location rows, so populated ecological output parity remains open.",
+    "The browser-facing host route, live OIDC, deployed worker credentials, physical Raspberry Pi hardware, and MAN-CAP-038 owner acceptance remain open.",
+    "This local checkpoint is on the repository host disk and is not an off-host or production backup."
+  ],
+  "rollback": {
+    "app": "recreate only the candidate app from kokonut-kernel-candidate-app:rollback-pre-551-20261022",
+    "database": "keep migration 551 additive; the encrypted pre-migration checkpoint and stopped restore volume are retained. A full restore would discard writes made after the checkpoint."
+  }
+}

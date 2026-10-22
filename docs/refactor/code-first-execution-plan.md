@@ -3,20 +3,19 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 candidate rollout of migrations 549–550:** after a
-fresh age-encrypted checkpoint and isolated restore rehearsal, the ordered
-runner applied both migrations to the local candidate. A restore-only replay
-found and fixed migration 550's attempt to narrow two shared deterministic
-source views; dedicated ecological aliases now preserve them. Disposable
-PostgreSQL 16 replay passes five grouped checks on native AMD64 and ARM64/QEMU,
-and the focused source/worker/migration suite passes 201 tests. Candidate and
-restore ledgers match at 541 schema entries through 550 with zero pending. Only
-the candidate app was rebuilt; it is healthy (`/health` 200), with the
-report-review route returning 404 because this local profile has OIDC disabled.
-The legacy stack and candidate database/Metabase/proxy containers were not
-recreated. No seed data ran. Checklist: 967 complete / 24 open (991 total);
-the 66-row matrix remains 30 baseline-retained, 7 deployed, and 29 prepared,
-with all MAN-CAP approvals still open.
+**Current batch — CAP-038 provenance capacity and candidate migration 551:**
+a fresh age-encrypted candidate checkpoint was restore-rehearsed in an
+internal-only PostgreSQL clone. The ordered runner applied migration 551 to the
+clone and candidate; both ledgers now have 542 schema entries through 551 and
+zero pending. Ecological modeling captures bounded provenance for 13 of 14
+inputs, and network-disabled PostgreSQL 16 apply/replay passed seven grouped
+checks on native AMD64 and ARM64/QEMU. The focused worker/source/draft selection
+passes 122 tests. Only the candidate app was recreated and is healthy; no seed
+or farm data ran, and PostgreSQL, Metabase, proxy, and the legacy stack were not
+recreated. Because the candidate and checkpoint contain no location rows,
+populated ecological output parity remains unverified. Checklist: 968 complete
+/ 24 open (992 total); the 66-row matrix remains 30 baseline-retained, 7
+deployed, and 29 prepared, with all MAN-CAP approvals still open.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

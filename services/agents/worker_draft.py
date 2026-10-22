@@ -108,6 +108,8 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "pest_observation",
         "biocontrol_release",
         "resource_consumption",
+        "livestock_group",
+        "feed_intake_record",
         "species_observation",
         "token_reward_distribution",
         "reward_calibration_model",
@@ -131,8 +133,8 @@ def _validate_source_references(
 ) -> tuple[dict[str, dict[str, Any]], str]:
     if value is None:
         value = {}
-    if not isinstance(value, Mapping) or len(value) > 10:
-        raise AgentDraftInvalid("source_references must be an object with at most 10 source tables")
+    if not isinstance(value, Mapping) or len(value) > 20:
+        raise AgentDraftInvalid("source_references must be an object with at most 20 source tables")
     normalized: dict[str, dict[str, Any]] = {}
     for table, entry in value.items():
         if (

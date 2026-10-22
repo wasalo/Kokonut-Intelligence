@@ -1,3 +1,27 @@
+### CAP-038 ecological provenance capacity and candidate migration 551 rollout — 22 October 2026
+
+Migration 551 expands signed synthesis provenance from ten to twenty source
+relations and adds three minimal, exact-location projections for harvest,
+livestock-group, and feed-intake rows. Ecological modeling now records bounded
+row-level provenance for 13 of its 14 inputs; location remains implicit in the
+signed summary subject. The focused synthesis/worker/draft selection passes 122
+tests. Disposable, network-disabled PostgreSQL 16 apply/replay passes seven
+grouped checks on native AMD64 and ARM64/QEMU. A fresh age-encrypted PostgreSQL
+checkpoint was restore-rehearsed; the ordered runner applied 551 to the clone
+and local candidate, both now at 542 schema migrations through 551 with zero
+pending. Only the app was recreated and it is healthy; candidate PostgreSQL,
+Metabase, proxy, and the legacy stack were left in place. No seeds or farm rows
+were written. The restore and candidate had no location data, so populated
+output parity remains open. MAN-CAP-038, real worker credentials/OIDC,
+production recovery, and physical Raspberry Pi acceptance remain open. Evidence:
+[migration](../schemas/postgres/551_ecological_synthesis_provenance_capacity.sql),
+[focused tests](../tests/test_synthesis_source_references.py),
+[native disposable check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-disposable.json),
+[ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-ecological-modeling-provenance-capacity-arm64-disposable.json),
+[checkpoint and rollout](builds/2026-10-22-recovery/candidate-migration-551-rollout.json).
+Checklist: 968 complete / 24 open (992 total); capability matrix: 30 baseline-retained,
+7 deployed, and 29 prepared across 66 entries.
+
 ### CAP-038 signed worker search-path hardening — 22 October 2026
 
 The five signed source-reader paths now set the transaction-local search path

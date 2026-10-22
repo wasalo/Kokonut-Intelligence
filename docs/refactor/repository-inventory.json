@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c8b05eafd41806acfe9a155f31ae34e242fa3def",
+  "baseline_commit": "7d86065c0219ed21d1cdd9c85fa3f70542c606b5",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2825,7 +2825,8 @@
       "schemas/postgres/547_signed_ai_summary_inspection_source.sql",
       "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
       "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql",
-      "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql"
+      "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql",
+      "schemas/postgres/551_ecological_synthesis_provenance_capacity.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

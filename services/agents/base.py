@@ -113,7 +113,7 @@ class SynthesisAgent:
         if not source_reference_views:
             return {}
         if (
-            len(source_reference_views) > 10
+            len(source_reference_views) > 20
             or any(table not in source_tables for table in source_reference_views)
             or any(table not in source_reference_views for table in source_reference_scopes)
             or any(
