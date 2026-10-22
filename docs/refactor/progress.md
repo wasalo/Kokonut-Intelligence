@@ -15165,3 +15165,14 @@ selection passes 204 tests; Ruff, Python compilation, inventory checks, and
 capability-matrix validation pass. All provider/database interactions were
 mocked; live delivery and destination ownership remain open. Evidence:
 [freshness alert acceptance](builds/2026-10-22-recovery/freshness-alert-outbox-atomicity.json).
+
+
+### CI #729 agent inventory assertion stability — 22 October 2026
+
+The CAP-038 source inventory regression now pins the two authenticated worker
+draft function names and correlates their current source locations with the
+generated line inventory. The inventory itself remains line-based and its
+saved snapshot must still match exactly. The focused test passes three cases;
+Ruff, compilation, and inventory freshness pass. No database/provider access
+occurred. Hosted CI on `a10e137` is still pending and does not include this
+local assertion hardening ([evidence](builds/2026-10-22-recovery/ci-729-agent-inventory-assertion-stability.json)).

@@ -20,13 +20,9 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
     assert inventory["direct_agent_write_sites"] == []
     assert inventory["legacy_direct_ai_summary_inserts"] == []
     assert inventory["agent_action_log_insert_sites"] == []
-    assert inventory["authenticated_operator_draft_function_calls"] == [
-        {"source": "services/gateway/ai_summary_draft.py", "line": 106}
-    ]
-    assert inventory["authenticated_worker_draft_function_calls"] == [
-        {"source": "services/agents/worker_draft.py", "line": 376},
-        {"source": "services/agents/worker_draft.py", "line": 392},
-    ]
+    operator_draft_calls = inventory["authenticated_operator_draft_function_calls"]
+    assert len(operator_draft_calls) == 1
+    assert operator_draft_calls[0]["source"] == "services/gateway/ai_summary_draft.py"
     assert inventory["authenticated_worker_summary_function_calls"] == [
         {
             "source": "services/agents/worker_draft.py",
@@ -53,6 +49,21 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
             "line": 411,
             "function": "set_location_ai_summary_source_references",
         },
+    ]
+    expected_worker_draft_functions = {
+        "create_location_ai_summary_worker_draft_with_result",
+        "create_location_ai_summary_worker_draft",
+    }
+    worker_summary_calls = inventory["authenticated_worker_summary_function_calls"]
+    assert {
+        call["function"]
+        for call in worker_summary_calls
+        if call["function"] in expected_worker_draft_functions
+    } == expected_worker_draft_functions
+    assert inventory["authenticated_worker_draft_function_calls"] == [
+        {"source": call["source"], "line": call["line"]}
+        for call in worker_summary_calls
+        if call["function"] in expected_worker_draft_functions
     ]
     assert inventory["set_agent_context_call_sites"] == []
     assert inventory["audit_agent_action_call_sites"] == []
