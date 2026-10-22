@@ -1,3 +1,15 @@
+### CAP-038 SDK schema-parity CI repair — 21 October 2026
+
+CI #695 on the pushed `32b00beb` head failed the fast-fail SDK schema coverage
+check because the Python and JavaScript `AiSummary` SDK models omitted the
+nullable `created_by_worker_id` UUID introduced by migration 529. Both models
+now expose the nullable field and the Python model regression preserves its
+value. SDK schema parity passes across 109 models and 2,149 canonical columns;
+the focused Python SDK suite passes 93 tests and the JavaScript SDK TypeScript
+build passes. No database, candidate, legacy stack, or provider was touched.
+The follow-up CI/Security checks must pass on the repair commit before the
+release gate closes. Evidence: [SDK lineage parity](builds/2026-10-21-recovery/sdk-ai-summary-worker-lineage-parity.json).
+
 ### CAP-038 EBF evidence-gap location query — 21 October 2026
 
 The read-only EBF evidence-gap agent now requires both scorecard and location

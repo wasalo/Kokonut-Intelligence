@@ -817,12 +817,14 @@ def test_ai_summary_type_preserves_lineage_and_review_as_distinct_fields():
         model_version="rules-v1",
         confidence=0.75,
         status="draft",
+        created_by_worker_id="worker-1",
     )
 
     assert summary.source_record_ids == ["record-1"]
     assert summary.source_tables == ["metric_value"]
     assert summary.status == "draft"
     assert summary.reviewed_by is None
+    assert summary.created_by_worker_id == "worker-1"
 
 
 def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution():

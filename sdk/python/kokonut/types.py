@@ -2753,6 +2753,7 @@ class AiSummary:
     reviewed_at: Optional[str] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    created_by_worker_id: Optional[str] = None
 
 
 @dataclass
