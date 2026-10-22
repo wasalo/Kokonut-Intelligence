@@ -1,3 +1,22 @@
+### CAP-037 independent capacity review queue — 22 October 2026
+
+Added a read-only submitted-capacity review queue at
+`GET /operator/api/operating-pilot/{location_id}/capacity-review-queue` under
+the separate exact `operating_pilot:review` grant. Migration 557 rechecks the
+signed location, active reviewer identity/binding, and active Adelphi scope;
+it excludes the reviewer’s own human party and returns only submitted
+self-reported profiles. The bounded result includes profile record ID, period,
+hours, status, and last-update timestamp while omitting party identity, source, and
+private notes. No decision or lifecycle mutation is exposed.
+
+The focused Gateway, route-policy, console, and migration metadata selection
+passes 125 tests. Ruff, Python compilation, and console JavaScript syntax checks
+pass. Network-disabled disposable PostgreSQL 16 applies and replays migrations
+461/479/480/526/538/552/553/554/555/556/557 and passes 46 grouped assertions,
+including paging, self-review exclusion, cross-location and grant denial, and
+runtime/Directus boundaries ([native evidence](builds/2026-10-22-recovery/cap-037-capacity-review-queue-disposable.json)). The same run passes under
+`linux/arm64` Docker/QEMU emulation ([ARM64 evidence](builds/2026-10-22-recovery/cap-037-capacity-review-queue-arm64-disposable.json)); that establishes software portability under emulation only, not Raspberry Pi hardware, performance, power-loss, or recovery acceptance. Candidate and legacy databases remain untouched; migration 557 is not rolled out. CAP-037 remains prepared (`P`): a human approve/reject decision workflow, other item workflows, populated parity, live OIDC/browser, production ACL/RLS and recovery, privacy/audience, and owner acceptance remain open. Checklist: 983 complete / 24 open (1,007 total); capability matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+
 ### CAP-037 own capacity draft submission — 22 October 2026
 
 Operators can now submit their own self-reported capacity draft for independent

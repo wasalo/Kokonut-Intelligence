@@ -634,6 +634,19 @@
             </div>
             <button id="operating-pilot-own-capacity-more" class="secondary" type="button" hidden>Load more of your records</button>
           </section>
+          <section id="operating-pilot-capacity-review" hidden aria-labelledby="operating-pilot-capacity-review-heading">
+            <h3 id="operating-pilot-capacity-review-heading">Independent capacity review queue</h3>
+            <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity and private notes and does not record a decision.</p>
+            <div class="toolbar"><button id="operating-pilot-capacity-review-refresh" type="button">Refresh review queue</button></div>
+            <p id="operating-pilot-capacity-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Record</th><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Updated</th></tr></thead>
+                <tbody id="operating-pilot-capacity-review-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-capacity-review-more" class="secondary" type="button" hidden>Load more submissions</button>
+          </section>
           <h3>Demand signals</h3>
           <p id="operating-pilot-demand-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
@@ -1815,11 +1828,16 @@
       const operatingPilotOwnCapacityStatus = document.querySelector("#operating-pilot-own-capacity-status");
       const operatingPilotOwnCapacityRows = document.querySelector("#operating-pilot-own-capacity-rows");
       const operatingPilotOwnCapacityMore = document.querySelector("#operating-pilot-own-capacity-more");
+      const operatingPilotCapacityReview = document.querySelector("#operating-pilot-capacity-review");
+      const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
+      const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
+      const operatingPilotCapacityReviewMore = document.querySelector("#operating-pilot-capacity-review-more");
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
+      let operatingPilotCapacityReviewLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
       let operatingPilotPendingCapacityCreate = null;
       let operatingPilotPendingCapacityEdit = null;
@@ -1830,11 +1848,13 @@
       let operatingPilotWorkClaimsRequestVersion = 0;
       let operatingPilotResourceRequestVersion = 0;
       let operatingPilotOwnCapacityRequestVersion = 0;
+      let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
       let operatingPilotResourceOffset = 0;
       let operatingPilotOwnCapacityOffset = 0;
+      let operatingPilotCapacityReviewOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -3035,6 +3055,64 @@
         }
       }
 
+      async function loadOperatingPilotCapacityReviewQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotCapacityReviewRequestVersion;
+        if (!operatingPilotCapacityReviewLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotCapacityReviewOffset = 0;
+          operatingPilotCapacityReviewRows.replaceChildren();
+          operatingPilotCapacityReviewMore.hidden = true;
+        }
+        const offset = append ? operatingPilotCapacityReviewOffset : 0;
+        operatingPilotCapacityReviewMore.disabled = true;
+        operatingPilotCapacityReviewStatus.textContent = "Loading submitted capacity for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/capacity-review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            throw new Error(response.status === 401 || response.status === 403
+              ? "A current session and exact location review grant are required."
+              : "The capacity review queue could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== operatingPilotCapacityReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotRow(operatingPilotCapacityReviewRows, [
+              item.profile_id,
+              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+              item.available_hours,
+              item.committed_hours,
+              item.protected_hours,
+              item.updated_at
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotCapacityReviewMore.hidden = !canContinue;
+          operatingPilotCapacityReviewOffset = canContinue ? nextOffset : 0;
+          operatingPilotCapacityReviewStatus.textContent = canContinue
+            ? "Showing a bounded page. Private notes and submitter identity are not returned."
+            : operatingPilotCapacityReviewRows.childElementCount
+              ? "Submitted capacity loaded. No review decision was recorded."
+              : "No submitted capacity records are awaiting independent review.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotCapacityReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotCapacityReviewMore.hidden = true;
+          operatingPilotCapacityReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotCapacityReviewRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotCapacityReviewMore.disabled = false;
+          }
+        }
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
@@ -3042,6 +3120,7 @@
           && !(operatingPilotOwnCapacityLocations.has(locationId)
             && operatingPilotEditOwnCapacityLocations.has(locationId));
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
+        operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
           operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
@@ -3053,11 +3132,17 @@
           operatingPilotWorkClaimsStatus.textContent = "A location read grant is required to view work-claim activity.";
           operatingPilotResourceRows.replaceChildren();
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
+          operatingPilotCapacityReviewRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
             await loadOperatingPilotOwnCapacityProfiles();
           } else {
             operatingPilotOwnCapacityRows.replaceChildren();
             operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+          }
+          if (operatingPilotCapacityReviewLocations.has(locationId)) {
+            await loadOperatingPilotCapacityReviewQueue();
+          } else {
+            operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
           }
           return;
         }
@@ -3068,6 +3153,12 @@
           loadOperatingPilotWorkClaims(),
           loadOperatingPilotResources()
         ];
+        if (operatingPilotCapacityReviewLocations.has(locationId)) {
+          reads.push(loadOperatingPilotCapacityReviewQueue());
+        } else {
+          operatingPilotCapacityReviewRows.replaceChildren();
+          operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
+        }
         if (operatingPilotOwnCapacityLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnCapacityProfiles());
         } else {
@@ -11889,11 +11980,18 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotEditOwnCapacityLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
+          const operatingPilotCapacityReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "review")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotCapacityReviewLocations = new Set(operatingPilotCapacityReviewLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
             ...operatingPilotLocationIds,
             ...operatingPilotCreateLocationIds,
             ...operatingPilotOwnCapacityLocationIds,
-            ...operatingPilotEditOwnCapacityLocationIds
+            ...operatingPilotEditOwnCapacityLocationIds,
+            ...operatingPilotCapacityReviewLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -15860,6 +15958,12 @@
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
       operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true));
       operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true));
+      document.querySelector("#operating-pilot-capacity-review-refresh").addEventListener(
+        "click", () => loadOperatingPilotCapacityReviewQueue()
+      );
+      operatingPilotCapacityReviewMore.addEventListener(
+        "click", () => loadOperatingPilotCapacityReviewQueue(true)
+      );
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));

@@ -26,12 +26,14 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-demand-create-form"' in panel.group()
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
+    assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
     assert "including your private notes" in panel.group()
     assert "Work-claim activity" in panel.group()
     assert "Resource-request categories" in panel.group()
     assert 'scope.resource === "operating_pilot" && scope.action === "read"' in source
     assert 'scope.resource === "operating_pilot" && scope.action === "create"' in source
     assert 'scope.resource === "operating_pilot" && scope.action === "read_own"' in source
+    assert 'scope.resource === "operating_pilot" && scope.action === "review"' in source
     assert "operatingPilotLocations = new Set(operatingPilotLocationIds)" in source
     assert 'operatingPilot.hidden = false' in source
     assert "operating-pilot" in source
@@ -248,6 +250,32 @@ def test_capacity_submission_is_explicit_idempotent_and_separately_granted():
     assert "Retry capacity submission" in own_row
     assert 'scope.action === "submit_own"' in source
     assert "/approve" not in submit.lower()
+
+
+def test_capacity_review_queue_has_separate_grant_and_omits_identity_and_notes():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadOperatingPilotCapacityReviewQueue(append = false)",
+        "async function loadOperatingPilot()",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in reader
+    assert "capacity-review-queue?${params}" in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "appendOperatingPilotRow(operatingPilotCapacityReviewRows" in reader
+    assert "innerHTML" not in reader
+    assert "party_id" not in reader
+    assert "item.notes" not in reader
+    assert "requestVersion !== operatingPilotCapacityReviewRequestVersion" in reader
+    assert "locationId !== operatingPilotLocation.value" in reader
+    assert "No review decision was recorded." in reader
+    assert "operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in initialize
+    assert "reads.push(loadOperatingPilotCapacityReviewQueue())" in initialize
+    assert "await loadOperatingPilotCapacityReviewQueue()" in initialize
+    assert "...operatingPilotCapacityReviewLocationIds" in source
+    assert 'click", () => loadOperatingPilotCapacityReviewQueue(true)' in source
 
 
 def test_create_only_location_can_open_draft_form_without_reading_queues():

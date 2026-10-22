@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise operating-pilot projections and draft writes on disposable PostgreSQL 16."""
+"""Exercise operating-pilot projections, drafts, and review reads on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -23,7 +23,8 @@ CAPACITY_DRAFT_MIGRATION = ROOT / "schemas/postgres/553_location_operating_pilot
 OWN_CAPACITY_MIGRATION = ROOT / "schemas/postgres/554_location_own_operating_pilot_capacity.sql"
 CAPACITY_REVISION_MIGRATION = ROOT / "schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql"
 CAPACITY_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-capacity-draft-submission-disposable.json"
+CAPACITY_REVIEW_MIGRATION = ROOT / "schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-capacity-review-queue-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -1303,6 +1304,135 @@ RESET ROLE;
 ROLLBACK;
 """
 
+CAPACITY_REVIEW_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000003', 'person', 'active', 'Synthetic second operator');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000004',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000003', NULL);
+INSERT INTO public.operator_organization_membership
+VALUES ('a2000000-0000-4000-8000-000000000008',
+        'a0000000-0000-4000-8000-000000000002',
+        'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000009',
+        'a0000000-0000-4000-8000-000000000001',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000010',
+        'a0000000-0000-4000-8000-000000000002',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operating_capacity_profile (
+    id, scope_type, scope_id, party_id, period_start, period_end,
+    status, source, available_hours, committed_hours, protected_hours, notes
+) VALUES
+ ('d0000000-0000-4000-8000-000000000030', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000003',
+  CURRENT_DATE + 300, CURRENT_DATE + 310, 'submitted', 'self_reported', 60, 20, 5,
+  'PRIVATE second operator note'),
+ ('d0000000-0000-4000-8000-000000000031', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000001',
+  CURRENT_DATE + 320, CURRENT_DATE + 330, 'submitted', 'self_reported', 45, 15, 3,
+  'PRIVATE reviewer own note'),
+ ('d0000000-0000-4000-8000-000000000032', 'adelphi',
+  'e9000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000003',
+  CURRENT_DATE + 340, CURRENT_DATE + 350, 'submitted', 'self_reported', 100, 20, 5,
+  'PRIVATE other location note'),
+ ('d0000000-0000-4000-8000-000000000033', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000003',
+  CURRENT_DATE + 360, CURRENT_DATE + 370, 'draft', 'self_reported', 70, 20, 5,
+  'PRIVATE draft note'),
+ ('d0000000-0000-4000-8000-000000000034', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000003',
+  CURRENT_DATE + 380, CURRENT_DATE + 390, 'submitted', 'manager_reviewed', 80, 20, 5,
+  'PRIVATE non-self-reported note');
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE reviewer_page jsonb; reviewer_second_page jsonb; submitter_page jsonb; denied boolean := false;
+        wrong_location_denied boolean := false; bounds_denied boolean := false;
+BEGIN
+    reviewer_page := kokonut_security.location_operating_pilot_capacity_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    IF reviewer_page->>'total' <> '2'
+       OR reviewer_page->>'has_more' <> 'true'
+       OR reviewer_page->'items'->0->>'profile_id' <> 'd0000000-0000-4000-8000-000000000030'
+       OR reviewer_page::text ~* '(PRIVATE|party_id|scope_id|notes|source)' THEN
+        RAISE EXCEPTION 'review queue crossed self, location, lifecycle, source, or privacy boundary: %', reviewer_page;
+    END IF;
+    reviewer_second_page := kokonut_security.location_operating_pilot_capacity_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    IF reviewer_second_page->>'total' <> '2'
+       OR reviewer_second_page->>'has_more' <> 'false'
+       OR reviewer_second_page->'items'->0->>'profile_id' <> 'd0000000-0000-4000-8000-000000000001'
+       OR reviewer_second_page->'next_offset' IS DISTINCT FROM 'null'::jsonb THEN
+        RAISE EXCEPTION 'review queue pagination was not deterministic: %', reviewer_second_page;
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    submitter_page := kokonut_security.location_operating_pilot_capacity_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    IF submitter_page->>'total' <> '2'
+       OR submitter_page->>'has_more' <> 'true'
+       OR submitter_page->'items'->0->>'profile_id' <> 'd0000000-0000-4000-8000-000000000031'
+       OR submitter_page::text ~* '(PRIVATE|party_id|scope_id|notes|source)' THEN
+        RAISE EXCEPTION 'reviewer own-party submission was not excluded: %', submitter_page;
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_capacity_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'capacity queue succeeded without an exact review grant'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_capacity_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    IF NOT wrong_location_denied THEN RAISE EXCEPTION 'capacity review accepted mismatched signed location'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_capacity_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN bounds_denied := true;
+    END;
+    IF NOT bounds_denied THEN RAISE EXCEPTION 'capacity review accepted an oversized page'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+DECLARE function_oid regprocedure :=
+    'kokonut_security.location_operating_pilot_capacity_review_queue(uuid,integer,integer)'::regprocedure;
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime', function_oid, 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime', function_oid, 'EXECUTE')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'notes', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'notes', 'SELECT')
+       OR (SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = function_oid)
+          <> 'kokonut_operating_pilot_reader' THEN
+        RAISE EXCEPTION 'capacity review queue function or private-field role boundary is incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 PRIVACY_SUPPRESSION = r"""
 BEGIN;
 SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
@@ -1384,13 +1514,14 @@ def main(argv: list[str] | None = None) -> int:
             OWN_CAPACITY_MIGRATION.name,
             CAPACITY_REVISION_MIGRATION.name,
             CAPACITY_SUBMISSION_MIGRATION.name,
+            CAPACITY_REVIEW_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
         "container_platform": args.platform or "docker-default",
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, and 556 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, 556, and 557 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -1420,6 +1551,9 @@ def main(argv: list[str] | None = None) -> int:
             "capacity submissions require the separate exact submit-own grant and preserve ownership, signed scope, and draft-only eligibility",
             "exact capacity submission retries replay; changed request reuse, missing grants, cross-party profiles, non-drafts, and location mismatch fail closed",
             "capacity submission receipt access is limited to the non-login function owner; runtime and Directus cannot read or write it directly",
+            "capacity review queue requires an exact review grant, excludes the reviewer own human party, and returns only submitted self-reported Adelphi rows",
+            "capacity review pages are bounded, location-scoped, deterministic, and omit notes, party IDs, scope IDs, and source metadata",
+            "capacity review queue denies missing grants and signed-location mismatch; runtime can execute it while Directus cannot",
         ],
     }
     try:
@@ -1452,6 +1586,7 @@ def main(argv: list[str] | None = None) -> int:
         own_capacity_migration = OWN_CAPACITY_MIGRATION.read_text(encoding="utf-8")
         capacity_revision_migration = CAPACITY_REVISION_MIGRATION.read_text(encoding="utf-8")
         capacity_submission_migration = CAPACITY_SUBMISSION_MIGRATION.read_text(encoding="utf-8")
+        capacity_review_migration = CAPACITY_REVIEW_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, summary_migration)
         psql(docker, container, summary_migration)
         psql(docker, container, demand_migration)
@@ -1472,15 +1607,18 @@ def main(argv: list[str] | None = None) -> int:
         psql(docker, container, capacity_revision_migration)
         psql(docker, container, capacity_submission_migration)
         psql(docker, container, capacity_submission_migration)
+        psql(docker, container, capacity_review_migration)
+        psql(docker, container, capacity_review_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
+        psql(docker, container, CAPACITY_REVIEW_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 40
+        evidence["assertion_groups_passed"] = 46
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         print(
-            "PASS: migrations 461/479/480/526/538/552/553/554/555/556 apply/replay and all forty grouped PostgreSQL assertions passed"
+            "PASS: migrations 461/479/480/526/538/552/553/554/555/556/557 apply/replay and all forty-six grouped PostgreSQL assertions passed"
         )
         result = 0
     except Exception as exc:

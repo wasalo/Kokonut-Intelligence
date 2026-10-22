@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, personal capacity history, own-draft revision and submission, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, personal capacity history, own-draft revision and submission, independent read-only capacity review queue, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`
 
 ## Route and authorization
 
@@ -220,6 +220,24 @@ a different profile or location conflicts. A different request cannot resubmit
 a profile that has already left `draft`, and missing grants, cross-party
 profiles, or signed-location mismatch fail closed. The response contains only
 profile ID, current status, and replay indicator.
+
+## Capacity review queue
+
+`GET /operator/api/operating-pilot/{location_id}/capacity-review-queue` uses a
+separate exact `operating_pilot:review` location grant and signed tenant
+context. The Gateway opens a read-only transaction, bounds the page to 1–50
+rows and offset 0–10,000, and sends a same-origin `no-store` response.
+
+Migration 557 returns only submitted `self_reported` capacity profiles in the
+active Adelphi farm mapped to the requested location. It requires an enabled
+operator with exactly one active human-party binding and excludes profiles
+belonging to that same party, preventing self-review. Results are ordered by
+update time and profile ID, with total count and bounded paging metadata.
+Reviewers see the record ID, period, available/committed/protected hours, and
+last-update timestamp. Party identity, scope IDs, source metadata, and private
+notes remain inside PostgreSQL. The endpoint is read-only: it cannot verify,
+approve, reject, or otherwise change lifecycle state. An independent decision
+route remains a separate implementation slice.
 
 ## Capacity-period page
 
