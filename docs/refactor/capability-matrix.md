@@ -6,6 +6,15 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**Local candidate migration update — 22 October 2026:** the local candidate now
+has 539 applied schema migrations through 548 and zero pending schema migrations.
+The 104 migrations after 444 were first replayed on an isolated restored clone;
+the candidate app was then rebuilt and verified healthy (`/health` 200, anonymous
+operator review request 401). This is a candidate-only database rollout, not
+production deployment or MAN-CAP acceptance. Worker/provider credentials,
+real OIDC, production recovery, and Raspberry Pi hardware checks remain open.
+See the [checkpoint and rollout evidence](builds/2026-10-22-recovery/candidate-migrations-445-548-rollout.json).
+
 **CAP-038 synthesis source-login stale ACL cleanup — 22 October 2026:**
 migration 541 now clears stale direct table, sequence, function, and public-schema
 `CREATE` grants from the source login before establishing its bounded reader

@@ -1,6 +1,6 @@
 # Batch 2 — recovery preparation
 
-Prepared 10 October 2026; updated 16 October 2026. Scoped candidate PostgreSQL
+Prepared 10 October 2026; updated 22 October 2026. Scoped candidate PostgreSQL
 checkpoint/restore rehearsals are recorded below. This is not a complete
 platform backup or production recovery acceptance.
 
@@ -192,3 +192,38 @@ Metabase were not recreated, the legacy stack was untouched, and no seed or
 application rows were written. The recovery container is stopped and its volume
 retained. This database-only rehearsal does not establish data/media/provider or
 production recovery parity. See the [rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json).
+
+### Candidate migrations 445–548 checkpoint, restore, and rollout — 22 October 2026
+
+A fresh age-encrypted checkpoint of the local candidate database was authenticated
+and restored into a new internal-only PostgreSQL project and empty `template0`
+database. The checkpoint contained 435 applied schema migrations through 444,
+1,403 public relations, and 1,024 public tables. Migration checksums, extensions,
+relations, and exact row counts for 1,023 tables matched. The live candidate's
+append-only `access_audit_log` advanced by 10 rows after the snapshot and was
+excluded from the live row-count comparison; its restored snapshot had 34,347
+rows versus 34,357 on the candidate at verification.
+
+The first restored-clone replay exposed missing NOLOGIN role placeholders in the
+recovery prerequisites. The inventory regression now requires the bootstrap to
+cover every explicitly granted or owned migration role, and the bootstrap
+includes the new source and capability roles with login and privilege escalation
+disabled. Its focused tests pass (2). The ordered migration runner then applied
+all 104 pending schema migrations, 445–548, to the restored clone and candidate
+with zero failures. Both ledgers now contain 539 schema migrations through 548
+with matching checksum fingerprint `72b81ae1cc0eee54864726403135553e`; both
+report zero pending migrations. No seeds were selected or applied.
+
+Only the candidate `app` image was rebuilt and recreated. It is healthy;
+`/health` returns 200 and the anonymous operator mobile review queue returns 401.
+The candidate PostgreSQL container and persistent volume remained in place
+while its schema was migrated; Metabase, proxy, and legacy stack were not
+modified. The recovery container is stopped and its volume retained. The
+encrypted checkpoint and complete evidence are recorded
+in [the rollout record](builds/2026-10-22-recovery/candidate-migrations-445-548-rollout.json).
+
+This checkpoint covers one PostgreSQL database only; it excludes cluster roles
+and grants, other databases, external media/providers, and host-loss recovery.
+It remains on the same host disk as the repository. Independent off-host copy,
+R2 backup/restore, provider recovery, Raspberry Pi hardware acceptance, and
+production/cutover acceptance remain open.
