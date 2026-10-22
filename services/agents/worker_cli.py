@@ -17,6 +17,7 @@ from services.agents.worker_draft import (
     get_worker_ai_summary_draft,
 )
 from services.common.database import get_db
+from services.common.worker_database import get_worker_db
 
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
 _SUMMARY_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
@@ -58,9 +59,10 @@ def run_worker_synthesis(
 ) -> dict[str, Any]:
     """Run a registered synthesis agent and save its draft through signed scope.
 
-    Exact request lookup precedes source queries. All source reads run in a
-    read-only, bounded transaction; persistence uses the dedicated worker
-    connection and immutable retry receipt.
+    Exact request lookup precedes source queries. All source reads use the
+    dedicated public-view reader login in a repeatable-read, read-only
+    transaction; persistence uses the separate signed worker connection and
+    immutable retry receipt.
     """
     from services.agents.base import validate_source_tables
     from services.agents.safety import assert_agent_action_allowed
@@ -136,10 +138,14 @@ def run_worker_synthesis(
             "replayed": True,
         }
 
-    connection = (connection_factory or get_db)()
+    open_source_connection = connection_factory or (
+        lambda: get_worker_db("agent_summary_source")
+    )
+    connection = open_source_connection()
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = agent.synthesize(connection, location_id)
@@ -260,7 +266,14 @@ def main() -> None:
     parser.add_argument(
         "--request-id", required=True, help="Stable UUID reused when retrying this operation"
     )
+    parser.add_argument(
+        "--source-only",
+        action="store_true",
+        help="Require a registered synthesis task and prohibit deterministic summary reads",
+    )
     args = parser.parse_args()
+    if args.source_only and not args.task_key:
+        parser.error("--source-only requires --task-key")
     if args.task_key and args.summary_type:
         parser.error("choose either --task-key or --summary-type")
     if args.task_key:

@@ -1,3 +1,48 @@
+### CAP-038 isolated shared-synthesis source reader — 22 October 2026
+
+Migration 541 adds a dedicated NOLOGIN source-reader role and a separately
+provisioned source login. It explicitly grants SELECT on the 40 registered
+public synthesis views and permits only the three public PostGIS metadata
+catalog names (`spatial_ref_sys`, `geometry_columns`, and `geography_columns`)
+when installed and already readable by `PUBLIC`; replay removes stale grants
+before restoring that allowlist. `worker_cli` uses this login for shared synthesis reads in a
+repeatable-read, read-only transaction, while draft persistence continues over
+the separately signed worker connection. Compose now has a distinct
+`agent-synthesis-worker` profile with no shared `PG_*` or `DATABASE_URL`
+settings and requires `--task-key`; deterministic AI summaries remain in the
+existing profile. Worker-login verification now rolls back its short identity
+query so the caller can set transaction isolation before its first business
+query. The focused worker/database selection passes 63 tests, Ruff passes, and
+disposable PostgreSQL 16 applies/replays migrations 529–541 with 29 grouped
+assertions. Candidate and legacy databases remain untouched; migration 541,
+source credentials, and the new profile are not deployed. This is
+relation-level least privilege, not row-level tenant isolation. Non-synthesis
+agent paths, Directus role parity, populated output parity, runtime recovery,
+credential provisioning, tenant RLS, and MAN-CAP-038 acceptance remain open.
+Evidence: [source-reader acceptance](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json).
+
+### CAP-038 network/shared provenance ARM64/QEMU spot check — 22 October 2026
+
+The migration 540 source-provenance acceptance also passed in a
+network-disabled `linux/arm64` PostgreSQL 16 container under emulation
+(`aarch64`). It passed 28 assertions for the bounded source manifests and
+role boundaries. This is a focused software-emulation check only: it is not a
+full schema replay, a test of migration 541, or physical Raspberry Pi, storage,
+power-loss, or thermal acceptance. Evidence:
+[ARM64 source-provenance run](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-arm64-disposable.json).
+
+### CAP-038 source-reader ARM64/QEMU check — 22 October 2026
+
+The disposable PostgreSQL 16 acceptance through migration 541 also passed in
+the network-disabled ARM64 PostGIS image under emulation (`aarch64`). All 29
+grouped checks passed, including migration replay and the source-reader role's
+view allowlist, private-summary denial, and write restrictions. This validates
+this focused database slice on ARM64 software emulation only; it is not a full
+schema replay or physical Raspberry Pi, storage, power-loss, thermal, or
+performance acceptance. Candidate and legacy databases remain untouched.
+Evidence:
+[ARM64 source-reader acceptance](builds/2026-10-22-recovery/cap-038-agent-synthesis-source-reader-arm64-disposable.json).
+
 ### CAP-038 explicit network and shared-row provenance scopes — 22 October 2026
 
 Migration 540 extends the worker source registry from exact-location-only

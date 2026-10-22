@@ -180,6 +180,7 @@ def test_worker_factory_uses_only_the_named_dsn_and_checks_login(monkeypatch):
         application_name="kokonut-worker-sensor_anomaly",
     )
     cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
     connection.close.assert_not_called()
 
 
@@ -318,6 +319,34 @@ def test_agent_summary_draft_factory_requires_its_dedicated_worker_login(monkeyp
         application_name="kokonut-worker-agent_summary_draft",
     )
     cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+
+
+def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
+    connection, cursor = _connection("kokonut_agent_summary_source_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_agent_summary_source_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "agent_summary_source",
+        environ={
+            "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+            "DATABASE_URL": "postgresql://kokonut_runtime:unused@database/kokonut_intelligence",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-agent_summary_source",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_not_called()
 
 
 def test_sensor_ingestion_factory_has_no_shared_dsn_fallback(monkeypatch):

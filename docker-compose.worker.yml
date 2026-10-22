@@ -91,15 +91,11 @@ services:
     profiles:
       - worker
 
-  # One-shot AI-summary and registered synthesis-agent runs are isolated from
-  # the shared supervisor, so their signed-worker credential is never inherited
-  # by event/scheduler handlers.
+  # Deterministic AI-summary reads keep their own one-shot profile. Shared
+  # synthesis reads use a separate public-view-only database login below.
   # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
-  #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID
-  #   --summary-type combined --request-id UUID
-  # Shared synthesis task example:
-  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile agent-summary-worker \
-  #     run --rm agent-summary-worker --task-key feedback_synthesis --location-id UUID --request-id UUID
+  #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID \
+  #     --summary-type combined --request-id UUID
   agent-summary-worker:
     build:
       context: .
@@ -127,6 +123,38 @@ services:
           memory: 512M
     profiles:
       - agent-summary-worker
+
+  # Shared synthesis has no PG_* or shared DATABASE_URL credentials. Its
+  # source login is restricted to the migration-owned public-view allowlist;
+  # signed draft persistence uses the separate agent_summary_draft identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile agent-synthesis-worker run --rm agent-synthesis-worker \
+  #     --task-key feedback_synthesis --location-id UUID --request-id UUID
+  agent-synthesis-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.worker_cli", "--source-only"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - agent-synthesis-worker
 
   event-worker:
     build:

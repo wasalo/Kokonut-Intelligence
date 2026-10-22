@@ -225,6 +225,7 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
 
     assert [call.args[0] for call in cursor.execute.call_args_list] == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
@@ -252,6 +253,31 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
         "request_id": REQUEST_ID,
         "replayed": False,
     }
+
+
+def test_synthesis_worker_defaults_to_isolated_source_login_not_shared_database(
+    monkeypatch,
+):
+    agent = _synthetic_synthesis_agent()
+    connection, _cursor = _source_connection()
+    source_factory = MagicMock(return_value=connection)
+    shared_factory = MagicMock(side_effect=AssertionError("shared database must not open"))
+    monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
+    monkeypatch.setattr(worker_cli, "get_db", shared_factory)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    worker_cli.run_worker_synthesis(
+        agent,
+        LOCATION_ID,
+        REQUEST_ID,
+        existing_reader=lambda *_args: None,
+        draft_writer=lambda *_args: {"summary_id": "saved-id", "replayed": False},
+    )
+
+    source_factory.assert_called_once_with("agent_summary_source")
+    shared_factory.assert_not_called()
 
 
 def test_worker_summary_rejects_unregistered_type_before_request_lookup():
@@ -548,6 +574,7 @@ def test_worker_cli_dispatches_registered_synthesis_task_without_content_output(
             LOCATION_ID,
             "--task-key",
             agent.task_key,
+            "--source-only",
             "--request-id",
             REQUEST_ID,
         ],
@@ -574,6 +601,29 @@ def test_worker_cli_dispatches_registered_synthesis_task_without_content_output(
         "replayed": False,
     }
     assert "private generated content" not in output
+
+
+def test_source_only_cli_rejects_deterministic_summary_before_dispatch(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "worker_cli",
+            "--location-id",
+            LOCATION_ID,
+            "--request-id",
+            REQUEST_ID,
+            "--source-only",
+        ],
+    )
+    summary = MagicMock(side_effect=AssertionError("deterministic worker must not run"))
+    monkeypatch.setattr(worker_cli, "run_worker_summary", summary)
+
+    with pytest.raises(SystemExit) as error:
+        worker_cli.main()
+
+    assert error.value.code == 2
+    summary.assert_not_called()
 
 
 def test_cli_output_does_not_print_summary_content_or_source_references(monkeypatch, capsys):

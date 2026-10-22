@@ -17,15 +17,18 @@
     "536_location_scoped_kokonut_commons_source_views.sql",
     "537_registered_worker_summary_types.sql",
     "539_agent_worker_structured_result_replay.sql",
-    "540_scoped_agent_source_references.sql"
+    "540_scoped_agent_source_references.sql",
+    "541_agent_synthesis_source_reader.sql"
   ],
   "database_target": "new disposable PostgreSQL 16 container with network disabled",
+  "postgres_image": "postgis/postgis:16-3.4",
   "candidate_or_legacy_modified": false,
   "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
   "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
   "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
+  "source_reader_note": "synthesis source reads use a dedicated relation-level identity with explicit SELECT on 40 registered views; the only other public relation access is the three PostGIS metadata catalogs already readable by PUBLIC; application queries still enforce declared scope, and this does not establish row-level tenant isolation",
   "checks": [
-    "migrations 405, 419, 521-524, 529-537, 539, and 540 apply; migrations 530-537, 539, and 540 replay",
+    "migrations 405, 419, 521-524, 529-537, and 539-541 apply; migrations 530-537 and 539-541 replay",
     "the original structured worker result is stored atomically with its draft and replayed without source reads",
     "pre-result worker receipts retain their content-only lookup fallback",
     "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -51,8 +54,10 @@
     "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
     "independent operator review sees the worker attribution and can verify only to verified",
     "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
+    "synthesis source login can read the 40 approved public views and three PostGIS metadata catalogs, cannot read private summaries or other public relations, and cannot write data",
     "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
     "runtime and Directus cannot call worker draft functions or read private worker receipts"
   ],
-  "assertions_passed": 28
+  "container_uname": "x86_64",
+  "assertions_passed": 29
 }

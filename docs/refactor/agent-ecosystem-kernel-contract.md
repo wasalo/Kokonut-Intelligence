@@ -189,8 +189,22 @@ instance-shadowed value. Focused regressions prove a query override is ignored
 by collection and rejected before receipt lookup. This protects the reviewed
 in-process provenance contract; it does not authenticate Python code or replace
 the worker's signed database scope. The worker then checks the stable request
-receipt before source queries. It runs reads inside a bounded read-only transaction using the runtime database
-identity and creates the draft through the separate signed worker connection.
+receipt before source queries. It runs reads inside a bounded repeatable-read,
+read-only transaction using `kokonut_agent_summary_source_login`, which can
+assume only `kokonut_agent_summary_source_reader`. Migration 541 explicitly
+grants that reader SELECT on the 40 registered public views and revokes its
+stale table, sequence, and function grants on replay. It permits the three
+public PostGIS metadata catalog names only when installed and already readable
+through `PUBLIC`; it rejects any other effective public-relation access and all public write or
+schema-create privileges. Draft creation still uses the separate signed worker
+connection. Application query filters enforce the registered location/network
+scope; this relation-level boundary does not provide row-level tenant
+isolation or replace the still-open broader RLS review.
+The native PostgreSQL 16 apply/replay acceptance passes 29 grouped checks;
+the same focused migration chain also passes in network-disabled ARM64/QEMU
+emulation (`aarch64`). The latter is not a physical Raspberry Pi or full-schema
+acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-agent-synthesis-source-reader-arm64-disposable.json)).
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
 Kokonut Commons synthesis attach bounded row IDs for forty approved public
@@ -218,12 +232,16 @@ stores each new worker call's bounded structured result in a private append-only
 receipt in the same transaction as its draft. Exact retries return that original
 JSON result without rerunning source queries. Receipts created before migration
 539 have no structured result to reconstruct and keep the content-only
-compatibility fallback. Compose exposes the dedicated DSN and high-entropy
-credential only to the opt-in `agent-summary-worker` service. An operator still needs to provision
-the runtime password, worker login/password, worker credential, and service DSN;
-migrations 529–540 are not rolled out to the candidate. Stored shared-agent CLI
-output is reduced to the draft ID, request ID, status, and replay flag. For
-example, run a task through the isolated profile with
+compatibility fallback. Compose separates deterministic summaries from shared
+synthesis: `agent-summary-worker` retains its existing runtime read settings,
+while `agent-synthesis-worker` receives no shared `PG_*` or `DATABASE_URL`
+values and requires `--task-key`. Its source DSN uses the view-only source login;
+the signed draft DSN and high-entropy credential remain separate. An operator
+still needs to provision the runtime password, source login/password, worker
+login/password, worker credential, and service DSNs; migrations 529–541 are not
+rolled out to the candidate. Stored shared-agent CLI output is reduced to the
+draft ID, request ID, status, and replay flag. For example, run a task through
+the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
 uses a synthetic operator-context stub for its review step; production worker
 identity is exercised with migration 405's signed worker context. See the
@@ -238,6 +256,7 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 536](../../schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql),
 [migration 537](../../schemas/postgres/537_registered_worker_summary_types.sql),
 [migration 540](../../schemas/postgres/540_scoped_agent_source_references.sql),
+[migration 541](../../schemas/postgres/541_agent_synthesis_source_reader.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),
@@ -260,7 +279,11 @@ The [registered-summary-type evidence](builds/2026-10-21-recovery/cap-038-regist
 The [scoped-source evidence](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json)
 covers migration 540 replay, all three scope modes, cross-location rejection,
 ID-only drafter grants for network views, and scope-label preservation in the
-operator review queue.
+operator review queue. The same evidence now covers migration 541 replay and
+the source-reader's explicit SELECT grants on the 40 approved public views,
+the permitted PostGIS metadata catalog names, denial of private summary and other
+application-relation reads, and no-write privileges. That database identity
+reduces relation access but remains separate from tenant RLS acceptance.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

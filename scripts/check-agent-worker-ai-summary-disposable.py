@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -34,9 +35,13 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/537_registered_worker_summary_types.sql",
     ROOT / "schemas/postgres/539_agent_worker_structured_result_replay.sql",
     ROOT / "schemas/postgres/540_scoped_agent_source_references.sql",
+    ROOT / "schemas/postgres/541_agent_synthesis_source_reader.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json"
-IMAGE = "postgis/postgis:16-3.4"
+OUTPUT = Path(os.environ.get(
+    "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json",
+))
+IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
@@ -99,6 +104,120 @@ NETWORK_SOURCE_VIEWS = {
     "federation_protocol": "v_public_federation_protocol",
     "participatory_signal_experiment": "v_public_participatory_signal_experiment",
 }
+SOURCE_READER_VIEWS = tuple(sorted({
+    "v_public_adaptive_stewardship_summary",
+    "v_public_adoption_barrier_assessment",
+    "v_public_algorithmic_redistribution_mechanism",
+    "v_public_anti_capture_governance_policy",
+    "v_public_bio_factory_batch_summary",
+    "v_public_bio_factory_quality_test_summary",
+    "v_public_bio_input_provenance_summary",
+    "v_public_bio_recipe_library_summary",
+    "v_public_bio_regional_input_summary",
+    "v_public_capital_alignment_summary",
+    "v_public_capital_efficiency_summary",
+    "v_public_capital_provider_utility_summary",
+    "v_public_commons_redistribution_policy",
+    "v_public_community_governance_mechanism",
+    "v_public_cultural_context_summary",
+    "v_public_cultural_preservation_summary",
+    "v_public_farm_launch_unit_economics",
+    "v_public_federation_protocol",
+    "v_public_financial_sustainability_summary",
+    "v_public_foundational_wellbeing_summary",
+    "v_public_gnh_alignment_summary",
+    "v_public_governance_inclusion_summary",
+    "v_public_governance_throughput_summary",
+    "v_public_green_paper_publication_status",
+    "v_public_land_stewardship_summary",
+    "v_public_network_scaling_target",
+    "v_public_open_source_impact_artifact",
+    "v_public_participatory_governance_summary",
+    "v_public_participatory_signal_experiment",
+    "v_public_perpetual_value_stress_test",
+    "v_public_regenerative_efficiency_summary",
+    "v_public_regenerative_outcome_summary",
+    "v_public_renewable_energy_summary",
+    "v_public_replication_readiness_summary",
+    "v_public_risk_mitigation_summary",
+    "v_public_scaling_roadmap_summary",
+    "v_public_stakeholder_feedback_summary",
+    "v_public_time_liberation_summary",
+    "v_public_vulnerable_access_summary",
+    "v_public_wellbeing_metric_summary",
+}))
+
+
+def _source_reader_acceptance() -> str:
+    expected_view_checks = " OR ".join(
+        "NOT has_table_privilege('kokonut_agent_summary_source_reader', "
+        f"'public.{view_name}', 'SELECT')"
+        for view_name in SOURCE_READER_VIEWS
+    )
+    approved_relation_list = ", ".join(
+        f"'{relation_name}'"
+        for relation_name in (*SOURCE_READER_VIEWS, "geography_columns", "geometry_columns", "spatial_ref_sys")
+    )
+    return f"""
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_source_login;
+    DO $$
+    BEGIN
+        IF current_user <> 'kokonut_agent_summary_source_login' THEN
+            RAISE EXCEPTION 'source login role was not selected';
+        END IF;
+        IF has_table_privilege(current_user, 'public.v_public_capital_efficiency_summary', 'SELECT') THEN
+            RAISE EXCEPTION 'NOINHERIT source login unexpectedly inherited reader privileges';
+        END IF;
+        IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.ai_summary', 'SELECT') THEN
+            RAISE EXCEPTION 'source reader can select private ai_summary rows';
+        END IF;
+        IF {expected_view_checks} THEN
+            RAISE EXCEPTION 'source reader is missing an approved public view grant';
+        END IF;
+        IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.v_public_capital_efficiency_summary', 'INSERT') THEN
+            RAISE EXCEPTION 'source reader can write to an approved public view';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND has_table_privilege(
+                   'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
+               )
+               AND relation.relname::text <> ALL (ARRAY[{approved_relation_list}]::text[])
+        ) THEN
+            RAISE EXCEPTION 'source reader can select an unapproved public relation';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND (
+                   has_table_privilege('kokonut_agent_summary_source_reader', relation.oid, 'INSERT')
+                   OR has_table_privilege('kokonut_agent_summary_source_reader', relation.oid, 'UPDATE')
+                   OR has_table_privilege('kokonut_agent_summary_source_reader', relation.oid, 'DELETE')
+                   OR has_table_privilege('kokonut_agent_summary_source_reader', relation.oid, 'TRUNCATE')
+               )
+        ) THEN
+            RAISE EXCEPTION 'source reader has public write privileges';
+        END IF;
+        IF has_schema_privilege('kokonut_agent_summary_source_reader', 'public', 'CREATE') THEN
+            RAISE EXCEPTION 'source reader can create public objects';
+        END IF;
+    END;
+    $$;
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SELECT count(*) FROM public.v_public_capital_efficiency_summary;
+    SELECT count(*) FROM public.v_public_bio_regional_input_summary;
+    ROLLBACK;
+    """
 
 
 def _load_base():
@@ -1337,7 +1456,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539, and 540 apply; migrations 530-537, 539, and 540 replay",
+        "migrations 405, 419, 521-524, 529-537, and 539-541 apply; migrations 530-537 and 539-541 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -1363,6 +1482,7 @@ def main() -> int:
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
+        "synthesis source login has explicit access to the 40 approved public views, permits only three PostGIS metadata catalogs if installed, cannot read private summaries or other public relations, and cannot write data",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
     ]
@@ -1370,10 +1490,12 @@ def main() -> int:
         "result": "failed",
         "migrations": [path.name for path in MIGRATIONS],
         "database_target": "new disposable PostgreSQL 16 container with network disabled",
+        "postgres_image": IMAGE,
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
+        "source_reader_note": "synthesis source reads use a dedicated relation-level identity with explicit SELECT on 40 registered views; the only other public relation names permitted are three PostGIS metadata catalogs, when installed and already readable by PUBLIC; application queries still enforce declared scope, and this does not establish row-level tenant isolation",
         "checks": checks,
     }
     stage = "container_start"
@@ -1383,18 +1505,21 @@ def main() -> int:
             "--network", "none", "--env", "POSTGRES_HOST_AUTH_METHOD=trust", IMAGE,
         ])
         base.wait_ready(docker, container)
+        evidence["container_uname"] = base.run([docker, "exec", container, "uname", "-m"])
         stage = "worker_fixture_and_migrations_405_419"
         base.psql(docker, container, WORKER_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_")):
                 base.psql(docker, container, sql)
+        stage = "synthesis_source_reader_role_acceptance"
+        base.psql(docker, container, _source_reader_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
         stage = "structured_worker_result_first_write_acceptance"

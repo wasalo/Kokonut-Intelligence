@@ -17,6 +17,7 @@ import psycopg2
 _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 _WORKER_LOGINS = {
     "agent_summary_draft": "kokonut_agent_summary_draft_login",
+    "agent_summary_source": "kokonut_agent_summary_source_login",
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",
@@ -79,14 +80,16 @@ def get_worker_db(
 
     For example, ``get_worker_db("sensor_anomaly")`` reads only
     ``KOKONUT_SENSOR_ANOMALY_DATABASE_URL`` and verifies the shared tenant
-    worker login. ``notification_enqueue`` verifies its separate login.
+    worker login. ``agent_summary_source`` verifies its public-view-only
+    source login, while ``notification_enqueue`` verifies its separate login.
     Neither path consults ``PG_USER``, ``PG_PASSWORD``, ``POSTGRES_PASSWORD``,
     or the shared application's connection factory. The DSN value is not
     included in errors or logs.
 
-    The returned psycopg2 connection remains in a non-autocommit transaction
-    so signed tenant context and bounded worker operations can share one
-    transaction. The caller owns commit/rollback and connection cleanup.
+    Login verification runs in its own short transaction and is rolled back
+    before returning. The connection is left ready for the caller's first
+    transaction command (for example, ``SET TRANSACTION ...``); the caller
+    owns subsequent commit/rollback and connection cleanup.
     """
     worker_key = _worker_key(worker_key)
     if isinstance(connect_timeout, bool) or not isinstance(connect_timeout, int) or connect_timeout <= 0:
@@ -118,6 +121,7 @@ def get_worker_db(
             raise WorkerDatabaseConfigurationError(
                 f"worker database login must be {expected_login}"
             )
+        connection.rollback()
     except Exception:
         connection.close()
         raise
