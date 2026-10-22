@@ -39,6 +39,16 @@ feedback totals and harm counts are explicitly unavailable to the worker. This
 is source-code and focused-test evidence, not tenant RLS or populated-output
 parity.
 
+**CAP-038 synthesis query allowlist — 22 October 2026:** an offline fake-cursor
+regression executes each of the ten shared synthesis entry points and checks
+that every `FROM`/`JOIN` relation belongs to that agent's registered public-view
+map. It also checks exact-location binds, the explicit inclusion of unassigned
+rows for mixed-scope views, and unfiltered network catalogs. A companion
+assertion requires the combined registered maps to match migration 541's
+explicit SELECT grants exactly. This protects the relation-level reader
+boundary and application query shape; it does not prove populated data parity
+or tenant RLS.
+
 The default Kernel image from commit `9e02eeff` also builds for `linux/arm64`;
 QEMU imported the isolated RPC worker and constructed a synthetic snapshot with
 networking disabled. This adds image and worker-import evidence only; no

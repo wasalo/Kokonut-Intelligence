@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -32,10 +33,94 @@ AGENTS = [
     KokonutCommonsSynthesisAgent,
 ]
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+SYNTHESIS_RELATION = re.compile(
+    r"\b(?:FROM|JOIN)\s+(?:public\.)?([a-zA-Z_][\w$]*)", re.IGNORECASE
+)
 
 
 def test_worker_summary_type_registry_covers_all_shared_synthesis_agents() -> None:
     assert {agent.summary_type for agent in AGENTS} == SYNTHESIS_SUMMARY_TYPES
+
+
+class _QueryRecordingCursor:
+    def __init__(self) -> None:
+        self.queries: list[tuple[str, Any]] = []
+
+    def execute(self, query: str, params: Any = None) -> None:
+        self.queries.append((query, params))
+
+    def fetchall(self) -> list[dict[str, Any]]:
+        return []
+
+    def close(self) -> None:
+        pass
+
+
+class _QueryRecordingConnection:
+    def __init__(self) -> None:
+        self.cursor_value = _QueryRecordingCursor()
+
+    def cursor(self, cursor_factory: Any = None) -> _QueryRecordingCursor:
+        return self.cursor_value
+
+
+@pytest.mark.parametrize("agent_class", AGENTS)
+def test_synthesis_queries_read_only_registered_public_views(agent_class: Any) -> None:
+    connection = _QueryRecordingConnection()
+
+    agent_class().synthesize(connection, LOCATION_ID)
+
+    view_sources = {
+        view: source for source, view in agent_class.source_reference_views.items()
+    }
+    relations = {
+        relation
+        for query, _ in connection.cursor_value.queries
+        for relation in SYNTHESIS_RELATION.findall(query)
+    }
+    approved_views = set(agent_class.source_reference_views.values())
+
+    assert relations
+    assert all(relation.startswith("v_public_") for relation in relations)
+    assert relations <= approved_views
+
+    for query, params in connection.cursor_value.queries:
+        assert re.match(r"\s*SELECT\b", query, re.IGNORECASE)
+        for relation in SYNTHESIS_RELATION.findall(query):
+            source = view_sources[relation]
+            scope = agent_class.source_reference_scopes.get(source, "location")
+            location_bound = re.search(r"\blocation_id\s*=\s*%s", query, re.IGNORECASE)
+            includes_unassigned = re.search(
+                r"\blocation_id\s+IS\s+NULL", query, re.IGNORECASE
+            )
+
+            if scope == "network":
+                assert params is None
+                assert location_bound is None
+                assert includes_unassigned is None
+            else:
+                assert params == (LOCATION_ID,)
+                assert location_bound is not None
+                assert (includes_unassigned is not None) == (
+                    scope == "location_or_network"
+                )
+
+
+def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/541_agent_synthesis_source_reader.sql"
+    ).read_text()
+    grant = migration.split("GRANT SELECT ON TABLE", 1)[1].split(
+        "TO kokonut_agent_summary_source_reader;", 1
+    )[0]
+    granted_views = set(re.findall(r"public\.([a-z][a-z0-9_]*)", grant))
+    registered_views = {
+        view for agent_class in AGENTS for view in agent_class.source_reference_views.values()
+    }
+
+    assert len(registered_views) == 40
+    assert granted_views == registered_views
 
 
 class _Cursor:

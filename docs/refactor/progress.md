@@ -14614,3 +14614,21 @@ or constrain its database source-read identity. Checklist: 937 complete / 24
 open (961 total); the matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. Evidence:
 [worker replay policy preflight](builds/2026-10-21-recovery/cap-038-worker-replay-safety-preflight.json).
+
+
+### CAP-038 shared synthesis SQL allowlist regression — 22 October 2026
+
+Added a fake-cursor regression that executes all ten registered shared
+synthesis entry points and checks every emitted `FROM`/`JOIN` relation against
+that agent's registered public-view map. The same executions check exact-
+location binds, intentional unassigned-row inclusion for mixed-scope views, and
+unfiltered network catalogs. A companion check keeps the union of the ten maps
+exactly aligned with migration 541's SELECT grants. The focused source-
+reference suite passes 35 tests, the related privacy/agent-worker selection
+passes 77 tests, Ruff passes, and the capability-matrix validator passes. No
+database, provider, candidate, or legacy stack was touched. This protects
+relation-level grants and application query shape but does not establish tenant
+RLS or populated output parity. Checklist: 946 complete / 24 open (970 total);
+the capability matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence:
+[synthesis query allowlist](builds/2026-10-22-recovery/cap-038-agent-synthesis-query-allowlist.json).
