@@ -23,6 +23,30 @@ export interface EcocreditServiceClientOptions {
   metadata?: Metadata;
 }
 
+/** Cursor-based page request used by paginated EcocreditService list methods. */
+export interface GrpcPageRequest {
+  limit?: number;
+  offset?: Uint8Array;
+}
+
+/** Raw pagination response fields returned by the proto-loader (`keepCase`). */
+export interface GrpcPageResponse {
+  next_key: Uint8Array;
+  total: number;
+}
+
+function pageRequest(pagination?: GrpcPageRequest): {
+  pagination?: { limit?: number; offset?: Uint8Array };
+} {
+  if (!pagination) return {};
+  return {
+    pagination: {
+      ...(pagination.limit !== undefined ? { limit: pagination.limit } : {}),
+      ...(pagination.offset !== undefined ? { offset: pagination.offset } : {}),
+    },
+  };
+}
+
 /** Thin typed wrapper around the raw gRPC EcocreditService client. */
 export class EcocreditServiceClient {
   private readonly client: Client;
@@ -62,7 +86,7 @@ export class EcocreditServiceClient {
 
   // ── Class Queries ──────────────────────────────────────────────────────
 
-  classes(): Promise<{
+  classes(pagination?: GrpcPageRequest): Promise<{
     classes: Array<{
       id: string;
       name: string;
@@ -71,8 +95,9 @@ export class EcocreditServiceClient {
       adminAddress: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("Classes", {});
+    return this._call("Classes", pageRequest(pagination));
   }
 
   class(classId: string): Promise<{
@@ -88,7 +113,7 @@ export class EcocreditServiceClient {
     return this._call("Class", { class_id: classId });
   }
 
-  classesByAdmin(admin: string): Promise<{
+  classesByAdmin(admin: string, pagination?: GrpcPageRequest): Promise<{
     classes: Array<{
       id: string;
       name: string;
@@ -96,8 +121,9 @@ export class EcocreditServiceClient {
       adminAddress: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("ClassesByAdmin", { admin });
+    return this._call("ClassesByAdmin", { admin, ...pageRequest(pagination) });
   }
 
   classIssuers(classId: string): Promise<{
@@ -151,15 +177,16 @@ export class EcocreditServiceClient {
 
   // ── Project Queries ────────────────────────────────────────────────────
 
-  projects(): Promise<{
+  projects(pagination?: GrpcPageRequest): Promise<{
     projects: Array<{
       name: string;
       description: string;
       region: string;
       watershed: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("Projects", {});
+    return this._call("Projects", pageRequest(pagination));
   }
 
   project(locationId: string): Promise<{
@@ -173,18 +200,22 @@ export class EcocreditServiceClient {
     return this._call("Project", { location_id: locationId });
   }
 
-  projectsByClass(classId: string): Promise<{
+  projectsByClass(classId: string, pagination?: GrpcPageRequest): Promise<{
     projects: Array<{
       name: string;
       region: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("ProjectsByClass", { class_id: classId });
+    return this._call("ProjectsByClass", {
+      class_id: classId,
+      ...pageRequest(pagination),
+    });
   }
 
   // ── Batch Queries ──────────────────────────────────────────────────────
 
-  batches(): Promise<{
+  batches(pagination?: GrpcPageRequest): Promise<{
     batches: Array<{
       id: string;
       batchCode: string;
@@ -197,8 +228,9 @@ export class EcocreditServiceClient {
       unit: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("Batches", {});
+    return this._call("Batches", pageRequest(pagination));
   }
 
   batch(batchId: string): Promise<{
@@ -218,7 +250,7 @@ export class EcocreditServiceClient {
     return this._call("Batch", { batch_id: batchId });
   }
 
-  batchesByClass(classId: string): Promise<{
+  batchesByClass(classId: string, pagination?: GrpcPageRequest): Promise<{
     batches: Array<{
       id: string;
       batchCode: string;
@@ -227,11 +259,15 @@ export class EcocreditServiceClient {
       unit: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("BatchesByClass", { class_id: classId });
+    return this._call("BatchesByClass", {
+      class_id: classId,
+      ...pageRequest(pagination),
+    });
   }
 
-  batchesByProject(locationId: string): Promise<{
+  batchesByProject(locationId: string, pagination?: GrpcPageRequest): Promise<{
     batches: Array<{
       id: string;
       batchCode: string;
@@ -240,8 +276,12 @@ export class EcocreditServiceClient {
       unit: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("BatchesByProject", { location_id: locationId });
+    return this._call("BatchesByProject", {
+      location_id: locationId,
+      ...pageRequest(pagination),
+    });
   }
 
   // ── Batch Mutations ────────────────────────────────────────────────────
@@ -352,7 +392,7 @@ export class EcocreditServiceClient {
 
   // ── Basket ─────────────────────────────────────────────────────────────
 
-  baskets(): Promise<{
+  baskets(pagination?: GrpcPageRequest): Promise<{
     baskets: Array<{
       id: string;
       name: string;
@@ -363,8 +403,9 @@ export class EcocreditServiceClient {
       exponent: number;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
-    return this._call("Baskets", {});
+    return this._call("Baskets", pageRequest(pagination));
   }
 
   basket(basketId: string): Promise<{
@@ -437,6 +478,7 @@ export class EcocreditServiceClient {
   sellOrders(req?: {
     batchId?: string;
     sellerAddress?: string;
+    pagination?: GrpcPageRequest;
   }): Promise<{
     sellOrders: Array<{
       id: string;
@@ -449,10 +491,12 @@ export class EcocreditServiceClient {
       expiration: string;
       status: string;
     }>;
+    pagination?: GrpcPageResponse;
   }> {
     return this._call("SellOrders", {
       batch_id: req?.batchId ?? "",
       seller_address: req?.sellerAddress ?? "",
+      ...pageRequest(req?.pagination),
     });
   }
 

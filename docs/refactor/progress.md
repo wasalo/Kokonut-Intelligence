@@ -14223,3 +14223,20 @@ used. This does not verify field semantics, authentication, tenant isolation,
 TLS, live transport, or REST parity; CAP-064 remains open. Checklist: 923
 complete / 24 open (947 total); matrix remains 31 baseline-retained, 7
 deployed, and 28 prepared across 66 rows. Evidence: [gRPC SDK RPC coverage](builds/2026-10-21-recovery/cap-064-grpc-sdk-rpc-coverage.json).
+
+
+### CAP-064 TypeScript EcocreditService pagination — 21 October 2026
+
+All nine paginated EcocreditService list wrappers now accept an optional
+cursor request and model the proto pagination response metadata as optional;
+existing no-pagination calls retain their prior request shape. Focused
+TypeScript tests pass 25 cases, including pagination forwarding and
+compatibility for all nine methods; the TypeScript build passes. The SDK README
+documents cursor use. Source inspection confirmed the Python gRPC service
+currently ignores the proto pagination fields and does not return page
+metadata, so this closes only TypeScript SDK wiring. No database, provider, or
+network was contacted. Server pagination semantics, authorization, tenant
+scope, TLS, and REST parity remain open. CAP-064 remains open.
+Checklist: 924 complete / 24 open (948 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[Ecocredit pagination](builds/2026-10-21-recovery/cap-064-typescript-pagination.json).

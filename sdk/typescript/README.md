@@ -66,6 +66,14 @@ const { classId } = await client.ecocredit.createClass({
 // List batches
 const { batches } = await client.ecocredit.batches();
 
+// Read paginated credit classes, then continue from the returned cursor
+const firstPage = await client.ecocredit.classes({ limit: 50 });
+const nextKey = firstPage.pagination?.next_key;
+if (nextKey?.length) {
+  const nextPage = await client.ecocredit.classes({ limit: 50, offset: nextKey });
+  console.log(nextPage.classes.length);
+}
+
 // Check balance
 const { balance } = await client.ecocredit.balance(
   "batch-001",
@@ -88,6 +96,14 @@ for await (const update of client.ecocredit.streamBalances("0x...")) {
 
 client.close();
 ```
+
+The EcocreditService list methods accept an optional `GrpcPageRequest` with a
+`limit` and byte `offset`. Paginated responses expose `pagination.next_key`
+and `pagination.total` when the server supplies metadata, matching the
+proto-loader's raw `keepCase` field names. The Python gRPC service currently
+ignores these proto pagination fields, so the cursor API is wired but runtime
+pagination remains an open capability gap. Existing calls without a pagination
+argument keep their previous behavior.
 
 ## Authentication
 

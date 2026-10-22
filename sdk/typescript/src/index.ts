@@ -92,7 +92,11 @@ export class KokonutGrpcClient {
 export { DataServiceClient } from "./services/data-service";
 export { EcocreditServiceClient } from "./services/ecocredit-service";
 export type { DataServiceClientOptions } from "./services/data-service";
-export type { EcocreditServiceClientOptions } from "./services/ecocredit-service";
+export type {
+  EcocreditServiceClientOptions,
+  GrpcPageRequest,
+  GrpcPageResponse,
+} from "./services/ecocredit-service";
 
 export {
   KokonutGrpcError,
