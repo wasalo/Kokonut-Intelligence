@@ -143,17 +143,23 @@ def test_store_summary_attaches_location_source_references_before_signed_write()
 
     with mock.patch.object(_ReferencedDummyAgent, "collect_source_references", collect):
         with mock.patch(
-            "services.agents.worker_draft.create_worker_ai_summary_draft",
-            side_effect=write,
-        ) as write_draft:
-            result = _ReferencedDummyAgent().store_summary(
-                conn,
-                {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-                request_id="a0000000-0000-4000-8000-000000000003",
-            )
+            "services.agents.base.assert_agent_action_allowed",
+            side_effect=lambda action, collection, _payload: sequence.append(
+                f"{action}:{collection}"
+            ),
+        ):
+            with mock.patch(
+                "services.agents.worker_draft.create_worker_ai_summary_draft",
+                side_effect=write,
+            ) as write_draft:
+                result = _ReferencedDummyAgent().store_summary(
+                    conn,
+                    {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                    request_id="a0000000-0000-4000-8000-000000000003",
+                )
 
     assert result == "stored-id"
-    assert sequence == ["collect", "write"]
+    assert sequence == ["create:ai_summary", "read:dummy_record", "collect", "write"]
     assert write_draft.call_args.args[3]["source_references"] == references
 
 
@@ -178,6 +184,36 @@ def test_store_summary_does_not_write_when_source_reference_collection_fails():
 
     write_draft.assert_not_called()
     assert conn.committed is False
+
+
+def test_store_summary_read_denial_prevents_reference_query_and_signed_write():
+    class _ReferencedDummyAgent(_DummyAgent):
+        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
+
+    conn = _FakeConn()
+    collection = mock.Mock(side_effect=AssertionError("reference query must not run"))
+    with mock.patch(
+        "services.agents.base.assert_agent_action_allowed",
+        side_effect=[None, ValueError("agent read denied")],
+    ) as authorize:
+        with mock.patch.object(
+            _ReferencedDummyAgent, "collect_source_references", collection
+        ):
+            with mock.patch(
+                "services.agents.worker_draft.create_worker_ai_summary_draft"
+            ) as write_draft:
+                with pytest.raises(ValueError, match="agent read denied"):
+                    _ReferencedDummyAgent().store_summary(
+                        conn,
+                        {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                    )
+
+    assert [call.args[:2] for call in authorize.call_args_list] == [
+        ("create", "ai_summary"),
+        ("read", "dummy_record"),
+    ]
+    collection.assert_not_called()
+    write_draft.assert_not_called()
 
 
 def test_store_summary_rejects_missing_synthesis_before_cursor_access():

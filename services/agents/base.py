@@ -198,6 +198,9 @@ class SynthesisAgent:
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
         if location_id is None:
             raise ValueError("Agent draft storage requires an exact location_id")
+        assert_agent_action_allowed(
+            "read", self.read_collection, {"location_id": location_id}
+        )
         source_references = self.collect_source_references(conn, location_id)
         stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
         from services.agents.worker_draft import create_worker_ai_summary_draft

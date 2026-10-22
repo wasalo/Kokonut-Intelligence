@@ -7583,7 +7583,7 @@ do not echo submitted values. The browser fallback mirrors version `1.2.0`.
 This structural validation cannot identify sensitive text meaning or inspect
 photo contents, which remain governed review gates.
 
-Focused mobile/schema suites passed: **60 passed**, with 109 deprecation
+Focused mobile/schema suites passed: **61 passed**, with 109 deprecation
 warnings. Ruff, dependency-group alignment, and the browser fallback syntax check passed. At that source-only checkpoint the candidate remained on `1.1.0`; the subsequent candidate rollout is recorded below. See the
 [policy record](mobile-form-classification-review.md), [access contract](mobile-access-contract.md),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
@@ -7610,7 +7610,7 @@ The first restore attempt correctly failed transactionally because PostGIS had
 initialized the default database with schemas also present in the dump. That
 volume is retained stopped; the successful retry used a separate project and a
 clean `template0` target. No legacy container or volume was changed. Focused
-mobile/schema checks remain **60 passed** (109 deprecation warnings). An isolated
+mobile/schema checks remain **61 passed** (109 deprecation warnings). An isolated
 live HTTP sync probe rejected an undeclared field with 422/no echo/no row and
 accepted a valid 1.2.0 payload with 200; its synthetic fixture was removed. The
 trusted enrollment-created device path, OIDC workflows, semantic free-text and
@@ -14186,7 +14186,7 @@ The shared `SynthesisAgent.store_summary()` compatibility path now collects
 row references from its fixed public-view map using the supplied source
 connection and includes them in the signed worker draft request. Collection
 failure stops persistence. The focused agent-base, synthesis provenance, and
-worker CLI selection passes 60 tests; Ruff and Python compilation pass. No
+worker CLI selection passes 61 tests; Ruff and Python compilation pass. No
 database or provider was contacted. This helper does not guarantee
 repeatable-read isolation or authenticate the source connection; the canonical
 one-shot worker still provides the bounded consistent snapshot. Authenticated

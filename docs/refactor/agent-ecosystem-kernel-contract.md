@@ -73,11 +73,12 @@ run without decrypting `.env.sops`.
   hints only; they are not linked row-level evidence.
 - The compatibility `SynthesisAgent.store_summary()` path now also collects
   references declared in its fixed public-view map from the caller-supplied
-  source connection and includes them in the signed worker write. A collection
-  failure prevents draft persistence. This helper does not itself establish a
-  repeatable-read snapshot or authenticate/limit the source connection; the
-  canonical one-shot worker remains the path that combines source reads and
-  provenance in a bounded read-only snapshot.
+  source connection and includes them in the signed worker write, after checking
+  the agent's read policy for its declared collection. A denied read or source
+  collection failure prevents draft persistence. This helper does not itself
+  establish a repeatable-read snapshot or authenticate/limit the source
+  connection; the canonical one-shot worker remains the path that combines
+  source reads and provenance in a bounded read-only snapshot.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log
