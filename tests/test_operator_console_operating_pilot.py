@@ -1,4 +1,4 @@
-"""Console contract for read-only CAP-037 operating-pilot views."""
+"""Console contract for CAP-037 operating-pilot reads and private draft creation."""
 
 from __future__ import annotations
 
@@ -24,6 +24,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert panel is not None
     assert "Location-scoped operating summary" in panel.group()
     assert 'id="operating-pilot-demand-create-form"' in panel.group()
+    assert 'id="operating-pilot-capacity-create-form"' in panel.group()
     assert "Work-claim activity" in panel.group()
     assert "Resource-request categories" in panel.group()
     assert 'scope.resource === "operating_pilot" && scope.action === "read"' in source
@@ -135,6 +136,37 @@ def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves()
     assert "It remains private and unsubmitted." in submit
     assert "/approve" not in submit.lower()
     assert "/submit" not in submit.lower()
+
+
+def test_capacity_draft_form_is_create_grant_gated_and_never_submits_or_approves():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotCapacityDraft(event)",
+        "async function loadOperatingPilotSummary()",
+    )
+    assert "operatingPilotCreateLocations.has(locationId)" in submit
+    assert "const csrf = csrfToken()" in submit
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "crypto.randomUUID()" in submit
+    assert "operatingPilotPendingCapacityCreate.request_id" in submit
+    assert "/capacity-profiles" in submit
+    assert "private and unsubmitted" in submit
+    assert "/approve" not in submit.lower()
+    assert "/submit" not in submit.lower()
+    assert 'operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)' in source
+
+
+def test_create_only_location_can_open_draft_form_without_reading_queues():
+    source = CONSOLE.read_text(encoding="utf-8")
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    assert '...operatingPilotCreateLocationIds' in source
+    assert "operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in initialize
+    read_denial = initialize.index('if (!operatingPilotLocations.has(locationId))')
+    early_return = initialize.index("return;", read_denial)
+    queue_reads = initialize.index("await Promise.all([", read_denial)
+    assert early_return < queue_reads
 
 
 def test_inline_javascript_parses_when_node_is_available():

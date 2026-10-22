@@ -530,6 +530,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/capacity-periods",
     ): _expected("operating_pilot", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/capacity-profiles",
+    ): _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/work-claims",
     ): _expected("operating_pilot", "read", scoped=True, location_id=_LOCATION_ID),

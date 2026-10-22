@@ -1,3 +1,34 @@
+### CAP-037 self-reported capacity draft creation — 22 October 2026
+
+The operating-pilot Gateway now creates an operator's own private capacity
+draft at `POST /operator/api/operating-pilot/{location_id}/capacity-profiles`
+under the exact location `operating_pilot:create` grant. Migration 553 checks
+signed scope, active operator-to-human-party binding, and the active Adelphi
+farm mapping. It creates only an attributed `self_reported` / `draft` profile;
+the operator cannot choose the party, scope, source, or lifecycle. Bounded
+period/hours validation runs before database access and is repeated in SQL.
+Exact request retries replay the same profile, while changed retries and
+duplicate active person-periods conflict. The response omits hours, party ID,
+and private notes. Runtime and Directus lose stale table and column write
+grants on capacity profiles and cannot access the receipt. The console uses
+the create grant independently from reads, protects submission with CSRF and
+no-store, and preserves request IDs for unchanged retries.
+
+The focused Gateway, route-policy, console, and migration-runner selection
+passes **81 tests**. Disposable PostgreSQL 16 applies and replays migrations
+461, 479, 480, 526, 538, 552, and 553 in a network-disabled container and passes **28 grouped assertions**,
+including retry/conflict cases, create-grant denial, stale runtime/Directus
+table and column grants, and direct receipt denial. Ruff, compilation, the
+runtime SQL inventory, kernel inventory, and capability matrix validation
+pass. Database acceptance uses synthetic signed context; shared tenant-context
+tests cover signature verification. No candidate or legacy database was
+changed; migration 553 is not rolled out. CAP-037 remains prepared (`P`), with
+read/review and submission workflows, populated parity, live OIDC/browser,
+broader ACL/RLS, recovery, privacy/audience review, and owner acceptance open.
+Evidence: [disposable acceptance](builds/2026-10-22-recovery/cap-037-operating-pilot-capacity-draft-disposable.json).
+Checklist: **978 complete / 24 open** (1,002 total); capability matrix:
+**30 baseline-retained, 7 deployed, and 29 prepared** across 66 entries.
+
 ### CAP-037 location-scoped demand draft creation — 22 October 2026
 
 The operating-pilot Gateway now creates private demand drafts for operators

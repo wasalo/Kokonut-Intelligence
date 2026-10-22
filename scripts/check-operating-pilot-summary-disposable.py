@@ -18,7 +18,8 @@ CAPACITY_MIGRATION = ROOT / "schemas/postgres/480_location_operating_pilot_capac
 WORK_CLAIMS_MIGRATION = ROOT / "schemas/postgres/526_location_operating_pilot_work_claims.sql"
 RESOURCE_CATEGORIES_MIGRATION = ROOT / "schemas/postgres/538_location_operating_pilot_resource_categories.sql"
 DEMAND_DRAFT_MIGRATION = ROOT / "schemas/postgres/552_location_operating_pilot_demand_draft.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-operating-pilot-demand-draft-disposable.json"
+CAPACITY_DRAFT_MIGRATION = ROOT / "schemas/postgres/553_location_operating_pilot_capacity_draft.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-operating-pilot-capacity-draft-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -97,12 +98,34 @@ CREATE TABLE public.operating_pilot_scope (
     governance_circle_id uuid, status text NOT NULL
 );
 CREATE TABLE public.operating_capacity_profile (
-    id uuid PRIMARY KEY, scope_type text NOT NULL, scope_id uuid NOT NULL,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), scope_type text NOT NULL, scope_id uuid NOT NULL,
     party_id uuid NOT NULL, period_start date NOT NULL, period_end date NOT NULL,
-    status text NOT NULL,
+    status text NOT NULL, source text NOT NULL DEFAULT 'self_reported',
     available_hours numeric NOT NULL, committed_hours numeric NOT NULL, protected_hours numeric NOT NULL,
     notes text
 );
+CREATE UNIQUE INDEX uq_test_capacity_profile_period
+    ON public.operating_capacity_profile(scope_type, scope_id, party_id, period_start, period_end)
+    WHERE status <> 'superseded';
+GRANT INSERT, UPDATE, DELETE ON TABLE public.operating_capacity_profile
+    TO kokonut_runtime, kokonut_directus_runtime;
+GRANT INSERT (notes), UPDATE (status) ON TABLE public.operating_capacity_profile
+    TO kokonut_runtime, kokonut_directus_runtime;
+CREATE FUNCTION public.test_capacity_profile_metadata(requested_profile_id uuid)
+RETURNS TABLE(profile_rows bigint, party_id uuid, source text, status text, notes text)
+LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog AS $$
+    SELECT (SELECT count(*) FROM public.operating_capacity_profile AS profile
+             WHERE profile.id = requested_profile_id),
+           (SELECT profile.party_id FROM public.operating_capacity_profile AS profile
+             WHERE profile.id = requested_profile_id LIMIT 1),
+           (SELECT profile.source FROM public.operating_capacity_profile AS profile
+             WHERE profile.id = requested_profile_id LIMIT 1),
+           (SELECT profile.status FROM public.operating_capacity_profile AS profile
+             WHERE profile.id = requested_profile_id LIMIT 1),
+           (SELECT profile.notes FROM public.operating_capacity_profile AS profile
+             WHERE profile.id = requested_profile_id LIMIT 1)
+$$;
+GRANT EXECUTE ON FUNCTION public.test_capacity_profile_metadata(uuid) TO kokonut_runtime;
 CREATE TABLE public.operating_demand_signal (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     scope_type text NOT NULL, scope_id uuid NOT NULL,
@@ -306,11 +329,14 @@ DECLARE summary jsonb; demand_first jsonb; demand_second jsonb;
         claims_first jsonb; claims_second jsonb;
         resources_first jsonb; resources_second jsonb;
         draft_result jsonb; draft_replay jsonb; created_signal_id uuid;
+        capacity_draft jsonb; capacity_draft_replay jsonb; capacity_profile_id uuid;
         denied boolean := false; invalid_page boolean := false;
         invalid_capacity_page boolean := false;
         invalid_claims_page boolean := false;
         invalid_resources_page boolean := false;
         draft_collision boolean := false; invalid_draft boolean := false;
+        capacity_collision boolean := false; capacity_period_conflict boolean := false;
+        invalid_capacity_draft boolean := false;
 BEGIN
     summary := kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000001'
@@ -383,6 +409,68 @@ BEGIN
     EXCEPTION WHEN unique_violation THEN draft_collision := true;
     END;
     IF NOT draft_collision THEN RAISE EXCEPTION 'demand request ID accepted different input'; END IF;
+    capacity_draft := kokonut_security.create_location_operating_pilot_capacity_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9100000-0000-4000-8000-000000000001',
+        CURRENT_DATE + 40, CURRENT_DATE + 60, 40.25, 18.50, 2.25,
+        'PRIVATE synthetic capacity note'
+    );
+    capacity_draft_replay := kokonut_security.create_location_operating_pilot_capacity_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9100000-0000-4000-8000-000000000001',
+        CURRENT_DATE + 40, CURRENT_DATE + 60, 40.25, 18.50, 2.25,
+        'PRIVATE synthetic capacity note'
+    );
+    capacity_profile_id := (capacity_draft->>'profile_id')::uuid;
+    IF capacity_profile_id IS NULL
+       OR capacity_profile_id = 'd9100000-0000-4000-8000-000000000001'
+       OR capacity_draft->>'status' <> 'draft'
+       OR capacity_draft->>'replayed' <> 'false'
+       OR capacity_draft_replay->>'profile_id' <> capacity_draft->>'profile_id'
+       OR capacity_draft_replay->>'replayed' <> 'true'
+       OR (SELECT profile_rows FROM public.test_capacity_profile_metadata(capacity_profile_id)) <> 1
+       OR (SELECT party_id FROM public.test_capacity_profile_metadata(capacity_profile_id))
+            <> 'd8000000-0000-4000-8000-000000000001'
+       OR (SELECT source FROM public.test_capacity_profile_metadata(capacity_profile_id)) <> 'self_reported'
+       OR (SELECT status FROM public.test_capacity_profile_metadata(capacity_profile_id)) <> 'draft'
+       OR (SELECT notes FROM public.test_capacity_profile_metadata(capacity_profile_id))
+            <> 'PRIVATE synthetic capacity note'
+       OR capacity_draft::text ~* '(PRIVATE|party_id|notes|available_hours)' THEN
+        RAISE EXCEPTION 'capacity draft mismatch result %, replay %, profile %, rows %, party %, source %, status %, note leaked %',
+            capacity_draft, capacity_draft_replay, capacity_profile_id,
+            (SELECT profile_rows FROM public.test_capacity_profile_metadata(capacity_profile_id)),
+            (SELECT party_id FROM public.test_capacity_profile_metadata(capacity_profile_id)),
+            (SELECT source FROM public.test_capacity_profile_metadata(capacity_profile_id)),
+            (SELECT status FROM public.test_capacity_profile_metadata(capacity_profile_id)),
+            capacity_draft::text ~* '(PRIVATE|party_id|notes|available_hours)';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9100000-0000-4000-8000-000000000001',
+            CURRENT_DATE + 40, CURRENT_DATE + 60, 39.25, 18.50, 2.25, NULL
+        );
+    EXCEPTION WHEN unique_violation THEN capacity_collision := true;
+    END;
+    IF NOT capacity_collision THEN RAISE EXCEPTION 'capacity request ID accepted changed input'; END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9100000-0000-4000-8000-000000000002',
+            CURRENT_DATE + 40, CURRENT_DATE + 60, 40.25, 18.50, 2.25, NULL
+        );
+    EXCEPTION WHEN unique_violation THEN capacity_period_conflict := true;
+    END;
+    IF NOT capacity_period_conflict THEN RAISE EXCEPTION 'duplicate person and capacity period was accepted'; END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9100000-0000-4000-8000-000000000003',
+            CURRENT_DATE + 70, CURRENT_DATE + 80, 20, 18, 3, NULL
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_capacity_draft := true;
+    END;
+    IF NOT invalid_capacity_draft THEN RAISE EXCEPTION 'overcommitted capacity draft was accepted'; END IF;
     BEGIN
         PERFORM kokonut_security.create_location_operating_pilot_demand_draft(
             'b0000000-0000-4000-8000-000000000001',
@@ -394,6 +482,15 @@ BEGIN
     END;
     IF NOT invalid_draft THEN RAISE EXCEPTION 'invalid demand draft was accepted'; END IF;
     PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9100000-0000-4000-8000-000000000004',
+            CURRENT_DATE + 70, CURRENT_DATE + 80, 20, 18, 3, NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'read-only capacity grant created a draft'; END IF;
     denied := false;
     BEGIN
         PERFORM kokonut_security.create_location_operating_pilot_demand_draft(
@@ -615,6 +712,52 @@ BEGIN
     IF NOT denied THEN RAISE EXCEPTION 'runtime can read operating capacity directly'; END IF;
     denied := false;
     BEGIN
+        PERFORM 1 FROM public.operating_capacity_draft_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can read capacity draft receipts'; END IF;
+    denied := false;
+    BEGIN
+        INSERT INTO public.operating_capacity_draft_receipt (
+            operator_id, request_id, location_id, profile_id, input_digest
+        ) VALUES (
+            'a0000000-0000-4000-8000-000000000001',
+            'd9100000-0000-4000-8000-000000000010',
+            'b0000000-0000-4000-8000-000000000001',
+            'd0000000-0000-4000-8000-000000000001', decode(repeat('00', 32), 'hex')
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can write capacity draft receipts directly'; END IF;
+    denied := false;
+    BEGIN
+        INSERT INTO public.operating_capacity_profile (
+            scope_type, scope_id, party_id, period_start, period_end, status,
+            available_hours, committed_hours, protected_hours, notes, source
+        ) VALUES (
+            'adelphi', 'e9000000-0000-4000-8000-000000000001',
+            'd8000000-0000-4000-8000-000000000001', CURRENT_DATE + 70,
+            CURRENT_DATE + 80, 'draft', 20, 0, 0, 'direct write', 'self_reported'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can insert capacity directly'; END IF;
+    denied := false;
+    BEGIN
+        UPDATE public.operating_capacity_profile SET status = 'approved'
+         WHERE id = 'd0000000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can update capacity lifecycle directly'; END IF;
+    denied := false;
+    BEGIN
+        DELETE FROM public.operating_capacity_profile
+         WHERE id = 'd0000000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can delete capacity directly'; END IF;
+    denied := false;
+    BEGIN
         INSERT INTO public.operating_demand_signal (
             scope_type, scope_id, work_type, period_start, period_end,
             required_hours, priority, source, status
@@ -657,6 +800,8 @@ BEGIN
           'kokonut_security.location_operating_pilot_resource_categories(uuid,integer,integer)', 'EXECUTE')
        OR NOT has_function_privilege('kokonut_runtime',
           'kokonut_security.create_location_operating_pilot_demand_draft(uuid,uuid,text,date,date,numeric,text,text)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.create_location_operating_pilot_capacity_draft(uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'INSERT')
@@ -664,16 +809,30 @@ BEGIN
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'DELETE')
        OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'description', 'INSERT')
        OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'DELETE')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'notes', 'INSERT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'status', 'UPDATE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_draft_receipt', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_draft_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_receipt', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'UPDATE')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'DELETE')
        OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'description', 'INSERT')
        OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'DELETE')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'notes', 'INSERT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'status', 'UPDATE')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_draft_receipt', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_draft_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_receipt', 'INSERT')
        OR has_function_privilege('kokonut_directus_runtime',
           'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
@@ -689,6 +848,10 @@ BEGIN
     IF has_function_privilege('kokonut_directus_runtime',
        'kokonut_security.create_location_operating_pilot_demand_draft(uuid,uuid,text,date,date,numeric,text,text)', 'EXECUTE') THEN
         RAISE EXCEPTION 'Directus can invoke the operator demand-draft writer';
+    END IF;
+    IF has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.create_location_operating_pilot_capacity_draft(uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can invoke the operator capacity-draft writer';
     END IF;
     IF has_table_privilege('kokonut_operating_pilot_reader', 'public.party', 'SELECT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE')
@@ -747,6 +910,16 @@ BEGIN
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'protected_hours', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'notes', 'SELECT') THEN
         RAISE EXCEPTION 'reader capacity column privileges exceed or miss projection needs';
+    END IF;
+    IF has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'DELETE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_receipt', 'DELETE')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_receipt', 'input_digest', 'SELECT') = false
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_receipt', 'input_digest', 'INSERT') = false
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'notes', 'INSERT') = false
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'status', 'INSERT') = false THEN
+        RAISE EXCEPTION 'capacity writer role lacks minimal receipt/insert privileges or has mutation access';
     END IF;
 END $$;
 """
@@ -814,11 +987,13 @@ def main() -> int:
             WORK_CLAIMS_MIGRATION.name,
             RESOURCE_CATEGORIES_MIGRATION.name,
             DEMAND_DRAFT_MIGRATION.name,
+            CAPACITY_DRAFT_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
+        "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, 538, and 552 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, 552, and 553 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -834,6 +1009,9 @@ def main() -> int:
             "demand drafts are private, attributed, draft-only, request-idempotent, and reject mismatched retries or invalid input",
             "runtime and Directus cannot insert or mutate demand rows or access private draft receipts directly",
             "synthetic pre-existing table-level and column-level runtime/Directus demand writes are revoked; reader has only required columns and no identity or private-content read access",
+            "capacity draft creation requires signed exact location create context and an active human-party binding; it creates only the actor's attributed self-reported Adelphi draft",
+            "capacity requests are bounded, idempotent on exact retry, reject changed retries and duplicate periods, and never return hours, party IDs, or private notes",
+            "runtime/Directus stale table-level and column-level capacity writes are revoked; direct table and receipt access remains denied",
         ],
     }
     try:
@@ -845,6 +1023,8 @@ def main() -> int:
                 "--rm",
                 "--name",
                 container,
+                "--network",
+                "none",
                 "-e",
                 "POSTGRES_PASSWORD=local-only-disposable",
                 "postgres:16",
@@ -858,6 +1038,7 @@ def main() -> int:
         work_claims_migration = WORK_CLAIMS_MIGRATION.read_text(encoding="utf-8")
         resource_categories_migration = RESOURCE_CATEGORIES_MIGRATION.read_text(encoding="utf-8")
         demand_draft_migration = DEMAND_DRAFT_MIGRATION.read_text(encoding="utf-8")
+        capacity_draft_migration = CAPACITY_DRAFT_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, summary_migration)
         psql(docker, container, summary_migration)
         psql(docker, container, demand_migration)
@@ -870,13 +1051,15 @@ def main() -> int:
         psql(docker, container, resource_categories_migration)
         psql(docker, container, demand_draft_migration)
         psql(docker, container, demand_draft_migration)
+        psql(docker, container, capacity_draft_migration)
+        psql(docker, container, capacity_draft_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 27
+        evidence["assertion_groups_passed"] = 28
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         print(
-            "PASS: migrations 461/479/480/526/538/552 apply/replay and all twenty-seven grouped PostgreSQL assertions passed"
+            "PASS: migrations 461/479/480/526/538/552/553 apply/replay and all twenty-eight grouped PostgreSQL assertions passed"
         )
         result = 0
     except Exception as exc:

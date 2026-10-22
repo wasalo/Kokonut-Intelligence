@@ -80,6 +80,54 @@ def _normalize_demand_payload(payload: Any) -> tuple[str, date, date, Decimal, s
     return work_type, start, end, required_hours, priority, description
 
 
+def _normalize_capacity_payload(payload: Any) -> tuple[date, date, Decimal, Decimal, Decimal, str | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Capacity draft body must be an object")
+    start = _normalize_date(payload.get("period_start"), "period_start")
+    end = _normalize_date(payload.get("period_end"), "period_end")
+    if end < start or (end - start).days > 366:
+        raise OperatingPilotWriteInvalid("Capacity period must be ordered and no longer than 367 days")
+    hours = {}
+    for field in ("available_hours", "committed_hours", "protected_hours"):
+        value = payload.get(field, 0 if field != "available_hours" else None)
+        if isinstance(value, bool) or not isinstance(value, (int, float, str, Decimal)):
+            raise OperatingPilotWriteInvalid(f"{field} must be a non-negative decimal")
+        try:
+            normalized = Decimal(str(value))
+        except (InvalidOperation, ValueError) as exc:
+            raise OperatingPilotWriteInvalid(f"{field} must be a non-negative decimal") from exc
+        if (
+            not normalized.is_finite()
+            or normalized < 0
+            or normalized > Decimal("100000")
+            or normalized.as_tuple().exponent < -2
+        ):
+            raise OperatingPilotWriteInvalid(
+                f"{field} must be non-negative, at most 100000, and use at most two decimals"
+            )
+        hours[field] = normalized
+    if hours["committed_hours"] + hours["protected_hours"] > hours["available_hours"]:
+        raise OperatingPilotWriteInvalid("Committed and protected hours cannot exceed available hours")
+    notes = payload.get("notes")
+    if notes is not None:
+        if not isinstance(notes, str) or len(notes) > 2000 or "\x00" in notes:
+            raise OperatingPilotWriteInvalid("Private notes must be text of at most 2000 characters")
+        notes = notes.strip() or None
+    unexpected = set(payload) - {
+        "period_start", "period_end", "available_hours", "committed_hours", "protected_hours", "notes"
+    }
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Capacity draft contains unsupported fields")
+    return (
+        start,
+        end,
+        hours["available_hours"],
+        hours["committed_hours"],
+        hours["protected_hours"],
+        notes,
+    )
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -121,6 +169,53 @@ def create_location_operating_pilot_demand_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot demand draft returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_operating_pilot_capacity_draft(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create or replay the operator's own private, unsubmitted capacity draft."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    start, end, available, committed, protected, notes = _normalize_capacity_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.create_location_operating_pilot_capacity_draft(
+                           %s::uuid, %s::uuid, %s::date, %s::date,
+                           %s::numeric, %s::numeric, %s::numeric, %s::text)""",
+                (location_id, request_id, start, end, available, committed, protected, notes),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot capacity draft returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "7d86065c0219ed21d1cdd9c85fa3f70542c606b5",
+  "baseline_commit": "2140342cbabe6a4a1d254af6d992e8e2ce3da5ed",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1251,187 +1251,199 @@
       "source": "services/gateway/management_work_routes.py"
     },
     {
-      "line": 21,
+      "line": 26,
+      "method": "POST",
+      "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles",
+      "source": "services/gateway/operating_pilot_routes.py"
+    },
+    {
+      "line": 103,
+      "method": "POST",
+      "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
+      "source": "services/gateway/operating_pilot_routes.py"
+    },
+    {
+      "line": 178,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/summary",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 62,
+      "line": 219,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 110,
+      "line": 265,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-periods",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 158,
+      "line": 313,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 206,
+      "line": 361,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-categories",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2612,
+      "line": 2634,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2627,
+      "line": 2649,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2636,
+      "line": 2658,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2694,
+      "line": 2716,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2722,
+      "line": 2744,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2762,
+      "line": 2784,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2813,
+      "line": 2835,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2853,
+      "line": 2875,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2906,
+      "line": 2928,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2966,
+      "line": 2988,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3021,
+      "line": 3043,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3065,
+      "line": 3087,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3126,
+      "line": 3148,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3209,
+      "line": 3231,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3302,
+      "line": 3324,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3350,
+      "line": 3372,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3402,
+      "line": 3424,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3460,
+      "line": 3482,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3514,
+      "line": 3536,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3603,
+      "line": 3625,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3623,
+      "line": 3645,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3643,
+      "line": 3665,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3679,
+      "line": 3701,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3707,
+      "line": 3729,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3735,
+      "line": 3757,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3778,
+      "line": 3800,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -2826,7 +2838,9 @@
       "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
       "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql",
       "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql",
-      "schemas/postgres/551_ecological_synthesis_provenance_capacity.sql"
+      "schemas/postgres/551_ecological_synthesis_provenance_capacity.sql",
+      "schemas/postgres/552_location_operating_pilot_demand_draft.sql",
+      "schemas/postgres/553_location_operating_pilot_capacity_draft.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3532,6 +3546,7 @@
         "tests/test_gateway_governance_tension_actions.py",
         "tests/test_gateway_management_work_reads.py",
         "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_writes.py",
         "tests/test_gateway_planning_budget_reads.py",
         "tests/test_gateway_public_locations.py",
         "tests/test_gateway_sequential_decision_reads.py",
@@ -3838,6 +3853,7 @@
         "services/events/retention.py"
       ],
       "test_references": [
+        "tests/test_data_freshness_notification_outbox.py",
         "tests/test_event_bus_durability.py",
         "tests/test_event_handler_runner.py",
         "tests/test_event_retention_cleanup_gate.py",
@@ -3917,6 +3933,8 @@
         "tests/test_report_generator_error_redaction.py",
         "tests/test_report_generator_readonly.py",
         "tests/test_report_governance.py",
+        "tests/test_report_snapshot_cursor_cleanup.py",
+        "tests/test_report_state_cursor_cleanup.py",
         "tests/test_report_state_error_redaction.py",
         "tests/test_smoke.py",
         "tests/test_spatial_export.py",
@@ -4127,6 +4145,7 @@
         "services/gateway/management_work_routes.py",
         "services/gateway/operating_pilot_reads.py",
         "services/gateway/operating_pilot_routes.py",
+        "services/gateway/operating_pilot_writes.py",
         "services/gateway/operator_auth.py",
         "services/gateway/operator_cli.py",
         "services/gateway/operator_mobile_review.py",
@@ -4202,6 +4221,7 @@
         "tests/test_gateway_lifespan.py",
         "tests/test_gateway_management_work_reads.py",
         "tests/test_gateway_operating_pilot_reads.py",
+        "tests/test_gateway_operating_pilot_writes.py",
         "tests/test_gateway_planning_budget_reads.py",
         "tests/test_gateway_public_iri.py",
         "tests/test_gateway_public_locations.py",
@@ -4386,7 +4406,6 @@
         "ALERT_SMTP_PASSWORD",
         "ALERT_SMTP_PORT",
         "ALERT_SMTP_USER",
-        "ALERT_WEBHOOK_URL",
         "ARBITRUM_RPC_URL",
         "ATTESTER_PRIVATE_KEY",
         "BASE_RPC_URL",
@@ -4529,6 +4548,7 @@
         "tests/test_customer_value.py",
         "tests/test_data_freshness_cli_parity.py",
         "tests/test_data_freshness_cursor_cleanup.py",
+        "tests/test_data_freshness_notification_outbox.py",
         "tests/test_device_manager.py",
         "tests/test_device_manager_cli_contract.py",
         "tests/test_eas_indexer_cli.py",
@@ -4679,6 +4699,7 @@
         "tests/test_weather_forecast_atomicity.py",
         "tests/test_weather_forecast_cli_scope.py",
         "tests/test_weather_forecast_worker.py",
+        "tests/test_weather_legacy_atomicity.py",
         "tests/test_weather_legacy_error_redaction.py",
         "tests/test_weather_worker.py",
         "tests/test_work_selection.py",
@@ -5523,6 +5544,7 @@
     "tests/test_dao_proposal_history.py",
     "tests/test_data_freshness_cli_parity.py",
     "tests/test_data_freshness_cursor_cleanup.py",
+    "tests/test_data_freshness_notification_outbox.py",
     "tests/test_data_governance.py",
     "tests/test_data_module_all.py",
     "tests/test_data_quality.py",
@@ -5650,6 +5672,7 @@
     "tests/test_gateway_lifespan.py",
     "tests/test_gateway_management_work_reads.py",
     "tests/test_gateway_operating_pilot_reads.py",
+    "tests/test_gateway_operating_pilot_writes.py",
     "tests/test_gateway_planning_budget_reads.py",
     "tests/test_gateway_public_iri.py",
     "tests/test_gateway_public_locations.py",
@@ -5921,6 +5944,8 @@
     "tests/test_report_generator_query_scope_inventory.py",
     "tests/test_report_generator_readonly.py",
     "tests/test_report_governance.py",
+    "tests/test_report_snapshot_cursor_cleanup.py",
+    "tests/test_report_state_cursor_cleanup.py",
     "tests/test_report_state_error_redaction.py",
     "tests/test_reporting_cadence_error_redaction.py",
     "tests/test_reporting_reader.py",
@@ -6059,6 +6084,7 @@
     "tests/test_weather_forecast_atomicity.py",
     "tests/test_weather_forecast_cli_scope.py",
     "tests/test_weather_forecast_worker.py",
+    "tests/test_weather_legacy_atomicity.py",
     "tests/test_weather_legacy_error_redaction.py",
     "tests/test_weather_worker.py",
     "tests/test_work_selection.py",
