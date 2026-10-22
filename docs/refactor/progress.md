@@ -1,3 +1,15 @@
+### CAP-038 Delphi study-list CLI boundary — 22 October 2026
+
+The legacy standalone and unified `delphi list-studies` path now exits before
+opening the shared runtime database. Study inventory is available through the
+authenticated location-scoped Operator Gateway route. The focused Delphi,
+worker, preflight, and unified CLI selection passes 173 tests; Ruff,
+compilation, capability-matrix validation, and diff checks pass. No database or
+migration was used. Panel roster, study lifecycle writes, stopping evaluation,
+and remaining operator workflows are still gated. Evidence:
+[CLI boundary](builds/2026-10-22-recovery/cap-038-delphi-study-list-cli-boundary.json).
+Checklist: 957 complete / 24 open (981 total).
+
 ### CAP-038 legacy Delphi summary CLI boundary — 22 October 2026
 
 The standalone `services.delphi.cli live-summary` and `consensus` commands now

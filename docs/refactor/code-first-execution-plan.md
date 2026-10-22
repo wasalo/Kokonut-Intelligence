@@ -3,14 +3,15 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 signed AI-summary inspection source:** migration 547
-adds exact-location list/digest views and an isolated one-shot Compose profile.
-The CLI requires `--location-id` for both operations and removes global summary
-inventory. The 62-test focused selection passes; native and ARM64/QEMU PostgreSQL
-16 apply/replay each pass 34 grouped scope/privilege checks. Migration 547 and
-production credentials/grants are not deployed. Checklist: 954 complete / 24 open
-(978 total); the 66-row matrix remains 30 baseline-retained, 7 deployed, and 29
-prepared, with all MAN-CAP approvals still open.
+**Current batch — CAP-038 Delphi CLI read boundary:** the legacy `live-summary`
+and `consensus` commands require explicit study/location UUIDs and use the
+consent-aware signed source reader. Unscoped `list-studies` now exits before
+opening the shared runtime database; the authenticated location-scoped Gateway
+remains the inventory path. The focused Delphi/worker/preflight/unified CLI
+selection passes 173 tests, with Ruff, compilation, matrix validation, and diff
+checks passing. No migration or database was used. Checklist: 957 complete / 24
+open (981 total); the 66-row matrix remains 30 baseline-retained, 7 deployed,
+and 29 prepared, with all MAN-CAP approvals still open.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

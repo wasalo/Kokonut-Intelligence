@@ -420,9 +420,9 @@ The in-memory recommendation suggestion includes the same location scope;
 persistence and review remain on the authenticated Delphi Gateway routes.
 This closes the agent facilitator's shared-runtime read path only. The legacy
 `services.delphi.cli live-summary` and `consensus` commands now call the same
-signed source adapter and require the exact location UUID. Unscoped study
-listing and other panel/study operations, authenticated operator grant
-provisioning, populated parity, live OIDC/runtime behavior,
+signed source adapter and require the exact location UUID. The legacy unscoped
+study-list command fails before database access. Other panel/study operations,
+authenticated operator grant provisioning, populated parity, live OIDC/runtime behavior,
 Directus parity, and MAN-CAP-038 acceptance remain open. Migration 548 is
 additive: reverting the CLI/worker/profile leaves the view and policy unused;
 retain the migration if it has been applied.

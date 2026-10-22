@@ -89,6 +89,8 @@ def test_delphi_recommendation_suggestion_matches_standalone_without_database() 
         "draft-recommendation",
         "--study-id",
         "a0000000-0000-4000-8000-000000000001",
+        "--location-id",
+        "a0000000-0000-4000-8000-000000000002",
         "--text",
         "Consider a phased water plan.",
         "--summary",
@@ -106,6 +108,7 @@ def test_delphi_recommendation_suggestion_matches_standalone_without_database() 
     unified_result = json.loads(unified.stdout)
     assert unified_result == standalone_result
     assert unified_result["status"] == "draft"
+    assert unified_result["location_id"] == "a0000000-0000-4000-8000-000000000002"
     assert "created_by" not in unified_result
     assert "in-memory" in unified_result["safety_note"].lower()
     assert unified.stderr == standalone.stderr == ""
@@ -1072,106 +1075,16 @@ def test_crisp_weights_closes_connection_when_query_fails(monkeypatch) -> None:
     assert connection.closed is True
 
 
-def test_database_backed_delphi_study_list_matches_and_closes_connection(
-    monkeypatch,
-    capsys,
-) -> None:
-    from typer.testing import CliRunner
-
-    import services.cli as unified_cli
+def test_delphi_study_list_fails_closed_without_opening_shared_database(monkeypatch) -> None:
     from services.delphi import cli as delphi_cli
 
-    rows = [("synthetic-study", "Delphi fixture", "open")]
-    connections = []
-
-    class FakeCursor:
-        description = [("id",), ("title",), ("status",)]
-        query = ""
-        closed = False
-
-        def execute(self, query):
-            self.query = query
-
-        def fetchall(self):
-            return rows
-
-        def close(self):
-            self.closed = True
-
-    class FakeConnection:
-        closed = False
-
-        def __init__(self):
-            self.fake_cursor = FakeCursor()
-
-        def cursor(self):
-            return self.fake_cursor
-
-        def close(self):
-            self.closed = True
-
-    def make_connection():
-        connection = FakeConnection()
-        connections.append(connection)
-        return connection
-
-    monkeypatch.setattr(delphi_cli, "_get_conn", make_connection)
-    original_argv = list(sys.argv)
-    try:
-        sys.argv = ["services.delphi.cli", "list-studies"]
-        delphi_cli.main()
-        standalone_output = capsys.readouterr().out
-    finally:
-        sys.argv = original_argv
-
-    unified = CliRunner().invoke(unified_cli.app, ["delphi", "--", "list-studies"])
-
-    assert unified.exit_code == 0, unified.output
-    assert unified.output == standalone_output
-    assert json.loads(unified.output) == {"id": "synthetic-study", "title": "Delphi fixture", "status": "open"}
-    assert len(connections) == 2
-    assert all(connection.closed for connection in connections)
-    assert all(connection.fake_cursor.closed for connection in connections)
-    assert all("FROM delphi_study" in connection.fake_cursor.query for connection in connections)
-    assert unified.stderr == ""
-
-
-def test_delphi_study_list_closes_cursor_and_connection_when_query_fails(monkeypatch) -> None:
-    from services.delphi import cli as delphi_cli
-
-    class FakeCursor:
-        closed = False
-
-        def execute(self, _query):
-            raise RuntimeError("synthetic Delphi study query failure")
-
-        def close(self):
-            self.closed = True
-
-    class FakeConnection:
-        closed = False
-
-        def __init__(self):
-            self.fake_cursor = FakeCursor()
-
-        def cursor(self):
-            return self.fake_cursor
-
-        def close(self):
-            self.closed = True
-
-    connection = FakeConnection()
-    monkeypatch.setattr(delphi_cli, "_get_conn", lambda: connection)
-    original_argv = list(sys.argv)
-    try:
-        sys.argv = ["services.delphi.cli", "list-studies"]
-        with pytest.raises(RuntimeError, match="synthetic Delphi study query failure"):
-            delphi_cli.main()
-    finally:
-        sys.argv = original_argv
-
-    assert connection.fake_cursor.closed is True
-    assert connection.closed is True
+    monkeypatch.setattr(
+        delphi_cli,
+        "_get_conn",
+        lambda: pytest.fail("unscoped study listing must not open the shared database"),
+    )
+    with pytest.raises(SystemExit, match="authenticated.*location-scoped Operator Gateway"):
+        delphi_cli.cmd_list_studies(None)
 
 
 def test_database_backed_capability_list_output_matches_with_stubbed_query(monkeypatch, capsys) -> None:

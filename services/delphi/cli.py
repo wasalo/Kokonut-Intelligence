@@ -158,19 +158,10 @@ def cmd_calibrate_panel(args):
 
 
 def cmd_list_studies(args):
-    conn = _get_conn()
-    try:
-        cur = conn.cursor()
-        try:
-            cur.execute("SELECT * FROM delphi_study ORDER BY created_at DESC LIMIT 50")
-            rows = cur.fetchall()
-            cols = [d[0] for d in cur.description]
-        finally:
-            cur.close()
-    finally:
-        conn.close()
-    for row in rows:
-        print(_json(dict(zip(cols, row))))
+    raise SystemExit(
+        "Unscoped Delphi study listing is disabled; use the authenticated "
+        "location-scoped Operator Gateway study list"
+    )
 
 
 def main():
