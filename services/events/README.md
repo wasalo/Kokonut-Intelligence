@@ -47,9 +47,13 @@ is provided. The feature flag is a default-off switch, not policy approval.
 
 `data_stale` and `threshold_breached` handlers persist configured webhook and
 Directus notifications to `notification_outbox` before their event delivery is
-acknowledged. Event dispatch and outbox delivery run independently; `--worker`
-remains a combined compatibility mode. The Kernel supervisor starts separate
-child processes for both features. `KOKONUT_FEATURE_NOTIFICATION_DELIVERY`
+acknowledged. Freshness transitions publish `data_stale` in the same database
+transaction as their check and alert-history record; configured webhook,
+Directus, and email delivery then run asynchronously through this outbox. Provider
+I/O never runs inside the freshness transaction. Event dispatch and outbox
+delivery run independently; `--worker` remains a combined compatibility mode.
+The Kernel supervisor starts separate child processes for both features.
+`KOKONUT_FEATURE_NOTIFICATION_DELIVERY`
 controls notification delivery and defaults to the event-bus feature setting,
 preserving existing deployments while allowing delivery to be disabled or run
 independently. Each CLI worker mode checks its own feature before opening a

@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 32,
     "source_files": 95,
-    "execution_sites": 333,
-    "static_literal_sites": 290,
+    "execution_sites": 339,
+    "static_literal_sites": 296,
     "composed_or_variable_sites": 43
   },
   "execution_sites": [
@@ -1649,6 +1649,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1672,6 +1673,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1694,6 +1696,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1715,6 +1718,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1737,6 +1741,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1758,6 +1763,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1779,6 +1785,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1800,6 +1807,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1821,6 +1829,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1844,6 +1853,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1869,6 +1879,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1890,6 +1901,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1911,6 +1923,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1930,6 +1943,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1951,6 +1965,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1976,6 +1991,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -1997,6 +2013,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2018,6 +2035,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.metrics"
       ]
@@ -2262,9 +2280,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:179:12",
+      "id": "services/events/notification_outbox.py:196:12",
       "source": "services/events/notification_outbox.py",
-      "line": 179,
+      "line": 196,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2283,9 +2301,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:194:12",
+      "id": "services/events/notification_outbox.py:211:12",
       "source": "services/events/notification_outbox.py",
-      "line": 194,
+      "line": 211,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2304,9 +2322,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:214:16",
+      "id": "services/events/notification_outbox.py:231:16",
       "source": "services/events/notification_outbox.py",
-      "line": 214,
+      "line": 231,
       "column": 16,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2325,9 +2343,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:259:8",
+      "id": "services/events/notification_outbox.py:276:8",
       "source": "services/events/notification_outbox.py",
-      "line": 259,
+      "line": 276,
       "column": 8,
       "scope": "enqueue_event_notification_isolated",
       "method": "execute",
@@ -2344,9 +2362,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:315:8",
+      "id": "services/events/notification_outbox.py:332:8",
       "source": "services/events/notification_outbox.py",
-      "line": 315,
+      "line": 332,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2366,9 +2384,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:326:8",
+      "id": "services/events/notification_outbox.py:343:8",
       "source": "services/events/notification_outbox.py",
-      "line": 326,
+      "line": 343,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2387,9 +2405,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:363:8",
+      "id": "services/events/notification_outbox.py:380:8",
       "source": "services/events/notification_outbox.py",
-      "line": 363,
+      "line": 380,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -2410,9 +2428,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:391:12",
+      "id": "services/events/notification_outbox.py:408:12",
       "source": "services/events/notification_outbox.py",
-      "line": 391,
+      "line": 408,
       "column": 12,
       "scope": "claim_batch",
       "method": "execute",
@@ -2431,9 +2449,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:476:8",
+      "id": "services/events/notification_outbox.py:493:8",
       "source": "services/events/notification_outbox.py",
-      "line": 476,
+      "line": 493,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2452,9 +2470,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:500:8",
+      "id": "services/events/notification_outbox.py:517:8",
       "source": "services/events/notification_outbox.py",
-      "line": 500,
+      "line": 517,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2473,9 +2491,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:562:8",
+      "id": "services/events/notification_outbox.py:579:8",
       "source": "services/events/notification_outbox.py",
-      "line": 562,
+      "line": 579,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2494,9 +2512,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:564:8",
+      "id": "services/events/notification_outbox.py:581:8",
       "source": "services/events/notification_outbox.py",
-      "line": 564,
+      "line": 581,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2516,9 +2534,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:605:8",
+      "id": "services/events/notification_outbox.py:622:8",
       "source": "services/events/notification_outbox.py",
-      "line": 605,
+      "line": 622,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -2537,9 +2555,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:635:8",
+      "id": "services/events/notification_outbox.py:652:8",
       "source": "services/events/notification_outbox.py",
-      "line": 635,
+      "line": 652,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2558,9 +2576,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:646:8",
+      "id": "services/events/notification_outbox.py:663:8",
       "source": "services/events/notification_outbox.py",
-      "line": 646,
+      "line": 663,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2579,9 +2597,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:658:8",
+      "id": "services/events/notification_outbox.py:675:8",
       "source": "services/events/notification_outbox.py",
-      "line": 658,
+      "line": 675,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2600,9 +2618,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:686:8",
+      "id": "services/events/notification_outbox.py:703:8",
       "source": "services/events/notification_outbox.py",
-      "line": 686,
+      "line": 703,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2621,9 +2639,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:697:8",
+      "id": "services/events/notification_outbox.py:714:8",
       "source": "services/events/notification_outbox.py",
-      "line": 697,
+      "line": 714,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2642,9 +2660,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:706:8",
+      "id": "services/events/notification_outbox.py:723:8",
       "source": "services/events/notification_outbox.py",
-      "line": 706,
+      "line": 723,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -3637,9 +3655,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:54:12",
+      "id": "services/ingestion/data_freshness.py:52:12",
       "source": "services/ingestion/data_freshness.py",
-      "line": 54,
+      "line": 52,
       "column": 12,
       "scope": "_query_freshness_configs",
       "method": "execute",
@@ -3654,9 +3672,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:59:12",
+      "id": "services/ingestion/data_freshness.py:57:12",
       "source": "services/ingestion/data_freshness.py",
-      "line": 59,
+      "line": 57,
       "column": 12,
       "scope": "_query_freshness_configs",
       "method": "execute",
@@ -3671,9 +3689,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:74:8",
+      "id": "services/ingestion/data_freshness.py:72:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 74,
+      "line": 72,
       "column": 8,
       "scope": "_location_ids",
       "method": "execute",
@@ -3688,9 +3706,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:105:8",
+      "id": "services/ingestion/data_freshness.py:103:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 105,
+      "line": 103,
       "column": 8,
       "scope": "_query_latest_data_at",
       "method": "execute",
@@ -3703,9 +3721,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:116:8",
+      "id": "services/ingestion/data_freshness.py:114:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 116,
+      "line": 114,
       "column": 8,
       "scope": "_query_latest_ingestion",
       "method": "execute",
@@ -3720,9 +3738,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:171:8",
+      "id": "services/ingestion/data_freshness.py:169:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 171,
+      "line": 169,
       "column": 8,
       "scope": "_alert_state",
       "method": "execute",
@@ -3737,9 +3755,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:186:8",
+      "id": "services/ingestion/data_freshness.py:184:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 186,
+      "line": 184,
       "column": 8,
       "scope": "_alert_state",
       "method": "execute",
@@ -3754,9 +3772,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:198:8",
+      "id": "services/ingestion/data_freshness.py:196:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 198,
+      "line": 196,
       "column": 8,
       "scope": "_alert_state",
       "method": "execute",
@@ -3771,9 +3789,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:225:8",
+      "id": "services/ingestion/data_freshness.py:223:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 225,
+      "line": 223,
       "column": 8,
       "scope": "_persist_alert_event",
       "method": "execute",
@@ -3788,9 +3806,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:241:8",
+      "id": "services/ingestion/data_freshness.py:239:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 241,
+      "line": 239,
       "column": 8,
       "scope": "_persist_alert_event",
       "method": "execute",
@@ -3805,44 +3823,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:260:8",
+      "id": "services/ingestion/data_freshness.py:268:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 260,
-      "column": 8,
-      "scope": "_persist_delivery_attempt",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "data_freshness_alert_delivery_attempt"
-      ],
-      "static_sql_sha256": "d61ed48e79517baeaed8396bbf0e69f15f51cf53f4bb6e57af842ba22edf08fa",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:269:12",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 269,
-      "column": 12,
-      "scope": "_persist_delivery_attempt",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "data_freshness_alert_history",
-        "data_freshness_alert_state"
-      ],
-      "static_sql_sha256": "1013511f71500ab0ac3b9d7af36b0fbd34826f34fbc3bd999bfb957ecb6e345b",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.data_freshness"
-      ]
-    },
-    {
-      "id": "services/ingestion/data_freshness.py:293:8",
-      "source": "services/ingestion/data_freshness.py",
-      "line": 293,
+      "line": 268,
       "column": 8,
       "scope": "_insert_check_result",
       "method": "execute",
@@ -3857,9 +3840,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:427:16",
+      "id": "services/ingestion/data_freshness.py:371:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 427,
+      "line": 371,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3872,9 +3855,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:441:20",
+      "id": "services/ingestion/data_freshness.py:385:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 441,
+      "line": 385,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -3887,9 +3870,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:520:24",
+      "id": "services/ingestion/data_freshness.py:459:24",
       "source": "services/ingestion/data_freshness.py",
-      "line": 520,
+      "line": 459,
       "column": 24,
       "scope": "check_freshness",
       "method": "execute",
@@ -3904,9 +3887,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:528:20",
+      "id": "services/ingestion/data_freshness.py:467:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 528,
+      "line": 467,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -3921,9 +3904,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:536:20",
+      "id": "services/ingestion/data_freshness.py:475:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 536,
+      "line": 475,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -3936,9 +3919,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:581:8",
+      "id": "services/ingestion/data_freshness.py:526:8",
       "source": "services/ingestion/data_freshness.py",
-      "line": 581,
+      "line": 526,
       "column": 8,
       "scope": "get_freshness_summary",
       "method": "execute",
@@ -5440,6 +5423,70 @@
       ]
     },
     {
+      "id": "services/ingestion/weather.py:241:16",
+      "source": "services/ingestion/weather.py",
+      "line": 241,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "static_sql_sha256": "05a1f128366ae84a979fa0201ab4b8f363c04596de4eb182039e2b9803d39cf5",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather.py:261:16",
+      "source": "services/ingestion/weather.py",
+      "line": 261,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "de775eb0f1ac3e8f2c1f77633bde6dc42dcf8dedcabd1abc2556d9bab7fb8a93",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather.py:267:24",
+      "source": "services/ingestion/weather.py",
+      "line": 267,
+      "column": 24,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "static_sql_sha256": "3f1796764c367e35ba0258e6f099ef7764a624f06b27b29b83d8b04ec4258782",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather.py:268:24",
+      "source": "services/ingestion/weather.py",
+      "line": 268,
+      "column": 24,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "de775eb0f1ac3e8f2c1f77633bde6dc42dcf8dedcabd1abc2556d9bab7fb8a93",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
       "id": "services/ingestion/weather_forecast.py:104:12",
       "source": "services/ingestion/weather_forecast.py",
       "line": 104,
@@ -5559,9 +5606,73 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:367:16",
+      "id": "services/ingestion/weather_forecast.py:305:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 367,
+      "line": 305,
+      "column": 16,
+      "scope": "_ingest_locations",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "static_sql_sha256": "518350828ffa839e403e4a7dd3028df5758b9a40130a9a17324004ec0383c3a3",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:325:16",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 325,
+      "column": 16,
+      "scope": "_ingest_locations",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "f459808013dbd67ff51efcf4b3a2591eca50c3c85204bee4fadff8bbaa76d588",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:331:20",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 331,
+      "column": 20,
+      "scope": "_ingest_locations",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "static_sql_sha256": "69419e039b1fbc2d4f90ac424d475977af0252c76bc39928ce08376f9f5ed238",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:332:20",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 332,
+      "column": 20,
+      "scope": "_ingest_locations",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "f459808013dbd67ff51efcf4b3a2591eca50c3c85204bee4fadff8bbaa76d588",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:382:16",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 382,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -5577,9 +5688,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather_forecast.py:373:16",
+      "id": "services/ingestion/weather_forecast.py:388:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 373,
+      "line": 388,
       "column": 16,
       "scope": "run",
       "method": "execute",

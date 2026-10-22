@@ -154,20 +154,6 @@ def test_freshness_read_and_state_cursors_close_on_failure(operation, specs):
             id="alert-state-update-failure",
         ),
         pytest.param(
-            lambda conn: data_freshness._persist_delivery_attempt(
-                conn, "alert-id", "webhook", delivered=False
-            ),
-            [{"execute_fail_at": 1}],
-            id="delivery-attempt-insert-failure",
-        ),
-        pytest.param(
-            lambda conn: data_freshness._persist_delivery_attempt(
-                conn, "alert-id", "webhook", delivered=True
-            ),
-            [{"execute_fail_at": 2}],
-            id="delivery-state-update-failure",
-        ),
-        pytest.param(
             lambda conn: data_freshness._insert_check_result(
                 conn, "config-id", "weather", None, None, None, "no_data"
             ),

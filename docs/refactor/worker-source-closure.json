@@ -552,31 +552,31 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 93,
+          "line": 104,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 147,
+          "line": 164,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 406,
+          "line": 423,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 413,
+          "line": 430,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 414,
+          "line": 431,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -860,31 +860,31 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 93,
+          "line": 104,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 147,
+          "line": 164,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 406,
+          "line": 423,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 413,
+          "line": 430,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 414,
+          "line": 431,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -1662,28 +1662,36 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
         "services.core.providers",
+        "services.events.bus",
+        "services.events.retention",
         "services.ingestion.base",
         "services.ingestion.config",
-        "services.ingestion.data_freshness"
+        "services.ingestion.data_freshness",
+        "services.security.execution_allowlist"
       ],
       "source_files": [
         "services/common/cli.py",
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
+        "services/events/bus.py",
+        "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
-        "services/ingestion/data_freshness.py"
+        "services/ingestion/data_freshness.py",
+        "services/security/execution_allowlist.py"
       ],
       "local_import_edges": [
         {
@@ -1753,6 +1761,42 @@
           "kind": "from"
         },
         {
+          "source": "services/events/bus.py",
+          "line": 13,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 19,
+          "target": "services.security.execution_allowlist",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 63,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 371,
+          "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
           "source": "services/ingestion/base.py",
           "line": 20,
           "target": "services.common.http",
@@ -1790,31 +1834,37 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 23,
+          "line": 21,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 25,
+          "line": 23,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 356,
-          "target": "services.common.http",
+          "line": 314,
+          "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 619,
+          "line": 564,
           "target": "services.ingestion.base",
           "kind": "from"
         }
       ],
       "unresolved_local_modules": [],
-      "dynamic_import_sites": []
+      "dynamic_import_sites": [
+        {
+          "source": "services/events/bus.py",
+          "line": 46,
+          "kind": "dynamic module expression"
+        }
+      ]
     },
     {
       "kind": "scheduled_module",
@@ -6336,31 +6386,31 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 93,
+          "line": 104,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 147,
+          "line": 164,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 406,
+          "line": 423,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 413,
+          "line": 430,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 414,
+          "line": 431,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -6487,31 +6537,31 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 93,
+          "line": 104,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 147,
+          "line": 164,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 406,
+          "line": 423,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 413,
+          "line": 430,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 414,
+          "line": 431,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -6692,31 +6742,31 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 93,
+          "line": 104,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 147,
+          "line": 164,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 406,
+          "line": 423,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 413,
+          "line": 430,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 414,
+          "line": 431,
           "target": "services.core.providers",
           "kind": "from"
         },

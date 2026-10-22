@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewed": "2026-10-18",
+  "reviewed": "2026-10-22",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
     "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child.",
@@ -780,20 +780,24 @@
         "public.data_freshness_check",
         "public.data_freshness_alert_state",
         "public.data_freshness_alert_history",
-        "public.data_freshness_alert_delivery_attempt"
+        "public.platform_event"
       ],
       "external_effects": [
-        "Configured email/webhook alert delivery"
+        "Durable data_stale event; configured notification providers run through the independent handler and outbox workers"
       ],
-      "idempotency": "Alert state is locked per source/location and transitions use cooldown logic; every check and provider attempt is retained. End-to-end provider delivery is at-least-once.",
-      "retry_boundary": "Database state is durable; external delivery needs receiver idempotency or operator reconciliation.",
+      "idempotency": "Alert state is locked per source/location and transitions use cooldown logic. The alert-history UUID is the event ID, and notification intents are unique by source event/channel/destination. Provider delivery is at-least-once.",
+      "retry_boundary": "Freshness check, alert history, and platform event commit atomically. EventBus handler retries and the notification outbox lease/retry/dead-letter workflow recover delivery after commit; receivers should honor the stable idempotency header.",
       "sources": [
         "services/ingestion/data_freshness.py",
         "services/ingestion/base.py",
-        "services/common/http.py",
+        "services/events/bus.py",
+        "services/events/handlers.py",
+        "services/events/notification_outbox.py",
         "schemas/postgres/077_telemetry_infrastructure.sql",
         "schemas/seeds/077_telemetry_infrastructure.sql",
-        "schemas/postgres/341_freshness_alert_durability.sql"
+        "schemas/postgres/297_event_handler_registration_fix.sql",
+        "schemas/postgres/341_freshness_alert_durability.sql",
+        "schemas/postgres/417_isolated_notification_enqueue.sql"
       ]
     },
     {
@@ -1087,7 +1091,7 @@
       "module": "services.events.handlers",
       "function": "handle_stale_data",
       "event_type": "data_stale",
-      "scope": "Global notification outbox operation. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function with function ACLs kept private by migrations 418-419 and actual runtime-role bootstrap; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
+      "scope": "Global notification outbox operation. Freshness transitions publish data_stale events transactionally; this handler turns them into notification intents. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function with function ACLs kept private by migrations 418-419 and actual runtime-role bootstrap; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
       "reads": [
         "public.notification_outbox"
       ],
@@ -1112,6 +1116,7 @@
         "services/common/worker_environment.py",
         "services/events/handlers.py",
         "services/events/notification_outbox.py",
+        "services/ingestion/data_freshness.py",
         "services/migration/runtime_role.py",
         "tests/fixtures/notification_enqueue_worker_disposable.sql"
       ]

@@ -5,24 +5,24 @@
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 32,
-    "candidate_effect_sites": 42,
-    "operation_site_memberships": 53,
+    "candidate_effect_sites": 39,
+    "operation_site_memberships": 50,
     "unique_sites_by_category": {
       "dynamic_import": 1,
-      "email_delivery": 6,
+      "email_delivery": 4,
       "evm_client_setup": 5,
       "evm_rpc": 8,
       "filesystem": 8,
-      "http": 13,
+      "http": 12,
       "process": 1
     },
     "operation_memberships_by_category": {
       "dynamic_import": 2,
-      "email_delivery": 6,
+      "email_delivery": 4,
       "evm_client_setup": 5,
       "evm_rpc": 9,
       "filesystem": 8,
-      "http": 22,
+      "http": 21,
       "process": 1
     }
   },
@@ -79,28 +79,28 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 411,
+          "line": 428,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 422,
+          "line": 439,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 446,
+          "line": 463,
           "function": "services.events.notification_outbox:_deliver",
           "category": "email_delivery",
           "call": "smtplib.SMTP"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 454,
+          "line": 471,
           "function": "services.events.notification_outbox:_deliver",
           "category": "email_delivery",
           "call": "server.send_message"
@@ -213,33 +213,8 @@
     {
       "kind": "scheduled_module",
       "name": "services.ingestion.data_freshness",
-      "candidate_effect_sites": [
-        {
-          "source": "services/ingestion/data_freshness.py",
-          "line": 345,
-          "function": "services.ingestion.data_freshness:_send_alert",
-          "category": "http",
-          "call": "services.common.http.http.post"
-        },
-        {
-          "source": "services/ingestion/data_freshness.py",
-          "line": 375,
-          "function": "services.ingestion.data_freshness:_send_alert",
-          "category": "email_delivery",
-          "call": "smtplib.SMTP"
-        },
-        {
-          "source": "services/ingestion/data_freshness.py",
-          "line": 376,
-          "function": "services.ingestion.data_freshness:_send_alert",
-          "category": "email_delivery",
-          "call": "server.send_message"
-        }
-      ],
-      "category_counts": {
-        "email_delivery": 2,
-        "http": 1
-      }
+      "candidate_effect_sites": [],
+      "category_counts": {}
     },
     {
       "kind": "scheduled_module",

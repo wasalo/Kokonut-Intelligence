@@ -12,9 +12,7 @@ Usage:
 from __future__ import annotations
 
 import json
-import smtplib
 from datetime import datetime, timezone
-from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -252,29 +250,6 @@ def _persist_alert_event(
         cur.close()
 
 
-def _persist_delivery_attempt(
-    conn, alert_id: str, channel: str, delivered: bool, error_message: Optional[str] = None
-) -> None:
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            """
-            INSERT INTO data_freshness_alert_delivery_attempt
-                (alert_id, channel, outcome, error_message)
-            VALUES (%s, %s, %s, %s)
-            """,
-            (alert_id, channel, "delivered" if delivered else "failed", error_message),
-        )
-        if delivered:
-            cur.execute(
-                "UPDATE data_freshness_alert_state SET last_delivered_at = NOW(), updated_at = NOW() "
-                "WHERE id = (SELECT state_id FROM data_freshness_alert_history WHERE id = %s)",
-                (alert_id,),
-            )
-    finally:
-        cur.close()
-
-
 def _insert_check_result(
     conn,
     config_id: str,
@@ -315,90 +290,59 @@ def _insert_check_result(
         cur.close()
 
 
-def _safe_delivery_error(exc: Exception) -> str:
-    """Return bounded provider failure metadata without response/credential text."""
-    response = getattr(exc, "response", None)
-    status_code = getattr(response, "status_code", None)
-    if isinstance(status_code, int) and 100 <= status_code <= 599:
-        return f"HTTP {status_code}"
-    return type(exc).__name__
-
-
 def _safe_evaluation_error(exc: Exception) -> str:
     """Summarize freshness read/evaluation failures without exception details."""
     return f"freshness evaluation failed ({type(exc).__name__})"
 
 
-def _send_alert(
+def _publish_alert_event(
+    conn,
+    alert_id: str,
     source_system: str,
     status: str,
     gap_minutes: Optional[int],
     last_data_at: Optional[datetime],
+    event_type: str,
     location_id: Optional[str] = None,
-    attempts: Optional[List[Dict[str, Optional[str]]]] = None,
 ) -> str:
-    """Send freshness alert. Returns alert channel used."""
-    import os
+    """Persist a durable notification event in the caller's transaction.
 
-    alert_msg = (
-        f"[CRISP] Data freshness alert: {source_system}"
-        f" ({location_id or 'global'})\n"
+    The EventBus handler and notification outbox perform provider delivery after
+    this transaction commits. Reusing the alert-history UUID makes retries
+    traceable back to the freshness transition without sending inline.
+    """
+    from services.events.bus import EventBus
+
+    location_label = location_id or "global"
+    last_data_value = last_data_at.isoformat() if last_data_at else None
+    message = (
+        f"[CRISP] Data freshness {event_type}: {source_system} ({location_label})\n"
         f"Status: {status}\n"
         f"Gap: {gap_minutes} minutes\n"
-        f"Last data: {last_data_at}\n"
+        f"Last data: {last_data_value or 'none'}\n"
     )
-
-    # Webhook alert
-    webhook_url = os.environ.get("ALERT_WEBHOOK_URL")
-    if webhook_url:
-        response = None
-        try:
-            from services.common.http import http
-
-            response = http.post(
-                webhook_url,
-                json={"text": alert_msg, "source": source_system, "status": status},
-                timeout=10,
-            )
-            response.raise_for_status()
-            if attempts is not None:
-                attempts.append({"channel": "webhook", "error": None})
-            return "webhook"
-        except Exception as e:
-            safe_error = _safe_delivery_error(e)
-            logger.warning("Webhook alert failed (%s)", safe_error)
-            if attempts is not None:
-                attempts.append({"channel": "webhook", "error": safe_error})
-        finally:
-            if response is not None:
-                try:
-                    response.close()
-                except Exception as e:
-                    logger.debug("Webhook response close failed (%s)", _safe_delivery_error(e))
-
-    # Email alert
-    smtp_host = os.environ.get("ALERT_SMTP_HOST")
-    smtp_to = os.environ.get("ALERT_EMAIL_TO")
-    if smtp_host and smtp_to:
-        try:
-            msg = MIMEText(alert_msg)
-            msg["Subject"] = f"[Kokonut] Data freshness alert: {source_system}"
-            msg["From"] = os.environ.get("ALERT_EMAIL_FROM", "alerts@kokonut.network")
-            msg["To"] = smtp_to
-            with smtplib.SMTP(smtp_host, int(os.environ.get("ALERT_SMTP_PORT", 587))) as server:
-                server.send_message(msg)
-            if attempts is not None:
-                attempts.append({"channel": "email", "error": None})
-            return "email"
-        except Exception as e:
-            safe_error = _safe_delivery_error(e)
-            logger.warning("Email alert failed (%s)", safe_error)
-            if attempts is not None:
-                attempts.append({"channel": "email", "error": safe_error})
-
-    if attempts is not None and not attempts:
-        attempts.append({"channel": "none", "error": "no alert channel configured"})
-    return "none"
+    payload = {
+        "alert_id": alert_id,
+        "event_type": event_type,
+        "source_system": source_system,
+        "status": status,
+        "severity": "info" if event_type == "recovery" else (
+            "critical" if status == "critical" else "warning"
+        ),
+        "gap_minutes": gap_minutes,
+        "last_data_at": last_data_value,
+        "location_id": location_id,
+        "message": message,
+    }
+    return EventBus(conn=conn).publish(
+        "data_stale",
+        payload,
+        event_id=alert_id,
+        source_table="data_freshness_alert_history",
+        source_id=alert_id,
+        priority="high" if status == "critical" else "normal",
+        commit=False,
+    )
 
 
 def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
@@ -496,24 +440,19 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                         gap_minutes,
                         now,
                     )
-                    delivery_attempts: List[Dict[str, Optional[str]]] = []
-                    alert_channel = _send_alert(
+                    _publish_alert_event(
+                        conn,
+                        alert_id,
                         source_system,
                         status,
                         gap_minutes,
                         last_data_at,
+                        event_type,
                         location_id,
-                        delivery_attempts,
                     )
-                    alert_sent = alert_channel != "none"
-                    for attempt in delivery_attempts:
-                        _persist_delivery_attempt(
-                            conn,
-                            alert_id,
-                            attempt["channel"] or "none",
-                            attempt["error"] is None,
-                            attempt["error"],
-                        )
+                    # The durable event is committed here; provider delivery is
+                    # asynchronous and is tracked by notification_outbox.
+                    alert_channel = "event_bus"
                 elif status != "error":
                     update_cur = conn.cursor()
                     try:
@@ -553,7 +492,13 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 }
             )
             logger.info(
-                "  %s/%s: %s (gap=%s min, alert=%s)", source_system, location_id, status, gap_minutes, alert_sent
+                "  %s/%s: %s (gap=%s min, alert_sent=%s, dispatch=%s)",
+                source_system,
+                location_id,
+                status,
+                gap_minutes,
+                alert_sent,
+                alert_channel or "none",
             )
 
     try:

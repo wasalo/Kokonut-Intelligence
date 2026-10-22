@@ -75,6 +75,17 @@ def _notification_payloads(
                 "triggered_at": payload.get("triggered_at"),
                 "claim_id": payload.get("claim_id"),
             }
+        elif event_type == "data_stale":
+            webhook_payload = {
+                "text": message,
+                "alert_id": payload.get("alert_id"),
+                "source": payload.get("source_system"),
+                "status": payload.get("status"),
+                "severity": severity,
+                "location_id": payload.get("location_id"),
+                "gap_minutes": payload.get("gap_minutes"),
+                "last_data_at": payload.get("last_data_at"),
+            }
         else:
             webhook_payload = {
                 "text": f"[{severity.upper()}] {message}",
@@ -113,26 +124,32 @@ def _notification_payloads(
                 {"message": message, "severity": severity},
             ))
 
-    if (event_type == "sensor_alert"
+    if (event_type in {"sensor_alert", "data_stale"}
             and environment.get("ALERT_SMTP_HOST", "").strip()
             and environment.get("ALERT_EMAIL_TO", "").strip()):
-        sensor_name = str(payload.get("sensor_name") or "Unknown")
-        sensor_type = str(payload.get("sensor_type") or "unknown")
-        location = str(payload.get("location_name") or "Unknown")
-        subject = f"[{severity.upper()}] Sensor Alert: {sensor_name}"
-        claim_line = f"Claim ID: {payload['claim_id']}\n" if payload.get("claim_id") else ""
-        body = (
-            "Sensor Alert Triggered\n\n"
-            f"Severity: {severity.upper()}\n"
-            f"Sensor: {sensor_name} ({sensor_type})\n"
-            f"Location: {location}\n"
-            f"Message: {message}\n\n"
-            f"Reading Value: {payload.get('reading_value')}\n"
-            f"Threshold: {payload.get('threshold_value')}\n"
-            f"Time: {payload.get('triggered_at')}\n\n"
-            f"Alert ID: {payload.get('alert_id')}\n"
-            f"{claim_line}\nKokonut Intelligence Alert System\n"
-        )
+        if event_type == "sensor_alert":
+            sensor_name = str(payload.get("sensor_name") or "Unknown")
+            sensor_type = str(payload.get("sensor_type") or "unknown")
+            location = str(payload.get("location_name") or "Unknown")
+            subject = f"[{severity.upper()}] Sensor Alert: {sensor_name}"
+            claim_line = f"Claim ID: {payload['claim_id']}\n" if payload.get("claim_id") else ""
+            body = (
+                "Sensor Alert Triggered\n\n"
+                f"Severity: {severity.upper()}\n"
+                f"Sensor: {sensor_name} ({sensor_type})\n"
+                f"Location: {location}\n"
+                f"Message: {message}\n\n"
+                f"Reading Value: {payload.get('reading_value')}\n"
+                f"Threshold: {payload.get('threshold_value')}\n"
+                f"Time: {payload.get('triggered_at')}\n\n"
+                f"Alert ID: {payload.get('alert_id')}\n"
+                f"{claim_line}\nKokonut Intelligence Alert System\n"
+            )
+        else:
+            source_system = str(payload.get("source_system") or "unknown")
+            status = str(payload.get("status") or "unknown")
+            subject = f"[Kokonut] Data freshness {status}: {source_system}"
+            body = f"{message}\nAlert ID: {payload.get('alert_id')}\n"
         destinations.append(("email", DESTINATION_KEY, {"subject": subject, "body": body}))
 
     return destinations

@@ -1,3 +1,20 @@
+### CAP-047 freshness alert durable dispatch — 22 October 2026
+
+Freshness checks now persist a stable `data_stale` platform event in the same
+transaction as the check and alert-history transition. The existing event
+handler enqueues webhook, Directus, and email intents in the durable
+notification outbox; the freshness process no longer calls providers before
+commit. Existing migration 297 already routes `data_stale` to the callable
+handler, and a regression now pins that contract. The focused freshness,
+event, outbox, migration, and inventory selection passes 202 tests. Ruff, Python compilation, refreshed
+runtime/worker SQL and call inventories, and capability-matrix validation
+pass. No migration was applied and no provider, candidate, or legacy service
+was contacted. Destination ownership, live delivery/recovery, and MAN-CAP-047
+acceptance remain open. No schema migration was needed. Evidence:
+[freshness alert outbox](builds/2026-10-22-recovery/freshness-alert-outbox-atomicity.json).
+Checklist: 975 complete / 24 open (999 total); capability matrix: 30
+baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+
 ### Public-interest report cursor cleanup — 22 October 2026
 
 `fetch_public_interest_context()` now closes its cursor in a `finally` block,

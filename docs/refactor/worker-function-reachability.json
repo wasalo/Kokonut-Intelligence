@@ -6,8 +6,8 @@
     "operation_roots": 32,
     "source_files": 95,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 679,
-    "direct_call_edges": 933,
+    "function_memberships": 677,
+    "direct_call_edges": 929,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -636,7 +636,7 @@
           "qualname": "_configured_channels",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 141
+          "line": 158
         },
         {
           "key": "services.events.notification_outbox:_deliver",
@@ -644,7 +644,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 403
+          "line": 420
         },
         {
           "key": "services.events.notification_outbox:_finish_attempt",
@@ -652,7 +652,7 @@
           "qualname": "_finish_attempt",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 466
+          "line": 483
         },
         {
           "key": "services.events.notification_outbox:_recover_expired_leases",
@@ -660,7 +660,7 @@
           "qualname": "_recover_expired_leases",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 313
+          "line": 330
         },
         {
           "key": "services.events.notification_outbox:_retry_delay_seconds",
@@ -668,7 +668,7 @@
           "qualname": "_retry_delay_seconds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 461
+          "line": 478
         },
         {
           "key": "services.events.notification_outbox:_storage_thresholds",
@@ -676,7 +676,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 539
+          "line": 556
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -684,7 +684,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 620
+          "line": 637
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -692,7 +692,7 @@
           "qualname": "claim_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 339
+          "line": 356
         },
         {
           "key": "services.events.notification_outbox:deliver_batch",
@@ -700,7 +700,7 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 513
+          "line": 530
         },
         {
           "key": "services.events.notification_outbox:dispose_dead_letter",
@@ -708,7 +708,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 670
+          "line": 687
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -716,7 +716,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 559
+          "line": 576
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -724,7 +724,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 601
+          "line": 618
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -732,7 +732,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 628
+          "line": 645
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -1440,73 +1440,73 @@
           "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 149
+          "line": 166
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 416
+          "line": 433
         },
         {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
-          "line": 474
+          "line": 491
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_configured_channels",
           "source": "services/events/notification_outbox.py",
-          "line": 354
+          "line": 371
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 356
+          "line": 373
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 361
+          "line": 378
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 520
+          "line": 537
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 529
+          "line": 546
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 515
+          "line": 532
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 680
+          "line": 697
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 580
+          "line": 597
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 629
+          "line": 646
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -1815,7 +1815,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 278
+          "line": 295
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -1823,7 +1823,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 158
+          "line": 175
         },
         {
           "key": "services.ingestion.anomaly_detector:_get_event_bus",
@@ -2147,19 +2147,19 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 95
+          "line": 106
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 301
+          "line": 318
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 168
+          "line": 185
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
@@ -3553,20 +3553,24 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
+        "services/events/bus.py",
+        "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
-        "services/ingestion/data_freshness.py"
+        "services/ingestion/data_freshness.py",
+        "services/security/execution_allowlist.py"
       ],
       "entry_functions": [
         {
           "function": "services.ingestion.data_freshness:main",
           "source": "services/ingestion/data_freshness.py",
-          "line": 625
+          "line": 570
         }
       ],
       "reachable_functions": [
@@ -3600,7 +3604,7 @@
           "qualname": "_alert_event",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 141
+          "line": 139
         },
         {
           "key": "services.ingestion.data_freshness:_alert_state",
@@ -3608,7 +3612,7 @@
           "qualname": "_alert_state",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 167
+          "line": 165
         },
         {
           "key": "services.ingestion.data_freshness:_determine_status",
@@ -3616,7 +3620,7 @@
           "qualname": "_determine_status",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 126
+          "line": 124
         },
         {
           "key": "services.ingestion.data_freshness:_insert_check_result",
@@ -3624,7 +3628,7 @@
           "qualname": "_insert_check_result",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 278
+          "line": 253
         },
         {
           "key": "services.ingestion.data_freshness:_location_ids",
@@ -3632,7 +3636,7 @@
           "qualname": "_location_ids",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 71
+          "line": 69
         },
         {
           "key": "services.ingestion.data_freshness:_persist_alert_event",
@@ -3640,15 +3644,15 @@
           "qualname": "_persist_alert_event",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 211
+          "line": 209
         },
         {
-          "key": "services.ingestion.data_freshness:_persist_delivery_attempt",
+          "key": "services.ingestion.data_freshness:_publish_alert_event",
           "module": "services.ingestion.data_freshness",
-          "qualname": "_persist_delivery_attempt",
+          "qualname": "_publish_alert_event",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 255
+          "line": 298
         },
         {
           "key": "services.ingestion.data_freshness:_query_freshness_configs",
@@ -3656,7 +3660,7 @@
           "qualname": "_query_freshness_configs",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 49
+          "line": 47
         },
         {
           "key": "services.ingestion.data_freshness:_query_latest_data_at",
@@ -3664,15 +3668,7 @@
           "qualname": "_query_latest_data_at",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 80
-        },
-        {
-          "key": "services.ingestion.data_freshness:_safe_delivery_error",
-          "module": "services.ingestion.data_freshness",
-          "qualname": "_safe_delivery_error",
-          "class_scope": null,
-          "source": "services/ingestion/data_freshness.py",
-          "line": 318
+          "line": 78
         },
         {
           "key": "services.ingestion.data_freshness:_safe_evaluation_error",
@@ -3680,15 +3676,7 @@
           "qualname": "_safe_evaluation_error",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 327
-        },
-        {
-          "key": "services.ingestion.data_freshness:_send_alert",
-          "module": "services.ingestion.data_freshness",
-          "qualname": "_send_alert",
-          "class_scope": null,
-          "source": "services/ingestion/data_freshness.py",
-          "line": 332
+          "line": 293
         },
         {
           "key": "services.ingestion.data_freshness:_validate_thresholds",
@@ -3696,7 +3684,7 @@
           "qualname": "_validate_thresholds",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 65
+          "line": 63
         },
         {
           "key": "services.ingestion.data_freshness:check_freshness",
@@ -3704,7 +3692,7 @@
           "qualname": "check_freshness",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 404
+          "line": 348
         },
         {
           "key": "services.ingestion.data_freshness:get_db",
@@ -3712,7 +3700,7 @@
           "qualname": "get_db",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 617
+          "line": 562
         },
         {
           "key": "services.ingestion.data_freshness:get_freshness_summary",
@@ -3720,7 +3708,7 @@
           "qualname": "get_freshness_summary",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 577
+          "line": 522
         },
         {
           "key": "services.ingestion.data_freshness:main",
@@ -3728,7 +3716,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 587
+          "line": 532
         }
       ],
       "direct_call_edges": [
@@ -3739,130 +3727,106 @@
           "line": 59
         },
         {
-          "caller": "services.ingestion.data_freshness:_send_alert",
-          "callee": "services.ingestion.data_freshness:_safe_delivery_error",
-          "source": "services/ingestion/data_freshness.py",
-          "line": 368
-        },
-        {
-          "caller": "services.ingestion.data_freshness:_send_alert",
-          "callee": "services.ingestion.data_freshness:_safe_delivery_error",
-          "source": "services/ingestion/data_freshness.py",
-          "line": 377
-        },
-        {
-          "caller": "services.ingestion.data_freshness:_send_alert",
-          "callee": "services.ingestion.data_freshness:_safe_delivery_error",
-          "source": "services/ingestion/data_freshness.py",
-          "line": 394
-        },
-        {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 475
+          "line": 419
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_alert_state",
           "source": "services/ingestion/data_freshness.py",
-          "line": 468
+          "line": 412
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_determine_status",
           "source": "services/ingestion/data_freshness.py",
-          "line": 437
+          "line": 381
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_insert_check_result",
           "source": "services/ingestion/data_freshness.py",
-          "line": 456
+          "line": 400
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_location_ids",
           "source": "services/ingestion/data_freshness.py",
-          "line": 418
+          "line": 362
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_persist_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 487
+          "line": 431
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
-          "callee": "services.ingestion.data_freshness:_persist_delivery_attempt",
+          "callee": "services.ingestion.data_freshness:_publish_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 510
+          "line": 443
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_query_freshness_configs",
           "source": "services/ingestion/data_freshness.py",
-          "line": 410
+          "line": 354
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_query_latest_data_at",
           "source": "services/ingestion/data_freshness.py",
-          "line": 432
+          "line": 376
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_safe_evaluation_error",
           "source": "services/ingestion/data_freshness.py",
-          "line": 445
-        },
-        {
-          "caller": "services.ingestion.data_freshness:check_freshness",
-          "callee": "services.ingestion.data_freshness:_send_alert",
-          "source": "services/ingestion/data_freshness.py",
-          "line": 500
+          "line": 389
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_validate_thresholds",
           "source": "services/ingestion/data_freshness.py",
-          "line": 431
+          "line": 375
         },
         {
           "caller": "services.ingestion.data_freshness:get_db",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/data_freshness.py",
-          "line": 621
+          "line": 566
         },
         {
           "caller": "services.ingestion.data_freshness:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 607
+          "line": 552
         },
         {
           "caller": "services.ingestion.data_freshness:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 610
+          "line": 555
         },
         {
           "caller": "services.ingestion.data_freshness:main",
           "callee": "services.ingestion.data_freshness:check_freshness",
           "source": "services/ingestion/data_freshness.py",
-          "line": 606
+          "line": 551
         },
         {
           "caller": "services.ingestion.data_freshness:main",
           "callee": "services.ingestion.data_freshness:get_db",
           "source": "services/ingestion/data_freshness.py",
-          "line": 603
+          "line": 548
         },
         {
           "caller": "services.ingestion.data_freshness:main",
           "callee": "services.ingestion.data_freshness:get_freshness_summary",
           "source": "services/ingestion/data_freshness.py",
-          "line": 609
+          "line": 554
         }
       ],
       "callback_edges": [],
@@ -8468,7 +8432,7 @@
         {
           "function": "services.ingestion.weather:main",
           "source": "services/ingestion/weather.py",
-          "line": 306
+          "line": 339
         }
       ],
       "reachable_functions": [
@@ -8590,7 +8554,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 284
+          "line": 317
         },
         {
           "key": "services.ingestion.weather:parse_weather",
@@ -8674,7 +8638,7 @@
           "caller": "services.ingestion.weather:main",
           "callee": "services.ingestion.weather:run",
           "source": "services/ingestion/weather.py",
-          "line": 300
+          "line": 333
         },
         {
           "caller": "services.ingestion.weather:run",
@@ -8686,43 +8650,43 @@
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather.py",
-          "line": 246
+          "line": 251
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 239
+          "line": 244
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 258
+          "line": 270
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:fetch_weather",
           "source": "services/ingestion/weather.py",
-          "line": 232
+          "line": 234
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather",
           "source": "services/ingestion/weather.py",
-          "line": 236
+          "line": 243
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather_clickhouse",
           "source": "services/ingestion/weather.py",
-          "line": 273
+          "line": 306
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:parse_weather",
           "source": "services/ingestion/weather.py",
-          "line": 235
+          "line": 237
         }
       ],
       "callback_edges": [],
@@ -8750,7 +8714,7 @@
         {
           "function": "services.ingestion.weather_forecast:main",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 419
+          "line": 434
         }
       ],
       "reachable_functions": [
@@ -8888,7 +8852,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 397
+          "line": 412
         },
         {
           "key": "services.ingestion.weather_forecast:parse_forecast_list",
@@ -8904,7 +8868,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 347
+          "line": 362
         }
       ],
       "direct_call_edges": [
@@ -8948,43 +8912,43 @@
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 310
+          "line": 315
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 303
+          "line": 308
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 324
+          "line": 335
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:fetch_forecast_raw",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 296
+          "line": 298
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 340
+          "line": 355
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:insert_location_forecasts",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 300
+          "line": 307
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:parse_forecast_list",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 299
+          "line": 301
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -9020,19 +8984,19 @@
           "caller": "services.ingestion.weather_forecast:main",
           "callee": "services.ingestion.weather_forecast:run",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 413
+          "line": 428
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 363
+          "line": 378
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.weather_forecast:_ingest_locations",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 382
+          "line": 397
         }
       ],
       "callback_edges": [],
@@ -11736,7 +11700,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 278
+          "line": 295
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -11744,7 +11708,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 158
+          "line": 175
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -11752,7 +11716,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 233
+          "line": 250
         }
       ],
       "direct_call_edges": [
@@ -11802,25 +11766,25 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 95
+          "line": 106
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 301
+          "line": 318
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 168
+          "line": 185
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 244
+          "line": 261
         }
       ],
       "callback_edges": [],
@@ -11920,7 +11884,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 278
+          "line": 295
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -11928,7 +11892,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 158
+          "line": 175
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -11936,7 +11900,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 233
+          "line": 250
         }
       ],
       "direct_call_edges": [
@@ -11992,25 +11956,25 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 95
+          "line": 106
         },
         {
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 301
+          "line": 318
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 168
+          "line": 185
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 244
+          "line": 261
         }
       ],
       "callback_edges": [],
@@ -12232,7 +12196,7 @@
           "caller": "services.events.notification_outbox:_notification_payloads",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 95
+          "line": 106
         },
         {
           "caller": "services.ingestion.anomaly_detector:handle_sensor_reading",

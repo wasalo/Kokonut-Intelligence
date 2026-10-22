@@ -203,8 +203,8 @@ def test_freshness_inserts_check_results() -> None:
 
 def test_freshness_has_alert_channels() -> None:
     content = Path("services/ingestion/data_freshness.py").read_text()
-    assert "webhook" in content or "ALERT_WEBHOOK_URL" in content
-    assert "email" in content or "ALERT_SMTP" in content
+    assert "_publish_alert_event" in content
+    assert '"data_stale"' in content
 
 
 def test_climate_data_pipeline_targets_all_tables() -> None:
