@@ -394,29 +394,53 @@ def test_demand_review_queue_is_bounded_redacted_and_review_grant_gated():
     reader = _function(
         source,
         "async function loadOperatingPilotDemandReviewQueue(append = false)",
-        "function appendOperatingPilotDemandReviewRow(item)",
+        "function appendOperatingPilotDemandReviewRow(item, locationId)",
     )
     row = _function(
         source,
-        "function appendOperatingPilotDemandReviewRow(item)",
-        "async function loadOperatingPilot()",
+        "function appendOperatingPilotDemandReviewRow(item, locationId)",
+        "function syncOperatingPilotDemandReviewReason()",
     )
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
     assert "operatingPilotCapacityReviewLocations.has(locationId)" in reader
     assert "demand-review-queue?${params}" in reader
     assert 'credentials: "same-origin"' in reader
     assert 'cache: "no-store"' in reader
-    assert "appendOperatingPilotDemandReviewRow(item)" in reader
+    assert "appendOperatingPilotDemandReviewRow(item, locationId)" in reader
     assert "requestVersion !== operatingPilotDemandReviewRequestVersion" in reader
     assert "locationId !== operatingPilotLocation.value" in reader
     assert "innerHTML" not in reader + row
     assert "description" not in row
     assert "party_id" not in row
     assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert "Review submission" in row
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in row
     assert "operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in initialize
     assert "reads.push(loadOperatingPilotDemandReviewQueue())" in initialize
     assert "await loadOperatingPilotDemandReviewQueue()" in initialize
     assert 'click", () => loadOperatingPilotDemandReviewQueue(true)' in source
+
+
+def test_demand_review_decision_is_independent_acknowledged_and_idempotent():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotDemandReview(event)",
+        "async function loadOperatingPilot()",
+    )
+    assert "operatingPilotPendingDemandReview" in submit
+    assert "operatingPilotCapacityReviewLocations.has(pending.location_id)" in submit
+    assert "operatingPilotDemandReviewAcknowledged.checked" in submit
+    assert 'decision === "rejected" && !reason' in submit
+    assert "operatingPilotPendingDemandReviewDecisions.get(pending.signal_id)" in submit
+    assert "crypto.randomUUID()" in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "/demand-signals/${encodeURIComponent(pending.signal_id)}/review" in submit
+    assert "Fulfillment remains separate." in submit
+    assert "operatingPilotDemandReviewDialog.close()" in submit
+    assert "loadOperatingPilotDemandReviewQueue()" in submit
+    assert "/fulfill" not in submit.lower()
 
 
 def test_capacity_review_decision_requires_acknowledgement_csrf_and_exact_retry_id():

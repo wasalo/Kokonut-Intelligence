@@ -24,6 +24,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         create_location_operating_pilot_capacity_draft,
         create_location_operating_pilot_demand_draft,
         review_location_operating_pilot_capacity,
+        review_location_operating_pilot_demand,
         revise_location_operating_pilot_capacity_draft,
         revise_location_operating_pilot_demand_draft,
         submit_location_operating_pilot_capacity_draft,
@@ -967,6 +968,94 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Operating capacity review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review"
+    )
+    async def review_operating_pilot_demand_signal(
+        request: Request, location_id: str, signal_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Demand review body must be valid JSON"},
+                headers=headers,
+            )
+        if not isinstance(payload, dict):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Demand review body must be an object"},
+                headers=headers,
+            )
+        request_id = payload.pop("request_id", None)
+        if set(payload) - {"decision", "reason"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Demand review contains unsupported fields"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                review_location_operating_pilot_demand,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                signal_id,
+                request_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operating-pilot review access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location review grant and independent human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The review request conflicts or this submission already has a decision"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Demand review decision or reason is invalid"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand review decision unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

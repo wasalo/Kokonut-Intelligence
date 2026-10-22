@@ -1954,6 +1954,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    operating_pilot_demand_review_match = re.fullmatch(
+        r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/demand-signals/([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if operating_pilot_demand_review_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "operating_pilot",
+            "action": "review",
+            "public": False,
+            "location_id": operating_pilot_demand_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     operating_pilot_capacity_review_match = re.fullmatch(
         r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/capacity-profiles/([0-9a-fA-F-]{36})/review",
         path,

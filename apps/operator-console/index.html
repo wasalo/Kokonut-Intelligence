@@ -663,12 +663,12 @@
           </section>
           <section id="operating-pilot-demand-review" hidden aria-labelledby="operating-pilot-demand-review-heading">
             <h3 id="operating-pilot-demand-review-heading">Independent demand review queue</h3>
-            <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity, private descriptions, and source references. This view records no decision.</p>
+            <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity, private descriptions, and source references. Approval records review only; fulfillment remains separate.</p>
             <div class="toolbar"><button id="operating-pilot-demand-review-refresh" type="button">Refresh demand review queue</button></div>
             <p id="operating-pilot-demand-review-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Record</th><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Updated</th></tr></thead>
+                <thead><tr><th>Record</th><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-demand-review-rows"></tbody>
               </table>
             </div>
@@ -689,6 +689,23 @@
               <p id="operating-pilot-capacity-review-decision-status" class="muted" role="status" aria-live="polite"></p>
               <button id="operating-pilot-capacity-review-cancel" class="secondary" type="button">Cancel</button>
               <button id="operating-pilot-capacity-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
+          <dialog id="operating-pilot-demand-review-dialog" aria-labelledby="operating-pilot-demand-review-dialog-heading">
+            <form id="operating-pilot-demand-review-form">
+              <h3 id="operating-pilot-demand-review-dialog-heading">Review submitted demand</h3>
+              <p id="operating-pilot-demand-review-signal" class="muted"></p>
+              <label for="operating-pilot-demand-review-decision">Decision</label>
+              <select id="operating-pilot-demand-review-decision" required>
+                <option value="approved">Approve demand</option>
+                <option value="rejected">Reject and return for revision</option>
+              </select>
+              <label id="operating-pilot-demand-review-reason-label" for="operating-pilot-demand-review-reason" hidden>Reason for rejection</label>
+              <textarea id="operating-pilot-demand-review-reason" maxlength="2000" rows="4" hidden></textarea>
+              <label><input id="operating-pilot-demand-review-acknowledged" type="checkbox" required> I reviewed this submission and am authorized to record this decision.</label>
+              <p id="operating-pilot-demand-review-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-demand-review-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-demand-review-submit" type="submit">Record decision</button>
             </form>
           </dialog>
           <h3>Demand signals</h3>
@@ -1895,7 +1912,17 @@
       const operatingPilotDemandReviewStatus = document.querySelector("#operating-pilot-demand-review-status");
       const operatingPilotDemandReviewRows = document.querySelector("#operating-pilot-demand-review-rows");
       const operatingPilotDemandReviewMore = document.querySelector("#operating-pilot-demand-review-more");
+      const operatingPilotDemandReviewDialog = document.querySelector("#operating-pilot-demand-review-dialog");
+      const operatingPilotDemandReviewForm = document.querySelector("#operating-pilot-demand-review-form");
+      const operatingPilotDemandReviewSignal = document.querySelector("#operating-pilot-demand-review-signal");
+      const operatingPilotDemandReviewDecision = document.querySelector("#operating-pilot-demand-review-decision");
+      const operatingPilotDemandReviewReason = document.querySelector("#operating-pilot-demand-review-reason");
+      const operatingPilotDemandReviewReasonLabel = document.querySelector("#operating-pilot-demand-review-reason-label");
+      const operatingPilotDemandReviewAcknowledged = document.querySelector("#operating-pilot-demand-review-acknowledged");
+      const operatingPilotDemandReviewDecisionStatus = document.querySelector("#operating-pilot-demand-review-decision-status");
+      const operatingPilotDemandReviewSubmit = document.querySelector("#operating-pilot-demand-review-submit");
       let operatingPilotPendingCapacityReview = null;
+      let operatingPilotPendingDemandReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotSubmitOwnDemandLocations = new Set();
@@ -1912,6 +1939,7 @@
       let operatingPilotPendingCapacityEdit = null;
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
+      const operatingPilotPendingDemandReviewDecisions = new Map();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
@@ -3505,7 +3533,7 @@
           const result = await response.json();
           if (requestVersion !== operatingPilotDemandReviewRequestVersion
               || locationId !== operatingPilotLocation.value) return;
-          for (const item of result.items || []) appendOperatingPilotDemandReviewRow(item);
+          for (const item of result.items || []) appendOperatingPilotDemandReviewRow(item, locationId);
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
           operatingPilotDemandReviewMore.hidden = !canContinue;
@@ -3513,7 +3541,7 @@
           operatingPilotDemandReviewStatus.textContent = canContinue
             ? "Showing a bounded page. Descriptions, source references, and submitter identity are not returned."
             : operatingPilotDemandReviewRows.childElementCount
-              ? "Submitted demand loaded. No review decision was recorded."
+              ? "Submitted demand loaded for independent review."
               : "No Kernel demand submissions are awaiting review.";
         } catch (error) {
           if (requestVersion !== operatingPilotDemandReviewRequestVersion
@@ -3528,7 +3556,7 @@
         }
       }
 
-      function appendOperatingPilotDemandReviewRow(item) {
+      function appendOperatingPilotDemandReviewRow(item, locationId) {
         const row = document.createElement("tr");
         for (const value of [
           item.signal_id,
@@ -3542,7 +3570,95 @@
           cell.textContent = operatingPilotDisplayValue(value);
           row.append(cell);
         }
+        const actionCell = document.createElement("td");
+        const review = document.createElement("button");
+        review.type = "button";
+        review.className = "secondary";
+        review.textContent = "Review submission";
+        review.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotCapacityReviewLocations.has(locationId)) return;
+          operatingPilotPendingDemandReview = { signal_id: item.signal_id, location_id: locationId };
+          operatingPilotDemandReviewForm.reset();
+          operatingPilotDemandReviewReason.value = "";
+          operatingPilotDemandReviewSignal.textContent = `Record ${operatingPilotDisplayValue(item.signal_id)}`;
+          operatingPilotDemandReviewDecisionStatus.textContent = "A rejection requires a reason. Exact retries reuse their request ID.";
+          syncOperatingPilotDemandReviewReason();
+          operatingPilotDemandReviewDialog.showModal();
+        });
+        actionCell.append(review);
+        row.append(actionCell);
         operatingPilotDemandReviewRows.append(row);
+      }
+
+      function syncOperatingPilotDemandReviewReason() {
+        const rejecting = operatingPilotDemandReviewDecision.value === "rejected";
+        operatingPilotDemandReviewReason.hidden = !rejecting;
+        operatingPilotDemandReviewReasonLabel.hidden = !rejecting;
+        operatingPilotDemandReviewReason.required = rejecting;
+      }
+
+      async function submitOperatingPilotDemandReview(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingDemandReview;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(pending.location_id)) return;
+        const decision = operatingPilotDemandReviewDecision.value;
+        const reason = operatingPilotDemandReviewReason.value.trim();
+        if (decision === "rejected" && !reason) {
+          operatingPilotDemandReviewDecisionStatus.textContent = "Enter a reason before rejecting this submission.";
+          operatingPilotDemandReviewReason.focus();
+          return;
+        }
+        if (!operatingPilotDemandReviewAcknowledged.checked) {
+          operatingPilotDemandReviewDecisionStatus.textContent = "Confirm that you reviewed the submission and are authorized to decide.";
+          operatingPilotDemandReviewAcknowledged.focus();
+          return;
+        }
+        const payload = { decision, reason: reason || null };
+        const signature = JSON.stringify(payload);
+        let pendingRequest = operatingPilotPendingDemandReviewDecisions.get(pending.signal_id);
+        if (!pendingRequest || pendingRequest.signature !== signature) {
+          pendingRequest = { request_id: crypto.randomUUID(), signature };
+          operatingPilotPendingDemandReviewDecisions.set(pending.signal_id, pendingRequest);
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotDemandReviewDecisionStatus.textContent = "Refresh the page to establish a protected session before deciding.";
+          return;
+        }
+        operatingPilotDemandReviewSubmit.disabled = true;
+        operatingPilotDemandReviewDecisionStatus.textContent = "Recording independent demand review decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/demand-signals/${encodeURIComponent(pending.signal_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pendingRequest.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.signal_id !== pending.signal_id || result.decision !== decision) {
+            throw new Error("The review response did not match this decision. Retry using the same request.");
+          }
+          operatingPilotPendingDemandReviewDecisions.delete(pending.signal_id);
+          operatingPilotPendingDemandReview = null;
+          operatingPilotDemandReviewDialog.close();
+          const decisionMessage = `${decision === "approved" ? "Approved" : "Rejected for revision"} demand recorded${result.replayed ? " (confirmed retry)" : ""}. Fulfillment remains separate.`;
+          await loadOperatingPilotDemandReviewQueue();
+          await loadOperatingPilotDemand();
+          await loadOperatingPilotSummary();
+          operatingPilotDemandReviewStatus.textContent = decisionMessage;
+        } catch (error) {
+          operatingPilotDemandReviewDecisionStatus.textContent = `${error.message} Retry with the same decision and reason to reuse the request ID.`;
+        } finally {
+          operatingPilotDemandReviewSubmit.disabled = false;
+        }
       }
 
       async function loadOperatingPilot() {
@@ -16408,6 +16524,11 @@
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
       operatingPilotLocation.addEventListener("change", () => {
+        if (operatingPilotPendingDemandReview
+            && operatingPilotPendingDemandReview.location_id !== operatingPilotLocation.value) {
+          operatingPilotPendingDemandReview = null;
+          operatingPilotDemandReviewDialog.close();
+        }
         if (operatingPilotPendingDemandEdit
             && operatingPilotPendingDemandEdit.location_id !== operatingPilotLocation.value) {
           cancelOperatingPilotDemandEdit();
@@ -16450,6 +16571,15 @@
       operatingPilotDemandReviewMore.addEventListener(
         "click", () => loadOperatingPilotDemandReviewQueue(true)
       );
+      operatingPilotDemandReviewDecision.addEventListener("change", syncOperatingPilotDemandReviewReason);
+      operatingPilotDemandReviewForm.addEventListener("submit", submitOperatingPilotDemandReview);
+      document.querySelector("#operating-pilot-demand-review-cancel").addEventListener("click", () => {
+        operatingPilotPendingDemandReview = null;
+        operatingPilotDemandReviewDialog.close();
+      });
+      operatingPilotDemandReviewDialog.addEventListener("cancel", () => {
+        operatingPilotPendingDemandReview = null;
+      });
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
