@@ -49,6 +49,14 @@ explicit SELECT grants exactly. This protects the relation-level reader
 boundary and application query shape; it does not prove populated data parity
 or tenant RLS.
 
+**CAP-038 synthesis location preflight — 22 October 2026:** all ten shared
+synthesis task contracts and CLIs require a location UUID, the shared runner
+rejects a missing location before opening a connection, and direct synthesis
+functions reject missing or malformed UUIDs before cursor access. Network
+reference views remain available inside a location-scoped summary. This closes
+accidental all-farm reads, but caller-to-location authorization and database
+tenant isolation remain open.
+
 The default Kernel image from commit `9e02eeff` also builds for `linux/arm64`;
 QEMU imported the isolated RPC worker and constructed a synthetic snapshot with
 networking disabled. This adds image and worker-import evidence only; no

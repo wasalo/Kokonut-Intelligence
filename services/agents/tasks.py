@@ -71,7 +71,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe financial sustainability, risk mitigation, scaling roadmap, and Green Paper publication status.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -85,7 +85,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe capital efficiency, regenerative payback, governance throughput, and capital-provider utility scenarios.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -99,7 +99,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe time liberation, capital alignment, governance inclusion, and land stewardship evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -113,7 +113,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe GNH alignment, cultural preservation, renewable energy, vulnerable access, and foundational well-being evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -127,7 +127,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe regenerative outcomes, community governance, replication readiness, and adaptive stewardship evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -141,7 +141,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe scaling economics, adoption barriers, perpetual-value stress tests, and open-source reuse evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -155,7 +155,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe anti-capture governance, flexible redistribution policies, federation protocols, algorithmic redistribution mechanisms, and participatory signals.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -169,7 +169,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe bio-organic fertilizer batches, input provenance, recipe library, distribution, quality tests, and LAC regional input availability.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {

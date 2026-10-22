@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe capital efficiency, regenerative ROI, governance throughput, and utility scenarios."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -169,7 +174,7 @@ def run_capital_efficiency_synthesis(location_id: str | None = None, store: bool
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut capital efficiency synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut capital efficiency synthesis agent")
 
 
 if __name__ == "__main__":

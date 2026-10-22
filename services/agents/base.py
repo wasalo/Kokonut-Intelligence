@@ -32,6 +32,17 @@ _PUBLIC_SOURCE_VIEW_NAME = re.compile(r"^v_public_[a-z0-9_]{1,55}$")
 _SOURCE_REFERENCE_SCOPES = frozenset({"location", "network", "location_or_network"})
 
 
+def require_synthesis_location_id(location_id: Any) -> str:
+    """Reject unscoped synthesis reads before a query can run."""
+    if not isinstance(location_id, str) or not location_id.strip():
+        raise ValueError("Synthesis requires an exact location_id")
+    try:
+        uuid.UUID(location_id)
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("Synthesis requires a valid location_id UUID") from exc
+    return location_id
+
+
 def validate_source_tables(source_tables: Any, *, label: str) -> list[str]:
     """Validate and copy source-table names before draft persistence."""
     if (
@@ -254,6 +265,8 @@ class SynthesisAgent:
     ) -> dict[str, Any]:
         """Run the agent: synthesize, optionally store a draft, and validate."""
         validate_task_capabilities(self.task_key)
+        if type(self).source_reference_views and location_id is None:
+            raise ValueError("Synthesis requires an exact location_id")
         inputs = {"store": store}
         if location_id is not None:
             inputs["location_id"] = location_id
@@ -317,7 +330,11 @@ def agent_cli(agent: SynthesisAgent, description: str = "", location_required: b
     parser = argparse.ArgumentParser(
         description=description or f"Run the Kokonut {agent.summary_type} synthesis agent"
     )
-    parser.add_argument("--location-id", required=location_required, help="Location UUID")
+    parser.add_argument(
+        "--location-id",
+        required=location_required or bool(type(agent).source_reference_views),
+        help="Location UUID",
+    )
     parser.add_argument(
         "--store",
         action="store_true",

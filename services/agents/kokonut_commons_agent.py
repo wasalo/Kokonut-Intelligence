@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _fetch(cur, view: str, location_id: str | None = None) -> list[dict[str, Any]]:
@@ -19,6 +23,7 @@ def _fetch(cur, view: str, location_id: str | None = None) -> list[dict[str, Any
 
 
 def synthesize_kokonut_commons(conn, location_id: str | None = None) -> dict[str, Any]:
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     anti_capture = _fetch(cur, "v_public_anti_capture_governance_policy", location_id)
     redistribution = _fetch(cur, "v_public_commons_redistribution_policy", location_id)
@@ -88,7 +93,7 @@ def run_kokonut_commons_synthesis(location_id: str | None = None, store: bool = 
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut commons governance synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut commons governance synthesis agent")
 
 
 if __name__ == "__main__":

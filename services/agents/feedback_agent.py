@@ -7,11 +7,16 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def synthesize_feedback(conn, location_id: str) -> dict[str, Any]:
     """Summarize stakeholder voice only from the approved consent-safe view."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """

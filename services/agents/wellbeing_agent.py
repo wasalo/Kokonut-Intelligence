@@ -8,11 +8,16 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
     """Summarize public-safe well-being, cultural, and participation evidence."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """
@@ -112,13 +117,11 @@ class WellbeingSynthesisAgent(SynthesisAgent):
         "cultural_context_record",
         "wellbeing_metric_observation",
         "participatory_action_record",
-        "stakeholder_feedback",
     ]
     source_reference_views = {
         "cultural_context_record": "v_public_cultural_context_summary",
         "wellbeing_metric_observation": "v_public_wellbeing_metric_summary",
         "participatory_action_record": "v_public_participatory_governance_summary",
-        "stakeholder_feedback": "v_public_stakeholder_feedback_summary",
     }
 
     def synthesize(self, conn, location_id=None):

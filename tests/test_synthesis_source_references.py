@@ -17,6 +17,7 @@ from services.agents.kokonut_commons_agent import KokonutCommonsSynthesisAgent
 from services.agents.open_source_capitalist_agent import OpenSourceCapitalistSynthesisAgent
 from services.agents.regenerator_agent import RegeneratorSynthesisAgent
 from services.agents.resilience_agent import ResilienceSynthesisAgent
+from services.agents.tasks import get_task
 from services.agents.wellbeing_agent import WellbeingSynthesisAgent
 from services.agents.worker_draft import SYNTHESIS_SUMMARY_TYPES, _validate_source_references
 
@@ -40,6 +41,10 @@ SYNTHESIS_RELATION = re.compile(
 
 def test_worker_summary_type_registry_covers_all_shared_synthesis_agents() -> None:
     assert {agent.summary_type for agent in AGENTS} == SYNTHESIS_SUMMARY_TYPES
+    assert all(
+        get_task(agent.task_key)["inputs"]["location_id"]["required"]
+        for agent in AGENTS
+    )
 
 
 class _QueryRecordingCursor:
@@ -82,7 +87,7 @@ def test_synthesis_queries_read_only_registered_public_views(agent_class: Any) -
 
     assert relations
     assert all(relation.startswith("v_public_") for relation in relations)
-    assert relations <= approved_views
+    assert relations == approved_views
 
     for query, params in connection.cursor_value.queries:
         assert re.match(r"\s*SELECT\b", query, re.IGNORECASE)
@@ -104,6 +109,38 @@ def test_synthesis_queries_read_only_registered_public_views(agent_class: Any) -
                 assert (includes_unassigned is not None) == (
                     scope == "location_or_network"
                 )
+
+
+class _CursorForbiddenConnection:
+    def cursor(self, cursor_factory: Any = None) -> None:
+        raise AssertionError("missing location must fail before cursor access")
+
+
+@pytest.mark.parametrize("agent_class", AGENTS)
+def test_synthesis_rejects_missing_location_before_cursor_access(agent_class: Any) -> None:
+    with pytest.raises(ValueError, match="requires an exact location_id"):
+        agent_class().synthesize(_CursorForbiddenConnection(), None)
+
+
+@pytest.mark.parametrize("agent_class", AGENTS)
+def test_synthesis_rejects_malformed_location_before_cursor_access(
+    agent_class: Any,
+) -> None:
+    with pytest.raises(ValueError, match="requires a valid location_id UUID"):
+        agent_class().synthesize(_CursorForbiddenConnection(), "not-a-uuid")
+
+
+@pytest.mark.parametrize("agent_class", AGENTS)
+def test_agent_run_rejects_missing_location_before_database_access(
+    agent_class: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail_if_database_opens() -> None:
+        raise AssertionError("locationless synthesis must not open the database")
+
+    monkeypatch.setattr("services.agents.base.get_db", fail_if_database_opens)
+
+    with pytest.raises(ValueError, match="requires an exact location_id"):
+        agent_class().run()
 
 
 def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
@@ -225,9 +262,7 @@ def test_global_and_shared_sources_have_explicit_scopes() -> None:
 
 
 def test_feedback_sources_use_only_consent_approved_published_views() -> None:
-    assert WellbeingSynthesisAgent.source_reference_views["stakeholder_feedback"] == (
-        "v_public_stakeholder_feedback_summary"
-    )
+    assert "stakeholder_feedback" not in WellbeingSynthesisAgent.source_reference_views
     assert FeedbackSynthesisAgent.source_reference_views == {
         "stakeholder_feedback": "v_public_stakeholder_feedback_summary"
     }

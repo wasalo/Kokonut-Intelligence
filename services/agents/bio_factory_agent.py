@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -102,6 +106,7 @@ def _synthesize_regional(cur) -> list[dict[str, Any]]:
 
 def synthesize_bio_factory(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe bio-factory batches, provenance, recipes, quality, and LAC regional inputs."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     batch_rows = _synthesize_batches(cur, location_id)
     provenance_rows = _synthesize_provenance(cur, location_id)
@@ -246,7 +251,7 @@ def run_bio_factory_synthesis(location_id: str | None = None, store: bool = Fals
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut bio-factory synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut bio-factory synthesis agent")
 
 
 if __name__ == "__main__":

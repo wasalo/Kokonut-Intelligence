@@ -14632,3 +14632,21 @@ RLS or populated output parity. Checklist: 946 complete / 24 open (970 total);
 the capability matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. Evidence:
 [synthesis query allowlist](builds/2026-10-22-recovery/cap-038-agent-synthesis-query-allowlist.json).
+
+
+### CAP-038 require location on shared synthesis reads — 22 October 2026
+
+The ten registered synthesis tasks now require a location UUID, and their CLI
+entry points require `--location-id` even if a caller previously marked the
+option optional. The base runner rejects missing scope before connection
+acquisition; direct synthesis functions reject missing or malformed UUIDs
+before creating a cursor. Network reference views remain available within a
+scoped summary. The same pass removed Wellbeing's stale feedback provenance
+claim and corrected network-reference/report regressions. The focused
+agent/source/privacy selection passes 182 tests; Ruff, compilation, capability
+validation, and diff checks pass. No database, provider, candidate, or legacy
+stack was touched. Callers can still choose a location until authenticated
+operator grants and database tenant isolation are implemented. Checklist: 947
+complete / 24 open (971 total); matrix remains 31 baseline-retained, 7 deployed,
+and 28 prepared across 66 rows. Evidence:
+[location preflight](builds/2026-10-22-recovery/cap-038-agent-synthesis-location-required.json).

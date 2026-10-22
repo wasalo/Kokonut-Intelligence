@@ -297,7 +297,7 @@ def test_bio_factory_agent_summarizes_public_safe_records() -> None:
     assert "smallholder pilot evidence" in summary["safety_note"].lower() or "advisory" in summary["safety_note"].lower()
 
 
-def test_bio_factory_worker_lineage_excludes_network_regional_catalog() -> None:
+def test_bio_factory_worker_lineage_includes_network_regional_catalog() -> None:
     class Cursor:
         def __init__(self):
             self.query = None
@@ -334,12 +334,12 @@ def test_bio_factory_worker_lineage_excludes_network_regional_catalog() -> None:
     references = BioFactorySynthesisAgent().collect_source_references(conn, location_id)
 
     assert set(references) == set(BioFactorySynthesisAgent.source_reference_views)
-    assert "bio_regional_input_availability" not in references
+    assert references["bio_regional_input_availability"]["scope"] == "network"
     for source_table, view_name in BioFactorySynthesisAgent.source_reference_views.items():
         assert view_name in conn.cursor_value.query
         assert references[source_table]["row_count"] == 1
         assert references[source_table]["truncated"] is False
-    assert "v_public_bio_regional_input_summary" not in conn.cursor_value.query
+    assert "v_public_bio_regional_input_summary" in conn.cursor_value.query
     assert conn.cursor_value.params == (location_id,) * 4
 
 

@@ -285,7 +285,7 @@ def test_run_rejects_locationless_storage_before_worker_access():
         "services.agents.worker_cli.run_worker_synthesis",
         side_effect=AssertionError("worker must not run without location scope"),
     ):
-        with pytest.raises(ValueError, match="requires an exact location_id"):
+        with pytest.raises(ValueError, match="location_id"):
             _LocationlessDummyAgent().run(store=True)
 
 
@@ -314,6 +314,31 @@ def test_run_store_delegates_before_opening_shared_database():
         ) as run_worker:
             assert _DummyAgent().run(LOCATION_ID, store=True)["ai_summary_id"] == "stored-id"
     run_worker.assert_called_once()
+
+
+def test_agent_cli_requires_location_for_registered_synthesis_sources(monkeypatch):
+    class _ScopedDummyAgent(_DummyAgent):
+        source_reference_views = {"example_source": "v_public_example_source"}
+
+        def run(self, *args, **kwargs):
+            raise AssertionError("CLI must reject a missing location before running")
+
+    monkeypatch.setattr("sys.argv", ["scoped-agent"])
+
+    with pytest.raises(SystemExit) as exc:
+        agent_cli(_ScopedDummyAgent(), location_required=False)
+
+    assert exc.value.code == 2
+
+
+def test_location_required_synthesis_cli_rejects_malformed_uuid_before_run(monkeypatch):
+    class _ScopedDummyAgent(_DummyAgent):
+        source_reference_views = {"example_source": "v_public_example_source"}
+
+    monkeypatch.setattr("sys.argv", ["scoped-agent", "--location-id", "not-a-uuid"])
+
+    with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
+        agent_cli(_ScopedDummyAgent(), location_required=False)
 
 
 def test_run_fetch_validates_and_closes():

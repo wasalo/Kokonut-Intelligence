@@ -78,7 +78,9 @@ def test_task_input_validation_checks_required_types_and_formats() -> None:
         "Missing required task input: scorecard_id",
         "Missing required task input: location_id",
     ]
-    assert validate_task_inputs("financial_resilience_synthesis", {"store": False}) == []
+    assert validate_task_inputs("financial_resilience_synthesis", {"store": False}) == [
+        "Missing required task input: location_id",
+    ]
 
     valid = {
         "location_id": "a0000000-0000-4000-8000-000000000001",
