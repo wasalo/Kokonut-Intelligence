@@ -28,7 +28,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "high_risk": False,
     },
     "feedback_synthesis": {
-        "description": "Summarize stakeholder feedback using public summaries and aggregate private-feedback signals.",
+        "description": "Summarize stakeholder feedback from consented public summaries only.",
         "risk": "medium",
         "inputs": {
             "location_id": {"type": "string", "format": "uuid", "required": True},

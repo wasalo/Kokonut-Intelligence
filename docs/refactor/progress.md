@@ -1,3 +1,17 @@
+### CAP-038 consent-safe feedback source reads — 22 October 2026
+
+The wellbeing and stakeholder-feedback synthesis agents now use only their
+registered consent-safe public views. The previous raw `stakeholder_feedback`
+queries attempted to read private/no-consent aggregates through a relation-level
+source-reader identity whose 40-view allowlist denies that base table. Language
+coverage and
+feedback-group counts now derive from public-safe view rows; private counts and
+harm indicators are reported as unavailable, not inferred. Focused agent and
+privacy tests, Ruff, compilation, and the source-boundary checks pass. No
+migration or database rollout was needed; candidate and legacy databases
+remain untouched. This closes the role-permission mismatch, not tenant RLS or
+populated output parity. Checklist: 945 complete / 24 open (969 total).
+
 ### CAP-038 isolated shared-synthesis source reader — 22 October 2026
 
 Migration 541 adds a dedicated NOLOGIN source-reader role and a separately

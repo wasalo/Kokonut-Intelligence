@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
 import psycopg2
@@ -51,20 +52,22 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
     )
     participation_rows = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT language, COUNT(*) AS feedback_count,
-               COUNT(*) FILTER (WHERE consent_given = TRUE AND is_public = TRUE) AS public_safe_count
-        FROM stakeholder_feedback
-        WHERE location_id = %s AND status != 'rejected'
-        GROUP BY language
-        ORDER BY feedback_count DESC, language
-        """,
-        (location_id,),
-    )
-    language_rows = [dict(r) for r in cur.fetchall()]
     cur.close()
 
+    # Language coverage is derived from the same public-safe cultural and
+    # wellbeing views as the rest of this summary. Do not read private feedback
+    # just to produce language totals.
+    language_counts = Counter(
+        row["language"]
+        for row in (*cultural_rows, *wellbeing_rows)
+        if row.get("language")
+    )
+    language_rows = [
+        {"language": language, "public_safe_evidence_count": count}
+        for language, count in sorted(
+            language_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
     languages = sorted({row["language"] for row in language_rows if row.get("language")})
     cultural_count = len(cultural_rows)
     wellbeing_count = len(wellbeing_rows)
@@ -93,7 +96,10 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         "participatory_actions": participation_rows,
         "language_coverage": language_rows,
         "synthesis": " ".join(synthesis_lines),
-        "safety_note": "Public-safe summaries and aggregate language counts only; raw private stakeholder or cultural evidence is not included.",
+        "safety_note": (
+            "Public-safe summaries and language counts from published, public-safe "
+            "evidence only; private feedback and cultural evidence are not queried."
+        ),
     }
 
 

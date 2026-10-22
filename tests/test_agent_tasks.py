@@ -201,14 +201,20 @@ def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
 
 def test_feedback_synthesis_omits_private_raw_text() -> None:
     class Cursor:
-        calls = 0
+        query = ""
 
         def execute(self, query, params):
-            self.calls += 1
+            self.query = query
 
         def fetchall(self):
-            if self.calls == 1:
-                return [{
+            return [{
+                    "stakeholder_group": "farm_operator",
+                    "feedback_type": "farmer_feedback",
+                    "sentiment": "mixed",
+                    "public_summary": "Operators requested simpler Spanish summaries.",
+                    "evidence_maturity": 3,
+                    "evidence_maturity_label": "Reviewed record",
+                }, {
                     "stakeholder_group": "farm_operator",
                     "feedback_type": "farmer_feedback",
                     "sentiment": "mixed",
@@ -216,30 +222,26 @@ def test_feedback_synthesis_omits_private_raw_text() -> None:
                     "evidence_maturity": 3,
                     "evidence_maturity_label": "Reviewed record",
                 }]
-            return [{
-                "stakeholder_group": "local_resident",
-                "feedback_type": "local_resident_feedback",
-                "sentiment": "positive",
-                "status": "verified",
-                "consent_given": False,
-                "is_public": False,
-                "evidence_maturity": 2,
-                "feedback_count": 1,
-                "private_or_no_consent_count": 1,
-                "harm_count": 0,
-            }]
 
         def close(self):
             pass
 
     class Conn:
-        def cursor(self, cursor_factory=None):
-            return Cursor()
+        cursor_instance = None
 
-    summary = synthesize_feedback(Conn(), "a0000000-0000-0000-0000-000000000001")
-    assert summary["public_feedback_count"] == 1
-    assert summary["private_or_no_consent_count"] == 1
-    assert "Raw private feedback is not included" in summary["safety_note"]
+        def cursor(self, cursor_factory=None):
+            self.cursor_instance = Cursor()
+            return self.cursor_instance
+
+    conn = Conn()
+    summary = synthesize_feedback(conn, "a0000000-0000-0000-0000-000000000001")
+    assert summary["public_feedback_count"] == 2
+    assert summary["private_or_no_consent_count"] is None
+    assert summary["harm_or_unintended_consequence_count"] is None
+    assert summary["aggregate_feedback"][0]["feedback_count"] == 2
+    assert "effective public-summary consent" in summary["safety_note"]
+    assert "FROM v_public_stakeholder_feedback_summary" in conn.cursor_instance.query
+    assert "FROM stakeholder_feedback" not in conn.cursor_instance.query
 
 
 def test_ebf_agent_safety_blocks_publish_and_public_maturity() -> None:

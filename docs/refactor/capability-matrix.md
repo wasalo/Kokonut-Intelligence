@@ -32,6 +32,13 @@ this does not establish tenant RLS or physical Raspberry Pi acceptance
 ([native evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-arm64-disposable.json)).
 
+**CAP-038 feedback source boundary — 22 October 2026:** shared wellbeing and
+feedback synthesis now read only the registered consent-safe public views.
+Language and feedback aggregates are derived from those view rows; private
+feedback totals and harm counts are explicitly unavailable to the worker. This
+is source-code and focused-test evidence, not tenant RLS or populated-output
+parity.
+
 The default Kernel image from commit `9e02eeff` also builds for `linux/arm64`;
 QEMU imported the isolated RPC worker and constructed a synthetic snapshot with
 networking disabled. This adds image and worker-import evidence only; no
