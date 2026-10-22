@@ -594,6 +594,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/work-claims/e5000000-0000-4000-8000-000000000001/review",
     ): _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID),
     (
+        "GET",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/work-claim-allocation-queue",
+    ): _expected("operating_pilot", "allocate", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/work-claims/e5000000-0000-4000-8000-000000000001/allocate",
+    ): _expected("operating_pilot", "allocate", scoped=True, location_id=_LOCATION_ID),
+    (
         "POST",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/work-opportunities/e5000000-0000-4000-8000-000000000001/claims",
     ): _expected("operating_pilot", "claim_own", scoped=True, location_id=_LOCATION_ID),

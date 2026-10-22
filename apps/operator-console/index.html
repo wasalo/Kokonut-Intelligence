@@ -687,6 +687,19 @@
             </div>
             <button id="operating-pilot-work-claim-review-more" class="secondary" type="button" hidden>Load more claims</button>
           </section>
+          <section id="operating-pilot-work-claim-allocation" hidden aria-labelledby="operating-pilot-work-claim-allocation-heading">
+            <h3 id="operating-pilot-work-claim-allocation-heading">Accepted work claims awaiting allocation</h3>
+            <p class="muted">A separate exact-location allocate grant is required. Claimant identity is shown only in this allocation-scoped queue. Allocation assigns the accepted claim but does not start or complete the work item.</p>
+            <div class="toolbar"><button id="operating-pilot-work-claim-allocation-refresh" type="button">Refresh allocation queue</button></div>
+            <p id="operating-pilot-work-claim-allocation-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Claimant</th><th>Opportunity</th><th>Work type</th><th>Priority</th><th>Estimated effort</th><th>Proposed effort</th><th>Due</th><th>Accepted</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-work-claim-allocation-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-work-claim-allocation-more" class="secondary" type="button" hidden>Load more accepted claims</button>
+          </section>
           <dialog id="operating-pilot-capacity-review-dialog" aria-labelledby="operating-pilot-capacity-review-dialog-heading">
             <form id="operating-pilot-capacity-review-form">
               <h3 id="operating-pilot-capacity-review-dialog-heading">Review submitted capacity</h3>
@@ -736,6 +749,16 @@
               <p id="operating-pilot-work-claim-review-decision-status" class="muted" role="status" aria-live="polite"></p>
               <button id="operating-pilot-work-claim-review-cancel" class="secondary" type="button">Cancel</button>
               <button id="operating-pilot-work-claim-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
+          <dialog id="operating-pilot-work-claim-allocation-dialog" aria-labelledby="operating-pilot-work-claim-allocation-dialog-heading">
+            <form id="operating-pilot-work-claim-allocation-form">
+              <h3 id="operating-pilot-work-claim-allocation-dialog-heading">Allocate accepted work claim</h3>
+              <p id="operating-pilot-work-claim-allocation-item" class="muted"></p>
+              <label><input id="operating-pilot-work-claim-allocation-acknowledged" type="checkbox" required> I confirm this accepted claim should be assigned to this claimant.</label>
+              <p id="operating-pilot-work-claim-allocation-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-work-claim-allocation-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-work-claim-allocation-submit" type="submit">Assign accepted claim</button>
             </form>
           </dialog>
           <h3>Demand signals</h3>
@@ -1980,6 +2003,16 @@
       const operatingPilotWorkClaimReviewAcknowledged = document.querySelector("#operating-pilot-work-claim-review-acknowledged");
       const operatingPilotWorkClaimReviewDecisionStatus = document.querySelector("#operating-pilot-work-claim-review-decision-status");
       const operatingPilotWorkClaimReviewSubmit = document.querySelector("#operating-pilot-work-claim-review-submit");
+      const operatingPilotWorkClaimAllocation = document.querySelector("#operating-pilot-work-claim-allocation");
+      const operatingPilotWorkClaimAllocationStatus = document.querySelector("#operating-pilot-work-claim-allocation-status");
+      const operatingPilotWorkClaimAllocationRows = document.querySelector("#operating-pilot-work-claim-allocation-rows");
+      const operatingPilotWorkClaimAllocationMore = document.querySelector("#operating-pilot-work-claim-allocation-more");
+      const operatingPilotWorkClaimAllocationDialog = document.querySelector("#operating-pilot-work-claim-allocation-dialog");
+      const operatingPilotWorkClaimAllocationForm = document.querySelector("#operating-pilot-work-claim-allocation-form");
+      const operatingPilotWorkClaimAllocationItem = document.querySelector("#operating-pilot-work-claim-allocation-item");
+      const operatingPilotWorkClaimAllocationAcknowledged = document.querySelector("#operating-pilot-work-claim-allocation-acknowledged");
+      const operatingPilotWorkClaimAllocationDecisionStatus = document.querySelector("#operating-pilot-work-claim-allocation-decision-status");
+      const operatingPilotWorkClaimAllocationSubmit = document.querySelector("#operating-pilot-work-claim-allocation-submit");
       let operatingPilotPendingCapacityReview = null;
       let operatingPilotPendingDemandReview = null;
       let operatingPilotPendingWorkClaimReview = null;
@@ -1993,6 +2026,7 @@
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
       let operatingPilotClaimOwnLocations = new Set();
+      let operatingPilotAllocateLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
       let operatingPilotPendingDemandEdit = null;
       let operatingPilotPendingDemandSubmission = null;
@@ -2002,6 +2036,7 @@
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
       const operatingPilotPendingWorkClaimReviewDecisions = new Map();
+      const operatingPilotPendingWorkClaimAllocations = new Map();
       const operatingPilotPendingWorkClaims = new Map();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
@@ -2014,6 +2049,7 @@
       let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandReviewRequestVersion = 0;
       let operatingPilotWorkClaimReviewRequestVersion = 0;
+      let operatingPilotWorkClaimAllocationRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
@@ -2024,6 +2060,8 @@
       let operatingPilotCapacityReviewOffset = 0;
       let operatingPilotDemandReviewOffset = 0;
       let operatingPilotWorkClaimReviewOffset = 0;
+      let operatingPilotWorkClaimAllocationOffset = 0;
+      let operatingPilotPendingWorkClaimAllocation = null;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -4001,6 +4039,145 @@
         }
       }
 
+      async function loadOperatingPilotWorkClaimAllocationQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotWorkClaimAllocationRequestVersion;
+        if (!operatingPilotAllocateLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotWorkClaimAllocationOffset = 0;
+          operatingPilotWorkClaimAllocationRows.replaceChildren();
+          operatingPilotWorkClaimAllocationMore.hidden = true;
+        }
+        const offset = append ? operatingPilotWorkClaimAllocationOffset : 0;
+        operatingPilotWorkClaimAllocationMore.disabled = true;
+        operatingPilotWorkClaimAllocationStatus.textContent = "Loading accepted claims for explicit allocation…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-claim-allocation-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotWorkClaimAllocationRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotWorkClaimAllocationRow(item, locationId);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotWorkClaimAllocationMore.hidden = !canContinue;
+          operatingPilotWorkClaimAllocationOffset = canContinue ? nextOffset : 0;
+          operatingPilotWorkClaimAllocationStatus.textContent = canContinue
+            ? "Showing a bounded page. Claimant identity is visible only under the exact allocate grant."
+            : operatingPilotWorkClaimAllocationRows.childElementCount
+              ? "Accepted claims loaded. Allocation is a separate confirmed action."
+              : "No accepted claims are ready for allocation.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotWorkClaimAllocationRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotWorkClaimAllocationMore.hidden = true;
+          operatingPilotWorkClaimAllocationStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotWorkClaimAllocationRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotWorkClaimAllocationMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotWorkClaimAllocationRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.claimant_name,
+          item.title,
+          item.work_type,
+          item.priority,
+          item.estimated_effort_hours,
+          item.proposed_effort_hours,
+          item.due_at,
+          item.accepted_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const allocate = document.createElement("button");
+        allocate.type = "button";
+        allocate.textContent = "Assign accepted claim";
+        allocate.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotAllocateLocations.has(locationId)) return;
+          operatingPilotPendingWorkClaimAllocation = {
+            claim_id: item.claim_id,
+            location_id: locationId,
+            claimant_name: item.claimant_name,
+            title: item.title
+          };
+          operatingPilotWorkClaimAllocationForm.reset();
+          operatingPilotWorkClaimAllocationItem.textContent =
+            `${operatingPilotDisplayValue(item.claimant_name)} · ${operatingPilotDisplayValue(item.title)} · accepted claim`;
+          operatingPilotWorkClaimAllocationDecisionStatus.textContent =
+            "Confirm assignment to record allocation. This does not start or complete the work item.";
+          operatingPilotWorkClaimAllocationDialog.showModal();
+        });
+        actionCell.append(allocate);
+        row.append(actionCell);
+        operatingPilotWorkClaimAllocationRows.append(row);
+      }
+
+      async function submitOperatingPilotWorkClaimAllocation(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingWorkClaimAllocation;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotAllocateLocations.has(pending.location_id)) return;
+        if (!operatingPilotWorkClaimAllocationAcknowledged.checked) {
+          operatingPilotWorkClaimAllocationDecisionStatus.textContent = "Confirm the accepted claim assignment before submitting.";
+          operatingPilotWorkClaimAllocationAcknowledged.focus();
+          return;
+        }
+        let requestId = operatingPilotPendingWorkClaimAllocations.get(pending.claim_id);
+        if (!requestId) {
+          requestId = crypto.randomUUID();
+          operatingPilotPendingWorkClaimAllocations.set(pending.claim_id, requestId);
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotWorkClaimAllocationDecisionStatus.textContent = "Refresh the page to establish a protected session before allocating.";
+          return;
+        }
+        operatingPilotWorkClaimAllocationSubmit.disabled = true;
+        operatingPilotWorkClaimAllocationDecisionStatus.textContent = "Recording explicit work allocation…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/work-claims/${encodeURIComponent(pending.claim_id)}/allocate`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.claim_id !== pending.claim_id || result.allocation_status !== "allocated") {
+            throw new Error("The allocation response did not match this claim. Retry with the same request.");
+          }
+          operatingPilotPendingWorkClaimAllocations.delete(pending.claim_id);
+          operatingPilotPendingWorkClaimAllocation = null;
+          operatingPilotWorkClaimAllocationDialog.close();
+          await loadOperatingPilotWorkClaimAllocationQueue();
+          operatingPilotWorkClaimAllocationStatus.textContent =
+            `Accepted claim assigned${result.replayed ? " (confirmed retry)" : ""}. Work lifecycle remains separate.`;
+        } catch (error) {
+          operatingPilotWorkClaimAllocationDecisionStatus.textContent =
+            `${error.message} Retry this same claim to reuse the allocation request ID.`;
+        } finally {
+          operatingPilotWorkClaimAllocationSubmit.disabled = false;
+        }
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId)
@@ -4015,6 +4192,7 @@
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkClaimReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotWorkClaimAllocation.hidden = !operatingPilotAllocateLocations.has(locationId);
         operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
@@ -4036,6 +4214,7 @@
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotDemandReviewRows.replaceChildren();
           operatingPilotWorkClaimReviewRows.replaceChildren();
+          operatingPilotWorkClaimAllocationRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
             await loadOperatingPilotOwnCapacityProfiles();
           } else {
@@ -4056,6 +4235,11 @@
             operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
+          }
+          if (operatingPilotAllocateLocations.has(locationId)) {
+            await loadOperatingPilotWorkClaimAllocationQueue();
+          } else {
+            operatingPilotWorkClaimAllocationStatus.textContent = "A separate exact location allocate grant is required.";
           }
           return;
         }
@@ -4083,6 +4267,12 @@
           operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotWorkClaimReviewRows.replaceChildren();
           operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
+        }
+        if (operatingPilotAllocateLocations.has(locationId)) {
+          reads.push(loadOperatingPilotWorkClaimAllocationQueue());
+        } else {
+          operatingPilotWorkClaimAllocationRows.replaceChildren();
+          operatingPilotWorkClaimAllocationStatus.textContent = "A separate exact location allocate grant is required.";
         }
         if (operatingPilotOwnCapacityLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnCapacityProfiles());
@@ -12931,6 +13121,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotClaimOwnLocations = new Set(operatingPilotClaimOwnLocationIds);
+          const operatingPilotAllocateLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "allocate")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotAllocateLocations = new Set(operatingPilotAllocateLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
             ...operatingPilotLocationIds,
             ...operatingPilotCreateLocationIds,
@@ -12938,7 +13134,8 @@
             ...operatingPilotOwnCapacityLocationIds,
             ...operatingPilotEditOwnCapacityLocationIds,
             ...operatingPilotCapacityReviewLocationIds,
-            ...operatingPilotClaimOwnLocationIds
+            ...operatingPilotClaimOwnLocationIds,
+            ...operatingPilotAllocateLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -16971,6 +17168,22 @@
       });
       operatingPilotWorkClaimReviewDialog.addEventListener("cancel", () => {
         operatingPilotPendingWorkClaimReview = null;
+      });
+      document.querySelector("#operating-pilot-work-claim-allocation-refresh").addEventListener(
+        "click", () => loadOperatingPilotWorkClaimAllocationQueue()
+      );
+      operatingPilotWorkClaimAllocationMore.addEventListener(
+        "click", () => loadOperatingPilotWorkClaimAllocationQueue(true)
+      );
+      operatingPilotWorkClaimAllocationForm.addEventListener(
+        "submit", submitOperatingPilotWorkClaimAllocation
+      );
+      document.querySelector("#operating-pilot-work-claim-allocation-cancel").addEventListener("click", () => {
+        operatingPilotPendingWorkClaimAllocation = null;
+        operatingPilotWorkClaimAllocationDialog.close();
+      });
+      operatingPilotWorkClaimAllocationDialog.addEventListener("cancel", () => {
+        operatingPilotPendingWorkClaimAllocation = null;
       });
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);

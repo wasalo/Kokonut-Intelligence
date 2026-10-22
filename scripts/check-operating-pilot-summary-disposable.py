@@ -32,11 +32,14 @@ OWN_DEMAND_REVISION_MIGRATION = ROOT / "schemas/postgres/562_location_operating_
 DEMAND_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/563_location_operating_pilot_demand_review_decision.sql"
 WORK_OPPORTUNITIES_MIGRATION = ROOT / "schemas/postgres/564_location_operating_pilot_work_opportunities.sql"
 WORK_CLAIM_REVIEW_MIGRATION = ROOT / "schemas/postgres/565_location_operating_pilot_work_claim_review.sql"
+WORK_CLAIM_ALLOCATION_MIGRATION = ROOT / "schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
 WORK_CLAIM_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-review-disposable.json"
 WORK_CLAIM_REVIEW_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-review-arm64-disposable.json"
+WORK_CLAIM_ALLOCATION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-allocation-disposable.json"
+WORK_CLAIM_ALLOCATION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-allocation-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -3041,6 +3044,290 @@ DELETE FROM public.operator_scope_grant
 COMMIT;
 """
 
+WORK_CLAIM_ALLOCATION_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000093',
+        'a0000000-0000-4000-8000-000000000001',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'allocate', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES
+ ('d8400000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic accepted claimant'),
+ ('d8400000-0000-4000-8000-000000000002', 'person', 'active', 'Synthetic self claimant'),
+ ('d8400000-0000-4000-8000-000000000003', 'person', 'active', 'Synthetic competing claimant A'),
+ ('d8400000-0000-4000-8000-000000000004', 'person', 'active', 'Synthetic competing claimant B');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8410000-0000-4000-8000-000000000001',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8400000-0000-4000-8000-000000000002', NULL);
+INSERT INTO public.work_item (
+    id, organization_id, location_id, title, description, status, allocation_status,
+    work_type, priority, selection_mode, estimated_effort_hours, due_at
+) VALUES
+ ('e5400000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic sole accepted claim', 'PRIVATE work description',
+  'draft', 'claimed', 'soil preparation', 'high', 'self_selected', 8, CURRENT_DATE + 5),
+ ('e5400000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic competing accepted claims', 'PRIVATE work description',
+  'draft', 'claimed', 'tree care', 'medium', 'volunteer', 4, CURRENT_DATE + 8),
+ ('e5400000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic self allocation target', 'PRIVATE work description',
+  'draft', 'claimed', 'general', 'low', 'self_selected', NULL, NULL),
+ ('e5400000-0000-4000-8000-000000000004', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic unaccepted claim target', 'PRIVATE work description',
+  'draft', 'claimed', 'general', 'low', 'self_selected', NULL, NULL);
+INSERT INTO public.work_item_claim (
+    id, work_item_id, claimant_party_id, status, proposed_effort_hours,
+    capability_evidence, reviewed_by_party_id, reviewed_at, decision_reason
+) VALUES
+ ('e5410000-0000-4000-8000-000000000001', 'e5400000-0000-4000-8000-000000000001',
+  'd8400000-0000-4000-8000-000000000001', 'accepted', 6.25, '["PRIVATE evidence"]',
+  'd8000000-0000-4000-8000-000000000001', NOW(), 'PRIVATE review reason'),
+ ('e5410000-0000-4000-8000-000000000002', 'e5400000-0000-4000-8000-000000000002',
+  'd8400000-0000-4000-8000-000000000003', 'accepted', 3, '[]',
+  'd8000000-0000-4000-8000-000000000001', NOW(), 'PRIVATE review reason'),
+ ('e5410000-0000-4000-8000-000000000003', 'e5400000-0000-4000-8000-000000000002',
+  'd8400000-0000-4000-8000-000000000004', 'accepted', 4, '[]',
+  'd8000000-0000-4000-8000-000000000001', NOW(), 'PRIVATE review reason'),
+ ('e5410000-0000-4000-8000-000000000004', 'e5400000-0000-4000-8000-000000000003',
+  'd8400000-0000-4000-8000-000000000002', 'accepted', 2, '[]',
+  'd8000000-0000-4000-8000-000000000001', NOW(), 'PRIVATE review reason'),
+ ('e5410000-0000-4000-8000-000000000005', 'e5400000-0000-4000-8000-000000000004',
+  'd8400000-0000-4000-8000-000000000001', 'proposed', 2, '[]', NULL, NULL, NULL);
+COMMIT;
+
+BEGIN READ ONLY;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE page jsonb; next_page jsonb;
+BEGIN
+    page := kokonut_security.location_operating_pilot_work_claim_allocation_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    next_page := kokonut_security.location_operating_pilot_work_claim_allocation_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    IF jsonb_array_length(page->'items') <> 1
+       OR page->>'has_more' <> 'true'
+       OR page->'items'->0->>'claimant_name' <> 'Synthetic accepted claimant'
+       OR page::TEXT ~* '(PRIVATE|description|capability_evidence|decision_reason)'
+       OR next_page->'items'->0->>'claim_id' <> 'e5410000-0000-4000-8000-000000000004'
+       OR next_page->'items'->0->>'claimant_name' <> 'Synthetic self claimant' THEN
+        RAISE EXCEPTION 'allocation queue scope, privacy, or deterministic paging failed';
+    END IF;
+END $$;
+DO $$
+DECLARE denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_work_claim_allocation_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 10001
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'allocation queue accepted an invalid page'; END IF;
+END $$;
+RESET ROLE;
+COMMIT;
+
+BEGIN;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE allocated jsonb; replay jsonb;
+BEGIN
+    allocated := kokonut_security.allocate_location_operating_pilot_work_claim(
+        'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000001',
+        'e5420000-0000-4000-8000-000000000001'
+    );
+    replay := kokonut_security.allocate_location_operating_pilot_work_claim(
+        'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000001',
+        'e5420000-0000-4000-8000-000000000001'
+    );
+    IF allocated->>'allocation_status' <> 'allocated'
+       OR allocated->>'replayed' <> 'false'
+       OR replay->>'replayed' <> 'true'
+       OR allocated::TEXT ~* '(claimant_name|party_id|PRIVATE)' THEN
+        RAISE EXCEPTION 'allocation or exact retry response is invalid';
+    END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF (SELECT allocation_status FROM public.work_item WHERE id = 'e5400000-0000-4000-8000-000000000001') <> 'allocated'
+       OR (SELECT assignee_party_id FROM public.work_item WHERE id = 'e5400000-0000-4000-8000-000000000001') <> 'd8400000-0000-4000-8000-000000000001'
+       OR (SELECT status::TEXT FROM public.work_item WHERE id = 'e5400000-0000-4000-8000-000000000001') <> 'draft'
+       OR (SELECT status FROM public.work_item_claim WHERE id = 'e5410000-0000-4000-8000-000000000001') <> 'accepted'
+       OR (SELECT count(*) FROM public.work_item_selection_event WHERE claim_id = 'e5410000-0000-4000-8000-000000000001' AND event_type = 'allocated') <> 1
+       OR (SELECT count(*) FROM public.operating_work_claim_allocation_receipt) <> 1 THEN
+        RAISE EXCEPTION 'allocation state, event, receipt, or lifecycle separation failed';
+    END IF;
+END $$;
+
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE collision_denied boolean := false; competing_denied boolean := false;
+        unaccepted_denied boolean := false; already_allocated_denied boolean := false;
+BEGIN
+    PERFORM set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_type', 'operator', true);
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000004',
+            'e5420000-0000-4000-8000-000000000001'
+        );
+    EXCEPTION WHEN unique_violation THEN collision_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000002',
+            'e5420000-0000-4000-8000-000000000002'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN competing_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000005',
+            'e5420000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN unaccepted_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000001',
+            'e5420000-0000-4000-8000-000000000004'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN already_allocated_denied := true;
+    END;
+    IF NOT collision_denied OR NOT competing_denied OR NOT unaccepted_denied OR NOT already_allocated_denied THEN
+        RAISE EXCEPTION 'collision, competing claims, unaccepted claim, or repeated allocation was allowed';
+    END IF;
+END $$;
+RESET ROLE;
+
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE no_grant_denied boolean := false;
+BEGIN
+    PERFORM set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    PERFORM set_config('kokonut.actor_type', 'operator', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_work_claim_allocation_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN
+        RAISE EXCEPTION 'missing allocation grant was allowed';
+    END IF;
+END $$;
+RESET ROLE;
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000094',
+        'a0000000-0000-4000-8000-000000000002',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'allocate', 'f0000000-0000-4000-8000-000000000001', NULL);
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE self_denied boolean := false; wrong_location_denied boolean := false;
+BEGIN
+    PERFORM set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    PERFORM set_config('kokonut.actor_type', 'operator', true);
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000004',
+            'e5420000-0000-4000-8000-000000000005'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN self_denied := true;
+    END;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.allocate_location_operating_pilot_work_claim(
+            'b0000000-0000-4000-8000-000000000001', 'e5410000-0000-4000-8000-000000000004',
+            'e5420000-0000-4000-8000-000000000006'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    IF NOT self_denied OR NOT wrong_location_denied THEN
+        RAISE EXCEPTION 'self allocation or mismatched tenant was allowed';
+    END IF;
+END $$;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+           'kokonut_runtime',
+           'kokonut_security.location_operating_pilot_work_claim_allocation_queue(uuid,integer,integer)',
+           'EXECUTE'
+       )
+       OR NOT has_function_privilege(
+           'kokonut_runtime',
+           'kokonut_security.allocate_location_operating_pilot_work_claim(uuid,uuid,uuid)',
+           'EXECUTE'
+       )
+       OR has_function_privilege(
+           'kokonut_directus_runtime',
+           'kokonut_security.location_operating_pilot_work_claim_allocation_queue(uuid,integer,integer)',
+           'EXECUTE'
+       )
+       OR has_function_privilege(
+           'kokonut_directus_runtime',
+           'kokonut_security.allocate_location_operating_pilot_work_claim(uuid,uuid,uuid)',
+           'EXECUTE'
+       )
+       OR has_table_privilege('kokonut_runtime', 'public.operating_work_claim_allocation_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_work_claim_allocation_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_work_claim_allocation_receipt', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.work_item', 'assignee_party_id', 'UPDATE')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.work_item', 'assignee_party_id', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'assignee_party_id', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_work_claim_allocation_receipt', 'input_digest', 'INSERT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_work_claim_allocation_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_work_claim_allocation_receipt', 'DELETE')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'capability_evidence', 'SELECT')
+       OR (SELECT count(*) FROM public.operating_work_claim_allocation_receipt) <> 1 THEN
+        RAISE EXCEPTION 'allocation function, identity boundary, or append-only receipt ACL failed';
+    END IF;
+END $$;
+
+DELETE FROM public.operating_work_claim_allocation_receipt
+ WHERE operator_id = 'a0000000-0000-4000-8000-000000000001';
+DELETE FROM public.work_item_selection_event
+ WHERE claim_id BETWEEN 'e5410000-0000-4000-8000-000000000001'::uuid
+                     AND 'e5410000-0000-4000-8000-000000000005'::uuid;
+DELETE FROM public.work_item_claim
+ WHERE id BETWEEN 'e5410000-0000-4000-8000-000000000001'::uuid
+              AND 'e5410000-0000-4000-8000-000000000005'::uuid;
+DELETE FROM public.work_item
+ WHERE id BETWEEN 'e5400000-0000-4000-8000-000000000001'::uuid
+              AND 'e5400000-0000-4000-8000-000000000004'::uuid;
+DELETE FROM public.operator_governance_party_binding
+ WHERE id = 'd8410000-0000-4000-8000-000000000001';
+DELETE FROM public.party
+ WHERE id BETWEEN 'd8400000-0000-4000-8000-000000000001'::uuid
+              AND 'd8400000-0000-4000-8000-000000000004'::uuid;
+DELETE FROM public.operator_scope_grant
+ WHERE id IN ('a1000000-0000-4000-8000-000000000093',
+              'a1000000-0000-4000-8000-000000000094');
+COMMIT;
+"""
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -3069,9 +3356,18 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migrations 563–565 and test independent claim review",
     )
+    parser.add_argument(
+        "--work-claim-allocation",
+        action="store_true",
+        help="Also apply/replay migrations through 566 and test explicit claim allocation",
+    )
     args = parser.parse_args(argv)
+    if args.work_claim_allocation:
+        args.work_claim_review = True
     default_output = (
-        (WORK_CLAIM_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_REVIEW_OUTPUT)
+        (WORK_CLAIM_ALLOCATION_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_ALLOCATION_OUTPUT)
+        if args.work_claim_allocation
+        else (WORK_CLAIM_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_REVIEW_OUTPUT)
         if args.work_claim_review
         else WORK_OPPORTUNITIES_OUTPUT if args.work_opportunities
         else DEMAND_REVIEW_OUTPUT if args.demand_review_decision
@@ -3106,7 +3402,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -3193,6 +3489,18 @@ def main(argv: list[str] | None = None) -> int:
                 "runtime has only bounded function access and cannot directly read/write claim review receipts or mutate claims; Directus cannot execute the review functions",
             ]
         )
+    if args.work_claim_allocation:
+        evidence["migrations"].append(WORK_CLAIM_ALLOCATION_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "allocation queue requires the separate exact allocate grant, signed location, active human binding, and Adelphi scope",
+                "allocation queue identifies claimants only to allocate-scoped operators, omits evidence/reasons, and excludes competing unresolved claims",
+                "allocation requires one accepted claim with no other proposed or accepted claims and rejects self-allocation",
+                "allocation sets only work-item allocation_status and assignee_party_id; lifecycle status and accepted claim review remain unchanged",
+                "allocation receipt is append-only and exact retries replay; changed request reuse and repeat allocation fail closed",
+                "runtime receives bounded allocation function access only; Directus and runtime cannot access allocation receipts or update assignee columns directly",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -3273,6 +3581,10 @@ def main(argv: list[str] | None = None) -> int:
             work_claim_review_migration = WORK_CLAIM_REVIEW_MIGRATION.read_text(encoding="utf-8")
             psql(docker, container, work_claim_review_migration)
             psql(docker, container, work_claim_review_migration)
+        if args.work_claim_allocation:
+            work_claim_allocation_migration = WORK_CLAIM_ALLOCATION_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, work_claim_allocation_migration)
+            psql(docker, container, work_claim_allocation_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -3288,17 +3600,21 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, WORK_OPPORTUNITY_ACCEPTANCE)
         if args.work_claim_review:
             psql(docker, container, WORK_CLAIM_REVIEW_ACCEPTANCE)
+        if args.work_claim_allocation:
+            psql(docker, container, WORK_CLAIM_ALLOCATION_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            74 if args.work_claim_review
+            82 if args.work_claim_allocation
+            else 74 if args.work_claim_review
             else 67 if args.work_opportunities
             else 65 if args.demand_review_decision
             else 61
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            565 if args.work_claim_review
+            566 if args.work_claim_allocation
+            else 565 if args.work_claim_review
             else 564 if args.work_opportunities
             else 563 if args.demand_review_decision
             else 562

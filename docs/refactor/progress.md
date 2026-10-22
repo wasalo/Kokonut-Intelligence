@@ -15378,3 +15378,24 @@ saved snapshot must still match exactly. The focused test passes three cases;
 Ruff, compilation, and inventory freshness pass. No database/provider access
 occurred. Hosted CI on `a10e137` is still pending and does not include this
 local assertion hardening ([evidence](builds/2026-10-22-recovery/ci-729-agent-inventory-assertion-stability.json)).
+
+### CAP-037 explicit work-claim allocation — 22 October 2026
+
+Migration 566 adds a bounded allocation queue and explicit assignment action
+under a distinct exact location `operating_pilot:allocate` grant. The queue
+shows claimant names only to allocate-scoped operators and excludes claims
+while competitors remain proposed or accepted. Allocation requires an
+independently accepted non-self claim and one active operator-to-person
+binding; it changes only assignment fields and preserves work lifecycle and
+review state. Its append-only private receipt supports exact retry replay. The
+Gateway/route-policy/console selection passes 39 tests; Ruff, Python
+compilation, and inline JavaScript syntax pass. Native PostgreSQL 16 and
+linux/arm64 Docker/QEMU apply/replay migrations 461–566 and pass 82 grouped
+assertions ([native evidence](builds/2026-10-22-recovery/cap-037-work-claim-allocation-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-claim-allocation-arm64-disposable.json)).
+QEMU is software portability evidence only. Candidate and legacy databases
+remain untouched; migration 566 is not rolled out. CAP-037 remains prepared
+pending other workflows, populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, privacy/audience review, and owner acceptance. Checklist: 992
+complete / 24 open (1,016 total); matrix remains 30 baseline-retained, 7
+deployed, and 29 prepared across 66 capabilities.

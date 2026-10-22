@@ -469,6 +469,52 @@ def review_location_operating_pilot_work_claim(
         connection.close()
 
 
+def allocate_location_operating_pilot_work_claim(
+    operator_id: str,
+    location_id: str,
+    claim_id: str,
+    request_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Allocate one independently accepted claim under a separate location grant."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    claim_id = _normalize_uuid(claim_id, "claim")
+    request_id = _normalize_uuid(request_id, "request")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="allocate",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.allocate_location_operating_pilot_work_claim("
+                "%s::uuid, %s::uuid, %s::uuid)",
+                (location_id, claim_id, request_id),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot work-claim allocation returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def create_location_operating_pilot_capacity_draft(
     operator_id: str,
     location_id: str,
