@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the durable EventBus worker across a disposable PostgreSQL restart."""
+"""Exercise separate event and notification workers across a PostgreSQL restart."""
 
 from __future__ import annotations
 

@@ -182,8 +182,13 @@ AI-summary types and the ten registered shared synthesis tasks. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
 `ai_summary` directly. The worker resolves every synthesis task through its explicit ten-module
 registry, checks the registered class and class-declared metadata before any
-receipt lookup, then checks the stable request receipt before source queries. It
-runs reads inside a bounded read-only transaction using the runtime database
+receipt lookup, including its optional fixed `source_reference_query`. The
+collector reads the class-registered query and view map rather than an
+instance-shadowed value. Focused regressions prove a query override is ignored
+by collection and rejected before receipt lookup. This protects the reviewed
+in-process provenance contract; it does not authenticate Python code or replace
+the worker's signed database scope. The worker then checks the stable request
+receipt before source queries. It runs reads inside a bounded read-only transaction using the runtime database
 identity and creates the draft through the separate signed worker connection.
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
