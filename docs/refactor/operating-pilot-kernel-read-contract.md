@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, a bounded work-opportunity queue and self-claim proposal, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, a bounded work-opportunity queue and self-claim proposal, independent work-claim review, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`
 
 ## Route and authorization
 
@@ -500,29 +500,52 @@ access; Directus has neither function execution nor ledger access. The console
 gates the queue/action on the exact `claim_own` scope, uses CSRF and no-store,
 reuses request IDs for transport retries, and renders all values as text.
 
+## Independent work-claim review
+
+`GET /operator/api/operating-pilot/{location_id}/work-claim-review-queue` and
+`POST /operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review`
+use the separate exact location `operating_pilot:review` grant. Migration 565
+requires signed location context, an active Adelphi mapping, one active
+human-party binding, a proposed claim for that location, and an independent
+reviewer. Queue pages are bounded and omit claimant identity, evidence, and
+decision reasons. Review accepts only `accepted` or `rejected`; rejection
+requires a reason. Acceptance records review eligibility but does not allocate
+or assign the opportunity. Rejection reopens the opportunity only when no
+proposed or accepted claims remain. An append-only private receipt provides
+exact-request replay and collision rejection.
+
+The reviewer panel is gated by `operating_pilot:review`, confirms the decision,
+uses CSRF-protected no-store requests and stable retry IDs, and renders values
+as text. Runtime can execute the bounded queue/decision functions but cannot
+read or mutate the private receipt or claim rows directly; Directus cannot
+execute these functions. Migration 565 also removes row locks from the
+migration 564 opportunity projection so its read-only Gateway transaction
+remains valid.
+
 ## Verification and rollback
 
 The Gateway contract and exact route policy are covered by
 `tests/test_gateway_operating_pilot_reads.py`,
 `tests/test_gateway_operating_pilot_writes.py`,
 `tests/test_gateway_operating_pilot_work_claims.py`,
+`tests/test_gateway_operating_pilot_work_claim_reviews.py`,
 `tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, and 564, exercises active and internal scopes, checks aggregate
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, and 565, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
-demand/capacity revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, exact retry replay and collision rollback, old-version preservation,
+demand/capacity revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
 submission eligibility, capacity approval/rejection, rejection-reason
 validation, reviewer self-denial, exact retry/collision behavior, rejected-record
 revision, append-only decision history, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
-`scripts/check-operating-pilot-summary-disposable.py`. Migration 559 and all 54 grouped assertions pass in the 13-migration network-disabled acceptance on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-arm64-disposable.json)). This is emulated software portability evidence, not physical Raspberry Pi acceptance. The migration 461–560 disposable suite and all 56 grouped assertions pass on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-arm64-disposable.json)). Migration 561 applies/replays in the 15-migration suite with all 58 grouped assertions passing on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-arm64-disposable.json)). Those QEMU checks establish software portability only, not physical Raspberry Pi acceptance. Migration 562 also applies/replays with 61 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-arm64-disposable.json)). The migration 461–563 acceptance passes 65 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-arm64-disposable.json)). QEMU is software emulation only, not physical Raspberry Pi acceptance. Migration 564 and all 67 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-arm64-disposable.json)). QEMU establishes software portability only, not Raspberry Pi hardware, performance, power-loss, or recovery acceptance. Migrations 559–564 are not deployed to candidate or legacy databases.
+`scripts/check-operating-pilot-summary-disposable.py`. Migration 559 and all 54 grouped assertions pass in the 13-migration network-disabled acceptance on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-arm64-disposable.json)). This is emulated software portability evidence, not physical Raspberry Pi acceptance. The migration 461–560 disposable suite and all 56 grouped assertions pass on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-arm64-disposable.json)). Migration 561 applies/replays in the 15-migration suite with all 58 grouped assertions passing on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-arm64-disposable.json)). Those QEMU checks establish software portability only, not physical Raspberry Pi acceptance. Migration 562 also applies/replays with 61 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-arm64-disposable.json)). The migration 461–563 acceptance passes 65 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-arm64-disposable.json)). QEMU is software emulation only, not physical Raspberry Pi acceptance. Migration 564 and all 67 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-arm64-disposable.json)). Migration 565 and all 74 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-claim-review-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-claim-review-arm64-disposable.json)). QEMU establishes software portability only, not Raspberry Pi hardware, performance, power-loss, or recovery acceptance. Migrations 559–565 are not deployed to candidate or legacy databases. Roll back by disabling the review route, exact policy, and console panel; preserve the additive migration and private receipts if it is later applied.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, or 564 are applied, retain their ordered functions, receipts,
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, or 565 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
@@ -531,7 +554,7 @@ a separately reviewed forward migration.
 
 These slices do not establish populated Adelphi scope mapping, additional
 capacity workflows beyond own drafts/revision and independent approve/reject,
-work-claim review/allocation, competency/learning/resource/coaching workflows, demand
+work-claim allocation, competency/learning/resource/coaching workflows, demand
 fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates

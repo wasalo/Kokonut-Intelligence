@@ -30,6 +30,10 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-demand-review-rows"' in panel.group()
     assert 'id="operating-pilot-work-opportunities-rows"' in panel.group()
     assert 'id="operating-pilot-work-opportunities"' in panel.group()
+    assert 'id="operating-pilot-work-claim-review-rows"' in panel.group()
+    assert 'id="operating-pilot-work-claim-review"' in panel.group()
+    assert 'id="operating-pilot-work-claim-review-dialog"' in source
+    assert 'id="operating-pilot-work-claim-review-acknowledged"' in source
     assert 'id="operating-pilot-capacity-review-dialog"' in source
     assert 'id="operating-pilot-capacity-review-acknowledged"' in source
     assert "including your private notes" in panel.group()
@@ -115,6 +119,61 @@ def test_work_opportunities_show_claim_action_only_under_claim_own_and_keep_it_p
     assert 'cache: "no-store"' in claim
     assert "request_id: requestId" in claim
     assert "does not assign work" in claim
+
+
+def test_work_claim_review_is_exact_grant_gated_redacted_and_paged():
+    source = CONSOLE.read_text(encoding="utf-8")
+    queue = _function(
+        source,
+        "async function loadOperatingPilotWorkClaimReviewQueue(append = false)",
+        "function appendOperatingPilotWorkClaimReviewRow(",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotWorkClaimReviewRow(",
+        "function syncOperatingPilotWorkClaimReviewReason(",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotWorkClaimReview(event)",
+        "async function loadOperatingPilot()",
+    )
+    assert 'operatingPilotCapacityReviewLocations.has(locationId)' in queue
+    assert "work-claim-review-queue?${params}" in queue
+    assert 'credentials: "same-origin"' in queue
+    assert 'cache: "no-store"' in queue
+    assert "nextOffset <= 10000" in queue
+    assert "claimant_party_id" not in row
+    assert "decision_reason" not in row
+    assert "display_name" not in row
+    assert 'review.textContent = "Review proposal"' in row
+    assert "operatingPilotCapacityReviewLocations.has(pending.location_id)" in submit
+    assert "/work-claims/${encodeURIComponent(pending.claim_id)}/review" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'cache: "no-store"' in submit
+    assert "operatingPilotPendingWorkClaimReviewDecisions" in submit
+    assert "Acceptance permits a later allocation decision" in row
+    assert "No work assignment was made." in submit
+
+
+def test_work_claim_review_form_requires_rejection_reason_and_explicit_acknowledgement():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reason = _function(
+        source,
+        "function syncOperatingPilotWorkClaimReviewReason()",
+        "async function submitOperatingPilotWorkClaimReview(event)",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotWorkClaimReview(event)",
+        "async function loadOperatingPilot()",
+    )
+    assert 'operatingPilotWorkClaimReviewReason.required = rejecting' in reason
+    assert "Enter a reason before rejecting this proposal." in submit
+    assert "operatingPilotWorkClaimReviewAcknowledged.checked" in submit
+    assert '"decision", "reason"' not in submit
+    assert "request_id: pendingRequest.request_id" in submit
+    assert 'operatingPilotWorkClaimReviewMore.addEventListener(' in source
 
 
 def test_resource_category_suppression_never_renders_requester_or_narrative_fields():

@@ -194,6 +194,25 @@ def _normalize_work_claim_payload(payload: Any) -> Decimal | None:
     return proposed_hours
 
 
+def _normalize_work_claim_review_payload(payload: Any) -> tuple[str, str | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Work-claim review body must be an object")
+    decision = payload.get("decision")
+    if not isinstance(decision, str) or decision not in {"accepted", "rejected"}:
+        raise OperatingPilotWriteInvalid("Decision must be accepted or rejected")
+    reason = payload.get("reason")
+    if reason is not None:
+        if not isinstance(reason, str) or len(reason) > 2000 or "\x00" in reason:
+            raise OperatingPilotWriteInvalid("Review reason must be text of at most 2000 characters")
+        reason = reason.strip() or None
+    if decision == "rejected" and reason is None:
+        raise OperatingPilotWriteInvalid("A reason is required when rejecting a work claim")
+    unexpected = set(payload) - {"decision", "reason"}
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Work-claim review contains unsupported fields")
+    return decision, reason
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -390,6 +409,54 @@ def claim_location_operating_pilot_work(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot work claim returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_operating_pilot_work_claim(
+    operator_id: str,
+    location_id: str,
+    claim_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record an independent accept/reject decision for a location claim proposal."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    claim_id = _normalize_uuid(claim_id, "claim")
+    request_id = _normalize_uuid(request_id, "request")
+    decision, reason = _normalize_work_claim_review_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.review_location_operating_pilot_work_claim(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text)""",
+                (location_id, claim_id, request_id, decision, reason),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot work-claim review returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

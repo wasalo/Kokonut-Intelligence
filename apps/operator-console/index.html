@@ -674,6 +674,19 @@
             </div>
             <button id="operating-pilot-demand-review-more" class="secondary" type="button" hidden>Load more demand submissions</button>
           </section>
+          <section id="operating-pilot-work-claim-review" hidden aria-labelledby="operating-pilot-work-claim-review-heading">
+            <h3 id="operating-pilot-work-claim-review-heading">Independent work-claim review queue</h3>
+            <p class="muted">A separate exact-location review grant is required. Your own claims are excluded. Claimant identity, private evidence, and decision reasons are not shown. Acceptance records eligibility for a later allocation decision; it does not assign work.</p>
+            <div class="toolbar"><button id="operating-pilot-work-claim-review-refresh" type="button">Refresh work-claim review queue</button></div>
+            <p id="operating-pilot-work-claim-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Opportunity</th><th>Work type</th><th>Priority</th><th>Estimated effort</th><th>Proposed effort</th><th>Due</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-work-claim-review-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-work-claim-review-more" class="secondary" type="button" hidden>Load more claims</button>
+          </section>
           <dialog id="operating-pilot-capacity-review-dialog" aria-labelledby="operating-pilot-capacity-review-dialog-heading">
             <form id="operating-pilot-capacity-review-form">
               <h3 id="operating-pilot-capacity-review-dialog-heading">Review submitted capacity</h3>
@@ -706,6 +719,23 @@
               <p id="operating-pilot-demand-review-decision-status" class="muted" role="status" aria-live="polite"></p>
               <button id="operating-pilot-demand-review-cancel" class="secondary" type="button">Cancel</button>
               <button id="operating-pilot-demand-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
+          <dialog id="operating-pilot-work-claim-review-dialog" aria-labelledby="operating-pilot-work-claim-review-dialog-heading">
+            <form id="operating-pilot-work-claim-review-form">
+              <h3 id="operating-pilot-work-claim-review-dialog-heading">Review work-claim proposal</h3>
+              <p id="operating-pilot-work-claim-review-item" class="muted"></p>
+              <label for="operating-pilot-work-claim-review-decision">Decision</label>
+              <select id="operating-pilot-work-claim-review-decision" required>
+                <option value="accepted">Accept for later allocation</option>
+                <option value="rejected">Reject proposal</option>
+              </select>
+              <label id="operating-pilot-work-claim-review-reason-label" for="operating-pilot-work-claim-review-reason" hidden>Reason for rejection</label>
+              <textarea id="operating-pilot-work-claim-review-reason" maxlength="2000" rows="4" hidden></textarea>
+              <label><input id="operating-pilot-work-claim-review-acknowledged" type="checkbox" required> I reviewed this proposal and am authorized to record this decision.</label>
+              <p id="operating-pilot-work-claim-review-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-work-claim-review-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-work-claim-review-submit" type="submit">Record decision</button>
             </form>
           </dialog>
           <h3>Demand signals</h3>
@@ -1937,8 +1967,22 @@
       const operatingPilotDemandReviewAcknowledged = document.querySelector("#operating-pilot-demand-review-acknowledged");
       const operatingPilotDemandReviewDecisionStatus = document.querySelector("#operating-pilot-demand-review-decision-status");
       const operatingPilotDemandReviewSubmit = document.querySelector("#operating-pilot-demand-review-submit");
+      const operatingPilotWorkClaimReview = document.querySelector("#operating-pilot-work-claim-review");
+      const operatingPilotWorkClaimReviewStatus = document.querySelector("#operating-pilot-work-claim-review-status");
+      const operatingPilotWorkClaimReviewRows = document.querySelector("#operating-pilot-work-claim-review-rows");
+      const operatingPilotWorkClaimReviewMore = document.querySelector("#operating-pilot-work-claim-review-more");
+      const operatingPilotWorkClaimReviewDialog = document.querySelector("#operating-pilot-work-claim-review-dialog");
+      const operatingPilotWorkClaimReviewForm = document.querySelector("#operating-pilot-work-claim-review-form");
+      const operatingPilotWorkClaimReviewItem = document.querySelector("#operating-pilot-work-claim-review-item");
+      const operatingPilotWorkClaimReviewDecision = document.querySelector("#operating-pilot-work-claim-review-decision");
+      const operatingPilotWorkClaimReviewReason = document.querySelector("#operating-pilot-work-claim-review-reason");
+      const operatingPilotWorkClaimReviewReasonLabel = document.querySelector("#operating-pilot-work-claim-review-reason-label");
+      const operatingPilotWorkClaimReviewAcknowledged = document.querySelector("#operating-pilot-work-claim-review-acknowledged");
+      const operatingPilotWorkClaimReviewDecisionStatus = document.querySelector("#operating-pilot-work-claim-review-decision-status");
+      const operatingPilotWorkClaimReviewSubmit = document.querySelector("#operating-pilot-work-claim-review-submit");
       let operatingPilotPendingCapacityReview = null;
       let operatingPilotPendingDemandReview = null;
+      let operatingPilotPendingWorkClaimReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotSubmitOwnDemandLocations = new Set();
@@ -1957,6 +2001,7 @@
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
+      const operatingPilotPendingWorkClaimReviewDecisions = new Map();
       const operatingPilotPendingWorkClaims = new Map();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
@@ -1968,6 +2013,7 @@
       let operatingPilotOwnDemandRequestVersion = 0;
       let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandReviewRequestVersion = 0;
+      let operatingPilotWorkClaimReviewRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
@@ -1977,6 +2023,7 @@
       let operatingPilotOwnDemandOffset = 0;
       let operatingPilotCapacityReviewOffset = 0;
       let operatingPilotDemandReviewOffset = 0;
+      let operatingPilotWorkClaimReviewOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -3794,6 +3841,166 @@
         }
       }
 
+      async function loadOperatingPilotWorkClaimReviewQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotWorkClaimReviewRequestVersion;
+        if (!operatingPilotCapacityReviewLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotWorkClaimReviewOffset = 0;
+          operatingPilotWorkClaimReviewRows.replaceChildren();
+          operatingPilotWorkClaimReviewMore.hidden = true;
+        }
+        const offset = append ? operatingPilotWorkClaimReviewOffset : 0;
+        operatingPilotWorkClaimReviewMore.disabled = true;
+        operatingPilotWorkClaimReviewStatus.textContent = "Loading proposals for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-claim-review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotWorkClaimReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotWorkClaimReviewRow(item, locationId);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotWorkClaimReviewMore.hidden = !canContinue;
+          operatingPilotWorkClaimReviewOffset = canContinue ? nextOffset : 0;
+          operatingPilotWorkClaimReviewStatus.textContent = canContinue
+            ? "Showing a bounded page. Claimant identity and private evidence are not returned."
+            : operatingPilotWorkClaimReviewRows.childElementCount
+              ? "Proposals loaded. Acceptance remains separate from work allocation."
+              : "No independent work-claim proposals are awaiting review.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotWorkClaimReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotWorkClaimReviewMore.hidden = true;
+          operatingPilotWorkClaimReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotWorkClaimReviewRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotWorkClaimReviewMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotWorkClaimReviewRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.title,
+          item.work_type,
+          item.priority,
+          item.estimated_effort_hours,
+          item.proposed_effort_hours,
+          item.due_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const review = document.createElement("button");
+        review.type = "button";
+        review.className = "secondary";
+        review.textContent = "Review proposal";
+        review.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotCapacityReviewLocations.has(locationId)) return;
+          operatingPilotPendingWorkClaimReview = {
+            claim_id: item.claim_id,
+            work_item_id: item.work_item_id,
+            location_id: locationId
+          };
+          operatingPilotWorkClaimReviewForm.reset();
+          operatingPilotWorkClaimReviewReason.value = "";
+          operatingPilotWorkClaimReviewItem.textContent =
+            `${operatingPilotDisplayValue(item.title)} · ${operatingPilotDisplayValue(item.work_type)} · proposed effort ${operatingPilotDisplayValue(item.proposed_effort_hours)} hours`;
+          operatingPilotWorkClaimReviewDecisionStatus.textContent =
+            "Acceptance permits a later allocation decision; it does not assign the work. A rejection requires a reason.";
+          syncOperatingPilotWorkClaimReviewReason();
+          operatingPilotWorkClaimReviewDialog.showModal();
+        });
+        actionCell.append(review);
+        row.append(actionCell);
+        operatingPilotWorkClaimReviewRows.append(row);
+      }
+
+      function syncOperatingPilotWorkClaimReviewReason() {
+        const rejecting = operatingPilotWorkClaimReviewDecision.value === "rejected";
+        operatingPilotWorkClaimReviewReason.hidden = !rejecting;
+        operatingPilotWorkClaimReviewReasonLabel.hidden = !rejecting;
+        operatingPilotWorkClaimReviewReason.required = rejecting;
+      }
+
+      async function submitOperatingPilotWorkClaimReview(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingWorkClaimReview;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(pending.location_id)) return;
+        const decision = operatingPilotWorkClaimReviewDecision.value;
+        const reason = operatingPilotWorkClaimReviewReason.value.trim();
+        if (decision === "rejected" && !reason) {
+          operatingPilotWorkClaimReviewDecisionStatus.textContent = "Enter a reason before rejecting this proposal.";
+          operatingPilotWorkClaimReviewReason.focus();
+          return;
+        }
+        if (!operatingPilotWorkClaimReviewAcknowledged.checked) {
+          operatingPilotWorkClaimReviewDecisionStatus.textContent = "Confirm that you reviewed the proposal and are authorized to decide.";
+          operatingPilotWorkClaimReviewAcknowledged.focus();
+          return;
+        }
+        const payload = { decision, reason: reason || null };
+        const signature = JSON.stringify(payload);
+        let pendingRequest = operatingPilotPendingWorkClaimReviewDecisions.get(pending.claim_id);
+        if (!pendingRequest || pendingRequest.signature !== signature) {
+          pendingRequest = { request_id: crypto.randomUUID(), signature };
+          operatingPilotPendingWorkClaimReviewDecisions.set(pending.claim_id, pendingRequest);
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotWorkClaimReviewDecisionStatus.textContent = "Refresh the page to establish a protected session before deciding.";
+          return;
+        }
+        operatingPilotWorkClaimReviewSubmit.disabled = true;
+        operatingPilotWorkClaimReviewDecisionStatus.textContent = "Recording independent claim review…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/work-claims/${encodeURIComponent(pending.claim_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pendingRequest.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.claim_id !== pending.claim_id || result.status !== decision) {
+            throw new Error("The review response did not match this decision. Retry with the same request.");
+          }
+          operatingPilotPendingWorkClaimReviewDecisions.delete(pending.claim_id);
+          operatingPilotPendingWorkClaimReview = null;
+          operatingPilotWorkClaimReviewDialog.close();
+          const confirmation = decision === "accepted"
+            ? `Claim accepted for separate allocation${result.replayed ? " (confirmed retry)" : ""}. No work assignment was made.`
+            : `Claim proposal rejected${result.replayed ? " (confirmed retry)" : ""}.`;
+          await loadOperatingPilotWorkClaimReviewQueue();
+          if (operatingPilotClaimOwnLocations.has(pending.location_id)) {
+            await loadOperatingPilotWorkOpportunities();
+          }
+          operatingPilotWorkClaimReviewStatus.textContent = confirmation;
+        } catch (error) {
+          operatingPilotWorkClaimReviewDecisionStatus.textContent =
+            `${error.message} Retry with the same decision and reason to reuse the request ID.`;
+        } finally {
+          operatingPilotWorkClaimReviewSubmit.disabled = false;
+        }
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId)
@@ -3807,6 +4014,7 @@
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotWorkClaimReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
@@ -3827,6 +4035,7 @@
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotDemandReviewRows.replaceChildren();
+          operatingPilotWorkClaimReviewRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
             await loadOperatingPilotOwnCapacityProfiles();
           } else {
@@ -3842,9 +4051,11 @@
           if (operatingPilotCapacityReviewLocations.has(locationId)) {
             await loadOperatingPilotCapacityReviewQueue();
             await loadOperatingPilotDemandReviewQueue();
+            await loadOperatingPilotWorkClaimReviewQueue();
           } else {
             operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
+            operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
           }
           return;
         }
@@ -3864,11 +4075,14 @@
         if (operatingPilotCapacityReviewLocations.has(locationId)) {
           reads.push(loadOperatingPilotCapacityReviewQueue());
           reads.push(loadOperatingPilotDemandReviewQueue());
+          reads.push(loadOperatingPilotWorkClaimReviewQueue());
         } else {
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotDemandReviewRows.replaceChildren();
           operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
+          operatingPilotWorkClaimReviewRows.replaceChildren();
+          operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
         }
         if (operatingPilotOwnCapacityLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnCapacityProfiles());
@@ -16677,6 +16891,11 @@
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
       operatingPilotLocation.addEventListener("change", () => {
+        if (operatingPilotPendingWorkClaimReview
+            && operatingPilotPendingWorkClaimReview.location_id !== operatingPilotLocation.value) {
+          operatingPilotPendingWorkClaimReview = null;
+          operatingPilotWorkClaimReviewDialog.close();
+        }
         if (operatingPilotPendingDemandReview
             && operatingPilotPendingDemandReview.location_id !== operatingPilotLocation.value) {
           operatingPilotPendingDemandReview = null;
@@ -16733,6 +16952,25 @@
       });
       operatingPilotDemandReviewDialog.addEventListener("cancel", () => {
         operatingPilotPendingDemandReview = null;
+      });
+      document.querySelector("#operating-pilot-work-claim-review-refresh").addEventListener(
+        "click", () => loadOperatingPilotWorkClaimReviewQueue()
+      );
+      operatingPilotWorkClaimReviewMore.addEventListener(
+        "click", () => loadOperatingPilotWorkClaimReviewQueue(true)
+      );
+      operatingPilotWorkClaimReviewDecision.addEventListener(
+        "change", syncOperatingPilotWorkClaimReviewReason
+      );
+      operatingPilotWorkClaimReviewForm.addEventListener(
+        "submit", submitOperatingPilotWorkClaimReview
+      );
+      document.querySelector("#operating-pilot-work-claim-review-cancel").addEventListener("click", () => {
+        operatingPilotPendingWorkClaimReview = null;
+        operatingPilotWorkClaimReviewDialog.close();
+      });
+      operatingPilotWorkClaimReviewDialog.addEventListener("cancel", () => {
+        operatingPilotPendingWorkClaimReview = null;
       });
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);
