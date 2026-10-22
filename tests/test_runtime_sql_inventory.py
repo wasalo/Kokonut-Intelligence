@@ -60,8 +60,8 @@ def test_runtime_sql_inventory_surfaces_remaining_dynamic_queries():
     packages = build_inventory()["service_packages"]
 
     assert packages["analytics"]["execution_sites"] > packages["gateway"]["execution_sites"]
-    assert packages["credit_class"]["candidate_relation_names"] == 29
-    assert packages["credit_class"]["non_literal_sites"] == 10
+    assert packages["credit_class"]["candidate_relation_names"] == 30
+    assert packages["credit_class"]["non_literal_sites"] == 12
     assert packages["data_stream"]["candidate_relation_names"] == 9
     assert packages["data_stream"]["non_literal_sites"] == 6
 

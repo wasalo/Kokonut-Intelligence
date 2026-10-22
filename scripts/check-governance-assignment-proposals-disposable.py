@@ -1448,7 +1448,7 @@ def main() -> None:
     try:
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
-            if run(["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"], check=False).returncode == 0:
+            if run(["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"], check=False).returncode == 0:
                 break
             time.sleep(0.5)
         else:

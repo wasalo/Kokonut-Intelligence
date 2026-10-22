@@ -314,7 +314,7 @@ def main() -> None:
         deadline = time.monotonic() + 45
         while time.monotonic() < deadline:
             ready = run(
-                ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+                ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
                 check=False,
             )
             if ready.returncode == 0:

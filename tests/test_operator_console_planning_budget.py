@@ -30,7 +30,7 @@ def test_budget_panel_requires_exact_location_read_grants():
 
 def test_budget_reader_uses_protected_no_store_route_stale_guards_and_bounded_pages():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadPlanningBudgetSummaries(", "async function loadSession()")
+    reader = _function(source, "async function loadPlanningBudgetSummaries(", "function renderManagementWorkSummary(")
     assert '`/operator/api/planning/${encodeURIComponent(locationId)}/budgets?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -44,7 +44,7 @@ def test_budget_reader_uses_protected_no_store_route_stale_guards_and_bounded_pa
 
 def test_budget_table_uses_fixed_summary_fields_and_keeps_native_currency():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadPlanningBudgetSummaries(", "async function loadSession()")
+    reader = _function(source, "async function loadPlanningBudgetSummaries(", "function renderManagementWorkSummary(")
     for field in (
         "plan_status", "currency", "period_start", "period_end", "has_objective",
         "budget_line_count", "planned_amount", "verified_expense_amount",

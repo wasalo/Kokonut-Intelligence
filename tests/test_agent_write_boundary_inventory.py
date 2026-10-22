@@ -24,33 +24,33 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
         {"source": "services/gateway/ai_summary_draft.py", "line": 106}
     ]
     assert inventory["authenticated_worker_draft_function_calls"] == [
-        {"source": "services/agents/worker_draft.py", "line": 336},
-        {"source": "services/agents/worker_draft.py", "line": 352},
+        {"source": "services/agents/worker_draft.py", "line": 376},
+        {"source": "services/agents/worker_draft.py", "line": 392},
     ]
     assert inventory["authenticated_worker_summary_function_calls"] == [
         {
             "source": "services/agents/worker_draft.py",
-            "line": 256,
+            "line": 296,
             "function": "get_location_ai_summary_worker_source_references",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 283,
+            "line": 323,
             "function": "get_location_ai_summary_worker_result",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 336,
+            "line": 376,
             "function": "create_location_ai_summary_worker_draft_with_result",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 352,
+            "line": 392,
             "function": "create_location_ai_summary_worker_draft",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 371,
+            "line": 411,
             "function": "set_location_ai_summary_source_references",
         },
     ]
