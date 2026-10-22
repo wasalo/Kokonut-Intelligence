@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Explicitly cap inbound and outbound gRPC protobuf messages",
+  "result": "PASS",
+  "configuration": {
+    "variable": "GRPC_MAX_MESSAGE_BYTES",
+    "default": 4194304,
+    "minimum": 1024,
+    "maximum": 67108864,
+    "applies_to": [
+      "grpc.max_receive_message_length",
+      "grpc.max_send_message_length"
+    ],
+    "invalid_values": "Rejected before opening the PostgreSQL connection pool"
+  },
+  "verification": {
+    "grpc_server_tests": "36 passed",
+    "enabled_loopback_transport": "6 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "compose_base_config": "passed",
+    "compose_kernel_grpc_config": "passed",
+    "git_diff_check": "passed"
+  },
+  "transport_behavior": {
+    "oversized_request": "RESOURCE_EXHAUSTED before service handler connection acquisition; API-key lookup uses one synthetic connection",
+    "oversized_response": "RESOURCE_EXHAUSTED"
+  },
+  "data_access": {
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false,
+    "authentication_database": "Synthetic fake connection only"
+  },
+  "limitations": [
+    "The cap is a software transport bound, not a production TLS or public-ingress acceptance.",
+    "Authentication/tenant parity and REST parity remain open."
+  ]
+}

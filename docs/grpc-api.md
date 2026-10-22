@@ -461,6 +461,7 @@ the gRPC service.
 |---|---:|---|
 | `GRPC_PORT` | `50051` | Server listen port |
 | `GRPC_MAX_WORKERS` | `10` | gRPC thread-pool worker count |
+| `GRPC_MAX_MESSAGE_BYTES` | `4194304` | Maximum inbound request and outbound response message size; valid range is 1 KiB–64 MiB |
 | `GRPC_DB_MIN_CONN` | `2` | Minimum PostgreSQL pool connections |
 | `GRPC_DB_MAX_CONN` | `20` | Maximum PostgreSQL pool connections |
 | `PG_HOST` | service configuration | PostgreSQL host |
@@ -472,6 +473,11 @@ the gRPC service.
 The server creates a `ThreadedConnectionPool` using the configured minimum and
 maximum. Each unary handler returns its connection after the operation. Each
 stream retains a connection until cancellation or stream termination.
+
+The server applies `GRPC_MAX_MESSAGE_BYTES` to both gRPC receive and send
+limits. Invalid or out-of-range values fail during configuration before the
+PostgreSQL pool is opened. Compose defaults the setting to 4 MiB; raise it only
+for workloads that need larger protobuf messages, up to 64 MiB.
 
 The server handles `SIGTERM` and `SIGINT` by stopping with a 30-second grace
 period before exiting.

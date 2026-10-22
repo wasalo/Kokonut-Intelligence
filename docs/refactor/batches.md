@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (21 October 2026):** 926 checklist items complete and 24
-open (950 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (21 October 2026):** 927 checklist items complete and 24
+open (951 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1940,3 +1940,7 @@ Checklist: 919 complete / 24 open (943 total); matrix: 31 baseline-retained,
 ### CAP-064 bound page reads in SQL — 21 October 2026
 
 - [x] Move paginated class, batch, basket, and sell-order reads from full-list materialization to deterministic SQL `LIMIT`/`OFFSET` queries, and select only the requested project IDs before hydrating project metadata. The count and page statements share the same request connection; page rows are bounded by the validated 500-row maximum. The focused pagination and credit-list selection passes 78 tests, one skip, and 17 subtests; the enabled gRPC loopback selection passes 4 tests; Ruff, Python compilation, and diff checks pass. No candidate/legacy database or provider was used. This bounds returned-page row materialization, not total database work: `COUNT(*)` and large offsets can scan many records, and separate count/page statements plus independent RPC calls do not provide a stable snapshot under concurrent writes. Authentication/tenant scope, TLS, and REST parity remain open ([queries](../../services/credit_class/page_queries.py); [managers](../../services/credit_class/class_manager.py); [service](../../services/grpc/credit_class_service.py); [tests](../../tests/test_credit_class_page_queries.py); [evidence](builds/2026-10-21-recovery/cap-064-bounded-page-queries.json)). Checklist: 926 complete / 24 open (950 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
+### CAP-064 explicit gRPC message-size limits — 21 October 2026
+
+- [x] Add `GRPC_MAX_MESSAGE_BYTES` for both inbound and outbound gRPC messages, defaulting to 4 MiB and accepting only 1 KiB through 64 MiB. Invalid values fail before the PostgreSQL pool opens. Base and Kernel Compose pass the setting, and the configuration guide documents the contract. Thirty-six gRPC server tests pass; six enabled-transport loopback tests verify send/receive enforcement and `RESOURCE_EXHAUSTED` behavior. Ruff, Python compilation, Compose configuration, and diff checks pass. The request-size rejection test confirms only the API-key lookup borrows a connection; the service handler is not entered. No live database, candidate, legacy stack, or provider was used. This establishes the software cap only; public TLS configuration, auth/tenant parity, and REST parity remain open ([server](../../services/grpc/server.py); [tests](../../tests/test_grpc.py); [transport tests](../../tests/test_grpc_enabled_transport.py); [evidence](builds/2026-10-21-recovery/cap-064-grpc-message-size-limits.json)). Checklist: 927 complete / 24 open (951 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.

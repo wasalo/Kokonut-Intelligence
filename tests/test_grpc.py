@@ -469,6 +469,53 @@ class TestTLSConfig:
                     mock_server.start.assert_called_once_with()
 
 
+class TestMessageSizeConfiguration:
+    def test_default_and_configured_limits_are_bounded(self, monkeypatch):
+        from services.grpc.server import (
+            DEFAULT_MAX_MESSAGE_BYTES,
+            MAX_MAX_MESSAGE_BYTES,
+            MIN_MAX_MESSAGE_BYTES,
+            _configured_max_message_bytes,
+        )
+
+        monkeypatch.delenv("GRPC_MAX_MESSAGE_BYTES", raising=False)
+        assert _configured_max_message_bytes() == DEFAULT_MAX_MESSAGE_BYTES
+
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", str(MAX_MAX_MESSAGE_BYTES))
+        assert _configured_max_message_bytes() == MAX_MAX_MESSAGE_BYTES
+
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", str(MIN_MAX_MESSAGE_BYTES))
+        assert _configured_max_message_bytes() == MIN_MAX_MESSAGE_BYTES
+
+    @pytest.mark.parametrize(
+        "raw_value",
+        ["", "invalid", "-1", "+1024", "1023", str(64 * 1024 * 1024 + 1)],
+    )
+    def test_invalid_message_limit_fails_before_database_pool_creation(self, monkeypatch, raw_value):
+        from services.grpc.server import serve
+
+        monkeypatch.setattr("services.core.adapters.grpc.require_enabled", lambda: None)
+        monkeypatch.setenv("GRPC_PORT", "50051")
+        monkeypatch.setenv("GRPC_MAX_MESSAGE_BYTES", raw_value)
+        with patch("services.grpc.server._get_db_pool") as get_pool:
+            with pytest.raises(ValueError, match="GRPC_MAX_MESSAGE_BYTES"):
+                serve()
+        get_pool.assert_not_called()
+
+    def test_server_sets_send_and_receive_limits(self):
+        from services.grpc.server import _build_server
+
+        with patch("services.grpc.server.grpc.server") as grpc_server:
+            mock_server = MagicMock()
+            grpc_server.return_value = mock_server
+            with patch("services.grpc.server.reflection.enable_server_reflection"):
+                _build_server(MagicMock(), MagicMock(), max_message_bytes=2048)
+
+        options = dict(grpc_server.call_args.kwargs["options"])
+        assert options["grpc.max_receive_message_length"] == 2048
+        assert options["grpc.max_send_message_length"] == 2048
+
+
 class TestProtoDefinitions:
     def test_proto_files_exist(self):
         from pathlib import Path

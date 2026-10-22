@@ -94,7 +94,7 @@ class _DatabaseFactory:
 
 
 @pytest.fixture
-def running_server(tmp_path, monkeypatch):
+def running_server(tmp_path, monkeypatch, request):
     from grpc_tools import protoc
 
     repository_root = Path(__file__).parents[1]
@@ -123,11 +123,14 @@ def running_server(tmp_path, monkeypatch):
     grpc_package = importlib.import_module("services.grpc")
     monkeypatch.setattr(grpc_package, "__path__", [*grpc_package.__path__, str(generated_root)])
 
-    from services.grpc.server import _build_server
+    from services.grpc.server import DEFAULT_MAX_MESSAGE_BYTES, _build_server
 
     database_factory = _DatabaseFactory()
     executor = futures.ThreadPoolExecutor(max_workers=4)
-    server, services = _build_server(database_factory, executor)
+    max_message_bytes = getattr(request, "param", DEFAULT_MAX_MESSAGE_BYTES)
+    server, services = _build_server(
+        database_factory, executor, max_message_bytes=max_message_bytes
+    )
     port = server.add_insecure_port("127.0.0.1:0")
     assert port, "gRPC server must bind an ephemeral loopback port"
     server.start()
@@ -303,6 +306,57 @@ def test_invalid_ecocredit_page_request_fails_before_service_database_acquisitio
 
     assert invalid_page.value.code() == grpc.StatusCode.INVALID_ARGUMENT
     assert len(database_factory.connections) == 1
+    assert database_factory.released == database_factory.connections
+
+
+@pytest.mark.parametrize("running_server", [1024], indirect=True)
+def test_server_rejects_oversized_request_before_service_database_acquisition(running_server):
+    from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+    from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
+
+    channel, database_factory, _services = running_server
+
+    with pytest.raises(grpc.RpcError) as oversized:
+        ecocredit_service_pb2_grpc.EcocreditServiceStub(channel).ClassesByAdmin(
+            ecocredit_service_pb2.ClassesByAdminRequest(admin="a" * 2048),
+            metadata=(("x-api-key", "ecocredit-reader"),),
+            timeout=3,
+        )
+
+    assert oversized.value.code() == grpc.StatusCode.RESOURCE_EXHAUSTED
+    assert len(database_factory.connections) == 1, "only API-key authentication may borrow a connection"
+    assert database_factory.released == database_factory.connections
+
+
+@pytest.mark.parametrize("running_server", [1024], indirect=True)
+def test_server_rejects_oversized_response(running_server, monkeypatch):
+    from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+    from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
+
+    channel, database_factory, _services = running_server
+    monkeypatch.setattr(
+        "services.credit_class.class_manager.list_classes",
+        lambda _connection: [
+            {
+                "id": "class-1",
+                "name": "x" * 2048,
+                "description": "",
+                "credit_type": "carbon",
+                "admin_address": "admin-1",
+                "status": "published",
+            }
+        ],
+    )
+
+    with pytest.raises(grpc.RpcError) as oversized:
+        ecocredit_service_pb2_grpc.EcocreditServiceStub(channel).Classes(
+            ecocredit_service_pb2.ClassesRequest(),
+            metadata=(("x-api-key", "ecocredit-reader"),),
+            timeout=3,
+        )
+
+    assert oversized.value.code() == grpc.StatusCode.RESOURCE_EXHAUSTED
+    assert len(database_factory.connections) == 2
     assert database_factory.released == database_factory.connections
 
 

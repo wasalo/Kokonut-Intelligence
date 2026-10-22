@@ -18,6 +18,24 @@ from services.grpc.interceptors import LoggingInterceptor
 
 logger = get_logger("grpc.server")
 
+DEFAULT_MAX_MESSAGE_BYTES = 4 * 1024 * 1024
+MIN_MAX_MESSAGE_BYTES = 1024
+MAX_MAX_MESSAGE_BYTES = 64 * 1024 * 1024
+
+
+def _configured_max_message_bytes() -> int:
+    """Read a bounded inbound/outbound gRPC message-size setting."""
+    raw_value = os.environ.get("GRPC_MAX_MESSAGE_BYTES", str(DEFAULT_MAX_MESSAGE_BYTES))
+    if not raw_value.isascii() or not raw_value.isdecimal():
+        raise ValueError("GRPC_MAX_MESSAGE_BYTES must be an integer byte count")
+    value = int(raw_value)
+    if not MIN_MAX_MESSAGE_BYTES <= value <= MAX_MAX_MESSAGE_BYTES:
+        raise ValueError(
+            f"GRPC_MAX_MESSAGE_BYTES must be between {MIN_MAX_MESSAGE_BYTES} "
+            f"and {MAX_MAX_MESSAGE_BYTES}"
+        )
+    return value
+
 
 def _get_db_pool():
     from psycopg2 import pool
@@ -45,6 +63,7 @@ def serve():
 
     port = int(os.environ.get("GRPC_PORT", "50051"))
     max_workers = int(os.environ.get("GRPC_MAX_WORKERS", "10"))
+    max_message_bytes = _configured_max_message_bytes()
 
     if not 1 <= port <= 65535 or max_workers < 1:
         raise ValueError("Invalid gRPC port or worker count")
@@ -54,7 +73,7 @@ def serve():
     executor = None
     try:
         executor = futures.ThreadPoolExecutor(max_workers=max_workers)
-        _serve_transport(db_factory, executor, port, max_workers)
+        _serve_transport(db_factory, executor, port, max_workers, max_message_bytes)
     finally:
         try:
             db_factory.close()
@@ -63,12 +82,14 @@ def serve():
                 executor.shutdown(wait=False, cancel_futures=True)
 
 
-def _serve_transport(db_factory, executor, port, max_workers):
+def _serve_transport(db_factory, executor, port, max_workers, max_message_bytes=None):
     server = None
     previous_signals = {}
     stopping = False
     try:
-        server, service_names = _build_server(db_factory, executor)
+        server, service_names = _build_server(
+            db_factory, executor, max_message_bytes=max_message_bytes
+        )
 
         tls_cert = os.environ.get("GRPC_TLS_CERT")
         tls_key = os.environ.get("GRPC_TLS_KEY")
@@ -111,14 +132,25 @@ def _serve_transport(db_factory, executor, port, max_workers):
             server.stop(grace=0).wait(timeout=5)
 
 
-def _build_server(db_factory, executor):
+def _build_server(db_factory, executor, max_message_bytes=None):
     """Create the configured server and register its optional service adapters."""
+    if max_message_bytes is None:
+        max_message_bytes = _configured_max_message_bytes()
+    if (
+        isinstance(max_message_bytes, bool)
+        or not isinstance(max_message_bytes, int)
+        or not MIN_MAX_MESSAGE_BYTES <= max_message_bytes <= MAX_MAX_MESSAGE_BYTES
+    ):
+        raise ValueError("max_message_bytes is outside the supported range")
+
     auth_interceptor = APIKeyInterceptor(db_factory)
     logging_interceptor = LoggingInterceptor()
     server = grpc.server(
         executor,
         interceptors=[logging_interceptor, auth_interceptor],
         options=[
+            ("grpc.max_receive_message_length", max_message_bytes),
+            ("grpc.max_send_message_length", max_message_bytes),
             ("grpc.keepalive_time_ms", 30000),
             ("grpc.keepalive_timeout_ms", 10000),
             ("grpc.keepalive_permit_without_calls", True),

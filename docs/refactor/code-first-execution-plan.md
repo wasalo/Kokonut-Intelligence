@@ -2822,3 +2822,13 @@ complete / 25 open (879 total); matrix remains 66 rows: 31 baseline-retained,
 7 deployed, and 28 prepared. See
 [the test](../tests/test_baal_indexer_cli.py) and
 [evidence](builds/2026-10-21-recovery/cap-039-baal-indexer-cli-contract.json).
+
+### CAP-064 explicit gRPC message-size limits — 21 October 2026
+
+The gRPC server now caps both inbound and outbound messages through
+`GRPC_MAX_MESSAGE_BYTES`, default 4 MiB and range 1 KiB–64 MiB. Invalid values
+fail before the database pool opens. Base and Kernel Compose expose the
+setting. The 36-test server suite and six enabled-transport checks pass,
+including oversized request and response rejection; Ruff, compilation,
+Compose validation, and diff checks pass. No live database or provider was
+used. TLS and authenticated tenant parity remain open ([evidence](builds/2026-10-21-recovery/cap-064-grpc-message-size-limits.json)).

@@ -26,6 +26,7 @@ services:
       KOKONUT_FEATURE_PREFECT: "false"
       GRPC_PORT: "50051"
       GRPC_MAX_WORKERS: "4"
+      GRPC_MAX_MESSAGE_BYTES: "${GRPC_MAX_MESSAGE_BYTES:-4194304}"
       GRPC_DB_MIN_CONN: "1"
       GRPC_DB_MAX_CONN: "5"
     networks:

@@ -14278,3 +14278,19 @@ tenant scope, REST parity, and MAN-CAP-064 remain open. Checklist: 926 complete
 / 24 open (950 total); matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. Evidence:
 [bounded gRPC page queries](builds/2026-10-21-recovery/cap-064-bounded-page-queries.json).
+
+
+### CAP-064 explicit gRPC message-size limits — 21 October 2026
+
+`GRPC_MAX_MESSAGE_BYTES` now applies to both gRPC receive and send limits. It
+defaults to 4 MiB, accepts values from 1 KiB to 64 MiB, and invalid values fail
+before PostgreSQL pool creation. Base and Kernel Compose expose the setting;
+the environment example and gRPC guide document it. The gRPC unit suite passes
+36 tests and enabled loopback passes 6, including oversized request and
+response rejection as `RESOURCE_EXHAUSTED`. The request is rejected before
+service connection acquisition, after the normal API-key lookup. Ruff,
+compilation, both Compose configs, and diff checks pass. No real database or
+provider was used. Public TLS, tenant authorization, and REST parity remain
+open. Checklist: 927 complete / 24 open (951 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[gRPC message-size limits](builds/2026-10-21-recovery/cap-064-grpc-message-size-limits.json).
