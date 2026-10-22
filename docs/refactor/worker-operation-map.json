@@ -73,7 +73,7 @@
         "OpenWeatherMap 5-day forecast HTTP requests"
       ],
       "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the ClickHouse outbox uses a canonical payload hash. A retry refreshes matching forecast slots without creating duplicate natural-key rows.",
-      "retry_boundary": "Legacy persisted tasks still use the shared runtime identity and remain allowlisted until schedule owners reconcile them. A retry repeats the OpenWeatherMap request and may update forecasts for the same location/window; the generated schedule remains disabled.",
+      "retry_boundary": "Legacy forecast rows, success audit, and per-location completion now share an outer savepoint around the existing natural-key upserts. An audit or completion failure rolls back that location before a sanitized failure audit is written on the same connection; the aggregate can continue. A retry repeats the provider request and may update the same forecast slots. The generated schedule remains disabled, and persisted tasks on the legacy entrypoint still require owner reconciliation.",
       "sources": [
         "services/ingestion/weather_forecast.py",
         "services/ingestion/base.py",

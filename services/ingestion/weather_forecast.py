@@ -291,15 +291,20 @@ def _ingest_locations(db, locations) -> None:
     errors = 0
 
     for loc_id, name, lat, lng in locations:
+        location_id_text = str(loc_id)
+        savepoint_created = False
         try:
             start = time.time()
             raw = fetch_forecast_raw(lat, lng)
             elapsed_ms = int((time.time() - start) * 1000)
 
             records = parse_forecast_list(raw, loc_id)
+            # Keep forecast rows, success audit, and the per-location outcome
+            # within one savepoint so a failed audit cannot poison other farms.
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT weather_forecast_result")
+            savepoint_created = True
             inserted = insert_location_forecasts(db, records, source_raw=raw)
-            all_records.extend(records)
-
             log_ingestion(
                 source_system="openweathermap",
                 source_table="forecast_api",
@@ -312,13 +317,19 @@ def _ingest_locations(db, locations) -> None:
                 rows_affected=inserted,
                 processing_time_ms=elapsed_ms,
                 db=db,
-                location_id=str(loc_id),
+                location_id=location_id_text,
             )
-            success += 1
             logger.info("  ✓ %s: %d forecast points", name, inserted)
             time.sleep(0.5)  # Rate limiting
+            with db.cursor() as cur:
+                cur.execute("RELEASE SAVEPOINT weather_forecast_result")
+            savepoint_created = False
 
         except Exception as e:
+            if savepoint_created:
+                with db.cursor() as cur:
+                    cur.execute("ROLLBACK TO SAVEPOINT weather_forecast_result")
+                    cur.execute("RELEASE SAVEPOINT weather_forecast_result")
             errors += 1
             safe_error = f"forecast location processing failed ({type(e).__name__})"
             log_ingestion(
@@ -332,9 +343,13 @@ def _ingest_locations(db, locations) -> None:
                 status="failed",
                 error_message=safe_error,
                 db=db,
-                location_id=str(loc_id),
+                location_id=location_id_text,
             )
             logger.error("  ✗ %s failed (%s)", name, type(e).__name__)
+            continue
+
+        all_records.extend(records)
+        success += 1
 
     if all_records:
         insert_forecasts_clickhouse(all_records, db)

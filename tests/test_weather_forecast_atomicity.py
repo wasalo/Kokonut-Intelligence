@@ -144,6 +144,65 @@ def test_successful_location_projects_only_after_atomic_insert_and_audits_in_tra
     assert db.closed
 
 
+def test_success_audit_failure_rolls_back_location_and_later_farm_continues():
+    second_location = "cda03c3e-0105-46a0-9b83-b8a4a21b0a26"
+    db = _Connection(
+        [
+            (LOCATION_ID, "First Farm", 18.5, -69.9),
+            (second_location, "Second Farm", 18.6, -70.0),
+        ]
+    )
+    first_records = [_forecast_record(12)]
+    second_record = _forecast_record(15)
+    second_record["location_id"] = second_location
+    second_records = [second_record]
+    raw = {"city": {"id": 7}}
+
+    with (
+        patch.object(weather_forecast, "OPENWEATHERMAP_API_KEY", "synthetic-key"),
+        patch.object(weather_forecast, "get_db", return_value=db),
+        patch.object(weather_forecast, "fetch_forecast_raw", return_value=raw),
+        patch.object(
+            weather_forecast,
+            "parse_forecast_list",
+            side_effect=[first_records, second_records],
+        ),
+        patch.object(
+            weather_forecast,
+            "insert_location_forecasts",
+            side_effect=[1, 1],
+        ) as insert,
+        patch.object(
+            weather_forecast,
+            "log_ingestion",
+            side_effect=[RuntimeError("synthetic audit failure"), None, None],
+        ) as audit,
+        patch.object(weather_forecast, "insert_forecasts_clickhouse") as project,
+        patch.object(weather_forecast.time, "sleep"),
+    ):
+        weather_forecast.run(all_locations=True)
+
+    assert insert.call_count == 2
+    assert [call.kwargs["status"] for call in audit.call_args_list] == [
+        "success",
+        "failed",
+        "success",
+    ]
+    assert [call.kwargs["location_id"] for call in audit.call_args_list] == [
+        LOCATION_ID,
+        LOCATION_ID,
+        second_location,
+    ]
+    assert all(call.kwargs["db"] is db for call in audit.call_args_list)
+    statements = [call.args[0] for call in db.cursor_obj.execute.call_args_list]
+    assert statements.count("SAVEPOINT weather_forecast_result") == 2
+    assert statements.count("ROLLBACK TO SAVEPOINT weather_forecast_result") == 1
+    assert statements.count("RELEASE SAVEPOINT weather_forecast_result") == 2
+    project.assert_called_once_with(second_records, db)
+    assert db.commits == 1
+    assert db.closed
+
+
 def test_transactional_clickhouse_enqueue_failure_propagates():
     with patch.object(
         weather_forecast,
