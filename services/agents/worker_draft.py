@@ -86,6 +86,12 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "anti_capture_governance_policy",
         "commons_redistribution_policy",
         "algorithmic_redistribution_mechanism",
+        "bio_regional_input_availability",
+        "network_scaling_target",
+        "open_source_impact_artifact",
+        "green_paper_publication_review",
+        "federation_protocol",
+        "participatory_signal_experiment",
     }
 )
 
@@ -116,12 +122,22 @@ def _validate_source_references(
             or table not in _SOURCE_REFERENCE_TABLES
             or table not in source_tables
             or not isinstance(entry, Mapping)
-            or set(entry) != {"record_ids", "row_count", "truncated"}
+            or set(entry) not in (
+                {"record_ids", "row_count", "truncated"},
+                {"record_ids", "row_count", "truncated", "scope"},
+            )
         ):
             raise AgentDraftInvalid("source_references must match declared supported source tables")
         record_ids = entry["record_ids"]
         row_count = entry["row_count"]
         truncated = entry["truncated"]
+        scope = entry.get("scope", "location")
+        if not isinstance(scope, str) or scope not in {
+            "location",
+            "network",
+            "location_or_network",
+        }:
+            raise AgentDraftInvalid("source reference scope is invalid")
         if not isinstance(record_ids, list) or len(record_ids) > 50:
             raise AgentDraftInvalid("source reference record_ids must contain at most 50 UUIDs")
         try:
@@ -138,11 +154,14 @@ def _validate_source_references(
             or truncated != (row_count > len(normalized_ids))
         ):
             raise AgentDraftInvalid("source reference counts and truncation flag are inconsistent")
-        normalized[table] = {
+        normalized_entry = {
             "record_ids": normalized_ids,
             "row_count": row_count,
             "truncated": truncated,
         }
+        if "scope" in entry:
+            normalized_entry["scope"] = scope
+        normalized[table] = normalized_entry
     try:
         encoded = json.dumps(normalized, sort_keys=True, separators=(",", ":"), allow_nan=False)
     except (TypeError, ValueError) as exc:

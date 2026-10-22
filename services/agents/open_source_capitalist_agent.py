@@ -149,6 +149,15 @@ class OpenSourceCapitalistSynthesisAgent(SynthesisAgent):
         "farm_launch_unit_economics": "v_public_farm_launch_unit_economics",
         "adoption_barrier_assessment": "v_public_adoption_barrier_assessment",
         "perpetual_value_stress_test": "v_public_perpetual_value_stress_test",
+        "network_scaling_target": "v_public_network_scaling_target",
+        "open_source_impact_artifact": "v_public_open_source_impact_artifact",
+    }
+    source_reference_scopes = {
+        "farm_launch_unit_economics": "location_or_network",
+        "adoption_barrier_assessment": "location_or_network",
+        "perpetual_value_stress_test": "location_or_network",
+        "network_scaling_target": "network",
+        "open_source_impact_artifact": "network",
     }
 
     def synthesize(self, conn, location_id=None):

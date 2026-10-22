@@ -124,7 +124,9 @@ class ResilienceSynthesisAgent(SynthesisAgent):
         "financial_sustainability_plan": "v_public_financial_sustainability_summary",
         "risk_mitigation_register": "v_public_risk_mitigation_summary",
         "scaling_roadmap_milestone": "v_public_scaling_roadmap_summary",
+        "green_paper_publication_review": "v_public_green_paper_publication_status",
     }
+    source_reference_scopes = {"green_paper_publication_review": "network"}
 
     def synthesize(self, conn, location_id=None):
         return synthesize_resilience(conn, location_id)

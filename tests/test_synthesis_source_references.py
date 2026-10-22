@@ -89,11 +89,20 @@ def test_location_source_reference_collector_uses_bounded_public_views(agent_cla
         )
         for view in agent.source_reference_views.values()
     )
-    assert connection.cursor_value.query.count("WHERE location_id = %s") == len(agent.source_reference_views)
-    assert connection.cursor_value.params == (LOCATION_ID,) * len(agent.source_reference_views)
+    expected_bound = sum(
+        agent_class.source_reference_scopes.get(table, "location") != "network"
+        for table in agent_class.source_reference_views
+    )
+    assert connection.cursor_value.query.count("WHERE location_id = %s") == expected_bound
+    assert connection.cursor_value.params == (LOCATION_ID,) * expected_bound
     assert all(reference["row_count"] == 51 for reference in references.values())
     assert all(len(reference["record_ids"]) == 50 for reference in references.values())
     assert all(reference["truncated"] for reference in references.values())
+    assert all(
+        reference.get("scope", "location")
+        == agent_class.source_reference_scopes.get(table, "location")
+        for table, reference in references.items()
+    )
 
 
 @pytest.mark.parametrize("agent_class", AGENTS)
@@ -104,6 +113,11 @@ def test_worker_adapter_accepts_each_agent_manifest_source(agent_class: Any) -> 
             "record_ids": [f"e0000000-0000-4000-8000-{index:012d}"],
             "row_count": 1,
             "truncated": False,
+            **(
+                {"scope": agent_class.source_reference_scopes[table]}
+                if agent_class.source_reference_scopes.get(table, "location") != "location"
+                else {}
+            ),
         }
         for index, table in enumerate(source_tables, start=501)
     }
@@ -114,13 +128,15 @@ def test_worker_adapter_accepts_each_agent_manifest_source(agent_class: Any) -> 
     assert serialized
 
 
-def test_global_catalogue_sources_are_not_registered_as_location_manifests() -> None:
-    assert "bio_regional_input_availability" not in BioFactorySynthesisAgent.source_reference_views
-    assert "network_scaling_target" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
-    assert "open_source_impact_artifact" not in OpenSourceCapitalistSynthesisAgent.source_reference_views
-    assert "green_paper_publication_review" not in ResilienceSynthesisAgent.source_reference_views
-    assert "federation_protocol" not in KokonutCommonsSynthesisAgent.source_reference_views
-    assert "participatory_signal_experiment" not in KokonutCommonsSynthesisAgent.source_reference_views
+def test_global_and_shared_sources_have_explicit_scopes() -> None:
+    assert BioFactorySynthesisAgent.source_reference_scopes["bio_regional_input_availability"] == "network"
+    assert OpenSourceCapitalistSynthesisAgent.source_reference_scopes["network_scaling_target"] == "network"
+    assert OpenSourceCapitalistSynthesisAgent.source_reference_scopes["open_source_impact_artifact"] == "network"
+    assert ResilienceSynthesisAgent.source_reference_scopes["green_paper_publication_review"] == "network"
+    assert KokonutCommonsSynthesisAgent.source_reference_scopes["federation_protocol"] == "network"
+    assert KokonutCommonsSynthesisAgent.source_reference_scopes["participatory_signal_experiment"] == "network"
+    assert OpenSourceCapitalistSynthesisAgent.source_reference_scopes["farm_launch_unit_economics"] == "location_or_network"
+    assert KokonutCommonsSynthesisAgent.source_reference_scopes["anti_capture_governance_policy"] == "location_or_network"
 
 
 def test_feedback_sources_use_only_consent_approved_published_views() -> None:

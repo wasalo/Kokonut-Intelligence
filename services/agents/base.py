@@ -29,6 +29,7 @@ from services.common.database import get_db
 
 _SOURCE_TABLE_NAME = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 _PUBLIC_SOURCE_VIEW_NAME = re.compile(r"^v_public_[a-z0-9_]{1,55}$")
+_SOURCE_REFERENCE_SCOPES = frozenset({"location", "network", "location_or_network"})
 
 
 def validate_source_tables(source_tables: Any, *, label: str) -> list[str]:
@@ -77,6 +78,8 @@ class SynthesisAgent:
     source_tables: list[str] = []
     #: exact source-table to public-view mapping for private row manifests
     source_reference_views: dict[str, str] = {}
+    #: Scope for mapped source views; entries default to location-only.
+    source_reference_scopes: dict[str, str] = {}
     #: fixed SQL that returns source_table, row_count, and ordered record_ids
     source_reference_query: Optional[str] = None
 
@@ -99,21 +102,28 @@ class SynthesisAgent:
         # entry point separately rejects metadata that differs from the class.
         source_tables = type(self).source_tables
         source_reference_views = type(self).source_reference_views
+        source_reference_scopes = type(self).source_reference_scopes
         source_reference_query = type(self).source_reference_query
         if not source_reference_views:
             return {}
         if (
             len(source_reference_views) > 10
             or any(table not in source_tables for table in source_reference_views)
+            or any(table not in source_reference_views for table in source_reference_scopes)
+            or any(
+                not isinstance(scope, str) or scope not in _SOURCE_REFERENCE_SCOPES
+                for scope in source_reference_scopes.values()
+            )
         ):
             raise ValueError("source reference views must match declared source tables")
         query = source_reference_query or self._build_source_reference_query()
+        bound_scope_count = sum(
+            source_reference_scopes.get(table, "location") != "network"
+            for table in source_reference_views
+        )
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:
-            cur.execute(
-                query,
-                (location_id,) * len(source_reference_views),
-            )
+            cur.execute(query, (location_id,) * bound_scope_count)
             rows = cur.fetchall()
         finally:
             cur.close()
@@ -124,11 +134,15 @@ class SynthesisAgent:
                 raise ValueError("source reference query returned an undeclared source table")
             row_count = int(row["row_count"])
             record_ids = [str(record_id) for record_id in row["record_ids"]]
-            references[source_table] = {
+            reference = {
                 "record_ids": record_ids,
                 "row_count": row_count,
                 "truncated": row_count > len(record_ids),
             }
+            scope = source_reference_scopes.get(source_table, "location")
+            if scope != "location":
+                reference["scope"] = scope
+            references[source_table] = reference
         return references
 
     def _build_source_reference_query(self) -> str:
@@ -140,9 +154,17 @@ class SynthesisAgent:
                 or _PUBLIC_SOURCE_VIEW_NAME.fullmatch(view_name) is None
             ):
                 raise ValueError("source reference metadata contains an invalid SQL identifier")
+            scope = type(self).source_reference_scopes.get(source_table, "location")
+            if not isinstance(scope, str) or scope not in _SOURCE_REFERENCE_SCOPES:
+                raise ValueError("source reference metadata contains an invalid scope")
+            predicate = {
+                "location": " WHERE location_id = %s",
+                "network": "",
+                "location_or_network": " WHERE location_id = %s OR location_id IS NULL",
+            }[scope]
             selects.append(
                 f"SELECT '{source_table}'::text AS source_table, id "
-                f"FROM public.{view_name} WHERE location_id = %s"
+                f"FROM public.{view_name}{predicate}"
             )
         return f"""
             WITH sources AS MATERIALIZED (

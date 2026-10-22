@@ -12443,9 +12443,14 @@
               const rowCount = Number.isInteger(manifest.row_count) && manifest.row_count >= recordIds.length
                 ? manifest.row_count
                 : recordIds.length;
+              const scopeLabel = {
+                location: "location-scoped",
+                network: "network-wide",
+                location_or_network: "location and shared rows",
+              }[manifest.scope] || "location-scoped";
               const references = document.createElement("details");
               const label = document.createElement("summary");
-              label.textContent = `${sourceTable}: ${recordIds.length} of ${rowCount} record IDs`;
+              label.textContent = `${sourceTable} (${scopeLabel}): ${recordIds.length} of ${rowCount} record IDs`;
               references.append(label);
               for (const recordId of recordIds) {
                 const item = document.createElement("div");
@@ -12641,7 +12646,14 @@
             && !Array.isArray(result.source_references)
             ? Object.entries(result.source_references)
               .filter(([table, manifest]) => sourceTables.includes(table) && manifest && typeof manifest === "object")
-              .map(([table, manifest]) => `${table}: ${Array.isArray(manifest.record_ids) ? manifest.record_ids.length : 0} of ${Number(manifest.row_count) || 0} record IDs`)
+              .map(([table, manifest]) => {
+                const scopeLabel = {
+                  location: "location-scoped",
+                  network: "network-wide",
+                  location_or_network: "location and shared rows",
+                }[manifest.scope] || "location-scoped";
+                return `${table} (${scopeLabel}): ${Array.isArray(manifest.record_ids) ? manifest.record_ids.length : 0} of ${Number(manifest.row_count) || 0} record IDs`;
+              })
             : [];
           aiSummaryDraftSources.textContent = sourceTables.length
             ? `Source tables: ${sourceTables.join(", ")}${sourceReferences.length ? `. Linked records: ${sourceReferences.join("; ")}` : ". Record-level references are unavailable for this result."}`

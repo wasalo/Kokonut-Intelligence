@@ -1,3 +1,19 @@
+### CAP-038 explicit network and shared-row provenance scopes — 22 October 2026
+
+Migration 540 extends the worker source registry from exact-location-only
+references to three explicit scopes: exact farm, public network catalogue, and
+exact farm plus unassigned shared rows. The ten synthesis paths now capture
+six public network sources and six mixed-scope sources as well as location
+sources. PostgreSQL revalidates IDs and counts through migration-owned public
+views, denies cross-location mixed rows, and grants the drafter only the
+columns needed for those checks. Operator review reads preserve scope labels.
+Focused source/worker tests, Ruff, compilation, and disposable PostgreSQL 16
+apply/replay acceptance pass; candidate and legacy databases remain untouched.
+This closes source scope labeling and bounded row validation only. Worker/runtime
+credential rollout, broad runtime and Directus least privilege, populated task
+parity, and MAN-CAP-038 acceptance remain open. Evidence:
+[migration 540 acceptance](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json).
+
 ### Separate event and notification worker recovery — 21 October 2026
 
 The disposable PostgreSQL recovery acceptance now starts `cmd_event_worker`

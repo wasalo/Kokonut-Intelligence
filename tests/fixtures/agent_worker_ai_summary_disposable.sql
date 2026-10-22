@@ -177,6 +177,58 @@ BEGIN
 END;
 $$;
 
+-- Network-wide public view fixtures validate explicit network provenance.
+CREATE TABLE public.bio_regional_input_availability (
+    id UUID PRIMARY KEY, status TEXT NOT NULL
+);
+CREATE VIEW public.v_public_bio_regional_input_summary AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.bio_regional_input_availability WHERE status = 'published';
+INSERT INTO public.bio_regional_input_availability VALUES
+    ('e0000000-0000-4000-8000-000000000801', 'published');
+
+CREATE TABLE public.network_scaling_target (id UUID PRIMARY KEY, status TEXT NOT NULL);
+CREATE VIEW public.v_public_network_scaling_target AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.network_scaling_target WHERE status = 'published';
+INSERT INTO public.network_scaling_target VALUES
+    ('e0000000-0000-4000-8000-000000000802', 'published');
+
+CREATE TABLE public.open_source_impact_artifact (id UUID PRIMARY KEY, status TEXT NOT NULL);
+CREATE VIEW public.v_public_open_source_impact_artifact AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.open_source_impact_artifact WHERE status = 'published';
+INSERT INTO public.open_source_impact_artifact VALUES
+    ('e0000000-0000-4000-8000-000000000803', 'published');
+
+CREATE TABLE public.green_paper_publication_review (id UUID PRIMARY KEY, status TEXT NOT NULL);
+CREATE VIEW public.v_public_green_paper_publication_status AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.green_paper_publication_review WHERE status IN ('verified', 'published');
+INSERT INTO public.green_paper_publication_review VALUES
+    ('e0000000-0000-4000-8000-000000000804', 'published');
+
+CREATE TABLE public.federation_protocol (id UUID PRIMARY KEY, status TEXT NOT NULL);
+CREATE VIEW public.v_public_federation_protocol AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.federation_protocol WHERE status = 'published';
+INSERT INTO public.federation_protocol VALUES
+    ('e0000000-0000-4000-8000-000000000805', 'published');
+
+CREATE TABLE public.participatory_signal_experiment (id UUID PRIMARY KEY, status TEXT NOT NULL);
+CREATE VIEW public.v_public_participatory_signal_experiment AS
+    SELECT id, 'Synthetic public catalogue'::TEXT AS public_summary
+    FROM public.participatory_signal_experiment WHERE status = 'published';
+INSERT INTO public.participatory_signal_experiment VALUES
+    ('e0000000-0000-4000-8000-000000000806', 'published');
+
+-- A shared source is not farm-owned: mixed manifests must accept this ID only
+-- alongside the requested location's own row and report both scopes.
+INSERT INTO public.farm_launch_unit_economics (id, location_id, status) VALUES
+    ('e0000000-0000-4000-8000-000000000807', NULL, 'published');
+INSERT INTO public.farm_launch_unit_economics (id, location_id, status) VALUES
+    ('e0000000-0000-4000-8000-000000000809', 'a0000000-0000-0000-0000-000000000002', 'published');
+
 CREATE TABLE public.cultural_context_record (
     id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
     consent_given BOOLEAN NOT NULL, is_public BOOLEAN NOT NULL
@@ -234,7 +286,8 @@ CREATE VIEW public.v_public_algorithmic_redistribution_mechanism AS
     SELECT id, location_id, 'Synthetic public mechanism'::TEXT AS public_summary
     FROM public.algorithmic_redistribution_mechanism WHERE status = 'published';
 INSERT INTO public.anti_capture_governance_policy VALUES
-    ('e0000000-0000-4000-8000-000000000701', 'a0000000-0000-0000-0000-000000000001', 'published');
+    ('e0000000-0000-4000-8000-000000000701', 'a0000000-0000-0000-0000-000000000001', 'published'),
+    ('e0000000-0000-4000-8000-000000000808', NULL, 'published');
 INSERT INTO public.commons_redistribution_policy VALUES
     ('e0000000-0000-4000-8000-000000000702', 'a0000000-0000-0000-0000-000000000001', 'published'),
     ('e0000000-0000-4000-8000-000000000704', NULL, 'published');

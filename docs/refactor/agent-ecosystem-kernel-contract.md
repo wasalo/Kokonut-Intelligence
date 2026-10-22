@@ -150,8 +150,9 @@ Migration 524 extends the manifest to shared `crop` and `expense_category`
 records only when they are linked through this location's verified sales or
 the displayed top-five verified expense categories. The setter checks those
 relationships and the drafter role receives only the needed source columns.
-Old summaries are not backfilled; other global references, legacy/background
-agent sources, and full source snapshots remain outside this slice. The row
+Old summaries are not backfilled; other global references in the deterministic
+operator-draft path, legacy/background agent sources, and full source snapshots
+remain outside that slice. The row
 references help locate evidence but do not prove its content.
 
 Migration 529 adds a second, isolated write path for background agents. The
@@ -192,15 +193,21 @@ receipt before source queries. It runs reads inside a bounded read-only transact
 identity and creates the draft through the separate signed worker connection.
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
-farm-assigned Kokonut Commons synthesis attach bounded row IDs for thirty-four
-exact-location published summary views through the same private manifest. The base agent contract accepts a fixed
-query or builds one from a validated static view map, collecting IDs inside the
-source read's repeatable-read snapshot. The mappings exclude the bio-factory's
-network-wide regional catalogue, unassigned governance records, global
-scaling/artifact catalogues, Green Paper publication status, private/no-consent
-feedback rows, and unassigned/network-wide Kokonut Commons sources. Migration
-532 creates the migration-owned view map; migrations 532–536 register eligible
-views. Migration 537 constrains new signed-worker draft receipts to the four
+Kokonut Commons synthesis attach bounded row IDs for forty approved public
+summary views through the same private manifest. The migration-owned registry
+declares each source as `location` (exact requested farm), `network` (public
+network catalogue), or `location_or_network` (exact farm plus explicitly
+unassigned shared rows). The base agent contract builds a bounded query from
+the registered scope and static view map, collecting IDs inside the source
+read's repeatable-read snapshot. No row from another location may enter a
+manifest. Network-wide IDs are explicitly labeled and never relabeled as
+farm-owned. Migration 540 registers six network-wide views, promotes six
+public-safe shared policy/economic views to mixed scope, and grants the drafter
+only the ID columns needed to revalidate network rows and ID/location columns
+for mixed rows. PostgreSQL checks exact counts and sampled IDs against these
+views; the operator review queue preserves the scope labels. Migrations 532–536
+register the preceding location-owned views. Migration 537 constrains new
+signed-worker draft receipts to the four
 deterministic and ten registered synthesis summary types while preserving
 historical receipt reads.
 PostgreSQL rechecks exact counts and sampled IDs through the matching public
@@ -214,7 +221,7 @@ JSON result without rerunning source queries. Receipts created before migration
 compatibility fallback. Compose exposes the dedicated DSN and high-entropy
 credential only to the opt-in `agent-summary-worker` service. An operator still needs to provision
 the runtime password, worker login/password, worker credential, and service DSN;
-migrations 529–539 are not rolled out to the candidate. Stored shared-agent CLI
+migrations 529–540 are not rolled out to the candidate. Stored shared-agent CLI
 output is reduced to the draft ID, request ID, status, and replay flag. For
 example, run a task through the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
@@ -230,6 +237,7 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 535](../../schemas/postgres/535_consent_safe_wellbeing_feedback_source_views.sql),
 [migration 536](../../schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql),
 [migration 537](../../schemas/postgres/537_registered_worker_summary_types.sql),
+[migration 540](../../schemas/postgres/540_scoped_agent_source_references.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),
@@ -249,6 +257,10 @@ covers migration 535 replay and rejection of private/no-consent feedback IDs.
 The [Kokonut Commons evidence](builds/2026-10-21-recovery/cap-038-kokonut-commons-source-references-disposable.json)
 covers migration 536 replay and exclusion of unassigned/network-wide policies.
 The [registered-summary-type evidence](builds/2026-10-21-recovery/cap-038-registered-worker-summary-types-disposable.json) covers migration 537 replay, all fourteen supported types, and atomic rejection of an unregistered type.
+The [scoped-source evidence](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json)
+covers migration 540 replay, all three scope modes, cross-location rejection,
+ID-only drafter grants for network views, and scope-label preservation in the
+operator review queue.
 
 The focused Gateway, route-policy, console, source-reference, and safety
 selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python

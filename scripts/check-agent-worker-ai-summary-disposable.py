@@ -33,8 +33,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql",
     ROOT / "schemas/postgres/537_registered_worker_summary_types.sql",
     ROOT / "schemas/postgres/539_agent_worker_structured_result_replay.sql",
+    ROOT / "schemas/postgres/540_scoped_agent_source_references.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-worker-structured-result-replay-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -87,6 +88,16 @@ KOKONUT_COMMONS_SOURCE_VIEWS = {
     "anti_capture_governance_policy": "v_public_anti_capture_governance_policy",
     "commons_redistribution_policy": "v_public_commons_redistribution_policy",
     "algorithmic_redistribution_mechanism": "v_public_algorithmic_redistribution_mechanism",
+    "federation_protocol": "v_public_federation_protocol",
+    "participatory_signal_experiment": "v_public_participatory_signal_experiment",
+}
+NETWORK_SOURCE_VIEWS = {
+    "bio_regional_input_availability": "v_public_bio_regional_input_summary",
+    "network_scaling_target": "v_public_network_scaling_target",
+    "open_source_impact_artifact": "v_public_open_source_impact_artifact",
+    "green_paper_publication_review": "v_public_green_paper_publication_status",
+    "federation_protocol": "v_public_federation_protocol",
+    "participatory_signal_experiment": "v_public_participatory_signal_experiment",
 }
 
 
@@ -275,7 +286,7 @@ def _worker_acceptance() -> str:
           FROM kokonut_security.create_location_ai_summary_worker_draft(
               '{LOCATION_ID}', 'bio_factory', 'Published bio-factory source references.',
               ARRAY['bio_factory_batch', 'bio_input_provenance', 'bio_recipe_library',
-                    'bio_factory_quality_test'],
+                    'bio_factory_quality_test', 'bio_regional_input_availability'],
               'bio-factory-agent-v1', 'd0000000-0000-4000-8000-000000000912'
           );
         bio_manifest := jsonb_build_object(
@@ -294,6 +305,10 @@ def _worker_acceptance() -> str:
             'bio_factory_quality_test', jsonb_build_object(
                 'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000331'),
                 'row_count', 1, 'truncated', false
+            ),
+            'bio_regional_input_availability', jsonb_build_object(
+                'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000801'),
+                'row_count', 1, 'truncated', false, 'scope', 'network'
             )
         );
         source_result := kokonut_security.set_location_ai_summary_source_references(
@@ -716,22 +731,43 @@ def _registered_synthesis_source_acceptance() -> str:
     groups = [
         ("commons_liberation", "commons-agent-v1", ADDITIONAL_SOURCE_TABLES[:4]),
         ("gnh_alignment", "gnh-agent-v1", ADDITIONAL_SOURCE_TABLES[4:9]),
-        ("financial_resilience", "resilience-agent-v1", ADDITIONAL_SOURCE_TABLES[9:12]),
-        ("open_source_capitalist", "open-source-capitalist-agent-v1", ADDITIONAL_SOURCE_TABLES[12:]),
+        ("financial_resilience", "resilience-agent-v1", [*ADDITIONAL_SOURCE_TABLES[9:12], "green_paper_publication_review"]),
+        ("open_source_capitalist", "open-source-capitalist-agent-v1", [*ADDITIONAL_SOURCE_TABLES[12:], "network_scaling_target", "open_source_impact_artifact"]),
     ]
     id_by_table = {
         table: f"e0000000-0000-4000-8000-{index:012d}"
         for index, table in enumerate(ADDITIONAL_SOURCE_TABLES, start=501)
     }
+    id_by_table.update({
+        "network_scaling_target": "e0000000-0000-4000-8000-000000000802",
+        "open_source_impact_artifact": "e0000000-0000-4000-8000-000000000803",
+        "green_paper_publication_review": "e0000000-0000-4000-8000-000000000804",
+    })
+    non_location_scopes = {
+        "farm_launch_unit_economics": "location_or_network",
+        "adoption_barrier_assessment": "location_or_network",
+        "perpetual_value_stress_test": "location_or_network",
+            "network_scaling_target": "network",
+            "open_source_impact_artifact": "network",
+            "green_paper_publication_review": "network",
+    }
     statements = []
     for group_index, (summary_type, model_version, source_tables) in enumerate(groups, start=1):
         request_id = f"d0000000-0000-4000-8000-{920 + group_index:012d}"
         source_array = ", ".join(f"'{table}'" for table in source_tables)
-        payload_entries = ", ".join(
-            f"'{table}', jsonb_build_object('record_ids', jsonb_build_array('{id_by_table[table]}'), "
-            "'row_count', 1, 'truncated', false)"
-            for table in source_tables
-        )
+        payload_entries_list = []
+        for table in source_tables:
+            ids = [id_by_table[table]]
+            if table == "farm_launch_unit_economics":
+                ids.append("e0000000-0000-4000-8000-000000000807")
+            ids_sql = ", ".join(f"'{record_id}'" for record_id in ids)
+            scope = non_location_scopes.get(table)
+            scope_sql = f", 'scope', '{scope}'" if scope else ""
+            payload_entries_list.append(
+                f"'{table}', jsonb_build_object('record_ids', jsonb_build_array({ids_sql}), "
+                f"'row_count', {len(ids)}, 'truncated', false{scope_sql})"
+            )
+        payload_entries = ", ".join(payload_entries_list)
         statements.append(
             f"""
         SELECT * INTO STRICT draft_record
@@ -756,7 +792,57 @@ def _registered_synthesis_source_acceptance() -> str:
         )
 
     view_array = ", ".join(f"'{view}'" for view in ADDITIONAL_SOURCE_VIEWS.values())
-    table_array = ", ".join(f"'{table}'" for table in ADDITIONAL_SOURCE_TABLES)
+    network_view_array = ", ".join(f"'{view}'" for view in NETWORK_SOURCE_VIEWS.values())
+    table_array = ", ".join(
+        f"'{table}'" for table in (*ADDITIONAL_SOURCE_TABLES, *NETWORK_SOURCE_VIEWS)
+    )
+    denial_checks = f"""
+        SELECT * INTO STRICT draft_record
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'open_source_capitalist', 'Mixed-scope cross-location denial.',
+              ARRAY['farm_launch_unit_economics'], 'open-source-capitalist-agent-v1',
+              'd0000000-0000-4000-8000-000000000929'
+          );
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', draft_record.summary_id,
+                'd0000000-0000-4000-8000-000000000929',
+                jsonb_build_object('farm_launch_unit_economics', jsonb_build_object(
+                    'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000809'),
+                    'row_count', 1, 'truncated', false, 'scope', 'location_or_network'
+                ))
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'mixed-scope manifest accepted another location ID'; END IF;
+        attached := kokonut_security.get_location_ai_summary_worker_source_references(
+            '{LOCATION_ID}', draft_record.summary_id, 'd0000000-0000-4000-8000-000000000929'
+        );
+        IF attached <> '{{}}'::jsonb THEN
+            RAISE EXCEPTION 'rejected mixed-scope attachment left a partial manifest';
+        END IF;
+
+        SELECT * INTO STRICT draft_record
+          FROM kokonut_security.create_location_ai_summary_worker_draft(
+              '{LOCATION_ID}', 'open_source_capitalist', 'Network scope mismatch denial.',
+              ARRAY['network_scaling_target'], 'open-source-capitalist-agent-v1',
+              'd0000000-0000-4000-8000-000000000930'
+          );
+        denied := FALSE;
+        BEGIN
+            PERFORM kokonut_security.set_location_ai_summary_source_references(
+                '{LOCATION_ID}', draft_record.summary_id,
+                'd0000000-0000-4000-8000-000000000930',
+                jsonb_build_object('network_scaling_target', jsonb_build_object(
+                    'record_ids', jsonb_build_array('e0000000-0000-4000-8000-000000000802'),
+                    'row_count', 1, 'truncated', false, 'scope', 'location'
+                ))
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'network view accepted a location-only declaration'; END IF;
+"""
     return f"""
     SET ROLE kokonut_agent_summary_draft_login;
     BEGIN;
@@ -768,9 +854,11 @@ def _registered_synthesis_source_acceptance() -> str:
     DECLARE draft_record RECORD;
             payload JSONB;
             attached JSONB;
+            denied BOOLEAN;
             object_name TEXT;
     BEGIN
         {''.join(statements)}
+        {denial_checks}
         FOREACH object_name IN ARRAY ARRAY[{view_array}] LOOP
             IF NOT has_column_privilege('kokonut_ai_summary_drafter',
                     format('public.%I', object_name), 'id', 'SELECT')
@@ -779,6 +867,14 @@ def _registered_synthesis_source_acceptance() -> str:
                OR has_column_privilege('kokonut_ai_summary_drafter',
                     format('public.%I', object_name), 'public_summary', 'SELECT') THEN
                 RAISE EXCEPTION 'source-view drafter grant is not limited to identity and location columns';
+            END IF;
+        END LOOP;
+        FOREACH object_name IN ARRAY ARRAY[{network_view_array}] LOOP
+            IF NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'id', 'SELECT')
+               OR has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'public_summary', 'SELECT') THEN
+                RAISE EXCEPTION 'network source-view drafter grant exceeds public record IDs';
             END IF;
         END LOOP;
         FOREACH object_name IN ARRAY ARRAY[{table_array}] LOOP
@@ -914,13 +1010,30 @@ def _consent_safe_feedback_acceptance() -> str:
 
 def _kokonut_commons_source_acceptance() -> str:
     source_ids = {
-        "anti_capture_governance_policy": "e0000000-0000-4000-8000-000000000701",
-        "commons_redistribution_policy": "e0000000-0000-4000-8000-000000000702",
-        "algorithmic_redistribution_mechanism": "e0000000-0000-4000-8000-000000000703",
+        "anti_capture_governance_policy": [
+            "e0000000-0000-4000-8000-000000000701",
+            "e0000000-0000-4000-8000-000000000808",
+        ],
+        "commons_redistribution_policy": [
+            "e0000000-0000-4000-8000-000000000702",
+            "e0000000-0000-4000-8000-000000000704",
+        ],
+        "algorithmic_redistribution_mechanism": [
+            "e0000000-0000-4000-8000-000000000703"
+        ],
+        "federation_protocol": ["e0000000-0000-4000-8000-000000000805"],
+        "participatory_signal_experiment": [
+            "e0000000-0000-4000-8000-000000000806"
+        ],
+    }
+    source_scopes = {
+        table: "network" if table in {"federation_protocol", "participatory_signal_experiment"}
+        else "location_or_network"
+        for table in KOKONUT_COMMONS_SOURCE_VIEWS
     }
     payload_entries = ", ".join(
-        f"'{table}', jsonb_build_object('record_ids', jsonb_build_array('{source_ids[table]}'), "
-        "'row_count', 1, 'truncated', false)"
+        f"'{table}', jsonb_build_object('record_ids', jsonb_build_array({', '.join(repr(record_id) for record_id in source_ids[table])}), "
+        f"'row_count', {len(source_ids[table])}, 'truncated', false, 'scope', '{source_scopes[table]}')"
         for table in KOKONUT_COMMONS_SOURCE_VIEWS
     )
     view_array = ", ".join(f"'{view}'" for view in KOKONUT_COMMONS_SOURCE_VIEWS.values())
@@ -952,9 +1065,10 @@ def _kokonut_commons_source_acceptance() -> str:
             'd0000000-0000-4000-8000-000000000941', payload
         );
         IF attached IS DISTINCT FROM payload
-           OR payload ? 'federation_protocol'
-           OR payload ? 'participatory_signal_experiment' THEN
-            RAISE EXCEPTION 'Kokonut Commons references included a global catalogue or lost local source rows';
+           OR payload -> 'federation_protocol' ->> 'scope' <> 'network'
+           OR payload -> 'participatory_signal_experiment' ->> 'scope' <> 'network'
+           OR payload -> 'commons_redistribution_policy' ->> 'scope' <> 'location_or_network' THEN
+            RAISE EXCEPTION 'Kokonut Commons source scopes were not preserved';
         END IF;
         attached := kokonut_security.get_location_ai_summary_worker_source_references(
             '{LOCATION_ID}', draft_record.summary_id,
@@ -963,18 +1077,27 @@ def _kokonut_commons_source_acceptance() -> str:
         IF attached IS DISTINCT FROM payload THEN
             RAISE EXCEPTION 'Kokonut Commons references were not returned under exact scope';
         END IF;
-        IF payload -> 'commons_redistribution_policy' -> 'record_ids'
-           ? 'e0000000-0000-4000-8000-000000000704' THEN
-            RAISE EXCEPTION 'network-wide commons policy entered a farm manifest';
-        END IF;
         FOREACH object_name IN ARRAY ARRAY[{view_array}] LOOP
             IF NOT has_column_privilege('kokonut_ai_summary_drafter',
                     format('public.%I', object_name), 'id', 'SELECT')
-               OR NOT has_column_privilege('kokonut_ai_summary_drafter',
-                    format('public.%I', object_name), 'location_id', 'SELECT')
                OR has_column_privilege('kokonut_ai_summary_drafter',
                     format('public.%I', object_name), 'public_summary', 'SELECT') THEN
                 RAISE EXCEPTION 'Kokonut Commons drafter grant exceeds ID and location columns';
+            END IF;
+            IF object_name IN ('v_public_federation_protocol', 'v_public_participatory_signal_experiment') THEN
+                IF EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_attribute
+                     WHERE attrelid = pg_catalog.to_regclass(format('public.%I', object_name))
+                       AND attname = 'location_id' AND NOT attisdropped
+                ) THEN
+                    IF has_column_privilege('kokonut_ai_summary_drafter',
+                            format('public.%I', object_name), 'location_id', 'SELECT') THEN
+                        RAISE EXCEPTION 'network source grant includes unrelated location data';
+                    END IF;
+                END IF;
+            ELSIF NOT has_column_privilege('kokonut_ai_summary_drafter',
+                    format('public.%I', object_name), 'location_id', 'SELECT') THEN
+                RAISE EXCEPTION 'mixed source grant omits its location validation column';
             END IF;
         END LOOP;
         FOREACH object_name IN ARRAY ARRAY[{table_array}] LOOP
@@ -1016,6 +1139,7 @@ def _review_acceptance() -> str:
     DECLARE queue_row RECORD;
             decision_row RECORD;
             worker_summary_id UUID;
+            scoped_source_references JSONB;
             denied BOOLEAN;
     BEGIN
         SELECT summary_id INTO STRICT worker_summary_id
@@ -1041,6 +1165,27 @@ def _review_acceptance() -> str:
            OR queue_row.source_references -> 'expense_category' -> 'record_ids'
               <> '["e0000000-0000-4000-8000-000000000104"]'::jsonb THEN
             RAISE EXCEPTION 'independent reviewer queue did not expose worker source references';
+        END IF;
+
+        SELECT * INTO queue_row
+          FROM kokonut_security.list_location_ai_summary_reviews_with_sources(
+              '{LOCATION_ID}', 51, 0
+          )
+         WHERE summary_type = 'open_source_capitalist';
+        IF NOT FOUND
+           OR queue_row.source_references -> 'farm_launch_unit_economics' ->> 'scope'
+              <> 'location_or_network'
+           OR queue_row.source_references -> 'network_scaling_target' ->> 'scope'
+              <> 'network' THEN
+            RAISE EXCEPTION 'review queue did not preserve network and mixed provenance labels';
+        END IF;
+        SELECT kokonut_security.get_location_ai_summary_source_references(
+            '{LOCATION_ID}', queue_row.summary_id, 'review'
+        ) INTO scoped_source_references;
+        IF scoped_source_references -> 'network_scaling_target' ->> 'scope' <> 'network'
+           OR scoped_source_references -> 'farm_launch_unit_economics' ->> 'scope'
+              <> 'location_or_network' THEN
+            RAISE EXCEPTION 'reviewer source-reference read lost provenance scope labels';
         END IF;
 
         SELECT * INTO queue_row
@@ -1192,7 +1337,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537 and 539 apply; migrations 530-537 and 539 replay",
+        "migrations 405, 419, 521-524, 529-537, 539, and 540 apply; migrations 530-537, 539, and 540 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -1201,22 +1346,23 @@ def main() -> int:
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "only the four deterministic and ten registered synthesis summary types can create drafts, and rejected types leave no partial row",
         "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
-        "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
+        "the registered view map validates four location views and the network-scoped regional bio-input catalogue",
         "migration 533 validates four regenerative source views and rejects cross-location rows without changing attached manifests",
         "migration 534 validates fifteen location-scoped views across commons, GNH, financial resilience, and open-source-capitalist agents",
-        "the four additional agent manifests round-trip through signed worker scope; global source catalogues stay excluded",
+        "GNH, Commons, financial-resilience, and open-source manifests preserve location/network scope under signed worker context",
         "the drafter receives only ID/location view columns and worker execution receives no direct source table access",
         "migration 535 validates consent-filtered cultural, wellbeing, participatory-action, and stakeholder-feedback views",
         "private/no-consent stakeholder feedback cannot be attached to a worker draft",
         "the consent-safe source drafter receives only ID/location columns and worker execution has no sensitive-table access",
-        "migration 536 validates location-assigned Kokonut Commons governance policy views",
-        "Kokonut Commons manifests include location-assigned rows but exclude global federation, signal, and unassigned policy records",
-        "Kokonut Commons drafter grants are limited to ID/location and worker execution has no direct policy-table access",
+        "migration 536 and migration 540 validate mixed-scope Kokonut Commons policies and network federation/signal catalogues",
+        "Kokonut Commons manifests label network-wide federation/signals and location-plus-unassigned policy rows explicitly",
+        "migration 540 rejects cross-location mixed-scope IDs and mismatched declared scope without partial manifest writes",
+        "the drafter receives only ID columns for network views and only ID/location for mixed views; worker execution has no direct source-table access",
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
-        "review queue exposes attached worker source references and the operator setter remains compatible",
+        "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
     ]
@@ -1227,7 +1373,7 @@ def main() -> int:
         "candidate_or_legacy_modified": False,
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
-        "source_lineage_note": "capital-efficiency, bio-factory, regenerative, commons, GNH, financial resilience, open-source-capitalist, consent-safe wellbeing/feedback, and farm-assigned Kokonut Commons synthesis attach bounded IDs for thirty-four location-scoped public views; private feedback and global governance catalogues remain unreferenced",
+        "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
         "checks": checks,
     }
     stage = "container_start"
@@ -1242,12 +1388,12 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())

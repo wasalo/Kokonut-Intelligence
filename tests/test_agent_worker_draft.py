@@ -440,6 +440,17 @@ def test_worker_write_accepts_regenerator_source_references(
         ({"harvest_event": {"record_ids": [], "row_count": 1, "truncated": False}}, "inconsistent"),
         ({"harvest_event": {"record_ids": [], "row_count": 0, "truncated": True}}, "inconsistent"),
         ({"harvest_event": {"record_ids": ["e0000000-0000-4000-8000-000000000001"] * 51, "row_count": 51, "truncated": True}}, "at most 50"),
+        (
+            {
+                "harvest_event": {
+                    "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+                    "row_count": 1,
+                    "truncated": False,
+                    "scope": "all_tenants",
+                }
+            },
+            "scope is invalid",
+        ),
     ],
 )
 def test_invalid_source_references_fail_before_secret_or_database_access(

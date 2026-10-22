@@ -64,6 +64,15 @@ class KokonutCommonsSynthesisAgent(SynthesisAgent):
         "anti_capture_governance_policy": "v_public_anti_capture_governance_policy",
         "commons_redistribution_policy": "v_public_commons_redistribution_policy",
         "algorithmic_redistribution_mechanism": "v_public_algorithmic_redistribution_mechanism",
+        "federation_protocol": "v_public_federation_protocol",
+        "participatory_signal_experiment": "v_public_participatory_signal_experiment",
+    }
+    source_reference_scopes = {
+        "anti_capture_governance_policy": "location_or_network",
+        "commons_redistribution_policy": "location_or_network",
+        "algorithmic_redistribution_mechanism": "location_or_network",
+        "federation_protocol": "network",
+        "participatory_signal_experiment": "network",
     }
 
     def synthesize(self, conn, location_id=None):
