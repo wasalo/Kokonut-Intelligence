@@ -20,6 +20,18 @@ used.
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**CAP-064 explicit gRPC server plaintext policy — 21 October 2026:** server
+startup now requires TLS unless `GRPC_ALLOW_INSECURE=true` opts into trusted
+private-network plaintext. Compose keeps the local legacy and private Kernel
+development paths explicit while production forces TLS. Profile tests also
+found and removed orphan `agent-summary-worker` environment stanzas from the
+Kernel standard/runtime-role overlays. The combined gRPC/profile/Compose suite
+passes 128 tests with Ruff, compilation, and whitespace checks. No services,
+database, or provider were started; production certificate/ingress, tenant
+authorization, and REST parity remain open ([evidence](builds/2026-10-21-recovery/cap-064-grpc-server-plaintext-opt-in.json)).
+Checklist: 935 complete / 24 open (959 total); capability classifications
+remain 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
 **CAP-066 literal formatted SQL in shared-view callers — 21 October 2026:**
 the analyzer resolves helper SQL f-strings only when every direct local caller
 supplies literal strings for interpolated names. Both `_fetch_public_view`

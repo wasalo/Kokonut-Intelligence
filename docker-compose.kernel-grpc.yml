@@ -30,6 +30,8 @@ services:
       GRPC_TLS_CERT: "${GRPC_TLS_CERT:-}"
       GRPC_TLS_KEY: "${GRPC_TLS_KEY:-}"
       GRPC_TLS_CA: "${GRPC_TLS_CA:-}"
+      # This opt-in profile has no host port and stays on the private kernel network.
+      GRPC_ALLOW_INSECURE: "true"
       GRPC_DB_MIN_CONN: "1"
       GRPC_DB_MAX_CONN: "5"
     networks:

@@ -20,6 +20,7 @@ TEST_ENV = {
     "ADMIN_EMAIL": "compose-test@example.invalid",
     "ADMIN_PASSWORD": "compose-test-only",
     "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
+    "KOKONUT_RUNTIME_PASSWORD": "compose-test-only-runtime-password",
     "CLICKHOUSE_PASSWORD": "compose-test-only",
     "CADDY_DOMAIN": "localhost",
     "PUBLIC_URL": "https://example.invalid",
@@ -88,6 +89,18 @@ def test_staging_keeps_metabase_opt_in_and_loopback_bound() -> None:
     ]
 
 
+def test_production_grpc_requires_tls_and_kernel_private_profile_is_explicit() -> None:
+    production = _compose_config(files=("docker-compose.yml", "docker-compose.prod.yml"))
+    assert production["services"]["grpc"]["environment"]["GRPC_ALLOW_INSECURE"] == "false"
+
+    kernel = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-grpc.yml")
+    )
+    grpc = kernel["services"]["grpc"]
+    assert grpc["environment"]["GRPC_ALLOW_INSECURE"] == "true"
+    assert not grpc.get("ports")
+
+
 def test_sandbox_keeps_seed_profile_independent_and_metabase_opt_in() -> None:
     sandbox_files = ("docker-compose.yml", "docker-compose.sandbox.yml")
     default_services = _compose_services("sandbox", files=sandbox_files)
@@ -124,7 +137,18 @@ def test_minimal_kernel_profile_omits_redis_and_uses_local_limiter() -> None:
 def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
     config = _compose_config(files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-standard.yml"))
     assert "cache" not in config["services"]
+    assert "agent-summary-worker" not in config["services"]
     assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
+
+
+def test_kernel_runtime_role_profile_has_no_orphan_agent_worker_service() -> None:
+    config = _compose_config(
+        "runtime-admin",
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-runtime-role.yml")
+    )
+
+    assert "runtime-role-bootstrap" in config["services"]
+    assert "agent-summary-worker" not in config["services"]
 
 
 def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -> None:

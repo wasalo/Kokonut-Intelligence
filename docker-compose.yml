@@ -216,21 +216,24 @@ services:
     ports:
       - "${GRPC_HOST_PORT:-127.0.0.1:50051}:50051"
     environment:
-      - PG_HOST=database
-      - PG_PORT=5432
-      - PG_DB=kokonut_intelligence
-      - PG_USER=kokonut
-      - PG_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
-      - GRPC_PORT=50051
-      - GRPC_MAX_WORKERS=10
-      - GRPC_MAX_MESSAGE_BYTES=${GRPC_MAX_MESSAGE_BYTES:-4194304}
-      - GRPC_TLS_CERT=${GRPC_TLS_CERT:-}
-      - GRPC_TLS_KEY=${GRPC_TLS_KEY:-}
-      - GRPC_TLS_CA=${GRPC_TLS_CA:-}
-      - KOKONUT_ENV=${KOKONUT_ENV:-dev}
-      - KOKONUT_GIT_SHA=${KOKONUT_GIT_SHA:-unknown}
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: kokonut
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
+      GRPC_PORT: "50051"
+      GRPC_MAX_WORKERS: "10"
+      GRPC_MAX_MESSAGE_BYTES: ${GRPC_MAX_MESSAGE_BYTES:-4194304}
+      GRPC_TLS_CERT: ${GRPC_TLS_CERT:-}
+      GRPC_TLS_KEY: ${GRPC_TLS_KEY:-}
+      GRPC_TLS_CA: ${GRPC_TLS_CA:-}
+      # The legacy local stack binds its host port to loopback by default.
+      # Production overrides this to false and requires mounted TLS material.
+      GRPC_ALLOW_INSECURE: ${GRPC_ALLOW_INSECURE:-true}
+      KOKONUT_ENV: ${KOKONUT_ENV:-dev}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
     networks:
       - databases
       - apps

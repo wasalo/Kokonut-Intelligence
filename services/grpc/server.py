@@ -63,6 +63,13 @@ def _configured_tls_credentials():
     if bool(cert_path) != bool(key_path):
         raise ValueError("Both GRPC_TLS_CERT and GRPC_TLS_KEY are required for TLS")
     if not cert_path:
+        allow_insecure = os.environ.get("GRPC_ALLOW_INSECURE", "false").strip().lower()
+        if allow_insecure not in {"true", "false"}:
+            raise ValueError("GRPC_ALLOW_INSECURE must be true or false")
+        if allow_insecure != "true":
+            raise ValueError(
+                "gRPC TLS is required unless GRPC_ALLOW_INSECURE=true for a trusted private network"
+            )
         return None
 
     try:
@@ -126,9 +133,10 @@ def _serve_transport(
 
         if tls_credentials is not None:
             bound_port = server.add_secure_port(f"[::]:{port}", tls_credentials)
-            logger.info("gRPC server started on port %d with TLS (workers=%d)", port, max_workers)
         else:
-            logger.warning("gRPC TLS not configured (GRPC_TLS_CERT/GRPC_TLS_KEY not set) — using insecure port")
+            logger.warning(
+                "gRPC plaintext explicitly enabled for a trusted private network"
+            )
             bound_port = server.add_insecure_port(f"[::]:{port}")
         if not bound_port:
             raise RuntimeError("gRPC port binding failed")

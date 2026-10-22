@@ -20,14 +20,16 @@ registrations, database queries, or authorization behavior.
 - Port 50051 is available only to peers on the private Compose `kernel`
   network. The overlay publishes no host port. The Caddy profile routes traffic
   to the Gateway and does not proxy gRPC.
-- The overlay supplies no `GRPC_TLS_CERT` or `GRPC_TLS_KEY`, so the server uses
-  its insecure listener inside this private network. Although the server
-  supports paired certificate/key settings, Compose supplies no certificate
-  material and mounts no files. Do not expose this listener publicly or through
-  a generic TCP proxy. A deployment-specific override can mount the server
-  certificate/key and CA bundle read-only and set their container paths; the
-  health command uses `GRPC_TLS_CA` for TLS and fails closed if server TLS is
-  configured without that trust path.
+- The overlay supplies no `GRPC_TLS_CERT` or `GRPC_TLS_KEY` and explicitly sets
+  `GRPC_ALLOW_INSECURE=true` because the listener is reachable only on the
+  private candidate network and has no host port. This is a deliberate
+  private-network transport choice, not public ingress. Production Compose
+  forces the setting off; the server refuses to start without a certificate
+  and key unless a trusted private deployment explicitly opts in. A
+  deployment-specific override can mount the server certificate/key and CA
+  bundle read-only and set their container paths; the health command uses
+  `GRPC_TLS_CA` for TLS and fails closed if server TLS is configured without
+  that trust path.
 - The API-key interceptor and method/resource scopes are the RPC authorization
   boundary; the profile does not provision an API key. Health/reflection checks
   do not establish business-method authorization.

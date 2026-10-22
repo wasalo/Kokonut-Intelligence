@@ -108,8 +108,3 @@ services:
     volumes:
       - kernel-gateway-audit-spool:/var/lib/kokonut/gateway-audit
       - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
-
-  agent-summary-worker:
-    environment:
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
-      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}

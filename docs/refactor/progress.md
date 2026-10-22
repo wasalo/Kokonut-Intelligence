@@ -14384,3 +14384,26 @@ certificate lifecycle, public ingress, tenant authorization, and REST parity
 remain open. Checklist: 933 complete / 24 open (957 total); matrix remains 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
 [Python gRPC channel factory](builds/2026-10-21-recovery/cap-064-python-grpc-channel-factory.json).
+
+
+### CAP-064 gRPC server plaintext opt-in — 21 October 2026
+
+The gRPC server now rejects missing TLS material before opening its database
+pool unless `GRPC_ALLOW_INSECURE=true` explicitly opts into plaintext for a
+trusted private network. Non-boolean values fail closed; configured certificate
+and key material continues to select TLS. The local legacy Compose service has
+a configurable development default with loopback host publishing, the private
+Kernel gRPC overlay opts in without publishing a host port, and the production
+overlay forces plaintext off. The same profile checks exposed incomplete
+`agent-summary-worker` environment-only entries in Kernel standard/runtime-role
+overlays; these orphan entries were removed, leaving the separate legacy
+one-shot worker outside the Kernel profiles. The combined gRPC/profile/Compose
+selection passes 128 tests, including seven enabled loopback transport checks;
+Ruff, Python compilation, YAML parsing, and whitespace checks pass. Compose
+tests rendered configuration only and started no services. No database,
+provider, candidate, or legacy stack was used. The private-network plaintext
+exception is still unencrypted and remains an operator deployment decision;
+production certificate lifecycle, public ingress, authenticated tenant scope,
+and REST parity remain open ([evidence](builds/2026-10-21-recovery/cap-064-grpc-server-plaintext-opt-in.json)).
+Checklist: 935 complete / 24 open (959 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows.

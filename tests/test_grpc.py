@@ -396,6 +396,7 @@ class TestTLSConfig:
                 "GRPC_TLS_CERT": cert_path,
                 "GRPC_TLS_KEY": key_path,
                 "GRPC_PORT": "50051",
+                "GRPC_ALLOW_INSECURE": "true",
             }, clear=False):
                 env = os.environ.copy()
                 env["GRPC_TLS_CERT"] = cert_path
@@ -423,10 +424,8 @@ class TestTLSConfig:
                                                     except (SystemExit, Exception):
                                                         pass
 
-                            if mock_server.add_secure_port.called:
-                                assert mock_server.add_secure_port.called
-                            elif mock_server.add_insecure_port.called:
-                                pass
+                            mock_server.add_secure_port.assert_called_once()
+                            mock_server.add_insecure_port.assert_not_called()
                             mock_server.start.assert_called_once_with()
         finally:
             if os.path.exists(cert_path):
@@ -441,6 +440,7 @@ class TestTLSConfig:
         env.pop("GRPC_TLS_CERT", None)
         env.pop("GRPC_TLS_KEY", None)
         env["GRPC_PORT"] = "50051"
+        env["GRPC_ALLOW_INSECURE"] = "true"
 
         with patch.dict(os.environ, env, clear=True):
             with patch("services.grpc.server._get_db_pool") as mock_pool:
@@ -463,9 +463,8 @@ class TestTLSConfig:
                                             except (SystemExit, Exception):
                                                 pass
 
-                    if mock_server.add_insecure_port.called:
-                        args = mock_server.add_insecure_port.call_args
-                        assert "[::]" in str(args)
+                    mock_server.add_insecure_port.assert_called_once_with("[::]:50051")
+                    mock_server.add_secure_port.assert_not_called()
                     mock_server.start.assert_called_once_with()
 
 
