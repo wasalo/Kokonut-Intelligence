@@ -495,6 +495,10 @@ available inside the container and mount those files read-only through a
 deployment-specific Compose override or secret mechanism. Configure
 `GRPC_TLS_CA` to a trusted CA bundle available to the health command. Compose
 passes these path settings but does not ship or mount certificate material.
+The server validates the certificate/key pair, reads both files, and constructs
+gRPC credentials before opening its PostgreSQL pool. Missing files and invalid
+credential configuration fail startup with redacted errors that do not echo
+filesystem paths or parser details.
 
 The server handles `SIGTERM` and `SIGINT` by stopping with a 30-second grace
 period before exiting.

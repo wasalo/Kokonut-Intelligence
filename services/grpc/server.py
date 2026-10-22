@@ -56,6 +56,31 @@ def _get_db_pool():
     return PooledDatabaseFactory(connection_pool)
 
 
+def _configured_tls_credentials():
+    """Load and validate TLS material before acquiring database resources."""
+    cert_path = os.environ.get("GRPC_TLS_CERT")
+    key_path = os.environ.get("GRPC_TLS_KEY")
+    if bool(cert_path) != bool(key_path):
+        raise ValueError("Both GRPC_TLS_CERT and GRPC_TLS_KEY are required for TLS")
+    if not cert_path:
+        return None
+
+    try:
+        with open(cert_path, "rb") as cert_file:
+            cert_chain = cert_file.read()
+        with open(key_path, "rb") as key_file:
+            private_key = key_file.read()
+    except OSError as error:
+        raise RuntimeError("gRPC TLS certificate or key file is unavailable") from error
+
+    try:
+        return grpc.ssl_server_credentials([(private_key, cert_chain)])
+    except Exception as error:
+        raise RuntimeError(
+            f"gRPC TLS credentials are invalid ({safe_exception_class(error)})"
+        ) from error
+
+
 def serve():
     from services.core.adapters.grpc import require_enabled
 
@@ -67,13 +92,19 @@ def serve():
 
     if not 1 <= port <= 65535 or max_workers < 1:
         raise ValueError("Invalid gRPC port or worker count")
-    if bool(os.environ.get("GRPC_TLS_CERT")) != bool(os.environ.get("GRPC_TLS_KEY")):
-        raise ValueError("Both GRPC_TLS_CERT and GRPC_TLS_KEY are required for TLS")
+    tls_credentials = _configured_tls_credentials()
     db_factory = _get_db_pool()
     executor = None
     try:
         executor = futures.ThreadPoolExecutor(max_workers=max_workers)
-        _serve_transport(db_factory, executor, port, max_workers, max_message_bytes)
+        _serve_transport(
+            db_factory,
+            executor,
+            port,
+            max_workers,
+            max_message_bytes,
+            tls_credentials=tls_credentials,
+        )
     finally:
         try:
             db_factory.close()
@@ -82,7 +113,9 @@ def serve():
                 executor.shutdown(wait=False, cancel_futures=True)
 
 
-def _serve_transport(db_factory, executor, port, max_workers, max_message_bytes=None):
+def _serve_transport(
+    db_factory, executor, port, max_workers, max_message_bytes=None, tls_credentials=None
+):
     server = None
     previous_signals = {}
     stopping = False
@@ -91,18 +124,8 @@ def _serve_transport(db_factory, executor, port, max_workers, max_message_bytes=
             db_factory, executor, max_message_bytes=max_message_bytes
         )
 
-        tls_cert = os.environ.get("GRPC_TLS_CERT")
-        tls_key = os.environ.get("GRPC_TLS_KEY")
-
-        if tls_cert and tls_key:
-            with open(tls_cert, "rb") as f:
-                cert_chain = f.read()
-            with open(tls_key, "rb") as f:
-                private_key = f.read()
-            server_credentials = grpc.ssl_server_credentials(
-                [(private_key, cert_chain)],
-            )
-            bound_port = server.add_secure_port(f"[::]:{port}", server_credentials)
+        if tls_credentials is not None:
+            bound_port = server.add_secure_port(f"[::]:{port}", tls_credentials)
             logger.info("gRPC server started on port %d with TLS (workers=%d)", port, max_workers)
         else:
             logger.warning("gRPC TLS not configured (GRPC_TLS_CERT/GRPC_TLS_KEY not set) — using insecure port")
@@ -110,7 +133,7 @@ def _serve_transport(db_factory, executor, port, max_workers, max_message_bytes=
         if not bound_port:
             raise RuntimeError("gRPC port binding failed")
         server.start()
-        if tls_cert and tls_key:
+        if tls_credentials is not None:
             logger.info("gRPC server started on port %d with TLS (workers=%d)", port, max_workers)
         else:
             logger.info("gRPC server started on port %d INSECURE (workers=%d)", port, max_workers)

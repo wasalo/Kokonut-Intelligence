@@ -2844,3 +2844,13 @@ focused gRPC tests pass (44); Ruff, Python compilation, base and Kernel gRPC
 Compose validation, and diff checks pass. These checks mock transport and do
 not verify a real certificate chain, hostname, public ingress, database, or
 provider. Evidence: `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-tls.json`.
+
+
+### 21 October 2026 — CAP-064 gRPC server TLS startup preflight
+
+The gRPC server now reads the certificate/key and constructs its TLS credentials
+before opening the PostgreSQL pool. An incomplete pair, missing file, or
+credential error stops startup with redacted diagnostics. Forty-five focused
+gRPC tests pass; Ruff, compilation, and diff checks pass. The DB pool and
+transport were mocked; no endpoint, database, or provider was contacted.
+Evidence: `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-server-tls-preflight.json`.

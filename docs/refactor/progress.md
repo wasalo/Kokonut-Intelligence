@@ -14310,3 +14310,18 @@ Live certificate/hostname acceptance, public ingress, authenticated tenant
 scope, and REST parity remain open. Checklist: 928 complete / 24 open (952
 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across
 66 rows. Evidence: [gRPC health TLS configuration](builds/2026-10-21-recovery/cap-064-grpc-health-tls.json).
+
+
+### CAP-064 gRPC server TLS startup preflight — 21 October 2026
+
+The server now loads the configured certificate and key and constructs gRPC
+server credentials before opening the PostgreSQL pool. Incomplete pairs,
+missing files, and credential-construction errors fail closed with redacted
+messages. The five-suite focused gRPC selection passes 48 tests, including startup-order,
+missing-file, malformed-pair, and redaction checks; Ruff, compilation, and diff
+checks pass. The database pool is mocked and remains unopened for invalid TLS
+configuration. No live endpoint, candidate, legacy database, or provider was
+used. This does not establish a certificate handshake, rotation, hostname
+validation, or production ingress. Checklist: 929 complete / 24 open (953
+total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across
+66 rows. Evidence: [gRPC server TLS preflight](builds/2026-10-21-recovery/cap-064-grpc-server-tls-preflight.json).
