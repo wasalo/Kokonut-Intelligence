@@ -22,8 +22,12 @@ registrations, database queries, or authorization behavior.
   to the Gateway and does not proxy gRPC.
 - The overlay supplies no `GRPC_TLS_CERT` or `GRPC_TLS_KEY`, so the server uses
   its insecure listener inside this private network. Although the server
-  supports paired certificate/key settings, Compose does not mount or configure
-  them. Do not expose this listener publicly or through a generic TCP proxy.
+  supports paired certificate/key settings, Compose supplies no certificate
+  material and mounts no files. Do not expose this listener publicly or through
+  a generic TCP proxy. A deployment-specific override can mount the server
+  certificate/key and CA bundle read-only and set their container paths; the
+  health command uses `GRPC_TLS_CA` for TLS and fails closed if server TLS is
+  configured without that trust path.
 - The API-key interceptor and method/resource scopes are the RPC authorization
   boundary; the profile does not provision an API key. Health/reflection checks
   do not establish business-method authorization.

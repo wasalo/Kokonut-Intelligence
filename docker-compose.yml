@@ -226,6 +226,9 @@ services:
       - GRPC_PORT=50051
       - GRPC_MAX_WORKERS=10
       - GRPC_MAX_MESSAGE_BYTES=${GRPC_MAX_MESSAGE_BYTES:-4194304}
+      - GRPC_TLS_CERT=${GRPC_TLS_CERT:-}
+      - GRPC_TLS_KEY=${GRPC_TLS_KEY:-}
+      - GRPC_TLS_CA=${GRPC_TLS_CA:-}
       - KOKONUT_ENV=${KOKONUT_ENV:-dev}
       - KOKONUT_GIT_SHA=${KOKONUT_GIT_SHA:-unknown}
     networks:

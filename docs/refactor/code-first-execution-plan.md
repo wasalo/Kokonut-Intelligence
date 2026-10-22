@@ -2832,3 +2832,15 @@ setting. The 36-test server suite and six enabled-transport checks pass,
 including oversized request and response rejection; Ruff, compilation,
 Compose validation, and diff checks pass. No live database or provider was
 used. TLS and authenticated tenant parity remain open ([evidence](builds/2026-10-21-recovery/cap-064-grpc-message-size-limits.json)).
+
+
+### 21 October 2026 — CAP-064 TLS-aware gRPC health client
+
+The optional health CLI now accepts a CA bundle with `--tls-ca` or
+`GRPC_TLS_CA`, uses a secure channel when configured, and fails closed if the
+server certificate/key settings are present without a CA. Fixed error messages
+redact trust-file paths, and the health channel closes after the request. The
+focused gRPC tests pass (44); Ruff, Python compilation, base and Kernel gRPC
+Compose validation, and diff checks pass. These checks mock transport and do
+not verify a real certificate chain, hostname, public ingress, database, or
+provider. Evidence: `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-tls.json`.

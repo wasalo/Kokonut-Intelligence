@@ -184,7 +184,7 @@ class TestGrpcHealthCli:
             stub = MagicMock()
             stub.Check.return_value = health_pb2.HealthCheckResponse(status=serving)
             with patch.object(health_pb2_grpc, "HealthStub", return_value=stub):
-                cli.cmd_health(MagicMock(target="127.0.0.1:50051"))
+                cli.cmd_health(MagicMock(target="127.0.0.1:50051", tls_ca=None))
 
         stub.Check.assert_called_once()
         assert stub.Check.call_args.kwargs["timeout"] == 5

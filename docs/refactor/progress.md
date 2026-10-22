@@ -14294,3 +14294,19 @@ provider was used. Public TLS, tenant authorization, and REST parity remain
 open. Checklist: 927 complete / 24 open (951 total); matrix remains 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
 [gRPC message-size limits](builds/2026-10-21-recovery/cap-064-grpc-message-size-limits.json).
+
+
+### CAP-064 TLS-aware gRPC health client — 21 October 2026
+
+The health command now accepts a trusted CA through `--tls-ca` or
+`GRPC_TLS_CA`, selects `grpc.secure_channel`, and closes the channel after the
+health RPC. When server certificate/key paths are configured without a CA path,
+the check fails before opening a channel. Trust-file errors do not reveal the
+configured path. Compose passes certificate/key/CA path settings without
+mounting or shipping secret material. The focused gRPC selection passes 44
+tests; Ruff, compilation, both Compose configurations, and diff checks pass.
+Transport was mocked; no live TLS handshake, database, or provider was used.
+Live certificate/hostname acceptance, public ingress, authenticated tenant
+scope, and REST parity remain open. Checklist: 928 complete / 24 open (952
+total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across
+66 rows. Evidence: [gRPC health TLS configuration](builds/2026-10-21-recovery/cap-064-grpc-health-tls.json).

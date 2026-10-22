@@ -17,7 +17,7 @@ def cmd_health(args):
 
     target = args.target or "localhost:50051"
     try:
-        print(f"Status: {check_health(target)}")
+        print(f"Status: {check_health(target, tls_ca_path=getattr(args, 'tls_ca', None))}")
     except RuntimeError as e:
         print(str(e))
         sys.exit(1)
@@ -32,6 +32,11 @@ def main():
 
     p_health = sub.add_parser("health", help="Check gRPC server health")
     p_health.add_argument("--target", default=None, help="gRPC server target (default: localhost:50051)")
+    p_health.add_argument(
+        "--tls-ca",
+        default=None,
+        help="CA bundle used to verify the gRPC server (or set GRPC_TLS_CA)",
+    )
     p_health.set_defaults(func=cmd_health)
 
     args = parser.parse_args()
