@@ -288,7 +288,7 @@ def run_worker_summary(
             cursor.execute(
                 "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
             )
-            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = generate(connection, location_id, summary_type)
@@ -343,7 +343,7 @@ def _run_worker_summary_inspection(
             cursor.execute(
                 "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
             )
-            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
@@ -444,7 +444,7 @@ def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str
         )
         with connection.cursor() as cursor:
             cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
-            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps
@@ -494,7 +494,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
         )
         with connection.cursor() as cursor:
             cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
-            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         from services.registry.cids_export import export_location
@@ -555,7 +555,7 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
         )
         with connection.cursor() as cursor:
             cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
-            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:

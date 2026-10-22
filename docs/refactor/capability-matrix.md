@@ -26,6 +26,19 @@ worker credentials, candidate rollout, and MAN-CAP-038 acceptance remain open
 [native evidence](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-arm64-disposable.json)).
 
+**CAP-038 signed worker search-path hardening — 22 October 2026:** the five
+remaining signed source-reader paths now set
+`search_path = kokonut_agent_source, pg_catalog`. Deterministic summaries,
+summary inspection, EBF evidence gaps, CIDS export, and Delphi reads cannot fall
+through to a relation in `public`; their view dependencies are explicitly
+available in the scoped source schema. The focused worker/EBF selection passes
+56 tests, with Ruff and compilation passing. No migration or database was used.
+This closes a source name-resolution boundary only; authenticated runtime
+identity, populated parity, Directus parity, and MAN-CAP-038 acceptance remain
+open ([worker](../services/agents/worker_cli.py);
+[tests](../tests/test_agent_worker_cli.py);
+[evidence](builds/2026-10-22-recovery/cap-038-agent-source-search-path.json)).
+
 **Local candidate migration update — 22 October 2026:** the local candidate now
 has 539 applied schema migrations through 548 and zero pending schema migrations.
 The 104 migrations after 444 were first replayed on an isolated restored clone;

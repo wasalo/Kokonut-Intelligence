@@ -127,7 +127,7 @@ def test_evidence_gap_run_uses_signed_source_reader_and_exact_scope(monkeypatch)
     assert statements[:4] == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
         "SET LOCAL ROLE kokonut_agent_summary_source_reader",
-        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
     ]
     assert "FROM v_ebf_evidence_gap_summary" in query_cursor.execute.call_args.args[0]

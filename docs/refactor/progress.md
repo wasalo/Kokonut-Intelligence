@@ -1,3 +1,19 @@
+### CAP-038 signed worker search-path hardening — 22 October 2026
+
+The five signed source-reader paths now set the transaction-local search path
+to `kokonut_agent_source, pg_catalog`, removing `public` from name resolution.
+The first schema contains the scoped views; PostgreSQL built-ins remain
+available from `pg_catalog`. This covers deterministic summaries, summary
+inspection, EBF evidence gaps, CIDS export, and Delphi facilitation. The
+focused worker/EBF tests pass (56); Ruff, Python compilation, and capability
+matrix validation pass. No migration, database, provider, candidate, or legacy
+stack was used. This does not establish authenticated operator attribution,
+runtime credential provisioning, populated parity, Directus parity, or
+MAN-CAP-038 acceptance. Revert only if a disposable source-view contract shows
+a missing dependency; add any required relation to the scoped schema instead
+of restoring public fallback. Evidence:
+[worker search-path check](builds/2026-10-22-recovery/cap-038-agent-source-search-path.json).
+
 ### CAP-038 ecological-modeling synthesis signed source — 22 October 2026
 
 The existing ecological-modeling task now runs through the registered signed

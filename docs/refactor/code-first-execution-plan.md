@@ -3,17 +3,14 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 caller-connection synthesis writer retirement:** the
-unused `SynthesisAgent.store_summary(conn, ...)` helper now fails before using
-the caller connection, reading source references, or writing a draft. All ten
-registered agents already use `run(location_id, store=True)`, which keeps
-synthesis, provenance, and persistence in the signed worker flow. The focused
-agent-base, synthesis-source, and worker selection passes 125 tests, with Ruff,
-Python compilation, runtime SQL inventory, and matrix validation passing. No
-migration, database, provider, candidate, or legacy stack was used. Checklist:
-959 complete / 24 open (983 total); the 66-row matrix remains 30
-baseline-retained, 7 deployed, and 29 prepared, with all MAN-CAP approvals
-still open.
+**Current batch — CAP-038 signed worker source search path:** five signed
+source-reader transactions now resolve names only from
+`kokonut_agent_source, pg_catalog`, preventing accidental fallback to `public`.
+The focused worker/EBF selection passes 56 tests with Ruff, Python compilation,
+and capability-matrix validation passing. No migration, database, provider,
+candidate, or legacy stack was used. Checklist: 966 complete / 24 open (990
+total); the 66-row matrix remains 30 baseline-retained, 7 deployed, and 29
+prepared, with all MAN-CAP approvals still open.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned
@@ -2925,3 +2922,14 @@ and remote plaintext needs `allow_insecure=True`. Importing the package does not
 load grpcio. Sixteen tests pass; Ruff, compilation, and wheel build pass, with
 the helper included. No RPC or external endpoint was contacted. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-064-python-grpc-channel-factory.json`.
+
+
+### 22 October 2026 — CAP-038 signed worker source search path
+
+The remaining five source-reader transactions now use only the scoped
+`kokonut_agent_source` schema and `pg_catalog` for unqualified names. This
+removes accidental resolution through `public` while preserving scoped wrapper
+queries used by deterministic summaries, summary inspection, EBF, CIDS, and
+Delphi. The focused worker/EBF selection passes 56 tests; Ruff, Python
+compilation, and capability-matrix validation pass. No database or provider
+was used. Evidence: `docs/refactor/builds/2026-10-22-recovery/cap-038-agent-source-search-path.json`.

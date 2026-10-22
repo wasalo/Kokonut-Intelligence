@@ -63,7 +63,7 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
     assert "kokonut_security.set_worker_tenant_context" in statements[2]
     assert statements[3:] == [
         "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader",
-        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
@@ -142,7 +142,7 @@ def test_delphi_agent_worker_uses_signed_location_and_safe_projection(monkeypatc
     )
     assert statements[3:7] == [
         "SET LOCAL ROLE kokonut_agent_summary_source_reader",
-        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
@@ -515,7 +515,7 @@ def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
     )
     assert cursor.execute.call_args_list[2].args[0] == (
-        "SET LOCAL search_path = kokonut_agent_source, public"
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog"
     )
     connection.close.assert_called_once_with()
     connection.rollback.assert_not_called()
@@ -918,7 +918,7 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     assert statements == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
         "SET LOCAL ROLE kokonut_agent_summary_source_reader",
-        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
@@ -997,7 +997,7 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
     assert statements[:4] == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
         "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader",
-        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
     ]
     assert "FROM kokonut_agent_source.ai_summary_list" in statements[-1]
