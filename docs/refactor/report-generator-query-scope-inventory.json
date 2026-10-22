@@ -734,7 +734,7 @@
       "report_type": "capital_efficiency",
       "callable": "generate_capital_efficiency",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 268,
+      "source_line": 274,
       "classification": "all_direct_queries_show_bound_location_scope",
       "direct_query_count": 3,
       "static_positional_arity_site_count": 3,
@@ -748,7 +748,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 271,
+          "line": 278,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -771,7 +771,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 273,
+          "line": 280,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -794,7 +794,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 285,
+          "line": 292,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1290,7 +1290,7 @@
       "report_type": "dao_proposal_history",
       "callable": "generate_dao_proposal_history",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 360,
+      "source_line": 370,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -1302,7 +1302,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 369,
+          "line": 379,
           "report_type": "dao_proposal_history",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -1311,7 +1311,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 371,
+          "line": 382,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -1334,7 +1334,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 401,
+          "line": 412,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2562,7 +2562,7 @@
       "report_type": "governance_throughput",
       "callable": "generate_governance_throughput",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 313,
+      "source_line": 321,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -2576,7 +2576,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 319,
+          "line": 328,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2599,7 +2599,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 331,
+          "line": 340,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -2627,7 +2627,7 @@
       "report_type": "green_paper_publication_status",
       "callable": "generate_green_paper_publication_status",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 241,
+      "source_line": 245,
       "classification": "no_bound_location_scope_visible",
       "direct_query_count": 1,
       "static_positional_arity_site_count": 1,
@@ -2639,7 +2639,7 @@
       "unresolved_query_count": 0,
       "network_scope_guards": [
         {
-          "line": 245,
+          "line": 249,
           "report_type": "green_paper_publication_status",
           "location_argument": "location_id",
           "location_id_parameter": true
@@ -2648,7 +2648,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 247,
+          "line": 252,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4131,7 +4131,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 171,
+          "line": 172,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4154,7 +4154,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 173,
+          "line": 174,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4270,7 +4270,7 @@
       "report_type": "scaling_roadmap",
       "callable": "generate_scaling_roadmap",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 200,
+      "source_line": 202,
       "classification": "mixed_direct_query_scope",
       "direct_query_count": 2,
       "static_positional_arity_site_count": 2,
@@ -4284,7 +4284,7 @@
       "helper_calls": [],
       "queries": [
         {
-          "line": 204,
+          "line": 207,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [
@@ -4307,7 +4307,7 @@
           "named_bind_contract": null
         },
         {
-          "line": 216,
+          "line": 219,
           "method": "execute",
           "sql_source": "static_or_resolved",
           "relations": [

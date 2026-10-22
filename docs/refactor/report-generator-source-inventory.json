@@ -333,7 +333,7 @@
       "callable": "generate_capital_efficiency",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 268,
+      "source_line": 274,
       "parameters": [
         "conn",
         "location_id",
@@ -506,7 +506,7 @@
       "callable": "generate_dao_proposal_history",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 360,
+      "source_line": 370,
       "parameters": [
         "conn",
         "location_id",
@@ -831,7 +831,7 @@
       "callable": "generate_governance_throughput",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 313,
+      "source_line": 321,
       "parameters": [
         "conn",
         "location_id",
@@ -852,7 +852,7 @@
       "callable": "generate_green_paper_publication_status",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 241,
+      "source_line": 245,
       "parameters": [
         "conn",
         "location_id",
@@ -1480,7 +1480,7 @@
       "callable": "generate_scaling_roadmap",
       "source_module": "services.export.reports.wellbeing",
       "source_file": "services/export/reports/wellbeing.py",
-      "source_line": 200,
+      "source_line": 202,
       "parameters": [
         "conn",
         "location_id",

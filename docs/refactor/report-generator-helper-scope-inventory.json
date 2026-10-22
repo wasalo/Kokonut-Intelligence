@@ -3246,13 +3246,13 @@
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 302,
+          "line": 310,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 303,
+          "line": 311,
           "depth": 1
         },
         {
@@ -4218,7 +4218,7 @@
         {
           "caller": "generate_dao_proposal_history",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 369,
+          "line": 379,
           "depth": 1
         }
       ],
@@ -4960,7 +4960,7 @@
         {
           "caller": "generate_governance_throughput",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 349,
+          "line": 359,
           "depth": 1
         },
         {
@@ -4996,13 +4996,13 @@
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 245,
+          "line": 249,
           "depth": 1
         },
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 259,
+          "line": 265,
           "depth": 1
         },
         {
@@ -7923,7 +7923,7 @@
         {
           "caller": "generate_risk_mitigation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 190,
+          "line": 192,
           "depth": 1
         },
         {
@@ -7999,7 +7999,7 @@
         {
           "caller": "generate_scaling_roadmap",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 231,
+          "line": 235,
           "depth": 1
         },
         {

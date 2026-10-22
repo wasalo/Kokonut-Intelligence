@@ -16,11 +16,12 @@ schemas through 551. This is emulation evidence, not physical Raspberry Pi or
 power acceptance. The public-interest report context and the deterministic
 AI-summary registry/operations/financial/environmental query paths now close
 cursors after both success and failure. Core farm, crop, environmental,
-forecast/climate, state, operational, and selected wellbeing/finance reports
-now do the same; 93 synthetic execute/fetch failures verify cursor cleanup,
-including missing-location handling. The AI-summary/source/safety/CLI/input-preflight
-selection passes 45 tests; the focused report selection passes 131,
-and the expanded report/CLI/inventory selection passes 280. Ruff, compilation, all
+forecast/climate, state, operational, and all wellbeing reports now do the
+same; 117 synthetic execute/fetch failures verify cursor cleanup, including
+missing-location handling, DAO voter-query errors, and both network/farm report
+branches. The AI-summary/source/safety/CLI/input-preflight selection passes 45
+tests; the focused report selection passes 155, and the expanded
+report/CLI/inventory selection passes 304. Ruff, compilation, all
 four generated-inventory freshness checks, and matrix validation pass
 ([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
 [report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json);

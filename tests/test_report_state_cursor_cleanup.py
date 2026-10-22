@@ -8,11 +8,12 @@ from services.export.reports import core, operations, state, wellbeing
 
 
 class _FailingCursor:
-    def __init__(self, fail_on, fetchone_results=None):
+    def __init__(self, fail_on, fetchone_results=None, fetchall_results=None):
         self.fail_on = fail_on
         self.calls = {"execute": 0, "fetchall": 0, "fetchone": 0}
         self.closed = False
         self.fetchone_results = iter(fetchone_results or [{"name": "Synthetic farm", "scorecard_id": "synthetic"}])
+        self.fetchall_results = iter(fetchall_results or [])
 
     def _maybe_fail(self, operation):
         self.calls[operation] += 1
@@ -24,7 +25,7 @@ class _FailingCursor:
 
     def fetchall(self):
         self._maybe_fail("fetchall")
-        return []
+        return next(self.fetchall_results, [])
 
     def fetchone(self):
         self._maybe_fail("fetchone")
@@ -43,6 +44,24 @@ class _Connection:
 
 
 _CASES = [
+    *((wellbeing.generate_risk_mitigation, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (wellbeing.generate_risk_mitigation, ("location-1",), ("fetchone", 1)),
+    (wellbeing.generate_risk_mitigation, ("location-1",), ("fetchall", 1)),
+    (wellbeing.generate_scaling_roadmap, ("location-1",), ("execute", 1)),
+    (wellbeing.generate_scaling_roadmap, ("location-1",), ("fetchall", 1)),
+    (wellbeing.generate_scaling_roadmap, (None,), ("execute", 1)),
+    (wellbeing.generate_scaling_roadmap, (None,), ("fetchall", 1)),
+    (wellbeing.generate_green_paper_publication_status, (), ("execute", 1)),
+    (wellbeing.generate_green_paper_publication_status, (), ("fetchall", 1)),
+    *((wellbeing.generate_capital_efficiency, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (wellbeing.generate_capital_efficiency, ("location-1",), ("fetchone", 1)),
+    *((wellbeing.generate_capital_efficiency, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    (wellbeing.generate_governance_throughput, ("location-1",), ("execute", 1)),
+    (wellbeing.generate_governance_throughput, ("location-1",), ("fetchall", 1)),
+    (wellbeing.generate_governance_throughput, (None,), ("execute", 1)),
+    (wellbeing.generate_governance_throughput, (None,), ("fetchall", 1)),
+    (wellbeing.generate_dao_proposal_history, (), ("execute", 1)),
+    (wellbeing.generate_dao_proposal_history, (), ("fetchall", 1)),
     *((wellbeing.generate_ebf_scorecard, ("location-1",), ("execute", index)) for index in range(1, 3)),
     (wellbeing.generate_ebf_scorecard, ("location-1",), ("fetchone", 1)),
     (wellbeing.generate_ebf_scorecard, ("location-1",), ("fetchall", 1)),
@@ -108,5 +127,16 @@ def test_farm_summary_closes_cursor_when_location_is_missing():
 
     with pytest.raises(ValueError, match="Location location-1 not found"):
         core.generate_farm_summary(conn, "location-1")
+
+    assert cursor.closed
+
+
+@pytest.mark.parametrize("fail_on", [("execute", 2), ("fetchall", 2)])
+def test_dao_history_closes_cursor_when_voter_query_fails(fail_on):
+    cursor = _FailingCursor(fail_on, fetchall_results=[[{"proposal_id": "1"}]])
+    conn = _Connection(cursor)
+
+    with pytest.raises(RuntimeError, match="synthetic report query failure"):
+        wellbeing.generate_dao_proposal_history(conn)
 
     assert cursor.closed

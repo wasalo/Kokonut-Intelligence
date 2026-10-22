@@ -15095,12 +15095,12 @@ least privilege, and owner acceptance. Evidence:
 
 Core farm, crop, environmental, forecast and climate reports, state/location
 and actor rollups, strategic-reserve and capital-provider reports, four
-operational reports, and the EBF, holistic-wellbeing, and financial-sustainability
-reports now close cursors in `finally` when SQL execution or fetching fails. A
-missing farm location also closes before raising. Ninety-three synthetic
-failure-injection cases cover each query and fetch boundary; the focused report
-selection passes 131 tests, and the expanded report/CLI/inventory selection
-passes 280. Ruff,
+operational reports, and all nine wellbeing-module reports now close cursors in
+`finally` when SQL execution or fetching fails. A missing farm location also
+closes before raising. The failure-injection set covers 117 query/fetch points,
+including DAO voter-query errors and both network/farm branches. The focused
+report selection passes 155 tests, and the expanded report/CLI/inventory
+selection passes 304. Ruff,
 Python compilation, four generated-inventory freshness checks, capability-matrix
 validation, and `git diff --check` pass. SQL, parameters,
 transaction ownership, and output shapes are unchanged. No database, provider,
