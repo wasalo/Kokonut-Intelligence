@@ -187,6 +187,11 @@ def run_worker_summary(
     read-only transaction; draft creation and provenance attachment use the
     separate signed worker connection in :mod:`worker_draft`.
     """
+    try:
+        location_id = str(UUID(str(location_id)))
+        request_id = str(UUID(str(request_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id and request_id must be UUIDs") from exc
     read_existing = existing_reader or get_worker_ai_summary_draft
     write_draft = draft_writer or create_worker_ai_summary_draft
     generate = summary_builder or build_summary

@@ -14407,3 +14407,16 @@ production certificate lifecycle, public ingress, authenticated tenant scope,
 and REST parity remain open ([evidence](builds/2026-10-21-recovery/cap-064-grpc-server-plaintext-opt-in.json)).
 Checklist: 935 complete / 24 open (959 total); matrix remains 31
 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
+
+### CAP-038 deterministic agent worker UUID preflight — 21 October 2026
+
+The deterministic one-shot worker now validates and canonicalizes its location
+and retry request UUIDs before the immutable receipt lookup. Missing or
+malformed identifiers fail before a reader or source connection can run. The
+focused worker CLI suite passes 22 tests; Ruff and diff checks pass. The tests
+use fakes only, so no database or provider was contacted. This is input
+preflight, not worker authentication or database least privilege. Checklist:
+936 complete / 24 open (960 total); the matrix remains 31 baseline-retained,
+7 deployed, and 28 prepared across 66 rows. Evidence:
+[worker UUID preflight](builds/2026-10-21-recovery/cap-038-worker-cli-uuid-preflight.json).

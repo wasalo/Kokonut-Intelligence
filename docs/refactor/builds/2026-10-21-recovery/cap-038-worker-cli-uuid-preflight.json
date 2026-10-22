@@ -1,0 +1,19 @@
+{
+  "capability": "CAP-038",
+  "check": "deterministic signed agent worker UUID preflight",
+  "date": "2026-10-21",
+  "scope": "Offline mocked worker CLI checks; no database or provider access",
+  "results": {
+    "pytest": "22 passed",
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior": [
+    "Malformed or missing location/request UUIDs are rejected before receipt lookup and source database connection.",
+    "Valid UUID spellings are canonicalized before immutable retry lookup."
+  ],
+  "limitations": [
+    "Does not authenticate the worker process or establish database least privilege.",
+    "Does not establish populated agent output parity or deployment acceptance."
+  ]
+}

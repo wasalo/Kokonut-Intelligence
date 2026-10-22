@@ -191,6 +191,51 @@ def test_worker_summary_rejects_unregistered_type_before_request_lookup():
     connection_factory.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("location_id", "request_id"),
+    [
+        ("not-a-location", REQUEST_ID),
+        (LOCATION_ID, "not-a-request"),
+        (None, REQUEST_ID),
+        (LOCATION_ID, None),
+    ],
+)
+def test_worker_summary_rejects_invalid_identifiers_before_receipt_or_database(
+    location_id, request_id
+):
+    existing_reader = MagicMock(side_effect=AssertionError("invalid IDs reached receipt lookup"))
+    connection_factory = MagicMock(side_effect=AssertionError("invalid IDs opened source DB"))
+
+    with pytest.raises(ValueError, match="location_id and request_id must be UUIDs"):
+        worker_cli.run_worker_summary(
+            location_id,
+            "combined",
+            request_id,
+            connection_factory=connection_factory,
+            existing_reader=existing_reader,
+        )
+
+    existing_reader.assert_not_called()
+    connection_factory.assert_not_called()
+
+
+def test_worker_summary_normalizes_ids_before_receipt_lookup():
+    normalized_location = LOCATION_ID.upper()
+    normalized_request = REQUEST_ID.upper()
+    existing_reader = MagicMock(return_value={"summary_id": "saved-id", "replayed": True})
+
+    result = worker_cli.run_worker_summary(
+        normalized_location,
+        "combined",
+        normalized_request,
+        existing_reader=existing_reader,
+        connection_factory=MagicMock(side_effect=AssertionError("retry opened source DB")),
+    )
+
+    existing_reader.assert_called_once_with(LOCATION_ID, "combined", REQUEST_ID)
+    assert result == {"summary_id": "saved-id", "replayed": True}
+
+
 def test_generic_synthesis_worker_attaches_collected_refs_from_read_snapshot():
     agent = _synthetic_synthesis_agent()
     references = {
