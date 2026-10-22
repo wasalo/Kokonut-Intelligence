@@ -116,6 +116,33 @@ GRANT SELECT ON TABLE
     public.v_public_wellbeing_metric_summary
     TO kokonut_agent_summary_source_reader;
 
+-- pg_stat_statements contains instance-wide query telemetry, including query
+-- text. Its extension default grants SELECT to PUBLIC, which would make that
+-- telemetry visible to this reader and every other database role. Keep the
+-- stats views private; a monitoring consumer must receive a separate reviewed
+-- grant instead of inheriting access through PUBLIC.
+DO $$
+DECLARE
+    relation_name TEXT;
+    relation_oid OID;
+BEGIN
+    FOREACH relation_name IN ARRAY ARRAY[
+        'pg_stat_statements',
+        'pg_stat_statements_info'
+    ] LOOP
+        relation_oid := pg_catalog.to_regclass(
+            pg_catalog.format('public.%I', relation_name)
+        );
+        IF relation_oid IS NOT NULL THEN
+            EXECUTE pg_catalog.format(
+                'REVOKE SELECT ON TABLE %s FROM PUBLIC',
+                relation_oid::regclass
+            );
+        END IF;
+    END LOOP;
+END;
+$$;
+
 DO $$
 DECLARE
     unapproved_relation TEXT;

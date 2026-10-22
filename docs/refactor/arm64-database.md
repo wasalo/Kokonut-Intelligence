@@ -1,20 +1,21 @@
 # ARM64 Kernel candidate profile
 
-## Current ARM64 schema replay — 21 October 2026
+## Current ARM64 schema replay — 22 October 2026
 
 A fresh, network-disabled ARM64 PostgreSQL/PostGIS image ran the ordered
-schema-only migration runner under QEMU. All 529 current schema files applied
-through migration 538 with zero failures. The run used its own Compose project
-and named volume, with no host ports, no Compose network, no seeds, and no farm
-data. The candidate app, database, proxy, and Metabase remained healthy after
-the run; Docker confirmed the temporary project and volume were removed. A
-first attempt stopped at migration 042 with a sanitized error; a clean
-diagnostic replay did not reproduce the failure and completed the full set.
-The earlier migration-068 stall also did not recur. The root cause of the
-first 042 failure is unknown. This closes full ARM64 schema replay under
-emulation only. Raspberry Pi hardware, resource endurance, power-loss,
-performance, and 24-hour recovery acceptance remain open
-([evidence](builds/2026-10-21-recovery/arm64-qemu-current-schema-538.json)).
+schema-only migration runner under QEMU. All 539 current schema files applied
+through migration 548 with zero pending or failed migrations. A matching
+native AMD64 replay passed the same chain. Both runs used unique Compose
+projects and temporary volumes, with no network, host ports, seeds, or farm
+data; both projects were removed. The candidate and legacy stacks were not
+targets. Migration 541 now removes `PUBLIC SELECT` from
+`pg_stat_statements` and `pg_stat_statements_info`; the final ACL check confirms
+neither statistics relation remains publicly readable. This closes the
+current-source schema replay under native and emulated ARM64 software, not
+physical-device acceptance. Raspberry Pi hardware, resource endurance,
+power-loss, performance, and 24-hour recovery acceptance remain open
+([ARM64/QEMU evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-548.json);
+[native evidence](builds/2026-10-22-recovery/native-current-schema-548.json)).
 
 ## Current-source checks — 20 October 2026
 

@@ -34,7 +34,7 @@
   "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
   "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
   "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-  "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
+  "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read; Delphi agent summaries use delphi/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
   "checks": [
     "migrations 405, 419, 521-524, 529-537, and 539-548 apply; migrations 530-537 and 539-548 replay",
     "the original structured worker result is stored atomically with its draft and replayed without source reads",
@@ -63,6 +63,7 @@
     "independent operator review sees the worker attribution and can verify only to verified",
     "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
     "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
+    "migration 541 revokes PUBLIC SELECT on both pg_stat_statements relations so global query telemetry cannot leak through inherited privileges",
     "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
     "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
     "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
@@ -73,5 +74,5 @@
     "runtime and Directus cannot call worker draft functions or read private worker receipts"
   ],
   "container_uname": "x86_64",
-  "assertions_passed": 35
+  "assertions_passed": 36
 }

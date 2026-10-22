@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "source_revision": "a2d149f2",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "postgis/postgis:16-3.4",
+    "platform": "linux/amd64",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261022-92fed70b",
+  "schema_files_expected": 539,
+  "schema_files_applied": 539,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "548_signed_delphi_agent_summary_source",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:548_signed_delphi_agent_summary_source.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "548_signed_delphi_agent_summary_source",
+    "applied": 539,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "x86_64",
+  "elapsed_seconds": 440.0
+}

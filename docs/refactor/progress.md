@@ -14895,3 +14895,24 @@ universal RLS. Checklist: 952 complete / 24 open (976 total); the capability
 matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across 66
 rows. Evidence:
 [EBF signed source reader](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json).
+
+
+### Current-source full schema replay and query-statistics ACL — 22 October 2026
+
+A network-disabled fresh-install replay exposed that `pg_stat_statements` and
+`pg_stat_statements_info` grant `PUBLIC SELECT` by default. Migration 541 now
+revokes those global query-statistics privileges before checking the signed
+source-reader allowlist; adding the views to that allowlist would have leaked
+instance-wide query telemetry and query text. The focused disposable PostgreSQL
+16 worker chain applies the selected migrations through 548, replays migrations
+530–537 and 539–548, and passes 36 assertions,
+including synthetic grants on both statistics relations. Full schema-only replays
+then applied all 539 current migrations through 548 on native AMD64 and
+ARM64/QEMU, with zero pending/failed files, zero seeds, no network or host ports,
+and successful cleanup. Ruff, compilation, and diff checks pass. Candidate and
+legacy databases were untouched and remained healthy. This advances software
+portability only; Raspberry Pi hardware, power-loss, performance, and 24-hour
+recovery acceptance remain open. Checklist: 959 complete / 24 open (983 total);
+capability matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66
+rows. Evidence: [native schema replay](builds/2026-10-22-recovery/native-current-schema-548.json),
+[ARM64/QEMU schema replay](builds/2026-10-22-recovery/arm64-qemu-current-schema-548.json).

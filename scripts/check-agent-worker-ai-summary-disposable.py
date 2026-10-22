@@ -2568,6 +2568,7 @@ def main() -> int:
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
+        "migration 541 revokes PUBLIC SELECT on both pg_stat_statements relations so global query telemetry cannot leak through inherited privileges",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
         "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
@@ -2654,7 +2655,42 @@ def main() -> int:
                     "END $$;",
                 )
                 stage = "migration_541_apply"
+            if migration_path.name.startswith("541_"):
+                stage = "pg_stat_statements_public_grant_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ BEGIN "
+                    "IF to_regclass('public.pg_stat_statements') IS NULL THEN "
+                    "CREATE TABLE public.pg_stat_statements (query text); END IF; "
+                    "IF to_regclass('public.pg_stat_statements_info') IS NULL THEN "
+                    "CREATE TABLE public.pg_stat_statements_info (dealloc bigint); END IF; "
+                    "END $$; "
+                    "GRANT SELECT ON TABLE public.pg_stat_statements, "
+                    "public.pg_stat_statements_info TO PUBLIC;",
+                )
+                stage = "migration_541_apply"
             base.psql(docker, container, sql)
+            if migration_path.name.startswith("541_"):
+                stage = "pg_stat_statements_public_grant_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ DECLARE relation_name text; relation_oid oid; "
+                    "BEGIN FOREACH relation_name IN ARRAY ARRAY["
+                    "'pg_stat_statements', 'pg_stat_statements_info'] LOOP "
+                    "relation_oid := to_regclass(format('public.%I', relation_name)); "
+                    "IF has_table_privilege('kokonut_agent_summary_source_reader', "
+                    "relation_oid, 'SELECT') THEN "
+                    "RAISE EXCEPTION 'source reader inherited query statistics access'; "
+                    "END IF; "
+                    "IF EXISTS (SELECT 1 FROM pg_class AS relation "
+                    "CROSS JOIN LATERAL aclexplode(relation.relacl) AS acl "
+                    "WHERE relation.oid = relation_oid AND acl.grantee = 0 "
+                    "AND acl.privilege_type = 'SELECT') THEN "
+                    "RAISE EXCEPTION 'PUBLIC retained query statistics access'; "
+                    "END IF; END LOOP; END $$;",
+                )
             if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_", "547_", "548_")):
                 if migration_path.name.startswith("545_"):
                     base.psql(

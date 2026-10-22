@@ -71,11 +71,17 @@ candidate or production credential is provisioned by this source change.
 PostgreSQL's `PUBLIC CONNECT` and extension relation grants are inherited by all
 roles unless revoked. The recovery fixture revokes `PUBLIC CONNECT` on every
 database in its dedicated test instance, then grants only the named target
-databases. The analytics login still sees five built-in PostGIS and
-`pg_stat_statements` metadata relations through existing `PUBLIC SELECT`
-grants. It has no access to application relations in `public`, including
-`schema_migration`. A production grant plan must explicitly review extension
-ACLs and all database ACLs before applying the same instance-wide hardening.
+databases. The analytics login on this pre-migration-541 recovery copy still
+sees five built-in PostGIS and `pg_stat_statements` metadata relations through
+existing `PUBLIC SELECT` grants. Migration 541 removes `PUBLIC SELECT` from
+`pg_stat_statements` and `pg_stat_statements_info`: these expose instance-wide
+query telemetry and query text, which are not approved synthesis sources.
+After that migration, the three PostGIS metadata catalogs remain inherited by
+roles; monitoring consumers that need query statistics must receive a separate
+reviewed grant. The analytics login has no access to application relations in
+`public`, including `schema_migration`. A production grant plan must explicitly
+review extension ACLs and all database ACLs before applying the same
+instance-wide hardening.
 
 ## Directus bootstrap and runtime split
 

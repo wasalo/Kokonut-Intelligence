@@ -16,7 +16,6 @@ import uuid
 import psycopg2
 from psycopg2 import sql
 
-
 HOST = os.environ.get("PG_HOST", "database")
 PORT = int(os.environ.get("PG_PORT", "5432"))
 ADMIN_USER = os.environ.get("KOKONUT_DB_ADMIN_USER", "kokonut")
@@ -638,7 +637,7 @@ def main() -> int:
             )
         admin.commit()
         metadata_admin = connect(ADMIN_USER, ADMIN_PASSWORD, METADATA_DATABASE)
-        metadata_relations_transferred = transfer_metadata_relations(metadata_admin)
+        transfer_metadata_relations(metadata_admin)
         with metadata_admin.cursor() as cur:
             cur.execute(
                 sql.SQL("GRANT USAGE, CREATE ON SCHEMA public TO {}").format(role_ident(METABASE_ROLE))
@@ -707,6 +706,8 @@ def main() -> int:
                 (ANALYTICS_ROLE,),
             )
             analytics_public_relation_names = [row[0] for row in cur.fetchall()]
+            # This archived populated copy predates migration 541, which now
+            # revokes PUBLIC SELECT from the two pg_stat_statements relations.
             public_extension_metadata = {
                 "geography_columns",
                 "geometry_columns",
