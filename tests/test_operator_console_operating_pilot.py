@@ -22,10 +22,12 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="operating-pilot".*?</section>\s*</section>', source, re.DOTALL)
     assert panel is not None
-    assert "Read-only, location-scoped summary" in panel.group()
+    assert "Location-scoped operating summary" in panel.group()
+    assert 'id="operating-pilot-demand-create-form"' in panel.group()
     assert "Work-claim activity" in panel.group()
     assert "Resource-request categories" in panel.group()
     assert 'scope.resource === "operating_pilot" && scope.action === "read"' in source
+    assert 'scope.resource === "operating_pilot" && scope.action === "create"' in source
     assert "operatingPilotLocations = new Set(operatingPilotLocationIds)" in source
     assert 'operatingPilot.hidden = false' in source
     assert "operating-pilot" in source
@@ -114,6 +116,25 @@ def test_location_changes_and_load_more_are_wired_with_bounded_paging():
     ids = re.findall(r'\bid="([^"]+)"', source)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+
+
+def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotDemandDraft(event)",
+        "async function loadOperatingPilotSummary()",
+    )
+    assert "operatingPilotCreateLocations.has(locationId)" in submit
+    assert "const csrf = csrfToken()" in submit
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "crypto.randomUUID()" in submit
+    assert "operatingPilotPendingDemandCreate.request_id" in submit
+    assert 'result.replayed' in submit
+    assert "It remains private and unsubmitted." in submit
+    assert "/approve" not in submit.lower()
+    assert "/submit" not in submit.lower()
 
 
 def test_inline_javascript_parses_when_node_is_available():

@@ -569,7 +569,7 @@
         </section>
         <section id="operating-pilot" hidden aria-labelledby="operating-pilot-heading">
           <h2 id="operating-pilot-heading">Operating pilot overview</h2>
-          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, aggregate capacity periods, work-claim activity, and resource-request categories. Person-linked totals remain hidden when fewer than three people contribute.</p>
+          <p class="muted">Location-scoped operating summary, redacted demand signals, aggregate capacity periods, work-claim activity, and resource-request categories. Person-linked totals remain hidden when fewer than three people contribute.</p>
           <div class="toolbar">
             <label for="operating-pilot-location">Granted location</label>
             <select id="operating-pilot-location"></select>
@@ -578,6 +578,29 @@
           <p id="operating-pilot-status" class="muted" role="status" aria-live="polite"></p>
           <h3>Current operating summary</h3>
           <dl id="operating-pilot-summary"></dl>
+          <section id="operating-pilot-demand-create" hidden aria-labelledby="operating-pilot-demand-create-heading">
+            <h3 id="operating-pilot-demand-create-heading">Record a demand draft</h3>
+            <p class="muted">Requires an exact location create grant and active human-party binding. This creates a private draft only; it does not submit, approve, or fulfill the demand.</p>
+            <form id="operating-pilot-demand-create-form" class="stacked-form">
+              <label for="operating-pilot-demand-create-work-type">Work type</label>
+              <input id="operating-pilot-demand-create-work-type" type="text" required maxlength="50" autocomplete="off">
+              <label for="operating-pilot-demand-create-start">Period start</label>
+              <input id="operating-pilot-demand-create-start" type="date" required>
+              <label for="operating-pilot-demand-create-end">Period end</label>
+              <input id="operating-pilot-demand-create-end" type="date" required>
+              <label for="operating-pilot-demand-create-hours">Required hours</label>
+              <input id="operating-pilot-demand-create-hours" type="number" min="0.01" max="100000" step="0.01" required>
+              <label for="operating-pilot-demand-create-priority">Priority</label>
+              <select id="operating-pilot-demand-create-priority">
+                <option value="low">Low</option><option value="medium" selected>Medium</option>
+                <option value="high">High</option><option value="critical">Critical</option>
+              </select>
+              <label for="operating-pilot-demand-create-description">Private planning note (optional)</label>
+              <textarea id="operating-pilot-demand-create-description" maxlength="2000" rows="3"></textarea>
+              <button id="operating-pilot-demand-create-submit" type="submit">Save demand draft</button>
+            </form>
+            <p id="operating-pilot-demand-create-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
           <h3>Demand signals</h3>
           <p id="operating-pilot-demand-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
@@ -1735,6 +1758,9 @@
       const operatingPilotLocation = document.querySelector("#operating-pilot-location");
       const operatingPilotStatus = document.querySelector("#operating-pilot-status");
       const operatingPilotSummary = document.querySelector("#operating-pilot-summary");
+      const operatingPilotDemandCreate = document.querySelector("#operating-pilot-demand-create");
+      const operatingPilotDemandCreateForm = document.querySelector("#operating-pilot-demand-create-form");
+      const operatingPilotDemandCreateStatus = document.querySelector("#operating-pilot-demand-create-status");
       const operatingPilotDemandStatus = document.querySelector("#operating-pilot-demand-status");
       const operatingPilotDemandRows = document.querySelector("#operating-pilot-demand-rows");
       const operatingPilotDemandMore = document.querySelector("#operating-pilot-demand-more");
@@ -1748,6 +1774,8 @@
       const operatingPilotResourceRows = document.querySelector("#operating-pilot-resource-rows");
       const operatingPilotResourceMore = document.querySelector("#operating-pilot-resource-more");
       let operatingPilotLocations = new Set();
+      let operatingPilotCreateLocations = new Set();
+      let operatingPilotPendingDemandCreate = null;
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
@@ -2446,6 +2474,62 @@
         return "The operating-pilot data could not be loaded. Retry when the service is available.";
       }
 
+      async function submitOperatingPilotDemandDraft(event) {
+        event.preventDefault();
+        const locationId = operatingPilotLocation.value;
+        if (!operatingPilotCreateLocations.has(locationId)) {
+          operatingPilotDemandCreateStatus.textContent = "A current location create grant is required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotDemandCreateStatus.textContent = "Refresh the operator session before saving this draft.";
+          return;
+        }
+        const payload = {
+          work_type: document.querySelector("#operating-pilot-demand-create-work-type").value.trim(),
+          period_start: document.querySelector("#operating-pilot-demand-create-start").value,
+          period_end: document.querySelector("#operating-pilot-demand-create-end").value,
+          required_hours: document.querySelector("#operating-pilot-demand-create-hours").value,
+          priority: document.querySelector("#operating-pilot-demand-create-priority").value,
+          description: document.querySelector("#operating-pilot-demand-create-description").value || null
+        };
+        const fingerprint = JSON.stringify({ locationId, ...payload });
+        if (!operatingPilotPendingDemandCreate
+            || operatingPilotPendingDemandCreate.fingerprint !== fingerprint) {
+          operatingPilotPendingDemandCreate = { fingerprint, request_id: crypto.randomUUID() };
+        }
+        const submit = document.querySelector("#operating-pilot-demand-create-submit");
+        submit.disabled = true;
+        operatingPilotDemandCreateStatus.textContent = "Saving a private demand draft…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: operatingPilotPendingDemandCreate.request_id })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location create grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The demand draft could not be saved.");
+          operatingPilotPendingDemandCreate = null;
+          operatingPilotDemandCreateForm.reset();
+          operatingPilotDemandCreateStatus.textContent = result.replayed
+            ? "The original draft was confirmed after retry; it remains a draft."
+            : "Demand draft saved. It remains private and unsubmitted.";
+          if (operatingPilotLocations.has(locationId)) await loadOperatingPilotDemand();
+          await loadOperatingPilotSummary();
+        } catch (error) {
+          operatingPilotDemandCreateStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
       async function loadOperatingPilotSummary() {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotSummaryRequestVersion;
@@ -2647,6 +2731,21 @@
       }
 
       async function loadOperatingPilot() {
+        const locationId = operatingPilotLocation.value;
+        operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
+        if (!operatingPilotLocations.has(locationId)) {
+          operatingPilotSummary.replaceChildren();
+          operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
+          operatingPilotDemandRows.replaceChildren();
+          operatingPilotDemandStatus.textContent = "A location read grant is required to view demand records.";
+          operatingPilotCapacityRows.replaceChildren();
+          operatingPilotCapacityStatus.textContent = "A location read grant is required to view capacity periods.";
+          operatingPilotWorkClaimsRows.replaceChildren();
+          operatingPilotWorkClaimsStatus.textContent = "A location read grant is required to view work-claim activity.";
+          operatingPilotResourceRows.replaceChildren();
+          operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
+          return;
+        }
         await Promise.all([
           loadOperatingPilotSummary(),
           loadOperatingPilotDemand(),
@@ -11444,6 +11543,15 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotLocations = new Set(operatingPilotLocationIds);
+          const operatingPilotCreateLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "create")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotCreateLocations = new Set(operatingPilotCreateLocationIds);
+          const operatingPilotAccessibleLocationIds = [...new Set([
+            ...operatingPilotLocationIds, ...operatingPilotCreateLocationIds
+          ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -11759,8 +11867,8 @@
             await loadMobileOperationsInventory();
             hasAuthorizedSurface = true;
           }
-          if (operatingPilotLocationIds.length) {
-            for (const locationId of operatingPilotLocationIds) {
+          if (operatingPilotAccessibleLocationIds.length) {
+            for (const locationId of operatingPilotAccessibleLocationIds) {
               const option = document.createElement("option");
               option.value = locationId;
               option.textContent = locationId;
@@ -15395,6 +15503,7 @@
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
       operatingPilotLocation.addEventListener("change", loadOperatingPilot);
+      operatingPilotDemandCreateForm.addEventListener("submit", submitOperatingPilotDemandDraft);
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));

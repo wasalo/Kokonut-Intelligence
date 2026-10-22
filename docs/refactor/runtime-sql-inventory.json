@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 902,
-    "execution_sites": 4511,
+    "source_files": 903,
+    "execution_sites": 4514,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 339,
-    "sites_without_worker_operation_refs": 4172,
+    "sites_without_worker_operation_refs": 4175,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2695,
-      "SET": 419,
+      "SELECT": 2696,
+      "SET": 421,
       "UNKNOWN": 201,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2695,
+      "read_candidate": 2696,
       "schema_change": 1,
-      "transaction_or_session": 462,
+      "transaction_or_session": 464,
       "unknown_requires_manual_review": 201,
       "with_requires_manual_review": 27,
       "write_candidate": 1125
@@ -33,10 +33,10 @@
       "composed": 17,
       "composed_or_variable": 274,
       "fstring": 286,
-      "literal": 3934
+      "literal": 3937
     },
     "relation_candidates": 1200,
-    "sites_without_relation_candidates": 888,
+    "sites_without_relation_candidates": 891,
     "service_packages": 67
   },
   "service_packages": {
@@ -365,17 +365,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 95,
-      "execution_sites": 650,
+      "source_files": 96,
+      "execution_sites": 653,
       "statement_groups": {
-        "read_candidate": 238,
-        "transaction_or_session": 356,
+        "read_candidate": 239,
+        "transaction_or_session": 358,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
       "candidate_relation_names": 178,
-      "sites_without_relation_candidates": 397,
+      "sites_without_relation_candidates": 400,
       "non_literal_sites": 12,
       "sites_with_worker_operation_refs": 0
     },
@@ -4732,6 +4732,9 @@
     {"id": "services/gateway/operating_pilot_reads.py:242:12","source": "services/gateway/operating_pilot_reads.py","line": 242,"column": 12,"scope": "get_location_operating_pilot_resource_categories","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operating_pilot_reads.py:243:12","source": "services/gateway/operating_pilot_reads.py","line": 243,"column": 12,"scope": "get_location_operating_pilot_resource_categories","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operating_pilot_reads.py:252:12","source": "services/gateway/operating_pilot_reads.py","line": 252,"column": 12,"scope": "get_location_operating_pilot_resource_categories","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "093ebfbba6fd676f0bff6564c11d8c31992b6aa80a38f523845ea0b8a3f4dd7f","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/operating_pilot_writes.py:105:12","source": "services/gateway/operating_pilot_writes.py","line": 105,"column": 12,"scope": "create_location_operating_pilot_demand_draft","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/operating_pilot_writes.py:106:12","source": "services/gateway/operating_pilot_writes.py","line": 106,"column": 12,"scope": "create_location_operating_pilot_demand_draft","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/operating_pilot_writes.py:115:12","source": "services/gateway/operating_pilot_writes.py","line": 115,"column": 12,"scope": "create_location_operating_pilot_demand_draft","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "be6518220f6f49400f25c63f70cda14fa2267c2318c703d02fcea46d3893e3a7","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/operator_auth.py:231:16","source": "services/gateway/operator_auth.py","line": 231,"column": 16,"scope": "OIDCOperatorProvider.create_session","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.create_operator_session"],"static_sql_sha256": "72dd8e21894ed23e4e73ca597671df223006f8d12a36f57108b4b6c23e796299","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/operator_auth.py:278:16","source": "services/gateway/operator_auth.py","line": 278,"column": 16,"scope": "OIDCOperatorProvider.authenticate_request","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.authenticate_operator_session"],"static_sql_sha256": "57afda46f88f6a20a2fb30deb91b985d07d58fcfec598154a0278c6a392c29ef","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/operator_auth.py:326:16","source": "services/gateway/operator_auth.py","line": 326,"column": 16,"scope": "OIDCOperatorProvider.has_scope","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "9669595b6c7987039260412337a4761ea904ad4b4dd95550c53c06356fad16ac","operation_refs": [],"statement_group": "read_candidate"},

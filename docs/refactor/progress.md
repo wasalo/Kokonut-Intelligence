@@ -1,3 +1,27 @@
+### CAP-037 location-scoped demand draft creation — 22 October 2026
+
+The operating-pilot Gateway now creates private demand drafts for operators
+with an exact location `operating_pilot:create` grant. Migration 552 verifies
+the signed transaction scope, an enabled operator's active human-party binding,
+and the active Adelphi farm mapping before recording an attributed
+`planning` / `draft` signal. A private SHA-256 receipt plus advisory lock makes
+identical retries idempotent and changed-input retries conflict. The console
+uses create grants separately from read grants and preserves the request ID and
+payload for retries. No submit, review, approval, or fulfillment action was
+added. The Gateway/console/policy/migration selection passes 114 tests; Ruff,
+compilation, runtime SQL inventory, and capability validation pass. Disposable
+PostgreSQL 16 applies and replays migrations 461, 479, 480, 526, 538, and 552;
+all 27 grouped assertions pass, including stale table/column write-grant
+revocation and the no-direct-write boundary. This disposable fixture synthesizes
+tenant context; cryptographic session signing remains covered by shared context
+tests, while live OIDC remains open. Candidate and legacy databases
+remain untouched; migration 552 is not rolled out. CAP-037 remains prepared
+(`P`), with other workflows, populated parity, live OIDC/browser, broader
+ACL/RLS, recovery, privacy/audience review, and owner acceptance still open.
+Evidence: [disposable acceptance](builds/2026-10-22-recovery/cap-037-operating-pilot-demand-draft-disposable.json).
+Checklist: 977 complete / 24 open (1,001 total); capability matrix: 30
+baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+
 ### CAP-047 freshness alert durable dispatch — 22 October 2026
 
 Freshness checks now persist a stable `data_stale` platform event in the same

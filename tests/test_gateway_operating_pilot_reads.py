@@ -446,7 +446,14 @@ def test_route_policy_requires_exact_location_operating_pilot_read_grant():
         "scope_required": True,
         "operator_auth": True,
     }
-    assert auth_route_policy("POST", demand_path, enabled=True) is None
+    assert auth_route_policy("POST", demand_path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
     assert auth_route_policy("GET", demand_path + "/extra", enabled=True) is None
 
     capacity_path = f"/operator/api/operating-pilot/{LOCATION_ID}/capacity-periods"

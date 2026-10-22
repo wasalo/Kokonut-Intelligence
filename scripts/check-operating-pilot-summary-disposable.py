@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise operating-pilot summary and demand migrations on disposable PostgreSQL 16."""
+"""Exercise operating-pilot projections and draft writes on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -17,7 +17,8 @@ DEMAND_MIGRATION = ROOT / "schemas/postgres/479_location_operating_pilot_demand_
 CAPACITY_MIGRATION = ROOT / "schemas/postgres/480_location_operating_pilot_capacity_periods.sql"
 WORK_CLAIMS_MIGRATION = ROOT / "schemas/postgres/526_location_operating_pilot_work_claims.sql"
 RESOURCE_CATEGORIES_MIGRATION = ROOT / "schemas/postgres/538_location_operating_pilot_resource_categories.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-037-operating-pilot-resource-categories-disposable.json"
+DEMAND_DRAFT_MIGRATION = ROOT / "schemas/postgres/552_location_operating_pilot_demand_draft.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-operating-pilot-demand-draft-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -27,15 +28,49 @@ if spec is None or spec.loader is None:
 helper = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(helper)
 run = helper.run
-psql = helper.psql
 wait_ready = helper.wait_ready
+
+
+def psql(docker: str, container: str, sql: str) -> str:
+    result = subprocess.run(
+        [
+            docker,
+            "exec",
+            "-i",
+            container,
+            "psql",
+            "-X",
+            "-q",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-U",
+            "postgres",
+            "-d",
+            "postgres",
+        ],
+        input=sql,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"PostgreSQL acceptance failed: {detail[:1600]}")
+    return result.stdout.strip()
+
 
 FIXTURE = r"""
 CREATE ROLE kokonut_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT;
 CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT;
 CREATE SCHEMA kokonut_security;
-CREATE TABLE public.party (id uuid PRIMARY KEY, display_name text NOT NULL);
+CREATE TABLE public.party (
+    id uuid PRIMARY KEY, party_type text NOT NULL DEFAULT 'person',
+    status text NOT NULL DEFAULT 'active', display_name text NOT NULL DEFAULT 'Synthetic person'
+);
 CREATE TABLE public.operator_identity (id uuid PRIMARY KEY, enabled boolean NOT NULL);
+CREATE TABLE public.operator_governance_party_binding (
+    id uuid PRIMARY KEY, operator_id uuid NOT NULL, party_id uuid NOT NULL, revoked_at timestamptz
+);
 CREATE TABLE public.location (id uuid PRIMARY KEY, organization_id uuid);
 CREATE TABLE public.farm (
     id uuid PRIMARY KEY, location_id uuid NOT NULL, status text NOT NULL, name text NOT NULL
@@ -69,12 +104,27 @@ CREATE TABLE public.operating_capacity_profile (
     notes text
 );
 CREATE TABLE public.operating_demand_signal (
-    id uuid PRIMARY KEY, scope_type text NOT NULL, scope_id uuid NOT NULL,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    scope_type text NOT NULL, scope_id uuid NOT NULL,
     work_type text NOT NULL, period_start date NOT NULL, period_end date NOT NULL,
     required_hours numeric NOT NULL, priority text NOT NULL, source text NOT NULL,
     source_ref uuid, description text, status text NOT NULL,
     created_by_party_id uuid, created_at timestamptz NOT NULL DEFAULT now()
 );
+GRANT INSERT, UPDATE, DELETE ON TABLE public.operating_demand_signal
+    TO kokonut_runtime, kokonut_directus_runtime;
+GRANT INSERT (description), UPDATE (status) ON TABLE public.operating_demand_signal
+    TO kokonut_runtime, kokonut_directus_runtime;
+CREATE FUNCTION public.test_demand_signal_metadata(requested_signal_id uuid)
+RETURNS TABLE(signal_rows bigint, creator_party_id uuid)
+LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog AS $$
+    SELECT (SELECT count(*) FROM public.operating_demand_signal AS signal
+             WHERE signal.id = requested_signal_id),
+           (SELECT signal.created_by_party_id
+              FROM public.operating_demand_signal AS signal
+             WHERE signal.id = requested_signal_id LIMIT 1)
+$$;
+GRANT EXECUTE ON FUNCTION public.test_demand_signal_metadata(uuid) TO kokonut_runtime;
 CREATE TABLE public.work_item (
     id uuid PRIMARY KEY, location_id uuid, status text NOT NULL, allocation_status text NOT NULL,
     work_type text NOT NULL, title text, description text
@@ -167,7 +217,14 @@ INSERT INTO public.farm VALUES
  ('e9000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002', 'active', 'Synthetic other farm');
 INSERT INTO public.operator_scope_grant VALUES
  ('a1000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'create', 'f0000000-0000-4000-8000-000000000001', NULL),
  ('a1000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic operator party');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000002',
+        'a0000000-0000-4000-8000-000000000001',
+        'd8000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.operator_organization_membership VALUES
  ('a2000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.location_tenant_owner_verification VALUES
@@ -248,10 +305,12 @@ DECLARE summary jsonb; demand_first jsonb; demand_second jsonb;
         capacity_first jsonb; capacity_second jsonb;
         claims_first jsonb; claims_second jsonb;
         resources_first jsonb; resources_second jsonb;
+        draft_result jsonb; draft_replay jsonb; created_signal_id uuid;
         denied boolean := false; invalid_page boolean := false;
         invalid_capacity_page boolean := false;
         invalid_claims_page boolean := false;
         invalid_resources_page boolean := false;
+        draft_collision boolean := false; invalid_draft boolean := false;
 BEGIN
     summary := kokonut_security.location_operating_pilot_summary(
         'b0000000-0000-4000-8000-000000000001'
@@ -286,6 +345,67 @@ BEGIN
     IF summary::text ~* '(claimant|coachee|PRIVATE|notes|evidence|party_id)' THEN
         RAISE EXCEPTION 'aggregate projection leaked private operating records';
     END IF;
+    draft_result := kokonut_security.create_location_operating_pilot_demand_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9000000-0000-4000-8000-000000000001',
+        'soil preparation', CURRENT_DATE + 10, CURRENT_DATE + 20,
+        18.50, 'high', 'PRIVATE synthetic draft note'
+    );
+    draft_replay := kokonut_security.create_location_operating_pilot_demand_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9000000-0000-4000-8000-000000000001',
+        'soil preparation', CURRENT_DATE + 10, CURRENT_DATE + 20,
+        18.50, 'high', 'PRIVATE synthetic draft note'
+    );
+    created_signal_id := (draft_result->>'signal_id')::uuid;
+    IF created_signal_id IS NULL
+       OR created_signal_id = 'd9000000-0000-4000-8000-000000000001'
+       OR draft_result->>'status' <> 'draft'
+       OR draft_result->>'replayed' <> 'false'
+       OR draft_replay->>'replayed' <> 'true'
+       OR (SELECT signal_rows FROM public.test_demand_signal_metadata(created_signal_id)) <> 1
+       OR (SELECT creator_party_id FROM public.test_demand_signal_metadata(created_signal_id))
+            <> 'd8000000-0000-4000-8000-000000000001'
+       OR draft_result::text ~* '(PRIVATE|party_id|created_by)' THEN
+        RAISE EXCEPTION 'demand draft mismatch result %, replay %, signal %, rows %, creator %, payload leaked %',
+            draft_result, draft_replay, created_signal_id,
+            (SELECT signal_rows FROM public.test_demand_signal_metadata(created_signal_id)),
+            (SELECT creator_party_id FROM public.test_demand_signal_metadata(created_signal_id)),
+            draft_result::text ~* '(PRIVATE|party_id|created_by)';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9000000-0000-4000-8000-000000000001',
+            'different work', CURRENT_DATE + 10, CURRENT_DATE + 20,
+            18.50, 'high', 'PRIVATE synthetic draft note'
+        );
+    EXCEPTION WHEN unique_violation THEN draft_collision := true;
+    END;
+    IF NOT draft_collision THEN RAISE EXCEPTION 'demand request ID accepted different input'; END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9000000-0000-4000-8000-000000000002',
+            'soil preparation', CURRENT_DATE + 10, CURRENT_DATE + 20,
+            0, 'high', NULL
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_draft := true;
+    END;
+    IF NOT invalid_draft THEN RAISE EXCEPTION 'invalid demand draft was accepted'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_demand_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9000000-0000-4000-8000-000000000003',
+            'soil preparation', CURRENT_DATE + 10, CURRENT_DATE + 20,
+            18.50, 'high', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'read-only demand grant created a draft'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
     demand_first := kokonut_security.location_operating_pilot_demand_signals(
         'b0000000-0000-4000-8000-000000000001', 2, 0
     );
@@ -300,10 +420,11 @@ BEGIN
        OR (demand_first->>'next_offset')::int <> 2
        OR demand_first->'items'->0->>'work_type' <> 'harvest'
        OR demand_first->'items'->1->>'work_type' <> 'irrigation'
-       OR jsonb_array_length(demand_second->'items') <> 1
+       OR jsonb_array_length(demand_second->'items') <> 2
        OR demand_second->>'has_more' <> 'false'
        OR demand_second->'next_offset' <> 'null'::jsonb
-       OR demand_second->'items'->0->>'work_type' <> 'tree-care' THEN
+       OR demand_second->'items'->0->>'work_type' <> 'tree-care'
+       OR demand_second->'items'->1->>'work_type' <> 'soil preparation' THEN
         RAISE EXCEPTION 'demand page, ordering, or active farm scope mismatch: %, %',
             demand_first, demand_second;
     END IF;
@@ -492,6 +613,32 @@ BEGIN
     BEGIN PERFORM 1 FROM public.operating_capacity_profile;
     EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
     IF NOT denied THEN RAISE EXCEPTION 'runtime can read operating capacity directly'; END IF;
+    denied := false;
+    BEGIN
+        INSERT INTO public.operating_demand_signal (
+            scope_type, scope_id, work_type, period_start, period_end,
+            required_hours, priority, source, status
+        ) VALUES (
+            'adelphi', 'e9000000-0000-4000-8000-000000000001', 'direct-write',
+            CURRENT_DATE, CURRENT_DATE, 1, 'low', 'planning', 'draft'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can insert demand directly'; END IF;
+    denied := false;
+    BEGIN
+        UPDATE public.operating_demand_signal SET status = 'approved'
+         WHERE id = 'd1000000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can update demand lifecycle directly'; END IF;
+    denied := false;
+    BEGIN
+        DELETE FROM public.operating_demand_signal
+         WHERE id = 'd1000000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can delete demand directly'; END IF;
 END $$;
 COMMIT;
 RESET ROLE;
@@ -508,9 +655,25 @@ BEGIN
           'kokonut_security.location_operating_pilot_work_claims(uuid,integer,integer)', 'EXECUTE')
        OR NOT has_function_privilege('kokonut_runtime',
           'kokonut_security.location_operating_pilot_resource_categories(uuid,integer,integer)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.create_location_operating_pilot_demand_draft(uuid,uuid,text,date,date,numeric,text,text)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'DELETE')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'description', 'INSERT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_demand_draft_receipt', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'DELETE')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'description', 'INSERT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_draft_receipt', 'INSERT')
        OR has_function_privilege('kokonut_directus_runtime',
           'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
@@ -523,6 +686,10 @@ BEGIN
           'kokonut_security.location_operating_pilot_resource_categories(uuid,integer,integer)', 'EXECUTE') THEN
         RAISE EXCEPTION 'runtime/Directus operating pilot privilege boundary failed';
     END IF;
+    IF has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.create_location_operating_pilot_demand_draft(uuid,uuid,text,date,date,numeric,text,text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can invoke the operator demand-draft writer';
+    END IF;
     IF has_table_privilege('kokonut_operating_pilot_reader', 'public.party', 'SELECT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'INSERT')
@@ -530,7 +697,11 @@ BEGIN
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'DELETE')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'INSERT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'UPDATE')
-       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'DELETE') THEN
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'DELETE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'DELETE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_receipt', 'DELETE') THEN
         RAISE EXCEPTION 'operating pilot reader has identity or mutation privileges';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.farm', 'id', 'SELECT')
@@ -636,13 +807,18 @@ def main() -> int:
     container = f"kokonut-operating-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [SUMMARY_MIGRATION.name, DEMAND_MIGRATION.name,
-                       CAPACITY_MIGRATION.name, WORK_CLAIMS_MIGRATION.name,
-                       RESOURCE_CATEGORIES_MIGRATION.name],
+        "migrations": [
+            SUMMARY_MIGRATION.name,
+            DEMAND_MIGRATION.name,
+            CAPACITY_MIGRATION.name,
+            WORK_CLAIMS_MIGRATION.name,
+            RESOURCE_CATEGORIES_MIGRATION.name,
+            DEMAND_DRAFT_MIGRATION.name,
+        ],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, and 538 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, and 552 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -654,12 +830,26 @@ def main() -> int:
             "work-claim pages enforce bounded deterministic paging, exact tenant scope, and runtime-function-only access",
             "resource requests map free-text values to fixed categories, suppress counts below three requesters, and exclude identity, narrative, urgency, and lifecycle state",
             "resource-category pages enforce bounds, deterministic paging, exact tenant scope, and runtime-function-only access",
-            "clean role fixture confirms no direct runtime/Directus table grants are introduced; reader has only required columns and no identity, private-content, or write access",
+            "demand draft creation requires exact location context, create grant, active human-party binding, and active farm mapping",
+            "demand drafts are private, attributed, draft-only, request-idempotent, and reject mismatched retries or invalid input",
+            "runtime and Directus cannot insert or mutate demand rows or access private draft receipts directly",
+            "synthetic pre-existing table-level and column-level runtime/Directus demand writes are revoked; reader has only required columns and no identity or private-content read access",
         ],
     }
     try:
-        run([docker, "run", "--detach", "--rm", "--name", container,
-             "-e", "POSTGRES_PASSWORD=local-only-disposable", "postgres:16"])
+        run(
+            [
+                docker,
+                "run",
+                "--detach",
+                "--rm",
+                "--name",
+                container,
+                "-e",
+                "POSTGRES_PASSWORD=local-only-disposable",
+                "postgres:16",
+            ]
+        )
         wait_ready(container, docker)
         psql(docker, container, FIXTURE)
         summary_migration = SUMMARY_MIGRATION.read_text(encoding="utf-8")
@@ -667,6 +857,7 @@ def main() -> int:
         capacity_migration = CAPACITY_MIGRATION.read_text(encoding="utf-8")
         work_claims_migration = WORK_CLAIMS_MIGRATION.read_text(encoding="utf-8")
         resource_categories_migration = RESOURCE_CATEGORIES_MIGRATION.read_text(encoding="utf-8")
+        demand_draft_migration = DEMAND_DRAFT_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, summary_migration)
         psql(docker, container, summary_migration)
         psql(docker, container, demand_migration)
@@ -677,12 +868,16 @@ def main() -> int:
         psql(docker, container, work_claims_migration)
         psql(docker, container, resource_categories_migration)
         psql(docker, container, resource_categories_migration)
+        psql(docker, container, demand_draft_migration)
+        psql(docker, container, demand_draft_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertions_passed"] = 20
-        evidence["preexisting_runtime_or_directus_grants_assessed"] = False
-        print("PASS: migrations 461/479/480/526/538 apply/replay and all twenty disposable PostgreSQL assertions passed")
+        evidence["assertion_groups_passed"] = 27
+        evidence["preexisting_runtime_or_directus_grants_assessed"] = True
+        print(
+            "PASS: migrations 461/479/480/526/538/552 apply/replay and all twenty-seven grouped PostgreSQL assertions passed"
+        )
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"
