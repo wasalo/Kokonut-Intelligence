@@ -193,83 +193,84 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 def generate_crop_noi(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a crop NOI report from the canonical crop-cycle NOI view."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute(
-        """
-        SELECT
-            v.crop_cycle_id as cycle_id,
-            cc.cycle_name,
-            c.name as crop_name,
-            p.name as plot_name,
-            cc.status,
-            cc.planting_date,
-            cc.actual_harvest_date,
-            cc.expected_yield,
-            cc.actual_yield,
-            cc.expected_revenue,
-            v.gross_revenue,
-            v.returns_discounts as returns_and_discounts,
-            v.net_revenue,
-            v.direct_crop_costs,
-            v.allocated_shared_costs,
-            v.total_costs,
-            v.noi,
-            v.operating_margin_pct,
-            v.loss_rate_pct
-        FROM v_crop_cycle_noi v
-        JOIN crop_cycle cc ON cc.id = v.crop_cycle_id
-        JOIN crop c ON cc.crop_id = c.id
-        JOIN plot p ON cc.plot_id = p.id
-        WHERE v.location_id = %s
-          AND (%s::date IS NULL OR cc.planting_date >= %s::date)
-          AND (%s::date IS NULL OR COALESCE(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date)
-        ORDER BY cc.planting_date DESC
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    cycles = [dict(r) for r in cur.fetchall()]
-    noi_data = []
-    for cycle in cycles:
-        gross_revenue = float(cycle["gross_revenue"] or 0)
-        returns_and_discounts = float(cycle["returns_and_discounts"] or 0)
-        net_revenue = float(cycle["net_revenue"] or 0)
-        direct_crop_costs = float(cycle["direct_crop_costs"] or 0)
-        allocated_shared_costs = float(cycle["allocated_shared_costs"] or 0)
-        total_costs = float(cycle["total_costs"] or 0)
-        noi = float(cycle["noi"] or 0)
-
-        noi_data.append(
-            {
-                "cycle_id": str(cycle["cycle_id"]),
-                "cycle_name": cycle["cycle_name"],
-                "crop_name": cycle["crop_name"],
-                "plot_name": cycle["plot_name"],
-                "status": cycle["status"],
-                "planting_date": cycle["planting_date"].isoformat() if cycle["planting_date"] else None,
-                "actual_harvest_date": cycle["actual_harvest_date"].isoformat()
-                if cycle["actual_harvest_date"]
-                else None,
-                "expected_yield": float(cycle["expected_yield"] or 0),
-                "actual_yield": float(cycle["actual_yield"] or 0),
-                "expected_revenue": float(cycle["expected_revenue"] or 0),
-                # Retain the legacy keys while making their accounting basis
-                # explicit: actual revenue is net verified revenue, and the
-                # crop cost includes direct plus allocated shared costs.
-                "actual_revenue": net_revenue,
-                "allocated_cost": total_costs,
-                "gross_revenue": gross_revenue,
-                "returns_and_discounts": returns_and_discounts,
-                "net_revenue": net_revenue,
-                "direct_crop_costs": direct_crop_costs,
-                "allocated_shared_costs": allocated_shared_costs,
-                "total_costs": total_costs,
-                "crop_noi": noi,
-                "operating_margin_pct": float(cycle["operating_margin_pct"] or 0),
-                "loss_rate_pct": float(cycle["loss_rate_pct"] or 0),
-            }
+    try:
+        cur.execute(
+            """
+            SELECT
+                v.crop_cycle_id as cycle_id,
+                cc.cycle_name,
+                c.name as crop_name,
+                p.name as plot_name,
+                cc.status,
+                cc.planting_date,
+                cc.actual_harvest_date,
+                cc.expected_yield,
+                cc.actual_yield,
+                cc.expected_revenue,
+                v.gross_revenue,
+                v.returns_discounts as returns_and_discounts,
+                v.net_revenue,
+                v.direct_crop_costs,
+                v.allocated_shared_costs,
+                v.total_costs,
+                v.noi,
+                v.operating_margin_pct,
+                v.loss_rate_pct
+            FROM v_crop_cycle_noi v
+            JOIN crop_cycle cc ON cc.id = v.crop_cycle_id
+            JOIN crop c ON cc.crop_id = c.id
+            JOIN plot p ON cc.plot_id = p.id
+            WHERE v.location_id = %s
+              AND (%s::date IS NULL OR cc.planting_date >= %s::date)
+              AND (%s::date IS NULL OR COALESCE(cc.actual_harvest_date, cc.expected_harvest_date) <= %s::date)
+            ORDER BY cc.planting_date DESC
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
         )
+        cycles = [dict(r) for r in cur.fetchall()]
+        noi_data = []
+        for cycle in cycles:
+            gross_revenue = float(cycle["gross_revenue"] or 0)
+            returns_and_discounts = float(cycle["returns_and_discounts"] or 0)
+            net_revenue = float(cycle["net_revenue"] or 0)
+            direct_crop_costs = float(cycle["direct_crop_costs"] or 0)
+            allocated_shared_costs = float(cycle["allocated_shared_costs"] or 0)
+            total_costs = float(cycle["total_costs"] or 0)
+            noi = float(cycle["noi"] or 0)
 
-    cur.close()
+            noi_data.append(
+                {
+                    "cycle_id": str(cycle["cycle_id"]),
+                    "cycle_name": cycle["cycle_name"],
+                    "crop_name": cycle["crop_name"],
+                    "plot_name": cycle["plot_name"],
+                    "status": cycle["status"],
+                    "planting_date": cycle["planting_date"].isoformat() if cycle["planting_date"] else None,
+                    "actual_harvest_date": cycle["actual_harvest_date"].isoformat()
+                    if cycle["actual_harvest_date"]
+                    else None,
+                    "expected_yield": float(cycle["expected_yield"] or 0),
+                    "actual_yield": float(cycle["actual_yield"] or 0),
+                    "expected_revenue": float(cycle["expected_revenue"] or 0),
+                    # Retain the legacy keys while making their accounting basis
+                    # explicit: actual revenue is net verified revenue, and the
+                    # crop cost includes direct plus allocated shared costs.
+                    "actual_revenue": net_revenue,
+                    "allocated_cost": total_costs,
+                    "gross_revenue": gross_revenue,
+                    "returns_and_discounts": returns_and_discounts,
+                    "net_revenue": net_revenue,
+                    "direct_crop_costs": direct_crop_costs,
+                    "allocated_shared_costs": allocated_shared_costs,
+                    "total_costs": total_costs,
+                    "crop_noi": noi,
+                    "operating_margin_pct": float(cycle["operating_margin_pct"] or 0),
+                    "loss_rate_pct": float(cycle["loss_rate_pct"] or 0),
+                }
+            )
+
+    finally:
+        cur.close()
 
     total_gross_revenue = sum(d["gross_revenue"] for d in noi_data)
     total_returns_and_discounts = sum(d["returns_and_discounts"] for d in noi_data)
@@ -300,56 +301,57 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
 def generate_environmental(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate an environmental impact report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Soil carbon measurements
+        cur.execute(
+            """
+            SELECT measurement_date, carbon_tonnes_per_ha, measurement_method, depth_cm
+            FROM soil_carbon_measurement
+            WHERE location_id = %s
+            ORDER BY measurement_date
+        """,
+            (location_id,),
+        )
+        soil_carbon = [dict(r) for r in cur.fetchall()]
 
-    # Soil carbon measurements
-    cur.execute(
-        """
-        SELECT measurement_date, carbon_tonnes_per_ha, measurement_method, depth_cm
-        FROM soil_carbon_measurement
-        WHERE location_id = %s
-        ORDER BY measurement_date
-    """,
-        (location_id,),
-    )
-    soil_carbon = [dict(r) for r in cur.fetchall()]
+        # Species observations
+        cur.execute(
+            """
+            SELECT observation_date, count, habitat_type, notes
+            FROM species_observation
+            WHERE location_id = %s
+            ORDER BY observation_date
+        """,
+            (location_id,),
+        )
+        species = [dict(r) for r in cur.fetchall()]
 
-    # Species observations
-    cur.execute(
-        """
-        SELECT observation_date, count, habitat_type, notes
-        FROM species_observation
-        WHERE location_id = %s
-        ORDER BY observation_date
-    """,
-        (location_id,),
-    )
-    species = [dict(r) for r in cur.fetchall()]
+        # Remote sensing
+        cur.execute(
+            """
+            SELECT observation_date, ndvi, ndre, cloud_cover_pct
+            FROM remote_sensing_observation
+            WHERE location_id = %s
+            ORDER BY observation_date
+        """,
+            (location_id,),
+        )
+        remote_sensing = [dict(r) for r in cur.fetchall()]
 
-    # Remote sensing
-    cur.execute(
-        """
-        SELECT observation_date, ndvi, ndre, cloud_cover_pct
-        FROM remote_sensing_observation
-        WHERE location_id = %s
-        ORDER BY observation_date
-    """,
-        (location_id,),
-    )
-    remote_sensing = [dict(r) for r in cur.fetchall()]
+        # Loss events (environmental)
+        cur.execute(
+            """
+            SELECT loss_date, loss_type, quantity, unit, cause
+            FROM loss_event
+            WHERE location_id = %s
+            ORDER BY loss_date
+        """,
+            (location_id,),
+        )
+        losses = [dict(r) for r in cur.fetchall()]
 
-    # Loss events (environmental)
-    cur.execute(
-        """
-        SELECT loss_date, loss_type, quantity, unit, cause
-        FROM loss_event
-        WHERE location_id = %s
-        ORDER BY loss_date
-    """,
-        (location_id,),
-    )
-    losses = [dict(r) for r in cur.fetchall()]
-
-    cur.close()
+    finally:
+        cur.close()
 
     def _serialize(obj):
         if hasattr(obj, "isoformat"):
@@ -388,70 +390,71 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
 def generate_forecast_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a forecast summary report across all scenarios."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Get all scenarios for this location
+        cur.execute(
+            """
+            SELECT id, name, scenario_type, status, assumptions, created_at
+            FROM forecast_scenario
+            WHERE location_id = %s
+            ORDER BY created_at DESC
+        """,
+            (location_id,),
+        )
 
-    # Get all scenarios for this location
-    cur.execute(
-        """
-        SELECT id, name, scenario_type, status, assumptions, created_at
-        FROM forecast_scenario
-        WHERE location_id = %s
-        ORDER BY created_at DESC
-    """,
-        (location_id,),
-    )
+        # Get all forecast outputs grouped by scenario
+        cur.execute(
+            """
+            SELECT
+                fo.scenario_id,
+                fs.name as scenario_name,
+                fs.scenario_type,
+                fo.metric_name,
+                fo.value,
+                fo.unit,
+                fo.confidence_low,
+                fo.confidence_high,
+                fo.inputs,
+                fo.period_start,
+                fo.period_end,
+                fo.calculated_at
+            FROM forecast_output fo
+            JOIN forecast_scenario fs ON fo.scenario_id = fs.id
+            WHERE fo.location_id = %s
+            ORDER BY fs.scenario_type, fo.metric_name
+        """,
+            (location_id,),
+        )
+        outputs = [dict(r) for r in cur.fetchall()]
 
-    # Get all forecast outputs grouped by scenario
-    cur.execute(
-        """
-        SELECT
-            fo.scenario_id,
-            fs.name as scenario_name,
-            fs.scenario_type,
-            fo.metric_name,
-            fo.value,
-            fo.unit,
-            fo.confidence_low,
-            fo.confidence_high,
-            fo.inputs,
-            fo.period_start,
-            fo.period_end,
-            fo.calculated_at
-        FROM forecast_output fo
-        JOIN forecast_scenario fs ON fo.scenario_id = fs.id
-        WHERE fo.location_id = %s
-        ORDER BY fs.scenario_type, fo.metric_name
-    """,
-        (location_id,),
-    )
-    outputs = [dict(r) for r in cur.fetchall()]
-
-    # Group outputs by scenario
-    scenarios_data = {}
-    for out in outputs:
-        sid = str(out["scenario_id"])
-        if sid not in scenarios_data:
-            scenarios_data[sid] = {
-                "scenario_name": out["scenario_name"],
-                "scenario_type": out["scenario_type"],
-                "period_start": out["period_start"],
-                "period_end": out["period_end"],
-                "calculated_at": out["calculated_at"].isoformat() if out["calculated_at"] else None,
-                "metrics": {},
+        # Group outputs by scenario
+        scenarios_data = {}
+        for out in outputs:
+            sid = str(out["scenario_id"])
+            if sid not in scenarios_data:
+                scenarios_data[sid] = {
+                    "scenario_name": out["scenario_name"],
+                    "scenario_type": out["scenario_type"],
+                    "period_start": out["period_start"],
+                    "period_end": out["period_end"],
+                    "calculated_at": out["calculated_at"].isoformat() if out["calculated_at"] else None,
+                    "metrics": {},
+                }
+            scenarios_data[sid]["metrics"][out["metric_name"]] = {
+                "value": float(out["value"]) if out["value"] else None,
+                "unit": out["unit"],
+                "confidence_low": float(out["confidence_low"]) if out["confidence_low"] else None,
+                "confidence_high": float(out["confidence_high"]) if out["confidence_high"] else None,
+                "inputs": dict(out["inputs"]) if out["inputs"] else {},
             }
-        scenarios_data[sid]["metrics"][out["metric_name"]] = {
-            "value": float(out["value"]) if out["value"] else None,
-            "unit": out["unit"],
-            "confidence_low": float(out["confidence_low"]) if out["confidence_low"] else None,
-            "confidence_high": float(out["confidence_high"]) if out["confidence_high"] else None,
-            "inputs": dict(out["inputs"]) if out["inputs"] else {},
-        }
 
-    # Get location info
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    loc = cur.fetchone()
-    location_name = loc["name"] if loc else "Unknown"
+        # Get location info
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        loc = cur.fetchone()
+        location_name = loc["name"] if loc else "Unknown"
 
-    cur.close()
+    finally:
+        cur.close()
 
     return {
         "report_type": "forecast",
@@ -481,47 +484,48 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         reporting_year = _dt.now(timezone.utc).year - 1  # default to last full year
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Location info
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        loc = cur.fetchone()
+        location_name = loc["name"] if loc else "Unknown"
 
-    # Location info
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    loc = cur.fetchone()
-    location_name = loc["name"] if loc else "Unknown"
+        # Climate impact summary (if stored)
+        cur.execute(
+            """
+            SELECT * FROM climate_impact_summary
+            WHERE location_id = %s AND reporting_year = %s
+            LIMIT 1
+        """,
+            (location_id, reporting_year),
+        )
+        summary_row = cur.fetchone()
 
-    # Climate impact summary (if stored)
-    cur.execute(
+        # Framework phases
+        cur.execute(
+            """
+            SELECT framework_key, phase, phase_status, phase_start_date, review_cadence
+            FROM framework_phase
+            WHERE location_id = %s AND phase_status = 'active'
+            ORDER BY framework_key
+        """,
+            (location_id,),
+        )
+        phases = [dict(r) for r in cur.fetchall()]
+
+        # Operations protocols
+        cur.execute(
+            """
+            SELECT protocol_key, title, section, version, review_cadence
+            FROM operations_protocol
+            WHERE status = 'active'
+            ORDER BY section
         """
-        SELECT * FROM climate_impact_summary
-        WHERE location_id = %s AND reporting_year = %s
-        LIMIT 1
-    """,
-        (location_id, reporting_year),
-    )
-    summary_row = cur.fetchone()
+        )
+        protocols = [dict(r) for r in cur.fetchall()]
 
-    # Framework phases
-    cur.execute(
-        """
-        SELECT framework_key, phase, phase_status, phase_start_date, review_cadence
-        FROM framework_phase
-        WHERE location_id = %s AND phase_status = 'active'
-        ORDER BY framework_key
-    """,
-        (location_id,),
-    )
-    phases = [dict(r) for r in cur.fetchall()]
-
-    # Operations protocols
-    cur.execute(
-        """
-        SELECT protocol_key, title, section, version, review_cadence
-        FROM operations_protocol
-        WHERE status = 'active'
-        ORDER BY section
-    """
-    )
-    protocols = [dict(r) for r in cur.fetchall()]
-
-    cur.close()
+    finally:
+        cur.close()
 
     # Analytics from live data
     carbon_balance = compute_carbon_balance(conn, location_id, reporting_year)

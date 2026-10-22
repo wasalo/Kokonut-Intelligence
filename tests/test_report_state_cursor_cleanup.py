@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from services.export.reports import core, operations, state
+from services.export.reports import core, operations, state, wellbeing
 
 
 class _FailingCursor:
@@ -12,7 +12,7 @@ class _FailingCursor:
         self.fail_on = fail_on
         self.calls = {"execute": 0, "fetchall": 0, "fetchone": 0}
         self.closed = False
-        self.fetchone_results = iter(fetchone_results or [{"name": "Synthetic farm"}])
+        self.fetchone_results = iter(fetchone_results or [{"name": "Synthetic farm", "scorecard_id": "synthetic"}])
 
     def _maybe_fail(self, operation):
         self.calls[operation] += 1
@@ -43,6 +43,25 @@ class _Connection:
 
 
 _CASES = [
+    *((wellbeing.generate_ebf_scorecard, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (wellbeing.generate_ebf_scorecard, ("location-1",), ("fetchone", 1)),
+    (wellbeing.generate_ebf_scorecard, ("location-1",), ("fetchall", 1)),
+    *((wellbeing.generate_holistic_wellbeing, ("location-1",), ("execute", index)) for index in range(1, 5)),
+    (wellbeing.generate_holistic_wellbeing, ("location-1",), ("fetchone", 1)),
+    *((wellbeing.generate_holistic_wellbeing, ("location-1",), ("fetchall", index)) for index in range(1, 4)),
+    *((wellbeing.generate_financial_sustainability, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (wellbeing.generate_financial_sustainability, ("location-1",), ("fetchone", 1)),
+    (wellbeing.generate_financial_sustainability, ("location-1",), ("fetchall", 1)),
+    (core.generate_crop_noi, ("location-1",), ("execute", 1)),
+    (core.generate_crop_noi, ("location-1",), ("fetchall", 1)),
+    *((core.generate_environmental, ("location-1",), ("execute", index)) for index in range(1, 5)),
+    *((core.generate_environmental, ("location-1",), ("fetchall", index)) for index in range(1, 5)),
+    *((core.generate_forecast_summary, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (core.generate_forecast_summary, ("location-1",), ("fetchall", 1)),
+    (core.generate_forecast_summary, ("location-1",), ("fetchone", 1)),
+    *((core.generate_climate_impact, ("location-1",), ("execute", index)) for index in range(1, 5)),
+    *((core.generate_climate_impact, ("location-1",), ("fetchone", index)) for index in range(1, 3)),
+    *((core.generate_climate_impact, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
     *((core.generate_farm_summary, ("location-1",), ("execute", index)) for index in range(1, 10)),
     *((core.generate_farm_summary, ("location-1",), ("fetchall", index)) for index in range(1, 6)),
     *((core.generate_farm_summary, ("location-1",), ("fetchone", index)) for index in range(1, 5)),

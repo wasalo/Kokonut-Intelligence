@@ -3246,13 +3246,13 @@
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 296,
+          "line": 302,
           "depth": 1
         },
         {
           "caller": "generate_capital_efficiency",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 297,
+          "line": 303,
           "depth": 1
         },
         {
@@ -3326,25 +3326,25 @@
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_carbon_balance",
-          "line": 527,
+          "line": 531,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
-          "line": 528,
+          "line": 532,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
-          "line": 529,
+          "line": 533,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
-          "line": 530,
+          "line": 534,
           "depth": 1
         },
         {
@@ -4218,7 +4218,7 @@
         {
           "caller": "generate_dao_proposal_history",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 363,
+          "line": 369,
           "depth": 1
         }
       ],
@@ -4266,13 +4266,13 @@
         {
           "caller": "generate_ebf_scorecard",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 50,
+          "line": 52,
           "depth": 1
         },
         {
           "caller": "generate_ebf_scorecard",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 51,
+          "line": 53,
           "depth": 1
         },
         {
@@ -4700,7 +4700,7 @@
         {
           "caller": "generate_financial_sustainability",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 152,
+          "line": 158,
           "depth": 1
         },
         {
@@ -4960,7 +4960,7 @@
         {
           "caller": "generate_governance_throughput",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 343,
+          "line": 349,
           "depth": 1
         },
         {
@@ -4996,13 +4996,13 @@
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 239,
+          "line": 245,
           "depth": 1
         },
         {
           "caller": "generate_green_paper_publication_status",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 253,
+          "line": 259,
           "depth": 1
         },
         {
@@ -5037,19 +5037,19 @@
         {
           "caller": "generate_holistic_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 118,
+          "line": 122,
           "depth": 1
         },
         {
           "caller": "generate_holistic_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 119,
+          "line": 123,
           "depth": 1
         },
         {
           "caller": "generate_holistic_wellbeing",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 120,
+          "line": 124,
           "depth": 1
         },
         {
@@ -7653,7 +7653,7 @@
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/revenue_multiplier/analyzer.py:analyze_location",
-          "line": 376,
+          "line": 378,
           "depth": 1
         },
         {
@@ -7923,7 +7923,7 @@
         {
           "caller": "generate_risk_mitigation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 184,
+          "line": 190,
           "depth": 1
         },
         {
@@ -7999,7 +7999,7 @@
         {
           "caller": "generate_scaling_roadmap",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 225,
+          "line": 231,
           "depth": 1
         },
         {

@@ -14,35 +14,37 @@ from .scope import require_network_scope
 def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe EBF scorecard report for a location."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_ebf_scorecard_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR period_start >= %s::date)
-          AND (%s::date IS NULL OR period_end <= %s::date)
-        ORDER BY period_end DESC, scorecard_id
-        LIMIT 1
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    summary = cur.fetchone()
-
-    pillars = []
-    if summary:
+    try:
         cur.execute(
             """
-            SELECT pillar_key, pillar_name, normalized_score, confidence_level,
-                   trend_direction, score_evidence_maturity_label,
-                   evidence_summary, uncertainty_notes
-            FROM v_public_ebf_scorecard
-            WHERE scorecard_id = %s
-            ORDER BY pillar_key
+            SELECT *
+            FROM v_public_ebf_scorecard_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR period_start >= %s::date)
+              AND (%s::date IS NULL OR period_end <= %s::date)
+            ORDER BY period_end DESC, scorecard_id
+            LIMIT 1
             """,
-            (summary["scorecard_id"],),
+            (location_id, period_start, period_start, period_end, period_end),
         )
-        pillars = [dict(r) for r in cur.fetchall()]
-    cur.close()
+        summary = cur.fetchone()
+
+        pillars = []
+        if summary:
+            cur.execute(
+                """
+                SELECT pillar_key, pillar_name, normalized_score, confidence_level,
+                       trend_direction, score_evidence_maturity_label,
+                       evidence_summary, uncertainty_notes
+                FROM v_public_ebf_scorecard
+                WHERE scorecard_id = %s
+                ORDER BY pillar_key
+                """,
+                (summary["scorecard_id"],),
+            )
+            pillars = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     return {
         "report_type": "ebf_scorecard",
@@ -61,52 +63,54 @@ def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, per
 def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe holistic well-being report for a location."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    location_name = location["name"] if location else None
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        location_name = location["name"] if location else None
 
-    cur.execute(
-        """
-        SELECT practice_name, practice_type, stakeholder_group, language,
-               public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_context_summary
-        WHERE location_id = %s
-        ORDER BY practice_type, practice_name
-        """,
-        (location_id,),
-    )
-    cultural_context = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT practice_name, practice_type, stakeholder_group, language,
+                   public_summary, evidence_maturity, evidence_maturity_label
+            FROM v_public_cultural_context_summary
+            WHERE location_id = %s
+            ORDER BY practice_type, practice_name
+            """,
+            (location_id,),
+        )
+        cultural_context = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT metric_key, metric_name, observation_date, stakeholder_group,
-               language, score_value, count_value, public_summary,
-               evidence_maturity, evidence_maturity_label
-        FROM v_public_wellbeing_metric_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR observation_date >= %s::date)
-          AND (%s::date IS NULL OR observation_date <= %s::date)
-        ORDER BY observation_date DESC, metric_key
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    wellbeing_metrics = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT metric_key, metric_name, observation_date, stakeholder_group,
+                   language, score_value, count_value, public_summary,
+                   evidence_maturity, evidence_maturity_label
+            FROM v_public_wellbeing_metric_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR observation_date >= %s::date)
+              AND (%s::date IS NULL OR observation_date <= %s::date)
+            ORDER BY observation_date DESC, metric_key
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        wellbeing_metrics = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT action_type, action_date, stakeholder_group, feedback_type,
-               sentiment, metric_name, metric_proposal_status, decision_status,
-               public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_participatory_governance_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR action_date >= %s::date)
-          AND (%s::date IS NULL OR action_date <= %s::date)
-        ORDER BY action_date DESC, action_type
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    participatory_actions = [dict(r) for r in cur.fetchall()]
-    cur.close()
+        cur.execute(
+            """
+            SELECT action_type, action_date, stakeholder_group, feedback_type,
+                   sentiment, metric_name, metric_proposal_status, decision_status,
+                   public_summary, evidence_maturity, evidence_maturity_label
+            FROM v_public_participatory_governance_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR action_date >= %s::date)
+              AND (%s::date IS NULL OR action_date <= %s::date)
+            ORDER BY action_date DESC, action_type
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        participatory_actions = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     languages = sorted({row["language"] for row in wellbeing_metrics + cultural_context if row.get("language")})
 
@@ -130,21 +134,23 @@ def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None
 def generate_financial_sustainability(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe financial sustainability report for a location."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_financial_sustainability_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR plan_period_start >= %s::date)
-          AND (%s::date IS NULL OR plan_period_end IS NULL OR plan_period_end <= %s::date)
-        ORDER BY plan_period_start DESC, plan_name
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    plans = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_financial_sustainability_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR plan_period_start >= %s::date)
+              AND (%s::date IS NULL OR plan_period_end IS NULL OR plan_period_end <= %s::date)
+            ORDER BY plan_period_start DESC, plan_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        plans = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "financial_sustainability",
         "location_id": location_id,
