@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation and own-draft submission, independent redacted demand review queue, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history and submission, independent redacted demand review queue, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`
 
 ## Route and authorization
 
@@ -167,6 +167,28 @@ at 50 rows and offset 10,000. Historical superseded profiles remain visible to
 their owner. This is a read-only personal history view, not a review or
 lifecycle decision surface. Responses are same-origin and `no-store`, and the
 console renders fields through text nodes.
+
+## Own demand history
+
+`GET /operator/api/operating-pilot/{location_id}/my-demand-signals` uses the
+same separate exact `operating_pilot:read_own` grant. Migration 561 requires
+the signed operator/location context, enabled operator identity, exactly one
+active human-party binding, active Adelphi farm mapping, and the original
+private demand-draft receipt for that operator and location. A record without
+the Kernel receipt is excluded even when its creator party happens to match.
+The page includes only that operator's own drafts and later lifecycle records;
+another operator's receipt, another farm, and an ambiguous identity binding
+fail closed.
+
+This owner-only response includes the private planning description alongside
+the work type, period, hours, priority, lifecycle status, and timestamps. The
+non-login function owner receives only the required demand columns, including
+`description`; it has no table-wide SELECT and cannot read source metadata.
+Runtime can execute the bounded function but cannot select descriptions or
+source fields directly, and Directus cannot execute the function or read those
+columns. The Gateway uses a read-only transaction and `no-store` responses;
+the console renders notes as text, supports bounded paging, and exposes no
+review or fulfillment action here.
 
 ## Capacity draft creation
 
@@ -404,7 +426,7 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, and 560, exercises active and internal scopes, checks aggregate
+554, 555, 556, 557, 558, 559, 560, and 561, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
 revision and demand/capacity submission replay, demand review-queue paging and redaction, old-version preservation, collision rollback,
@@ -413,11 +435,11 @@ validation, reviewer self-denial, exact retry/collision behavior, rejected-recor
 revision, append-only decision history, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
-`scripts/check-operating-pilot-summary-disposable.py`. Migration 559 and all 54 grouped assertions pass in the 13-migration network-disabled acceptance on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-arm64-disposable.json)). This is emulated software portability evidence, not physical Raspberry Pi acceptance. The migration 461–560 disposable suite and all 56 grouped assertions pass on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-arm64-disposable.json)). The ARM64 run demonstrates emulated software portability, not physical Raspberry Pi acceptance. Migrations 559 and 560 are not deployed to the candidate or legacy database.
+`scripts/check-operating-pilot-summary-disposable.py`. Migration 559 and all 54 grouped assertions pass in the 13-migration network-disabled acceptance on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-arm64-disposable.json)). This is emulated software portability evidence, not physical Raspberry Pi acceptance. The migration 461–560 disposable suite and all 56 grouped assertions pass on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-arm64-disposable.json)). Migration 561 applies/replays in the 15-migration suite with all 58 grouped assertions passing on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-arm64-disposable.json)). Those QEMU checks establish software portability only, not physical Raspberry Pi acceptance. Migrations 559–561 are not deployed to candidate or legacy databases.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, or 560 are applied, retain their ordered functions, receipts,
+554, 555, 556, 557, 558, 559, 560, or 561 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.

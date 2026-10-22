@@ -635,6 +635,18 @@
             </div>
             <button id="operating-pilot-own-capacity-more" class="secondary" type="button" hidden>Load more of your records</button>
           </section>
+          <section id="operating-pilot-own-demand" hidden aria-labelledby="operating-pilot-own-demand-heading">
+            <h3 id="operating-pilot-own-demand-heading">Your demand records</h3>
+            <p class="muted">This separate exact-location read_own grant shows only your receipt-backed demand records and private planning notes. It does not expose another submitter’s records or provide review or fulfillment actions.</p>
+            <p id="operating-pilot-own-demand-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Status</th><th>Private planning note</th><th>Updated</th></tr></thead>
+                <tbody id="operating-pilot-own-demand-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-own-demand-more" class="secondary" type="button" hidden>Load more of your demand records</button>
+          </section>
           <section id="operating-pilot-capacity-review" hidden aria-labelledby="operating-pilot-capacity-review-heading">
             <h3 id="operating-pilot-capacity-review-heading">Independent capacity review queue</h3>
               <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity and private notes. Decisions are recorded separately from submission and remain in the audit ledger when a rejected record is revised.</p>
@@ -1860,6 +1872,10 @@
       const operatingPilotOwnCapacityStatus = document.querySelector("#operating-pilot-own-capacity-status");
       const operatingPilotOwnCapacityRows = document.querySelector("#operating-pilot-own-capacity-rows");
       const operatingPilotOwnCapacityMore = document.querySelector("#operating-pilot-own-capacity-more");
+      const operatingPilotOwnDemand = document.querySelector("#operating-pilot-own-demand");
+      const operatingPilotOwnDemandStatus = document.querySelector("#operating-pilot-own-demand-status");
+      const operatingPilotOwnDemandRows = document.querySelector("#operating-pilot-own-demand-rows");
+      const operatingPilotOwnDemandMore = document.querySelector("#operating-pilot-own-demand-more");
       const operatingPilotCapacityReview = document.querySelector("#operating-pilot-capacity-review");
       const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
       const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
@@ -1882,6 +1898,7 @@
       let operatingPilotCreateLocations = new Set();
       let operatingPilotSubmitOwnDemandLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
+      let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
@@ -1897,6 +1914,7 @@
       let operatingPilotWorkClaimsRequestVersion = 0;
       let operatingPilotResourceRequestVersion = 0;
       let operatingPilotOwnCapacityRequestVersion = 0;
+      let operatingPilotOwnDemandRequestVersion = 0;
       let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandReviewRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
@@ -1904,6 +1922,7 @@
       let operatingPilotWorkClaimsOffset = 0;
       let operatingPilotResourceOffset = 0;
       let operatingPilotOwnCapacityOffset = 0;
+      let operatingPilotOwnDemandOffset = 0;
       let operatingPilotCapacityReviewOffset = 0;
       let operatingPilotDemandReviewOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
@@ -2659,6 +2678,7 @@
             operatingPilotDemandCreateStatus.textContent += " Submit it separately for independent review when ready.";
           }
           if (operatingPilotLocations.has(locationId)) await loadOperatingPilotDemand();
+          if (operatingPilotOwnDemandLocations.has(locationId)) await loadOperatingPilotOwnDemandSignals();
           await loadOperatingPilotSummary();
         } catch (error) {
           operatingPilotDemandCreateStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
@@ -2710,6 +2730,7 @@
             ? "Demand draft submitted for independent review. It has not been approved or fulfilled."
             : `The prior submission was accepted. Current lifecycle status: ${result.status}. This retry made no further changes.`;
           if (operatingPilotLocations.has(locationId)) await loadOperatingPilotDemand();
+          if (operatingPilotOwnDemandLocations.has(locationId)) await loadOperatingPilotOwnDemandSignals();
           await loadOperatingPilotSummary();
         } catch (error) {
           operatingPilotDemandCreateStatus.textContent = `${error.message} Retry unchanged to reuse the same request ID.`;
@@ -3173,6 +3194,67 @@
         }
       }
 
+      function appendOperatingPilotOwnDemandRow(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.work_type,
+          `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+          item.required_hours,
+          item.priority,
+          item.status,
+          item.description,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        operatingPilotOwnDemandRows.append(row);
+      }
+
+      async function loadOperatingPilotOwnDemandSignals(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotOwnDemandRequestVersion;
+        if (!operatingPilotOwnDemandLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotOwnDemandOffset = 0;
+          operatingPilotOwnDemandRows.replaceChildren();
+          operatingPilotOwnDemandMore.hidden = true;
+        }
+        const offset = append ? operatingPilotOwnDemandOffset : 0;
+        operatingPilotOwnDemandMore.disabled = true;
+        operatingPilotOwnDemandStatus.textContent = "Loading your demand records…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/my-demand-signals?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotOwnDemandRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotOwnDemandRow(item);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotOwnDemandMore.hidden = !canContinue;
+          operatingPilotOwnDemandOffset = canContinue ? nextOffset : 0;
+          operatingPilotOwnDemandStatus.textContent = canContinue
+            ? "Showing a bounded page of your own demand records."
+            : operatingPilotOwnDemandRows.childElementCount
+              ? "Your demand records are loaded."
+              : "You have no demand records for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotOwnDemandRequestVersion) return;
+          operatingPilotOwnDemandMore.hidden = true;
+          operatingPilotOwnDemandStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotOwnDemandRequestVersion) {
+            operatingPilotOwnDemandMore.disabled = false;
+          }
+        }
+      }
+
       async function loadOperatingPilotCapacityReviewQueue(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotCapacityReviewRequestVersion;
@@ -3403,6 +3485,7 @@
           && !(operatingPilotOwnCapacityLocations.has(locationId)
             && operatingPilotEditOwnCapacityLocations.has(locationId));
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
+        operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
@@ -3423,6 +3506,12 @@
           } else {
             operatingPilotOwnCapacityRows.replaceChildren();
             operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+          }
+          if (operatingPilotOwnDemandLocations.has(locationId)) {
+            await loadOperatingPilotOwnDemandSignals();
+          } else {
+            operatingPilotOwnDemandRows.replaceChildren();
+            operatingPilotOwnDemandStatus.textContent = "A separate exact location read_own grant is required to view your demand records.";
           }
           if (operatingPilotCapacityReviewLocations.has(locationId)) {
             await loadOperatingPilotCapacityReviewQueue();
@@ -3454,6 +3543,12 @@
         } else {
           operatingPilotOwnCapacityRows.replaceChildren();
           operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+        }
+        if (operatingPilotOwnDemandLocations.has(locationId)) {
+          reads.push(loadOperatingPilotOwnDemandSignals());
+        } else {
+          operatingPilotOwnDemandRows.replaceChildren();
+          operatingPilotOwnDemandStatus.textContent = "A separate exact location read_own grant is required to view your demand records.";
         }
         await Promise.all(reads);
       }
@@ -12264,6 +12359,7 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotOwnCapacityLocations = new Set(operatingPilotOwnCapacityLocationIds);
+          operatingPilotOwnDemandLocations = new Set(operatingPilotOwnCapacityLocationIds);
           const operatingPilotSubmitOwnCapacityLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "submit_own")
             .map((scope) => scope.location_id)
@@ -16265,6 +16361,7 @@
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
       operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true));
       operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true));
+      operatingPilotOwnDemandMore.addEventListener("click", () => loadOperatingPilotOwnDemandSignals(true));
       document.querySelector("#operating-pilot-capacity-review-refresh").addEventListener(
         "click", () => loadOperatingPilotCapacityReviewQueue()
       );

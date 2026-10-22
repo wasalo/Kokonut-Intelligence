@@ -27,6 +27,7 @@ CAPACITY_REVIEW_MIGRATION = ROOT / "schemas/postgres/557_location_operating_pilo
 CAPACITY_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql"
 DEMAND_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql"
 DEMAND_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/560_location_operating_pilot_demand_review_queue.sql"
+OWN_DEMAND_MIGRATION = ROOT / "schemas/postgres/561_location_own_operating_pilot_demand.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
@@ -982,19 +983,23 @@ BEGIN
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request', 'status', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_coaching_session', 'notes', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'decision_reason', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source_ref', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'SELECT')
        THEN
-        RAISE EXCEPTION 'reader has access to private operating-pilot content';
+        RAISE EXCEPTION 'reader has access beyond bounded own-demand columns';
+    END IF;
+    IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT') THEN
+        RAISE EXCEPTION 'own-demand function owner is missing the column-limited private description grant';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_by_party_id', 'SELECT') THEN
         RAISE EXCEPTION 'demand submission owner cannot verify the active creator binding';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'work_type', 'SELECT')
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'priority', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_at', 'SELECT') THEN
-        RAISE EXCEPTION 'reader is missing only the demand fields needed for the projection';
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'created_at', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'updated_at', 'SELECT') THEN
+        RAISE EXCEPTION 'reader is missing bounded demand projection fields';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'work_type', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'title', 'SELECT')
@@ -1796,14 +1801,14 @@ BEGIN
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_draft_submission_receipt', 'DELETE')
        OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
        OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'status', 'UPDATE')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source_ref', 'SELECT')
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'status', 'UPDATE')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'UPDATE')
        OR (SELECT signal_status FROM public.test_demand_signal_metadata(submitted_signal_id)) <> 'submitted'
        OR (SELECT count(*) FROM public.operating_demand_draft_submission_receipt
             WHERE signal_id = submitted_signal_id) <> 1 THEN
-        RAISE EXCEPTION 'demand submit function, lifecycle boundary, or private receipt is incorrect: %', details;
+        RAISE EXCEPTION 'demand owner/submission function, lifecycle boundary, or private receipt is incorrect: %', details;
     END IF;
 END $$;
 ROLLBACK;
@@ -1916,10 +1921,146 @@ BEGIN
        OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'description', 'SELECT')
        OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'work_type', 'SELECT')
        OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'work_type', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'source_ref', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'SELECT')
        OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'status', 'UPDATE') THEN
         RAISE EXCEPTION 'demand review function or direct access boundary failed';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
+OWN_DEMAND_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000020', 'person', 'active', 'Synthetic other submitter');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000021',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000020', NULL);
+INSERT INTO public.operating_demand_signal
+    (id, scope_type, scope_id, work_type, period_start, period_end,
+     required_hours, priority, source, description, status, created_by_party_id)
+VALUES
+ ('d1000000-0000-4000-8000-000000000070', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'soil care', CURRENT_DATE + 700, CURRENT_DATE + 710, 8, 'medium', 'planning',
+  'PRIVATE OWNER DRAFT', 'draft', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000071', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'harvest', CURRENT_DATE + 720, CURRENT_DATE + 730, 12, 'high', 'planning',
+  'PRIVATE OWNER SUBMISSION', 'submitted', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000072', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'legacy-only', CURRENT_DATE + 740, CURRENT_DATE + 750, 4, 'low', 'planning',
+  'PRIVATE LEGACY WITHOUT RECEIPT', 'draft', 'd8000000-0000-4000-8000-000000000001'),
+ ('d1000000-0000-4000-8000-000000000073', 'adelphi', 'e9000000-0000-4000-8000-000000000001',
+  'other-owner', CURRENT_DATE + 760, CURRENT_DATE + 770, 20, 'critical', 'planning',
+  'PRIVATE FOREIGN OWNER', 'submitted', 'd8000000-0000-4000-8000-000000000020'),
+ ('d1000000-0000-4000-8000-000000000074', 'adelphi', 'e9000000-0000-4000-8000-000000000002',
+  'other-location', CURRENT_DATE + 780, CURRENT_DATE + 790, 30, 'critical', 'planning',
+  'PRIVATE OTHER LOCATION', 'submitted', 'd8000000-0000-4000-8000-000000000001');
+INSERT INTO public.operating_demand_draft_receipt
+    (operator_id, request_id, location_id, signal_id, input_digest)
+VALUES
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000070', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000070', decode(repeat('70', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000071', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000071', decode(repeat('71', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000002', 'd9200000-0000-4000-8000-000000000073', 'b0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000073', decode(repeat('73', 32), 'hex')),
+ ('a0000000-0000-4000-8000-000000000001', 'd9200000-0000-4000-8000-000000000074', 'b0000000-0000-4000-8000-000000000002', 'd1000000-0000-4000-8000-000000000074', decode(repeat('74', 32), 'hex'));
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_page jsonb; second_page jsonb; third_page jsonb; missing_grant_denied boolean := false;
+        location_denied boolean := false; bounds_denied boolean := false;
+BEGIN
+    first_page := kokonut_security.location_operating_pilot_own_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    second_page := kokonut_security.location_operating_pilot_own_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    third_page := kokonut_security.location_operating_pilot_own_demand_signals(
+        'b0000000-0000-4000-8000-000000000001', 1, 2
+    );
+    IF first_page->>'total' <> '3'
+       OR first_page->>'has_more' <> 'true'
+       OR first_page->>'next_offset' <> '1'
+       OR first_page->'items'->0->>'signal_id' <> 'd1000000-0000-4000-8000-000000000071'
+       OR first_page->'items'->0->>'description' <> 'PRIVATE OWNER SUBMISSION'
+       OR second_page->'items'->0->>'signal_id' <> 'd1000000-0000-4000-8000-000000000070'
+       OR second_page->'items'->0->>'description' <> 'PRIVATE OWNER DRAFT'
+       OR second_page->>'has_more' <> 'true'
+       OR second_page->>'next_offset' <> '2'
+       OR third_page->>'total' <> '3'
+       OR third_page->>'has_more' <> 'false'
+       OR third_page->'items'->0->>'work_type' <> 'soil preparation'
+       OR third_page->'items'->0->>'description' <> 'PRIVATE synthetic draft note'
+       OR (first_page::TEXT || second_page::TEXT || third_page::TEXT) ~* '(FOREIGN OWNER|LEGACY WITHOUT RECEIPT|OTHER LOCATION|source_ref|created_by_party_id|scope_id)'
+       OR (SELECT count(*) FROM jsonb_object_keys(first_page->'items'->0)) <> 10 THEN
+        RAISE EXCEPTION 'own demand identity, receipt filter, privacy, or paging failed: %, %, %', first_page, second_page, third_page;
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_demand_signals(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN missing_grant_denied := true;
+    END;
+    IF NOT missing_grant_denied THEN RAISE EXCEPTION 'own demand succeeded without exact read_own grant'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_demand_signals(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'own demand accepted mismatched signed location'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_demand_signals(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN bounds_denied := true;
+    END;
+    IF NOT bounds_denied THEN RAISE EXCEPTION 'own demand accepted an oversized page'; END IF;
+
+END $$;
+RESET ROLE;
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000022', 'person', 'active', 'Synthetic extra owner binding');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000023',
+        'a0000000-0000-4000-8000-000000000001',
+        'd8000000-0000-4000-8000-000000000022', NULL);
+DO $$
+DECLARE ambiguous_binding_denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_demand_signals(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN ambiguous_binding_denied := true;
+    END;
+    IF NOT ambiguous_binding_denied THEN RAISE EXCEPTION 'own demand accepted an ambiguous human-party binding'; END IF;
+END $$;
+DO $$
+DECLARE own_function regprocedure :=
+    'kokonut_security.location_operating_pilot_own_demand_signals(uuid,integer,integer)'::regprocedure;
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime', own_function, 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime', own_function, 'EXECUTE')
+       OR (SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = own_function)
+            <> 'kokonut_operating_pilot_reader'
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_demand_signal', 'description', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'description', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'description', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_demand_signal', 'source_ref', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'source_ref', 'SELECT') THEN
+        RAISE EXCEPTION 'own demand function or private-description role boundary failed';
     END IF;
 END $$;
 ROLLBACK;
@@ -2010,13 +2151,14 @@ def main(argv: list[str] | None = None) -> int:
             CAPACITY_REVIEW_DECISION_MIGRATION.name,
             DEMAND_SUBMISSION_MIGRATION.name,
             DEMAND_REVIEW_QUEUE_MIGRATION.name,
+            OWN_DEMAND_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
         "container_platform": args.platform or "docker-default",
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, 556, 557, 558, 559, and 560 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, and 552–561 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -2062,6 +2204,9 @@ def main(argv: list[str] | None = None) -> int:
             "demand review queue is bounded, ordered, and redacts narrative, source, creator, and scope identifiers",
             "demand review rejects missing grants, mismatched location, and invalid paging; runtime can execute while Directus cannot",
             "demand review role boundaries deny direct runtime/Directus table reads and demand lifecycle writes",
+            "own demand history requires exact read_own, one active human binding, matching signed location, active farm mapping, and the authenticated operator's creation receipt",
+            "own demand history includes only receipt-backed records from the bound person, exposes private descriptions only through the scoped function, and pages drafts and later lifecycle states deterministically",
+            "own demand denies missing grants, ambiguous bindings, mismatched locations, and invalid paging; runtime alone can execute while Directus and both runtime roles lack direct description/source access",
         ],
     }
     try:
@@ -2126,6 +2271,9 @@ def main(argv: list[str] | None = None) -> int:
         demand_review_queue_migration = DEMAND_REVIEW_QUEUE_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, demand_review_queue_migration)
         psql(docker, container, demand_review_queue_migration)
+        own_demand_migration = OWN_DEMAND_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, own_demand_migration)
+        psql(docker, container, own_demand_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -2133,12 +2281,13 @@ def main(argv: list[str] | None = None) -> int:
         psql(docker, container, CAPACITY_REVIEW_DECISION_ACCEPTANCE)
         psql(docker, container, DEMAND_SUBMISSION_ACCEPTANCE)
         psql(docker, container, DEMAND_REVIEW_QUEUE_ACCEPTANCE)
+        psql(docker, container, OWN_DEMAND_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 56
+        evidence["assertion_groups_passed"] = 58
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         print(
-            "PASS: migrations 461/479/480/526/538/552/553/554/555/556/557/558/559/560 apply/replay and all fifty-six grouped PostgreSQL assertions passed"
+            "PASS: migrations 461/479/480/526/538/552–561 apply/replay and all fifty-eight grouped PostgreSQL assertions passed"
         )
         result = 0
     except Exception as exc:

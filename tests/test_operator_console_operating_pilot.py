@@ -89,7 +89,7 @@ def test_resource_category_suppression_never_renders_requester_or_narrative_fiel
     resources = _function(
         source,
         "async function loadOperatingPilotResources(append = false)",
-        "async function loadOperatingPilot()",
+        "async function loadOperatingPilotOwnCapacityProfiles(",
     )
     assert 'item.suppressed === true ? "Suppressed (<3 requesters)" : item.request_count' in resources
     assert "item.resource_category" in resources
@@ -158,6 +158,36 @@ def test_own_capacity_records_use_separate_grant_private_no_store_route_and_safe
     assert no_aggregate_read < own_profile_fetch < early_return
     assert "operatingPilotOwnCapacityLocations.has(locationId)" in source
     assert "...operatingPilotOwnCapacityLocationIds" in source
+
+
+def test_own_demand_history_uses_read_own_grant_private_no_store_route_and_safe_cells():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="operating-pilot-own-demand".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "only your receipt-backed demand records and private planning notes" in panel.group()
+    assert 'id="operating-pilot-own-demand-rows"' in panel.group()
+    assert "operatingPilotOwnDemandLocations = new Set(operatingPilotOwnCapacityLocationIds)" in source
+    reader = _function(
+        source,
+        "async function loadOperatingPilotOwnDemandSignals(append = false)",
+        "async function loadOperatingPilotCapacityReviewQueue(",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnDemandRow(item)",
+        "async function loadOperatingPilotOwnDemandSignals(",
+    )
+    assert "operatingPilotOwnDemandLocations.has(locationId)" in reader
+    assert "my-demand-signals?${params}" in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "locationId !== operatingPilotLocation.value" in reader
+    assert "item.description" in row
+    assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert "innerHTML" not in row
+    assert 'method: "POST"' not in reader
+    assert "loadOperatingPilotOwnDemandSignals();" in source
+    assert 'operatingPilotOwnDemandMore.addEventListener("click", () => loadOperatingPilotOwnDemandSignals(true))' in source
 
 
 def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves():
