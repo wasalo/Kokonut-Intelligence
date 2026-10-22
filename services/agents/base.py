@@ -16,9 +16,7 @@ from typing import Any, Callable, Optional
 
 import psycopg2.extras
 
-from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import (
-    validate_output,
     validate_task_capabilities,
     validate_task_inputs,
 )
@@ -202,57 +200,18 @@ class SynthesisAgent:
         model_version: Optional[str] = None,
         request_id: Optional[str] = None,
     ) -> str:
-        """Store a draft through the exact-location signed worker adapter.
+        """Reject the retired caller-connection draft writer.
 
-        ``conn`` remains in the signature for source compatibility, but is not
-        used to write. Draft storage has its own authenticated connection and
-        retry receipt.
+        The signed worker must generate the synthesis and collect its bounded
+        provenance references in the same read transaction before persistence.
+        The old signature remains to give existing callers a direct migration
+        path to :meth:`run` without touching their supplied connection.
         """
-        validate_task_capabilities(self.task_key)
-        errors = validate_output(self.task_key, {"summary": summary})
-        if errors:
-            raise ValueError("; ".join(errors))
-        synthesis = summary.get("synthesis")
-        if not isinstance(synthesis, str) or not synthesis.strip():
-            raise ValueError(
-                "Invalid agent draft: summary.synthesis must be a non-empty string"
-            )
-        validate_draft_content_length(synthesis, label="Invalid agent draft")
-        inputs = {"store": True}
-        location_id = summary.get("location_id")
-        if location_id is not None:
-            inputs["location_id"] = location_id
-        errors = validate_task_inputs(self.task_key, inputs)
-        if errors:
-            raise ValueError("; ".join(errors))
-        source_tables = validate_source_tables(
-            self.source_tables, label="Invalid agent draft"
+        del conn, summary, model_version, request_id
+        raise RuntimeError(
+            "store_summary is retired; use run(location_id, store=True) through "
+            "the registered signed synthesis worker"
         )
-        version = model_version or self.model_version
-        if not isinstance(version, str) or not version.strip():
-            raise ValueError("Invalid agent draft: model_version must be a non-empty string")
-        assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-        if location_id is None:
-            raise ValueError("Agent draft storage requires an exact location_id")
-        assert_agent_action_allowed(
-            "read", self.read_collection, {"location_id": location_id}
-        )
-        source_references = self.collect_source_references(conn, location_id)
-        stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
-        from services.agents.worker_draft import create_worker_ai_summary_draft
-
-        result = create_worker_ai_summary_draft(
-            location_id,
-            self.summary_type,
-            stable_request_id,
-            {
-                "content": synthesis,
-                "source_tables": source_tables,
-                "model_version": version,
-                "source_references": source_references,
-            },
-        )
-        return result["summary_id"]
 
     def run(
         self,

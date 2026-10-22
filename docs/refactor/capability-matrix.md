@@ -10,10 +10,11 @@ All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation a
 synthesis no longer has a shared-runtime database path. All ten registered
 classes require a signed source-view contract and exact location; read-only
 and draft runs delegate to the registered worker. The unused `run_fetch()`
-helper fails closed before database access or callback execution. The focused
-agent/source/worker selection passes 134 tests with Ruff and compilation. This
-closes only the generic fallback; MAN-CAP-038 and credential, populated-parity,
-operator-attribution, and non-synthesis gates remain open.
+helper and the unused `store_summary(conn, ...)` compatibility writer both fail
+closed before opening or using a shared caller connection. The focused
+agent/source/worker selection passes 125 tests with Ruff and compilation. This
+closes only the generic fallback and legacy writer; MAN-CAP-038 and credential,
+populated-parity, operator-attribution, and non-synthesis gates remain open.
 
 **CAP-038 Delphi CLI read boundary — 22 October 2026:** the legacy
 `services.delphi.cli live-summary` and `consensus` commands now require an

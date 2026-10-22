@@ -116,183 +116,25 @@ def test_registered_synthesis_read_only_run_uses_signed_worker_source_boundary()
     assert run_worker.call_args.kwargs == {"persist_draft": False}
 
 
-def test_store_summary_propagates_worker_failure_without_using_legacy_connection():
-    error = RuntimeError("synthetic worker failure")
+def test_store_summary_is_retired_before_connection_or_worker_access():
     conn = _FakeConn()
-    with mock.patch(
-        "services.agents.worker_draft.create_worker_ai_summary_draft",
-        side_effect=error,
-    ) as write_draft:
-        with pytest.raises(RuntimeError, match="synthetic worker failure"):
-            _DummyAgent().store_summary(
-                conn,
-                {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-                request_id="a0000000-0000-4000-8000-000000000003",
-            )
-    write_draft.assert_called_once()
-    assert conn.cursor_obj.executed is None
-    assert conn.committed is False
-    assert conn.closed is False
-
-
-def test_store_summary_attaches_location_source_references_before_signed_write():
-    class _ReferencedDummyAgent(_DummyAgent):
-        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
-
-    conn = _FakeConn()
-    references = {
-        "dummy_table": {
-            "record_ids": ["a0000000-0000-4000-8000-000000000010"],
-            "row_count": 1,
-            "truncated": False,
-        }
-    }
-    sequence: list[str] = []
-
-    def collect(agent, connection, location_id):
-        sequence.append("collect")
-        assert connection is conn
-        assert location_id == LOCATION_ID
-        return references
-
-    def write(*args):
-        sequence.append("write")
-        return {"summary_id": "stored-id"}
-
-    with mock.patch.object(_ReferencedDummyAgent, "collect_source_references", collect):
-        with mock.patch(
-            "services.agents.base.assert_agent_action_allowed",
-            side_effect=lambda action, collection, _payload: sequence.append(
-                f"{action}:{collection}"
-            ),
-        ):
-            with mock.patch(
-                "services.agents.worker_draft.create_worker_ai_summary_draft",
-                side_effect=write,
-            ) as write_draft:
-                result = _ReferencedDummyAgent().store_summary(
-                    conn,
-                    {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-                    request_id="a0000000-0000-4000-8000-000000000003",
-                )
-
-    assert result == "stored-id"
-    assert sequence == ["create:ai_summary", "read:dummy_record", "collect", "write"]
-    assert write_draft.call_args.args[3]["source_references"] == references
-
-
-def test_store_summary_does_not_write_when_source_reference_collection_fails():
-    class _ReferencedDummyAgent(_DummyAgent):
-        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
-
-    conn = _FakeConn()
-    with mock.patch.object(
-        _ReferencedDummyAgent,
-        "collect_source_references",
-        side_effect=RuntimeError("synthetic source query failure"),
-    ):
+    collection = mock.Mock(side_effect=AssertionError("source query must not run"))
+    with mock.patch.object(_MappedDummyAgent, "collect_source_references", collection):
         with mock.patch(
             "services.agents.worker_draft.create_worker_ai_summary_draft"
         ) as write_draft:
-            with pytest.raises(RuntimeError, match="synthetic source query failure"):
-                _ReferencedDummyAgent().store_summary(
+            with pytest.raises(RuntimeError, match="store_summary is retired"):
+                _MappedDummyAgent().store_summary(
                     conn,
-                    {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                    {"location_id": LOCATION_ID, "synthesis": "caller supplied text"},
                 )
 
-    write_draft.assert_not_called()
-    assert conn.committed is False
-
-
-def test_store_summary_read_denial_prevents_reference_query_and_signed_write():
-    class _ReferencedDummyAgent(_DummyAgent):
-        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
-
-    conn = _FakeConn()
-    collection = mock.Mock(side_effect=AssertionError("reference query must not run"))
-    with mock.patch(
-        "services.agents.base.assert_agent_action_allowed",
-        side_effect=[None, ValueError("agent read denied")],
-    ) as authorize:
-        with mock.patch.object(
-            _ReferencedDummyAgent, "collect_source_references", collection
-        ):
-            with mock.patch(
-                "services.agents.worker_draft.create_worker_ai_summary_draft"
-            ) as write_draft:
-                with pytest.raises(ValueError, match="agent read denied"):
-                    _ReferencedDummyAgent().store_summary(
-                        conn,
-                        {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-                    )
-
-    assert [call.args[:2] for call in authorize.call_args_list] == [
-        ("create", "ai_summary"),
-        ("read", "dummy_record"),
-    ]
     collection.assert_not_called()
     write_draft.assert_not_called()
-
-
-def test_store_summary_rejects_missing_synthesis_before_cursor_access():
-    conn = _FakeConn()
-
-    with pytest.raises(ValueError, match="summary.synthesis must be a non-empty string"):
-        _DummyAgent().store_summary(conn, {"location_id": LOCATION_ID})
-
-    assert conn.cursor_obj.executed is None
-    assert conn.committed is False
-
-
-def test_store_summary_rejects_overlong_synthesis_before_cursor_access():
-    conn = _FakeConn()
-
-    with pytest.raises(ValueError, match="content must be at most 20000 characters"):
-        _DummyAgent().store_summary(
-            conn,
-            {"location_id": LOCATION_ID, "synthesis": "x" * 20_001},
-        )
-
-    assert conn.cursor_obj.executed is None
-    assert conn.committed is False
-
-
-def test_store_summary_rejects_malformed_location_before_cursor_access():
-    conn = _FakeConn()
-
-    with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
-        _DummyAgent().store_summary(conn, {"location_id": "bad-id", "synthesis": "draft"})
-
-    assert conn.cursor_obj.executed is None
-    assert conn.committed is False
-
-
-@pytest.mark.parametrize(
-    "source_tables",
-    [
-        [],
-        [f"table_{index}" for index in range(21)],
-        ["valid_table", "not-valid"],
-    ],
-)
-def test_store_summary_rejects_invalid_source_table_metadata_before_cursor_access(
-    source_tables: list[str],
-):
-    class _InvalidSourceAgent(_DummyAgent):
-        pass
-
-    _InvalidSourceAgent.source_tables = source_tables
-    conn = _FakeConn()
-
-    with pytest.raises(ValueError, match="source_tables must contain 1 to 20"):
-        _InvalidSourceAgent().store_summary(
-            conn,
-            {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
-        )
-
     assert conn.cursor_obj.executed is None
     assert conn.cursor_obj.closed is False
     assert conn.committed is False
+    assert conn.closed is False
 
 
 def test_run_rejects_locationless_storage_before_worker_access():
@@ -365,7 +207,9 @@ def test_run_fetch_is_retired_before_callback_or_database_access():
         side_effect=AssertionError("shared application database must not open"),
         create=True,
     ):
-        with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
+        with mock.patch(
+            "services.agents.base.assert_agent_action_allowed", create=True
+        ) as safety:
             with pytest.raises(RuntimeError, match="run_fetch is retired"):
                 run_fetch(
                     "ebf_evidence_gap",
@@ -384,7 +228,9 @@ def test_run_rejects_malformed_scope_before_database_access():
         side_effect=AssertionError("database opened"),
         create=True,
     ):
-        with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
+        with mock.patch(
+            "services.agents.base.assert_agent_action_allowed", create=True
+        ) as safety:
             try:
                 _DummyAgent().run("not-a-uuid")
             except ValueError as exc:

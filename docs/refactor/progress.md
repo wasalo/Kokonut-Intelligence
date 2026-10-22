@@ -1,3 +1,19 @@
+### CAP-038 caller-connection synthesis writer retirement — 22 October 2026
+
+The unused `SynthesisAgent.store_summary(conn, ...)` compatibility method now
+fails before touching its caller-supplied connection, collecting provenance,
+or writing a draft. Registered storage already uses
+`run(location_id, store=True)`, where the signed worker generates the summary
+and reads its provenance in the scoped worker flow. The agent-base,
+synthesis-source, and worker selection passes 125 tests; Ruff, Python
+compilation, the refreshed runtime SQL inventory, and capability-matrix
+validation pass. No migration or database was used. Authenticated operator
+attribution, runtime credential/grant rollout, populated parity, non-synthesis
+agent paths, and MAN-CAP-038 remain open. Evidence:
+[writer retirement](builds/2026-10-22-recovery/cap-038-agent-caller-connection-writer-retirement.json).
+Checklist: 959 complete / 24 open (983 total); capability classifications
+remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-038 synthesis shared-database fallback retirement — 22 October 2026
 
 `SynthesisAgent.run()` now requires an exact location and a declared signed

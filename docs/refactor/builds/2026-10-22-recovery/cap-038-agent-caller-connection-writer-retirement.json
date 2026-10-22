@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "change": "retire_generic_caller_connection_synthesis_writer",
+  "scope": {
+    "compatibility_method": "SynthesisAgent.store_summary(conn, summary, model_version, request_id)",
+    "production_call_sites": 0,
+    "behavior": "raises before using the caller connection, querying source references, or writing a draft",
+    "supported_path": "SynthesisAgent.run(location_id, store=True) through the registered signed worker"
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_agents_base.py tests/test_synthesis_source_references.py tests/test_agent_worker_cli.py -q",
+      "result": "passed",
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ruff": {
+      "command": "ruff check services/agents/base.py tests/test_agents_base.py tests/test_synthesis_source_references.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/agents/base.py tests/test_agents_base.py tests/test_synthesis_source_references.py",
+      "result": "passed"
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json followed by --check docs/refactor/runtime-sql-inventory.json",
+      "result": "refreshed and verified"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 66,
+      "classifications": {
+        "baseline_retained": 30,
+        "deployed": 7,
+        "prepared": 29
+      },
+      "manual_acceptance_checks_accepted": 0
+    }
+  },
+  "not_performed": [
+    "No migration or database was used.",
+    "No provider, candidate, legacy stack, or real credential was used.",
+    "No live identity, populated-parity, or MAN-CAP-038 acceptance is claimed."
+  ],
+  "rollback": "Restore the compatibility writer only after it can use a registered signed worker to generate the summary, collect provenance, and persist the draft within the scoped worker flow."
+}

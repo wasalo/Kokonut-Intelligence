@@ -21,10 +21,14 @@ source-reference view map, then dispatches both read-only and draft work through
 the registered signed worker. An unmapped subclass fails before any database
 access. The legacy generic `run_fetch()` symbol remains only to return a clear
 retirement error before invoking its callback or accessing a database; the
-repository has no production call sites. This prevents future subclasses from
-silently inheriting the broad runtime login. It does not provision worker
-credentials or grants, authenticate the human operator, or cover non-synthesis
-agent tasks.
+repository has no production call sites. The legacy
+`SynthesisAgent.store_summary(conn, ...)` writer is also retired; it no longer
+queries provenance on a caller-provided connection. The registered worker
+generates the result, collects source references, and persists a draft within
+its signed flow. These changes prevent future subclasses from silently
+inheriting the broad runtime login. They do not provision worker credentials
+or grants, authenticate the human operator, or cover non-synthesis agent
+tasks.
 
 Before processing, those same task entry points validate declared top-level
 inputs from the task catalogue: required fields, primitive types, UUID formats,
