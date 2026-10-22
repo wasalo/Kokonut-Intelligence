@@ -1,3 +1,17 @@
+### Full ARM64 schema replay through migration 538 — 21 October 2026
+
+A fresh, network-disabled ARM64 PostgreSQL 16/PostGIS image completed all 529
+current ordered schema migrations through migration 538 under QEMU, with zero
+failures and no seeds or farm data. The temporary project and volume were
+verified removed; the candidate app, database, proxy, and Metabase remained
+healthy. A first attempt had stopped at migration 042 with a sanitized error;
+the diagnostic full replay passed and did not identify a reproducible SQL cause.
+This closes ARM64 schema replay under emulation only. Raspberry Pi hardware,
+power failure, performance, and 24-hour recovery acceptance remain open.
+Checklist: 919 complete / 24 open (943 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[ARM64 schema replay](builds/2026-10-21-recovery/arm64-qemu-current-schema-538.json).
+
 ### CAP-039 mock-sensor setup connection lifecycle — 21 October 2026
 
 Mock-sensor setup now rolls back if location or sensor registration fails and

@@ -1,5 +1,21 @@
 # ARM64 Kernel candidate profile
 
+## Current ARM64 schema replay — 21 October 2026
+
+A fresh, network-disabled ARM64 PostgreSQL/PostGIS image ran the ordered
+schema-only migration runner under QEMU. All 529 current schema files applied
+through migration 538 with zero failures. The run used its own Compose project
+and named volume, with no host ports, no Compose network, no seeds, and no farm
+data. The candidate app, database, proxy, and Metabase remained healthy after
+the run; Docker confirmed the temporary project and volume were removed. A
+first attempt stopped at migration 042 with a sanitized error; a clean
+diagnostic replay did not reproduce the failure and completed the full set.
+The earlier migration-068 stall also did not recur. The root cause of the
+first 042 failure is unknown. This closes full ARM64 schema replay under
+emulation only. Raspberry Pi hardware, resource endurance, power-loss,
+performance, and 24-hour recovery acceptance remain open
+([evidence](builds/2026-10-21-recovery/arm64-qemu-current-schema-538.json)).
+
 ## Current-source checks — 20 October 2026
 
 For a clean ordered replay without consuming a Docker address pool, use
