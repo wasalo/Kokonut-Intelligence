@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038 Agent ecosystem",
+  "scope": "Close EBF evidence-gap query cursors on SQL execution and fetch failures",
+  "result": "PASS",
+  "behavior": {
+    "cursor": "Closed in a finally block after success or query/fetch failure",
+    "connection": "The shared read-only agent runner closes its connection after failure",
+    "tenant_scope": "Existing scorecard and location filters are unchanged"
+  },
+  "verification": {
+    "pytest": "49 passed across tests/test_ebf_agents.py, tests/test_agents_base.py, and tests/test_agent_tasks.py",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "diff_check": "passed"
+  },
+  "database_or_provider_access": false,
+  "limitations": [
+    "Cursor cleanup does not establish authenticated tenant authorization or row-level security.",
+    "The evidence-gap agent still requires a trusted runtime identity and least-privilege source access before deployment acceptance."
+  ]
+}

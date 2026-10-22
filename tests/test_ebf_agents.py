@@ -4,7 +4,7 @@ import pytest
 
 from services.agents import ebf_evidence_gap_agent
 from services.agents.ebf_calibration_agent import draft_calibration_memo
-from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps
+from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps, run_ebf_evidence_gap
 from services.agents.ebf_scorecard_agent import draft_scorecard
 
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
@@ -78,6 +78,47 @@ def test_evidence_gap_agent_generates_recommendations_for_non_ready() -> None:
     output = analyze_evidence_gaps(Conn(), SCORECARD_ID, LOCATION_ID)
     assert len(output["recommendations"]) == 1
     assert output["recommendations"][0]["pillar_key"] == "soil_health"
+
+
+@pytest.mark.parametrize("failure_point", ["execute", "fetchall"])
+def test_evidence_gap_agent_closes_cursor_and_connection_on_query_failure(
+    failure_point: str, monkeypatch
+) -> None:
+    class Cursor:
+        closed = False
+
+        def execute(self, _query, _params):
+            if failure_point == "execute":
+                raise RuntimeError("synthetic query failure")
+
+        def fetchall(self):
+            if failure_point == "fetchall":
+                raise RuntimeError("synthetic fetch failure")
+            return []
+
+        def close(self):
+            self.closed = True
+
+    class Connection:
+        closed = False
+
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+        def close(self):
+            self.closed = True
+
+    connection = Connection()
+    monkeypatch.setattr("services.agents.base.get_db", lambda: connection)
+
+    with pytest.raises(RuntimeError, match="synthetic (query|fetch) failure"):
+        run_ebf_evidence_gap(SCORECARD_ID, LOCATION_ID)
+
+    assert connection.cursor_value.closed is True
+    assert connection.closed is True
 
 
 def test_evidence_gap_cli_requires_location(monkeypatch) -> None:

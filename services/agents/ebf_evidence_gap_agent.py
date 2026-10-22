@@ -19,19 +19,21 @@ def analyze_evidence_gaps(
     conn, scorecard_id: str, location_id: str
 ) -> dict[str, Any]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(
-        """
-        SELECT pillar_key, pillar_name, normalized_score, confidence_level,
-               evidence_maturity_level, evidence_maturity_label, evidence_count,
-               public_safe_evidence_count, gap_status
-        FROM v_ebf_evidence_gap_summary
-        WHERE scorecard_id = %s AND location_id = %s
-        ORDER BY pillar_key
-        """,
-        (scorecard_id, location_id),
-    )
-    gaps = [dict(row) for row in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute(
+            """
+            SELECT pillar_key, pillar_name, normalized_score, confidence_level,
+                   evidence_maturity_level, evidence_maturity_label, evidence_count,
+                   public_safe_evidence_count, gap_status
+            FROM v_ebf_evidence_gap_summary
+            WHERE scorecard_id = %s AND location_id = %s
+            ORDER BY pillar_key
+            """,
+            (scorecard_id, location_id),
+        )
+        gaps = [dict(row) for row in cur.fetchall()]
+    finally:
+        cur.close()
     recommendations = [
         {
             "pillar_key": row.get("pillar_key"),

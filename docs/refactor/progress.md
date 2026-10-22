@@ -14194,3 +14194,16 @@ runtime identities, least privilege, rollout, populated parity, and MAN-CAP-038
 acceptance remain open. Checklist: 921 complete / 24 open (945 total); matrix
 remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
 Evidence: [shared writer source references](builds/2026-10-21-recovery/cap-038-shared-writer-source-references.json).
+
+
+### CAP-038 EBF evidence-gap cursor cleanup — 21 October 2026
+
+The EBF evidence-gap query now closes its cursor in a `finally` block after
+success, SQL execution failure, or fetch failure. Focused failure-injection
+checks also confirm the shared runner closes the connection. The EBF/agent-base/task
+selection passes 49 tests; Ruff, compilation, runtime SQL inventory, matrix
+validation, and diff checks pass. No database or provider was contacted. This
+closes cursor lifecycle only; the EBF query still needs authenticated tenant
+authorization and a least-privilege runtime identity. Checklist: 922 complete /
+24 open (946 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence: [EBF query cleanup](builds/2026-10-21-recovery/cap-038-ebf-query-resource-cleanup.json).
