@@ -25,10 +25,12 @@ AUTHENTICATED_DRAFT_CALL = re.compile(
     r"\bkokonut_security\.create_location_ai_summary_draft\s*\(", re.IGNORECASE
 )
 AUTHENTICATED_WORKER_DRAFT_CALL = re.compile(
-    r"\bkokonut_security\.create_location_ai_summary_worker_draft\s*\(", re.IGNORECASE
+    r"\bkokonut_security\.create_location_ai_summary_worker_draft(?:_with_result)?\s*\(",
+    re.IGNORECASE,
 )
 AUTHENTICATED_WORKER_SUMMARY_CALL = re.compile(
-    r"\bkokonut_security\.(get_location_ai_summary_worker_draft_request|"
+    r"\bkokonut_security\.(get_location_ai_summary_worker_result|"
+    r"create_location_ai_summary_worker_draft_with_result|"
     r"create_location_ai_summary_worker_draft|"
     r"set_location_ai_summary_source_references|"
     r"get_location_ai_summary_worker_source_references)\s*\(",
@@ -143,7 +145,7 @@ def build_inventory(root: Path = ROOT) -> dict:
         "scope": (
             "Static Python call-site inventory for literal direct DML in services/agents, "
             "the signed operator draft function call in services/gateway, the signed worker "
-            "draft and source-reference function calls in services/agents, and calls to the "
+            "draft/result and source-reference function calls in services/agents, and calls to the "
             "disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. "
             "Source locations classify code paths; they do not prove runtime identity, database "
             "privileges, query reachability, or tenant isolation."

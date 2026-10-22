@@ -14,6 +14,10 @@ export PG_DB=kokonut_intelligence
 export PG_USER=kokonut
 export PG_PASSWORD=ci-placeholder
 export POSTGRES_PASSWORD=ci-placeholder
+# CI runs host-side database checks against its published loopback ports. Keep
+# metric computation on that configured connection instead of resolving the
+# local one-shot worker profile and requiring production runtime credentials.
+export KOKONUT_METRICS_EXECUTION=host
 export CH_HOST=127.0.0.1
 export CH_PORT=18123
 export CH_USER=kokonut

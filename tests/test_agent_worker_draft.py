@@ -134,6 +134,25 @@ def test_worker_result_is_json_bounded_and_matches_the_draft() -> None:
         )
 
 
+def test_legacy_worker_result_row_keeps_content_only_fallback() -> None:
+    result = worker_draft._read_row(
+        (
+            "c0000000-0000-4000-8000-000000000003",
+            "Legacy draft content",
+            ["harvest_event"],
+            "agent-v1",
+            "2026-10-21T00:00:00Z",
+            "draft",
+            None,
+        ),
+        replayed=True,
+    )
+
+    assert result is not None
+    assert result["content"] == "Legacy draft content"
+    assert "worker_result" not in result
+
+
 def _install_worker_mocks(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Any, ...]]:
     events: list[tuple[Any, ...]] = []
     monkeypatch.setattr(worker_draft, "get_worker_credential", lambda key: "s" * 40)

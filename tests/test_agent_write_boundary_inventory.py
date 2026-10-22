@@ -24,27 +24,33 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
         {"source": "services/gateway/ai_summary_draft.py", "line": 106}
     ]
     assert inventory["authenticated_worker_draft_function_calls"] == [
-        {"source": "services/agents/worker_draft.py", "line": 243}
+        {"source": "services/agents/worker_draft.py", "line": 336},
+        {"source": "services/agents/worker_draft.py", "line": 352},
     ]
     assert inventory["authenticated_worker_summary_function_calls"] == [
         {
             "source": "services/agents/worker_draft.py",
-            "line": 165,
+            "line": 256,
             "function": "get_location_ai_summary_worker_source_references",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 192,
-            "function": "get_location_ai_summary_worker_draft_request",
+            "line": 283,
+            "function": "get_location_ai_summary_worker_result",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 243,
+            "line": 336,
+            "function": "create_location_ai_summary_worker_draft_with_result",
+        },
+        {
+            "source": "services/agents/worker_draft.py",
+            "line": 352,
             "function": "create_location_ai_summary_worker_draft",
         },
         {
             "source": "services/agents/worker_draft.py",
-            "line": 255,
+            "line": 371,
             "function": "set_location_ai_summary_source_references",
         },
     ]
@@ -55,8 +61,8 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
         "legacy_direct_ai_summary_insert_sites": 0,
         "agent_action_log_insert_sites": 0,
         "authenticated_operator_draft_function_calls": 1,
-        "authenticated_worker_draft_function_calls": 1,
-        "authenticated_worker_summary_function_calls": 4,
+        "authenticated_worker_draft_function_calls": 2,
+        "authenticated_worker_summary_function_calls": 5,
         "set_agent_context_call_sites": 0,
         "audit_agent_action_call_sites": 0,
     }
@@ -81,7 +87,9 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
         "    cursor.execute(\"SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(%s)\", ('value',))\n"
         "    cursor.execute(\"SELECT kokonut_security.set_location_ai_summary_source_references(%s)\", ('value',))\n"
         "    cursor.execute(\"SELECT kokonut_security.get_location_ai_summary_worker_source_references(%s)\", ('value',))\n"
-        "    cursor.execute(\"SELECT * FROM kokonut_security.get_location_ai_summary_worker_draft_request(%s)\", ('value',))\n",
+        "    cursor.execute(\"SELECT * FROM kokonut_security.get_location_ai_summary_worker_draft_request(%s)\", ('value',))\n"
+        "    cursor.execute(\"SELECT * FROM kokonut_security.get_location_ai_summary_worker_result(%s)\", ('value',))\n"
+        "    cursor.execute(\"SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(%s)\", ('value',))\n",
         encoding="utf-8",
     )
     (gateway / "draft.py").write_text(
@@ -129,13 +137,15 @@ def test_inventory_never_embeds_sql_or_runtime_values(tmp_path: Path) -> None:
         {"source": "services/gateway/draft.py", "line": 2}
     ]
     assert inventory["authenticated_worker_draft_function_calls"] == [
-        {"source": "services/agents/worker.py", "line": 2}
+        {"source": "services/agents/worker.py", "line": 2},
+        {"source": "services/agents/worker.py", "line": 7},
     ]
     assert inventory["authenticated_worker_summary_function_calls"] == [
         {"source": "services/agents/worker.py", "line": 2, "function": "create_location_ai_summary_worker_draft"},
         {"source": "services/agents/worker.py", "line": 3, "function": "set_location_ai_summary_source_references"},
         {"source": "services/agents/worker.py", "line": 4, "function": "get_location_ai_summary_worker_source_references"},
-        {"source": "services/agents/worker.py", "line": 5, "function": "get_location_ai_summary_worker_draft_request"},
+        {"source": "services/agents/worker.py", "line": 6, "function": "get_location_ai_summary_worker_result"},
+        {"source": "services/agents/worker.py", "line": 7, "function": "create_location_ai_summary_worker_draft_with_result"},
     ]
     assert inventory["set_agent_context_call_sites"] == [
         {"source": "services/agents/legacy.py", "line": 6}

@@ -1,3 +1,14 @@
+### CI #697 metrics execution-mode repair — 21 October 2026
+
+Hosted CI failed after the application-version smoke check when metric
+computation selected the one-shot Compose worker. The workflow intentionally
+uses host-side PostgreSQL through published port 15432 and does not provision
+the worker's production runtime credential. CI now explicitly selects the host
+execution mode, and focused routing tests prove the override bypasses Docker
+while invoking the metrics CLI. Two tests pass; `bash -n`, Ruff, and diff checks
+pass. Hosted verification remains pending. No candidate or legacy database
+was touched. Evidence: [CI #697 repair](builds/2026-10-21-recovery/ci-697-metrics-execution-mode-fix.json).
+
 ### CAP-038 structured agent-worker retry results — 21 October 2026
 
 Migration 539 adds a private append-only JSON result receipt, created in the
@@ -6,8 +17,11 @@ must match the persisted summary text, and can be read only through an exact
 worker/location/request function. The worker now stores and replays the original
 structured output without repeating source reads; receipts from before migration
 539 continue to return their content-only fallback. The focused adapter/CLI
-selection passes 62 tests, migration metadata passes 36 tests, and disposable
-PostgreSQL 16 applies/replays migration 539 with 26 grouped assertions. No
+selection passes 63 tests, migration metadata passes 36 tests, and three
+source-inventory regressions now include the structured-result lookup and write
+functions. Disposable PostgreSQL 16 applies/replays migration 539 with 27
+grouped assertions, including a regression for the pre-migration content-only
+receipt fallback. No
 candidate or legacy database was touched. Evidence: [structured result replay](builds/2026-10-21-recovery/cap-038-worker-structured-result-replay-disposable.json).
 
 ### CAP-038 SDK schema-parity CI repair — 21 October 2026

@@ -588,6 +588,7 @@ def _worker_result_lookup_acceptance() -> str:
     );
     DO $$
     DECLARE looked_up RECORD;
+            legacy RECORD;
             denied BOOLEAN := FALSE;
             expected JSONB := jsonb_build_object(
                 'location_id', '{LOCATION_ID}',
@@ -602,6 +603,14 @@ def _worker_result_lookup_acceptance() -> str:
           );
         IF looked_up.worker_result IS DISTINCT FROM expected THEN
             RAISE EXCEPTION 'worker result lookup did not return the original structured result';
+        END IF;
+        SELECT * INTO STRICT legacy
+          FROM kokonut_security.get_location_ai_summary_worker_result(
+              '{LOCATION_ID}', 'holistic_wellbeing', '{REQUEST_ID}'
+          );
+        IF legacy.content <> 'Worker-produced synthetic draft.'
+           OR legacy.worker_result IS NOT NULL THEN
+            RAISE EXCEPTION 'pre-result worker receipt did not retain the content-only fallback';
         END IF;
         BEGIN
             PERFORM count(*) FROM kokonut_security.ai_summary_agent_draft_result;
@@ -1185,6 +1194,7 @@ def main() -> int:
     checks = [
         "migrations 405, 419, 521-524, 529-537 and 539 apply; migrations 530-537 and 539 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
+        "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
         "worker results must match draft content, stay within size bounds, and remain inaccessible through direct table grants",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
