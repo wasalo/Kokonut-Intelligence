@@ -302,6 +302,60 @@ def test_synthesis_worker_defaults_to_isolated_source_login_not_shared_database(
     source_factory.assert_called_once_with("agent_summary_source")
 
 
+def test_registered_synthesis_read_only_run_uses_signed_source_scope_without_receipt_or_write(
+    monkeypatch,
+):
+    agent = _synthetic_synthesis_agent()
+    connection, cursor = _source_connection()
+    events = []
+    agent.synthesize = lambda _connection, location_id=None: (
+        events.append("synthesize")
+        or {"location_id": location_id, "synthesis": "Read-only result"}
+    )
+    agent.collect_source_references = lambda *_args: events.append("references") or {}
+    context_setter = MagicMock(
+        side_effect=lambda *_args, **_kwargs: events.append("signed-context")
+    )
+    monkeypatch.setattr(worker_cli, "set_agent_summary_source_tenant_context", context_setter)
+    credential_reader = MagicMock(return_value="s" * 40)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+    action_policy = MagicMock()
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", action_policy
+    )
+    receipt_reader = MagicMock(side_effect=AssertionError("read-only run has no receipt"))
+    draft_writer = MagicMock(side_effect=AssertionError("read-only run cannot write"))
+
+    result = worker_cli.run_worker_synthesis(
+        agent,
+        LOCATION_ID,
+        None,
+        persist_draft=False,
+        connection_factory=lambda: connection,
+        existing_reader=receipt_reader,
+        draft_writer=draft_writer,
+    )
+
+    assert result == {"summary": {"location_id": LOCATION_ID, "synthesis": "Read-only result"}}
+    credential_reader.assert_called_once_with("agent_summary_source")
+    context_setter.assert_called_once_with(
+        connection,
+        credential="s" * 40,
+        location_id=LOCATION_ID,
+    )
+    receipt_reader.assert_not_called()
+    draft_writer.assert_not_called()
+    action_policy.assert_any_call("read", agent.read_collection, {"location_id": LOCATION_ID})
+    assert all(call.args[0] != "create" for call in action_policy.call_args_list)
+    assert events == ["signed-context", "synthesize", "references"]
+    assert cursor.execute.call_args_list[0].args[0] == (
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+    )
+    assert connection.commit.call_count == 0
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
 def test_synthesis_worker_requires_source_credential_before_opening_source_database(
     monkeypatch,
 ):
@@ -341,6 +395,60 @@ def test_deterministic_worker_defaults_to_its_own_source_login(monkeypatch):
 
     source_factory.assert_called_once_with("agent_summary_deterministic_source")
     assert result["summary_id"] == "saved-id"
+
+
+def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or_write(
+    monkeypatch,
+):
+    connection, cursor = _source_connection()
+    events = []
+    context_setter = MagicMock(
+        side_effect=lambda *_args, **_kwargs: events.append("signed-context")
+    )
+    monkeypatch.setattr(worker_cli, "set_agent_summary_source_tenant_context", context_setter)
+    builder = MagicMock(
+        side_effect=lambda *_args: events.append("summary")
+        or {"content": "Synthetic read-only summary", "source_tables": ["harvest_event"]}
+    )
+    receipt_reader = MagicMock(side_effect=AssertionError("read-only run has no receipt"))
+    draft_writer = MagicMock(side_effect=AssertionError("read-only run cannot write"))
+    action_policy = MagicMock()
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", action_policy
+    )
+
+    result = worker_cli.run_worker_summary(
+        LOCATION_ID,
+        "operations",
+        None,
+        persist_draft=False,
+        connection_factory=lambda: connection,
+        summary_builder=builder,
+        existing_reader=receipt_reader,
+        draft_writer=draft_writer,
+    )
+
+    assert result == {
+        "summary": {"content": "Synthetic read-only summary", "source_tables": ["harvest_event"]}
+    }
+    context_setter.assert_called_once_with(
+        connection,
+        credential="s" * 40,
+        location_id=LOCATION_ID,
+    )
+    receipt_reader.assert_not_called()
+    draft_writer.assert_not_called()
+    action_policy.assert_any_call("read", "ai_summary", {"location_id": LOCATION_ID})
+    assert all(call.args[0] != "create" for call in action_policy.call_args_list)
+    assert events == ["signed-context", "summary"]
+    assert cursor.execute.call_args_list[:2][0].args[0] == (
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+    )
+    assert cursor.execute.call_args_list[2].args[0] == (
+        "SET LOCAL search_path = kokonut_agent_source, public"
+    )
+    connection.close.assert_called_once_with()
+    connection.rollback.assert_not_called()
 
 
 def test_deterministic_worker_requires_source_credential_before_opening_source_db(

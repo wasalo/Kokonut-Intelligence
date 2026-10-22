@@ -51,20 +51,22 @@ def resolve_synthesis_agent(task_key: str) -> Any:
 def run_worker_synthesis(
     agent: Any,
     location_id: str,
-    request_id: str,
+    request_id: str | None,
     *,
+    persist_draft: bool = True,
     connection_factory=None,
     existing_reader=None,
     draft_writer=None,
 ) -> dict[str, Any]:
-    """Run a registered synthesis agent and save its draft through signed scope.
+    """Run a registered synthesis agent through its signed source boundary.
 
-    Exact request lookup precedes source queries. All source reads use the
-    dedicated public-view reader login in a repeatable-read, read-only
-    transaction after installing a signed exact-location context; scoped
-    database wrapper views enforce that context independently of query filters.
-    Persistence uses the separate signed worker connection and immutable retry
-    receipt.
+    All source reads use the dedicated public-view reader login in a
+    repeatable-read, read-only transaction after installing a signed
+    exact-location context; scoped database wrapper views enforce that context
+    independently of query filters. When ``persist_draft`` is true, exact
+    request lookup precedes source queries and persistence uses the separate
+    signed worker connection and immutable retry receipt. Read-only runs return
+    the same summary payload without looking up a receipt or writing a draft.
     """
     from services.agents.base import validate_source_tables
     from services.agents.safety import assert_agent_action_allowed
@@ -74,11 +76,19 @@ def run_worker_synthesis(
         validate_task_inputs,
     )
 
-    try:
-        location_id = str(UUID(str(location_id)))
-        request_id = str(UUID(str(request_id)))
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("location_id and request_id must be UUIDs") from exc
+    if persist_draft:
+        try:
+            location_id = str(UUID(str(location_id)))
+            request_id = str(UUID(str(request_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id and request_id must be UUIDs") from exc
+    else:
+        try:
+            location_id = str(UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a UUID") from exc
+        if request_id is not None:
+            raise ValueError("request_id is only valid when persisting an agent draft")
     if not isinstance(getattr(agent, "task_key", None), str):
         raise ValueError("agent task is not registered for the synthesis worker")
     registered_agent = resolve_synthesis_agent(agent.task_key)
@@ -107,7 +117,7 @@ def run_worker_synthesis(
         raise ValueError("synthesis agent metadata differs from its registered class")
     validate_task_capabilities(agent.task_key)
     input_errors = validate_task_inputs(
-        agent.task_key, {"location_id": location_id, "store": True}
+        agent.task_key, {"location_id": location_id, "store": persist_draft}
     )
     if input_errors:
         raise ValueError("; ".join(input_errors))
@@ -124,21 +134,22 @@ def run_worker_synthesis(
     ):
         raise ValueError("Invalid agent draft: model_version must contain 1 to 100 characters")
     assert_agent_action_allowed("read", agent.read_collection, {"location_id": location_id})
-    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
+    if persist_draft:
+        assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
 
-    read_existing = existing_reader or get_worker_ai_summary_draft
-    write_draft = draft_writer or create_worker_ai_summary_draft
-    prior = read_existing(location_id, agent.summary_type, request_id)
-    if prior is not None:
-        original_summary = prior.get("worker_result")
-        if not isinstance(original_summary, dict):
-            original_summary = {"location_id": location_id, "synthesis": prior["content"]}
-        return {
-            "summary": original_summary,
-            "ai_summary_id": prior["summary_id"],
-            "request_id": request_id,
-            "replayed": True,
-        }
+    if persist_draft:
+        read_existing = existing_reader or get_worker_ai_summary_draft
+        prior = read_existing(location_id, agent.summary_type, request_id)
+        if prior is not None:
+            original_summary = prior.get("worker_result")
+            if not isinstance(original_summary, dict):
+                original_summary = {"location_id": location_id, "synthesis": prior["content"]}
+            return {
+                "summary": original_summary,
+                "ai_summary_id": prior["summary_id"],
+                "request_id": request_id,
+                "replayed": True,
+            }
 
     source_credential = get_worker_credential("agent_summary_source")
     open_source_connection = connection_factory or (
@@ -182,6 +193,10 @@ def run_worker_synthesis(
     finally:
         connection.close()
 
+    if not persist_draft:
+        return {"summary": summary}
+
+    write_draft = draft_writer or create_worker_ai_summary_draft
     saved = write_draft(location_id, agent.summary_type, request_id, payload)
     return {
         "summary": summary,
@@ -194,29 +209,36 @@ def run_worker_synthesis(
 def run_worker_summary(
     location_id: str,
     summary_type: str,
-    request_id: str,
+    request_id: str | None,
     *,
+    persist_draft: bool = True,
     connection_factory=None,
     summary_builder=None,
     existing_reader=None,
     draft_writer=None,
 ) -> dict[str, Any]:
-    """Generate through the dedicated deterministic source reader and persist as a worker.
+    """Generate through the dedicated deterministic source reader.
 
-    The request lookup happens before generation so an exact retry returns its
-    original result without repeating source queries. Source data is read in a
-    repeatable-read, read-only transaction after a database-signed location
-    context selects the deterministic source reader role and its filtered
-    views; draft creation and provenance attachment use the separate signed
-    worker connection in :mod:`worker_draft`.
+    Source data is read in a repeatable-read, read-only transaction after a
+    database-signed location context selects the deterministic source reader
+    role and its filtered views. When ``persist_draft`` is true, the request
+    lookup happens before generation and draft creation plus provenance
+    attachment use the separate signed worker connection in
+    :mod:`worker_draft`.
     """
-    try:
-        location_id = str(UUID(str(location_id)))
-        request_id = str(UUID(str(request_id)))
-    except (TypeError, ValueError, AttributeError) as exc:
-        raise ValueError("location_id and request_id must be UUIDs") from exc
-    read_existing = existing_reader or get_worker_ai_summary_draft
-    write_draft = draft_writer or create_worker_ai_summary_draft
+    if persist_draft:
+        try:
+            location_id = str(UUID(str(location_id)))
+            request_id = str(UUID(str(request_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id and request_id must be UUIDs") from exc
+    else:
+        try:
+            location_id = str(UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("location_id must be a UUID") from exc
+        if request_id is not None:
+            raise ValueError("request_id is only valid when persisting an AI-summary draft")
     generate = summary_builder or build_summary
     if (
         not isinstance(summary_type, str)
@@ -229,15 +251,17 @@ def run_worker_summary(
     validate_task_capabilities("ai_summary_synthesis")
     input_errors = validate_task_inputs(
         "ai_summary_synthesis",
-        {"location_id": location_id, "summary_type": summary_type, "store": True},
+        {"location_id": location_id, "summary_type": summary_type, "store": persist_draft},
     )
     if input_errors:
         raise ValueError("; ".join(input_errors))
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
-    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-    prior = read_existing(location_id, summary_type, request_id)
-    if prior is not None:
-        return prior
+    if persist_draft:
+        assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
+        read_existing = existing_reader or get_worker_ai_summary_draft
+        prior = read_existing(location_id, summary_type, request_id)
+        if prior is not None:
+            return prior
 
     open_source_connection = connection_factory or (
         lambda: get_worker_db("agent_summary_deterministic_source")
@@ -266,6 +290,9 @@ def run_worker_summary(
     finally:
         connection.close()
 
+    if not persist_draft:
+        return {"summary": summary}
+
     # Match the legacy deterministic summary model label while the worker
     # adapter supplies signed identity, idempotency, and source references.
     payload = {
@@ -273,6 +300,7 @@ def run_worker_summary(
         "model_version": summary.get("model_version", "rules-v1"),
         "worker_result": summary,
     }
+    write_draft = draft_writer or create_worker_ai_summary_draft
     return write_draft(location_id, summary_type, request_id, payload)
 
 

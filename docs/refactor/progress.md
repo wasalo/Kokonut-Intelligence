@@ -1,3 +1,24 @@
+### CAP-038 signed source boundary for read-only synthesis — 22 October 2026
+
+All ten registered shared-synthesis agents now route read-only `run()` calls
+through their dedicated source-reader login. The runner installs the signed
+`ai_summary/read` location grant before switching to the NOLOGIN wrapper reader,
+uses repeatable-read/read-only transactions, and never consults retry receipts
+or writes drafts in this mode. Deterministic `run_ai_summary(..., store=False)`
+now uses the same pattern, including its signed-filtered transaction-local
+search path, instead of opening the shared runtime connection. The existing
+standalone output shape is preserved. Four new source-boundary regressions pass
+within the 221-test agent/summary selection (nine existing database-dependent
+skips); Ruff and Python compilation pass. The runtime SQL inventory was
+refreshed, and worker source/SQL/function/preflight and agent-write inventories
+remain current. No migration, database, provider, candidate, or legacy stack
+was changed. Separate summary listing and digest inspection, non-synthesis
+agents, runtime credential/grant provisioning, populated parity, universal RLS,
+and MAN-CAP-038 acceptance remain open. Evidence:
+[source-boundary checks](builds/2026-10-22-recovery/cap-038-read-only-agent-source-boundary.json).
+Checklist: 951 complete / 24 open (975 total); capability classifications
+remain 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
 ### CAP-038 signed tenant scope for deterministic summaries — 22 October 2026
 
 Migration 544 extends signed, database-enforced source scoping to the four

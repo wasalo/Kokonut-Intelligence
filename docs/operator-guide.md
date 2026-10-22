@@ -71,6 +71,7 @@ python3 -m services.agents.open_source_capitalist_agent --location-id UUID --sto
 ```
 
 - `--store` writes a draft for human review; without it, summary agents do not persist the output.
+- Read-only generation for the ten registered shared synthesis agents and the deterministic AI summary uses dedicated signed source-reader credentials, migrations 543/544, and an exact `ai_summary/read` grant for the selected location. It does not fall back to the shared `PG_*` connection. The optional one-shot profiles and encrypted settings are listed in `.env.example` and `docker-compose.worker.yml`.
 - Agents cannot verify or publish governed records, approve recommendations, attest, submit onchain actions, or autonomously execute financial or destructive actions.
 - Check the task catalogue in `services/agents/tasks.py` for each agent’s inputs, outputs, writes, and risk classification.
 - Treat agent-generated summaries, EBF drafts, recommendations, tactical opportunities, and credit proposals as advisory or draft material until a human completes the applicable workflow.

@@ -7,6 +7,7 @@ from unittest import mock
 import pytest
 
 from services.agents.base import SynthesisAgent, agent_cli, run_fetch
+from services.agents.bio_factory_agent import BioFactorySynthesisAgent
 
 LOCATION_ID = "a0000000-0000-4000-8000-000000000001"
 SCORECARD_ID = "a0000000-0000-4000-8000-000000000002"
@@ -96,6 +97,23 @@ def test_run_store_delegates_to_signed_worker_with_stable_request_id():
     assert out["ai_summary_id"] == "stored-id"
     run_worker.assert_called_once()
     assert run_worker.call_args.args[1:] == (LOCATION_ID, stable_request_id)
+
+
+def test_registered_synthesis_read_only_run_uses_signed_worker_source_boundary():
+    with mock.patch(
+        "services.agents.base.get_db",
+        side_effect=AssertionError("registered synthesis must not use shared runtime DB"),
+    ):
+        with mock.patch(
+            "services.agents.worker_cli.run_worker_synthesis",
+            return_value={"summary": {"synthesis": "synthetic"}},
+        ) as run_worker:
+            result = BioFactorySynthesisAgent().run(LOCATION_ID)
+
+    assert result == {"summary": {"synthesis": "synthetic"}}
+    run_worker.assert_called_once()
+    assert run_worker.call_args.args[1:] == (LOCATION_ID, None)
+    assert run_worker.call_args.kwargs == {"persist_draft": False}
 
 
 def test_store_summary_propagates_worker_failure_without_using_legacy_connection():

@@ -206,10 +206,15 @@ pattern to the deterministic summary worker's 13 relations: 11 operational
 sources are exact-location filtered, while crop and expense category remain
 shared network catalogs. That worker installs the wrapper schema first in its
 transaction-local search path, so its legacy query text resolves to filtered
-views and the source login cannot read the original public relations. The
-legacy CLI keeps its existing search path. These are scoped source boundaries
-for the two AI-summary worker profiles, not a universal RLS rollout. Other
-service/database paths retain separate tenant-boundary reviews.
+views and the source login cannot read the original public relations. Read-only
+deterministic generation now uses this same signed source path without creating
+a draft. Likewise, all ten registered `SynthesisAgent` classes use their
+dedicated signed source reader for read-only `run()` calls as well as draft
+generation; unregistered source contracts fail closed before connecting.
+Listing and digest-inspection CLI operations remain separate read paths and
+need their own operator authorization review. These are scoped source
+boundaries for the two AI-summary worker profiles, not a universal RLS rollout.
+Other service/database paths retain separate tenant-boundary reviews.
 
 The native PostgreSQL 16 chain through migration 544 passes 31 grouped checks,
 including migration replay, no-context denial, exact-location filtering,

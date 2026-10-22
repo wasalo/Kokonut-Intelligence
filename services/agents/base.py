@@ -72,7 +72,8 @@ class SynthesisAgent:
     :meth:`synthesize`; :meth:`run` provides the shared orchestration:
 
     * assert the read against the agent safety policy;
-    * open one connection and always close it (even on error);
+    * open one connection and always close it (even on error); registered
+      synthesis agents use their dedicated signed source-reader identity;
     * optionally store a draft ``ai_summary`` for human review;
     * validate the output against the registered task schema.
     """
@@ -282,6 +283,18 @@ class SynthesisAgent:
             return run_worker_synthesis(self, location_id, stable_request_id)
         if request_id is not None:
             raise ValueError("request_id is only valid when storing an agent draft")
+        if type(self).source_reference_views:
+            # Registered shared-synthesis agents must use the same dedicated,
+            # signed location-scoped source identity for read-only runs as for
+            # stored drafts. Never fall back to the broad application login.
+            from services.agents.worker_cli import run_worker_synthesis
+
+            return run_worker_synthesis(
+                self,
+                location_id,
+                None,
+                persist_draft=False,
+            )
         assert_agent_action_allowed("read", self.read_collection, {"location_id": location_id})
         conn = get_db()
         try:

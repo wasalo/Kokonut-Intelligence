@@ -164,3 +164,24 @@ def test_run_ai_summary_store_uses_worker_path_before_shared_database(monkeypatc
     run_worker.assert_called_once_with(LOCATION_ID, "operations", REQUEST_ID)
     assert result["ai_summary_id"] == "stored-id"
     assert result["summary"]["source_references"] == {}
+
+
+def test_run_ai_summary_read_only_uses_signed_source_path_before_shared_database(monkeypatch):
+    monkeypatch.setattr(
+        ai_summary,
+        "get_pg",
+        lambda: pytest.fail("read-only summary must not use shared runtime DB"),
+    )
+    from services.agents import worker_cli
+
+    expected = {"summary": {"content": "synthetic read-only summary"}}
+    with mock.patch.object(worker_cli, "run_worker_summary", return_value=expected) as run_worker:
+        result = ai_summary.run_ai_summary(LOCATION_ID, "operations", store=False)
+
+    run_worker.assert_called_once_with(
+        LOCATION_ID,
+        "operations",
+        None,
+        persist_draft=False,
+    )
+    assert result is expected

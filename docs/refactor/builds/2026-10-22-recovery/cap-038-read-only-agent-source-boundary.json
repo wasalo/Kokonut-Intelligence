@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "change": "Route registered shared-synthesis and deterministic summary read-only generation through dedicated signed source-reader identities.",
+  "tests": {
+    "command": "python3 -m pytest tests/test_agent_tasks.py tests/test_agents_base.py tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_synthesis_source_references.py tests/test_agent_safety.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_safety.py tests/test_agent_input_preflight.py -q",
+    "passed": 221,
+    "skipped": 9,
+    "new_regressions": 4
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "refreshed and current",
+    "worker_source_sql_function_and_preflight_inventories": "current",
+    "agent_write_boundary_inventory": "current",
+    "capability_matrix": "66 rows valid"
+  },
+  "database_or_provider_access": false,
+  "migration_added_or_applied": false,
+  "candidate_or_legacy_changed": false,
+  "limitations": [
+    "Summary listing and digest inspection remain separate read paths.",
+    "Non-synthesis agent reads are not changed by this slice.",
+    "Runtime source credentials and per-location grants are not provisioned.",
+    "Universal RLS, populated parity, and MAN-CAP-038 acceptance remain open."
+  ]
+}

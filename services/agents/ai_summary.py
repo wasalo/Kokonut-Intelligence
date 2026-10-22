@@ -569,12 +569,14 @@ def run_ai_summary(
             "replayed": bool(saved.get("replayed")),
         }
 
-    conn = get_pg()
-    try:
-        summary = build_summary(conn, location_id, summary_type)
-    finally:
-        conn.close()
-    return {"summary": summary}
+    from services.agents.worker_cli import run_worker_summary
+
+    return run_worker_summary(
+        location_id,
+        summary_type,
+        None,
+        persist_draft=False,
+    )
 
 
 def _cli_uuid(parser: argparse.ArgumentParser, value: str, label: str) -> str:
