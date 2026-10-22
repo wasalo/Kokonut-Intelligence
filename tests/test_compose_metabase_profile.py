@@ -151,6 +151,21 @@ def test_kernel_runtime_role_profile_has_no_orphan_agent_worker_service() -> Non
     assert "agent-summary-worker" not in config["services"]
 
 
+def test_cids_export_worker_is_opt_in_and_has_no_shared_database_identity() -> None:
+    files = ("docker-compose.yml", "docker-compose.worker.yml")
+    assert "cids-export-worker" not in _compose_services(files=files)
+    config = _compose_config("cids-export-worker", files=files)
+    service = config["services"]["cids-export-worker"]
+
+    assert service["entrypoint"] == ["python3", "-m", "services.agents.cids_agent"]
+    assert service["environment"]["KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL"] == ""
+    assert service["environment"]["KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL"] == ""
+    assert not any(
+        name.startswith("PG_") or name == "DATABASE_URL"
+        for name in service["environment"]
+    )
+
+
 def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -> None:
     config = _compose_config(
         files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-edge.yml"),

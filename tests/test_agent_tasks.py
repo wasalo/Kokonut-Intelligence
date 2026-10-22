@@ -179,26 +179,22 @@ def test_task_catalogue_rejects_malformed_schema_declarations(
 
 
 def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
-    class Conn:
-        def close(self) -> None:
-            pass
+    from services.agents import worker_cli
 
-    import services.agents.cids_agent as cids_agent
-
-    monkeypatch.setattr(cids_agent, "get_connection", lambda: Conn())
-    monkeypatch.setattr(
-        cids_agent,
-        "export_location",
-        lambda conn, location_id: {
+    expected = {
+        "document": {
             "@graph": [{"@type": "cids:Organization"}],
             "kokonut:alignmentTier": "essential",
             "kokonut:cidsVersion": "3.2.0",
         },
-    )
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+    }
+    monkeypatch.setattr(worker_cli, "run_worker_cids_export", lambda _location_id: expected)
 
     output = run_cids_export("a0000000-0000-0000-0000-000000000001")
-    assert output["graph_count"] == 1
-    assert output["alignment_tier"] == "essential"
+    assert output == expected
 
 
 def test_feedback_synthesis_omits_private_raw_text() -> None:

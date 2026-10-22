@@ -40,6 +40,7 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql",
     ROOT / "schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql",
     ROOT / "schemas/postgres/545_signed_ebf_evidence_gap_source.sql",
+    ROOT / "schemas/postgres/546_signed_cids_export_source.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
@@ -212,6 +213,119 @@ SELECT
     3::integer,
     3::integer,
     'missing_evidence'::text;
+"""
+
+CIDS_SOURCE_FIXTURE = f"""
+ALTER TABLE public.location ADD COLUMN name TEXT, ADD COLUMN slug TEXT, ADD COLUMN description TEXT;
+UPDATE public.location SET name = 'Synthetic farm', slug = 'synthetic-farm', description = 'Public-safe location summary'
+ WHERE id = '{LOCATION_ID}';
+UPDATE public.location SET name = 'Foreign farm', slug = 'foreign-farm', description = 'Other tenant'
+ WHERE id = '{OTHER_LOCATION_ID}';
+ALTER TABLE public.farm_registry_record
+    ADD COLUMN project_summary TEXT,
+    ADD COLUMN local_problem TEXT,
+    ADD COLUMN proposed_solution TEXT,
+    ADD COLUMN created_at TIMESTAMPTZ;
+UPDATE public.farm_registry_record
+   SET project_summary = 'Synthetic program', local_problem = 'Synthetic problem',
+       proposed_solution = 'Synthetic solution', created_at = now()
+ WHERE location_id = '{LOCATION_ID}';
+CREATE TABLE public.farm (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, name TEXT, description TEXT
+);
+INSERT INTO public.farm VALUES
+    ('e0000000-0000-4000-8000-000000000901', '{LOCATION_ID}', 'Synthetic farm', 'Farm summary'),
+    ('e0000000-0000-4000-8000-000000000902', '{OTHER_LOCATION_ID}', 'Foreign farm', 'Other tenant');
+CREATE TABLE public.stakeholder_outcome (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL, outcome_name TEXT, outcome_description TEXT,
+    stakeholder_group TEXT, importance TEXT, is_underserved BOOLEAN,
+    importance_perspective TEXT, sdg_number INTEGER
+);
+INSERT INTO public.stakeholder_outcome VALUES
+    ('e0000000-0000-4000-8000-000000000911', '{LOCATION_ID}', 'verified', now(),
+     'Farm operator capacity', 'Operators build skills', 'farm_operator', 'high', FALSE, 'interview', 8),
+    ('e0000000-0000-4000-8000-000000000912', '{OTHER_LOCATION_ID}', 'published', now(),
+     'Foreign outcome', 'Other tenant', 'community', 'high', FALSE, 'survey', 9);
+CREATE TABLE public.sdg (sdg_number INTEGER PRIMARY KEY, name TEXT NOT NULL);
+INSERT INTO public.sdg VALUES (8, 'Decent Work'), (9, 'Industry and Innovation');
+CREATE TABLE public.farm_impact_mapping (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
+    framework_key TEXT, dimension_key TEXT, sdg_number INTEGER
+);
+INSERT INTO public.farm_impact_mapping VALUES
+    ('e0000000-0000-4000-8000-000000000921', '{LOCATION_ID}', 'published', 'ebf', 'value', 8),
+    ('e0000000-0000-4000-8000-000000000922', '{OTHER_LOCATION_ID}', 'published', 'ebf', 'value', 9);
+CREATE TABLE public.metric_definition (
+    id UUID PRIMARY KEY, metric_key TEXT NOT NULL, display_name TEXT,
+    description TEXT, unit TEXT, active BOOLEAN NOT NULL
+);
+CREATE TABLE public.metric_value (
+    id UUID PRIMARY KEY, metric_id UUID NOT NULL, location_id UUID NOT NULL,
+    period_start DATE, period_end DATE, value NUMERIC, unit TEXT,
+    verified BOOLEAN NOT NULL, computation_method TEXT, computed_at TIMESTAMPTZ
+);
+INSERT INTO public.metric_definition VALUES
+    ('e0000000-0000-4000-8000-000000000931', 'value_flowed', 'Value flowed', 'Verified value', 'USD', TRUE);
+INSERT INTO public.metric_value VALUES
+    ('e0000000-0000-4000-8000-000000000941', 'e0000000-0000-4000-8000-000000000931',
+     '{LOCATION_ID}', '2026-01-01', '2026-01-31', 12.5, 'USD', TRUE, 'fixture', now()),
+    ('e0000000-0000-4000-8000-000000000942', 'e0000000-0000-4000-8000-000000000931',
+     '{OTHER_LOCATION_ID}', '2026-01-01', '2026-01-31', 99.0, 'USD', TRUE, 'fixture', now());
+ALTER TABLE public.stakeholder_feedback
+    ADD COLUMN feedback_date DATE,
+    ADD COLUMN stakeholder_group TEXT,
+    ADD COLUMN consent_scope TEXT,
+    ADD COLUMN public_summary TEXT;
+UPDATE public.stakeholder_feedback
+   SET feedback_date = '2026-01-01', stakeholder_group = 'farm_operator',
+       consent_scope = 'public_summary', public_summary = 'Synthetic public summary'
+ WHERE id = 'e0000000-0000-4000-8000-000000000604';
+INSERT INTO public.stakeholder_feedback (
+    id, location_id, status, consent_given, is_public, feedback_date,
+    stakeholder_group, consent_scope, public_summary
+) VALUES
+    ('e0000000-0000-4000-8000-000000000952', '{LOCATION_ID}', 'published', FALSE, FALSE,
+     '2026-01-03', 'private_group', 'private', 'Private raw text'),
+    ('e0000000-0000-4000-8000-000000000953', '{OTHER_LOCATION_ID}', 'published', TRUE, TRUE,
+     '2026-01-04', 'foreign_group', 'public_summary', 'Foreign public text');
+CREATE TABLE public.evidence_maturity_level (level INTEGER PRIMARY KEY, label TEXT NOT NULL);
+INSERT INTO public.evidence_maturity_level VALUES (3, 'Reviewed record');
+CREATE TABLE public.impact_claim (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL,
+    claim_date DATE, claim_text TEXT, period_start DATE, period_end DATE,
+    confidence_notes TEXT, evidence_maturity INTEGER, methodology_ref TEXT,
+    external_verifier TEXT, attestation_uid TEXT
+);
+INSERT INTO public.impact_claim VALUES
+    ('e0000000-0000-4000-8000-000000000961', '{LOCATION_ID}', 'verified', '2026-01-05',
+     'Synthetic impact claim', '2026-01-01', '2026-01-31', 'High confidence', 3,
+     'methodology-v1', 'Independent reviewer', '0xsynthetic'),
+    ('e0000000-0000-4000-8000-000000000962', '{OTHER_LOCATION_ID}', 'published', '2026-01-05',
+     'Foreign claim', '2026-01-01', '2026-01-31', 'Other tenant', 3,
+     'methodology-v1', 'Reviewer', '0xforeign');
+ALTER TABLE public.location ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.location FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.farm ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.farm FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.farm_registry_record ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.farm_registry_record FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.stakeholder_outcome ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stakeholder_outcome FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.farm_impact_mapping ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.farm_impact_mapping FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.sdg ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sdg FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_definition ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_definition FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_value ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.metric_value FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.stakeholder_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stakeholder_feedback FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence_maturity_level ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence_maturity_level FORCE ROW LEVEL SECURITY;
+ALTER TABLE public.impact_claim ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.impact_claim FORCE ROW LEVEL SECURITY;
 """
 
 
@@ -544,6 +658,185 @@ def _ebf_source_scope_acceptance() -> str:
           FROM kokonut_agent_source.v_ebf_evidence_gap_summary;
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'location without an EBF worker grant acquired source access';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+    RESET ROLE;
+    """
+
+
+def _cids_source_acceptance() -> str:
+    return f"""
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'cids_export', 'read', 'synthetic CIDS source-reader acceptance fixture'
+    );
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_view_owner;
+    DO $$
+    DECLARE
+        base_rows BIGINT;
+        scope_rows BIGINT;
+        wrapper_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO base_rows FROM public.location
+         WHERE id = '{LOCATION_ID}';
+        SELECT count(*) INTO scope_rows
+          FROM kokonut_security.current_worker_scope('cids_export', 'read')
+         WHERE location_id = '{LOCATION_ID}';
+        SELECT count(*) INTO wrapper_rows FROM kokonut_agent_source.cids_location;
+        IF base_rows <> 1 OR scope_rows <> 1 OR wrapper_rows <> 1 THEN
+            RAISE EXCEPTION 'CIDS view-owner probe: base %, scope %, wrapper %',
+                base_rows, scope_rows, wrapper_rows;
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    SET ROLE kokonut_agent_summary_source_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM kokonut_agent_source.cids_location;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'CIDS source rows were visible without signed context';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM kokonut_agent_source.cids_location;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'ai_summary grant unexpectedly authorized CIDS projection';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    DECLARE
+        row_count BIGINT;
+        foreign_rows BIGINT;
+        feedback_count BIGINT;
+        signed_scope_count BIGINT;
+        signed_location UUID;
+        exposed_columns TEXT[];
+        denied BOOLEAN := FALSE;
+    BEGIN
+        SELECT count(*) INTO signed_scope_count
+          FROM kokonut_security.current_worker_scope('cids_export', 'read');
+        SELECT location_id INTO signed_location
+          FROM kokonut_security.current_worker_scope('cids_export', 'read');
+        SELECT count(*) INTO row_count FROM kokonut_agent_source.cids_location;
+        SELECT count(*) INTO foreign_rows
+          FROM kokonut_agent_source.cids_location WHERE id <> '{LOCATION_ID}';
+        IF row_count <> 1 OR foreign_rows <> 0 THEN
+            RAISE EXCEPTION 'CIDS location wrapper mismatch: signed scopes %, signed location %, rows %, foreign %',
+                signed_scope_count, signed_location, row_count, foreign_rows;
+        END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_stakeholder_outcome
+         WHERE location_id <> '{LOCATION_ID}';
+        IF row_count <> 0 THEN RAISE EXCEPTION 'CIDS outcomes crossed location scope'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_stakeholder_outcome
+         WHERE location_id = '{LOCATION_ID}' AND status IN ('verified', 'published');
+        IF row_count <> 1 THEN RAISE EXCEPTION 'CIDS scoped outcome projection is incomplete'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_farm_impact_mapping
+         WHERE location_id <> '{LOCATION_ID}';
+        IF row_count <> 0 THEN RAISE EXCEPTION 'CIDS impact mappings crossed location scope'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_farm_impact_mapping
+         WHERE location_id = '{LOCATION_ID}' AND status IN ('verified', 'published');
+        IF row_count <> 1 THEN RAISE EXCEPTION 'CIDS scoped impact mapping is incomplete'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_metric_value
+         WHERE location_id <> '{LOCATION_ID}';
+        IF row_count <> 0 THEN RAISE EXCEPTION 'CIDS metric values crossed location scope'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_metric_value
+         WHERE location_id = '{LOCATION_ID}' AND verified AND active;
+        IF row_count <> 1 THEN RAISE EXCEPTION 'CIDS scoped metric projection is incomplete'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_impact_claim
+         WHERE location_id <> '{LOCATION_ID}';
+        IF row_count <> 0 THEN RAISE EXCEPTION 'CIDS impact claims crossed location scope'; END IF;
+        SELECT count(*) INTO row_count
+          FROM kokonut_agent_source.cids_impact_claim
+         WHERE location_id = '{LOCATION_ID}' AND status IN ('verified', 'published');
+        IF row_count <> 1 THEN RAISE EXCEPTION 'CIDS scoped impact claim is incomplete'; END IF;
+        SELECT count(*) INTO feedback_count
+          FROM kokonut_agent_source.cids_stakeholder_feedback;
+        IF feedback_count <> 1 THEN
+            RAISE EXCEPTION 'CIDS public-feedback allowlist returned %, expected one consented synthetic row',
+                feedback_count;
+        END IF;
+        SELECT pg_catalog.array_agg(attribute.attname::text ORDER BY attribute.attnum)
+          INTO exposed_columns
+          FROM pg_catalog.pg_attribute AS attribute
+          JOIN pg_catalog.pg_class AS relation ON relation.oid = attribute.attrelid
+          JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+         WHERE namespace.nspname = 'kokonut_agent_source'
+           AND relation.relname = 'cids_stakeholder_feedback'
+           AND attribute.attnum > 0 AND NOT attribute.attisdropped;
+        IF exposed_columns IS DISTINCT FROM ARRAY[
+            'id', 'location_id', 'feedback_date', 'stakeholder_group'
+        ]::text[] THEN
+            RAISE EXCEPTION 'CIDS feedback wrapper exposed unexpected columns: %', exposed_columns;
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader', 'public.stakeholder_feedback', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader', 'public.impact_claim', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_login',
+            'kokonut_agent_source.cids_location', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'CIDS source identities can bypass projection views';
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.cids_location', 'INSERT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.cids_location', 'UPDATE'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.cids_location', 'DELETE'
+        ) THEN
+            RAISE EXCEPTION 'CIDS projection reader has write privileges';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.stakeholder_feedback;
+        EXCEPTION WHEN insufficient_privilege THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'CIDS reader selected raw feedback'; END IF;
+        SELECT count(*) INTO row_count FROM kokonut_agent_source.v_public_capital_efficiency_summary;
+        IF row_count <> 0 THEN
+            RAISE EXCEPTION 'CIDS grant unexpectedly authorized synthesis source views';
         END IF;
     END;
     $$;
@@ -1963,7 +2256,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, and 539-545 apply; migrations 530-537 and 539-545 replay",
+        "migrations 405, 419, 521-524, 529-537, and 539-546 apply; migrations 530-537 and 539-546 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -1992,6 +2285,7 @@ def main() -> int:
         "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
+        "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -2006,7 +2300,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis and deterministic summary reads use database-signed ai_summary/read grants; the EBF evidence-gap source uses ebf_scorecard/read. Security-barrier wrappers enforce each exact location and an EBF grant does not authorize synthesis views",
+        "source_reader_note": "shared synthesis and deterministic summary reads use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
         "checks": checks,
     }
     stage = "container_start"
@@ -2031,13 +2325,17 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
+            if migration_path.name.startswith("546_"):
+                stage = "cids_source_fixture"
+                base.psql(docker, container, CIDS_SOURCE_FIXTURE)
+                stage = "migration_546_apply"
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_")):
                 if migration_path.name.startswith("545_"):
                     base.psql(
                         docker,
@@ -2049,6 +2347,17 @@ def main() -> int:
                         "ON kokonut_agent_source.v_ebf_evidence_gap_summary "
                         "TO kokonut_agent_summary_source_reader, "
                         "kokonut_agent_summary_source_login; "
+                        "GRANT USAGE ON SCHEMA kokonut_agent_source "
+                        "TO kokonut_agent_summary_source_login;",
+                    )
+                if migration_path.name.startswith("546_"):
+                    base.psql(
+                        docker,
+                        container,
+                        "GRANT SELECT ON public.stakeholder_feedback, public.impact_claim "
+                        "TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login; "
+                        "GRANT INSERT, UPDATE, DELETE ON kokonut_agent_source.cids_location "
+                        "TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login; "
                         "GRANT USAGE ON SCHEMA kokonut_agent_source "
                         "TO kokonut_agent_summary_source_login;",
                     )
@@ -2081,6 +2390,8 @@ def main() -> int:
         base.psql(docker, container, _source_reader_scope_acceptance())
         stage = "ebf_evidence_gap_signed_source_scope_acceptance"
         base.psql(docker, container, _ebf_source_scope_acceptance())
+        stage = "cids_export_signed_source_scope_acceptance"
+        base.psql(docker, container, _cids_source_acceptance())
         stage = "deterministic_summary_signed_source_view_acceptance"
         base.psql(docker, container, _deterministic_source_reader_acceptance())
         stage = "signed_worker_acceptance"

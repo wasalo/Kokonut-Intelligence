@@ -15,8 +15,6 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
-
 CIDS_CONTEXTS = [
     "https://ontology.commonapproach.org/contexts/cidsContext.jsonld",
     "https://ontology.commonapproach.org/contexts/sffContext.jsonld",
@@ -24,10 +22,6 @@ CIDS_CONTEXTS = [
 CIDS_VERSION = "3.2.0"
 CIDS_BASE_URL = os.environ.get("KOKONUT_CIDS_BASE_URL", "https://kokonut.network/cids")
 SDG_BASE_URL = "https://metadata.un.org/sdg"
-
-
-def get_connection():
-    return get_db()
 
 
 def _json_default(value: Any) -> Any:
@@ -85,8 +79,67 @@ def _ebf_pillar_from_metric(metric_key: str | None) -> str | None:
     return metric_key.removeprefix("ebf_").removesuffix("_score")
 
 
-def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
+def _fetch_scoped_cids_source(conn, location_id: str) -> dict[str, Any]:
+    """Fetch the CIDS projection through signed, exact-location source views."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        queries = (
+            ("location", "SELECT * FROM kokonut_agent_source.cids_location WHERE id = %s"),
+            (
+                "stakeholder_outcomes",
+                "SELECT * FROM kokonut_agent_source.cids_stakeholder_outcome "
+                "WHERE location_id = %s AND status IN ('verified', 'published') "
+                "ORDER BY created_at, id",
+            ),
+            (
+                "framework_mappings",
+                "SELECT * FROM kokonut_agent_source.cids_farm_impact_mapping "
+                "WHERE location_id = %s AND status IN ('verified', 'published') "
+                "ORDER BY framework_key, dimension_key, sdg_number, id",
+            ),
+            (
+                "metric_values",
+                "SELECT DISTINCT ON (metric_key) * "
+                "FROM kokonut_agent_source.cids_metric_value "
+                "WHERE location_id = %s AND verified = TRUE AND active = TRUE "
+                "ORDER BY metric_key, computed_at DESC, metric_value_id DESC",
+            ),
+            (
+                "feedback",
+                "SELECT * FROM kokonut_agent_source.cids_stakeholder_feedback "
+                "WHERE location_id = %s ORDER BY feedback_date, id",
+            ),
+            (
+                "impact_claims",
+                "SELECT * FROM kokonut_agent_source.cids_impact_claim "
+                "WHERE location_id = %s AND status IN ('verified', 'published') "
+                "ORDER BY claim_date, id",
+            ),
+        )
+        result: dict[str, Any] = {}
+        for key, query in queries:
+            cur.execute(query, (location_id,))
+            if key == "location":
+                result[key] = cur.fetchone()
+            else:
+                result[key] = cur.fetchall()
+        if not result["location"]:
+            raise ValueError(f"Location not found: {location_id}")
+        return result
+    finally:
+        close = getattr(cur, "close", None)
+        if close:
+            close()
+
+
+def fetch_cids_source(
+    conn, location_id: str, *, source_schema: str = "public"
+) -> dict[str, Any]:
     """Fetch source rows needed to build the CIDS graph."""
+    if source_schema == "kokonut_agent_source":
+        return _fetch_scoped_cids_source(conn, location_id)
+    if source_schema != "public":
+        raise ValueError("source_schema must be public or kokonut_agent_source")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         cur.execute(
@@ -403,9 +456,11 @@ def _strip_none(value: Any) -> Any:
     return value
 
 
-def export_location(conn, location_id: str) -> dict[str, Any]:
+def export_location(
+    conn, location_id: str, *, source_schema: str = "public"
+) -> dict[str, Any]:
     """Export a location as a CIDS Essential Tier JSON-LD document."""
-    source = fetch_cids_source(conn, location_id)
+    source = fetch_cids_source(conn, location_id, source_schema=source_schema)
     return {
         "@context": CIDS_CONTEXTS,
         "@graph": build_cids_graph(source),
@@ -418,12 +473,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Export Kokonut records as CIDS JSON-LD")
     parser.add_argument("--location-id", required=True, help="Location UUID to export")
     args = parser.parse_args()
+    from services.agents.worker_cli import run_worker_cids_export
 
-    conn = get_connection()
-    try:
-        print(json.dumps(export_location(conn, args.location_id), indent=2, default=_json_default))
-    finally:
-        conn.close()
+    result = run_worker_cids_export(args.location_id)
+    print(json.dumps(result["document"], indent=2, default=_json_default))
 
 
 if __name__ == "__main__":

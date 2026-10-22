@@ -225,17 +225,33 @@ revoked. It runs in a repeatable-read, read-only transaction and rolls back on
 failure. This closes the EBF source boundary only; other non-synthesis agent
 reads and operator authorization remain separate work.
 
-The native PostgreSQL 16 chain through migration 545 passes 32 grouped checks,
+The CIDS Essential Tier export now uses that source login through a separate
+exact `cids_export/read` grant. Migration 546 adds six minimal security-barrier
+projections for the location, published outcomes, impact mappings, verified
+metrics, consent-eligible feedback metadata, and verified impact claims. The
+feedback wrapper deliberately excludes the public-summary text; the existing
+graph builder receives only the fields declared by the projection contract.
+The worker establishes signed context before switching to the NOLOGIN reader
+and runs in a repeatable-read, read-only transaction. Migration-owned RLS
+policies constrain the shared source-view owner to the current exact CIDS
+location and separately preserve the existing `ai_summary/read` views. The
+optional `cids-export-worker` Compose profile receives the source DSN and
+credential only. This does not establish populated-output parity, operator
+grant provisioning, live runtime acceptance, or universal RLS.
+
+The native PostgreSQL 16 chain through migration 546 passes 33 grouped checks,
 including migration replay, no-context denial, exact-location filtering,
 mixed/network behavior, denial for an ungranted location, raw-view and
-credential-table access denial, and EBF stale-grant cleanup. The focused
-migration/EBF/worker/task/profile selection passes 106 tests; Ruff, Python
-compilation, and static worker inventories pass. Candidate and legacy
-databases remain untouched;
-migrations 543–545, source credentials, and exact location grants have not
-been deployed. ARM64/QEMU emulation covers migration 544's disposable source
-boundary, but does not establish physical Raspberry Pi or full-schema
-acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json);
+credential-table access denial, EBF stale-grant cleanup, CIDS forced-RLS
+location scope, CIDS raw-table denial, and preservation of AI-summary scope.
+The focused CIDS/worker/task/preflight/profile selection passes 88 tests; Ruff,
+Python compilation, migration validation, and static worker inventories pass.
+Candidate and legacy databases remain untouched; migrations 543–546, source
+credentials, and exact location grants have not been deployed. ARM64/QEMU
+source-boundary evidence is software emulation only and does not establish
+physical Raspberry Pi or full-schema acceptance ([native CIDS evidence](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-disposable.json);
+[ARM64/QEMU CIDS evidence](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-arm64-disposable.json);
+[native EBF evidence](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json)).
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and

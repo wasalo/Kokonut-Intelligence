@@ -10,6 +10,7 @@ from services.agents import (
     delphi_facilitator_agent,
     ebf_calibration_agent,
     ebf_scorecard_agent,
+    worker_cli,
 )
 
 
@@ -21,7 +22,7 @@ def test_ai_summary_rejects_malformed_location_before_database_access() -> None:
 
 def test_cids_export_rejects_malformed_location_before_database_access() -> None:
     with mock.patch.object(
-        cids_agent, "get_connection", side_effect=AssertionError("database opened")
+        worker_cli, "get_worker_db", side_effect=AssertionError("database opened")
     ):
         with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
             cids_agent.run_cids_export("not-a-uuid")

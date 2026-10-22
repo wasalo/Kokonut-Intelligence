@@ -1,3 +1,29 @@
+### CAP-013 signed CIDS source boundary — 22 October 2026
+
+Migration 546 adds six minimal, security-barrier CIDS projections behind an
+exact signed `cids_export/read` location grant. The CIDS registry CLI and agent
+use the isolated source login in a repeatable-read, read-only transaction; the
+opt-in Compose worker profile receives no shared application database
+identity. Forced-RLS policies enforce the exact CIDS location for the shared
+non-login view owner, while preserving the existing `ai_summary/read` path.
+Feedback text is withheld from the CIDS source worker. The focused
+CIDS/worker/task/preflight/profile selection passes 88 tests; Ruff, Python
+compilation, migration validation, and static worker inventories pass.
+Disposable PostgreSQL 16 applies and replays the chain through migration 546
+with 33 grouped assertions, including exact-location scope, cross-resource
+denial, consent filtering, raw-table denial, stale-grant cleanup, and existing
+AI-summary scope. No candidate or legacy database, provider, or real
+credential was used; migration 546 and worker grants are not deployed.
+Populated CIDS parity, operator grant provisioning, live runtime acceptance,
+universal RLS, and MAN-CAP-013 remain open. Evidence:
+[migration](../schemas/postgres/546_signed_cids_export_source.sql),
+[worker](../services/agents/worker_cli.py),
+[tests](../tests/test_cids_export.py),
+[native disposable acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-disposable.json),
+[ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-cids-export-source-worker-arm64-disposable.json).
+Checklist: 953 complete / 24 open (977 total); capability classifications
+remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-038 signed source boundary for read-only synthesis — 22 October 2026
 
 All ten registered shared-synthesis agents now route read-only `run()` calls

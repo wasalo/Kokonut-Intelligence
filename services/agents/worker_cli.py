@@ -363,6 +363,64 @@ def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str
     return result
 
 
+def run_worker_cids_export(location_id: str) -> dict[str, Any]:
+    """Create the existing CIDS output through a signed location reader."""
+    from services.agents.safety import assert_agent_action_allowed
+    from services.agents.tasks import (
+        validate_output,
+        validate_task_capabilities,
+        validate_task_inputs,
+    )
+
+    validate_task_capabilities("cids_export")
+    input_errors = validate_task_inputs("cids_export", {"location_id": location_id})
+    if input_errors:
+        raise ValueError("; ".join(input_errors))
+    try:
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("location_id must be a UUID") from exc
+    assert_agent_action_allowed("read", "cids_export", {"location_id": location_id})
+
+    credential = get_worker_credential("agent_summary_source")
+    connection = get_worker_db("agent_summary_source")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_source_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            resource="cids_export",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL statement_timeout = '15s'")
+            cursor.execute("SET LOCAL lock_timeout = '3s'")
+        from services.registry.cids_export import export_location
+
+        document = export_location(
+            connection, location_id, source_schema="kokonut_agent_source"
+        )
+        output = {
+            "document": document,
+            "graph_count": len(document.get("@graph", [])),
+            "alignment_tier": document.get("kokonut:alignmentTier"),
+            "cids_version": document.get("kokonut:cidsVersion"),
+        }
+        output_errors = validate_output("cids_export", output)
+        if output_errors:
+            raise ValueError("; ".join(output_errors))
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return output
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate one location-scoped agent draft using the signed worker identity"

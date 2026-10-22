@@ -185,6 +185,35 @@ services:
     profiles:
       - ebf-evidence-gap-worker
 
+  # CIDS export uses the same isolated source login, a separate
+  # cids_export/read grant, and the minimal migration-546 projection views.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile cids-export-worker run --rm cids-export-worker --location-id UUID
+  cids-export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.cids_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - cids-export-worker
+
   event-worker:
     build:
       context: .

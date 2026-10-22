@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 902,
-    "execution_sites": 4498,
+    "execution_sites": 4504,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 333,
-    "sites_without_worker_operation_refs": 4165,
+    "sites_without_worker_operation_refs": 4171,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -16,27 +16,27 @@
       "ROLLBACK": 10,
       "SAVEPOINT": 9,
       "SELECT": 2708,
-      "SET": 402,
-      "UNKNOWN": 198,
+      "SET": 407,
+      "UNKNOWN": 199,
       "UPDATE": 430,
       "WITH": 27
     },
     "statement_groups": {
       "read_candidate": 2708,
       "schema_change": 1,
-      "transaction_or_session": 437,
-      "unknown_requires_manual_review": 198,
+      "transaction_or_session": 442,
+      "unknown_requires_manual_review": 199,
       "with_requires_manual_review": 27,
       "write_candidate": 1127
     },
     "expression_kinds": {
       "composed": 17,
-      "composed_or_variable": 271,
+      "composed_or_variable": 272,
       "fstring": 286,
-      "literal": 3924
+      "literal": 3929
     },
     "relation_candidates": 1197,
-    "sites_without_relation_candidates": 860,
+    "sites_without_relation_candidates": 866,
     "service_packages": 67
   },
   "service_packages": {
@@ -65,14 +65,14 @@
     },
     "agents": {
       "source_files": 28,
-      "execution_sites": 76,
+      "execution_sites": 81,
       "statement_groups": {
         "read_candidate": 59,
-        "transaction_or_session": 16,
+        "transaction_or_session": 21,
         "unknown_requires_manual_review": 1
       },
       "candidate_relation_names": 54,
-      "sites_without_relation_candidates": 20,
+      "sites_without_relation_candidates": 25,
       "non_literal_sites": 31,
       "sites_with_worker_operation_refs": 0
     },
@@ -640,13 +640,14 @@
     },
     "registry": {
       "source_files": 4,
-      "execution_sites": 6,
+      "execution_sites": 7,
       "statement_groups": {
-        "read_candidate": 6
+        "read_candidate": 6,
+        "unknown_requires_manual_review": 1
       },
       "candidate_relation_names": 13,
-      "sites_without_relation_candidates": 0,
-      "non_literal_sites": 0,
+      "sites_without_relation_candidates": 1,
+      "non_literal_sites": 1,
       "sites_with_worker_operation_refs": 0
     },
     "revenue_multiplier": {
@@ -2215,6 +2216,11 @@
     {"id": "services/agents/worker_cli.py:349:12","source": "services/agents/worker_cli.py","line": 349,"column": 12,"scope": "run_worker_ebf_evidence_gap","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "fc02ccf6a436e8106a8681a682fb24adf9bde7db87fd6da4e6fdf931dc7d8e53","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/worker_cli.py:350:12","source": "services/agents/worker_cli.py","line": 350,"column": 12,"scope": "run_worker_ebf_evidence_gap","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/worker_cli.py:351:12","source": "services/agents/worker_cli.py","line": 351,"column": 12,"scope": "run_worker_ebf_evidence_gap","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/agents/worker_cli.py:389:12","source": "services/agents/worker_cli.py","line": 389,"column": 12,"scope": "run_worker_cids_export","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "536900a16f8e0e3b41ae2b5e50b32be256a56180d59389694215738d971b0d56","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/agents/worker_cli.py:398:12","source": "services/agents/worker_cli.py","line": 398,"column": 12,"scope": "run_worker_cids_export","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "5388056b8f5cfa619626a893de7c35ee4dc912a8bb5062564b39cddea738ab65","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/agents/worker_cli.py:399:12","source": "services/agents/worker_cli.py","line": 399,"column": 12,"scope": "run_worker_cids_export","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "fc02ccf6a436e8106a8681a682fb24adf9bde7db87fd6da4e6fdf931dc7d8e53","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/agents/worker_cli.py:400:12","source": "services/agents/worker_cli.py","line": 400,"column": 12,"scope": "run_worker_cids_export","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/agents/worker_cli.py:401:12","source": "services/agents/worker_cli.py","line": 401,"column": 12,"scope": "run_worker_cids_export","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/worker_draft.py:242:8","source": "services/agents/worker_draft.py","line": 242,"column": 8,"scope": "_set_context","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "f01332ffd2953142862fca68f095b2265b0586c95c965588322fb6b45b2ddf6a","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/worker_draft.py:243:8","source": "services/agents/worker_draft.py","line": 243,"column": 8,"scope": "_set_context","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "dd216d5ab20110007934ac340abc5b94368f9c95c1efdf8ad14fa263bdf628fb","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/agents/worker_draft.py:275:8","source": "services/agents/worker_draft.py","line": 275,"column": 8,"scope": "_read_source_references","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "8cb0fd813c6c9aa76fcf01fa4b8a16342004c9448c03932288b8d6eab6fdb875","operation_refs": [],"statement_group": "read_candidate"},
@@ -6060,12 +6066,13 @@
     {"id": "services/rdf/triple_store.py:125:12","source": "services/rdf/triple_store.py","line": 125,"column": 12,"scope": "count_triples","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["rdf_named_graph","rdf_triple"],"static_sql_sha256": "086cfedb065e1ee0e76fa1090f6cc19c8efc55d2522338f131013ad210bfa120","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/rdf/triple_store.py:136:12","source": "services/rdf/triple_store.py","line": 136,"column": 12,"scope": "count_triples","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["rdf_named_graph","rdf_triple"],"static_sql_sha256": "9b2919949e474b746392e1d81467bdbcf89bd87565ed99b6b2db79cd88828673","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/rdf/triple_store.py:162:13","source": "services/rdf/triple_store.py","line": 162,"column": 13,"scope": "delete_triples","method": "execute","expression_kind": "fstring","statement_kind": "DELETE","candidate_relations": ["rdf_triple"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/registry/cids_export.py:92:8","source": "services/registry/cids_export.py","line": 92,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm","farm_registry_record","location"],"static_sql_sha256": "f715371f7070aa0c9b0d9604dcfdd336dcb84bdd194a4b3af2b0788bcf18b014","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/registry/cids_export.py:113:8","source": "services/registry/cids_export.py","line": 113,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","stakeholder_outcome"],"static_sql_sha256": "a2f98f3ad0551023053b1c4e2dd0302b0c4b8c7ea6e615530ac229e953fca80a","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/registry/cids_export.py:125:8","source": "services/registry/cids_export.py","line": 125,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm_impact_mapping","form_of_capital","pillar_of_value","sdg"],"static_sql_sha256": "653f55b4f0779aaba4b91907777bee494a7a0b8fecced2dfd71631e4265fbd94","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/registry/cids_export.py:139:8","source": "services/registry/cids_export.py","line": 139,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["metric_definition","metric_value"],"static_sql_sha256": "b5f234d5e686442b204daa422939c7eb44673864ac269a1b2a5fd233db7cdeda","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/registry/cids_export.py:155:8","source": "services/registry/cids_export.py","line": 155,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","stakeholder_feedback"],"static_sql_sha256": "7a92624d91cd588131834bdfe4b9b37d1ec83fb5c258e3a50657ecfe76d071fd","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/registry/cids_export.py:172:8","source": "services/registry/cids_export.py","line": 172,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","impact_claim"],"static_sql_sha256": "358adf6243e5494230ec443d0f118c8392efaddd07fcc6c19ea1383381fa3164","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:121:12","source": "services/registry/cids_export.py","line": 121,"column": 12,"scope": "_fetch_scoped_cids_source","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/registry/cids_export.py:145:8","source": "services/registry/cids_export.py","line": 145,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm","farm_registry_record","location"],"static_sql_sha256": "f715371f7070aa0c9b0d9604dcfdd336dcb84bdd194a4b3af2b0788bcf18b014","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:166:8","source": "services/registry/cids_export.py","line": 166,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","stakeholder_outcome"],"static_sql_sha256": "a2f98f3ad0551023053b1c4e2dd0302b0c4b8c7ea6e615530ac229e953fca80a","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:178:8","source": "services/registry/cids_export.py","line": 178,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm_impact_mapping","form_of_capital","pillar_of_value","sdg"],"static_sql_sha256": "653f55b4f0779aaba4b91907777bee494a7a0b8fecced2dfd71631e4265fbd94","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:192:8","source": "services/registry/cids_export.py","line": 192,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["metric_definition","metric_value"],"static_sql_sha256": "b5f234d5e686442b204daa422939c7eb44673864ac269a1b2a5fd233db7cdeda","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:208:8","source": "services/registry/cids_export.py","line": 208,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","stakeholder_feedback"],"static_sql_sha256": "7a92624d91cd588131834bdfe4b9b37d1ec83fb5c258e3a50657ecfe76d071fd","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/registry/cids_export.py:225:8","source": "services/registry/cids_export.py","line": 225,"column": 8,"scope": "fetch_cids_source","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["evidence_maturity_level","impact_claim"],"static_sql_sha256": "358adf6243e5494230ec443d0f118c8392efaddd07fcc6c19ea1383381fa3164","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/revenue_multiplier/analyzer.py:105:4","source": "services/revenue_multiplier/analyzer.py","line": 105,"column": 4,"scope": "_get_location_name","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "4cee3d58bb03486cdfce593435e79c13dc952d5e74054949b7f4d7b55a4b1972","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/revenue_multiplier/config.py:106:12","source": "services/revenue_multiplier/config.py","line": 106,"column": 12,"scope": "_load_config","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["revenue_multiplier_config"],"static_sql_sha256": "a7e8d38dac6e26bfdc94d4793a4037630ff480102a64b5e4e3f0518d39b6ca66","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/revenue_multiplier/dimensions/bioinput.py:17:4","source": "services/revenue_multiplier/dimensions/bioinput.py","line": 17,"column": 4,"scope": "analyze","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["expense_event"],"static_sql_sha256": "1bb26d6250648da906fe0b522dc6b76919a776f2560c4e58261a5a5fc07c6fbc","operation_refs": [],"statement_group": "read_candidate"},

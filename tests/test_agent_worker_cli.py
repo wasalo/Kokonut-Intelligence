@@ -821,6 +821,85 @@ def test_source_only_cli_rejects_deterministic_summary_before_dispatch(monkeypat
     summary.assert_not_called()
 
 
+def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(monkeypatch):
+    connection, cursor = _source_connection()
+    events = []
+    context_setter = MagicMock(
+        side_effect=lambda *_args, **_kwargs: events.append("signed-context")
+    )
+    source_factory = MagicMock(return_value=connection)
+    action_policy = MagicMock()
+    document = {
+        "@graph": [{"@type": "cids:Organization"}],
+        "kokonut:alignmentTier": "essential",
+        "kokonut:cidsVersion": "3.2.0",
+    }
+    exporter = MagicMock(side_effect=lambda *_args, **_kwargs: events.append("export") or document)
+    monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
+    monkeypatch.setattr(worker_cli, "set_agent_source_tenant_context", context_setter)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", action_policy
+    )
+    monkeypatch.setattr("services.registry.cids_export.export_location", exporter)
+
+    result = worker_cli.run_worker_cids_export(LOCATION_ID)
+
+    statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
+    assert statements == [
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
+        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL statement_timeout = '15s'",
+        "SET LOCAL lock_timeout = '3s'",
+    ]
+    context_setter.assert_called_once_with(
+        connection,
+        credential="s" * 40,
+        location_id=LOCATION_ID,
+        resource="cids_export",
+        action="read",
+    )
+    source_factory.assert_called_once_with("agent_summary_source")
+    exporter.assert_called_once_with(
+        connection, LOCATION_ID, source_schema="kokonut_agent_source"
+    )
+    action_policy.assert_called_once_with(
+        "read", "cids_export", {"location_id": LOCATION_ID}
+    )
+    assert events == ["signed-context", "export"]
+    assert result == {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+    }
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_cids_worker_rolls_back_and_closes_when_projection_fails(monkeypatch):
+    connection, _cursor = _source_connection()
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(
+        worker_cli,
+        "set_agent_source_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+    monkeypatch.setattr(
+        "services.registry.cids_export.export_location",
+        MagicMock(side_effect=RuntimeError("synthetic source failure")),
+    )
+
+    with pytest.raises(RuntimeError, match="synthetic source failure"):
+        worker_cli.run_worker_cids_export(LOCATION_ID)
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 @pytest.mark.parametrize(
     ("extra_args", "message"),
     [
