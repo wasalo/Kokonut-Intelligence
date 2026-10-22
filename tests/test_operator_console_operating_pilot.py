@@ -27,6 +27,8 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
+    assert 'id="operating-pilot-capacity-review-dialog"' in source
+    assert 'id="operating-pilot-capacity-review-acknowledged"' in source
     assert "including your private notes" in panel.group()
     assert "Work-claim activity" in panel.group()
     assert "Resource-request categories" in panel.group()
@@ -215,7 +217,7 @@ def test_capacity_revision_replaces_only_own_draft_under_separate_edit_own_grant
     assert "profileId, ...payload" in submit
     assert "operatingPilotPendingCapacityCreate.request_id" in submit
     assert "prior version is retained as superseded" in submit
-    assert 'item.status === "draft" && item.source === "self_reported"' in edit_row
+    assert '["draft", "rejected"].includes(item.status) && item.source === "self_reported"' in edit_row
     assert "startOperatingPilotCapacityEdit(item, locationId)" in edit_row
     assert "innerHTML" not in edit_row
     assert "operatingPilotOwnCapacityLocations.has(locationId)" in source
@@ -264,7 +266,7 @@ def test_capacity_review_queue_has_separate_grant_and_omits_identity_and_notes()
     assert "capacity-review-queue?${params}" in reader
     assert 'credentials: "same-origin"' in reader
     assert 'cache: "no-store"' in reader
-    assert "appendOperatingPilotRow(operatingPilotCapacityReviewRows" in reader
+    assert "appendOperatingPilotCapacityReviewRow(item, locationId)" in reader
     assert "innerHTML" not in reader
     assert "party_id" not in reader
     assert "item.notes" not in reader
@@ -276,6 +278,54 @@ def test_capacity_review_queue_has_separate_grant_and_omits_identity_and_notes()
     assert "await loadOperatingPilotCapacityReviewQueue()" in initialize
     assert "...operatingPilotCapacityReviewLocationIds" in source
     assert 'click", () => loadOperatingPilotCapacityReviewQueue(true)' in source
+
+
+def test_capacity_review_decision_requires_acknowledgement_csrf_and_exact_retry_id():
+    source = CONSOLE.read_text(encoding="utf-8")
+    row = _function(
+        source,
+        "function appendOperatingPilotCapacityReviewRow(item, locationId)",
+        "function syncOperatingPilotCapacityReviewReason()",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotCapacityReview(event)",
+        "async function loadOperatingPilot()",
+    )
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in row
+    assert 'review.textContent = "Review submission"' in row
+    assert 'operatingPilotCapacityReviewReason.required = rejecting' in source
+    assert "if (decision === \"rejected\" && !reason)" in submit
+    assert "operatingPilotCapacityReviewAcknowledged.checked" in submit
+    assert "operatingPilotPendingCapacityReviewDecisions.get(pending.profile_id)" in submit
+    assert "pendingRequest.signature !== signature" in submit
+    assert "crypto.randomUUID()" in submit
+    assert "csrfToken()" in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "/capacity-profiles/${encodeURIComponent(pending.profile_id)}/review" in submit
+    assert "operatingPilotPendingCapacityReviewDecisions.delete(pending.profile_id)" in submit
+    assert "Retry with the same decision and reason to reuse the request ID." in submit
+
+
+def test_rejected_own_capacity_records_can_be_revised_but_not_resubmitted_as_is():
+    source = CONSOLE.read_text(encoding="utf-8")
+    edit = _function(
+        source,
+        "function startOperatingPilotCapacityEdit(item, locationId)",
+        "function appendOperatingPilotOwnCapacityRow(item, locationId)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnCapacityRow(item, locationId)",
+        "async function submitOperatingPilotCapacityProfile(item, locationId, button)",
+    )
+    assert '["draft", "rejected"].includes(item.status)' in edit
+    assert '["draft", "rejected"].includes(item.status)' in row
+    assert 'item.status === "rejected" ? "Revise rejected submission"' in row
+    assert 'item.status === "draft" || hasPendingSubmission' in row
 
 
 def test_create_only_location_can_open_draft_form_without_reading_queues():

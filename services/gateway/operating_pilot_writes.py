@@ -128,6 +128,25 @@ def _normalize_capacity_payload(payload: Any) -> tuple[date, date, Decimal, Deci
     )
 
 
+def _normalize_capacity_review_payload(payload: Any) -> tuple[str, str | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Capacity review body must be an object")
+    decision = payload.get("decision")
+    if not isinstance(decision, str) or decision not in {"approved", "rejected"}:
+        raise OperatingPilotWriteInvalid("Decision must be approved or rejected")
+    reason = payload.get("reason")
+    if reason is not None:
+        if not isinstance(reason, str) or len(reason) > 2000 or "\x00" in reason:
+            raise OperatingPilotWriteInvalid("Review reason must be text of at most 2000 characters")
+        reason = reason.strip() or None
+    if decision == "rejected" and reason is None:
+        raise OperatingPilotWriteInvalid("A reason is required when rejecting a capacity submission")
+    unexpected = set(payload) - {"decision", "reason"}
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Capacity review contains unsupported fields")
+    return decision, reason
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -237,7 +256,7 @@ def revise_location_operating_pilot_capacity_draft(
     *,
     connection_factory: Callable | None = None,
 ) -> dict:
-    """Supersede and replace only the caller's own unsubmitted capacity draft."""
+    """Supersede and replace the caller's own draft or rejected capacity record."""
     operator_id = _normalize_uuid(operator_id, "operator")
     location_id = _normalize_uuid(location_id, "location")
     profile_id = _normalize_uuid(profile_id, "profile")
@@ -321,6 +340,54 @@ def submit_location_operating_pilot_capacity_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot capacity submission returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_operating_pilot_capacity(
+    operator_id: str,
+    location_id: str,
+    profile_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record one exact-location independent approve/reject decision."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    profile_id = _normalize_uuid(profile_id, "profile")
+    request_id = _normalize_uuid(request_id, "request")
+    decision, reason = _normalize_capacity_review_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.review_location_operating_pilot_capacity(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text)""",
+                (location_id, profile_id, request_id, decision, reason),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot capacity review returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

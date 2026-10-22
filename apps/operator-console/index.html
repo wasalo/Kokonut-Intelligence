@@ -636,17 +636,34 @@
           </section>
           <section id="operating-pilot-capacity-review" hidden aria-labelledby="operating-pilot-capacity-review-heading">
             <h3 id="operating-pilot-capacity-review-heading">Independent capacity review queue</h3>
-            <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity and private notes and does not record a decision.</p>
+              <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity and private notes. Decisions are recorded separately from submission and remain in the audit ledger when a rejected record is revised.</p>
             <div class="toolbar"><button id="operating-pilot-capacity-review-refresh" type="button">Refresh review queue</button></div>
             <p id="operating-pilot-capacity-review-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Record</th><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Updated</th></tr></thead>
+                <thead><tr><th>Record</th><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-capacity-review-rows"></tbody>
               </table>
             </div>
             <button id="operating-pilot-capacity-review-more" class="secondary" type="button" hidden>Load more submissions</button>
           </section>
+          <dialog id="operating-pilot-capacity-review-dialog" aria-labelledby="operating-pilot-capacity-review-dialog-heading">
+            <form id="operating-pilot-capacity-review-form">
+              <h3 id="operating-pilot-capacity-review-dialog-heading">Review submitted capacity</h3>
+              <p id="operating-pilot-capacity-review-profile" class="muted"></p>
+              <label for="operating-pilot-capacity-review-decision">Decision</label>
+              <select id="operating-pilot-capacity-review-decision" required>
+                <option value="approved">Approve submission</option>
+                <option value="rejected">Reject and return for revision</option>
+              </select>
+              <label id="operating-pilot-capacity-review-reason-label" for="operating-pilot-capacity-review-reason" hidden>Reason for rejection</label>
+              <textarea id="operating-pilot-capacity-review-reason" maxlength="2000" rows="4" hidden></textarea>
+              <label><input id="operating-pilot-capacity-review-acknowledged" type="checkbox" required> I reviewed this submission and am authorized to record this decision.</label>
+              <p id="operating-pilot-capacity-review-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-capacity-review-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-capacity-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
           <h3>Demand signals</h3>
           <p id="operating-pilot-demand-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
@@ -1832,6 +1849,16 @@
       const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
       const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
       const operatingPilotCapacityReviewMore = document.querySelector("#operating-pilot-capacity-review-more");
+      const operatingPilotCapacityReviewDialog = document.querySelector("#operating-pilot-capacity-review-dialog");
+      const operatingPilotCapacityReviewForm = document.querySelector("#operating-pilot-capacity-review-form");
+      const operatingPilotCapacityReviewProfile = document.querySelector("#operating-pilot-capacity-review-profile");
+      const operatingPilotCapacityReviewDecision = document.querySelector("#operating-pilot-capacity-review-decision");
+      const operatingPilotCapacityReviewReason = document.querySelector("#operating-pilot-capacity-review-reason");
+      const operatingPilotCapacityReviewReasonLabel = document.querySelector("#operating-pilot-capacity-review-reason-label");
+      const operatingPilotCapacityReviewAcknowledged = document.querySelector("#operating-pilot-capacity-review-acknowledged");
+      const operatingPilotCapacityReviewDecisionStatus = document.querySelector("#operating-pilot-capacity-review-decision-status");
+      const operatingPilotCapacityReviewSubmit = document.querySelector("#operating-pilot-capacity-review-submit");
+      let operatingPilotPendingCapacityReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
@@ -1842,6 +1869,7 @@
       let operatingPilotPendingCapacityCreate = null;
       let operatingPilotPendingCapacityEdit = null;
       const operatingPilotPendingCapacitySubmissions = new Map();
+      const operatingPilotPendingCapacityReviewDecisions = new Map();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
@@ -2690,7 +2718,7 @@
         if (locationId !== operatingPilotLocation.value
             || !operatingPilotOwnCapacityLocations.has(locationId)
             || !operatingPilotEditOwnCapacityLocations.has(locationId)
-            || item.status !== "draft"
+            || !["draft", "rejected"].includes(item.status)
             || item.source !== "self_reported") return;
         operatingPilotPendingCapacityEdit = { profile_id: item.profile_id, location_id: locationId };
         operatingPilotPendingCapacityCreate = null;
@@ -2700,10 +2728,12 @@
         document.querySelector("#operating-pilot-capacity-create-committed").value = item.committed_hours ?? "0";
         document.querySelector("#operating-pilot-capacity-create-protected").value = item.protected_hours ?? "0";
         document.querySelector("#operating-pilot-capacity-create-notes").value = item.notes || "";
-        operatingPilotCapacityCreateHeading.textContent = "Revise your private capacity draft";
+        operatingPilotCapacityCreateHeading.textContent = item.status === "rejected"
+          ? "Revise your rejected capacity submission"
+          : "Revise your private capacity draft";
         document.querySelector("#operating-pilot-capacity-create-submit").textContent = "Save revised draft";
         operatingPilotCapacityEditCancel.hidden = false;
-        operatingPilotCapacityCreateStatus.textContent = "Only your self-reported draft can be revised. The previous version will remain in your history.";
+        operatingPilotCapacityCreateStatus.textContent = "Only your own self-reported draft or rejected submission can be revised. The previous version and any review decision remain in the audit history.";
         operatingPilotCapacityCreate.scrollIntoView({ block: "nearest" });
       }
 
@@ -2725,11 +2755,11 @@
         }
         const actionCell = document.createElement("td");
         if (operatingPilotEditOwnCapacityLocations.has(locationId)
-            && item.status === "draft" && item.source === "self_reported") {
+            && ["draft", "rejected"].includes(item.status) && item.source === "self_reported") {
           const edit = document.createElement("button");
           edit.type = "button";
           edit.className = "secondary";
-          edit.textContent = "Edit your draft";
+          edit.textContent = item.status === "rejected" ? "Revise rejected submission" : "Edit your draft";
           edit.addEventListener("click", () => startOperatingPilotCapacityEdit(item, locationId));
           actionCell.append(edit);
         }
@@ -3082,14 +3112,7 @@
           if (requestVersion !== operatingPilotCapacityReviewRequestVersion
               || locationId !== operatingPilotLocation.value) return;
           for (const item of result.items || []) {
-            appendOperatingPilotRow(operatingPilotCapacityReviewRows, [
-              item.profile_id,
-              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
-              item.available_hours,
-              item.committed_hours,
-              item.protected_hours,
-              item.updated_at
-            ]);
+            appendOperatingPilotCapacityReviewRow(item, locationId);
           }
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
@@ -3110,6 +3133,111 @@
               && locationId === operatingPilotLocation.value) {
             operatingPilotCapacityReviewMore.disabled = false;
           }
+        }
+      }
+
+      function appendOperatingPilotCapacityReviewRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.profile_id,
+          `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+          item.available_hours,
+          item.committed_hours,
+          item.protected_hours,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const review = document.createElement("button");
+        review.type = "button";
+        review.className = "secondary";
+        review.textContent = "Review submission";
+        review.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotCapacityReviewLocations.has(locationId)) return;
+          operatingPilotPendingCapacityReview = { profile_id: item.profile_id, location_id: locationId };
+          operatingPilotCapacityReviewForm.reset();
+          operatingPilotCapacityReviewReason.value = "";
+          operatingPilotCapacityReviewProfile.textContent = `Record ${operatingPilotDisplayValue(item.profile_id)}`;
+          operatingPilotCapacityReviewDecisionStatus.textContent = "A rejection requires a reason. Exact retries reuse their request ID.";
+          syncOperatingPilotCapacityReviewReason();
+          operatingPilotCapacityReviewDialog.showModal();
+        });
+        actionCell.append(review);
+        row.append(actionCell);
+        operatingPilotCapacityReviewRows.append(row);
+      }
+
+      function syncOperatingPilotCapacityReviewReason() {
+        const rejecting = operatingPilotCapacityReviewDecision.value === "rejected";
+        operatingPilotCapacityReviewReason.hidden = !rejecting;
+        operatingPilotCapacityReviewReasonLabel.hidden = !rejecting;
+        operatingPilotCapacityReviewReason.required = rejecting;
+      }
+
+      async function submitOperatingPilotCapacityReview(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingCapacityReview;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(pending.location_id)) return;
+        const decision = operatingPilotCapacityReviewDecision.value;
+        const reason = operatingPilotCapacityReviewReason.value.trim();
+        if (decision === "rejected" && !reason) {
+          operatingPilotCapacityReviewDecisionStatus.textContent = "Enter a reason before rejecting this submission.";
+          operatingPilotCapacityReviewReason.focus();
+          return;
+        }
+        if (!operatingPilotCapacityReviewAcknowledged.checked) {
+          operatingPilotCapacityReviewDecisionStatus.textContent = "Confirm that you reviewed the submission and are authorized to decide.";
+          operatingPilotCapacityReviewAcknowledged.focus();
+          return;
+        }
+        const payload = { decision, reason: reason || null };
+        const signature = JSON.stringify(payload);
+        let pendingRequest = operatingPilotPendingCapacityReviewDecisions.get(pending.profile_id);
+        if (!pendingRequest || pendingRequest.signature !== signature) {
+          pendingRequest = { request_id: crypto.randomUUID(), signature };
+          operatingPilotPendingCapacityReviewDecisions.set(pending.profile_id, pendingRequest);
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotCapacityReviewDecisionStatus.textContent = "Refresh the page to establish a protected session before deciding.";
+          return;
+        }
+        operatingPilotCapacityReviewSubmit.disabled = true;
+        operatingPilotCapacityReviewDecisionStatus.textContent = "Recording independent review decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/capacity-profiles/${encodeURIComponent(pending.profile_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pendingRequest.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.profile_id !== pending.profile_id || result.decision !== decision) {
+            throw new Error("The review response did not match this decision. Retry using the same request.");
+          }
+          operatingPilotPendingCapacityReviewDecisions.delete(pending.profile_id);
+          operatingPilotPendingCapacityReview = null;
+          operatingPilotCapacityReviewDialog.close();
+          operatingPilotCapacityReviewStatus.textContent = `${decision === "approved" ? "Approved" : "Rejected for revision"} submission recorded${result.replayed ? " (confirmed retry)" : ""}.`;
+          await loadOperatingPilotCapacityReviewQueue();
+          if (operatingPilotOwnCapacityLocations.has(pending.location_id)) {
+            await loadOperatingPilotOwnCapacityProfiles();
+          }
+        } catch (error) {
+          operatingPilotCapacityReviewDecisionStatus.textContent = `${error.message} Retry with the same decision and reason to reuse the request ID.`;
+        } finally {
+          operatingPilotCapacityReviewSubmit.disabled = false;
         }
       }
 
@@ -15953,6 +16081,15 @@
       operatingPilotDemandCreateForm.addEventListener("submit", submitOperatingPilotDemandDraft);
       operatingPilotCapacityCreateForm.addEventListener("submit", submitOperatingPilotCapacityDraft);
       operatingPilotCapacityEditCancel.addEventListener("click", cancelOperatingPilotCapacityEdit);
+      operatingPilotCapacityReviewDecision.addEventListener("change", syncOperatingPilotCapacityReviewReason);
+      operatingPilotCapacityReviewForm.addEventListener("submit", submitOperatingPilotCapacityReview);
+      document.querySelector("#operating-pilot-capacity-review-cancel").addEventListener("click", () => {
+        operatingPilotPendingCapacityReview = null;
+        operatingPilotCapacityReviewDialog.close();
+      });
+      operatingPilotCapacityReviewDialog.addEventListener("cancel", () => {
+        operatingPilotPendingCapacityReview = null;
+      });
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));

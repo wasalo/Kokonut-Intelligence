@@ -1,3 +1,35 @@
+### CAP-037 independent capacity review decisions — 22 October 2026
+
+Completed the next CAP-037 workflow slice. `POST
+/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review`
+now records an independent `approved` or `rejected` decision under the exact
+location `operating_pilot:review` grant. Migration 558 locks the active human
+binding, requires a submitted self-reported profile from the active Adelphi
+scope, excludes self-review, and commits the profile transition with a private
+append-only decision/idempotency receipt. Rejections require a reason and
+return the submitter's record for revision; revising it creates a new draft
+while retaining the old version and decision history. Runtime and Directus
+cannot directly update profile status or access decision receipts.
+
+The console now requires an explicit authorization acknowledgement, sends
+CSRF-protected `no-store` requests, reuses request IDs only for exact retries,
+and lets submitters revise their own rejected records under `edit_own`. The
+combined focused Gateway, route-policy, console, and migration-metadata
+selection passes 179 tests; Ruff, Python compilation, and inline JavaScript
+syntax checks pass. Network-disabled
+disposable PostgreSQL 16 applies/replays migrations 461/479/480/526/538/552/
+553/554/555/556/557/558 with 52 grouped assertions covering approval,
+rejection, missing reasons, self-review denial, exact retry and conflict,
+rejected-record revision, append-only history, and runtime/Directus role
+boundaries ([native evidence](builds/2026-10-22-recovery/cap-037-capacity-review-decisions-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-capacity-review-decisions-arm64-disposable.json)).
+Runtime SQL inventory is current at 4,534 execution sites. Candidate and legacy
+databases remain untouched; migration 558 is not rolled out. CAP-037 remains
+prepared (`P`) pending other item workflows, populated
+parity, live OIDC/browser, production ACL/RLS and recovery, privacy/audience
+review, and owner acceptance. Checklist: 984 complete / 24 open (1,008 total);
+capability matrix remains 30 baseline-retained, 7 deployed, and 29 prepared
+across 66 entries.
+
 ### CAP-037 independent capacity review queue — 22 October 2026
 
 Added a read-only submitted-capacity review queue at

@@ -235,9 +235,36 @@ belonging to that same party, preventing self-review. Results are ordered by
 update time and profile ID, with total count and bounded paging metadata.
 Reviewers see the record ID, period, available/committed/protected hours, and
 last-update timestamp. Party identity, scope IDs, source metadata, and private
-notes remain inside PostgreSQL. The endpoint is read-only: it cannot verify,
-approve, reject, or otherwise change lifecycle state. An independent decision
-route remains a separate implementation slice.
+notes remain inside PostgreSQL. This queue endpoint remains read-only; decisions
+use a separate action below.
+
+## Capacity review decisions
+
+`POST /operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review`
+uses the same separate exact `operating_pilot:review` location grant, signed
+tenant context, same-transaction database connection, CSRF protection, and
+no-store response. The request contains a UUID `request_id`, a decision of
+`approved` or `rejected`, and an optional reason of at most 2,000 characters.
+Rejection requires a non-empty reason. The console requires an explicit review
+acknowledgement and preserves the request ID for an exact retry; changing the
+decision or reason starts a distinct request.
+
+Migration 558 rechecks the active exact location grant, the active Adelphi farm
+mapping, and exactly one enabled operator-to-human-party binding. Binding,
+operator, and party rows are locked while the decision runs. The target must be
+a submitted, self-reported profile in that farm, and its owner must differ from
+the reviewer. Only one terminal decision can be recorded for a profile. The
+profile status update and private append-only decision receipt commit in the
+same transaction; the response contains only profile ID, decision/status, and
+the replay flag. A reviewer cannot set lifecycle state directly, and runtime
+and Directus have no direct status update or receipt access. The non-login
+function owner has only the required profile status and receipt columns.
+
+Approval changes `submitted` to `approved`. Rejection changes it to `rejected`
+and returns the record to the submitter's own-history surface. With the
+separate `operating_pilot:edit_own` grant, the submitter can revise a rejected
+record into a new draft; the old record becomes `superseded` and the original
+decision receipt remains tied to it. Rejection is not deletion or approval.
 
 ## Capacity-period page
 
@@ -352,26 +379,29 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, and 556, exercises active and internal scopes, checks aggregate
+554, 555, 556, 557, and 558, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
 revision and submission replay, old-version preservation, collision rollback,
-submission eligibility, and data redaction; it also
+submission eligibility, capacity approval/rejection, rejection-reason
+validation, reviewer self-denial, exact retry/collision behavior, rejected-record
+revision, append-only decision history, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, or 556 are applied, retain their ordered functions, receipts, roles, and
-ACLs; disable only the affected route. Do not delete created drafts or edit or
+554, 555, 556, 557, or 558 are applied, retain their ordered functions, receipts,
+roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
 
 ## Remaining gates
 
-These slices do not establish populated Adelphi scope mapping, item-level
-capacity review, work-claim/competency/learning/resource/coaching workflows, demand
+These slices do not establish populated Adelphi scope mapping, additional
+capacity workflows beyond own drafts/revision and independent approve/reject,
+work-claim/competency/learning/resource/coaching workflows, demand
 submission/review/fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates
