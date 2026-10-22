@@ -73,6 +73,18 @@ REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public
 REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public
     FROM kokonut_agent_summary_source_reader;
 
+-- A replay may encounter a source login that predates this exact boundary.
+-- Remove any direct application grants from that login as well; it only needs
+-- the bounded context setter in kokonut_security before SET ROLE to the reader.
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public
+    FROM kokonut_agent_summary_source_login;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public
+    FROM kokonut_agent_summary_source_login;
+REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public
+    FROM kokonut_agent_summary_source_login;
+REVOKE CREATE ON SCHEMA public
+    FROM kokonut_agent_summary_source_login;
+
 GRANT SELECT ON TABLE
     public.v_public_adaptive_stewardship_summary,
     public.v_public_adoption_barrier_assessment,

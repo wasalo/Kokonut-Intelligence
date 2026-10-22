@@ -14916,3 +14916,22 @@ recovery acceptance remain open. Checklist: 959 complete / 24 open (983 total);
 capability matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66
 rows. Evidence: [native schema replay](builds/2026-10-22-recovery/native-current-schema-548.json),
 [ARM64/QEMU schema replay](builds/2026-10-22-recovery/arm64-qemu-current-schema-548.json).
+
+
+### CAP-038 synthesis source-login stale ACL cleanup — 22 October 2026
+
+Migration 541 now removes stale direct table, sequence, function, and
+`public`-schema `CREATE` grants from `kokonut_agent_summary_source_login`
+before restoring its bounded source-reader role. This closes a replay gap where
+the role could otherwise retain direct application access despite the NOLOGIN
+reader's allowlist. The focused disposable PostgreSQL 16 chain through migration
+548 passes all 36 assertions on native AMD64 and ARM64/QEMU (`aarch64`), including
+synthetic stale-grant removal; `tests/test_migration.py` passes 36 tests. Ruff,
+Python compilation, and `git diff --check` pass. The disposable databases used
+synthetic roles and data with network disabled; candidate and legacy databases
+were untouched. This does not establish source credential provisioning,
+populated-output parity, or MAN-CAP-038 acceptance. The capability matrix
+continues to show 30 baseline-retained, 7 deployed, and 29 prepared entries
+across 66 capabilities; the checklist is 960 complete / 24 open (984 total).
+Evidence: [native source-reader check](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-disposable.json),
+[ARM64/QEMU source-reader check](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-arm64-disposable.json).

@@ -2568,7 +2568,7 @@ def main() -> int:
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "synthesis source login can invoke only its bounded context setter; the reader sees 40 signed location-filtered wrappers, no raw/private/security tables, and explicit network/mixed-scope behavior",
-        "migration 541 revokes PUBLIC SELECT on both pg_stat_statements relations so global query telemetry cannot leak through inherited privileges",
+        "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
         "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
@@ -2666,8 +2666,28 @@ def main() -> int:
                     "IF to_regclass('public.pg_stat_statements_info') IS NULL THEN "
                     "CREATE TABLE public.pg_stat_statements_info (dealloc bigint); END IF; "
                     "END $$; "
+                    "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles "
+                    "WHERE rolname = 'kokonut_agent_summary_source_login') THEN "
+                    "CREATE ROLE kokonut_agent_summary_source_login NOLOGIN NOINHERIT "
+                    "NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; "
+                    "END IF; END $$; "
                     "GRANT SELECT ON TABLE public.pg_stat_statements, "
-                    "public.pg_stat_statements_info TO PUBLIC;",
+                    "public.pg_stat_statements_info TO PUBLIC; "
+                    "GRANT SELECT ON TABLE public.pg_stat_statements, "
+                    "public.pg_stat_statements_info "
+                    "TO kokonut_agent_summary_source_login; "
+                    "CREATE SEQUENCE public.kokonut_agent_source_acl_fixture_seq; "
+                    "GRANT USAGE, SELECT, UPDATE ON SEQUENCE "
+                    "public.kokonut_agent_source_acl_fixture_seq "
+                    "TO kokonut_agent_summary_source_login; "
+                    "CREATE FUNCTION public.kokonut_agent_source_acl_fixture_fn() "
+                    "RETURNS integer LANGUAGE SQL IMMUTABLE AS 'SELECT 1'; "
+                    "REVOKE ALL ON FUNCTION public.kokonut_agent_source_acl_fixture_fn() "
+                    "FROM PUBLIC; "
+                    "GRANT EXECUTE ON FUNCTION public.kokonut_agent_source_acl_fixture_fn() "
+                    "TO kokonut_agent_summary_source_login; "
+                    "GRANT CREATE ON SCHEMA public "
+                    "TO kokonut_agent_summary_source_login;",
                 )
                 stage = "migration_541_apply"
             base.psql(docker, container, sql)
@@ -2684,12 +2704,28 @@ def main() -> int:
                     "relation_oid, 'SELECT') THEN "
                     "RAISE EXCEPTION 'source reader inherited query statistics access'; "
                     "END IF; "
+                    "IF has_table_privilege('kokonut_agent_summary_source_login', "
+                    "relation_oid, 'SELECT') THEN "
+                    "RAISE EXCEPTION 'source login retained query-statistics access'; "
+                    "END IF; "
                     "IF EXISTS (SELECT 1 FROM pg_class AS relation "
                     "CROSS JOIN LATERAL aclexplode(relation.relacl) AS acl "
                     "WHERE relation.oid = relation_oid AND acl.grantee = 0 "
                     "AND acl.privilege_type = 'SELECT') THEN "
                     "RAISE EXCEPTION 'PUBLIC retained query statistics access'; "
-                    "END IF; END LOOP; END $$;",
+                    "END IF; END LOOP; "
+                    "IF has_sequence_privilege('kokonut_agent_summary_source_login', "
+                    "'public.kokonut_agent_source_acl_fixture_seq', 'USAGE') THEN "
+                    "RAISE EXCEPTION 'source login retained a direct sequence grant'; "
+                    "END IF; "
+                    "IF has_function_privilege('kokonut_agent_summary_source_login', "
+                    "'public.kokonut_agent_source_acl_fixture_fn()', 'EXECUTE') THEN "
+                    "RAISE EXCEPTION 'source login retained a direct function grant'; "
+                    "END IF; "
+                    "IF has_schema_privilege('kokonut_agent_summary_source_login', "
+                    "'public', 'CREATE') THEN "
+                    "RAISE EXCEPTION 'source login retained public schema CREATE'; "
+                    "END IF; END $$;",
                 )
             if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_", "547_", "548_")):
                 if migration_path.name.startswith("545_"):

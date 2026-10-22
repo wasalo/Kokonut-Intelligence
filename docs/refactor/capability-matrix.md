@@ -6,6 +6,20 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 synthesis source-login stale ACL cleanup — 22 October 2026:**
+migration 541 now clears stale direct table, sequence, function, and public-schema
+`CREATE` grants from the source login before establishing its bounded reader
+role. This complements the existing removal of inherited public query-statistics
+access. The focused disposable PostgreSQL 16 chain through migration 548 passes
+36 assertions on native AMD64 and ARM64/QEMU (`aarch64`); migration regression
+tests also pass (36). The candidate and legacy databases remain untouched. This
+is database-privilege and software-emulation evidence only; credential
+provisioning, live identity, populated parity, other agent paths, and
+MAN-CAP-038 acceptance remain open
+([migration](../schemas/postgres/541_agent_synthesis_source_reader.sql);
+[native evidence](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-source-login-stale-acl-arm64-disposable.json)).
+
 **CAP-038 synthesis execution fallback — 22 October 2026:** generic shared
 synthesis no longer has a shared-runtime database path. All ten registered
 classes require a signed source-view contract and exact location; read-only
