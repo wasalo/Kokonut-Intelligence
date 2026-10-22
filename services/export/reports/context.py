@@ -42,34 +42,39 @@ def store_snapshot(
     affected_voice = json.dumps(public_interest.get("public_feedback", []), default=str) if public_interest else None
 
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO report_snapshot (
-            report_name, report_type, location_id, period_start, period_end,
-            report_data, snapshot_hash, status, frozen, frozen_at,
-            public_interest_summary, uncertainty_notes, negative_findings, affected_community_voice
+    try:
+        cur.execute(
+            """
+            INSERT INTO report_snapshot (
+                report_name, report_type, location_id, period_start, period_end,
+                report_data, snapshot_hash, status, frozen, frozen_at,
+                public_interest_summary, uncertainty_notes, negative_findings, affected_community_voice
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'draft', FALSE, NULL, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                f"{report_type}_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+                report_type,
+                storage_location_id,
+                period_start,
+                period_end,
+                json.dumps(report_data, default=str),
+                snapshot_hash,
+                public_summary,
+                uncertainty_notes,
+                json.dumps(negative_findings, default=str),
+                affected_voice,
+            ),
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'draft', FALSE, NULL, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (
-            f"{report_type}_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
-            report_type,
-            storage_location_id,
-            period_start,
-            period_end,
-            json.dumps(report_data, default=str),
-            snapshot_hash,
-            public_summary,
-            uncertainty_notes,
-            json.dumps(negative_findings, default=str),
-            affected_voice,
-        ),
-    )
-    snapshot_id = str(cur.fetchone()[0])
-    conn.commit()
-    cur.close()
-    return snapshot_id
+        snapshot_id = str(cur.fetchone()[0])
+        conn.commit()
+        return snapshot_id
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
 
 
 def list_snapshots(conn, location_id: str = None):
@@ -94,12 +99,14 @@ def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
     """Verify a snapshot's hash integrity."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute(
-        "SELECT id, report_name, report_type, report_data, snapshot_hash, status FROM report_snapshot WHERE id = %s OR snapshot_hash = %s",
-        (snapshot_id_or_hash, snapshot_id_or_hash),
-    )
-    row = cur.fetchone()
-    cur.close()
+    try:
+        cur.execute(
+            "SELECT id, report_name, report_type, report_data, snapshot_hash, status FROM report_snapshot WHERE id = %s OR snapshot_hash = %s",
+            (snapshot_id_or_hash, snapshot_id_or_hash),
+        )
+        row = cur.fetchone()
+    finally:
+        cur.close()
 
     if not row:
         print(f"Snapshot not found: {snapshot_id_or_hash}")
