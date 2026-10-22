@@ -517,6 +517,72 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
     return output
 
 
+def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str, Any]:
+    """Read one consent-aware Delphi summary through its signed location scope."""
+    from services.agents.safety import assert_agent_action_allowed
+    from services.agents.tasks import (
+        validate_task_capabilities,
+        validate_task_inputs,
+    )
+
+    try:
+        study_id = str(UUID(str(study_id)))
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("study_id and location_id must be UUIDs") from exc
+    validate_task_capabilities("delphi_facilitation")
+    input_errors = validate_task_inputs(
+        "delphi_facilitation",
+        {"study_id": study_id, "location_id": location_id},
+    )
+    if input_errors:
+        raise ValueError("; ".join(input_errors))
+    assert_agent_action_allowed("read", "delphi_study", {"location_id": location_id})
+
+    credential = get_worker_credential("agent_summary_source")
+    connection = get_worker_db("agent_summary_source")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_source_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            resource="delphi",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL statement_timeout = '15s'")
+            cursor.execute("SET LOCAL lock_timeout = '3s'")
+        with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            cursor.execute(
+                """
+                SELECT study_id, location_id, title, status,
+                       panel_size_available, panel_size, items
+                  FROM kokonut_agent_source.delphi_live_summary
+                 WHERE study_id = %s AND location_id = %s
+                 LIMIT 1
+                """,
+                (study_id, location_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise PermissionError(
+                    "Delphi study is unavailable under the signed location scope"
+                )
+            result = dict(row)
+            if str(result.get("location_id")) != location_id:
+                raise PermissionError("Delphi source returned a mismatched location")
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate one location-scoped agent draft using the signed worker identity"

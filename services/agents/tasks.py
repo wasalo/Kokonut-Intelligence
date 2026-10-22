@@ -239,10 +239,11 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "high_risk": False,
     },
     "delphi_facilitation": {
-        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary and an in-memory recommendation suggestion. Persistence and review require the authenticated operator Gateway.",
+        "description": "Act as the Real-time Delphi facilitator: build a consent-aware, location-scoped live summary and an in-memory recommendation suggestion. Persistence and review require the authenticated operator Gateway.",
         "risk": "medium",
         "inputs": {
             "study_id": {"type": "string", "format": "uuid", "required": True},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
         },
         "outputs": {
             "summary": {"type": "object", "required": True},

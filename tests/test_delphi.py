@@ -4,7 +4,7 @@ facilitator orchestration, agent integration, and CLI smoke."""
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -373,74 +373,77 @@ class TestDelphiAgent:
         assert task["high_risk"] is False
 
     def test_summarize_study(self):
+        from services.agents import worker_cli
         from services.agents.delphi_facilitator_agent import summarize_study
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,
-            {"n": 2},
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],
-            [],
-        ]
-        summary = summarize_study("study-1", fac)
+
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        row = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "title": "Drought",
+            "status": "open",
+            "panel_size_available": True,
+            "panel_size": 4,
+            "items": [{
+                "item_id": "a0000000-0000-4000-8000-000000000003",
+                "label": "Q1",
+                "scale": "desirability",
+                "item_type": "option",
+                "results_available": True,
+                "median": 0.5,
+                "iqr": 0.2,
+                "participant_count": 4,
+                "consensus_reached": True,
+                "display_token": "must-not-be-present",
+                "reasoning": "must-not-be-present",
+            }],
+        }
+        with patch.object(worker_cli, "run_worker_delphi_facilitation", return_value=row) as read:
+            summary = summarize_study(study_id, location_id)
+        read.assert_called_once_with(study_id, location_id)
         assert summary["title"] == "Drought"
+        assert summary["panel_size"] == 4
+        assert "display_token" not in summary
+        assert "must-not-be-present" not in summary["synthesis"]
+        assert "consented aggregate responses" in summary["privacy_note"]
         assert "synthesis" in summary
 
     def test_draft_recommendation_is_in_memory_and_ignores_supplied_actor(self):
         from services.agents.delphi_facilitator_agent import draft_recommendation
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
         rec = draft_recommendation(
             "a0000000-0000-4000-8000-000000000001",
+            "a0000000-0000-4000-8000-000000000002",
             "Adopt medians",
             created_by="caller-supplied-actor",
-            facilitator=fac,
         )
         assert rec["status"] == "draft"
         assert rec["study_id"] == "a0000000-0000-4000-8000-000000000001"
+        assert rec["location_id"] == "a0000000-0000-4000-8000-000000000002"
         assert "created_by" not in rec
         assert "in-memory" in rec["safety_note"].lower()
-        mock_cursor.execute.assert_not_called()
-        mock_conn.commit.assert_not_called()
 
     def test_run_facilitation(self):
+        from services.agents import worker_cli
         from services.agents.delphi_facilitator_agent import run_delphi_facilitation
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        fac = Facilitator(conn=mock_conn)
+
         study_id = "a0000000-0000-4000-8000-000000000001"
-        study_dict = {"id": study_id, "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,
-            {"n": 2},
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],
-            [],
-        ]
-        output = run_delphi_facilitation(study_id, draft=True, facilitator=fac)
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        source_summary = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "title": "Drought",
+            "status": "open",
+            "panel_size_available": True,
+            "panel_size": 4,
+            "items": [],
+        }
+        with patch.object(worker_cli, "run_worker_delphi_facilitation", return_value=source_summary):
+            output = run_delphi_facilitation(study_id, location_id, draft=True)
         assert "summary" in output
         assert output["recommendation_draft"]["status"] == "draft"
         assert "created_by" not in output["recommendation_draft"]
-        assert not any(
-            "INSERT INTO delphi_recommendation" in call.args[0]
-            for call in mock_cursor.execute.call_args_list
-        )
-        mock_conn.commit.assert_not_called()
+        assert output["recommendation_draft"]["location_id"] == location_id
 
 
 # ---------------------------------------------------------------------------
@@ -469,6 +472,7 @@ class TestDelphiCLI:
         cli.cmd_draft_recommendation(
             SimpleNamespace(
                 study_id="a0000000-0000-4000-8000-000000000001",
+                location_id="a0000000-0000-4000-8000-000000000002",
                 text="Adopt medians",
                 summary="Synthetic summary",
                 created_by="caller-supplied-actor",

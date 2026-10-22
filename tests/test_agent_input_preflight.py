@@ -15,9 +15,12 @@ from services.agents import (
 
 
 def test_ai_summary_rejects_malformed_location_before_database_access() -> None:
-    with mock.patch.object(ai_summary, "get_pg", side_effect=AssertionError("database opened")):
+    with mock.patch.object(
+        worker_cli, "run_worker_summary", side_effect=AssertionError("worker source opened")
+    ) as source_worker:
         with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
             ai_summary.run_ai_summary("not-a-uuid")
+    source_worker.assert_not_called()
 
 
 def test_cids_export_rejects_malformed_location_before_database_access() -> None:
@@ -42,10 +45,12 @@ def test_calibration_rejects_malformed_session_before_processing() -> None:
 
 def test_delphi_rejects_malformed_study_before_facilitator_creation() -> None:
     with mock.patch.object(
-        delphi_facilitator_agent,
-        "Facilitator",
-        side_effect=AssertionError("facilitator initialized"),
-    ) as facilitator:
+        worker_cli,
+        "run_worker_delphi_facilitation",
+        side_effect=AssertionError("worker source opened"),
+    ) as source_worker:
         with pytest.raises(ValueError, match="Invalid task input format for field: study_id"):
-            delphi_facilitator_agent.run_delphi_facilitation("not-a-uuid")
-    facilitator.assert_not_called()
+            delphi_facilitator_agent.run_delphi_facilitation(
+                "not-a-uuid", "a0000000-0000-4000-8000-000000000001"
+            )
+    source_worker.assert_not_called()

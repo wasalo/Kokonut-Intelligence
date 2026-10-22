@@ -243,6 +243,35 @@ services:
     profiles:
       - cids-export-worker
 
+  # Delphi agent reads use the shared source-only login with a dedicated
+  # delphi/read scope and a consent-aware aggregate projection.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile delphi-agent-worker run --rm delphi-agent-worker \
+  #     --study-id UUID --location-id UUID
+  delphi-agent-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint: ["python3", "-m", "services.agents.delphi_facilitator_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - delphi-agent-worker
+
   event-worker:
     build:
       context: .

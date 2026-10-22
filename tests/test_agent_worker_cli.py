@@ -108,6 +108,74 @@ def test_worker_cli_does_not_write_after_source_generation_failure():
     writer.assert_not_called()
 
 
+def test_delphi_agent_worker_uses_signed_location_and_safe_projection(monkeypatch):
+    connection, cursor = _source_connection()
+    study_id = "00000000-0000-0000-0000-000000000abc"
+    source_row = {
+        "study_id": study_id,
+        "location_id": LOCATION_ID,
+        "title": "Synthetic consultation",
+        "status": "open",
+        "panel_size_available": True,
+        "panel_size": 4,
+        "items": [{"label": "Synthetic item", "results_available": True}],
+    }
+    cursor.fetchone.side_effect = [
+        ("a0000000-0000-4000-8000-000000000801", LOCATION_ID,
+         "a0000000-0000-4000-8000-000000000901", "system_worker"),
+        source_row,
+    ]
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_delphi_facilitation(study_id, LOCATION_ID)
+
+    statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
+    assert statements[0] == "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"
+    assert "kokonut_security.set_worker_tenant_context" in statements[2]
+    assert cursor.execute.call_args_list[2].args[1][1:] == (
+        LOCATION_ID,
+        "delphi",
+        "read",
+    )
+    assert statements[3:7] == [
+        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
+        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL statement_timeout = '15s'",
+        "SET LOCAL lock_timeout = '3s'",
+    ]
+    assert "FROM kokonut_agent_source.delphi_live_summary" in statements[-1]
+    assert cursor.execute.call_args_list[-1].args[1] == (study_id, LOCATION_ID)
+    assert result == source_row
+    connection.commit.assert_not_called()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_delphi_agent_worker_rejects_mismatched_source_location(monkeypatch):
+    connection, cursor = _source_connection()
+    cursor.fetchone.side_effect = [
+        ("a0000000-0000-4000-8000-000000000801", LOCATION_ID,
+         "a0000000-0000-4000-8000-000000000901", "system_worker"),
+        {"study_id": "00000000-0000-0000-0000-000000000abc",
+         "location_id": REQUEST_ID},
+    ]
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    with pytest.raises(PermissionError, match="mismatched location"):
+        worker_cli.run_worker_delphi_facilitation(
+            "00000000-0000-0000-0000-000000000abc", LOCATION_ID
+        )
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 def _synthetic_synthesis_agent() -> BioFactorySynthesisAgent:
     agent = BioFactorySynthesisAgent()
     agent.synthesize = lambda _conn, location_id=None: {

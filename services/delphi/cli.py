@@ -123,6 +123,7 @@ def cmd_draft_recommendation(args):
     from services.agents.delphi_facilitator_agent import draft_recommendation
     rec = draft_recommendation(
         study_id=args.study_id,
+        location_id=args.location_id,
         recommendation_text=args.text,
         summary=args.summary,
         created_by=args.created_by,
@@ -256,6 +257,7 @@ def main():
         help="Generate an in-memory recommendation suggestion (not persisted)",
     )
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.add_argument("--text", required=True)
     p.add_argument("--summary")
     p.add_argument("--created-by", help="Ignored for compatibility; identity is Gateway-derived")

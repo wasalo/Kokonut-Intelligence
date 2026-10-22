@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_SCRIPT = ROOT / "scripts/check-ai-summary-review-disposable.py"
 WORKER_FIXTURE = ROOT / "tests/fixtures/worker_tenant_context_disposable.sql"
 AI_SUMMARY_FIXTURE = ROOT / "tests/fixtures/agent_worker_ai_summary_disposable.sql"
+DELPHI_SOURCE_FIXTURE = ROOT / "tests/fixtures/agent_worker_delphi_source_disposable.sql"
 MIGRATIONS = [
     ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql",
     ROOT / "schemas/postgres/419_private_worker_context_functions.sql",
@@ -42,10 +43,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/545_signed_ebf_evidence_gap_source.sql",
     ROOT / "schemas/postgres/546_signed_cids_export_source.sql",
     ROOT / "schemas/postgres/547_signed_ai_summary_inspection_source.sql",
+    ROOT / "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-delphi-agent-source-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -1163,6 +1165,143 @@ def _summary_inspection_acceptance() -> str:
 
     ALTER TABLE public.ai_summary NO FORCE ROW LEVEL SECURITY;
     ALTER TABLE public.ai_summary DISABLE ROW LEVEL SECURITY;
+    """
+
+
+def _delphi_agent_source_acceptance() -> str:
+    study_id = "d1000000-0000-4000-8000-000000000001"
+    return f"""
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'delphi', 'read', 'synthetic Delphi source acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    ALTER TABLE public.delphi_study ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_study FORCE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_item ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_item FORCE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_contribution ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_contribution FORCE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_panel_member ENABLE ROW LEVEL SECURITY;
+    ALTER TABLE public.delphi_panel_member FORCE ROW LEVEL SECURITY;
+
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM delphi_live_summary;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'Delphi source was visible without signed location context';
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'public.delphi_contribution', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_login',
+            'public.delphi_contribution', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'Delphi source roles can query contribution rows directly';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.delphi_contribution;
+            RAISE EXCEPTION 'Delphi reader queried raw participant contributions';
+        EXCEPTION WHEN insufficient_privilege THEN NULL;
+        END;
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.delphi_live_summary', 'INSERT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.delphi_live_summary', 'UPDATE'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.delphi_live_summary', 'DELETE'
+        ) THEN
+            RAISE EXCEPTION 'Delphi source reader has write access';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+
+    SET ROLE kokonut_agent_summary_source_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'delphi', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE summary_row RECORD;
+            public_item JSONB;
+            suppressed_item JSONB;
+            foreign_rows BIGINT;
+    BEGIN
+        IF NOT (SELECT relrowsecurity AND relforcerowsecurity
+                  FROM pg_catalog.pg_class
+                 WHERE oid = 'public.delphi_contribution'::regclass) THEN
+            RAISE EXCEPTION 'forced RLS was not active on Delphi source tables';
+        END IF;
+        SELECT * INTO summary_row
+          FROM delphi_live_summary
+         WHERE study_id = '{study_id}' AND location_id = '{LOCATION_ID}';
+        IF NOT FOUND OR summary_row.title <> 'Synthetic owned study'
+           OR summary_row.panel_size_available IS NOT TRUE
+           OR summary_row.panel_size <> 4 THEN
+            RAISE EXCEPTION 'signed Delphi source did not return the exact own-location summary';
+        END IF;
+        SELECT elem INTO public_item
+          FROM jsonb_array_elements(summary_row.items) AS elem
+         WHERE elem ->> 'label' = 'Public-safe item';
+        IF public_item ->> 'results_available' IS DISTINCT FROM 'true'
+           OR public_item ->> 'participant_count' IS DISTINCT FROM '4'
+           OR (public_item ->> 'median')::NUMERIC <> 0.4 THEN
+            RAISE EXCEPTION 'consented Delphi aggregate did not match its public-safe fixture: %', public_item;
+        END IF;
+        SELECT elem INTO suppressed_item
+          FROM jsonb_array_elements(summary_row.items) AS elem
+         WHERE elem ->> 'label' = 'Below-floor item';
+        IF suppressed_item ->> 'results_available' IS DISTINCT FROM 'false'
+           OR suppressed_item ->> 'participant_count' IS NOT NULL
+           OR suppressed_item ->> 'median' IS NOT NULL THEN
+            RAISE EXCEPTION 'below-threshold Delphi scores were not suppressed: %', suppressed_item;
+        END IF;
+        IF summary_row.items::TEXT LIKE '%private-token%'
+           OR summary_row.items::TEXT LIKE '%reasoning%' THEN
+            RAISE EXCEPTION 'Delphi summary exposed participant identifiers or reasoning';
+        END IF;
+        SELECT count(*) INTO foreign_rows
+          FROM delphi_live_summary
+         WHERE location_id <> '{LOCATION_ID}';
+        IF foreign_rows <> 0 THEN
+            RAISE EXCEPTION 'Delphi source exposed a foreign location';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+    RESET ROLE;
+
+    SET ROLE kokonut_agent_summary_source_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'delphi', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL search_path = kokonut_agent_source, public;
+    DO $$
+    DECLARE visible_rows BIGINT;
+    BEGIN
+        SELECT count(*) INTO visible_rows FROM delphi_live_summary;
+        IF visible_rows <> 0 THEN
+            RAISE EXCEPTION 'location without an active Delphi grant acquired source access';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+    RESET ROLE;
     """
 
 
@@ -2402,7 +2541,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, and 539-547 apply; migrations 530-537 and 539-547 replay",
+        "migrations 405, 419, 521-524, 529-537, and 539-548 apply; migrations 530-537 and 539-548 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -2433,6 +2572,7 @@ def main() -> int:
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
         "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
         "migration 547 exposes exact-location AI-summary list previews and digest inputs only under ai_summary/read, works under forced RLS, denies raw-table access, and removes stale grants on replay",
+        "migration 548 exposes only consented, thresholded Delphi aggregates under delphi/read, works under forced RLS, denies participant-token/reasoning/raw-table access, and removes stale grants on replay",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -2447,9 +2587,17 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
+        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read; Delphi agent summaries use delphi/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
         "checks": checks,
     }
+    if PLATFORM == "linux/arm64" and IMAGE == "sogis/postgis:16-3.4":
+        evidence["postgis_acl_fixture_note"] = (
+            "This ARM64 PostGIS image grants PUBLIC access to raster_columns and "
+            "raster_overviews unlike the AMD64 image used by the native replay. "
+            "The disposable fixture revokes those two metadata grants before "
+            "migration 541 to match the repository's explicit three-catalog "
+            "source-reader contract; no external database or image is modified."
+        )
     stage = "container_start"
     try:
         docker_run = [docker, "run"]
@@ -2472,17 +2620,42 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
+            if migration_path.name.startswith("548_"):
+                stage = "delphi_agent_source_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    DELPHI_SOURCE_FIXTURE.read_text(encoding="utf-8"),
+                )
+                stage = "migration_548_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
                 stage = "migration_546_apply"
+            if (
+                migration_path.name.startswith("541_")
+                and PLATFORM == "linux/arm64"
+                and IMAGE == "sogis/postgis:16-3.4"
+            ):
+                stage = "arm64_postgis_public_raster_metadata_acl_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ BEGIN "
+                    "IF to_regclass('public.raster_columns') IS NOT NULL THEN "
+                    "EXECUTE 'REVOKE SELECT ON TABLE public.raster_columns FROM PUBLIC'; END IF; "
+                    "IF to_regclass('public.raster_overviews') IS NOT NULL THEN "
+                    "EXECUTE 'REVOKE SELECT ON TABLE public.raster_overviews FROM PUBLIC'; END IF; "
+                    "END $$;",
+                )
+                stage = "migration_541_apply"
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_", "547_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_", "543_", "544_", "545_", "546_", "547_", "548_")):
                 if migration_path.name.startswith("545_"):
                     base.psql(
                         docker,
@@ -2558,6 +2731,35 @@ def main() -> int:
         base.psql(docker, container, _deterministic_source_reader_acceptance())
         stage = "deterministic_summary_inspection_signed_source_acceptance"
         base.psql(docker, container, _summary_inspection_acceptance())
+        stage = "delphi_agent_signed_source_acceptance"
+        base.psql(docker, container, _delphi_agent_source_acceptance())
+        stage = "delphi_agent_stale_grant_replay"
+        base.psql(
+            docker,
+            container,
+            "GRANT SELECT ON public.delphi_study, public.delphi_item, "
+            "public.delphi_contribution, public.delphi_panel_member "
+            "TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login; "
+            "GRANT INSERT, UPDATE, DELETE ON kokonut_agent_source.delphi_live_summary "
+            "TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login; "
+            "GRANT USAGE ON SCHEMA kokonut_agent_source "
+            "TO kokonut_agent_summary_source_login;",
+        )
+        migration_548 = next(path for path in MIGRATIONS if path.name.startswith("548_"))
+        base.psql(docker, container, migration_548.read_text(encoding="utf-8"))
+        base.psql(
+            docker,
+            container,
+            "DO $$ BEGIN "
+            "IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.delphi_contribution', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_source_login', 'public.delphi_contribution', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'INSERT') "
+            "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'UPDATE') "
+            "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'DELETE') "
+            "OR has_schema_privilege('kokonut_agent_summary_source_login', 'kokonut_agent_source', 'USAGE') "
+            "THEN RAISE EXCEPTION 'migration 548 replay retained a stale Delphi source grant'; END IF; END $$;",
+        )
+        base.psql(docker, container, _delphi_agent_source_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
         stage = "structured_worker_result_first_write_acceptance"

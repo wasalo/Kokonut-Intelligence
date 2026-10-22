@@ -1,3 +1,32 @@
+### CAP-038 signed Delphi agent summary source — 22 October 2026
+
+Migration 548 adds a security-barrier Delphi summary projection behind the exact
+signed `delphi/read` worker grant. It recomputes statistics from currently
+consented contributions, suppresses both panel and item results below the
+study's configured minimum participant floor (never below three), and excludes
+participant display tokens and free-text reasoning. The agent requires both a
+study UUID and its location UUID, reads through the source-only login in a
+repeatable-read/read-only transaction, and rejects mismatched location output.
+The optional recommendation remains an in-memory suggestion with the same
+location scope.
+
+The focused worker/preflight/Delphi/Compose selection passes 109 tests. Ruff,
+Python compilation, migration-source validation (661 files), refreshed runtime
+SQL inventory, worker inventories, and capability-matrix validation pass.
+Disposable PostgreSQL 16 applies/replays through migration 548 with 35 grouped
+assertions on native AMD64 and ARM64/QEMU. Candidate and legacy databases,
+providers, and real credentials were not used; migration 548 and its worker
+grant are not deployed. The separate legacy Delphi `live-summary` CLI and other
+study/panel operations remain open, along with Directus parity, populated
+output parity, runtime recovery, and MAN-CAP-038 owner acceptance. Evidence:
+[migration](../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
+[agent](../services/agents/delphi_facilitator_agent.py),
+[tests](../tests/test_agent_worker_cli.py),
+[native PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-disposable.json),
+[ARM64/QEMU PostgreSQL](builds/2026-10-22-recovery/cap-038-delphi-agent-source-arm64-disposable.json).
+Checklist: 955 complete / 24 open (979 total); matrix remains 30 baseline-retained,
+7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-038 signed AI-summary inspection source — 22 October 2026
 
 Migration 547 adds two security-barrier views for standalone AI-summary listing

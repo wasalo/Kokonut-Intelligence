@@ -402,3 +402,25 @@ routes. This prevents caller-supplied actor IDs and unscoped recommendation
 reads from bypassing the CAP-027 request receipts and review audit. It does not
 retire other legacy Delphi study or panel operations, or establish live OIDC,
 browser, runtime-role, or populated-data parity.
+
+## Delphi facilitator agent source boundary
+
+The agent-facing live summary takes both `study_id` and `location_id`, validates
+them before opening a connection, and reads only through
+`kokonut_agent_source.delphi_live_summary`. Migration 548 binds that
+security-barrier projection to a signed `delphi/read` scope on the exact
+location. The projection recalculates from currently consented panel members;
+it withholds panel and item aggregates until the greater of three and the
+study's configured minimum participant count is met. It never returns
+participant display tokens or contribution reasoning.
+
+The source-only worker connection runs repeatable-read/read-only and switches
+to the NOLOGIN reader role before selecting the exact study/location pair.
+The in-memory recommendation suggestion includes the same location scope;
+persistence and review remain on the authenticated Delphi Gateway routes.
+This closes the agent facilitator's shared-runtime read path only. The legacy
+`services.delphi.cli live-summary` and other study/panel operations, authenticated
+operator grant provisioning, populated parity, live OIDC/runtime behavior,
+Directus parity, and MAN-CAP-038 acceptance remain open. Migration 548 is
+additive: reverting the CLI/worker/profile leaves the view and policy unused;
+retain the migration if it has been applied.

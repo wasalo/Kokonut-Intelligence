@@ -88,3 +88,21 @@ def test_ebf_evidence_gap_profile_uses_only_its_signed_source_identity():
         "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
+
+
+def test_delphi_agent_profile_uses_only_its_signed_source_identity():
+    service = _services()["delphi-agent-worker"]
+
+    assert service["entrypoint"] == [
+        "python3",
+        "-m",
+        "services.agents.delphi_facilitator_agent",
+    ]
+    assert service["profiles"] == ["delphi-agent-worker"]
+    _assert_no_shared_database_environment(service)
+    assert set(service["environment"]) == {
+        "KOKONUT_ENV",
+        "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL",
+        "PYTHONDONTWRITEBYTECODE",
+    }
