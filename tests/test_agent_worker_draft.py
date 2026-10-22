@@ -32,9 +32,11 @@ class FakeCursor:
             self.connection.source_references = json.loads(params[3])
 
     def fetchone(self) -> tuple[Any, ...] | None:
-        if "get_location_ai_summary_worker_draft_request" in self.query:
+        if "get_location_ai_summary_worker_result" in self.query:
             return self.connection.lookup_result
         if "create_location_ai_summary_worker_draft" in self.query:
+            if self.connection.create_result is not None and "_with_result" not in self.query:
+                return self.connection.create_result[:7]
             return self.connection.create_result
         if "get_location_ai_summary_worker_source_references" in self.query:
             return (self.connection.source_references,)
@@ -61,6 +63,11 @@ class FakeConnection:
             "2026-10-21T00:00:00Z",
             "draft",
             False,
+            {
+                "location_id": LOCATION_ID,
+                "synthesis": "Bounded worker draft",
+                "confidence": 0.9,
+            },
         )
         self.commits = 0
         self.rollbacks = 0
@@ -90,6 +97,43 @@ def test_registered_worker_summary_types_pass_payload_validation(summary_type: s
     assert source_tables == ["harvest_event"]
 
 
+def test_worker_result_is_json_bounded_and_matches_the_draft() -> None:
+    result = {
+        "content": "Stored draft",
+        "measures": {"confidence": 0.8},
+    }
+    encoded = worker_draft._serialize_worker_result(
+        {"worker_result": result}, content="Stored draft"
+    )
+    assert json.loads(encoded or "null") == result
+
+    with pytest.raises(AgentDraftInvalid, match="must match the stored draft"):
+        worker_draft._serialize_worker_result(
+            {"worker_result": {"synthesis": "Different draft"}},
+            content="Stored draft",
+        )
+    with pytest.raises(AgentDraftInvalid, match="must match the stored draft"):
+        worker_draft._serialize_worker_result(
+            {
+                "worker_result": {
+                    "content": "Stored draft",
+                    "synthesis": "Different draft",
+                }
+            },
+            content="Stored draft",
+        )
+    with pytest.raises(AgentDraftInvalid, match="JSON-compatible"):
+        worker_draft._serialize_worker_result(
+            {"worker_result": {"content": "Stored draft", "unsupported": object()}},
+            content="Stored draft",
+        )
+    with pytest.raises(AgentDraftInvalid, match="131072-byte limit"):
+        worker_draft._serialize_worker_result(
+            {"worker_result": {"content": "Stored draft", "extra": "x" * 131072}},
+            content="Stored draft",
+        )
+
+
 def _install_worker_mocks(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Any, ...]]:
     events: list[tuple[Any, ...]] = []
     monkeypatch.setattr(worker_draft, "get_worker_credential", lambda key: "s" * 40)
@@ -106,6 +150,11 @@ def test_worker_store_sets_exact_signed_scope_before_bounded_function(monkeypatc
         REQUEST_ID,
         {
             "synthesis": "Bounded worker draft",
+            "worker_result": {
+                "location_id": LOCATION_ID,
+                "synthesis": "Bounded worker draft",
+                "confidence": 0.9,
+            },
             "source_tables": ["harvest_event"],
             "model_version": "agent-v2",
         },
@@ -121,10 +170,12 @@ def test_worker_store_sets_exact_signed_scope_before_bounded_function(monkeypatc
     }
     sql = [query for query, _ in connection.calls]
     assert sql[:2] == ["SET LOCAL statement_timeout = '15s'", "SET LOCAL lock_timeout = '3s'"]
-    assert "create_location_ai_summary_worker_draft" in sql[2]
+    assert "create_location_ai_summary_worker_draft_with_result" in sql[2]
     assert result["summary_id"] == "c0000000-0000-4000-8000-000000000001"
     assert result["resulting_status"] == "draft"
     assert result["replayed"] is False
+    assert result["worker_result"]["confidence"] == 0.9
+    assert json.loads(connection.calls[2][1][6])["confidence"] == 0.9
     assert connection.commits == 1
     assert connection.rollbacks == 0
     assert connection.closed
@@ -139,6 +190,7 @@ def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch:
         "agent-v1",
         "2026-10-20T00:00:00Z",
         "draft",
+        {"content": "Original structured response", "confidence": 0.75},
     )
     _install_worker_mocks(monkeypatch)
 
@@ -153,8 +205,12 @@ def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch:
     assert result["summary_id"] == "c0000000-0000-4000-8000-000000000002"
     assert result["replayed"] is True
     assert len(connection.calls) == 4
-    assert "get_location_ai_summary_worker_draft_request" in connection.calls[2][0]
+    assert "get_location_ai_summary_worker_result" in connection.calls[2][0]
     assert "get_location_ai_summary_worker_source_references" in connection.calls[3][0]
+    assert result["worker_result"] == {
+        "content": "Original structured response",
+        "confidence": 0.75,
+    }
     assert connection.commits == 1
     assert connection.closed
 

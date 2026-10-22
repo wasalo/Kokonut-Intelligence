@@ -124,8 +124,11 @@ def run_worker_synthesis(
     write_draft = draft_writer or create_worker_ai_summary_draft
     prior = read_existing(location_id, agent.summary_type, request_id)
     if prior is not None:
+        original_summary = prior.get("worker_result")
+        if not isinstance(original_summary, dict):
+            original_summary = {"location_id": location_id, "synthesis": prior["content"]}
         return {
-            "summary": {"location_id": location_id, "synthesis": prior["content"]},
+            "summary": original_summary,
             "ai_summary_id": prior["summary_id"],
             "request_id": request_id,
             "replayed": True,
@@ -154,6 +157,7 @@ def run_worker_synthesis(
             "source_tables": source_tables,
             "model_version": model_version,
             "source_references": source_references,
+            "worker_result": summary,
         }
     except Exception:
         connection.rollback()
@@ -231,7 +235,11 @@ def run_worker_summary(
 
     # Match the legacy deterministic summary model label while the worker
     # adapter supplies signed identity, idempotency, and source references.
-    payload = {**summary, "model_version": summary.get("model_version", "rules-v1")}
+    payload = {
+        **summary,
+        "model_version": summary.get("model_version", "rules-v1"),
+        "worker_result": summary,
+    }
     return write_draft(location_id, summary_type, request_id, payload)
 
 

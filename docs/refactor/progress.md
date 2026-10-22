@@ -1,3 +1,15 @@
+### CAP-038 structured agent-worker retry results — 21 October 2026
+
+Migration 539 adds a private append-only JSON result receipt, created in the
+same transaction as a signed worker draft. The result is bounded to 128 KiB,
+must match the persisted summary text, and can be read only through an exact
+worker/location/request function. The worker now stores and replays the original
+structured output without repeating source reads; receipts from before migration
+539 continue to return their content-only fallback. The focused adapter/CLI
+selection passes 62 tests, migration metadata passes 36 tests, and disposable
+PostgreSQL 16 applies/replays migration 539 with 26 grouped assertions. No
+candidate or legacy database was touched. Evidence: [structured result replay](builds/2026-10-21-recovery/cap-038-worker-structured-result-replay-disposable.json).
+
 ### CAP-038 SDK schema-parity CI repair — 21 October 2026
 
 CI #695 on the pushed `32b00beb` head failed the fast-fail SDK schema coverage

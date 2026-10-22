@@ -32,8 +32,9 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/535_consent_safe_wellbeing_feedback_source_views.sql",
     ROOT / "schemas/postgres/536_location_scoped_kokonut_commons_source_views.sql",
     ROOT / "schemas/postgres/537_registered_worker_summary_types.sql",
+    ROOT / "schemas/postgres/539_agent_worker_structured_result_replay.sql",
 ]
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-registered-worker-summary-types-disposable.json"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-21-recovery/cap-038-worker-structured-result-replay-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -505,6 +506,201 @@ def _worker_acceptance() -> str:
       FROM public.ai_summary_agent_draft_request
      WHERE worker_id = '{WORKER_ID}' AND request_id = '{REQUEST_ID}';
     """
+
+
+def _worker_result_create_acceptance() -> str:
+    request_id = "d0000000-0000-4000-8000-000000009800"
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE created RECORD;
+            expected JSONB := jsonb_build_object(
+                'location_id', '{LOCATION_ID}',
+                'synthesis', 'Structured result preserved across retries',
+                'confidence', 0.875,
+                'evidence', jsonb_build_array('source-a', 'source-b')
+            );
+    BEGIN
+        SELECT * INTO STRICT created
+          FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+              '{LOCATION_ID}', 'holistic_wellbeing',
+              'Structured result preserved across retries',
+              ARRAY['harvest_event'], 'agent-v2', '{request_id}', expected
+          );
+        IF created.replayed OR created.worker_result IS DISTINCT FROM expected THEN
+            RAISE EXCEPTION 'first worker result was not stored with its draft';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    """
+
+
+def _worker_result_retry_acceptance() -> str:
+    request_id = "d0000000-0000-4000-8000-000000009800"
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE replayed RECORD;
+            expected JSONB := jsonb_build_object(
+                'location_id', '{LOCATION_ID}',
+                'synthesis', 'Structured result preserved across retries',
+                'confidence', 0.875,
+                'evidence', jsonb_build_array('source-a', 'source-b')
+            );
+    BEGIN
+        SELECT * INTO STRICT replayed
+          FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+              '{LOCATION_ID}', 'holistic_wellbeing',
+              'Changed content is ignored by an exact retry',
+              ARRAY['harvest_event'], 'agent-v3', '{request_id}',
+              jsonb_build_object('synthesis', 'Changed content is ignored by an exact retry')
+          );
+        IF NOT replayed.replayed OR replayed.worker_result IS DISTINCT FROM expected THEN
+            RAISE EXCEPTION 'exact worker retry did not return the original structured result';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    """
+
+
+def _worker_result_lookup_acceptance() -> str:
+    request_id = "d0000000-0000-4000-8000-000000009800"
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE looked_up RECORD;
+            denied BOOLEAN := FALSE;
+            expected JSONB := jsonb_build_object(
+                'location_id', '{LOCATION_ID}',
+                'synthesis', 'Structured result preserved across retries',
+                'confidence', 0.875,
+                'evidence', jsonb_build_array('source-a', 'source-b')
+            );
+    BEGIN
+        SELECT * INTO STRICT looked_up
+          FROM kokonut_security.get_location_ai_summary_worker_result(
+              '{LOCATION_ID}', 'holistic_wellbeing', '{request_id}'
+          );
+        IF looked_up.worker_result IS DISTINCT FROM expected THEN
+            RAISE EXCEPTION 'worker result lookup did not return the original structured result';
+        END IF;
+        BEGIN
+            PERFORM count(*) FROM kokonut_security.ai_summary_agent_draft_result;
+        EXCEPTION WHEN insufficient_privilege THEN denied := TRUE;
+        END;
+        IF NOT denied THEN RAISE EXCEPTION 'worker execution can read result receipts directly'; END IF;
+        IF has_table_privilege('kokonut_runtime',
+                'kokonut_security.ai_summary_agent_draft_result', 'SELECT')
+           OR has_table_privilege('directus',
+                'kokonut_security.ai_summary_agent_draft_result', 'SELECT')
+           OR has_table_privilege('kokonut_worker_execution',
+                'kokonut_security.ai_summary_agent_draft_result', 'INSERT')
+           OR NOT has_function_privilege('kokonut_worker_execution',
+                'kokonut_security.get_location_ai_summary_worker_result(uuid,text,uuid)', 'EXECUTE')
+           OR NOT has_function_privilege('kokonut_worker_execution',
+                'kokonut_security.create_location_ai_summary_worker_draft_with_result(uuid,text,text,text[],text,uuid,jsonb)', 'EXECUTE') THEN
+            RAISE EXCEPTION 'worker result function and table privileges are not isolated';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    """
+
+
+def _worker_result_validation_acceptance() -> str:
+    return f"""
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    DO $$
+    DECLARE denied BOOLEAN := FALSE;
+    BEGIN
+        BEGIN
+            PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+                '{LOCATION_ID}', 'holistic_wellbeing', 'Draft and result must agree',
+                ARRAY['harvest_event'], 'agent-v1', 'd0000000-0000-4000-8000-000000009801',
+                jsonb_build_object(
+                    'content', 'Draft and result must agree',
+                    'synthesis', 'Different output'
+                )
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'mismatched structured result was accepted';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    DO $$
+    DECLARE draft_exists BOOLEAN;
+            result_exists BOOLEAN;
+    BEGIN
+        SELECT EXISTS (
+            SELECT 1 FROM public.ai_summary_agent_draft_request
+             WHERE request_id = 'd0000000-0000-4000-8000-000000009801'
+        ) INTO draft_exists;
+        SELECT EXISTS (
+            SELECT 1 FROM kokonut_security.ai_summary_agent_draft_result
+             WHERE request_id = 'd0000000-0000-4000-8000-000000009801'
+        ) INTO result_exists;
+        IF draft_exists OR result_exists THEN
+            RAISE EXCEPTION 'mismatched structured result left draft %, result %',
+                draft_exists, result_exists;
+        END IF;
+    END;
+    $$;
+    """
+
+
+def _expect_worker_result_lookup_sqlstate(
+    base, docker: str, container: str, *, location_id: str, summary_type: str,
+    request_id: str, sqlstate: str, label: str,
+) -> None:
+    sql = f"""\
+    \\set VERBOSITY verbose
+    SET ROLE kokonut_agent_summary_draft_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_worker_execution;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+    SELECT * FROM kokonut_security.get_location_ai_summary_worker_result(
+        '{location_id}', '{summary_type}', '{request_id}'
+    );
+    COMMIT;
+    """
+    try:
+        base.psql(docker, container, sql)
+    except RuntimeError as exc:
+        if f"ERROR:  {sqlstate}:" not in str(exc):
+            raise RuntimeError(f"{label} failed with an unexpected database error") from exc
+        return
+    raise RuntimeError(f"{label} was accepted instead of failing with SQLSTATE {sqlstate}")
 
 
 def _registered_synthesis_source_acceptance() -> str:
@@ -987,7 +1183,10 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537 apply; migrations 530-537 replay",
+        "migrations 405, 419, 521-524, 529-537 and 539 apply; migrations 530-537 and 539 replay",
+        "the original structured worker result is stored atomically with its draft and replayed without source reads",
+        "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
+        "worker results must match draft content, stay within size bounds, and remain inaccessible through direct table grants",
         "signed worker credential grants only ai_summary:draft for the exact owned location",
         "worker draft is attributed to a database worker principal and exact request retries replay once",
         "only the four deterministic and ten registered synthesis summary types can create drafts, and rejected types leave no partial row",
@@ -1033,15 +1232,35 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_")):
                 base.psql(docker, container, sql)
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
+        stage = "structured_worker_result_first_write_acceptance"
+        base.psql(docker, container, _worker_result_create_acceptance())
+        stage = "structured_worker_result_exact_retry_acceptance"
+        base.psql(docker, container, _worker_result_retry_acceptance())
+        stage = "structured_worker_result_signed_lookup_acceptance"
+        base.psql(docker, container, _worker_result_lookup_acceptance())
+        stage = "structured_worker_result_validation_acceptance"
+        base.psql(docker, container, _worker_result_validation_acceptance())
+        stage = "structured_worker_result_conflicting_summary_type_rejection"
+        _expect_worker_result_lookup_sqlstate(
+            base, docker, container, location_id=LOCATION_ID,
+            summary_type="carbon_yield", request_id="d0000000-0000-4000-8000-000000009800",
+            sqlstate="22023", label="same-key summary-type collision",
+        )
+        stage = "structured_worker_result_cross_location_rejection"
+        _expect_worker_result_lookup_sqlstate(
+            base, docker, container, location_id=OTHER_LOCATION_ID,
+            summary_type="holistic_wellbeing", request_id="d0000000-0000-4000-8000-000000009800",
+            sqlstate="42501", label="cross-location worker result lookup",
+        )
         stage = "multi_agent_source_reference_acceptance"
         base.psql(docker, container, _registered_synthesis_source_acceptance())
         stage = "consent_safe_wellbeing_feedback_acceptance"

@@ -201,13 +201,15 @@ historical receipt reads.
 PostgreSQL rechecks exact counts and sampled IDs through the matching public
 view before attachment. Other generic synthesis
 tasks still persist table-name hints without row-level source manifests; the
-deterministic AI-summary path also attaches the bounded manifest. On replay,
-generic task callers receive the
-stored draft text and receipt rather than regenerating the task's full structured
-output. Compose exposes the dedicated DSN and high-entropy credential only to
-the opt-in `agent-summary-worker` service. An operator still needs to provision
+deterministic AI-summary path also attaches the bounded manifest. Migration 539
+stores each new worker call's bounded structured result in a private append-only
+receipt in the same transaction as its draft. Exact retries return that original
+JSON result without rerunning source queries. Receipts created before migration
+539 have no structured result to reconstruct and keep the content-only
+compatibility fallback. Compose exposes the dedicated DSN and high-entropy
+credential only to the opt-in `agent-summary-worker` service. An operator still needs to provision
 the runtime password, worker login/password, worker credential, and service DSN;
-migrations 529–536 are not rolled out to the candidate. Stored shared-agent CLI
+migrations 529–539 are not rolled out to the candidate. Stored shared-agent CLI
 output is reduced to the draft ID, request ID, status, and replay flag. For
 example, run a task through the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance

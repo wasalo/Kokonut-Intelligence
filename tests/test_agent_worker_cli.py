@@ -63,7 +63,11 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
         LOCATION_ID,
         "operations",
         REQUEST_ID,
-        {**summary, "model_version": "rules-v1"},
+        {
+            **summary,
+            "model_version": "rules-v1",
+            "worker_result": summary,
+        },
     )
     assert result == {"summary_id": "saved-id", "replayed": False}
 
@@ -130,6 +134,56 @@ def test_generic_synthesis_worker_replays_before_source_reads():
     }
 
 
+def test_generic_synthesis_worker_replays_full_stored_structured_result():
+    original = {
+        "location_id": LOCATION_ID,
+        "synthesis": "original draft",
+        "confidence": 0.75,
+        "source_count": 4,
+    }
+    connection_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
+    agent = _synthetic_synthesis_agent()
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        result = worker_cli.run_worker_synthesis(
+            agent,
+            LOCATION_ID,
+            REQUEST_ID,
+            connection_factory=connection_factory,
+            existing_reader=lambda *_args: {
+                "summary_id": "saved-id",
+                "content": original["synthesis"],
+                "worker_result": original,
+            },
+        )
+
+    connection_factory.assert_not_called()
+    assert result["summary"] == original
+
+
+def test_generic_synthesis_worker_stops_before_source_reads_when_retry_lookup_rejects_intent():
+    connection_factory = MagicMock(side_effect=AssertionError("source DB must stay closed"))
+    agent = _synthetic_synthesis_agent()
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+        )
+        with pytest.raises(RuntimeError, match="request identifier was reused"):
+            worker_cli.run_worker_synthesis(
+                agent,
+                LOCATION_ID,
+                REQUEST_ID,
+                connection_factory=connection_factory,
+                existing_reader=lambda *_args: (_ for _ in ()).throw(
+                    RuntimeError("request identifier was reused for another intent")
+                ),
+            )
+
+    connection_factory.assert_not_called()
+
+
 def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
     agent = _synthetic_synthesis_agent()
     connection, cursor = _source_connection()
@@ -164,6 +218,10 @@ def test_generic_synthesis_worker_reads_only_then_uses_signed_writer():
             "source_tables": BioFactorySynthesisAgent.source_tables,
             "model_version": BioFactorySynthesisAgent.model_version,
             "source_references": {},
+            "worker_result": {
+                "location_id": LOCATION_ID,
+                "synthesis": "Synthetic agent draft",
+            },
         },
     )
     assert result == {

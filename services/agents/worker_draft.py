@@ -37,6 +37,7 @@ SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
     (*DETERMINISTIC_SUMMARY_TYPES, *SYNTHESIS_SUMMARY_TYPES)
 )
 _SOURCE_TABLE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_WORKER_RESULT_MAX_BYTES = 131072
 _SOURCE_REFERENCE_TABLES = frozenset(
     {
         "harvest_event",
@@ -184,6 +185,39 @@ def _validate_payload(
     return content, source_tables, model_version, source_references, source_references_json
 
 
+def _serialize_worker_result(
+    summary: Mapping[str, Any], *, content: str
+) -> str | None:
+    """Serialize a bounded structured response that must match its draft text."""
+    worker_result = summary.get("worker_result")
+    if worker_result is None:
+        return None
+    if not isinstance(worker_result, Mapping):
+        raise AgentDraftInvalid("worker_result must be an object")
+    result_texts = [
+        worker_result[key]
+        for key in ("content", "synthesis")
+        if key in worker_result
+    ]
+    if not result_texts or any(
+        not isinstance(result_text, str) or result_text != content
+        for result_text in result_texts
+    ):
+        raise AgentDraftInvalid("worker_result content must match the stored draft")
+    try:
+        encoded = json.dumps(
+            worker_result,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise AgentDraftInvalid("worker_result must contain JSON-compatible values") from exc
+    if len(encoded.encode("utf-8")) > _WORKER_RESULT_MAX_BYTES:
+        raise AgentDraftInvalid("worker_result exceeds the 131072-byte limit")
+    return encoded
+
+
 def _set_context(connection: Any, *, credential: str, location_id: str) -> None:
     with connection.cursor() as cursor:
         cursor.execute("SET LOCAL statement_timeout = '15s'")
@@ -200,7 +234,7 @@ def _set_context(connection: Any, *, credential: str, location_id: str) -> None:
 def _read_row(row: tuple[Any, ...] | None, *, replayed: bool) -> dict[str, Any] | None:
     if row is None:
         return None
-    return {
+    result = {
         "summary_id": str(row[0]),
         "content": row[1],
         "source_tables": list(row[2] or []),
@@ -210,6 +244,9 @@ def _read_row(row: tuple[Any, ...] | None, *, replayed: bool) -> dict[str, Any] 
         "replayed": replayed,
         "source_references": {},
     }
+    if len(row) > 6 and isinstance(row[6], dict):
+        result["worker_result"] = row[6]
+    return result
 
 
 def _read_source_references(
@@ -244,7 +281,7 @@ def get_worker_ai_summary_draft(
         _set_context(connection, credential=credential, location_id=location_id)
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT * FROM kokonut_security.get_location_ai_summary_worker_draft_request(
+                """SELECT * FROM kokonut_security.get_location_ai_summary_worker_result(
                            %s::uuid, %s::text, %s::uuid
                        )""",
                 (location_id, summary_type, request_id),
@@ -289,19 +326,44 @@ def create_worker_ai_summary_draft(
         source_references,
         source_references_json,
     ) = _validate_payload(summary_type, summary)
+    worker_result_json = _serialize_worker_result(summary, content=content)
     credential = get_worker_credential(_WORKER_KEY)
     connection = (connection_factory or (lambda: get_worker_db(_WORKER_KEY)))()
     try:
         _set_context(connection, credential=credential, location_id=location_id)
         with connection.cursor() as cursor:
-            cursor.execute(
-                """SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(
-                           %s::uuid, %s::text, %s::text, %s::text[], %s::text, %s::uuid
-                       )""",
-                (location_id, summary_type, content, source_tables, model_version, request_id),
-            )
+            if worker_result_json is not None:
+                cursor.execute(
+                    """SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+                               %s::uuid, %s::text, %s::text, %s::text[], %s::text,
+                               %s::uuid, %s::jsonb
+                           )""",
+                    (
+                        location_id,
+                        summary_type,
+                        content,
+                        source_tables,
+                        model_version,
+                        request_id,
+                        worker_result_json,
+                    ),
+                )
+            else:
+                cursor.execute(
+                    """SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft(
+                               %s::uuid, %s::text, %s::text, %s::text[], %s::text, %s::uuid
+                           )""",
+                    (location_id, summary_type, content, source_tables, model_version, request_id),
+                )
             row = cursor.fetchone()
-        result = _read_row(row[:6], replayed=bool(row[6])) if row is not None else None
+        result = (
+            _read_row(
+                (*row[:6], row[7]) if len(row) > 7 else row[:6],
+                replayed=bool(row[6]),
+            )
+            if row is not None
+            else None
+        )
         if result is None:
             raise RuntimeError("AI summary worker draft function returned no result")
         if source_references:
