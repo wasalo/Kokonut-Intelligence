@@ -24,6 +24,11 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `compute-metrics.sh` | Compute all metrics for all locations via host Python or one-shot `kokonut-worker` container | Manual, CI |
 
+By default, the helper uses the one-shot container when the local Compose
+database is running. Set `KOKONUT_METRICS_EXECUTION=host` to use the configured
+host-side PostgreSQL/ClickHouse endpoints instead; GitHub CI does this for its
+published loopback ports and does not require the production worker credential.
+
 ## Verification & Testing
 
 | Script | Purpose | Context |

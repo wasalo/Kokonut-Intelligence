@@ -1,3 +1,12 @@
+### ARM64/QEMU schema replay through migration 539 — 21 October 2026
+
+The local `linux/arm64` PostgreSQL image applied all 530 current schema files
+through migration 539 under QEMU in a network-disabled, disposable Compose
+project, with zero failures. No seed/farm data or candidate/legacy database was
+used. This verifies the ARM64 image and SQL migration chain in emulation only;
+physical Raspberry Pi, power-loss, storage, and thermal acceptance remain
+open. Evidence: [ARM64 migration replay](builds/2026-10-21-recovery/arm64-qemu-current-schema-539.json).
+
 ### CI #697 metrics execution-mode repair — 21 October 2026
 
 Hosted CI failed after the application-version smoke check when metric
