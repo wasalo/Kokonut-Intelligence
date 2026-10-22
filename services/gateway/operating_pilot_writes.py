@@ -285,3 +285,49 @@ def revise_location_operating_pilot_capacity_draft(
         raise
     finally:
         connection.close()
+
+
+def submit_location_operating_pilot_capacity_draft(
+    operator_id: str,
+    location_id: str,
+    profile_id: str,
+    request_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit only the caller's own private capacity draft for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    profile_id = _normalize_uuid(profile_id, "profile")
+    request_id = _normalize_uuid(request_id, "request")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="submit_own",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.submit_location_operating_pilot_capacity_draft(
+                           %s::uuid, %s::uuid, %s::uuid)""",
+                (location_id, profile_id, request_id),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot capacity submission returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

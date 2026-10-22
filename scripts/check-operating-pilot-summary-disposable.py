@@ -21,7 +21,8 @@ DEMAND_DRAFT_MIGRATION = ROOT / "schemas/postgres/552_location_operating_pilot_d
 CAPACITY_DRAFT_MIGRATION = ROOT / "schemas/postgres/553_location_operating_pilot_capacity_draft.sql"
 OWN_CAPACITY_MIGRATION = ROOT / "schemas/postgres/554_location_own_operating_pilot_capacity.sql"
 CAPACITY_REVISION_MIGRATION = ROOT / "schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-capacity-draft-revision-disposable.json"
+CAPACITY_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-capacity-draft-submission-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -245,7 +246,8 @@ INSERT INTO public.operator_scope_grant VALUES
  ('a1000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'create', 'f0000000-0000-4000-8000-000000000001', NULL),
  ('a1000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read', 'f0000000-0000-4000-8000-000000000001', NULL),
  ('a1000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read_own', 'f0000000-0000-4000-8000-000000000001', NULL),
- ('a1000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'edit_own', 'f0000000-0000-4000-8000-000000000001', NULL);
+ ('a1000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'edit_own', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'submit_own', 'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.party (id, party_type, status, display_name)
 VALUES ('d8000000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic operator party');
 INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
@@ -866,6 +868,8 @@ BEGIN
           'kokonut_security.location_operating_pilot_own_capacity_profiles(uuid,integer,integer)', 'EXECUTE')
        OR NOT has_function_privilege('kokonut_runtime',
           'kokonut_security.revise_location_operating_pilot_capacity_draft(uuid,uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.submit_location_operating_pilot_capacity_draft(uuid,uuid,uuid)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_demand_signal', 'INSERT')
@@ -884,6 +888,8 @@ BEGIN
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_receipt', 'INSERT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_revision_receipt', 'SELECT')
        OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_revision_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_capacity_draft_submission_receipt', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_profile', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_demand_signal', 'UPDATE')
@@ -901,6 +907,8 @@ BEGIN
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_receipt', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_revision_receipt', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_revision_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_capacity_draft_submission_receipt', 'INSERT')
        OR has_function_privilege('kokonut_directus_runtime',
           'kokonut_security.location_operating_pilot_summary(uuid)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
@@ -914,7 +922,9 @@ BEGIN
        OR has_function_privilege('kokonut_directus_runtime',
           'kokonut_security.location_operating_pilot_own_capacity_profiles(uuid,integer,integer)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
-          'kokonut_security.revise_location_operating_pilot_capacity_draft(uuid,uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE') THEN
+          'kokonut_security.revise_location_operating_pilot_capacity_draft(uuid,uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.submit_location_operating_pilot_capacity_draft(uuid,uuid,uuid)', 'EXECUTE') THEN
         RAISE EXCEPTION 'runtime/Directus operating pilot privilege boundary failed';
     END IF;
     IF has_function_privilege('kokonut_directus_runtime',
@@ -930,6 +940,12 @@ BEGIN
        OR has_function_privilege('kokonut_directus_runtime',
        'kokonut_security.revise_location_operating_pilot_capacity_draft(uuid,uuid,uuid,date,date,numeric,numeric,numeric,text)', 'EXECUTE') THEN
         RAISE EXCEPTION 'capacity revision function execute grants are not minimal';
+    END IF;
+    IF NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.submit_location_operating_pilot_capacity_draft(uuid,uuid,uuid)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.submit_location_operating_pilot_capacity_draft(uuid,uuid,uuid)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'capacity submission function execute grants are not minimal';
     END IF;
     IF has_table_privilege('kokonut_operating_pilot_reader', 'public.party', 'SELECT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_profile', 'UPDATE')
@@ -1009,8 +1025,16 @@ BEGIN
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'INSERT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'UPDATE')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'DELETE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'DELETE')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'input_digest', 'SELECT') = false
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'input_digest', 'INSERT') = false THEN
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_revision_receipt', 'input_digest', 'INSERT') = false
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'INSERT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'profile_id', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'profile_id', 'INSERT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'created_at', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_capacity_draft_submission_receipt', 'created_at', 'INSERT') THEN
         RAISE EXCEPTION 'capacity writer role lacks minimal receipt/insert privileges or has mutation access';
     END IF;
 END $$;
@@ -1158,6 +1182,126 @@ ROLLBACK;
 RESET ROLE;
 """
 
+CAPACITY_SUBMISSION_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000003', 'person', 'active', 'Synthetic second operator'),
+       ('d8000000-0000-4000-8000-000000000005', 'person', 'active', 'Synthetic ungranted operator');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000004',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000003', NULL),
+       ('d8000000-0000-4000-8000-000000000006',
+        'a0000000-0000-4000-8000-000000000003',
+        'd8000000-0000-4000-8000-000000000005', NULL);
+INSERT INTO public.operator_identity VALUES ('a0000000-0000-4000-8000-000000000003', true);
+INSERT INTO public.operator_organization_membership
+VALUES ('a2000000-0000-4000-8000-000000000002',
+        'a0000000-0000-4000-8000-000000000002',
+        'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000008',
+        'a0000000-0000-4000-8000-000000000002',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'submit_own',
+        'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operating_capacity_profile (
+    id, scope_type, scope_id, party_id, period_start, period_end,
+    status, source, available_hours, committed_hours, protected_hours, notes
+) VALUES (
+    'd0000000-0000-4000-8000-000000000020', 'adelphi',
+    'e9000000-0000-4000-8000-000000000001',
+    'd8000000-0000-4000-8000-000000000001',
+    CURRENT_DATE + 200, CURRENT_DATE + 220, 'draft', 'self_reported', 40, 10, 2,
+    'PRIVATE submitted profile note'
+);
+INSERT INTO public.operating_capacity_profile (
+    id, scope_type, scope_id, party_id, period_start, period_end,
+    status, source, available_hours, committed_hours, protected_hours, notes
+) VALUES (
+    'd0000000-0000-4000-8000-000000000021', 'adelphi',
+    'e9000000-0000-4000-8000-000000000001',
+    'd8000000-0000-4000-8000-000000000001',
+    CURRENT_DATE + 230, CURRENT_DATE + 250, 'draft', 'self_reported', 35, 8, 2,
+    'PRIVATE second capacity draft'
+);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE profile_id uuid := 'd0000000-0000-4000-8000-000000000020';
+        other_profile_id uuid := 'd0000000-0000-4000-8000-000000000021';
+        submitted jsonb; replay jsonb; denied boolean := false;
+        changed_retry_denied boolean := false; foreign_owner_denied boolean := false;
+        no_grant_denied boolean := false; signed_location_denied boolean := false;
+BEGIN
+    submitted := kokonut_security.submit_location_operating_pilot_capacity_draft(
+        'b0000000-0000-4000-8000-000000000001', profile_id,
+        'd9200000-0000-4000-8000-000000000020'
+    );
+    replay := kokonut_security.submit_location_operating_pilot_capacity_draft(
+        'b0000000-0000-4000-8000-000000000001', profile_id,
+        'd9200000-0000-4000-8000-000000000020'
+    );
+    IF submitted->>'profile_id' <> profile_id::text
+       OR submitted->>'status' <> 'submitted' OR submitted->>'replayed' <> 'false'
+       OR replay->>'profile_id' <> profile_id::text
+       OR replay->>'status' <> 'submitted' OR replay->>'replayed' <> 'true'
+       OR (SELECT status FROM public.test_capacity_profile_metadata(profile_id)) <> 'submitted'
+       OR submitted::text ~* '(PRIVATE|party_id|notes|available_hours)' THEN
+        RAISE EXCEPTION 'capacity submission or exact retry failed: %, %', submitted, replay;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.submit_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001', other_profile_id,
+            'd9200000-0000-4000-8000-000000000020'
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'changed submission retry was accepted'; END IF;
+    BEGIN
+        PERFORM kokonut_security.submit_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001', profile_id,
+            'd9200000-0000-4000-8000-000000000021'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'already submitted profile was re-submitted'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.submit_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001', other_profile_id,
+            'd9200000-0000-4000-8000-000000000022'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN foreign_owner_denied := true;
+    END;
+    IF NOT foreign_owner_denied THEN RAISE EXCEPTION 'submit-own grant crossed human-party boundary'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    BEGIN
+        PERFORM kokonut_security.submit_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001', other_profile_id,
+            'd9200000-0000-4000-8000-000000000023'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'submission succeeded without active submit-own grant'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.submit_location_operating_pilot_capacity_draft(
+            'b0000000-0000-4000-8000-000000000001', other_profile_id,
+            'd9200000-0000-4000-8000-000000000024'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN signed_location_denied := true;
+    END;
+    IF NOT signed_location_denied THEN RAISE EXCEPTION 'submission accepted a different signed location'; END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+"""
+
 PRIVACY_SUPPRESSION = r"""
 BEGIN;
 SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
@@ -1224,12 +1368,13 @@ def main() -> int:
             CAPACITY_DRAFT_MIGRATION.name,
             OWN_CAPACITY_MIGRATION.name,
             CAPACITY_REVISION_MIGRATION.name,
+            CAPACITY_SUBMISSION_MIGRATION.name,
         ],
         "database_target": "new disposable PostgreSQL 16 container",
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 461, 479, 480, 526, 538, 552, 553, 554, and 555 apply and replay on disposable PostgreSQL 16",
+            "migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, and 556 apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -1256,6 +1401,9 @@ def main() -> int:
             "a revision atomically preserves the old draft as superseded and creates a private self-reported replacement draft",
             "exact revision retries replay; changed retries, submitted profiles, cross-party edits, location mismatches, and duplicate person-period revisions fail closed",
             "runtime receives only execute on the revision function; Directus cannot execute it and neither role accesses revision receipts or capacity notes directly",
+            "capacity submissions require the separate exact submit-own grant and preserve ownership, signed scope, and draft-only eligibility",
+            "exact capacity submission retries replay; changed request reuse, missing grants, cross-party profiles, non-drafts, and location mismatch fail closed",
+            "capacity submission receipt access is limited to the non-login function owner; runtime and Directus cannot read or write it directly",
         ],
     }
     try:
@@ -1285,6 +1433,7 @@ def main() -> int:
         capacity_draft_migration = CAPACITY_DRAFT_MIGRATION.read_text(encoding="utf-8")
         own_capacity_migration = OWN_CAPACITY_MIGRATION.read_text(encoding="utf-8")
         capacity_revision_migration = CAPACITY_REVISION_MIGRATION.read_text(encoding="utf-8")
+        capacity_submission_migration = CAPACITY_SUBMISSION_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, summary_migration)
         psql(docker, container, summary_migration)
         psql(docker, container, demand_migration)
@@ -1303,14 +1452,17 @@ def main() -> int:
         psql(docker, container, own_capacity_migration)
         psql(docker, container, capacity_revision_migration)
         psql(docker, container, capacity_revision_migration)
+        psql(docker, container, capacity_submission_migration)
+        psql(docker, container, capacity_submission_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
+        psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 39
+        evidence["assertion_groups_passed"] = 40
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         print(
-            "PASS: migrations 461/479/480/526/538/552/553/554/555 apply/replay and all thirty-nine grouped PostgreSQL assertions passed"
+            "PASS: migrations 461/479/480/526/538/552/553/554/555/556 apply/replay and all forty grouped PostgreSQL assertions passed"
         )
         result = 0
     except Exception as exc:

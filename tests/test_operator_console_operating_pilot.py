@@ -160,7 +160,7 @@ def test_demand_draft_form_is_create_grant_gated_and_never_submits_or_approves()
     submit = _function(
         source,
         "async function submitOperatingPilotDemandDraft(event)",
-        "async function loadOperatingPilotSummary()",
+        "async function submitOperatingPilotCapacityDraft(event)",
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit
@@ -179,7 +179,7 @@ def test_capacity_draft_form_is_create_grant_gated_and_never_submits_or_approves
     submit = _function(
         source,
         "async function submitOperatingPilotCapacityDraft(event)",
-        "async function loadOperatingPilotSummary()",
+        "function cancelOperatingPilotCapacityEdit()",
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit
@@ -219,6 +219,35 @@ def test_capacity_revision_replaces_only_own_draft_under_separate_edit_own_grant
     assert "operatingPilotOwnCapacityLocations.has(locationId)" in source
     assert "operatingPilotEditOwnCapacityLocations.has(locationId)" in source
     assert 'id="operating-pilot-capacity-edit-cancel"' in source
+
+
+def test_capacity_submission_is_explicit_idempotent_and_separately_granted():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotCapacityProfile(item, locationId, button)",
+        "async function loadOperatingPilotSummary()",
+    )
+    own_row = _function(
+        source,
+        "function appendOperatingPilotOwnCapacityRow(item, locationId)",
+        "async function loadOperatingPilotOwnCapacityProfiles(append = false)",
+    )
+    assert "operatingPilotSubmitOwnCapacityLocations.has(locationId)" in submit
+    assert "window.confirm(" in submit
+    assert "cannot be edited after submission" in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "operatingPilotPendingCapacitySubmissions.set(item.profile_id, requestId)" in submit
+    assert "operatingPilotPendingCapacitySubmissions.delete(item.profile_id)" in submit
+    assert "Retry keeps the same request ID." in submit
+    assert "hasPendingSubmission" in own_row
+    assert "Submit for independent review" in own_row
+    assert "Retry capacity submission" in own_row
+    assert 'scope.action === "submit_own"' in source
+    assert "/approve" not in submit.lower()
 
 
 def test_create_only_location_can_open_draft_form_without_reading_queues():

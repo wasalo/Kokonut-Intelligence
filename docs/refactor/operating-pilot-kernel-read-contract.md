@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, personal capacity history and own-draft revision, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, draft-only demand and self-reported capacity creation, personal capacity history, own-draft revision and submission, aggregate capacity-period page, suppressed work-claim category page, and suppressed resource-request category page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`
 
 ## Route and authorization
 
@@ -143,6 +143,33 @@ their owner. This is a read-only personal history view, not a review or
 lifecycle decision surface. Responses are same-origin and `no-store`, and the
 console renders fields through text nodes.
 
+## Capacity draft creation
+
+The capacity POST accepts `period_start`, `period_end`, `available_hours`,
+`committed_hours`, `protected_hours`, an optional private `notes` value, and a
+UUID `request_id`. Dates must form an ordered inclusive period no longer than
+367 days. Hours are finite, non-negative decimals with at most two fractional
+digits and no value above 100,000; committed and protected hours together may
+not exceed available hours. Notes are limited to 2,000 characters and are
+never included in the response or a read projection.
+
+Migration 553 rechecks the signed location context and exact create grant,
+locks the current operator-to-human-party binding, and maps the location
+through the active Adelphi farm scope. The created row is always attributed to
+that party, has `source='self_reported'` and `status='draft'`, and cannot select
+another party, scope, source, or lifecycle state from client input. Exact
+request retries return the same profile ID and current status; changed input
+under the same request ID and another non-superseded profile for the same
+person and period return conflict. The response includes only location ID,
+profile ID, status, and replay indicator.
+
+The Gateway and Directus roles lose existing table-level and column-level
+direct `INSERT`/`UPDATE`/`DELETE` on `operating_capacity_profile`. They cannot
+read or write capacity receipts. The non-login writer owner receives only the
+columns and helper access needed to validate identity/scope, create a draft,
+and resolve a retry; it receives no access to notes for reading. The aggregate
+capacity route continues to omit draft profiles.
+
 ## Capacity draft revision
 
 `PUT /operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}`
@@ -171,32 +198,28 @@ validation or authorization errors roll the transaction back, preserving the
 original draft. The response contains only the two profile IDs, current draft
 status, and replay indicator; private notes and hour values are not returned.
 
-## Capacity draft creation
+## Capacity draft submission
 
-The capacity POST accepts `period_start`, `period_end`, `available_hours`,
-`committed_hours`, `protected_hours`, an optional private `notes` value, and a
-UUID `request_id`. Dates must form an ordered inclusive period no longer than
-367 days. Hours are finite, non-negative decimals with at most two fractional
-digits and no value above 100,000; committed and protected hours together may
-not exceed available hours. Notes are limited to 2,000 characters and are
-never included in the response or a read projection.
+`POST /operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit`
+uses a separate exact `operating_pilot:submit_own` location grant. The request
+body contains only a UUID `request_id`; callers cannot send a lifecycle status,
+identity, hours, notes, or review fields. The Gateway validates the identifiers
+before connecting, sets signed submit-own context on the same transaction, and
+uses same-origin CSRF protection with `no-store` responses.
 
-Migration 553 rechecks the signed location context and exact create grant,
-locks the current operator-to-human-party binding, and maps the location
-through the active Adelphi farm scope. The created row is always attributed to
-that party, has `source='self_reported'` and `status='draft'`, and cannot select
-another party, scope, source, or lifecycle state from client input. Exact
-request retries return the same profile ID and current status; changed input
-under the same request ID and another non-superseded profile for the same
-person and period return conflict. The response includes only location ID,
-profile ID, status, and replay indicator.
+Migration 556 rechecks the signed location, active exact submit-own grant,
+enabled operator and unique active human binding, and active Adelphi mapping.
+It locks and submits only the caller's own `self_reported` draft. The status
+change and private request receipt commit atomically. The route cannot revise,
+verify, approve, reject, or publish a profile; independent human review remains
+a separate capability.
 
-The Gateway and Directus roles lose existing table-level and column-level
-direct `INSERT`/`UPDATE`/`DELETE` on `operating_capacity_profile`. They cannot
-read or write capacity receipts. The non-login writer owner receives only the
-columns and helper access needed to validate identity/scope, create a draft,
-and resolve a retry; it receives no access to notes for reading. The aggregate
-capacity route continues to omit draft profiles.
+The receipt binds the operator/request ID to the exact location and profile.
+Identical retries return the current profile status; reusing the request ID for
+a different profile or location conflicts. A different request cannot resubmit
+a profile that has already left `draft`, and missing grants, cross-party
+profiles, or signed-location mismatch fail closed. The response contains only
+profile ID, current status, and replay indicator.
 
 ## Capacity-period page
 
@@ -261,16 +284,18 @@ The operator console exposes five aggregate/read routes under exact
 exact `operating_pilot:read_own` grant. Demand and capacity draft forms are
 separately gated by `operating_pilot:create`. Revision controls appear only
 for a caller-owned `self_reported` draft when the location also has the exact
-`operating_pilot:edit_own` grant; history read and revision write remain
-independent permissions. The location selector uses the union of read,
-read-own, create, and edit-own locations without allowing one grant to activate
-another surface. Requests are same-origin and `no-store`, and stale responses
+`operating_pilot:edit_own` grant; submit controls require the independent exact
+`operating_pilot:submit_own` grant and an explicit confirmation. Own-history
+read, revision, and submission remain separate permissions. The location
+selector uses the union of read, read-own, create, edit-own, and submit-own
+locations without allowing one grant to activate another surface. Requests are same-origin and `no-store`, and stale responses
 are discarded when the selected location changes. Pages are bounded and
 provide explicit load-more controls. Aggregate capacity hours, work-claim
 counts, and resource-request counts remain suppressed below three contributors.
 Fixed allowlists and text-only DOM rendering are used. Draft forms add no
-lifecycle review actions and this does not constitute live OIDC/browser
-acceptance.
+review actions; own-capacity submission remains a separate action and does not
+provide verification or approval. This does not constitute live
+OIDC/browser acceptance.
 
 ## Database boundary
 
@@ -290,12 +315,13 @@ direct write privileges on demand signals and capacity profiles from the
 legacy runtime and Directus logins. Migration 554 grants the non-login reader
 only the additional capacity columns required by the own-record function. The
 runtime and Directus roles receive no direct SELECT access to private notes;
-Directus cannot execute the own-record or revision function, and the reader
-has no login or role memberships. Migration 555 gives the non-login function
-owner only `status` UPDATE on capacity profiles and the bounded receipt
-columns needed to replay a revision. Runtime can execute the revision function
-but has no direct receipt access or profile write privilege. Capacity retry
-receipts remain private.
+Directus cannot execute the own-record, revision, or submission function,
+and the reader has no login or role memberships. Migration 555 gives the
+non-login function owner only `status` UPDATE on capacity profiles and the
+bounded receipt columns needed to replay a revision. Migration 556 adds only
+SELECT/INSERT access to the submission receipt columns needed by its function.
+Runtime can execute the revision and submission functions but has no direct
+receipt access or profile write privilege. Capacity receipts remain private.
 This is a scoped ACL boundary, not universal least privilege or forced
 RLS: other tables, inherited memberships, and deployed ACL state still require
 review.
@@ -303,20 +329,23 @@ review.
 ## Verification and rollback
 
 The Gateway contract and exact route policy are covered by
-`tests/test_gateway_operating_pilot_reads.py` and
+`tests/test_gateway_operating_pilot_reads.py`,
+`tests/test_gateway_operating_pilot_writes.py`,
+`tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, and 555, exercises active and internal scopes, checks aggregate values,
-demand/capacity/own-capacity/claim/resource-category paging, small-cohort
-suppression, separate read-own and edit-own grant enforcement, revision replay,
-old-version preservation, collision rollback, and data redaction; it also
+554, 555, and 556, exercises active and internal scopes, checks aggregate
+values, demand/capacity/own-capacity/claim/resource-category paging,
+small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
+revision and submission replay, old-version preservation, collision rollback,
+submission eligibility, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, or 555 are applied, retain their ordered functions, receipts, roles, and
+554, 555, or 556 are applied, retain their ordered functions, receipts, roles, and
 ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
@@ -324,7 +353,7 @@ a separately reviewed forward migration.
 ## Remaining gates
 
 These slices do not establish populated Adelphi scope mapping, item-level
-capacity/work-claim/competency/learning/resource/coaching workflows, demand
+capacity review, work-claim/competency/learning/resource/coaching workflows, demand
 submission/review/fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates

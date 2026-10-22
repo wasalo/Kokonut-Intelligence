@@ -1,3 +1,28 @@
+### CAP-037 own capacity draft submission — 22 October 2026
+
+Operators can now submit their own self-reported capacity draft for independent
+review through `POST /operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit`.
+The route uses a separate exact `operating_pilot:submit_own` grant. Migration
+556 checks signed location scope, operator identity and unique binding, active
+Adelphi mapping, and ownership of a draft; it changes only `draft` to
+`submitted`, with a private receipt committed in the same transaction. Exact
+request retries replay, while changed retries, cross-party profiles, missing
+grants, location mismatch, or a second submission fail closed. The console
+requires separate own-history read and submit-own permissions and confirms the
+one-way action. Verification and approval remain independent human actions.
+
+The focused Gateway, route-policy, and console selection passes 59 tests;
+including migration metadata coverage, the selection passes 95 tests. Ruff and
+compilation pass. Network-disabled disposable PostgreSQL 16 applies
+and replays migrations 461, 479, 480, 526, 538, 552, 553, 554, 555, and 556
+with 40 grouped assertions ([evidence](builds/2026-10-22-recovery/cap-037-own-capacity-draft-submission-disposable.json)).
+Candidate and legacy databases remain untouched; migration 556 is not rolled
+out. CAP-037 remains prepared (`P`) with the review/approval workflow and other
+item workflows, populated parity, live OIDC/browser, production ACL/RLS and
+recovery, privacy/audience, and owner-acceptance gates still open. Checklist:
+981 complete / 24 open (1,005 total); capability matrix: 30 baseline-retained,
+7 deployed, and 29 prepared across 66 entries.
+
 ### CAP-037 own capacity draft revision — 22 October 2026
 
 The operating-pilot Gateway can now revise an operator's own unsubmitted,
