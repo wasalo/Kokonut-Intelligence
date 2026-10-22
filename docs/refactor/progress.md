@@ -14369,3 +14369,18 @@ caller choices. This verifies SDK credential selection, not a remote TLS
 endpoint or production certificate/tenant acceptance. Checklist: 932 complete /
 24 open (956 total); matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. Evidence: [TypeScript gRPC TLS defaults](builds/2026-10-21-recovery/cap-064-typescript-grpc-tls-defaults.json).
+
+
+### CAP-064 Python SDK secure gRPC channel helper — 21 October 2026
+
+The optional Python gRPC SDK now exports a lazy `create_channel()` helper. It
+uses system-trusted TLS for remote targets, plaintext for recognized loopback,
+accepts a private CA bundle, and requires explicit opt-in for remote plaintext.
+Importing the helper does not import `grpcio`, preserving the base SDK's
+optional-dependency boundary. Sixteen focused tests pass; Ruff, compilation,
+and wheel build pass, and the wheel contains `kokonut/grpc/channel.py`. Tests
+use mocked channels only; no RPC or external endpoint was contacted. Production
+certificate lifecycle, public ingress, tenant authorization, and REST parity
+remain open. Checklist: 933 complete / 24 open (957 total); matrix remains 31
+baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[Python gRPC channel factory](builds/2026-10-21-recovery/cap-064-python-grpc-channel-factory.json).

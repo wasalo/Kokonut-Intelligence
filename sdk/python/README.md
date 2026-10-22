@@ -60,24 +60,28 @@ Generated modules are available as `kokonut.grpc.common.pagination_pb2`,
 names, service names, and field definitions remain those declared in `proto/`.
 
 The Python gRPC package exposes generated stubs and leaves channel ownership to
-the caller. For remote servers, use a CA-verified secure channel; reserve
-`grpc.insecure_channel()` for loopback development or a trusted private network:
+the caller. Its optional `create_channel()` helper uses TLS for remote targets,
+plaintext for recognized loopback targets, and permits remote plaintext only
+with explicit opt-in. `grpcio` is imported lazily by the helper, so the base SDK
+can still be imported without the `grpc` extra:
 
 ```python
 from pathlib import Path
 
-import grpc
+from kokonut.grpc import create_channel
 from kokonut.grpc.data.v1.service_pb2_grpc import DataServiceStub
 
-credentials = grpc.ssl_channel_credentials(
-    root_certificates=Path("/etc/kokonut/grpc-ca.pem").read_bytes()
+channel = create_channel(
+    "grpc.example.com:50051",
+    root_certificates=Path("/etc/kokonut/grpc-ca.pem").read_bytes(),
 )
-channel = grpc.secure_channel("grpc.example.com:50051", credentials)
 client = DataServiceStub(channel)
 ```
 
-Close the channel when the client is finished. API-key metadata should only be
-sent over a trusted TLS channel or a controlled private transport.
+Use `create_channel("grpc.example.com:50051", allow_insecure=True)` only for a
+trusted private network. Close the channel when the client is finished.
+API-key metadata should only be sent over a trusted TLS channel or a controlled
+private transport.
 
 ## Usage
 

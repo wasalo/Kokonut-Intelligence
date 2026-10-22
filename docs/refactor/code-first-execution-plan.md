@@ -2887,3 +2887,13 @@ Thirty-five Vitest checks pass; `tsc` build and package dry run pass, including
 `dist/transport.js`. No RPC or external endpoint was contacted. Python generated
 stubs remain caller-managed and document the secure channel path. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-064-typescript-grpc-tls-defaults.json`.
+
+
+### 21 October 2026 — CAP-064 Python SDK channel security
+
+The optional Python SDK now has a lazy `create_channel()` helper: remote targets
+use system-trusted TLS, loopback uses plaintext, private CA bytes select TLS,
+and remote plaintext needs `allow_insecure=True`. Importing the package does not
+load grpcio. Sixteen tests pass; Ruff, compilation, and wheel build pass, with
+the helper included. No RPC or external endpoint was contacted. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-064-python-grpc-channel-factory.json`.
