@@ -14325,3 +14325,18 @@ used. This does not establish a certificate handshake, rotation, hostname
 validation, or production ingress. Checklist: 929 complete / 24 open (953
 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across
 66 rows. Evidence: [gRPC server TLS preflight](builds/2026-10-21-recovery/cap-064-grpc-server-tls-preflight.json).
+
+
+### CAP-064 certificate-verified gRPC health loopback — 21 October 2026
+
+An in-process gRPC health server now has a real TLS loopback regression using a
+temporary self-signed certificate with an IP SAN for `127.0.0.1`. The health
+client successfully verifies the supplied trust root and completes the TLS
+handshake. All seven tests in the enabled transport file pass; Ruff, Python
+compilation, and diff checks pass. Only an ephemeral loopback listener and a
+pytest temporary certificate were used; no external network, database, or
+provider was contacted. This proves local trust-chain/IP identity behavior, not
+`hub.kokonut.network` certificate, ingress, rotation, authenticated tenant, or
+REST acceptance. Checklist: 930 complete / 24 open (954 total); matrix remains
+31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
+[gRPC TLS loopback](builds/2026-10-21-recovery/cap-064-grpc-health-tls-loopback.json).

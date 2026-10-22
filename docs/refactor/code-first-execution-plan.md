@@ -2854,3 +2854,14 @@ credential error stops startup with redacted diagnostics. Forty-five focused
 gRPC tests pass; Ruff, compilation, and diff checks pass. The DB pool and
 transport were mocked; no endpoint, database, or provider was contacted.
 Evidence: `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-server-tls-preflight.json`.
+
+
+### 21 October 2026 — CAP-064 certificate-verified gRPC TLS loopback
+
+The gRPC health client completed a real local TLS handshake against an
+in-process server with a temporary self-signed certificate trusted through the
+CA option; the test validates the 127.0.0.1 IP SAN. The enabled transport file
+passes all seven tests; Ruff, compilation, and diff checks pass. Only loopback
+and temporary test files were used. Production DNS certificates, rotation,
+public ingress, tenant authorization, and REST parity remain open. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-tls-loopback.json`.

@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import importlib
 import re
+import shutil
+import subprocess
 import threading
 from concurrent import futures
 from pathlib import Path
@@ -226,6 +228,64 @@ def test_registered_server_enforces_api_key_and_scope_over_loopback(running_serv
     assert not classes.HasField("pagination")
     assert len(database_factory.connections) == 5
     assert database_factory.released == database_factory.connections
+
+
+def test_tls_health_client_completes_verified_loopback_handshake(tmp_path, monkeypatch):
+    openssl = shutil.which("openssl")
+    if openssl is None:
+        pytest.skip("OpenSSL is required to create an ephemeral loopback certificate")
+
+    cert_path = tmp_path / "grpc-loopback-cert.pem"
+    key_path = tmp_path / "grpc-loopback-key.pem"
+    subprocess.run(
+        [
+            openssl,
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-keyout",
+            str(key_path),
+            "-out",
+            str(cert_path),
+            "-days",
+            "1",
+            "-subj",
+            "/CN=localhost",
+            "-addext",
+            "subjectAltName=DNS:localhost,IP:127.0.0.1",
+            "-addext",
+            "basicConstraints=critical,CA:TRUE",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    from grpc_health.v1 import health_pb2, health_pb2_grpc
+
+    from services.core.adapters import grpc as grpc_adapter
+    from services.grpc.health import HealthServicer
+
+    monkeypatch.setattr(grpc_adapter, "require_enabled", lambda: None)
+    executor = futures.ThreadPoolExecutor(max_workers=1)
+    server = grpc.server(executor)
+    health_pb2_grpc.add_HealthServicer_to_server(HealthServicer(), server)
+    credentials = grpc.ssl_server_credentials(
+        [(key_path.read_bytes(), cert_path.read_bytes())]
+    )
+    port = server.add_secure_port("127.0.0.1:0", credentials)
+    assert port, "TLS health server must bind an ephemeral loopback port"
+    server.start()
+    try:
+        status = grpc_adapter.check_health(
+            f"127.0.0.1:{port}", tls_ca_path=str(cert_path)
+        )
+        assert status == health_pb2.HealthCheckResponse.SERVING
+    finally:
+        server.stop(grace=0).wait(timeout=5)
+        executor.shutdown(wait=True, cancel_futures=True)
 
 
 def test_ecocredit_classes_support_cursor_pagination_over_loopback(running_server, monkeypatch):
