@@ -26,7 +26,7 @@ def test_health_rpc_error_is_redacted_and_channel_is_closed(monkeypatch):
     monkeypatch.setattr(health_pb2_grpc, "HealthStub", lambda _channel: stub)
 
     with pytest.raises(RuntimeError, match="Health check failed \\(_RemoteHealthFailure\\)") as error:
-        grpc_adapter.check_health("synthetic-target")
+        grpc_adapter.check_health("synthetic-target", allow_insecure=True)
 
     assert DIAGNOSTIC not in str(error.value)
     channel.close.assert_called_once_with()

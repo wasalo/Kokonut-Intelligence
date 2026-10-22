@@ -14340,3 +14340,18 @@ provider was contacted. This proves local trust-chain/IP identity behavior, not
 REST acceptance. Checklist: 930 complete / 24 open (954 total); matrix remains
 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. Evidence:
 [gRPC TLS loopback](builds/2026-10-21-recovery/cap-064-grpc-health-tls-loopback.json).
+
+
+### CAP-064 non-loopback gRPC health requires TLS — 21 October 2026
+
+The health client now permits implicit plaintext only for recognized loopback
+targets. Remote targets fail before channel creation unless a trusted CA is
+configured; `--insecure` provides an explicit opt-in for trusted private
+networks. A configured server TLS pair still cannot be bypassed without its CA.
+The focused five-suite unit selection passes 50 tests and the enabled transport
+selection passes seven, including a real loopback TLS handshake. Ruff, Python
+compilation, and diff checks pass. No remote network, database, or provider was
+contacted. Production DNS certificate/lifecycle, public ingress, authenticated
+tenant scope, and REST parity remain open. Checklist: 931 complete / 24 open
+(955 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared
+across 66 rows. Evidence: [gRPC health plaintext policy](builds/2026-10-21-recovery/cap-064-grpc-health-remote-plaintext-policy.json).

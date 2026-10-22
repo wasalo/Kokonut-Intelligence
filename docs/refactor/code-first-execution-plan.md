@@ -2865,3 +2865,15 @@ passes all seven tests; Ruff, compilation, and diff checks pass. Only loopback
 and temporary test files were used. Production DNS certificates, rotation,
 public ingress, tenant authorization, and REST parity remain open. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-tls-loopback.json`.
+
+
+### 21 October 2026 — CAP-064 remote health targets require TLS
+
+Plaintext is implicit only for loopback health targets. Remote targets require
+a trusted CA or an explicit `--insecure` opt-in for a trusted private network;
+server TLS settings cannot be bypassed without their CA. The focused unit suite
+passes 50 tests and enabled transport passes seven, including the real TLS
+loopback. Ruff, compilation, Compose, matrix, and diff checks pass. No remote
+endpoint or database was used. Production DNS/certificate, lifecycle, ingress,
+tenant, and REST acceptance remain open. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-remote-plaintext-policy.json`.

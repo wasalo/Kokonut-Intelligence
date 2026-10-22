@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import os
 
 from services.common.errors import safe_exception_class
@@ -21,7 +22,30 @@ def serve() -> None:
     run_server()
 
 
-def check_health(target: str, tls_ca_path: str | None = None) -> int:
+def _is_loopback_target(target: str) -> bool:
+    """Recognize common literal loopback gRPC targets; treat unknown forms as remote."""
+    value = target.strip()
+    for prefix in ("dns:///", "ipv4:", "ipv6:"):
+        if value.startswith(prefix):
+            value = value[len(prefix) :]
+            break
+    host = value.rsplit(":", 1)[0] if ":" in value else value
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def check_health(
+    target: str,
+    tls_ca_path: str | None = None,
+    *,
+    allow_insecure: bool = False,
+) -> int:
     """Return gRPC health, using a configured CA for TLS and closing the channel."""
     require_enabled()
     import grpc
@@ -33,6 +57,12 @@ def check_health(target: str, tls_ca_path: str | None = None) -> int:
     )
     if server_tls_configured and not tls_ca_path:
         raise RuntimeError("GRPC_TLS_CA is required when gRPC server TLS is configured")
+
+    if not tls_ca_path and not allow_insecure and not _is_loopback_target(target):
+        raise RuntimeError(
+            "gRPC health checks to non-loopback targets require GRPC_TLS_CA; "
+            "use --insecure only on a trusted private network"
+        )
 
     if tls_ca_path:
         from pathlib import Path

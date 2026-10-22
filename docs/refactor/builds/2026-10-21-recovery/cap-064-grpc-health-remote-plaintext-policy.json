@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Fail-closed plaintext policy for gRPC health targets",
+  "result": "PASS",
+  "behavior": {
+    "loopback_without_ca": "Allowed for local development and Compose health checks.",
+    "remote_without_ca": "Rejected before channel creation.",
+    "remote_with_ca": "Uses CA-verified TLS.",
+    "explicit_private_plaintext": "The operator can opt in with --insecure; this flag cannot bypass a configured server-TLS-without-CA error."
+  },
+  "verification": {
+    "focused_grpc_unit_selection": "50 passed",
+    "enabled_loopback_transport": "7 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "data_access": {
+    "remote_plaintext_attempt": "Mocked; verified no channel was opened.",
+    "external_network": false,
+    "database": false,
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "The remote plaintext rejection and explicit opt-in use mocked channels; the TLS loopback acceptance separately validates local certificate trust.",
+    "Production certificate/DNS validation, certificate lifecycle, public ingress, authenticated tenant scope, and REST parity remain open."
+  ]
+}

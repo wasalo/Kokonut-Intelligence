@@ -104,5 +104,44 @@ def test_health_cli_forwards_tls_ca_argument(monkeypatch, capsys):
 
     main()
 
-    check_health.assert_called_once_with("grpc.internal:50051", tls_ca_path="/ca.pem")
+    check_health.assert_called_once_with(
+        "grpc.internal:50051", tls_ca_path="/ca.pem", allow_insecure=False
+    )
     assert "Status:" in capsys.readouterr().out
+
+
+def test_health_rejects_plaintext_for_non_loopback_target(monkeypatch):
+    monkeypatch.setattr(grpc_adapter, "require_enabled", lambda: None)
+    for name in ("GRPC_TLS_CERT", "GRPC_TLS_KEY", "GRPC_TLS_CA"):
+        monkeypatch.delenv(name, raising=False)
+    insecure_channel = Mock()
+    secure_channel = Mock()
+    monkeypatch.setattr(grpc, "insecure_channel", insecure_channel)
+    monkeypatch.setattr(grpc, "secure_channel", secure_channel)
+
+    with pytest.raises(RuntimeError, match="non-loopback targets require GRPC_TLS_CA"):
+        grpc_adapter.check_health("grpc.internal:50051")
+
+    insecure_channel.assert_not_called()
+    secure_channel.assert_not_called()
+
+
+def test_health_allows_explicit_insecure_private_target(monkeypatch):
+    monkeypatch.setattr(grpc_adapter, "require_enabled", lambda: None)
+    for name in ("GRPC_TLS_CERT", "GRPC_TLS_KEY", "GRPC_TLS_CA"):
+        monkeypatch.delenv(name, raising=False)
+    channel = Mock()
+    stub = Mock()
+    stub.Check.return_value = health_pb2.HealthCheckResponse(
+        status=health_pb2.HealthCheckResponse.SERVING
+    )
+    insecure_channel = Mock(return_value=channel)
+    monkeypatch.setattr(grpc, "insecure_channel", insecure_channel)
+    monkeypatch.setattr(grpc, "secure_channel", Mock())
+    monkeypatch.setattr(health_pb2_grpc, "HealthStub", lambda _channel: stub)
+
+    status = grpc_adapter.check_health("grpc.internal:50051", allow_insecure=True)
+
+    assert status == health_pb2.HealthCheckResponse.SERVING
+    insecure_channel.assert_called_once_with("grpc.internal:50051")
+    channel.close.assert_called_once_with()

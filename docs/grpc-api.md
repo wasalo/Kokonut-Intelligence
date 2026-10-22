@@ -347,9 +347,10 @@ Health failures print the gRPC error and exit with status `1`.
 For a TLS listener, provide a trusted CA bundle with the `--tls-ca` option
 (for example, `/etc/ssl/certs/grpc-ca.pem`) or the `GRPC_TLS_CA` environment
 variable. When the health process sees `GRPC_TLS_CERT` or `GRPC_TLS_KEY`, it
-fails closed if no CA path is configured. If neither server TLS nor a CA path
-is configured, the legacy health check remains insecure for private
-development transports.
+fails closed if no CA path is configured. Without a CA path, plaintext is
+allowed automatically only for loopback targets. A non-loopback target fails
+closed unless the operator explicitly supplies `--insecure`, which is intended
+only for a trusted private network. Compose health checks target loopback.
 
 `Health/Check` returns `SERVING`. `Health/Watch` currently yields a single
 `SERVING` response and does not continuously monitor service state.
