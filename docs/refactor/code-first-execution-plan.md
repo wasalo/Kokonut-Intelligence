@@ -3,26 +3,28 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 provenance capacity and candidate migration 551:**
-a fresh age-encrypted candidate checkpoint was restore-rehearsed in an
-internal-only PostgreSQL clone. The ordered runner applied migration 551 to the
-clone and candidate; both ledgers now have 542 schema entries through 551 and
-zero pending. Ecological modeling captures bounded provenance for 13 of 14
-inputs, and network-disabled PostgreSQL 16 apply/replay passed seven grouped
-checks on native AMD64 and ARM64/QEMU. The focused worker/source/draft selection
-passes 123 tests. Across the 12 registered synthesis agents, the only unreferenced hints are the already-bound location subject and the private, lifecycle-free organic compliance checklist, whose rows are intentionally count-only. Only the candidate app was recreated and is healthy; no seed
-or farm data ran, and PostgreSQL, Metabase, proxy, and the legacy stack were not
-recreated. Because the candidate and checkpoint contain no location rows,
-populated ecological output parity remains unverified. Checklist: 970 complete
-/ 24 open (994 total); the 66-row matrix remains 30 baseline-retained, 7
-deployed, and 29 prepared, with all MAN-CAP approvals still open. Separately,
-the full current-source ARM64/QEMU schema replay applied 542 of 542 schemas
-through migration 551 with zero pending/failed entries, no seeds, no network or
-host ports, and verified cleanup ([evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-551.json)).
-This is emulation evidence; physical Raspberry Pi and power acceptance remain
-open. The public-interest report-context cursor now closes on all exits; its
-focused five-test governance suite, Ruff, compilation, and refreshed SQL
-inventory checks pass ([evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json)).
+**Current batch — CAP-038 source-boundary and resource-lifecycle hardening:**
+the candidate has migrations through 551 with zero pending, after a fresh
+age-encrypted checkpoint and restore rehearsal. Its app is healthy; no seed or
+farm data was written, and the legacy stack was untouched. Ecological modeling
+captures bounded provenance for 13 of 14 inputs; the 12-agent audit retains
+only the signed location subject and a sensitive, lifecycle-free organic
+compliance count as intentional non-row references. Network-disabled
+PostgreSQL 16 apply/replay of migrations 550–551 passed seven grouped checks on
+native AMD64 and ARM64/QEMU, and the full QEMU replay applied all 542 current
+schemas through 551. This is emulation evidence, not physical Raspberry Pi or
+power acceptance. The public-interest report context and the deterministic
+AI-summary registry/operations/financial/environmental query paths now close
+cursors after both success and failure. The focused AI-summary, source, safety,
+CLI, and input-preflight selection passes 45 tests; Ruff, compilation, current
+runtime SQL inventory, and matrix validation pass ([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
+[report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json)).
+No database or provider was accessed for this cleanup, and no migration was
+needed. Checklist: 971 complete / 24 open (995 total); the 66-row matrix
+remains 30 baseline-retained, 7 deployed, and 29 prepared, with all MAN-CAP
+approvals still open. Populated farm parity, runtime credentials, broader
+least privilege, physical device acceptance, and human review gates remain
+open.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned
