@@ -11,12 +11,11 @@ Usage:
     python3 -m services.agents.ai_summary --location-id UUID --summary-type financial
     python3 -m services.agents.ai_summary --location-id UUID --store
     python3 -m services.agents.ai_summary --location-id UUID --store --request-id UUID
-    python3 -m services.agents.ai_summary --list
-    python3 -m services.agents.ai_summary --verify <id>  # digest inspection only; no lifecycle change
+    python3 -m services.agents.ai_summary --list --location-id UUID
+    python3 -m services.agents.ai_summary --verify SUMMARY_ID --location-id UUID
 """
 
 import argparse
-import hashlib
 import uuid
 from typing import Any
 
@@ -31,7 +30,6 @@ from services.agents.tasks import (
     validate_task_inputs,
 )
 from services.agents.worker_draft import create_worker_ai_summary_draft
-from services.common.database import get_db
 
 _SOURCE_REFERENCE_LIMIT = 50
 _SOURCE_REFERENCE_TABLES = {
@@ -134,10 +132,6 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
                 "truncated": count > len(record_ids),
             }
     return manifest
-
-
-def get_pg():
-    return get_db()
 
 
 def _check_registry_backed(conn, location_id: str) -> bool:
@@ -488,23 +482,18 @@ def store_summary(
     return str(result["summary_id"])
 
 
-def list_summaries(conn, location_id: str = None):
-    """List existing AI summaries."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        if location_id:
-            cur.execute(
-                "SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary WHERE subject_id = %s ORDER BY created_at DESC LIMIT 20",
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                "SELECT id, summary_type, status, created_at, NULL::text as preview "
-                "FROM ai_summary ORDER BY created_at DESC LIMIT 20"
-            )
-        return [dict(r) for r in cur.fetchall()]
-    finally:
-        cur.close()
+def list_summaries(location_id: str) -> list[dict[str, Any]]:
+    """List up to twenty summaries through the signed exact-location reader."""
+    from services.agents.worker_cli import run_worker_summary_list
+
+    return run_worker_summary_list(location_id)
+
+
+def inspect_summary(location_id: str, summary_id: str) -> dict[str, Any] | None:
+    """Compute a read-only summary digest through the signed location reader."""
+    from services.agents.worker_cli import run_worker_summary_digest
+
+    return run_worker_summary_digest(location_id, summary_id)
 
 
 def build_summary(conn, location_id: str, summary_type: str = "combined") -> dict[str, Any]:
@@ -600,46 +589,31 @@ def main():
     parser.add_argument(
         "--list",
         action="store_true",
-        help="List summaries for --location-id, or explicitly across all locations",
-    )
-    parser.add_argument(
-        "--all-locations",
-        action="store_true",
-        help="Allow an unfiltered summary inventory when used with --list (previews omitted)",
+        help="List summaries for the exact --location-id scope",
     )
     parser.add_argument(
         "--verify",
         help=(
             "Inspect a summary and compute its content digest; this does not "
-            "compare a stored digest or change lifecycle status"
+            "compare a stored digest or change lifecycle status. Requires --location-id"
         ),
     )
     args = parser.parse_args()
 
     if args.request_id and not args.store:
         parser.error("--request-id requires --store")
-    if args.all_locations and not args.list:
-        parser.error("--all-locations requires --list")
 
     if args.list:
         if args.verify or args.store or args.request_id:
             parser.error("--list cannot be combined with --verify, --store, or --request-id")
-        if args.all_locations and args.location_id:
-            parser.error("--all-locations cannot be combined with --location-id")
-        if not args.location_id and not args.all_locations:
-            parser.error("--list requires --location-id or explicit --all-locations")
-        if args.location_id:
-            args.location_id = _cli_uuid(parser, args.location_id, "location-id")
-        conn = get_pg()
-        try:
-            summaries = list_summaries(conn, args.location_id)
-        finally:
-            conn.close()
+        if not args.location_id:
+            parser.error("--list requires --location-id")
+        args.location_id = _cli_uuid(parser, args.location_id, "location-id")
+        summaries = list_summaries(args.location_id)
         if not summaries:
             print("No summaries found.")
         else:
-            preview_heading = "Preview" if args.location_id else "Preview omitted (all locations)"
-            print(f"{'ID':<38} {'Type':<15} {'Status':<12} {'Created':<20} {preview_heading}")
+            print(f"{'ID':<38} {'Type':<15} {'Status':<12} {'Created':<20} Preview")
             print("-" * 120)
             for s in summaries:
                 print(f"{str(s['id']):<38} {s['summary_type']:<15} {s['status']:<12} {str(s['created_at']):<20} {(s['preview'] or '')[:60]}")
@@ -650,28 +624,21 @@ def main():
             parser.error("--verify cannot be combined with --store")
         if args.request_id:
             parser.error("--verify cannot be combined with --request-id")
+        if not args.location_id:
+            parser.error("--verify requires --location-id")
+        args.location_id = _cli_uuid(parser, args.location_id, "location-id")
         args.verify = _cli_uuid(parser, args.verify, "summary-id")
-        conn = get_pg()
-        try:
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            try:
-                cur.execute("SELECT * FROM ai_summary WHERE id = %s", (args.verify,))
-                row = cur.fetchone()
-            finally:
-                cur.close()
-        finally:
-            conn.close()
+        row = inspect_summary(args.location_id, args.verify)
         if not row:
-            print(f"Summary not found: {args.verify}")
+            print(f"Summary not found at the requested location: {args.verify}")
         else:
-            content_hash = hashlib.sha256(row["content"].encode()).hexdigest()
             print(f"ID: {row['id']}")
             print(f"Type: {row['summary_type']}")
             print(f"Status: {row['status']}")
             print("Lifecycle verification: not performed (read-only inspection)")
             print(f"Model: {row['model_version']}")
-            print(f"Content SHA-256 (computed only; not compared): {content_hash}")
-            print(f"Content length: {len(row['content'])} chars")
+            print(f"Content SHA-256 (computed only; not compared): {row['content_sha256']}")
+            print(f"Content length: {row['content_length']} chars")
         return
 
     if not args.location_id:

@@ -1,3 +1,17 @@
+# Code-first refactor execution plan
+
+**Updated:** 22 October 2026
+**Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
+
+**Current batch — CAP-038 signed AI-summary inspection source:** migration 547
+adds exact-location list/digest views and an isolated one-shot Compose profile.
+The CLI requires `--location-id` for both operations and removes global summary
+inventory. The 62-test focused selection passes; native and ARM64/QEMU PostgreSQL
+16 apply/replay each pass 34 grouped scope/privilege checks. Migration 547 and
+production credentials/grants are not deployed. Checklist: 954 complete / 24 open
+(978 total); the 66-row matrix remains 30 baseline-retained, 7 deployed, and 29
+prepared, with all MAN-CAP approvals still open.
+
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned
 by a helper and reports a conditional location signal only when the filter is
@@ -15,7 +29,6 @@ Checklist: 894 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared. No database, migration, candidate, legacy stack, or provider was
 used.
 
-# Code-first refactor execution plan
 
 **Updated:** 21 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68

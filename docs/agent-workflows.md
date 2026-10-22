@@ -65,7 +65,7 @@ python3 -m services.agents.tasks --describe ebf_scorecard_draft
 
 | Command | Required | Optional | Description |
 |---------|----------|----------|-------------|
-| `python3 -m services.agents.ai_summary` | `--location-id UUID` | `--summary-type {operations,financial,environmental,combined}`, `--store`, `--list`, `--verify ID` | Generate structured text summary from governed data. Requires verified/published `farm_registry_record`. |
+| `python3 -m services.agents.ai_summary` | `--location-id UUID` | `--summary-type {operations,financial,environmental,combined}`, `--store`, `--list`, `--verify SUMMARY_ID` | Generate structured text summary from governed data. Requires verified/published `farm_registry_record`. List and digest inspection require the exact `--location-id`; they use the signed `ai_summary/read` source identity. `--verify` computes a digest only and does not approve or change lifecycle state. |
 
 ### CIDS Export
 

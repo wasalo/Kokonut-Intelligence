@@ -1,4 +1,4 @@
-"""The standalone AI-summary CLI validates before opening database resources."""
+"""The standalone AI-summary CLI scopes inspection before worker dispatch."""
 
 from __future__ import annotations
 
@@ -6,61 +6,21 @@ import sys
 
 import pytest
 
-from services.agents import ai_summary
+from services.agents import ai_summary, worker_cli
 
 LOCATION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+OTHER_LOCATION_ID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
 SUMMARY_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
-
-
-class Cursor:
-    def __init__(self, *, fail_on_execute: bool = False, row=None, rows=None) -> None:
-        self.fail_on_execute = fail_on_execute
-        self.row = row
-        self.rows = rows or []
-        self.closed = False
-        self.queries = []
-        self.parameters = []
-
-    def execute(self, _query, _parameters=None) -> None:
-        self.queries.append(_query)
-        self.parameters.append(_parameters)
-        if self.fail_on_execute:
-            raise RuntimeError("synthetic summary query failure")
-
-    def fetchone(self):
-        return self.row
-
-    def fetchall(self):
-        return self.rows
-
-    def close(self) -> None:
-        self.closed = True
-
-
-class Connection:
-    def __init__(self, *, fail_on_execute: bool = False, row=None, rows=None) -> None:
-        self.cursor_instance = Cursor(
-            fail_on_execute=fail_on_execute,
-            row=row,
-            rows=rows,
-        )
-        self.closed = False
-
-    def cursor(self, **_kwargs) -> Cursor:
-        return self.cursor_instance
-
-    def close(self) -> None:
-        self.closed = True
 
 
 def _set_argv(monkeypatch, *arguments: str) -> None:
     monkeypatch.setattr(sys, "argv", ["ai_summary", *arguments])
 
 
-def test_missing_mode_fails_before_opening_database(monkeypatch, capsys) -> None:
+def test_missing_mode_fails_before_worker_dispatch(monkeypatch, capsys) -> None:
     _set_argv(monkeypatch)
     monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("database opened before CLI validation")
+        ai_summary, "run_ai_summary", lambda *_a, **_k: pytest.fail("worker dispatched")
     )
 
     with pytest.raises(SystemExit, match="2"):
@@ -74,42 +34,54 @@ def test_missing_mode_fails_before_opening_database(monkeypatch, capsys) -> None
     [
         ("--location-id", "not-a-uuid"),
         ("--list", "--location-id", "not-a-uuid"),
-        ("--verify", "not-a-uuid"),
+        ("--verify", SUMMARY_ID, "--location-id", "not-a-uuid"),
+        ("--verify", "not-a-uuid", "--location-id", LOCATION_ID),
     ],
 )
-def test_malformed_identifier_fails_before_opening_database(monkeypatch, arguments) -> None:
+def test_malformed_identifier_fails_before_worker_dispatch(monkeypatch, arguments) -> None:
     _set_argv(monkeypatch, *arguments)
     monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("database opened before UUID validation")
+        ai_summary, "run_ai_summary", lambda *_a, **_k: pytest.fail("worker dispatched")
+    )
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_list",
+        lambda *_a, **_k: pytest.fail("list worker dispatched"),
+    )
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_digest",
+        lambda *_a, **_k: pytest.fail("digest worker dispatched"),
     )
 
     with pytest.raises(SystemExit, match="2"):
         ai_summary.main()
 
 
-def test_summary_generation_does_not_open_a_discarded_connection(monkeypatch, capsys) -> None:
+def test_summary_generation_uses_validated_runner(monkeypatch, capsys) -> None:
     _set_argv(monkeypatch, "--location-id", LOCATION_ID)
-    monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("CLI opened a redundant database connection")
-    )
-    monkeypatch.setattr(
-        ai_summary,
-        "run_ai_summary",
-        lambda location_id, summary_type, store=False, request_id=None: {
+    calls = []
+
+    def run(location_id, summary_type, store=False, request_id=None):
+        calls.append((location_id, summary_type, store, request_id))
+        return {
             "summary": {
                 "summary_type": summary_type,
                 "source_tables": ["harvest_event"],
                 "content": "Synthetic summary",
             }
-        },
-    )
+        }
 
+    monkeypatch.setattr(ai_summary, "run_ai_summary", run)
     ai_summary.main()
 
+    assert calls == [(LOCATION_ID, "combined", False, None)]
     assert "Generating combined summary" in capsys.readouterr().out
 
 
-def test_store_uses_explicit_retry_id_and_omits_content_from_cli_output(monkeypatch, capsys):
+def test_store_uses_explicit_retry_id_and_omits_content_from_cli_output(
+    monkeypatch, capsys
+):
     request_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
     _set_argv(
         monkeypatch,
@@ -133,10 +105,6 @@ def test_store_uses_explicit_retry_id_and_omits_content_from_cli_output(monkeypa
         }
 
     monkeypatch.setattr(ai_summary, "run_ai_summary", run)
-    monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("CLI must not open the legacy write path")
-    )
-
     ai_summary.main()
 
     output = capsys.readouterr().out
@@ -159,118 +127,126 @@ def test_malformed_store_request_id_fails_before_runner(monkeypatch):
         ai_summary.main()
 
 
-def test_verify_cannot_be_combined_with_store_before_database(monkeypatch):
-    _set_argv(monkeypatch, "--verify", SUMMARY_ID, "--store")
+def test_verify_cannot_be_combined_with_store_before_worker_dispatch(monkeypatch):
+    _set_argv(
+        monkeypatch,
+        "--verify",
+        SUMMARY_ID,
+        "--location-id",
+        LOCATION_ID,
+        "--store",
+    )
     monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("invalid CLI combination opened the database")
+        worker_cli,
+        "run_worker_summary_digest",
+        lambda *_a, **_k: pytest.fail("invalid CLI combination dispatched a worker"),
     )
 
     with pytest.raises(SystemExit, match="2"):
         ai_summary.main()
 
 
-def test_list_closes_connection_when_query_fails(monkeypatch) -> None:
-    _set_argv(monkeypatch, "--list", "--all-locations")
-    connection = Connection(fail_on_execute=True)
-    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
-
-    with pytest.raises(RuntimeError, match="synthetic summary query failure"):
-        ai_summary.main()
-
-    assert connection.cursor_instance.closed is True
-    assert connection.closed is True
-
-
-def test_unfiltered_list_requires_explicit_all_locations_before_database(monkeypatch, capsys):
+def test_list_requires_exact_location_before_worker_dispatch(monkeypatch, capsys):
     _set_argv(monkeypatch, "--list")
     monkeypatch.setattr(
-        ai_summary, "get_pg", lambda: pytest.fail("unscoped list opened the database")
+        worker_cli,
+        "run_worker_summary_list",
+        lambda *_a, **_k: pytest.fail("unscoped list dispatched a worker"),
     )
 
     with pytest.raises(SystemExit, match="2"):
         ai_summary.main()
 
-    assert "--list requires --location-id or explicit --all-locations" in capsys.readouterr().err
+    assert "--list requires --location-id" in capsys.readouterr().err
 
 
-def test_all_locations_list_omits_summary_preview(monkeypatch, capsys) -> None:
+def test_global_summary_inventory_mode_is_removed(monkeypatch):
     _set_argv(monkeypatch, "--list", "--all-locations")
-    connection = Connection(
-        rows=[{
-            "id": SUMMARY_ID,
-            "summary_type": "operations",
-            "status": "draft",
-            "created_at": "2026-10-20",
-            "preview": None,
-        }]
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_list",
+        lambda *_a, **_k: pytest.fail("global inventory dispatched a worker"),
     )
-    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
 
-    ai_summary.main()
-
-    output = capsys.readouterr().out
-    assert "Preview omitted (all locations)" in output
-    assert "Sensitive farm summary" not in output
-    assert "NULL::text as preview" in connection.cursor_instance.queries[0]
-    assert connection.cursor_instance.closed is True
-    assert connection.closed is True
-
-
-def test_location_list_retains_preview_and_exact_location_filter(monkeypatch, capsys) -> None:
-    _set_argv(monkeypatch, "--list", "--location-id", LOCATION_ID)
-    connection = Connection(
-        rows=[{
-            "id": SUMMARY_ID,
-            "summary_type": "operations",
-            "status": "draft",
-            "created_at": "2026-10-20",
-            "preview": "Location-specific preview",
-        }]
-    )
-    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
-
-    ai_summary.main()
-
-    output = capsys.readouterr().out
-    assert "Preview" in output
-    assert "Location-specific preview" in output
-    assert "WHERE subject_id = %s" in connection.cursor_instance.queries[0]
-    assert connection.cursor_instance.parameters[0] == (LOCATION_ID,)
-    assert connection.closed is True
-
-
-def test_verify_closes_cursor_and_connection_when_query_fails(monkeypatch) -> None:
-    _set_argv(monkeypatch, "--verify", SUMMARY_ID)
-    connection = Connection(fail_on_execute=True)
-    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
-
-    with pytest.raises(RuntimeError, match="synthetic summary query failure"):
+    with pytest.raises(SystemExit, match="2"):
         ai_summary.main()
 
-    assert connection.cursor_instance.closed is True
-    assert connection.closed is True
+
+def test_location_list_uses_worker_and_retains_preview(monkeypatch, capsys):
+    _set_argv(monkeypatch, "--list", "--location-id", LOCATION_ID)
+    calls = []
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_list",
+        lambda location_id: calls.append(location_id)
+        or [
+            {
+                "id": SUMMARY_ID,
+                "summary_type": "operations",
+                "status": "draft",
+                "created_at": "2026-10-22",
+                "preview": "Location-specific preview",
+            }
+        ],
+    )
+
+    ai_summary.main()
+
+    output = capsys.readouterr().out
+    assert calls == [LOCATION_ID]
+    assert "Preview" in output
+    assert "Location-specific preview" in output
 
 
-def test_verify_is_explicitly_read_only_and_does_not_claim_lifecycle_review(
-    monkeypatch, capsys
-) -> None:
+def test_verify_requires_exact_location_before_worker_dispatch(monkeypatch, capsys):
     _set_argv(monkeypatch, "--verify", SUMMARY_ID)
-    connection = Connection(
-        row={
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_digest",
+        lambda *_a, **_k: pytest.fail("unscoped digest dispatched a worker"),
+    )
+
+    with pytest.raises(SystemExit, match="2"):
+        ai_summary.main()
+
+    assert "--verify requires --location-id" in capsys.readouterr().err
+
+
+def test_verify_uses_exact_location_and_never_prints_summary_content(
+    monkeypatch, capsys
+):
+    _set_argv(monkeypatch, "--verify", SUMMARY_ID, "--location-id", LOCATION_ID)
+    calls = []
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary_digest",
+        lambda location_id, summary_id: calls.append((location_id, summary_id))
+        or {
             "id": SUMMARY_ID,
             "summary_type": "operations",
             "status": "draft",
             "model_version": "synthetic-v1",
-            "content": "Synthetic summary",
-        }
+            "content_sha256": "a" * 64,
+            "content_length": 16,
+        },
     )
-    monkeypatch.setattr(ai_summary, "get_pg", lambda: connection)
 
     ai_summary.main()
 
     output = capsys.readouterr().out
+    assert calls == [(LOCATION_ID, SUMMARY_ID)]
     assert "Lifecycle verification: not performed (read-only inspection)" in output
-    assert "Content SHA-256 (computed only; not compared):" in output
-    assert connection.cursor_instance.queries == ["SELECT * FROM ai_summary WHERE id = %s"]
-    assert connection.cursor_instance.closed is True
-    assert connection.closed is True
+    assert f"Content SHA-256 (computed only; not compared): {'a' * 64}" in output
+    assert "Content length: 16 chars" in output
+    assert "Synthetic summary" not in output
+
+
+def test_summary_not_found_does_not_disclose_cross_location_existence(
+    monkeypatch, capsys
+):
+    _set_argv(monkeypatch, "--verify", SUMMARY_ID, "--location-id", OTHER_LOCATION_ID)
+    monkeypatch.setattr(worker_cli, "run_worker_summary_digest", lambda *_a: None)
+
+    ai_summary.main()
+
+    assert "Summary not found at the requested location" in capsys.readouterr().out

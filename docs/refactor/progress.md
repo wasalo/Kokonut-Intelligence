@@ -1,3 +1,33 @@
+### CAP-038 signed AI-summary inspection source — 22 October 2026
+
+Migration 547 adds two security-barrier views for standalone AI-summary listing
+and digest inspection. The views require the database-signed `ai_summary/read`
+location context; the source login has no source-schema usage and can only set
+context before switching to the NOLOGIN reader role. The list projection returns
+up to 20 rows with an 80-character preview. Digest inspection reads one
+location-bound summary and returns only metadata, length, and SHA-256; the CLI
+does not print content or claim lifecycle verification. Both `--list` and
+`--verify` now require `--location-id`, and `--all-locations` is removed.
+
+The focused worker/CLI/Compose profile selection passes 62 tests. Ruff, Python
+compilation, migration-source validation (660 files), worker/runtime SQL and
+function inventories, and capability-matrix validation pass. Disposable
+PostgreSQL 16 applies and replays migrations through 547 with 34 grouped
+assertions on native AMD64 and ARM64/QEMU, including forced-RLS exact-location
+filtering, no-context denial, legacy summary visibility, raw-table denial, and
+stale-grant cleanup. No candidate or legacy database, provider, or real
+credential was used; migration 547 and its worker credentials/grants are not
+rolled out. This closes only the standalone summary inspection source boundary.
+Human operator authentication, populated parity, other non-synthesis worker
+reads, and MAN-CAP-038 acceptance remain open. Evidence:
+[migration](../schemas/postgres/547_signed_ai_summary_inspection_source.sql),
+[worker](../services/agents/worker_cli.py),
+[CLI](../services/agents/ai_summary.py),
+[native disposable acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-disposable.json),
+[ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-038-ai-summary-inspection-source-arm64-disposable.json).
+Checklist: 954 complete / 24 open (978 total); matrix remains 30 baseline-retained,
+7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-013 signed CIDS source boundary — 22 October 2026
 
 Migration 546 adds six minimal, security-barrier CIDS projections behind an

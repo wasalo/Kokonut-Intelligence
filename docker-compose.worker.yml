@@ -122,6 +122,35 @@ services:
     profiles:
       - agent-summary-worker
 
+  # Exact-location AI-summary list and digest inspection; no draft identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ai-summary-inspection-worker run --rm ai-summary-inspection-worker \
+  #     --list --location-id UUID
+  ai-summary-inspection-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.ai_summary"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ai-summary-inspection-worker
+
   # Shared synthesis has no PG_* or shared DATABASE_URL credentials. Its
   # source login can read only signed, location-filtered wrapper views;
   # signed draft persistence uses the separate agent_summary_draft identity.

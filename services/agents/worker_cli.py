@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import re
 from typing import Any
 from uuid import UUID
+
+import psycopg2.extras
 
 from services.agents.ai_summary import build_summary
 from services.agents.worker_draft import (
@@ -305,6 +308,99 @@ def run_worker_summary(
     }
     write_draft = draft_writer or create_worker_ai_summary_draft
     return write_draft(location_id, summary_type, request_id, payload)
+
+
+def _run_worker_summary_inspection(
+    location_id: str, *, summary_id: str | None = None
+) -> list[dict[str, Any]] | dict[str, Any] | None:
+    """Read summary metadata or one digest input through the signed source view."""
+    try:
+        location_id = str(UUID(str(location_id)))
+        if summary_id is not None:
+            summary_id = str(UUID(str(summary_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        label = "location_id and summary_id" if summary_id is not None else "location_id"
+        raise ValueError(f"{label} must be UUIDs") from exc
+
+    from services.agents.safety import assert_agent_action_allowed
+    from services.agents.tasks import validate_task_capabilities
+
+    validate_task_capabilities("ai_summary_synthesis")
+    assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
+    credential = get_worker_credential("agent_summary_deterministic_source")
+    connection = get_worker_db("agent_summary_deterministic_source")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_summary_source_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
+            )
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL statement_timeout = '15s'")
+            cursor.execute("SET LOCAL lock_timeout = '3s'")
+        with connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            if summary_id is None:
+                cursor.execute(
+                    """
+                    SELECT id, summary_type, status, created_at, preview
+                      FROM kokonut_agent_source.ai_summary_list
+                     WHERE location_id = %s
+                     ORDER BY created_at DESC, id DESC
+                     LIMIT 20
+                    """,
+                    (location_id,),
+                )
+                return [dict(row) for row in cursor.fetchall()]
+            cursor.execute(
+                """
+                SELECT id, summary_type, status, model_version, content
+                  FROM kokonut_agent_source.ai_summary_inspection
+                 WHERE id = %s AND location_id = %s
+                 LIMIT 1
+                """,
+                (summary_id, location_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                return None
+            content = row["content"]
+            return {
+                "id": str(row["id"]),
+                "summary_type": row["summary_type"],
+                "status": row["status"],
+                "model_version": row["model_version"],
+                "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                "content_length": len(content),
+            }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def run_worker_summary_list(location_id: str) -> list[dict[str, Any]]:
+    """List up to twenty summaries for one signed, exact-location grant."""
+    result = _run_worker_summary_inspection(location_id)
+    if not isinstance(result, list):
+        raise RuntimeError("AI-summary list reader returned an invalid result")
+    return result
+
+
+def run_worker_summary_digest(
+    location_id: str, summary_id: str
+) -> dict[str, Any] | None:
+    """Compute a read-only digest for one summary at the granted location."""
+    result = _run_worker_summary_inspection(location_id, summary_id=summary_id)
+    if result is not None and not isinstance(result, dict):
+        raise RuntimeError("AI-summary digest reader returned an invalid result")
+    return result
 
 
 def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str, Any]:

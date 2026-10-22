@@ -1,5 +1,6 @@
 """Offline contract checks for the signed AI-summary worker entry point."""
 
+import hashlib
 import json
 import sys
 from unittest.mock import MagicMock
@@ -12,6 +13,7 @@ from services.common.worker_database import WorkerDatabaseConfigurationError
 
 LOCATION_ID = "00000000-0000-0000-0000-000000000123"
 REQUEST_ID = "00000000-0000-0000-0000-000000000456"
+SUMMARY_ID = "00000000-0000-0000-0000-000000000789"
 
 
 @pytest.fixture(autouse=True)
@@ -895,6 +897,119 @@ def test_cids_worker_rolls_back_and_closes_when_projection_fails(monkeypatch):
 
     with pytest.raises(RuntimeError, match="synthetic source failure"):
         worker_cli.run_worker_cids_export(LOCATION_ID)
+
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
+def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkeypatch):
+    connection, cursor = _source_connection()
+    cursor.fetchall.return_value = [
+        {
+            "id": "c0000000-0000-4000-8000-000000000101",
+            "summary_type": "operations",
+            "status": "draft",
+            "created_at": "2026-10-22",
+            "preview": "Synthetic location preview",
+        }
+    ]
+    context_setter = MagicMock()
+    credential = "i" * 40
+    source_factory = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: credential)
+    monkeypatch.setattr(worker_cli, "set_agent_summary_source_tenant_context", context_setter)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    rows = worker_cli.run_worker_summary_list(LOCATION_ID)
+
+    statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
+    assert statements[:4] == [
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader",
+        "SET LOCAL search_path = kokonut_agent_source, public",
+        "SET LOCAL statement_timeout = '15s'",
+    ]
+    assert "FROM kokonut_agent_source.ai_summary_list" in statements[-1]
+    assert "WHERE location_id = %s" in statements[-1]
+    assert "LIMIT 20" in statements[-1]
+    assert cursor.execute.call_args_list[-1].args[1] == (LOCATION_ID,)
+    source_factory.assert_called_once_with("agent_summary_deterministic_source")
+    context_setter.assert_called_once_with(
+        connection, credential=credential, location_id=LOCATION_ID
+    )
+    assert rows[0]["preview"] == "Synthetic location preview"
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
+    connection, cursor = _source_connection()
+    raw_content = "Sensitive synthetic summary"
+    cursor.fetchone.return_value = {
+        "id": SUMMARY_ID,
+        "summary_type": "operations",
+        "status": "draft",
+        "model_version": "synthetic-v1",
+        "content": raw_content,
+    }
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "i" * 40)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", lambda *_a, **_k: None
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_summary_digest(LOCATION_ID, SUMMARY_ID)
+
+    query_call = cursor.execute.call_args_list[-1]
+    assert "FROM kokonut_agent_source.ai_summary_inspection" in query_call.args[0]
+    assert "WHERE id = %s AND location_id = %s" in query_call.args[0]
+    assert query_call.args[1] == (SUMMARY_ID, LOCATION_ID)
+    assert result == {
+        "id": SUMMARY_ID,
+        "summary_type": "operations",
+        "status": "draft",
+        "model_version": "synthetic-v1",
+        "content_sha256": hashlib.sha256(raw_content.encode()).hexdigest(),
+        "content_length": len(raw_content),
+    }
+    assert raw_content not in str(result)
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_summary_inspection_rejects_malformed_scope_before_worker_credentials(monkeypatch):
+    credential = MagicMock(side_effect=AssertionError("credential read before validation"))
+    connection = MagicMock(side_effect=AssertionError("DB opened before validation"))
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential)
+    monkeypatch.setattr(worker_cli, "get_worker_db", connection)
+
+    with pytest.raises(ValueError, match="location_id and summary_id must be UUIDs"):
+        worker_cli.run_worker_summary_digest("bad-location", "bad-summary")
+
+    credential.assert_not_called()
+    connection.assert_not_called()
+
+
+def test_summary_inspection_rolls_back_and_closes_after_query_failure(monkeypatch):
+    connection, cursor = _source_connection()
+    cursor.execute.side_effect = [None, None, None, None, RuntimeError("summary read failed")]
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "i" * 40)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", lambda *_a, **_k: None
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    with pytest.raises(RuntimeError, match="summary read failed"):
+        worker_cli.run_worker_summary_list(LOCATION_ID)
 
     connection.rollback.assert_called_once_with()
     connection.close.assert_called_once_with()

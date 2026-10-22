@@ -370,19 +370,21 @@ databases remain untouched; migration 524 is not rolled out. See the
 ## Verification and limits
 
 The standalone `ai_summary` CLI validates required mode selection and UUID
-arguments before opening PostgreSQL. Generation delegates directly to the
-validated runner rather than opening and discarding a preliminary connection.
-List and verify modes acquire a connection only for their query and close it in
-`finally`; verify also closes its cursor when the query fails. Focused offline
-CLI checks exercise missing/malformed inputs and cleanup failures. This is a
-resource-lifecycle and input-preflight guarantee only: the CLI still uses its
-configured database principal and does not authenticate an operator or establish
-tenant authorization. The legacy `--verify` option is a read-only inspection:
-it computes a SHA-256 digest without comparing it to a stored digest and never
-changes lifecycle status, so it is not the human-review action. Summary listing
-requires an exact location filter or explicit `--all-locations`; the unfiltered
-inventory omits summary previews, while a location-scoped list retains its
-preview field.
+arguments before worker dispatch. Generation delegates directly to the
+validated runner. Listing and digest inspection now use migration 547's
+security-barrier source views through the dedicated deterministic source login:
+the source login sets the signed `ai_summary/read` context, then switches to the
+NOLOGIN reader role in a repeatable-read, read-only transaction. Both operations
+require one exact `--location-id`; the former global `--all-locations` inventory
+is removed. The list view returns at most twenty rows with an 80-character
+preview, while digest inspection reads one exact ID/location pair and returns
+only metadata, content length, and a computed SHA-256 digest. It does not
+compare a stored digest or change lifecycle status, so it is not the human
+review action. Disposable PostgreSQL checks exercise the views under forced RLS,
+no-context and foreign-location denial, raw-table denial, migration replay and
+stale-grant cleanup. This establishes the database read boundary and worker
+authorization contract; it does not authenticate a human operator, provision
+production credentials/grants, prove populated parity, or complete MAN-CAP-038.
 
 Focused source tests cover all current catalogue write declarations, defensive
 copy behavior, denied high-risk actions, malformed policy input, preflight
