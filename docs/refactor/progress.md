@@ -15152,3 +15152,16 @@ The legacy current-weather compatibility path now keeps each observation and its
 ### CAP-040 legacy five-day forecast transaction integrity — 22 October 2026
 
 The legacy forecast runner now surrounds each location's existing natural-key upserts, success audit, and completion boundary with an outer savepoint. If the success audit or completion fails, that location rolls back before a sanitized failure audit is written on the same connection; later farms continue. The whole-run ClickHouse projection remains transaction-bound and still rolls back on enqueue failure. The focused forecast/worker/JobSpec-inventory/CLI selection passes 50 tests, with Ruff, Python compilation, and diff checks passing. All provider/database interactions were mocked. No migration was needed. Persisted schedule ownership, live provider parity, runtime authorization, and MAN-CAP-040 remain open. Evidence: [forecast transaction acceptance](builds/2026-10-22-recovery/weather-forecast-legacy-transaction-atomicity.json). Checklist: 974 complete / 24 open (998 total); matrix classifications remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+
+
+### CAP-047 stale-data notification handler retry boundary — 22 October 2026
+
+The `data_stale` EventBus handler now has a focused acceptance proving it uses
+the isolated notification-enqueue identity, commits durable outbox intents
+before returning, and rolls back and propagates failures so EventBus can retry.
+The payload formatter preserves optional Directus, webhook, and email channels
+without persisting provider credentials. The freshness/event/outbox/migration
+selection passes 204 tests; Ruff, Python compilation, inventory checks, and
+capability-matrix validation pass. All provider/database interactions were
+mocked; live delivery and destination ownership remain open. Evidence:
+[freshness alert acceptance](builds/2026-10-22-recovery/freshness-alert-outbox-atomicity.json).

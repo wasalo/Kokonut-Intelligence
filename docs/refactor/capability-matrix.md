@@ -4621,3 +4621,16 @@ Checklist: 953 complete / 24 open (977 total); classifications remain
 **CAP-040 legacy current-weather transaction integrity — 22 October 2026:** the compatibility ingestion path now writes its observation and success audit in the same transaction, isolates each location with a savepoint, and rolls back projection failures atomically. A mocked failure/success batch and an outbox-failure rollback are covered by the 48-test weather/worker/JobSpec-inventory/CLI selection; Ruff and Python compilation pass. No provider or live database was accessed. This does not make legacy replays idempotent or enable the default-off signed worker; persisted schedules, provider parity, and MAN-CAP-040 acceptance remain open ([implementation](../services/ingestion/weather.py); [tests](../tests/test_weather_legacy_atomicity.py); [evidence](builds/2026-10-22-recovery/weather-legacy-transaction-atomicity.json)).
 
 **CAP-040 legacy forecast audit atomicity — 22 October 2026:** the legacy five-day runner now places each location’s forecast persistence, success audit, and completion steps inside one outer savepoint. Audit failure rolls that location back, writes a bounded same-connection failure audit, and allows subsequent farms to proceed. The focused forecast/worker/JobSpec-inventory/CLI selection passes 50 tests with Ruff and compilation; no provider or live database was used. Natural-key upsert is unchanged; schedule ownership, live parity, and MAN-CAP-040 remain open ([implementation](../services/ingestion/weather_forecast.py); [tests](../tests/test_weather_forecast_atomicity.py); [evidence](builds/2026-10-22-recovery/weather-forecast-legacy-transaction-atomicity.json)).
+
+### CAP-047 stale-data notification handler retry boundary — 22 October 2026
+
+The registered `data_stale` handler now has focused acceptance showing that it
+uses the isolated notification-enqueue identity and commits outbox intents
+before returning to EventBus. Enqueue failure rolls back and propagates so the
+durable event can be retried. The formatter keeps Directus optional alongside
+webhook and email, with no provider credentials in persisted payloads. The
+freshness/event/outbox/migration selection passes 204 tests with Ruff,
+compilation, inventory checks, and capability validation. Database/provider
+calls were mocked; live delivery and destination ownership remain open. This
+does not change capability classifications or close MAN-CAP-047 ([tests](../tests/test_data_freshness_notification_outbox.py);
+[evidence](builds/2026-10-22-recovery/freshness-alert-outbox-atomicity.json)).

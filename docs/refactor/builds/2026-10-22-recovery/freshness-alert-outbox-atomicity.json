@@ -4,11 +4,13 @@
   "behavior_before": "The freshness checker sent webhook/email notifications inline before the freshness transaction committed. The initial migration 116 registration pointed to the wrong module, but existing migration 297 already repairs it for ordered deployments.",
   "behavior_after": "Each alert-history UUID is published as a data_stale platform event in the caller's transaction. The event handler enqueues configured intents in the existing notification outbox, where leases, bounded retries, and dead-letter review govern provider delivery. Existing migration 297 already repairs the persisted event-handler registration.",
   "focused_test_command": "python3 -m pytest tests/test_migration.py tests/test_worker_operation_map.py tests/test_worker_sql_inventory.py tests/test_event_handler_runner.py tests/test_event_bus_durability.py tests/test_notification_outbox.py tests/test_data_freshness_notification_outbox.py tests/test_telemetry_freshness.py tests/test_data_freshness_cursor_cleanup.py tests/test_data_freshness_cli_parity.py tests/test_climate_data.py -q",
-  "focused_test_result": "202 passed",
+  "focused_test_result": "204 passed",
   "new_regressions": [
     "Freshness alert transition publishes a stable data_stale event on the caller's connection with commit=false before the transaction commits.",
     "Event insertion failure rolls back the freshness transaction instead of leaving alert state without its notification intent.",
     "The existing outbox formatter preserves scoped webhook payloads and email delivery for data_stale without persisting provider credentials.",
+    "The registered stale-data handler commits configured notification intents through the isolated notification enqueue identity before acknowledging the event; enqueue failures roll back and propagate for EventBus retry.",
+    "Configured Directus delivery remains optional alongside webhook and email delivery; synthetic provider credentials are not embedded in the intent payload.",
     "Existing migration 297 is verified to route data_freshness_checker to the allowlisted services.events.handlers.handle_stale_data target; no schema change was required."
   ],
   "ruff": "passed",

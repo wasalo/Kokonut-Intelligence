@@ -2,10 +2,11 @@
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from services.events import notification_outbox
+from services.events import handlers, notification_outbox
 from services.ingestion import data_freshness
 
 
@@ -150,19 +151,108 @@ def test_data_stale_outbox_preserves_webhook_and_email_channels_without_secrets(
             "ALERT_WEBHOOK_URL": "https://hooks.example.test/private-token",
             "ALERT_SMTP_HOST": "smtp.example.test",
             "ALERT_EMAIL_TO": "ops@example.test",
+            "KOKONUT_FEATURE_DIRECTUS": "true",
+            "DIRECTUS_ADMIN_TOKEN": "synthetic-token",
         },
     )
 
     by_channel = {channel: message for channel, _destination, message in messages}
-    assert set(by_channel) == {"webhook", "email"}
+    assert set(by_channel) == {"webhook", "directus", "email"}
     assert by_channel["webhook"]["source"] == "weather"
     assert by_channel["webhook"]["status"] == "critical"
     assert by_channel["webhook"]["location_id"] == payload["location_id"]
+    assert by_channel["directus"] == {
+        "message": payload["message"],
+        "severity": "critical",
+    }
     assert by_channel["email"]["subject"] == "[Kokonut] Data freshness critical: weather"
     assert payload["message"] in by_channel["email"]["body"]
     encoded = str(messages)
     assert "private-token" not in encoded
+    assert "synthetic-token" not in encoded
     assert "ops@example.test" not in encoded
+
+    directus_disabled = notification_outbox._notification_payloads(
+        "data_stale",
+        payload,
+        environment={
+            "ALERT_WEBHOOK_URL": "https://hooks.example.test/private-token",
+            "ALERT_SMTP_HOST": "smtp.example.test",
+            "ALERT_EMAIL_TO": "ops@example.test",
+            "KOKONUT_FEATURE_DIRECTUS": "false",
+            "DIRECTUS_ADMIN_TOKEN": "synthetic-token",
+        },
+    )
+    assert {channel for channel, _destination, _message in directus_disabled} == {
+        "webhook",
+        "email",
+    }
+
+
+def test_stale_data_handler_commits_outbox_intents_before_ack(monkeypatch):
+    connection = MagicMock()
+    enqueue = MagicMock(return_value=2)
+    shared_connection = MagicMock()
+    location_id = "10000000-0000-0000-0000-000000000001"
+    event_id = "20000000-0000-0000-0000-000000000002"
+    payload = {"location_id": location_id, "alert_id": event_id, "status": "critical"}
+    monkeypatch.setattr(
+        "services.core.features.is_enabled",
+        lambda name: name == "isolated_notification_enqueue",
+    )
+    monkeypatch.setattr(
+        "services.common.worker_database.get_worker_db",
+        lambda identity: connection if identity == "notification_enqueue" else None,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        notification_outbox, "enqueue_event_notification_isolated", enqueue
+    )
+    monkeypatch.setattr(
+        "services.common.database.get_connection", shared_connection
+    )
+
+    handlers.handle_stale_data("data_stale", payload, event_id=event_id)
+
+    enqueue.assert_called_once_with(
+        connection,
+        event_id=event_id,
+        event_type="data_stale",
+        payload=payload,
+        location_id=location_id,
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+    shared_connection.assert_not_called()
+
+
+def test_stale_data_handler_propagates_enqueue_failure_for_event_retry(monkeypatch):
+    connection = MagicMock()
+    enqueue = MagicMock(side_effect=RuntimeError("synthetic enqueue failure"))
+    monkeypatch.setattr(
+        "services.core.features.is_enabled",
+        lambda name: name == "isolated_notification_enqueue",
+    )
+    monkeypatch.setattr(
+        "services.common.worker_database.get_worker_db",
+        lambda _identity: connection,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        notification_outbox, "enqueue_event_notification_isolated", enqueue
+    )
+
+    with pytest.raises(RuntimeError, match="synthetic enqueue failure"):
+        handlers.handle_stale_data(
+            "data_stale",
+            {"location_id": "10000000-0000-0000-0000-000000000001"},
+            event_id="20000000-0000-0000-0000-000000000002",
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
 
 
 def test_existing_migration_routes_stale_events_to_callable_handler():
