@@ -1,3 +1,16 @@
+### CAP-038 legacy Delphi summary CLI boundary — 22 October 2026
+
+The standalone `services.delphi.cli live-summary` and `consensus` commands now
+call the facilitator summary adapter, which validates both UUIDs and reads
+through the signed `delphi/read` source-only worker. Both commands require an
+explicit `--location-id`; summary data stays consent-filtered and applies the
+minimum panel threshold before output. The focused Delphi, worker, preflight,
+and profile selection passes 112 tests. No migration or database was used for
+this slice. Unscoped study listing, panel operations, stopping evaluation,
+authenticated operator grants, and owner acceptance remain open. Evidence:
+[CLI boundary](builds/2026-10-22-recovery/cap-038-delphi-cli-summary-boundary.json).
+Checklist: 956 complete / 24 open (980 total).
+
 ### CAP-038 signed Delphi agent summary source — 22 October 2026
 
 Migration 548 adds a security-barrier Delphi summary projection behind the exact
@@ -16,8 +29,8 @@ SQL inventory, worker inventories, and capability-matrix validation pass.
 Disposable PostgreSQL 16 applies/replays through migration 548 with 35 grouped
 assertions on native AMD64 and ARM64/QEMU. Candidate and legacy databases,
 providers, and real credentials were not used; migration 548 and its worker
-grant are not deployed. The separate legacy Delphi `live-summary` CLI and other
-study/panel operations remain open, along with Directus parity, populated
+grant are not deployed. Other legacy Delphi study/panel operations remain
+open, along with Directus parity, populated
 output parity, runtime recovery, and MAN-CAP-038 owner acceptance. Evidence:
 [migration](../schemas/postgres/548_signed_delphi_agent_summary_source.sql),
 [agent](../services/agents/delphi_facilitator_agent.py),

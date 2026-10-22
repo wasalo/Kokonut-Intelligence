@@ -100,16 +100,15 @@ def cmd_submit(args):
 
 
 def cmd_live_summary(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.get_live_summary(args.study_id)))
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    print(_json(summarize_study(args.study_id, args.location_id)))
 
 
 def cmd_consensus(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    # Return current consensus snapshots via live summary items
-    summary = f.get_live_summary(args.study_id)
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    summary = summarize_study(args.study_id, args.location_id)
     print(_json({"study_id": args.study_id, "items": summary["items"]}))
 
 
@@ -241,10 +240,12 @@ def main():
     # Consensus / summaries
     p = sub.add_parser("live-summary", help="Anonymized live summary")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_live_summary)
 
     p = sub.add_parser("consensus", help="Current consensus snapshots")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_consensus)
 
     p = sub.add_parser("check-stopping", help="Evaluate stopping criteria")

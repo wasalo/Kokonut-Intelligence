@@ -6,6 +6,15 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 Delphi CLI summary boundary — 22 October 2026:** the legacy
+`services.delphi.cli live-summary` and `consensus` commands now require an
+explicit location UUID and call the consent-aware signed source adapter rather
+than the shared runtime connection. The focused Delphi, worker, preflight, and
+profile selection passes 112 tests ([evidence](builds/2026-10-22-recovery/cap-038-delphi-cli-summary-boundary.json)).
+Unscoped study listing, panel operations, stopping evaluation, deployment
+credentials/grants, and MAN-CAP-038 acceptance remain open; the capability is
+not marked accepted.
+
 **ARM64/QEMU runtime refresh — 18 October 2026:** the current-source ARM64 app
 and PostgreSQL/PostGIS images were exercised through migration 434 on an
 internal-only, resource-capped disposable stack. All 425 ordered schema

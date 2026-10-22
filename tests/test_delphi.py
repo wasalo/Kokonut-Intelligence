@@ -482,6 +482,70 @@ class TestDelphiCLI:
         assert output["status"] == "draft"
         assert "created_by" not in output
 
+    @pytest.mark.parametrize("command", ["cmd_live_summary", "cmd_consensus"])
+    def test_legacy_summary_commands_use_signed_worker_without_shared_db(
+        self, command, monkeypatch, capsys
+    ):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+        from services.agents import delphi_facilitator_agent
+
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        location_id = "a0000000-0000-4000-8000-000000000002"
+        summary = {
+            "study_id": study_id,
+            "location_id": location_id,
+            "title": "Drought",
+            "status": "open",
+            "panel_size": None,
+            "panel_size_available": False,
+            "items": [{"item_id": "item-1", "results_available": False}],
+            "privacy_note": "consented aggregate responses only",
+            "synthesis": "results suppressed",
+        }
+        monkeypatch.setattr(
+            cli, "_get_conn", MagicMock(side_effect=AssertionError("shared DB must stay closed"))
+        )
+        with patch.object(
+            delphi_facilitator_agent, "summarize_study", return_value=summary
+        ) as read:
+            getattr(cli, command)(
+                SimpleNamespace(study_id=study_id, location_id=location_id)
+            )
+
+        read.assert_called_once_with(study_id, location_id)
+        output = json.loads(capsys.readouterr().out)
+        if command == "cmd_consensus":
+            assert output == {"study_id": study_id, "items": summary["items"]}
+        else:
+            assert output == summary
+
+    def test_legacy_summary_cli_requires_explicit_location_before_worker(self, monkeypatch):
+        import sys
+
+        import services.delphi.cli as cli
+        from services.agents import delphi_facilitator_agent
+
+        monkeypatch.setattr(
+            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
+        )
+        with patch.object(
+            delphi_facilitator_agent,
+            "summarize_study",
+            side_effect=AssertionError("worker must stay closed"),
+        ) as read:
+            original_argv = list(sys.argv)
+            try:
+                sys.argv = ["services.delphi.cli", "live-summary", "--study-id", "study"]
+                with pytest.raises(SystemExit) as exc:
+                    cli.main()
+            finally:
+                sys.argv = original_argv
+
+        assert exc.value.code == 2
+        read.assert_not_called()
+
     @pytest.mark.parametrize(
         "command",
         ["cmd_approve_recommendation", "cmd_reject_recommendation", "cmd_list_recommendations"],
