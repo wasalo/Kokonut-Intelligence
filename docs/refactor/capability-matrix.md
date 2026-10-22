@@ -4476,3 +4476,25 @@ complete / 25 open (885 total); classifications remain 31 baseline-retained,
 **CAP-039 mock-sensor setup connection lifecycle — 21 October 2026:** setup now rolls back on failure and closes the connection after both successful and failed registration. Synthetic checks verify commit/rollback/close behavior, including a sensor-type query failure; the focused mock-sensor CLI, cleanup, redaction, and unified dispatcher selection passes 26 tests with Ruff and Python compilation. No PostgreSQL or provider was accessed. This closes local connection lifecycle only and does not establish scheduled worker recovery or provider parity ([implementation](../services/ingestion/mock_sensors.py); [test](../tests/test_mock_sensors_cleanup.py); [evidence](builds/2026-10-21-recovery/cap-039-mock-sensor-setup-cleanup.json)).
 
 **CAP-038 signed source boundary for read-only synthesis — 22 October 2026:** all ten registered shared-synthesis agents and deterministic AI-summary generation now use their dedicated reader identities for read-only runs. Each transaction establishes the signed location context before switching to security-barrier wrappers; read-only mode skips draft receipts and writes. The focused agent/summary selection passes 221 tests with nine existing database-dependent skips; Ruff, compilation, and refreshed runtime SQL inventory pass. This closes shared-runtime fallbacks for these generation paths only; summary listing/digest inspection and non-synthesis agents remain separately scoped. No migration or database was changed, and MAN-CAP-038 remains open ([contract](agent-ecosystem-kernel-contract.md); [evidence](builds/2026-10-22-recovery/cap-038-read-only-agent-source-boundary.json)). Checklist: 951 complete / 24 open (975 total); classifications remain 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+
+**CAP-038 EBF evidence-gap source boundary — 22 October 2026:** the EBF
+evidence-gap read now uses the dedicated agent source login with its own
+`ebf_scorecard/read` grant. Migration 545 filters the view by database-signed
+location scope, exposes only the 11 required key/result columns, revokes stale
+raw-view and wrapper grants on replay, and denies writes and source-login
+wrapper access. The `ebf-evidence-gap-worker` Compose profile receives only
+the isolated source DSN and credential. The focused migration/EBF/worker/task/
+profile selection passes 106 tests; Ruff and compilation pass. Disposable
+PostgreSQL 16 applies and replays migrations
+529–545 with 32 grouped assertions, including exact-location and ungranted-
+location denial, cross-resource isolation, raw-view denial, and stale-grant
+cleanup. Static worker SQL, function, and boundary inventories were refreshed;
+the source-closure and capability checks pass. Candidate and legacy databases
+remain untouched, and no production credentials/grants were provisioned. This
+does not establish operator authorization for the EBF CLI or universal RLS
+([migration](../schemas/postgres/545_signed_ebf_evidence_gap_source.sql);
+[worker](../services/agents/worker_cli.py);
+[Compose profile](../docker-compose.worker.yml);
+[native evidence](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json)).
+Checklist: 952 complete / 24 open (976 total); classifications remain
+31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.

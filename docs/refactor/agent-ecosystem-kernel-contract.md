@@ -216,15 +216,26 @@ need their own operator authorization review. These are scoped source
 boundaries for the two AI-summary worker profiles, not a universal RLS rollout.
 Other service/database paths retain separate tenant-boundary reviews.
 
-The native PostgreSQL 16 chain through migration 544 passes 31 grouped checks,
+The EBF evidence-gap reader uses the same isolated source login but requires a
+separate exact `ebf_scorecard/read` grant. Migration 545 creates a security-
+barrier wrapper filtered through the database-signed scope and exposes only
+the scorecard/location keys and columns consumed by the EBF query; raw public
+view access, wrapper writes, and source-login access to the wrapper schema are
+revoked. It runs in a repeatable-read, read-only transaction and rolls back on
+failure. This closes the EBF source boundary only; other non-synthesis agent
+reads and operator authorization remain separate work.
+
+The native PostgreSQL 16 chain through migration 545 passes 32 grouped checks,
 including migration replay, no-context denial, exact-location filtering,
-mixed/network behavior, denial for an ungranted location, and raw-view and
-credential-table access denial. The 189-test focused source/worker/context
-selection, Ruff, Python compilation, and diff checks pass. Candidate and legacy
-databases remain untouched; migrations 543–544, source credentials, and exact
-location grants have not been deployed. ARM64/QEMU emulation covers migration
-544's disposable source boundary, but does not establish physical Raspberry Pi
-or full-schema acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-disposable.json);
+mixed/network behavior, denial for an ungranted location, raw-view and
+credential-table access denial, and EBF stale-grant cleanup. The focused
+migration/EBF/worker/task/profile selection passes 106 tests; Ruff, Python
+compilation, and static worker inventories pass. Candidate and legacy
+databases remain untouched;
+migrations 543–545, source credentials, and exact location grants have not
+been deployed. ARM64/QEMU emulation covers migration 544's disposable source
+boundary, but does not establish physical Raspberry Pi or full-schema
+acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-tenant-scoped-deterministic-summary-source-views-arm64-disposable.json)).
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and

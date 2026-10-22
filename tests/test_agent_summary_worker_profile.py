@@ -52,3 +52,21 @@ def test_shared_synthesis_profile_remains_separate_and_source_only():
     assert "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL" in service["environment"]
+
+
+def test_ebf_evidence_gap_profile_uses_only_its_signed_source_identity():
+    service = _services()["ebf-evidence-gap-worker"]
+
+    assert service["entrypoint"] == [
+        "python3",
+        "-m",
+        "services.agents.ebf_evidence_gap_agent",
+    ]
+    assert service["profiles"] == ["ebf-evidence-gap-worker"]
+    _assert_no_shared_database_environment(service)
+    assert set(service["environment"]) == {
+        "KOKONUT_ENV",
+        "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL",
+        "PYTHONDONTWRITEBYTECODE",
+    }

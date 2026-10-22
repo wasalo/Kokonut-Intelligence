@@ -158,12 +158,35 @@ def set_agent_summary_source_tenant_context(
     functions. Migrations 543 and 544 grant each login only the bounded
     context setter and its NOLOGIN source-view reader role.
     """
-    return _set_worker_context(
+    return set_agent_source_tenant_context(
         connection,
         credential=credential,
         location_id=location_id,
         resource="ai_summary",
         action="read",
+    )
+
+
+def set_agent_source_tenant_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+    resource: str,
+    action: str,
+) -> WorkerTenantContext:
+    """Set signed scope for a source-only agent login without role escalation.
+
+    Agent source identities may select only their NOLOGIN view-reader role;
+    they do not join the broader ``kokonut_worker_execution`` role. The
+    database view contract must match the requested resource/action pair.
+    """
+    return _set_worker_context(
+        connection,
+        credential=credential,
+        location_id=location_id,
+        resource=resource,
+        action=action,
         switch_to_execution_role=False,
     )
 

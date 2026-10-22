@@ -155,6 +155,36 @@ services:
     profiles:
       - agent-synthesis-worker
 
+  # EBF evidence-gap reads use the same isolated source login but a separate
+  # ebf_scorecard/read grant and the narrow migration-545 wrapper.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ebf-evidence-gap-worker run --rm ebf-evidence-gap-worker \
+  #     --scorecard-id UUID --location-id UUID
+  ebf-evidence-gap-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.ebf_evidence_gap_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ebf-evidence-gap-worker
+
   event-worker:
     build:
       context: .

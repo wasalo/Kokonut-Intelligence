@@ -11,7 +11,6 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import run_fetch
 from services.common.cli import print_json
 
 
@@ -47,14 +46,10 @@ def analyze_evidence_gaps(
 
 
 def run_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str, Any]:
-    """Summarize evidence gaps; delegates to the shared read-only agent flow."""
-    return run_fetch(
-        "ebf_evidence_gap",
-        "ebf_scorecard",
-        analyze_evidence_gaps,
-        scorecard_id=scorecard_id,
-        location_id=location_id,
-    )
+    """Summarize evidence gaps through the signed EBF source-reader boundary."""
+    from services.agents.worker_cli import run_worker_ebf_evidence_gap
+
+    return run_worker_ebf_evidence_gap(scorecard_id, location_id)
 
 
 def main() -> None:

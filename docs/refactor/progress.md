@@ -14725,3 +14725,31 @@ operator grants and database tenant isolation are implemented. Checklist: 947
 complete / 24 open (971 total); matrix remains 31 baseline-retained, 7 deployed,
 and 28 prepared across 66 rows. Evidence:
 [location preflight](builds/2026-10-22-recovery/cap-038-agent-synthesis-location-required.json).
+
+
+### CAP-038 EBF evidence-gap signed source reader — 22 October 2026
+
+The EBF evidence-gap agent now runs through the isolated
+`agent_summary_source` login in a repeatable-read, read-only transaction. It
+validates both UUIDs, task schema, and read capability before loading a worker
+secret or connecting, establishes signed `ebf_scorecard/read` context, and
+switches to the NOLOGIN source-reader role. New migration 545 creates a
+security-barrier wrapper that filters to the signed farm and exposes only the
+11 columns needed by the EBF query. Migration replay removes stale raw-view,
+wrapper read/write, and source-login schema privileges. A dedicated
+`ebf-evidence-gap-worker` Compose profile passes only the source-reader DSN
+and credential. The focused migration/EBF/worker/task/profile selection passes
+106 tests; Ruff and Python compilation pass.
+The disposable PostgreSQL 16 migration chain through 545 applies and replays
+with 32 grouped assertions, including exact/ungranted location scope, denial
+of EBF access under `ai_summary/read`, denial of raw public view access, and
+stale-grant cleanup. Runtime SQL and worker function/SQL/boundary inventories
+were refreshed; worker source closure, dependency-group alignment, and
+capability-matrix validation pass. The disposable database used synthetic
+roles and records in a network-disabled container; candidate and legacy
+databases were untouched and no provider or production credential was used.
+This does not establish operator authorization for the standalone EBF CLI or
+universal RLS. Checklist: 952 complete / 24 open (976 total); the capability
+matrix remains 31 baseline-retained, 7 deployed, and 28 prepared across 66
+rows. Evidence:
+[EBF signed source reader](builds/2026-10-22-recovery/cap-038-ebf-evidence-gap-source-worker-disposable.json).

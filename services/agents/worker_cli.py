@@ -16,7 +16,10 @@ from services.agents.worker_draft import (
     create_worker_ai_summary_draft,
     get_worker_ai_summary_draft,
 )
-from services.common.tenant_context import set_agent_summary_source_tenant_context
+from services.common.tenant_context import (
+    set_agent_source_tenant_context,
+    set_agent_summary_source_tenant_context,
+)
 from services.common.worker_database import get_worker_credential, get_worker_db
 
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
@@ -302,6 +305,62 @@ def run_worker_summary(
     }
     write_draft = draft_writer or create_worker_ai_summary_draft
     return write_draft(location_id, summary_type, request_id, payload)
+
+
+def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str, Any]:
+    """Read EBF evidence gaps through its signed location-scoped source view."""
+    from services.agents.safety import assert_agent_action_allowed
+    from services.agents.tasks import (
+        validate_output,
+        validate_task_capabilities,
+        validate_task_inputs,
+    )
+
+    try:
+        scorecard_id = str(UUID(str(scorecard_id)))
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("scorecard_id and location_id must be UUIDs") from exc
+    validate_task_capabilities("ebf_evidence_gap")
+    input_errors = validate_task_inputs(
+        "ebf_evidence_gap",
+        {"scorecard_id": scorecard_id, "location_id": location_id},
+    )
+    if input_errors:
+        raise ValueError("; ".join(input_errors))
+    assert_agent_action_allowed(
+        "read", "ebf_scorecard", {"location_id": location_id}
+    )
+
+    credential = get_worker_credential("agent_summary_source")
+    connection = get_worker_db("agent_summary_source")
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        set_agent_source_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            resource="ebf_scorecard",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL search_path = kokonut_agent_source, public")
+            cursor.execute("SET LOCAL statement_timeout = '15s'")
+            cursor.execute("SET LOCAL lock_timeout = '3s'")
+        from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps
+
+        result = analyze_evidence_gaps(connection, scorecard_id, location_id)
+        output_errors = validate_output("ebf_evidence_gap", result)
+        if output_errors:
+            raise ValueError("; ".join(output_errors))
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return result
 
 
 def main() -> None:
