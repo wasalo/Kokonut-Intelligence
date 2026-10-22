@@ -15072,3 +15072,20 @@ open. Matrix state remains 30 baseline-retained, 7 deployed, and 29 prepared
 across 66 capabilities; checklist state is 962 complete / 24 open (986 total).
 Evidence: [native check](builds/2026-10-22-recovery/cap-038-reader-schema-create-disposable.json),
 [ARM64/QEMU check](builds/2026-10-22-recovery/cap-038-reader-schema-create-arm64-disposable.json).
+
+
+### CAP-038 AI-summary cursor cleanup — 22 October 2026
+
+The AI-summary registry guard and operations, financial, and environmental
+generators now execute through cursor helpers that close in `finally` on both
+success and query/fetch failure. The caller-owned connection is preserved, and
+query text, parameters, result shape, and scope are unchanged. Eight synthetic
+failure-injection cases cover execute/fetch failure across all four paths. The
+focused AI-summary/source/preflight selection passes 45 tests; Ruff, compilation,
+runtime SQL inventory freshness, capability-matrix validation, and diff checks
+pass. The run also exposed five stale test expectations; these were aligned with
+the current signed-reader search path and worker dispatch contract. No database,
+provider, candidate, or legacy stack was accessed. No migration is needed. CAP-038
+remains prepared pending runtime credential rollout, populated parity, broader
+least privilege, and owner acceptance. Evidence:
+[AI-summary cursor cleanup](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json).

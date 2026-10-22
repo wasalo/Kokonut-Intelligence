@@ -134,10 +134,33 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
     return manifest
 
 
+def _fetchone(conn, query: str, parameters: tuple, *, dict_cursor: bool = True):
+    """Execute one summary query and close its cursor on success or failure."""
+    cursor_kwargs = (
+        {"cursor_factory": psycopg2.extras.RealDictCursor} if dict_cursor else {}
+    )
+    cur = conn.cursor(**cursor_kwargs)
+    try:
+        cur.execute(query, parameters)
+        return cur.fetchone()
+    finally:
+        cur.close()
+
+
+def _fetchall(conn, query: str, parameters: tuple) -> list:
+    """Execute a mapping-row summary query and always release its cursor."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute(query, parameters)
+        return cur.fetchall()
+    finally:
+        cur.close()
+
+
 def _check_registry_backed(conn, location_id: str) -> bool:
     """Verify the location has a verified/published farm registry record."""
-    cur = conn.cursor()
-    cur.execute(
+    result = _fetchone(
+        conn,
         """
         SELECT EXISTS (
             SELECT 1 FROM farm_registry_record fr
@@ -145,47 +168,38 @@ def _check_registry_backed(conn, location_id: str) -> bool:
         )
         """,
         (location_id,),
+        dict_cursor=False,
     )
-    result = cur.fetchone()[0]
-    cur.close()
-    return result
+    return result[0]
 
 
 def generate_operations_summary(conn, location_id: str) -> dict:
     """Generate an operations summary from recent activity data."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    harvests = dict(_fetchone(conn, """
         SELECT COUNT(*) as count, COALESCE(SUM(quantity), 0) as total_kg
         FROM harvest_event WHERE location_id = %s
         AND status IN ('verified', 'published')
         AND harvest_date >= CURRENT_DATE - INTERVAL '90 days'
-    """, (location_id,))
-    harvests = dict(cur.fetchone())
+    """, (location_id,)))
 
-    cur.execute("""
+    sales = dict(_fetchone(conn, """
         SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_usd
         FROM sales_event WHERE location_id = %s
         AND sale_date >= CURRENT_DATE - INTERVAL '90 days'
         AND status IN ('verified', 'published')
-    """, (location_id,))
-    sales = dict(cur.fetchone())
+    """, (location_id,)))
 
-    cur.execute("""
+    cycles = dict(_fetchone(conn, """
         SELECT COUNT(*) as count
         FROM crop_cycle WHERE location_id = %s AND status = 'active'
-    """, (location_id,))
-    cycles = dict(cur.fetchone())
+    """, (location_id,)))
 
-    cur.execute("""
+    sensors = [dict(row) for row in _fetchall(conn, """
         SELECT COUNT(*) as count, sensor_type
         FROM sensor_reading WHERE location_id = %s
         AND reading_date >= CURRENT_DATE - INTERVAL '30 days'
         GROUP BY sensor_type ORDER BY count DESC, sensor_type NULLS LAST LIMIT 3
-    """, (location_id,))
-    sensors = [dict(r) for r in cur.fetchall()]
-
-    cur.close()
+    """, (location_id,))]
 
     source_references = _collect_source_references(conn, location_id, {
         "harvest_event": (
@@ -230,9 +244,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
 
 def generate_financial_summary(conn, location_id: str) -> dict:
     """Generate a financial summary from revenue and expense data."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    revenue_by_crop = [dict(row) for row in _fetchall(conn, """
         SELECT c.name as crop_name, COALESCE(SUM(se.total_amount), 0) as revenue
         FROM sales_event se
         JOIN crop_cycle cc ON se.crop_cycle_id = cc.id
@@ -240,26 +252,21 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         JOIN crop c ON cc.crop_id = c.id
         WHERE se.location_id = %s AND se.status IN ('verified', 'published')
         GROUP BY c.name ORDER BY revenue DESC
-    """, (location_id,))
-    revenue_by_crop = [dict(r) for r in cur.fetchall()]
+    """, (location_id,))]
 
-    cur.execute("""
+    expenses = [dict(row) for row in _fetchall(conn, """
         SELECT ec.name as category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
         JOIN expense_category ec ON ee.category = ec.name
         WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
         GROUP BY ec.name ORDER BY total DESC, ec.name LIMIT 5
-    """, (location_id,))
-    expenses = [dict(r) for r in cur.fetchall()]
+    """, (location_id,))]
 
-    cur.execute("""
+    noi = dict(_fetchone(conn, """
         SELECT COALESCE(SUM(noi), 0) as total_noi,
                COALESCE(AVG(operating_margin_pct), 0) as avg_margin
         FROM noi_snapshot WHERE location_id = %s
-    """, (location_id,))
-    noi = dict(cur.fetchone())
-
-    cur.close()
+    """, (location_id,)))
 
     source_references = _collect_source_references(conn, location_id, {
         "sales_event": (
@@ -326,40 +333,32 @@ def generate_financial_summary(conn, location_id: str) -> dict:
 
 def generate_environmental_summary(conn, location_id: str) -> dict:
     """Generate an environmental summary from ecological data."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    carbon = _fetchone(conn, """
         SELECT carbon_tonnes_per_ha, measurement_date
         FROM soil_carbon_measurement
         WHERE location_id = %s ORDER BY measurement_date DESC, id DESC LIMIT 1
     """, (location_id,))
-    carbon = cur.fetchone()
 
-    cur.execute("""
+    biodiversity = dict(_fetchone(conn, """
         SELECT COUNT(DISTINCT species_name) as species_count,
                COUNT(*) as total_observations
         FROM species_observation WHERE location_id = %s
-    """, (location_id,))
-    biodiversity = dict(cur.fetchone())
+    """, (location_id,)))
 
-    cur.execute("""
+    ndvi = _fetchone(conn, """
         SELECT ndvi, observation_date
         FROM remote_sensing_observation
         WHERE location_id = %s AND ndvi IS NOT NULL
         ORDER BY observation_date DESC, id DESC LIMIT 1
     """, (location_id,))
-    ndvi = cur.fetchone()
 
-    cur.execute("""
+    weather = dict(_fetchone(conn, """
         SELECT COALESCE(SUM(rainfall_mm), 0) as total_rainfall,
                COALESCE(AVG(temperature_c), 0) as avg_temp
         FROM weather_observation
         WHERE location_id = %s
         AND observation_date >= CURRENT_DATE - INTERVAL '90 days'
-    """, (location_id,))
-    weather = dict(cur.fetchone())
-
-    cur.close()
+    """, (location_id,)))
 
     source_references = _collect_source_references(conn, location_id, {
         "soil_carbon_measurement": ("TRUE", (), "measurement_date DESC, id DESC", True),

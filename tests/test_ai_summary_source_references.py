@@ -145,7 +145,7 @@ def test_financial_manifest_matches_the_top_five_configured_expense_categories(m
 
     predicate, parameters, ordering, latest_only = captured["expense_event"]
     assert "category IN" in predicate
-    assert "JOIN public.expense_category AS ec ON ee.category = ec.name" in predicate
+    assert "JOIN expense_category AS ec ON ee.category = ec.name" in predicate
     assert "ORDER BY SUM(ee.amount) DESC, ee.category LIMIT 5" in predicate
     assert parameters == (LOCATION_ID,)
     assert ordering == "expense_date, id"
@@ -158,6 +158,48 @@ def test_financial_manifest_matches_the_top_five_configured_expense_categories(m
     revenue_query, revenue_parameters = cursor.execute.call_args_list[0][0]
     assert "cc.location_id = se.location_id" in revenue_query
     assert revenue_parameters == (LOCATION_ID,)
+
+
+@pytest.mark.parametrize(
+    "summary_function",
+    [
+        ai_summary._check_registry_backed,
+        ai_summary.generate_operations_summary,
+        ai_summary.generate_financial_summary,
+        ai_summary.generate_environmental_summary,
+    ],
+    ids=["registry-check", "operations", "financial", "environmental"],
+)
+@pytest.mark.parametrize("failure_point", ["execute", "fetch"])
+def test_summary_queries_close_cursors_when_database_operations_fail(
+    summary_function, failure_point
+):
+    class Cursor:
+        closed = False
+
+        def execute(self, _query, _parameters):
+            if failure_point == "execute":
+                raise RuntimeError("synthetic query failure")
+
+        def fetchone(self):
+            raise RuntimeError("synthetic fetch failure")
+
+        def fetchall(self):
+            raise RuntimeError("synthetic fetch failure")
+
+        def close(self):
+            self.closed = True
+
+    cursor = Cursor()
+
+    class Connection:
+        def cursor(self, **_kwargs):
+            return cursor
+
+    with pytest.raises(RuntimeError, match="synthetic (query|fetch) failure"):
+        summary_function(Connection(), LOCATION_ID)
+
+    assert cursor.closed is True
 
 
 def test_global_crop_reference_is_limited_to_location_verified_sales():
@@ -174,8 +216,8 @@ def test_global_crop_reference_is_limited_to_location_verified_sales():
         {"crop": ("TRUE", (), "id", False)},
     )
 
-    assert "JOIN public.crop_cycle AS cycle ON cycle.crop_id = crop.id" in cursor.query
-    assert "JOIN public.sales_event AS sale ON sale.crop_cycle_id = cycle.id" in cursor.query
+    assert "JOIN crop_cycle AS cycle ON cycle.crop_id = crop.id" in cursor.query
+    assert "JOIN sales_event AS sale ON sale.crop_cycle_id = cycle.id" in cursor.query
     assert "sale.status IN ('verified', 'published')" in cursor.query
     assert "cycle.location_id = %s" in cursor.query
     assert "cycle.location_id = sale.location_id" in cursor.query
@@ -194,7 +236,7 @@ def test_global_expense_category_reference_matches_the_displayed_top_five():
         {"expense_category": ("TRUE", (), "id", False)},
     )
 
-    assert "JOIN public.expense_event AS expense" in cursor.query
+    assert "JOIN expense_event AS expense" in cursor.query
     assert "expense.location_id = %s" in cursor.query
     assert "ORDER BY SUM(expense.amount) DESC, category.name LIMIT 5" in cursor.query
     assert cursor.parameters == (LOCATION_ID, 50)

@@ -149,13 +149,13 @@ def test_run_ai_summary_store_uses_worker_path_before_shared_database(monkeypatc
         "source_references": {},
         "replayed": False,
     }
-    monkeypatch.setattr(
-        ai_summary,
-        "get_pg",
-        lambda: pytest.fail("stored summary must use the signed worker path"),
-    )
     from services.agents import worker_cli
 
+    monkeypatch.setattr(
+        worker_cli,
+        "get_worker_db",
+        lambda *_args, **_kwargs: pytest.fail("patched worker must not open a database"),
+    )
     with mock.patch.object(worker_cli, "run_worker_summary", return_value=saved) as run_worker:
         result = ai_summary.run_ai_summary(
             LOCATION_ID, "operations", store=True, request_id=REQUEST_ID
@@ -167,13 +167,13 @@ def test_run_ai_summary_store_uses_worker_path_before_shared_database(monkeypatc
 
 
 def test_run_ai_summary_read_only_uses_signed_source_path_before_shared_database(monkeypatch):
-    monkeypatch.setattr(
-        ai_summary,
-        "get_pg",
-        lambda: pytest.fail("read-only summary must not use shared runtime DB"),
-    )
     from services.agents import worker_cli
 
+    monkeypatch.setattr(
+        worker_cli,
+        "get_worker_db",
+        lambda *_args, **_kwargs: pytest.fail("patched worker must not open a database"),
+    )
     expected = {"summary": {"content": "synthetic read-only summary"}}
     with mock.patch.object(worker_cli, "run_worker_summary", return_value=expected) as run_worker:
         result = ai_summary.run_ai_summary(LOCATION_ID, "operations", store=False)
