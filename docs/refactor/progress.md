@@ -14207,3 +14207,19 @@ closes cursor lifecycle only; the EBF query still needs authenticated tenant
 authorization and a least-privilege runtime identity. Checklist: 922 complete /
 24 open (946 total); matrix remains 31 baseline-retained, 7 deployed, and 28
 prepared across 66 rows. Evidence: [EBF query cleanup](builds/2026-10-21-recovery/cap-038-ebf-query-resource-cleanup.json).
+
+
+### CAP-064 gRPC SDK RPC coverage — 21 October 2026
+
+The TypeScript client now has an offline inventory regression that compares
+its wrappers directly with the protocol definitions: all 13 DataService RPCs
+and 42 EcocreditService RPCs have exactly one wrapper. The source-mode Vitest
+constructor checks exposed a clean-checkout proto lookup failure; both clients
+now prefer bundled proto files and fall back to repository proto sources when
+working from source. The Python inventory selection passes 2 tests, TypeScript
+Vitest passes 7, the build and package dry run pass, and both built clients
+load and close without making RPC calls. No database, provider, or network was
+used. This does not verify field semantics, authentication, tenant isolation,
+TLS, live transport, or REST parity; CAP-064 remains open. Checklist: 923
+complete / 24 open (947 total); matrix remains 31 baseline-retained, 7
+deployed, and 28 prepared across 66 rows. Evidence: [gRPC SDK RPC coverage](builds/2026-10-21-recovery/cap-064-grpc-sdk-rpc-coverage.json).

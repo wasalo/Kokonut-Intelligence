@@ -11,6 +11,7 @@ import {
   type ChannelCredentials,
   type ServiceError,
 } from "@grpc/grpc-js";
+import { existsSync } from "fs";
 import * as protoLoader from "@grpc/proto-loader";
 import path from "path";
 
@@ -28,7 +29,10 @@ export class EcocreditServiceClient {
   private readonly defaultMetadata: Metadata;
 
   constructor(address: string, options: EcocreditServiceClientOptions = {}) {
-    const protoRoot = path.resolve(__dirname, "../proto");
+    const bundledProtoRoot = path.resolve(__dirname, "../proto");
+    const protoRoot = existsSync(bundledProtoRoot)
+      ? bundledProtoRoot
+      : path.resolve(__dirname, "../../../../proto");
     const protoPath = path.resolve(protoRoot, "ecocredit/v1/service.proto");
     const packageDefinition = protoLoader.loadSync(protoPath, {
       keepCase: true,
