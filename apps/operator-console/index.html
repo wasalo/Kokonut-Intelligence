@@ -648,6 +648,19 @@
             </div>
             <button id="operating-pilot-capacity-review-more" class="secondary" type="button" hidden>Load more submissions</button>
           </section>
+          <section id="operating-pilot-demand-review" hidden aria-labelledby="operating-pilot-demand-review-heading">
+            <h3 id="operating-pilot-demand-review-heading">Independent demand review queue</h3>
+            <p class="muted">A separate exact-location review grant is required. Your own submissions are excluded. The queue omits submitter identity, private descriptions, and source references. This view records no decision.</p>
+            <div class="toolbar"><button id="operating-pilot-demand-review-refresh" type="button">Refresh demand review queue</button></div>
+            <p id="operating-pilot-demand-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Record</th><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Updated</th></tr></thead>
+                <tbody id="operating-pilot-demand-review-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-demand-review-more" class="secondary" type="button" hidden>Load more demand submissions</button>
+          </section>
           <dialog id="operating-pilot-capacity-review-dialog" aria-labelledby="operating-pilot-capacity-review-dialog-heading">
             <form id="operating-pilot-capacity-review-form">
               <h3 id="operating-pilot-capacity-review-dialog-heading">Review submitted capacity</h3>
@@ -1860,6 +1873,10 @@
       const operatingPilotCapacityReviewAcknowledged = document.querySelector("#operating-pilot-capacity-review-acknowledged");
       const operatingPilotCapacityReviewDecisionStatus = document.querySelector("#operating-pilot-capacity-review-decision-status");
       const operatingPilotCapacityReviewSubmit = document.querySelector("#operating-pilot-capacity-review-submit");
+      const operatingPilotDemandReview = document.querySelector("#operating-pilot-demand-review");
+      const operatingPilotDemandReviewStatus = document.querySelector("#operating-pilot-demand-review-status");
+      const operatingPilotDemandReviewRows = document.querySelector("#operating-pilot-demand-review-rows");
+      const operatingPilotDemandReviewMore = document.querySelector("#operating-pilot-demand-review-more");
       let operatingPilotPendingCapacityReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
@@ -1881,12 +1898,14 @@
       let operatingPilotResourceRequestVersion = 0;
       let operatingPilotOwnCapacityRequestVersion = 0;
       let operatingPilotCapacityReviewRequestVersion = 0;
+      let operatingPilotDemandReviewRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
       let operatingPilotResourceOffset = 0;
       let operatingPilotOwnCapacityOffset = 0;
       let operatingPilotCapacityReviewOffset = 0;
+      let operatingPilotDemandReviewOffset = 0;
       const sequentialEvidence = document.querySelector("#sequential-evidence");
       const sequentialEvidenceLocation = document.querySelector("#sequential-evidence-location");
       const sequentialEvidenceStatus = document.querySelector("#sequential-evidence-status");
@@ -3310,6 +3329,72 @@
         }
       }
 
+      async function loadOperatingPilotDemandReviewQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotDemandReviewRequestVersion;
+        if (!operatingPilotCapacityReviewLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotDemandReviewOffset = 0;
+          operatingPilotDemandReviewRows.replaceChildren();
+          operatingPilotDemandReviewMore.hidden = true;
+        }
+        const offset = append ? operatingPilotDemandReviewOffset : 0;
+        operatingPilotDemandReviewMore.disabled = true;
+        operatingPilotDemandReviewStatus.textContent = "Loading submitted demand for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            throw new Error(response.status === 401 || response.status === 403
+              ? "A current session and exact location review grant are required."
+              : "The demand review queue could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== operatingPilotDemandReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotDemandReviewRow(item);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotDemandReviewMore.hidden = !canContinue;
+          operatingPilotDemandReviewOffset = canContinue ? nextOffset : 0;
+          operatingPilotDemandReviewStatus.textContent = canContinue
+            ? "Showing a bounded page. Descriptions, source references, and submitter identity are not returned."
+            : operatingPilotDemandReviewRows.childElementCount
+              ? "Submitted demand loaded. No review decision was recorded."
+              : "No Kernel demand submissions are awaiting review.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotDemandReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotDemandReviewMore.hidden = true;
+          operatingPilotDemandReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotDemandReviewRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotDemandReviewMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotDemandReviewRow(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.signal_id,
+          item.work_type,
+          `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+          item.required_hours,
+          item.priority,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        operatingPilotDemandReviewRows.append(row);
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId);
@@ -3319,6 +3404,7 @@
             && operatingPilotEditOwnCapacityLocations.has(locationId));
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
           operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
@@ -3331,6 +3417,7 @@
           operatingPilotResourceRows.replaceChildren();
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
           operatingPilotCapacityReviewRows.replaceChildren();
+          operatingPilotDemandReviewRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
             await loadOperatingPilotOwnCapacityProfiles();
           } else {
@@ -3339,8 +3426,10 @@
           }
           if (operatingPilotCapacityReviewLocations.has(locationId)) {
             await loadOperatingPilotCapacityReviewQueue();
+            await loadOperatingPilotDemandReviewQueue();
           } else {
             operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
+            operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
           }
           return;
         }
@@ -3353,9 +3442,12 @@
         ];
         if (operatingPilotCapacityReviewLocations.has(locationId)) {
           reads.push(loadOperatingPilotCapacityReviewQueue());
+          reads.push(loadOperatingPilotDemandReviewQueue());
         } else {
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
+          operatingPilotDemandReviewRows.replaceChildren();
+          operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
         }
         if (operatingPilotOwnCapacityLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnCapacityProfiles());
@@ -16178,6 +16270,12 @@
       );
       operatingPilotCapacityReviewMore.addEventListener(
         "click", () => loadOperatingPilotCapacityReviewQueue(true)
+      );
+      document.querySelector("#operating-pilot-demand-review-refresh").addEventListener(
+        "click", () => loadOperatingPilotDemandReviewQueue()
+      );
+      operatingPilotDemandReviewMore.addEventListener(
+        "click", () => loadOperatingPilotDemandReviewQueue(true)
       );
       document.querySelector("#sequential-evidence-refresh").addEventListener("click", loadSequentialEvidence);
       sequentialEvidenceLocation.addEventListener("change", loadSequentialEvidence);

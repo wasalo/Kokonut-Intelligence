@@ -27,6 +27,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
+    assert 'id="operating-pilot-demand-review-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-dialog"' in source
     assert 'id="operating-pilot-capacity-review-acknowledged"' in source
     assert "including your private notes" in panel.group()
@@ -319,6 +320,36 @@ def test_capacity_review_queue_has_separate_grant_and_omits_identity_and_notes()
     assert "await loadOperatingPilotCapacityReviewQueue()" in initialize
     assert "...operatingPilotCapacityReviewLocationIds" in source
     assert 'click", () => loadOperatingPilotCapacityReviewQueue(true)' in source
+
+
+def test_demand_review_queue_is_bounded_redacted_and_review_grant_gated():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadOperatingPilotDemandReviewQueue(append = false)",
+        "function appendOperatingPilotDemandReviewRow(item)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotDemandReviewRow(item)",
+        "async function loadOperatingPilot()",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in reader
+    assert "demand-review-queue?${params}" in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "appendOperatingPilotDemandReviewRow(item)" in reader
+    assert "requestVersion !== operatingPilotDemandReviewRequestVersion" in reader
+    assert "locationId !== operatingPilotLocation.value" in reader
+    assert "innerHTML" not in reader + row
+    assert "description" not in row
+    assert "party_id" not in row
+    assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert "operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in initialize
+    assert "reads.push(loadOperatingPilotDemandReviewQueue())" in initialize
+    assert "await loadOperatingPilotDemandReviewQueue()" in initialize
+    assert 'click", () => loadOperatingPilotDemandReviewQueue(true)' in source
 
 
 def test_capacity_review_decision_requires_acknowledgement_csrf_and_exact_retry_id():

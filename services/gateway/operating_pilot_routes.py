@@ -11,6 +11,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         OperatingPilotReadInvalid,
         get_location_operating_pilot_capacity_periods,
         get_location_operating_pilot_capacity_review_queue,
+        get_location_operating_pilot_demand_review_queue,
         get_location_operating_pilot_demand_signals,
         get_location_operating_pilot_own_capacity_profiles,
         get_location_operating_pilot_resource_categories,
@@ -670,6 +671,67 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Operating capacity review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/operating-pilot/{location_id}/demand-review-queue")
+    async def location_operating_pilot_demand_review_queue(
+        request: Request,
+        location_id: str,
+        limit: int = 25,
+        offset: int = 0,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_operating_pilot_demand_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified demand review access is required"},
+                headers=headers,
+            )
+        except OperatingPilotReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location review grant and independent human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Demand review page is outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating demand review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating demand review queue unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
