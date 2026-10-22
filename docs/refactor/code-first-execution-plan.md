@@ -2877,3 +2877,13 @@ loopback. Ruff, compilation, Compose, matrix, and diff checks pass. No remote
 endpoint or database was used. Production DNS/certificate, lifecycle, ingress,
 tenant, and REST acceptance remain open. Evidence:
 `docs/refactor/builds/2026-10-21-recovery/cap-064-grpc-health-remote-plaintext-policy.json`.
+
+
+### 21 October 2026 — CAP-064 TypeScript SDK secure transport defaults
+
+The TypeScript gRPC SDK now chooses system-trusted TLS for remote targets,
+plaintext only for recognized loopback, and preserves custom credentials.
+Thirty-five Vitest checks pass; `tsc` build and package dry run pass, including
+`dist/transport.js`. No RPC or external endpoint was contacted. Python generated
+stubs remain caller-managed and document the secure channel path. Evidence:
+`docs/refactor/builds/2026-10-21-recovery/cap-064-typescript-grpc-tls-defaults.json`.

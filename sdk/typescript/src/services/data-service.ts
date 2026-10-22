@@ -7,7 +7,6 @@
 import {
   Client,
   Metadata,
-  credentials,
   type ChannelCredentials,
   type ServiceError,
 } from "@grpc/grpc-js";
@@ -16,6 +15,7 @@ import * as protoLoader from "@grpc/proto-loader";
 import path from "path";
 
 import { KokonutGrpcError } from "../errors";
+import { resolveChannelCredentials } from "../transport";
 
 /** Options for constructing a DataServiceClient. */
 export interface DataServiceClientOptions {
@@ -51,7 +51,7 @@ export class DataServiceClient {
 
     this.client = new ServiceDefinition(
       address,
-      options.credentials ?? credentials.createInsecure(),
+      resolveChannelCredentials(address, options.credentials),
     ) as Client;
     this.defaultMetadata = options.metadata ?? new Metadata();
   }

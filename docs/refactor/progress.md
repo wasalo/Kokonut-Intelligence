@@ -14355,3 +14355,17 @@ contacted. Production DNS certificate/lifecycle, public ingress, authenticated
 tenant scope, and REST parity remain open. Checklist: 931 complete / 24 open
 (955 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared
 across 66 rows. Evidence: [gRPC health plaintext policy](builds/2026-10-21-recovery/cap-064-grpc-health-remote-plaintext-policy.json).
+
+
+### CAP-064 TypeScript gRPC client TLS defaults — 21 October 2026
+
+The TypeScript SDK now uses system-trusted TLS for remote gRPC targets by
+default, keeps plaintext convenient for recognized loopback targets, and
+respects caller-supplied credentials. The focused Vitest suite passes 35 tests;
+TypeScript build and `npm pack --dry-run` pass, with the new transport helper
+included in the package. No RPC, external network, database, or provider was
+used. Private CA and private-network plaintext credentials remain explicit
+caller choices. This verifies SDK credential selection, not a remote TLS
+endpoint or production certificate/tenant acceptance. Checklist: 932 complete /
+24 open (956 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence: [TypeScript gRPC TLS defaults](builds/2026-10-21-recovery/cap-064-typescript-grpc-tls-defaults.json).
