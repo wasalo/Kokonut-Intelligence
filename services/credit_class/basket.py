@@ -117,6 +117,39 @@ def list_baskets(conn, credit_type_id: str = None, status: str = None) -> list[d
     return [dict(r) for r in result.mappings()]
 
 
+def list_baskets_page(
+    conn,
+    *,
+    limit: int,
+    offset: int,
+    credit_type_id: str = None,
+    status: str = None,
+) -> tuple[list[dict], int]:
+    """Fetch a bounded basket page with optional type/status filters."""
+    from services.credit_class.page_queries import fetch_page
+
+    conditions = []
+    params: dict[str, Any] = {}
+    if credit_type_id:
+        conditions.append("credit_type_id = :ctid")
+        params["ctid"] = credit_type_id
+    if status:
+        conditions.append("status = :s")
+        params["s"] = status
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return fetch_page(
+        conn,
+        count_sql=f"SELECT COUNT(*) AS total FROM credit_basket {where}",
+        select_sql=(
+            f"SELECT * FROM credit_basket {where} "
+            "ORDER BY created_at DESC, id DESC LIMIT :_page_limit OFFSET :_page_offset"
+        ),
+        params=params,
+        limit=limit,
+        offset=offset,
+    )
+
+
 def deposit_credits(
     conn,
     basket_id: str,

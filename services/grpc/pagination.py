@@ -45,5 +45,11 @@ def paginate_items(items: list, page_request) -> tuple[list, dict[str, bytes | i
 
     total = len(items)
     end = min(offset + limit, total)
+    return items[offset:end], page_response(total, offset, end - offset)
+
+
+def page_response(total: int, offset: int, returned_count: int) -> dict[str, bytes | int]:
+    """Build proto-loader pagination fields for a database-fetched page."""
+    end = offset + returned_count
     next_key = str(end).encode("ascii") if end < total else b""
-    return items[offset:end], {"next_key": next_key, "total": total}
+    return {"next_key": next_key, "total": total}

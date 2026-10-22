@@ -196,6 +196,39 @@ def list_batches(conn, credit_class_id: str = None, location_id: str = None) -> 
     return [dict(r) for r in result.mappings()]
 
 
+def list_batches_page(
+    conn,
+    *,
+    limit: int,
+    offset: int,
+    credit_class_id: str = None,
+    location_id: str = None,
+) -> tuple[list[dict], int]:
+    """Fetch a bounded batch page with optional class/location filters."""
+    from services.credit_class.page_queries import fetch_page
+
+    conditions = []
+    params: dict[str, Any] = {}
+    if credit_class_id:
+        conditions.append("credit_class_id = :ccid")
+        params["ccid"] = credit_class_id
+    if location_id:
+        conditions.append("location_id = :lid")
+        params["lid"] = location_id
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return fetch_page(
+        conn,
+        count_sql=f"SELECT COUNT(*) AS total FROM credit_batch {where}",
+        select_sql=(
+            f"SELECT * FROM credit_batch {where} "
+            "ORDER BY created_at DESC, id DESC LIMIT :_page_limit OFFSET :_page_offset"
+        ),
+        params=params,
+        limit=limit,
+        offset=offset,
+    )
+
+
 def get_batch_balance(conn, batch_id: str) -> dict:
     batch = get_batch(conn, batch_id)
     if not batch:

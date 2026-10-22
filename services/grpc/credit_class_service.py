@@ -26,25 +26,22 @@ class EcocreditServiceServicer:
 
     def _validate_pagination(self, request, context):
         if not request.HasField("pagination"):
-            return
+            return None
         from services.grpc.pagination import parse_page_request
 
         try:
-            parse_page_request(request.pagination)
+            return parse_page_request(request.pagination)
         except ValueError as exc:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
 
-    def _page_items(self, items, request, context):
-        if not request.HasField("pagination"):
-            return items, {}
-        from services.grpc.pagination import paginate_items
+    @staticmethod
+    def _page_metadata(page_request, total, returned_count):
+        if page_request is None:
+            return {}
+        from services.grpc.pagination import page_response
 
-        try:
-            page, metadata = paginate_items(items, request.pagination)
-        except ValueError as exc:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
-            return [], {}
-        return page, {"pagination": metadata}
+        offset, _limit = page_request
+        return {"pagination": page_response(total, offset, returned_count)}
 
     # --- Class queries ---
 
@@ -52,12 +49,17 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.class_manager import list_classes
-            classes = list_classes(conn)
-            classes, page_metadata = self._page_items(classes, request, context)
+            from services.credit_class.class_manager import list_classes, list_classes_page
+            if page_request is None:
+                classes = list_classes(conn)
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                classes, total = list_classes_page(conn, limit=limit, offset=offset)
+                page_metadata = self._page_metadata(page_request, total, len(classes))
             return ecocredit_service_pb2.ClassesResponse(
                 classes=[ecocredit_types_pb2.ClassInfo(
                     id=c["id"], name=c["name"], description=c.get("description", ""),
@@ -94,13 +96,23 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.class_manager import list_classes
-            classes = list_classes(conn)
-            filtered = [c for c in classes if c.get("admin_address") == request.admin]
-            filtered, page_metadata = self._page_items(filtered, request, context)
+            from services.credit_class.class_manager import list_classes, list_classes_page
+            if page_request is None:
+                classes = list_classes(conn)
+                filtered = [c for c in classes if c.get("admin_address") == request.admin]
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                filtered, total = list_classes_page(
+                    conn,
+                    limit=limit,
+                    offset=offset,
+                    admin_address=request.admin,
+                )
+                page_metadata = self._page_metadata(page_request, total, len(filtered))
             return ecocredit_service_pb2.ClassesByAdminResponse(
                 classes=[ecocredit_types_pb2.ClassInfo(
                     id=c["id"], name=c["name"], credit_type=c["credit_type"],
@@ -174,14 +186,27 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         from services.metadata_api.project_info import get_project_info
         require_scope(context, "ecocredit:project", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            has_pagination = request.HasField("pagination")
-            project_sql = "SELECT id FROM location WHERE status = 'active' ORDER BY id"
-            if not has_pagination:
-                project_sql += " LIMIT 100"
-            results = conn.execute(conn.text(project_sql)).mappings().all()
+            if page_request is None:
+                results = conn.execute(
+                    conn.text("SELECT id FROM location WHERE status = 'active' ORDER BY id LIMIT 100")
+                ).mappings().all()
+                total = None
+            else:
+                offset, limit = page_request
+                total_row = conn.execute(
+                    conn.text("SELECT COUNT(*) AS total FROM location WHERE status = 'active'")
+                ).mappings().first()
+                total = int(total_row["total"]) if total_row else 0
+                results = conn.execute(
+                    conn.text(
+                        "SELECT id FROM location WHERE status = 'active' ORDER BY id "
+                        "LIMIT :_page_limit OFFSET :_page_offset"
+                    ),
+                    {"_page_limit": limit, "_page_offset": offset},
+                ).mappings().all()
             projects = []
             for r in results:
                 info = get_project_info(conn, str(r["id"]))
@@ -190,7 +215,11 @@ class EcocreditServiceServicer:
                         name=info["name"], description=info.get("description", ""),
                         region=info.get("region", ""),
                     ))
-            projects, page_metadata = self._page_items(projects, request, context)
+            page_metadata = (
+                self._page_metadata(page_request, total, len(results))
+                if page_request is not None
+                else {}
+            )
             return ecocredit_service_pb2.ProjectsResponse(
                 projects=projects,
                 **page_metadata,
@@ -221,16 +250,41 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:project", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
-            batches = list_batches(conn, credit_class_id=request.class_id)
-            location_ids = sorted(set(
-                b["location_id"] for b in batches if b.get("location_id")
-            ))
+            if page_request is None:
+                batches = list_batches(conn, credit_class_id=request.class_id)
+                location_ids = sorted(set(
+                    b["location_id"] for b in batches if b.get("location_id")
+                ))
+                total = None
+                project_ids = location_ids[:100]
+            else:
+                offset, limit = page_request
+                total_row = conn.execute(
+                    conn.text(
+                        "SELECT COUNT(DISTINCT location_id) AS total FROM credit_batch "
+                        "WHERE credit_class_id = :class_id AND location_id IS NOT NULL"
+                    ),
+                    {"class_id": request.class_id},
+                ).mappings().first()
+                total = int(total_row["total"]) if total_row else 0
+                location_rows = conn.execute(
+                    conn.text(
+                        "SELECT DISTINCT location_id FROM credit_batch "
+                        "WHERE credit_class_id = :class_id AND location_id IS NOT NULL "
+                        "ORDER BY location_id LIMIT :_page_limit OFFSET :_page_offset"
+                    ),
+                    {
+                        "class_id": request.class_id,
+                        "_page_limit": limit,
+                        "_page_offset": offset,
+                    },
+                ).mappings().all()
+                project_ids = [str(row["location_id"]) for row in location_rows]
             projects = []
-            project_ids = location_ids if request.HasField("pagination") else location_ids[:100]
             for lid in project_ids:
                 from services.metadata_api.project_info import get_project_info
                 info = get_project_info(conn, lid)
@@ -238,7 +292,11 @@ class EcocreditServiceServicer:
                     projects.append(ecocredit_types_pb2.ProjectInfo(
                         name=info["name"], region=info.get("region", ""),
                     ))
-            projects, page_metadata = self._page_items(projects, request, context)
+            page_metadata = (
+                self._page_metadata(page_request, total, len(project_ids))
+                if page_request is not None
+                else {}
+            )
             return ecocredit_service_pb2.ProjectsByClassResponse(
                 projects=projects,
                 **page_metadata,
@@ -252,12 +310,17 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.batch_manager import list_batches
-            batches = list_batches(conn)
-            batches, page_metadata = self._page_items(batches, request, context)
+            from services.credit_class.batch_manager import list_batches, list_batches_page
+            if page_request is None:
+                batches = list_batches(conn)
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                batches, total = list_batches_page(conn, limit=limit, offset=offset)
+                page_metadata = self._page_metadata(page_request, total, len(batches))
             return ecocredit_service_pb2.BatchesResponse(
                 batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
@@ -304,12 +367,22 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.batch_manager import list_batches
-            batches = list_batches(conn, credit_class_id=request.class_id)
-            batches, page_metadata = self._page_items(batches, request, context)
+            from services.credit_class.batch_manager import list_batches, list_batches_page
+            if page_request is None:
+                batches = list_batches(conn, credit_class_id=request.class_id)
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                batches, total = list_batches_page(
+                    conn,
+                    credit_class_id=request.class_id,
+                    limit=limit,
+                    offset=offset,
+                )
+                page_metadata = self._page_metadata(page_request, total, len(batches))
             return ecocredit_service_pb2.BatchesByClassResponse(
                 batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
@@ -326,12 +399,22 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.batch_manager import list_batches
-            batches = list_batches(conn, location_id=request.location_id)
-            batches, page_metadata = self._page_items(batches, request, context)
+            from services.credit_class.batch_manager import list_batches, list_batches_page
+            if page_request is None:
+                batches = list_batches(conn, location_id=request.location_id)
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                batches, total = list_batches_page(
+                    conn,
+                    location_id=request.location_id,
+                    limit=limit,
+                    offset=offset,
+                )
+                page_metadata = self._page_metadata(page_request, total, len(batches))
             return ecocredit_service_pb2.BatchesByProjectResponse(
                 batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
@@ -509,12 +592,17 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:basket", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.basket import list_baskets
-            baskets = list_baskets(conn)
-            baskets, page_metadata = self._page_items(baskets, request, context)
+            from services.credit_class.basket import list_baskets, list_baskets_page
+            if page_request is None:
+                baskets = list_baskets(conn)
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                baskets, total = list_baskets_page(conn, limit=limit, offset=offset)
+                page_metadata = self._page_metadata(page_request, total, len(baskets))
             return ecocredit_service_pb2.BasketsResponse(
                 baskets=[ecocredit_types_pb2.BasketInfo(
                     id=b["id"], name=b["name"], description=b.get("description", ""),
@@ -615,13 +703,27 @@ class EcocreditServiceServicer:
         from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "marketplace", "read")
-        self._validate_pagination(request, context)
+        page_request = self._validate_pagination(request, context)
         conn = self._get_conn()
         try:
-            from services.credit_class.marketplace import list_sell_orders
-            orders = list_sell_orders(conn, credit_batch_id=request.batch_id or None,
-                                      seller_address=request.seller_address or None)
-            orders, page_metadata = self._page_items(orders, request, context)
+            from services.credit_class.marketplace import list_sell_orders, list_sell_orders_page
+            if page_request is None:
+                orders = list_sell_orders(
+                    conn,
+                    credit_batch_id=request.batch_id or None,
+                    seller_address=request.seller_address or None,
+                )
+                page_metadata = {}
+            else:
+                offset, limit = page_request
+                orders, total = list_sell_orders_page(
+                    conn,
+                    credit_batch_id=request.batch_id or None,
+                    seller_address=request.seller_address or None,
+                    limit=limit,
+                    offset=offset,
+                )
+                page_metadata = self._page_metadata(page_request, total, len(orders))
             return ecocredit_service_pb2.SellOrdersResponse(
                 sell_orders=[ecocredit_types_pb2.SellOrderInfo(
                     id=o["id"], batch_code=o.get("batch_code", ""),

@@ -4475,7 +4475,7 @@ and MAN-CAP acceptance remain open
 ([evidence](builds/2026-10-16-recovery/event-notification-worker-separation.json);
 [checklist](batches.md); [supervision](kernel-supervision.md)).
 
-**Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
+**Updated:** 21 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
 ### Farm-activity permissions retired from optional Directus — 16 October 2026
 
@@ -14260,3 +14260,21 @@ and the response cap does not bound source query memory/volume. Auth/tenant
 scope, TLS, and REST parity remain open. Checklist: 925 complete / 24 open
 (949 total); matrix remains 31 baseline-retained, 7 deployed, and 28 prepared
 across 66 rows. Evidence: [gRPC pagination server checks](builds/2026-10-21-recovery/cap-064-grpc-pagination-server.json).
+
+
+### CAP-064 bounded page queries — 21 October 2026
+
+Paginated class, batch, basket, and sell-order RPCs now issue SQL queries with
+deterministic ordering plus `LIMIT`/`OFFSET`, and project RPCs page location IDs
+before hydrating metadata. Each manager applies identical filters to its count
+and page query. The focused pagination/credit-list selection passes 78 tests,
+one skip, and 17 subtests; enabled gRPC loopback acceptance passes 4 tests.
+Ruff, Python compilation, and diff checks pass. No candidate or legacy database
+or provider was used. Page-row materialization is bounded, but `COUNT(*)` and
+large offsets can still require substantial database work. The count query and
+page query are separate statements, and subsequent RPCs are independent, so
+concurrent writes can change totals or move offset pages. TLS, authenticated
+tenant scope, REST parity, and MAN-CAP-064 remain open. Checklist: 926 complete
+/ 24 open (950 total); matrix remains 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. Evidence:
+[bounded gRPC page queries](builds/2026-10-21-recovery/cap-064-bounded-page-queries.json).

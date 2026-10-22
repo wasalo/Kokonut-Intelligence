@@ -12,6 +12,7 @@ import pytest
 from services.grpc.pagination import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
+    page_response,
     paginate_items,
     parse_page_request,
 )
@@ -67,17 +68,21 @@ def test_oversized_page_is_rejected():
         parse_page_request(page_request(limit=MAX_PAGE_SIZE + 1))
 
 
-def test_page_request_without_presence_preserves_full_result_shape():
+def test_page_response_uses_database_page_length_for_next_cursor():
+    assert page_response(total=8, offset=4, returned_count=3) == {
+        "next_key": b"7",
+        "total": 8,
+    }
+    assert page_response(total=7, offset=4, returned_count=3) == {
+        "next_key": b"",
+        "total": 7,
+    }
+
+
+def test_missing_page_request_has_no_page_metadata():
     from services.grpc.credit_class_service import EcocreditServiceServicer
 
-    items = ["a", "b"]
-    request = SimpleNamespace(HasField=lambda _name: False)
-    servicer = EcocreditServiceServicer(MagicMock())
-
-    unchanged, metadata = servicer._page_items(items, request, MagicMock())
-
-    assert unchanged is items
-    assert metadata == {}
+    assert EcocreditServiceServicer._page_metadata(None, 2, 2) == {}
 
 
 def test_invalid_page_request_aborts_as_invalid_argument():
@@ -102,7 +107,7 @@ def test_invalid_page_request_aborts_as_invalid_argument():
     )
 
 
-def test_each_paginated_ecocredit_handler_uses_the_shared_pager():
+def test_each_paginated_ecocredit_handler_uses_database_page_metadata():
     source = Path("services/grpc/credit_class_service.py").read_text()
     tree = ast.parse(source)
     method_names = {
@@ -132,9 +137,9 @@ def test_each_paginated_ecocredit_handler_uses_the_shared_pager():
             and isinstance(node.func, ast.Attribute)
         ]
         assert any(
-            node.func.attr == "_page_items"
+            node.func.attr == "_page_metadata"
             for node in calls
-        ), f"{name} must apply the shared pagination helper"
+        ), f"{name} must return metadata for its bounded page"
         validation_lines = [
             node.lineno for node in calls if node.func.attr == "_validate_pagination"
         ]
@@ -145,3 +150,17 @@ def test_each_paginated_ecocredit_handler_uses_the_shared_pager():
         assert min(validation_lines) < min(connection_lines), (
             f"{name} must validate pagination before acquiring the service database"
         )
+
+
+def test_all_page_queries_apply_limit_and_offset_in_sql():
+    query_sources = [
+        Path("services/credit_class/class_manager.py").read_text(),
+        Path("services/credit_class/batch_manager.py").read_text(),
+        Path("services/credit_class/basket.py").read_text(),
+        Path("services/credit_class/marketplace.py").read_text(),
+        Path("services/grpc/credit_class_service.py").read_text(),
+    ]
+    assert all(
+        "LIMIT :_page_limit OFFSET :_page_offset" in source
+        for source in query_sources
+    ), "each manager and both direct project queries must bound database reads"

@@ -245,11 +245,14 @@ the current implementation encodes a decimal row offset as ASCII bytes.
 `next_key` means there is no next page. Pass a non-empty `next_key` unchanged
 into the next request's `offset`.
 
-The source queries use deterministic ordering for page sequences. Each request
-reads a new result set, so inserts or deletes between requests can shift offset
-pages; pagination does not provide a multi-request snapshot. The handlers also
-materialize the existing manager result lists before slicing, so this bounds
-response size but not database read volume or peak list memory. Calls without a
+The source queries use deterministic ordering for page sequences. Paginated
+class, batch, basket, and sell-order reads apply `LIMIT` and `OFFSET` in SQL;
+project reads select only the requested location IDs before hydrating their
+metadata. This bounds page-row materialization, though the matching `COUNT(*)`
+and skipped rows for large offsets can still require substantial database work.
+The count and page are separate statements, and each request reads a new result
+set, so concurrent writes can change the reported total or shift later offset
+pages; pagination does not provide a multi-request snapshot. Calls without a
 `pagination` message retain their existing unpaged behavior (the `Projects`
 legacy call remains capped at 100 results).
 

@@ -231,26 +231,29 @@ def test_ecocredit_classes_support_cursor_pagination_over_loopback(running_serve
     from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
 
     channel, database_factory, _services = running_server
+    classes = [
+        {
+            "id": "class-1",
+            "name": "First",
+            "description": "",
+            "credit_type": "carbon",
+            "admin_address": "admin-1",
+            "status": "published",
+        },
+        {
+            "id": "class-2",
+            "name": "Second",
+            "description": "",
+            "credit_type": "carbon",
+            "admin_address": "admin-1",
+            "status": "published",
+        },
+    ]
     monkeypatch.setattr(
-        "services.credit_class.class_manager.list_classes",
-        lambda _connection: [
-            {
-                "id": "class-1",
-                "name": "First",
-                "description": "",
-                "credit_type": "carbon",
-                "admin_address": "admin-1",
-                "status": "published",
-            },
-            {
-                "id": "class-2",
-                "name": "Second",
-                "description": "",
-                "credit_type": "carbon",
-                "admin_address": "admin-1",
-                "status": "published",
-            },
-        ],
+        "services.credit_class.class_manager.list_classes_page",
+        lambda _connection, *, limit, offset, **_filters: (
+            classes[offset:offset + limit], len(classes)
+        ),
     )
     client = ecocredit_service_pb2_grpc.EcocreditServiceStub(channel)
     metadata = (("x-api-key", "ecocredit-reader"),)
