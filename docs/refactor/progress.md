@@ -31,7 +31,7 @@ Candidate and legacy databases remain untouched; migration 550, real worker
 credentials, populated parity, and MAN-CAP-038 acceptance remain open.
 Evidence: [migration](../../schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql),
 [agent](../../services/agents/ecological_modeling_agent.py),
-[native PostgreSQL](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-disposable.json).
+[native PostgreSQL](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-native-replay.json).
 Checklist: 965 complete / 24 open (989 total); capability classifications
 remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
 

@@ -1,0 +1,80 @@
+{
+  "verified_at": "2026-10-22T17:03:22.687161+00:00",
+  "environment": "local Kokonut Kernel candidate",
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-551-20261022T164447Z",
+    "format": "age-encrypted PostgreSQL custom-format archive",
+    "sha256": "2b1e1d4d6acdc58137bc9cf9349cfccf4dbf9042b3c9941762df4ff36d117168",
+    "bytes": 8365410,
+    "scope": "kokonut_intelligence database only; roles, grants, other databases, volumes, and external media excluded",
+    "restore_rehearsed": true
+  },
+  "restore_rehearsal": {
+    "project": "kokonut-kernel-recovery-549550-20261022",
+    "database": "kokonut_restore",
+    "container_image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "network": "internal-only; no host ports or application services",
+    "healthcheck": "passed",
+    "empty_template0_target": true,
+    "pre_migration_schema_count": 539,
+    "pre_migration_latest": 548,
+    "pre_migration_fingerprint": "72b81ae1cc0eee54864726403135553e",
+    "applied_through": 550,
+    "post_migration_schema_count": 541,
+    "post_migration_pending": 0,
+    "post_migration_fingerprint": "775079acc5cc0dca5282dc750876907b"
+  },
+  "migrations": {
+    "runner": "python3 -m services.migration.cli migrate --schemas-only",
+    "applied": [
+      "schema:549_signed_organic_readiness_synthesis_source.sql",
+      "schema:550_signed_ecological_modeling_synthesis_source.sql"
+    ],
+    "failed": 0,
+    "seed_sql_applied": false,
+    "restored_clone_pending_after_replay": 0,
+    "candidate_pending_after_rollout": 0,
+    "candidate_and_clone_schema_count": 541,
+    "candidate_and_clone_latest_schema": 550,
+    "candidate_and_clone_checksum_fingerprint": "775079acc5cc0dca5282dc750876907b"
+  },
+  "candidate_app": {
+    "service_rebuilt": true,
+    "service_recreated": "app only",
+    "previous_image_id": "sha256:a49802c9cae61fdfc164d0bf68facdc01ea0fef88e861f7c37c927e5e2956e03",
+    "previous_image_rollback_tag": "kokonut-kernel-candidate-app:rollback-pre-550-20261022",
+    "image_id": "sha256:e549580976c04e58c8cf5a9c40df45cd268d6a4e65656babd27301fce52aae49",
+    "container_id": "caa8e72b0c7f20544025a47587a1045c82d1279f3508bb0e4caed1cfd18cbc53",
+    "health": "healthy",
+    "health_route_status": 200,
+    "oidc_disabled_report_review_route_status": 404,
+    "oidc_disabled_report_review_route": "/operator/api/report-review-queue?location_id=<synthetic-unmatched-uuid>"
+  },
+  "not_recreated_or_modified": [
+    "candidate PostgreSQL container and persistent volume (schema migrations were applied in place)",
+    "candidate Metabase",
+    "candidate proxy",
+    "legacy kokonut-intelligence stack"
+  ],
+  "data_actions": [
+    "candidate PostgreSQL schema migrations 549\u2013550 applied through the ordered runner",
+    "candidate app image rebuilt and app service recreated",
+    "no seed SQL or farm records applied"
+  ],
+  "migration_550_correction": {
+    "failure_found_on_restore": "CREATE OR REPLACE VIEW could not narrow shared deterministic source views harvest_event and species_observation",
+    "fix": "use dedicated ecological_harvest_event and ecological_species_observation aliases; preserve the established shared views",
+    "native_postgresql16": "passed; five grouped checks",
+    "arm64_qemu_postgresql16": "passed; server reported aarch64; five grouped checks"
+  },
+  "rollback": {
+    "app": "recreate only the candidate app from kokonut-kernel-candidate-app:rollback-pre-550-20261022",
+    "database": "retain the additive 549\u2013550 migrations; the fresh age-encrypted checkpoint is available for reviewed recovery, but a full database restore would discard subsequent writes"
+  },
+  "limitations": [
+    "The checkpoint is stored on the same host disk as the repository and does not cover roles/grants, other databases, media, providers, or off-host recovery.",
+    "The local OIDC profile is disabled; the report-review route returns 404 for that profile, so live authenticated browser behavior remains open.",
+    "ARM64 acceptance used Docker/QEMU emulation, not physical Raspberry Pi hardware.",
+    "Real worker credential provisioning, populated ecological output parity, and MAN-CAP-038 acceptance remain open."
+  ]
+}

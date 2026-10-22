@@ -177,6 +177,10 @@ def test_registered_synthesis_views_match_migration_select_allowlist() -> None:
     assert len(registered_views) == 57
     assert "CREATE OR REPLACE VIEW kokonut_agent_source." in base_migration
     assert "CREATE OR REPLACE VIEW kokonut_agent_source." in organic_migration
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source.ecological_harvest_event" in ecological_migration
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source.ecological_species_observation" in ecological_migration
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source.harvest_event" not in ecological_migration
+    assert "CREATE OR REPLACE VIEW kokonut_agent_source.species_observation" not in ecological_migration
     assert all(
         "'" + view + "'" in base_migration
         or "'" + view + "'" in organic_migration
@@ -299,7 +303,12 @@ def test_ecological_modeling_uses_scoped_search_path_and_exact_location_queries(
         for query, _ in analytics_queries
         for relation in SYNTHESIS_RELATION.findall(query)
     }
-    assert relations == set(EcologicalModelingSynthesisAgent.source_tables)
+    expected_relations = set(EcologicalModelingSynthesisAgent.source_tables)
+    expected_relations.difference_update({"harvest_event", "species_observation"})
+    expected_relations.update(
+        {"ecological_harvest_event", "ecological_species_observation"}
+    )
+    assert relations == expected_relations
     assert all(
         re.match(r"\s*SELECT\b", query, re.IGNORECASE)
         for query, _ in analytics_queries

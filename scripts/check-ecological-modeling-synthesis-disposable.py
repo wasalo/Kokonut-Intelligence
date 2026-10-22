@@ -201,6 +201,26 @@ def main() -> int:
         psql(docker, container, MIGRATION_549.read_text(encoding="utf-8"))
         stage = "seed synthetic stale ecological grants"
         psql(docker, container, """
+GRANT CREATE ON SCHEMA kokonut_agent_source
+TO kokonut_agent_summary_source_view_owner;
+GRANT SELECT ON TABLE public.harvest_event, public.species_observation
+TO kokonut_agent_summary_source_view_owner;
+CREATE VIEW kokonut_agent_source.harvest_event WITH (security_barrier = true) AS
+SELECT source_row.* FROM public.harvest_event AS source_row
+ WHERE EXISTS (
+    SELECT 1 FROM kokonut_security.current_worker_scope('ai_summary', 'read') AS scope
+     WHERE scope.location_id = source_row.location_id
+ );
+CREATE VIEW kokonut_agent_source.species_observation WITH (security_barrier = true) AS
+SELECT source_row.* FROM public.species_observation AS source_row
+ WHERE EXISTS (
+    SELECT 1 FROM kokonut_security.current_worker_scope('ai_summary', 'read') AS scope
+     WHERE scope.location_id = source_row.location_id
+ );
+ALTER VIEW kokonut_agent_source.harvest_event OWNER TO kokonut_agent_summary_source_view_owner;
+ALTER VIEW kokonut_agent_source.species_observation OWNER TO kokonut_agent_summary_source_view_owner;
+GRANT SELECT ON TABLE kokonut_agent_source.harvest_event,
+    kokonut_agent_source.species_observation TO kokonut_agent_summary_source_reader;
 GRANT SELECT ON TABLE public.ecological_interaction, public.location,
     public.v_public_ecological_interaction_summary
 TO kokonut_agent_summary_source_reader, kokonut_agent_summary_source_login;
@@ -251,7 +271,8 @@ BEGIN
        OR (SELECT count(*) FROM kokonut_agent_source.pest_observation) <> 1
        OR (SELECT count(*) FROM kokonut_agent_source.biocontrol_release) <> 1
        OR (SELECT count(*) FROM kokonut_agent_source.resource_consumption) <> 1
-       OR (SELECT count(*) FROM kokonut_agent_source.harvest_event) <> 1
+       OR (SELECT count(*) FROM kokonut_agent_source.ecological_harvest_event) <> 1
+       OR (SELECT count(*) FROM kokonut_agent_source.ecological_species_observation) <> 1
        OR (SELECT count(*) FROM kokonut_agent_source.location) <> 1
        OR (SELECT count(*) FROM kokonut_agent_source.species_observation) <> 1
        OR (SELECT count(*) FROM kokonut_agent_source.livestock_group) <> 1
@@ -282,9 +303,17 @@ BEGIN
     END LOOP;
     IF EXISTS (SELECT 1 FROM information_schema.columns
         WHERE table_schema='kokonut_agent_source'
-          AND table_name IN ('pest_observation','biocontrol_release','species_observation','token_reward_distribution')
+          AND table_name IN ('pest_observation','biocontrol_release','ecological_species_observation','token_reward_distribution','ecological_harvest_event')
           AND column_name IN ('notes','observer','evidence_urls','recipient_name','source_raw')) THEN
         RAISE EXCEPTION 'scoped ecological projections expose private fields';
+    END IF;
+    IF (SELECT count(*) FROM information_schema.columns
+         WHERE table_schema='kokonut_agent_source' AND table_name='harvest_event'
+           AND column_name='notes') <> 1
+       OR (SELECT count(*) FROM information_schema.columns
+         WHERE table_schema='kokonut_agent_source' AND table_name='species_observation'
+           AND column_name='observer') <> 1 THEN
+        RAISE EXCEPTION 'ecological migration replaced a shared deterministic source view';
     END IF;
     IF has_table_privilege('kokonut_agent_summary_source_reader','public.ecological_interaction','SELECT')
        OR has_table_privilege('kokonut_agent_summary_source_login','public.ecological_interaction','SELECT')
@@ -319,7 +348,8 @@ BEGIN
         'ecological_interaction', 'energy_flow_measurement',
         'population_dynamics_record', 'soil_input_application',
         'pest_observation', 'biocontrol_release', 'resource_consumption',
-        'harvest_event', 'location', 'species_observation', 'livestock_group',
+        'ecological_harvest_event', 'harvest_event', 'location',
+        'ecological_species_observation', 'species_observation', 'livestock_group',
         'feed_intake_record', 'token_reward_distribution',
         'reward_calibration_model', 'v_public_ecological_interaction_summary',
         'v_public_energy_flow_summary', 'v_public_population_dynamics_summary',

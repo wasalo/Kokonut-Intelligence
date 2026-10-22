@@ -298,7 +298,10 @@ SELECT source_row.location_id, source_row.resource_type, source_row.unit,
         WHERE scope.location_id = source_row.location_id
  );
 
-CREATE OR REPLACE VIEW kokonut_agent_source.harvest_event
+-- Keep ecological aliases separate from deterministic-summary source views
+-- with the same legacy relation names. Replacing those shared views would
+-- remove columns and fail against an established deployment.
+CREATE OR REPLACE VIEW kokonut_agent_source.ecological_harvest_event
 WITH (security_barrier = true) AS
 SELECT harvest.location_id, harvest.quantity, harvest.status
   FROM public.harvest_event AS harvest
@@ -325,7 +328,7 @@ SELECT farm.id
         WHERE scope.location_id = farm.id
    );
 
-CREATE OR REPLACE VIEW kokonut_agent_source.species_observation
+CREATE OR REPLACE VIEW kokonut_agent_source.ecological_species_observation
 WITH (security_barrier = true) AS
 SELECT source_row.location_id, source_row.species_name,
        source_row.conservation_status, source_row.count, source_row.status
@@ -453,9 +456,9 @@ ALTER VIEW kokonut_agent_source.soil_input_application OWNER TO kokonut_agent_su
 ALTER VIEW kokonut_agent_source.pest_observation OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.biocontrol_release OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.resource_consumption OWNER TO kokonut_agent_summary_source_view_owner;
-ALTER VIEW kokonut_agent_source.harvest_event OWNER TO kokonut_agent_summary_source_view_owner;
+ALTER VIEW kokonut_agent_source.ecological_harvest_event OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.location OWNER TO kokonut_agent_summary_source_view_owner;
-ALTER VIEW kokonut_agent_source.species_observation OWNER TO kokonut_agent_summary_source_view_owner;
+ALTER VIEW kokonut_agent_source.ecological_species_observation OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.livestock_group OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.feed_intake_record OWNER TO kokonut_agent_summary_source_view_owner;
 ALTER VIEW kokonut_agent_source.token_reward_distribution OWNER TO kokonut_agent_summary_source_view_owner;
@@ -479,9 +482,9 @@ REVOKE ALL PRIVILEGES ON TABLE
     kokonut_agent_source.pest_observation,
     kokonut_agent_source.biocontrol_release,
     kokonut_agent_source.resource_consumption,
-    kokonut_agent_source.harvest_event,
+    kokonut_agent_source.ecological_harvest_event,
     kokonut_agent_source.location,
-    kokonut_agent_source.species_observation,
+    kokonut_agent_source.ecological_species_observation,
     kokonut_agent_source.livestock_group,
     kokonut_agent_source.feed_intake_record,
     kokonut_agent_source.token_reward_distribution,
@@ -506,9 +509,9 @@ GRANT SELECT ON TABLE
     kokonut_agent_source.pest_observation,
     kokonut_agent_source.biocontrol_release,
     kokonut_agent_source.resource_consumption,
-    kokonut_agent_source.harvest_event,
+    kokonut_agent_source.ecological_harvest_event,
     kokonut_agent_source.location,
-    kokonut_agent_source.species_observation,
+    kokonut_agent_source.ecological_species_observation,
     kokonut_agent_source.livestock_group,
     kokonut_agent_source.feed_intake_record,
     kokonut_agent_source.token_reward_distribution,
