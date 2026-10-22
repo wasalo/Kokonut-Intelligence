@@ -30,8 +30,10 @@ DEMAND_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/560_location_operating_
 OWN_DEMAND_MIGRATION = ROOT / "schemas/postgres/561_location_own_operating_pilot_demand.sql"
 OWN_DEMAND_REVISION_MIGRATION = ROOT / "schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql"
 DEMAND_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/563_location_operating_pilot_demand_review_decision.sql"
+WORK_OPPORTUNITIES_MIGRATION = ROOT / "schemas/postgres/564_location_operating_pilot_work_opportunities.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
+WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -167,12 +169,20 @@ LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.test_demand_signal_metadata(uuid) TO kokonut_runtime;
 CREATE TABLE public.work_item (
-    id uuid PRIMARY KEY, location_id uuid, status text NOT NULL, allocation_status text NOT NULL,
-    work_type text NOT NULL, title text, description text
+    id uuid PRIMARY KEY, location_id uuid, organization_id uuid, status text NOT NULL,
+    allocation_status text NOT NULL, work_type text NOT NULL, title text, description text,
+    priority text NOT NULL DEFAULT 'medium', selection_mode text NOT NULL DEFAULT 'assigned',
+    estimated_effort_hours numeric, due_at timestamptz
 );
 CREATE TABLE public.work_item_claim (
-    id uuid PRIMARY KEY, work_item_id uuid NOT NULL, claimant_party_id uuid NOT NULL,
-    status text NOT NULL, decision_reason text
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), work_item_id uuid NOT NULL, claimant_party_id uuid NOT NULL,
+    status text NOT NULL DEFAULT 'proposed', decision_reason text, proposed_effort_hours numeric,
+    capability_evidence jsonb NOT NULL DEFAULT '[]'::jsonb
+);
+CREATE TABLE public.work_item_selection_event (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), work_item_id uuid NOT NULL,
+    claim_id uuid, actor_party_id uuid, event_type text NOT NULL, note text,
+    created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.operating_competency_profile (
     id uuid PRIMARY KEY, party_id uuid NOT NULL, governance_role_id uuid, status text NOT NULL,
@@ -1007,11 +1017,18 @@ BEGIN
         RAISE EXCEPTION 'reader is missing bounded demand projection fields';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'work_type', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'title', 'SELECT')
        OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'description', 'SELECT')
        OR has_column_privilege('kokonut_runtime', 'public.work_item', 'work_type', 'SELECT')
        OR has_column_privilege('kokonut_directus_runtime', 'public.work_item', 'work_type', 'SELECT') THEN
         RAISE EXCEPTION 'work-claim reader column grants exceed or miss the projection boundary';
+    END IF;
+    IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'title', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'priority', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'selection_mode', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'allocation_status', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'organization_id', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'location_id', 'SELECT') THEN
+        RAISE EXCEPTION 'work opportunity projection grants exceed or miss the bounded columns';
     END IF;
     IF NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request', 'resource_type', 'SELECT')
        OR has_column_privilege('kokonut_runtime', 'public.operating_resource_request', 'resource_type', 'SELECT')
@@ -2522,6 +2539,168 @@ RESET ROLE;
 ROLLBACK;
 """
 
+WORK_OPPORTUNITY_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000090',
+        'a0000000-0000-4000-8000-000000000001',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'claim_own', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000090', 'person', 'active', 'Synthetic ungranted operator');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000091',
+        'a0000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000090', NULL);
+INSERT INTO public.work_item (
+    id, organization_id, location_id, title, description, status, allocation_status,
+    work_type, priority, selection_mode, estimated_effort_hours, due_at
+) VALUES
+ ('e5000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic open opportunity', 'PRIVATE opportunity detail',
+  'draft', 'open', 'soil preparation', 'high', 'self_selected', 8, CURRENT_DATE + 5),
+ ('e5000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic existing claim', 'PRIVATE claim detail',
+  'draft', 'claimed', 'tree care', 'medium', 'volunteer', 4, CURRENT_DATE + 8),
+ ('e5000000-0000-4000-8000-000000000003', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000001', 'Synthetic assigned item', NULL,
+  'draft', 'open', 'general', 'low', 'assigned', NULL, NULL),
+ ('e5000000-0000-4000-8000-000000000004', 'f0000000-0000-4000-8000-000000000001',
+  'b0000000-0000-4000-8000-000000000002', 'Synthetic other-location item', NULL,
+  'draft', 'open', 'general', 'low', 'self_selected', NULL, NULL);
+INSERT INTO public.work_item_claim (id, work_item_id, claimant_party_id, status, proposed_effort_hours)
+VALUES ('e5100000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000002',
+        'd8000000-0000-4000-8000-000000000001', 'proposed', 3);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE page jsonb; created jsonb; replay jsonb; changed_denied boolean := false;
+        assigned_denied boolean := false; other_location_denied boolean := false;
+        missing_grant_denied boolean := false; bad_page_denied boolean := false;
+BEGIN
+    page := kokonut_security.location_operating_pilot_work_opportunities(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    );
+    IF jsonb_array_length(page->'items') <> 2
+       OR page::text ~* '(PRIVATE|description|claimant_party_id|own_claim_id|capability_evidence)'
+       OR NOT EXISTS (
+           SELECT 1 FROM jsonb_array_elements(page->'items') AS item
+            WHERE item->>'work_item_id' = 'e5000000-0000-4000-8000-000000000002'
+              AND item->>'own_claim_status' = 'proposed'
+              AND item->>'has_own_claim' = 'true'
+       )
+       OR NOT EXISTS (
+           SELECT 1 FROM jsonb_array_elements(page->'items') AS item
+            WHERE item->>'work_item_id' = 'e5000000-0000-4000-8000-000000000001'
+              AND item->>'own_claim_status' IS NULL
+              AND item->>'has_own_claim' = 'false'
+       ) THEN
+        RAISE EXCEPTION 'work opportunity page scope, own claim state, or privacy failed: %', page;
+    END IF;
+    created := kokonut_security.claim_location_operating_pilot_work(
+        'b0000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000001',
+        'e5200000-0000-4000-8000-000000000001', 6.25
+    );
+    replay := kokonut_security.claim_location_operating_pilot_work(
+        'b0000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000001',
+        'e5200000-0000-4000-8000-000000000001', 6.25
+    );
+    IF created->>'status' <> 'proposed' OR created->>'replayed' <> 'false'
+       OR replay->>'claim_id' <> created->>'claim_id' OR replay->>'replayed' <> 'true'
+       OR created::text ~* '(party_id|PRIVATE|reason)' THEN
+        RAISE EXCEPTION 'work claim proposal or exact retry failed: %, %', created, replay;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.claim_location_operating_pilot_work(
+            'b0000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000001',
+            'e5200000-0000-4000-8000-000000000001', 7
+        );
+    EXCEPTION WHEN unique_violation THEN changed_denied := true;
+    END;
+    IF NOT changed_denied THEN RAISE EXCEPTION 'work-claim request accepted changed input'; END IF;
+    BEGIN
+        PERFORM kokonut_security.claim_location_operating_pilot_work(
+            'b0000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000003',
+            'e5200000-0000-4000-8000-000000000003', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN assigned_denied := true;
+    END;
+    IF NOT assigned_denied THEN RAISE EXCEPTION 'assigned work was self-claimable'; END IF;
+    BEGIN
+        PERFORM kokonut_security.claim_location_operating_pilot_work(
+            'b0000000-0000-4000-8000-000000000002', 'e5000000-0000-4000-8000-000000000004',
+            'e5200000-0000-4000-8000-000000000004', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN other_location_denied := true;
+    END;
+    IF NOT other_location_denied THEN RAISE EXCEPTION 'claim accepted a mismatched signed location'; END IF;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_work_opportunities(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN bad_page_denied := true;
+    END;
+    IF NOT bad_page_denied THEN RAISE EXCEPTION 'work opportunity accepted an oversized page'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_work_opportunities(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN missing_grant_denied := true;
+    END;
+    IF NOT missing_grant_denied THEN RAISE EXCEPTION 'work opportunities allowed a missing claim-own grant'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF (SELECT allocation_status FROM public.work_item
+         WHERE id = 'e5000000-0000-4000-8000-000000000001') <> 'claimed' THEN
+        RAISE EXCEPTION 'claim proposal did not lock the opportunity against duplicate claims';
+    END IF;
+END $$;
+DO $$
+DECLARE opportunity_function regprocedure :=
+    'kokonut_security.location_operating_pilot_work_opportunities(uuid,integer,integer)'::regprocedure;
+        claim_function regprocedure :=
+    'kokonut_security.claim_location_operating_pilot_work(uuid,uuid,uuid,numeric)'::regprocedure;
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime', opportunity_function, 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime', claim_function, 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime', opportunity_function, 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime', claim_function, 'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_work_claim_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.work_item_claim', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.work_item_selection_event', 'INSERT')
+       OR has_column_privilege('kokonut_runtime', 'public.work_item', 'allocation_status', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'allocation_status', 'UPDATE')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item', 'id', 'UPDATE')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.location', 'id', 'UPDATE')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'proposed_effort_hours', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.work_item_claim', 'capability_evidence', 'INSERT')
+       OR (SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = claim_function)
+            <> 'kokonut_operating_pilot_reader'
+       OR (SELECT count(*) FROM public.operating_work_claim_receipt) <> 1
+       OR (SELECT count(*) FROM public.work_item_selection_event WHERE work_item_id = 'e5000000-0000-4000-8000-000000000001') <> 1 THEN
+        RAISE EXCEPTION 'work claim function, receipt, event, or role boundaries failed';
+    END IF;
+END $$;
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.operating_work_claim_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can read private work-claim receipts'; END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+"""
+
 PRIVACY_SUPPRESSION = r"""
 BEGIN;
 SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
@@ -2590,8 +2769,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 563 and test independent demand decisions",
     )
+    parser.add_argument(
+        "--work-opportunities",
+        action="store_true",
+        help="Also apply/replay migrations 563–564 and test scoped work claims",
+    )
     args = parser.parse_args(argv)
-    default_output = DEMAND_REVIEW_OUTPUT if args.demand_review_decision else OUTPUT
+    default_output = (
+        WORK_OPPORTUNITIES_OUTPUT if args.work_opportunities
+        else DEMAND_REVIEW_OUTPUT if args.demand_review_decision
+        else OUTPUT
+    )
     output = args.output or default_output
     output = output if output.is_absolute() else ROOT / output
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
@@ -2621,7 +2809,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -2676,7 +2864,7 @@ def main(argv: list[str] | None = None) -> int:
             "runtime alone can execute demand revision; runtime and Directus cannot access revision receipts or mutate demand rows directly, and the non-login function owner has only status lifecycle updates",
         ],
     }
-    if args.demand_review_decision:
+    if args.demand_review_decision or args.work_opportunities:
         evidence["migrations"].append(DEMAND_REVIEW_DECISION_MIGRATION.name)
         evidence["checks"].extend(
             [
@@ -2684,6 +2872,15 @@ def main(argv: list[str] | None = None) -> int:
                 "demand decisions reject self-review, other farms, drafts, receiptless legacy rows, missing grants, and mismatched signed location",
                 "demand decisions atomically update only submitted rows and append a private reason/idempotency receipt; exact retry replays and changed retry input collides",
                 "decision results omit private reason/identity, runtime and Directus cannot access the audit table or update status, and only runtime can execute the decision function",
+            ]
+        )
+    if args.work_opportunities:
+        evidence["migrations"].append(WORK_OPPORTUNITIES_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "work opportunities require exact claim-own scope and return only bounded location-matched fields plus the caller's own claim status",
+                "claim proposals are atomic, request-idempotent, self-attributed, and never auto-assign work; assigned/closed/cross-location targets fail closed",
+                "runtime and Directus cannot access claim receipts or write claims/events/allocation state directly; only the non-login function owner can perform the bounded action",
             ]
         )
     try:
@@ -2754,10 +2951,14 @@ def main(argv: list[str] | None = None) -> int:
         own_demand_revision_migration = OWN_DEMAND_REVISION_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, own_demand_revision_migration)
         psql(docker, container, own_demand_revision_migration)
-        if args.demand_review_decision:
+        if args.demand_review_decision or args.work_opportunities:
             demand_review_decision_migration = DEMAND_REVIEW_DECISION_MIGRATION.read_text(encoding="utf-8")
             psql(docker, container, demand_review_decision_migration)
             psql(docker, container, demand_review_decision_migration)
+        if args.work_opportunities:
+            work_opportunities_migration = WORK_OPPORTUNITIES_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, work_opportunities_migration)
+            psql(docker, container, work_opportunities_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -2767,13 +2968,19 @@ def main(argv: list[str] | None = None) -> int:
         psql(docker, container, DEMAND_REVIEW_QUEUE_ACCEPTANCE)
         psql(docker, container, OWN_DEMAND_ACCEPTANCE)
         psql(docker, container, OWN_DEMAND_REVISION_ACCEPTANCE)
-        if args.demand_review_decision:
+        if args.demand_review_decision or args.work_opportunities:
             psql(docker, container, DEMAND_REVIEW_DECISION_ACCEPTANCE)
+        if args.work_opportunities:
+            psql(docker, container, WORK_OPPORTUNITY_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
-        evidence["assertion_groups_passed"] = 65 if args.demand_review_decision else 61
+        evidence["assertion_groups_passed"] = (
+            67 if args.work_opportunities
+            else 65 if args.demand_review_decision
+            else 61
+        )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
-        migration_end = 563 if args.demand_review_decision else 562
+        migration_end = 564 if args.work_opportunities else 563 if args.demand_review_decision else 562
         assertion_count = evidence["assertion_groups_passed"]
         print(
             f"PASS: migrations 461/479/480/526/538/552–{migration_end} apply/replay "

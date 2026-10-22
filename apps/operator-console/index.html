@@ -736,6 +736,18 @@
             </table>
           </div>
           <button id="operating-pilot-work-claims-more" class="secondary" type="button" hidden>Load more work types</button>
+          <div id="operating-pilot-work-opportunities" hidden>
+            <h3>Open work opportunities</h3>
+            <p class="muted">Proposing a claim does not assign work. A reviewer must accept the claim before allocation.</p>
+            <p id="operating-pilot-work-opportunities-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Opportunity</th><th>Work type</th><th>Priority</th><th>Effort</th><th>Due</th><th>Your claim</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-work-opportunities-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-work-opportunities-more" class="secondary" type="button" hidden>Load more opportunities</button>
+          </div>
           <h3>Resource-request categories</h3>
           <p class="muted">Requests are grouped into fixed categories. Requester identities, narratives, urgency, and decision states are not shown.</p>
           <p id="operating-pilot-resource-status" class="muted" role="status" aria-live="polite"></p>
@@ -1884,6 +1896,10 @@
       const operatingPilotWorkClaimsStatus = document.querySelector("#operating-pilot-work-claims-status");
       const operatingPilotWorkClaimsRows = document.querySelector("#operating-pilot-work-claims-rows");
       const operatingPilotWorkClaimsMore = document.querySelector("#operating-pilot-work-claims-more");
+      const operatingPilotWorkOpportunities = document.querySelector("#operating-pilot-work-opportunities");
+      const operatingPilotWorkOpportunitiesStatus = document.querySelector("#operating-pilot-work-opportunities-status");
+      const operatingPilotWorkOpportunitiesRows = document.querySelector("#operating-pilot-work-opportunities-rows");
+      const operatingPilotWorkOpportunitiesMore = document.querySelector("#operating-pilot-work-opportunities-more");
       const operatingPilotResourceStatus = document.querySelector("#operating-pilot-resource-status");
       const operatingPilotResourceRows = document.querySelector("#operating-pilot-resource-rows");
       const operatingPilotResourceMore = document.querySelector("#operating-pilot-resource-more");
@@ -1932,6 +1948,7 @@
       let operatingPilotEditOwnDemandLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
+      let operatingPilotClaimOwnLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
       let operatingPilotPendingDemandEdit = null;
       let operatingPilotPendingDemandSubmission = null;
@@ -1940,10 +1957,12 @@
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
+      const operatingPilotPendingWorkClaims = new Map();
       let operatingPilotSummaryRequestVersion = 0;
       let operatingPilotDemandRequestVersion = 0;
       let operatingPilotCapacityRequestVersion = 0;
       let operatingPilotWorkClaimsRequestVersion = 0;
+      let operatingPilotWorkOpportunitiesRequestVersion = 0;
       let operatingPilotResourceRequestVersion = 0;
       let operatingPilotOwnCapacityRequestVersion = 0;
       let operatingPilotOwnDemandRequestVersion = 0;
@@ -1952,6 +1971,7 @@
       let operatingPilotDemandOffset = 0;
       let operatingPilotCapacityOffset = 0;
       let operatingPilotWorkClaimsOffset = 0;
+      let operatingPilotWorkOpportunitiesOffset = 0;
       let operatingPilotResourceOffset = 0;
       let operatingPilotOwnCapacityOffset = 0;
       let operatingPilotOwnDemandOffset = 0;
@@ -3191,6 +3211,119 @@
         }
       }
 
+      async function loadOperatingPilotWorkOpportunities(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotWorkOpportunitiesRequestVersion;
+        if (!operatingPilotClaimOwnLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotWorkOpportunitiesOffset = 0;
+          operatingPilotWorkOpportunitiesRows.replaceChildren();
+          operatingPilotWorkOpportunitiesMore.hidden = true;
+        }
+        const offset = append ? operatingPilotWorkOpportunitiesOffset : 0;
+        operatingPilotWorkOpportunitiesMore.disabled = true;
+        operatingPilotWorkOpportunitiesStatus.textContent = "Loading open work opportunities…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-opportunities?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotWorkOpportunitiesRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotWorkOpportunityRow(item, locationId);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotWorkOpportunitiesMore.hidden = !canContinue;
+          operatingPilotWorkOpportunitiesOffset = canContinue ? nextOffset : 0;
+          operatingPilotWorkOpportunitiesStatus.textContent = operatingPilotWorkOpportunitiesRows.childElementCount
+            ? "Open opportunities loaded. Claims remain proposals until independently reviewed."
+            : "No open work opportunities are available at this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotWorkOpportunitiesRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotWorkOpportunitiesMore.hidden = true;
+          operatingPilotWorkOpportunitiesStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotWorkOpportunitiesRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotWorkOpportunitiesMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotWorkOpportunityRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.title,
+          item.work_type,
+          item.priority,
+          item.estimated_effort_hours,
+          item.due_at,
+          item.own_claim_status || "Not claimed"
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        if (item.has_own_claim !== true) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = "Propose claim";
+          button.addEventListener("click", () => proposeOperatingPilotWorkClaim(item.work_item_id, locationId, button));
+          actionCell.append(button);
+        } else {
+          actionCell.textContent = "Awaiting review or already decided";
+        }
+        row.append(actionCell);
+        operatingPilotWorkOpportunitiesRows.append(row);
+      }
+
+      async function proposeOperatingPilotWorkClaim(workItemId, locationId, button) {
+        if (!operatingPilotClaimOwnLocations.has(locationId)
+            || locationId !== operatingPilotLocation.value) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotWorkOpportunitiesStatus.textContent = "Refresh the page to establish a protected session before proposing a claim.";
+          return;
+        }
+        let requestId = operatingPilotPendingWorkClaims.get(workItemId);
+        if (!requestId) {
+          requestId = crypto.randomUUID();
+          operatingPilotPendingWorkClaims.set(workItemId, requestId);
+        }
+        button.disabled = true;
+        operatingPilotWorkOpportunitiesStatus.textContent = "Submitting your claim proposal…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/work-opportunities/${encodeURIComponent(workItemId)}/claims`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (locationId !== operatingPilotLocation.value) return;
+          if (result.work_item_id !== workItemId
+              || !["proposed", "accepted", "rejected", "withdrawn"].includes(result.status)) {
+            throw new Error("The claim response did not match this opportunity. Retry with the same request.");
+          }
+          operatingPilotPendingWorkClaims.delete(workItemId);
+          await loadOperatingPilotWorkOpportunities();
+          operatingPilotWorkOpportunitiesStatus.textContent = `Claim ${result.status}. It does not assign work; allocation remains a separate reviewed action.`;
+        } catch (error) {
+          operatingPilotWorkOpportunitiesStatus.textContent = `${error.message} Retry to reuse the same request ID.`;
+          button.disabled = false;
+        }
+      }
+
       async function loadOperatingPilotResources(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotResourceRequestVersion;
@@ -3674,6 +3807,7 @@
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
           operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
@@ -3683,6 +3817,12 @@
           operatingPilotCapacityStatus.textContent = "A location read grant is required to view capacity periods.";
           operatingPilotWorkClaimsRows.replaceChildren();
           operatingPilotWorkClaimsStatus.textContent = "A location read grant is required to view work-claim activity.";
+          if (operatingPilotClaimOwnLocations.has(locationId)) {
+            await loadOperatingPilotWorkOpportunities();
+          } else {
+            operatingPilotWorkOpportunitiesRows.replaceChildren();
+            operatingPilotWorkOpportunitiesStatus.textContent = "A separate exact location claim_own grant is required to view opportunities or propose a claim.";
+          }
           operatingPilotResourceRows.replaceChildren();
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
           operatingPilotCapacityReviewRows.replaceChildren();
@@ -3715,6 +3855,12 @@
           loadOperatingPilotWorkClaims(),
           loadOperatingPilotResources()
         ];
+        if (operatingPilotClaimOwnLocations.has(locationId)) {
+          reads.push(loadOperatingPilotWorkOpportunities());
+        } else {
+          operatingPilotWorkOpportunitiesRows.replaceChildren();
+          operatingPilotWorkOpportunitiesStatus.textContent = "A separate exact location claim_own grant is required to view opportunities or propose a claim.";
+        }
         if (operatingPilotCapacityReviewLocations.has(locationId)) {
           reads.push(loadOperatingPilotCapacityReviewQueue());
           reads.push(loadOperatingPilotDemandReviewQueue());
@@ -12565,13 +12711,20 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotCapacityReviewLocations = new Set(operatingPilotCapacityReviewLocationIds);
+          const operatingPilotClaimOwnLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "claim_own")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotClaimOwnLocations = new Set(operatingPilotClaimOwnLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
             ...operatingPilotLocationIds,
             ...operatingPilotCreateLocationIds,
             ...operatingPilotSubmitOwnDemandLocationIds,
             ...operatingPilotOwnCapacityLocationIds,
             ...operatingPilotEditOwnCapacityLocationIds,
-            ...operatingPilotCapacityReviewLocationIds
+            ...operatingPilotCapacityReviewLocationIds,
+            ...operatingPilotClaimOwnLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -16556,6 +16709,7 @@
       operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
       operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true));
+      operatingPilotWorkOpportunitiesMore.addEventListener("click", () => loadOperatingPilotWorkOpportunities(true));
       operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true));
       operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true));
       operatingPilotOwnDemandMore.addEventListener("click", () => loadOperatingPilotOwnDemandSignals(true));

@@ -1995,6 +1995,33 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    operating_pilot_work_opportunities_match = re.fullmatch(
+        r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/work-opportunities", path
+    )
+    if operating_pilot_work_opportunities_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "operating_pilot",
+            "action": "claim_own",
+            "public": False,
+            "location_id": operating_pilot_work_opportunities_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    operating_pilot_work_claim_match = re.fullmatch(
+        r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/work-opportunities/([0-9a-fA-F-]{36})/claims",
+        path,
+    )
+    if operating_pilot_work_claim_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "operating_pilot",
+            "action": "claim_own",
+            "public": False,
+            "location_id": operating_pilot_work_claim_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     operating_pilot_resource_categories_match = re.fullmatch(
         r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/resource-categories", path
     )

@@ -28,6 +28,8 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
     assert 'id="operating-pilot-demand-review-rows"' in panel.group()
+    assert 'id="operating-pilot-work-opportunities-rows"' in panel.group()
+    assert 'id="operating-pilot-work-opportunities"' in panel.group()
     assert 'id="operating-pilot-capacity-review-dialog"' in source
     assert 'id="operating-pilot-capacity-review-acknowledged"' in source
     assert "including your private notes" in panel.group()
@@ -47,7 +49,7 @@ def test_summary_and_pages_use_protected_no_store_routes_and_safe_text_rendering
     summary = _function(source, "async function loadOperatingPilotSummary()", "async function loadOperatingPilotDemand(")
     demand = _function(source, "async function loadOperatingPilotDemand(append = false)", "async function loadOperatingPilotCapacity(")
     capacity = _function(source, "async function loadOperatingPilotCapacity(append = false)", "async function loadOperatingPilot()")
-    claims = _function(source, "async function loadOperatingPilotWorkClaims(append = false)", "async function loadOperatingPilot()")
+    claims = _function(source, "async function loadOperatingPilotWorkClaims(append = false)", "async function loadOperatingPilotWorkOpportunities(")
     resources = _function(source, "async function loadOperatingPilotResources(append = false)", "async function loadOperatingPilot()")
     assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/summary`' in summary
     assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals?${params}`' in demand
@@ -76,12 +78,43 @@ def test_work_claim_cohort_suppression_never_renders_individual_claim_data():
     claims = _function(
         source,
         "async function loadOperatingPilotWorkClaims(append = false)",
-        "async function loadOperatingPilot()",
+        "async function loadOperatingPilotWorkOpportunities(",
     )
     assert 'item.suppressed === true ? "Suppressed (<3 contributors)" : item.claim_count' in claims
     assert "item.work_type" in claims
     for private_field in ("claim_id", "work_item_id", "claimant_party_id", "decision_reason"):
         assert private_field not in claims
+
+
+def test_work_opportunities_show_claim_action_only_under_claim_own_and_keep_it_proposal_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        "async function loadOperatingPilotWorkOpportunities(append = false)",
+        "function appendOperatingPilotWorkOpportunityRow(",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotWorkOpportunityRow(",
+        "async function proposeOperatingPilotWorkClaim(",
+    )
+    claim = _function(
+        source,
+        "async function proposeOperatingPilotWorkClaim(",
+        "async function loadOperatingPilotResources(",
+    )
+    assert "operatingPilotClaimOwnLocations.has(locationId)" in panel
+    assert "work-opportunities?${params}" in panel
+    assert 'credentials: "same-origin"' in panel
+    assert 'cache: "no-store"' in panel
+    assert "innerHTML" not in panel
+    assert 'item.has_own_claim !== true' in row
+    assert 'button.textContent = "Propose claim"' in row
+    assert 'method: "POST"' in claim
+    assert '"X-CSRF-Token": csrf' in claim
+    assert 'cache: "no-store"' in claim
+    assert "request_id: requestId" in claim
+    assert "does not assign work" in claim
 
 
 def test_resource_category_suppression_never_renders_requester_or_narrative_fields():
@@ -120,6 +153,7 @@ def test_location_changes_and_load_more_are_wired_with_bounded_paging():
     assert 'operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true))' in source
     assert 'operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true))' in source
     assert 'operatingPilotWorkClaimsMore.addEventListener("click", () => loadOperatingPilotWorkClaims(true))' in source
+    assert 'operatingPilotWorkOpportunitiesMore.addEventListener("click", () => loadOperatingPilotWorkOpportunities(true))' in source
     assert 'operatingPilotResourceMore.addEventListener("click", () => loadOperatingPilotResources(true))' in source
     assert 'operatingPilotOwnCapacityMore.addEventListener("click", () => loadOperatingPilotOwnCapacityProfiles(true))' in source
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in source

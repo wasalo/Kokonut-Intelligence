@@ -166,6 +166,34 @@ def _normalize_demand_review_payload(payload: Any) -> tuple[str, str | None]:
     return decision, reason
 
 
+def _normalize_work_claim_payload(payload: Any) -> Decimal | None:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Work-claim body must be an object")
+    proposed_hours = payload.get("proposed_effort_hours")
+    if proposed_hours is not None:
+        if isinstance(proposed_hours, bool) or not isinstance(
+            proposed_hours, (int, float, str, Decimal)
+        ):
+            raise OperatingPilotWriteInvalid("Proposed effort must be a non-negative decimal")
+        try:
+            proposed_hours = Decimal(str(proposed_hours))
+        except (InvalidOperation, ValueError) as exc:
+            raise OperatingPilotWriteInvalid("Proposed effort must be a non-negative decimal") from exc
+        if (
+            not proposed_hours.is_finite()
+            or proposed_hours < 0
+            or proposed_hours > Decimal("100000")
+            or proposed_hours.as_tuple().exponent < -2
+        ):
+            raise OperatingPilotWriteInvalid(
+                "Proposed effort must be non-negative, at most 100000, and use at most two decimals"
+            )
+    unexpected = set(payload) - {"proposed_effort_hours"}
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Work claim contains unsupported fields")
+    return proposed_hours
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -314,6 +342,54 @@ def review_location_operating_pilot_demand(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot demand review returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def claim_location_operating_pilot_work(
+    operator_id: str,
+    location_id: str,
+    work_item_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an idempotent, self-attributed claim proposal for open work."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    work_item_id = _normalize_uuid(work_item_id, "work item")
+    request_id = _normalize_uuid(request_id, "request")
+    proposed_hours = _normalize_work_claim_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="claim_own",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.claim_location_operating_pilot_work(
+                           %s::uuid, %s::uuid, %s::uuid, %s::numeric)""",
+                (location_id, work_item_id, request_id, proposed_hours),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot work claim returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)
