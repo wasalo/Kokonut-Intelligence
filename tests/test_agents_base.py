@@ -117,6 +117,69 @@ def test_store_summary_propagates_worker_failure_without_using_legacy_connection
     assert conn.closed is False
 
 
+def test_store_summary_attaches_location_source_references_before_signed_write():
+    class _ReferencedDummyAgent(_DummyAgent):
+        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
+
+    conn = _FakeConn()
+    references = {
+        "dummy_table": {
+            "record_ids": ["a0000000-0000-4000-8000-000000000010"],
+            "row_count": 1,
+            "truncated": False,
+        }
+    }
+    sequence: list[str] = []
+
+    def collect(agent, connection, location_id):
+        sequence.append("collect")
+        assert connection is conn
+        assert location_id == LOCATION_ID
+        return references
+
+    def write(*args):
+        sequence.append("write")
+        return {"summary_id": "stored-id"}
+
+    with mock.patch.object(_ReferencedDummyAgent, "collect_source_references", collect):
+        with mock.patch(
+            "services.agents.worker_draft.create_worker_ai_summary_draft",
+            side_effect=write,
+        ) as write_draft:
+            result = _ReferencedDummyAgent().store_summary(
+                conn,
+                {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                request_id="a0000000-0000-4000-8000-000000000003",
+            )
+
+    assert result == "stored-id"
+    assert sequence == ["collect", "write"]
+    assert write_draft.call_args.args[3]["source_references"] == references
+
+
+def test_store_summary_does_not_write_when_source_reference_collection_fails():
+    class _ReferencedDummyAgent(_DummyAgent):
+        source_reference_views = {"dummy_table": "v_public_dummy_summary"}
+
+    conn = _FakeConn()
+    with mock.patch.object(
+        _ReferencedDummyAgent,
+        "collect_source_references",
+        side_effect=RuntimeError("synthetic source query failure"),
+    ):
+        with mock.patch(
+            "services.agents.worker_draft.create_worker_ai_summary_draft"
+        ) as write_draft:
+            with pytest.raises(RuntimeError, match="synthetic source query failure"):
+                _ReferencedDummyAgent().store_summary(
+                    conn,
+                    {"location_id": LOCATION_ID, "synthesis": "synthetic draft"},
+                )
+
+    write_draft.assert_not_called()
+    assert conn.committed is False
+
+
 def test_store_summary_rejects_missing_synthesis_before_cursor_access():
     conn = _FakeConn()
 

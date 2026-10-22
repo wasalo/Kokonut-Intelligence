@@ -14178,3 +14178,19 @@ parity, privacy/audience, live OIDC/browser, broader ACL/RLS, recovery, or
 MAN-CAP-037 acceptance. Checklist: 918 complete / 24 open (942 total); matrix
 remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
 Evidence: [resource category disposable acceptance](builds/2026-10-21-recovery/cap-037-operating-pilot-resource-categories-disposable.json).
+
+
+### CAP-038 shared compatibility writer provenance — 21 October 2026
+
+The shared `SynthesisAgent.store_summary()` compatibility path now collects
+row references from its fixed public-view map using the supplied source
+connection and includes them in the signed worker draft request. Collection
+failure stops persistence. The focused agent-base, synthesis provenance, and
+worker CLI selection passes 60 tests; Ruff and Python compilation pass. No
+database or provider was contacted. This helper does not guarantee
+repeatable-read isolation or authenticate the source connection; the canonical
+one-shot worker still provides the bounded consistent snapshot. Authenticated
+runtime identities, least privilege, rollout, populated parity, and MAN-CAP-038
+acceptance remain open. Checklist: 921 complete / 24 open (945 total); matrix
+remains 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows.
+Evidence: [shared writer source references](builds/2026-10-21-recovery/cap-038-shared-writer-source-references.json).

@@ -71,6 +71,13 @@ run without decrypting `.env.sops`.
   A source-code audit removed two stale labels for tables the bio-factory and
   stakeholder-feedback synthesis paths do not query. Source-table names remain
   hints only; they are not linked row-level evidence.
+- The compatibility `SynthesisAgent.store_summary()` path now also collects
+  references declared in its fixed public-view map from the caller-supplied
+  source connection and includes them in the signed worker write. A collection
+  failure prevents draft persistence. This helper does not itself establish a
+  repeatable-read snapshot or authenticate/limit the source connection; the
+  canonical one-shot worker remains the path that combines source reads and
+  provenance in a bounded read-only snapshot.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log
