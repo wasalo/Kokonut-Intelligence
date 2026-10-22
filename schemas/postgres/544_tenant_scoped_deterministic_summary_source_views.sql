@@ -165,8 +165,6 @@ REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA kokonut_security
          kokonut_agent_summary_deterministic_source_login;
 REVOKE CREATE ON SCHEMA public
     FROM kokonut_agent_summary_deterministic_source_login;
-REVOKE CREATE ON SCHEMA public
-    FROM kokonut_agent_summary_deterministic_source_login;
 
 GRANT USAGE ON SCHEMA kokonut_security TO kokonut_agent_summary_deterministic_source_login;
 GRANT USAGE ON SCHEMA kokonut_agent_source TO kokonut_agent_summary_deterministic_reader;
