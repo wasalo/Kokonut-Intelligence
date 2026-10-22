@@ -1,3 +1,24 @@
+### CAP-038 ecological-modeling synthesis signed source — 22 October 2026
+
+The existing ecological-modeling task now runs through the registered signed
+worker. Its legacy calculations resolve 14 relations through transaction-local
+exact-location source projections. Ten sources have bounded row-level
+provenance; four remain table-name hints under the shared manifest limit.
+Migration 550 registers the summary/source allowlists, a minimal species
+conservation projection, and least-privilege reader grants. Focused worker,
+source-reference, draft, and migration regressions pass (201 tests). Disposable
+PostgreSQL 16 apply/replay passed five grouped checks covering all 14 query
+projections and ten provenance views, signed-scope fail-closed behavior,
+foreign-location exclusion, private-column omission, and direct-table denial.
+This synthetic context does not replace signed worker-context acceptance.
+Candidate and legacy databases remain untouched; migration 550, real worker
+credentials, populated parity, and MAN-CAP-038 acceptance remain open.
+Evidence: [migration](../../schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql),
+[agent](../../services/agents/ecological_modeling_agent.py),
+[native PostgreSQL](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-disposable.json).
+Checklist: 965 complete / 24 open (989 total); capability classifications
+remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+
 ### CAP-038 caller-connection synthesis writer retirement — 22 October 2026
 
 The unused `SynthesisAgent.store_summary(conn, ...)` compatibility method now

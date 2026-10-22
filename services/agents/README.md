@@ -23,7 +23,7 @@ python3 -m services.agents.cli --help
 - `ebf_calibration_agent` — EBF calibration memo agent.
 - `ebf_evidence_gap_agent` — EBF evidence gap agent.
 - `ebf_scorecard_agent` — EBF scorecard draft agent.
-- `ecological_modeling_agent` — Ecological modeling agent: synthesizes ecological interaction, energy flow, pest, soil input, and resource data.
+- `ecological_modeling_agent` — Signed-worker ecological modeling synthesis: ecological interaction, energy flow, pest, soil input, resource, biodiversity, livestock feed, and reward calibration data.
 - `feedback_agent` — Stakeholder feedback synthesis agent.
 - `gnh_agent` — Gross National Happiness alignment synthesis agent.
 - `kokonut_commons_agent` — Kokonut commons governance synthesis agent.

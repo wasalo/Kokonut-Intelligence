@@ -287,8 +287,8 @@ python3 -m services.agents.regenerator_agent --location-id <uuid>
 python3 -m services.agents.open_source_capitalist_agent --location-id <uuid>
 python3 -m services.agents.kokonut_commons_agent --location-id <uuid>
 python3 -m services.agents.bio_factory_agent --location-id <uuid>
-python3 -m services.agents.ecological_modeling_agent --location-id <uuid>
 python3 -m services.agents.worker_cli --task-key organic_readiness_synthesis --location-id <uuid> --request-id <uuid>
+python3 -m services.agents.worker_cli --task-key ecological_modeling_synthesis --location-id <uuid> --request-id <uuid>
 python3 -m services.agents.ebf_scorecard_agent --help
 python3 -m services.agents.ebf_evidence_gap_agent --help
 python3 -m services.agents.ebf_calibration_agent --help

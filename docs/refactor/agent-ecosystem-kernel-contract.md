@@ -193,9 +193,9 @@ worker adapter; legacy/background writers still lack row-level manifests.
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
 role that may switch only to the bounded worker execution role. A one-shot
 `services.agents.worker_cli` exercises this path for the four deterministic
-AI-summary types and the ten registered shared synthesis tasks. Shared
+AI-summary types and the twelve registered shared synthesis tasks. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
-`ai_summary` directly. The worker resolves every synthesis task through its explicit ten-module
+`ai_summary` directly. The worker resolves every synthesis task through its explicit twelve-module
 registry, checks the registered class and class-declared metadata before any
 receipt lookup, including its optional fixed `source_reference_query`. The
 collector reads the class-registered query and view map rather than an
@@ -222,7 +222,7 @@ shared network catalogs. That worker installs the wrapper schema first in its
 transaction-local search path, so its legacy query text resolves to filtered
 views and the source login cannot read the original public relations. Read-only
 deterministic generation now uses this same signed source path without creating
-a draft. Likewise, all ten registered `SynthesisAgent` classes use their
+a draft. Likewise, all twelve registered `SynthesisAgent` classes use their
 dedicated signed source reader for read-only `run()` calls as well as draft
 generation; unregistered source contracts fail closed before connecting.
 Listing and digest-inspection CLI operations remain separate read paths and
@@ -284,7 +284,7 @@ for mixed rows. PostgreSQL checks exact counts and sampled IDs against these
 views; the operator review queue preserves the scope labels. Migrations 532–536
 register the preceding location-owned views. Migration 537 constrains new
 signed-worker draft receipts to the four
-deterministic and ten registered synthesis summary types while preserving
+deterministic and twelve registered synthesis summary types while preserving
 historical receipt reads.
 PostgreSQL rechecks exact counts and sampled IDs through the matching public
 view before attachment. Other generic synthesis

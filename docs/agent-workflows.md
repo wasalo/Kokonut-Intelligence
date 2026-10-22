@@ -104,14 +104,13 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 |---------|----------|----------|-------------|
 | `python3 -m services.agents.delphi_facilitator_agent` | `--study-id UUID` | `--draft`, `--recommendation-text "..."` | Facilitate Delphi study; `--draft` also creates a recommendation draft |
 
-## Library-Only Agents
+## Signed Synthesis Workers
 
-The ecological-modeling module exposes a programmatic `synthesize_*()` function but has no signed worker registration yet and must be called from Python code:
-
-| Module | Function | Signature |
-|--------|----------|-----------|
-| `services.agents.ecological_modeling_agent` | `synthesize_ecological_modeling` | `(conn, location_id: str) -> dict[str, Any]` |
-Organic readiness runs through the signed worker and remains an advisory draft, not a certification guarantee. Ecological modeling does not produce a deterministic prediction.
+Ecological modeling and organic readiness run through the signed worker. They
+remain advisory drafts and do not replace ecological field validation or
+certification by an accredited body. Ecological modeling is not a deterministic
+prediction. The ecological task keeps its legacy calculations while resolving
+their relation names only through signed, exact-location source projections.
 
 ## Common Patterns
 

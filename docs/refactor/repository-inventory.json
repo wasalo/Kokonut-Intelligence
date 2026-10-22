@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c2ca325b349e728d6f530d4d237bcae9d9d64065",
+  "baseline_commit": "5fb665fad4a643be8461faac3aa0624a95873283",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2817,7 +2817,15 @@
       "schemas/postgres/539_agent_worker_structured_result_replay.sql",
       "schemas/postgres/540_scoped_agent_source_references.sql",
       "schemas/postgres/541_agent_synthesis_source_reader.sql",
-      "schemas/postgres/542_agent_deterministic_summary_source_reader.sql"
+      "schemas/postgres/542_agent_deterministic_summary_source_reader.sql",
+      "schemas/postgres/543_tenant_scoped_agent_synthesis_source_views.sql",
+      "schemas/postgres/544_tenant_scoped_deterministic_summary_source_views.sql",
+      "schemas/postgres/545_signed_ebf_evidence_gap_source.sql",
+      "schemas/postgres/546_signed_cids_export_source.sql",
+      "schemas/postgres/547_signed_ai_summary_inspection_source.sql",
+      "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
+      "schemas/postgres/549_signed_organic_readiness_synthesis_source.sql",
+      "schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3013,6 +3021,7 @@
         "tests/test_capital_accounting.py",
         "tests/test_capital_efficiency.py",
         "tests/test_carbon_credits.py",
+        "tests/test_cids_export.py",
         "tests/test_commons_liberation.py",
         "tests/test_coordination.py",
         "tests/test_coordination_accounting.py",
@@ -3481,6 +3490,7 @@
         "tests/conftest.py",
         "tests/test_agent_action_log_redaction.py",
         "tests/test_agent_safety.py",
+        "tests/test_agent_worker_cli.py",
         "tests/test_clickhouse_failure_injection.py",
         "tests/test_climate_worker.py",
         "tests/test_common_commands.py",

@@ -32,6 +32,7 @@ SYNTHESIS_SUMMARY_TYPES = frozenset(
         "financial_resilience",
         "regenerative_outcomes",
         "organic_readiness",
+        "ecological_modeling",
     }
 )
 SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
@@ -100,6 +101,16 @@ _SOURCE_REFERENCE_TABLES = frozenset(
         "harvest_handling_record",
         "organic_certification_record",
         "prohibited_substance_record",
+        "ecological_interaction",
+        "energy_flow_measurement",
+        "population_dynamics_record",
+        "soil_input_application",
+        "pest_observation",
+        "biocontrol_release",
+        "resource_consumption",
+        "species_observation",
+        "token_reward_distribution",
+        "reward_calibration_model",
     }
 )
 

@@ -6,6 +6,26 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 ecological-modeling synthesis signed source — 22 October 2026:** the
+existing ecological-modeling calculations are now registered with the signed
+worker and resolve 14 input relations through transaction-local exact-location
+projections. Ten relations have bounded row-level provenance; four remain
+source-table hints under the existing manifest cap. Migration 550 adds the
+summary and source allowlists, a minimal species-conservation projection, and
+least-privilege worker views. The focused worker/draft/source/migration suite
+passes 201 tests; network-disabled PostgreSQL 16 apply/replay passes five
+grouped checks, including no-context denial, foreign-location exclusion,
+private-column omission, raw-table denial, and stale-grant cleanup on replay,
+on native AMD64 and ARM64/QEMU. The disposable context function is synthetic;
+signature checks remain separate. Candidate and legacy databases
+are untouched, migration 550 is not deployed, and populated parity, production
+worker credentials, candidate rollout, and MAN-CAP-038 acceptance remain open
+([agent](../services/agents/ecological_modeling_agent.py);
+[migration](../schemas/postgres/550_signed_ecological_modeling_synthesis_source.sql);
+[test selection](../tests/test_synthesis_source_references.py);
+[native evidence](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-ecological-modeling-source-arm64-disposable.json)).
+
 **Local candidate migration update — 22 October 2026:** the local candidate now
 has 539 applied schema migrations through 548 and zero pending schema migrations.
 The 104 migrations after 444 were first replayed on an isolated restored clone;

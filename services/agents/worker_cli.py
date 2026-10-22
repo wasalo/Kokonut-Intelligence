@@ -40,6 +40,7 @@ _SYNTHESIS_AGENT_MODULES = {
     "financial_resilience_synthesis": "services.agents.resilience_agent",
     "regenerator_synthesis": "services.agents.regenerator_agent",
     "organic_readiness_synthesis": "services.agents.organic_readiness_agent",
+    "ecological_modeling_synthesis": "services.agents.ecological_modeling_agent",
 }
 
 
