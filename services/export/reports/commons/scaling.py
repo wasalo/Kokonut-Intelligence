@@ -15,34 +15,36 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
     """Generate public-safe scaling economics and unit-cost report."""
     network_scope = location_id in (None, "all")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if network_scope:
-        cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_farm_launch_unit_economics
-            WHERE location_id = %s::uuid
-            ORDER BY target_region, economics_name
-            """,
-            (location_id,),
-        )
-    economics = [dict(r) for r in cur.fetchall()]
+    try:
+        if network_scope:
+            cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_farm_launch_unit_economics
+                WHERE location_id = %s::uuid
+                ORDER BY target_region, economics_name
+                """,
+                (location_id,),
+            )
+        economics = [dict(r) for r in cur.fetchall()]
 
-    targets = []
-    if network_scope:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_network_scaling_target
-            WHERE (%s::date IS NULL OR target_date >= %s::date)
-              AND (%s::date IS NULL OR target_date <= %s::date)
-            ORDER BY target_date, target_name
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-        targets = [dict(r) for r in cur.fetchall()]
-    cur.close()
+        targets = []
+        if network_scope:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_network_scaling_target
+                WHERE (%s::date IS NULL OR target_date >= %s::date)
+                  AND (%s::date IS NULL OR target_date <= %s::date)
+                ORDER BY target_date, target_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+            targets = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     total_launch_cost = sum(float(row.get("total_launch_cost_usd") or 0) for row in economics)
     total_target_capital = sum(float(row.get("capital_required_usd") or 0) for row in targets)
@@ -75,31 +77,33 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
 def generate_adoption_barriers(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe adoption and market barrier report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_adoption_barrier_assessment
-            WHERE (location_id = %s OR location_id IS NULL)
-              AND (%s::date IS NULL OR assessment_date >= %s::date)
-              AND (%s::date IS NULL OR assessment_date <= %s::date)
-            ORDER BY assessment_date DESC, barrier_category, barrier_name
-            """,
-            (location_id, period_start, period_start, period_end, period_end),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_adoption_barrier_assessment
-            WHERE (%s::date IS NULL OR assessment_date >= %s::date)
-              AND (%s::date IS NULL OR assessment_date <= %s::date)
-            ORDER BY assessment_date DESC, barrier_category, barrier_name
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-    barriers = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_adoption_barrier_assessment
+                WHERE (location_id = %s OR location_id IS NULL)
+                  AND (%s::date IS NULL OR assessment_date >= %s::date)
+                  AND (%s::date IS NULL OR assessment_date <= %s::date)
+                ORDER BY assessment_date DESC, barrier_category, barrier_name
+                """,
+                (location_id, period_start, period_start, period_end, period_end),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_adoption_barrier_assessment
+                WHERE (%s::date IS NULL OR assessment_date >= %s::date)
+                  AND (%s::date IS NULL OR assessment_date <= %s::date)
+                ORDER BY assessment_date DESC, barrier_category, barrier_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+        barriers = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     active = [row for row in barriers if row.get("resolution_status") in {"open", "mitigating", "blocked"}]
     return {
         "report_type": "adoption_barriers",
@@ -122,31 +126,33 @@ def generate_perpetual_value_stress(
 ) -> dict:
     """Generate public-safe downside stress-test report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_perpetual_value_stress_test
-            WHERE (location_id = %s OR location_id IS NULL)
-              AND (%s::date IS NULL OR scenario_date >= %s::date)
-              AND (%s::date IS NULL OR scenario_date <= %s::date)
-            ORDER BY scenario_date DESC, stress_type, scenario_name
-            """,
-            (location_id, period_start, period_start, period_end, period_end),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_perpetual_value_stress_test
-            WHERE (%s::date IS NULL OR scenario_date >= %s::date)
-              AND (%s::date IS NULL OR scenario_date <= %s::date)
-            ORDER BY scenario_date DESC, stress_type, scenario_name
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-    scenarios = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_perpetual_value_stress_test
+                WHERE (location_id = %s OR location_id IS NULL)
+                  AND (%s::date IS NULL OR scenario_date >= %s::date)
+                  AND (%s::date IS NULL OR scenario_date <= %s::date)
+                ORDER BY scenario_date DESC, stress_type, scenario_name
+                """,
+                (location_id, period_start, period_start, period_end, period_end),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_perpetual_value_stress_test
+                WHERE (%s::date IS NULL OR scenario_date >= %s::date)
+                  AND (%s::date IS NULL OR scenario_date <= %s::date)
+                ORDER BY scenario_date DESC, stress_type, scenario_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+        scenarios = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     watchlist = [
         row
         for row in scenarios

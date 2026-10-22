@@ -36,7 +36,7 @@
       "callable": "generate_adoption_barriers",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 75,
+      "source_line": 77,
       "parameters": [
         "conn",
         "location_id",
@@ -57,7 +57,7 @@
       "callable": "generate_algorithmic_redistribution",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 105,
+      "source_line": 107,
       "parameters": [
         "conn",
         "location_id",
@@ -78,7 +78,7 @@
       "callable": "generate_anti_capture_governance",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 36,
+      "source_line": 38,
       "parameters": [
         "conn",
         "location_id",
@@ -121,7 +121,7 @@
       "callable": "generate_bio_input_provenance",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 52,
+      "source_line": 54,
       "parameters": [
         "conn",
         "location_id",
@@ -143,7 +143,7 @@
       "callable": "generate_bio_quality_test",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 151,
+      "source_line": 157,
       "parameters": [
         "conn",
         "location_id",
@@ -165,7 +165,7 @@
       "callable": "generate_bio_recipe_library",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 105,
+      "source_line": 109,
       "parameters": [
         "conn",
         "location_id",
@@ -186,7 +186,7 @@
       "callable": "generate_bio_regional_input",
       "source_module": "services.export.reports.commons.bio_factory",
       "source_file": "services/export/reports/commons/bio_factory.py",
-      "source_line": 190,
+      "source_line": 198,
       "parameters": [
         "conn",
         "location_id",
@@ -311,7 +311,7 @@
       "callable": "generate_capital_alignment",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 46,
+      "source_line": 48,
       "parameters": [
         "conn",
         "location_id",
@@ -355,7 +355,7 @@
       "callable": "generate_capital_provider_utility",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 549,
+      "source_line": 548,
       "parameters": [
         "conn",
         "location_id",
@@ -420,7 +420,7 @@
       "callable": "generate_comprehensive_status",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 370,
+      "source_line": 369,
       "parameters": [
         "conn",
         "location_id",
@@ -659,7 +659,7 @@
       "callable": "generate_federation_mutual_aid",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 82,
+      "source_line": 84,
       "parameters": [
         "conn",
         "location_id",
@@ -810,7 +810,7 @@
       "callable": "generate_governance_inclusion",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 82,
+      "source_line": 86,
       "parameters": [
         "conn",
         "location_id",
@@ -895,7 +895,7 @@
       "callable": "generate_land_stewardship",
       "source_module": "services.export.reports.commons.liberation",
       "source_file": "services/export/reports/commons/liberation.py",
-      "source_line": 130,
+      "source_line": 136,
       "parameters": [
         "conn",
         "location_id",
@@ -961,7 +961,7 @@
       "callable": "generate_open_source_impact",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 171,
+      "source_line": 177,
       "parameters": [
         "conn",
         "location_id",
@@ -982,7 +982,7 @@
       "callable": "generate_organic_certification_readiness",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 394,
+      "source_line": 400,
       "parameters": [
         "conn",
         "location_id",
@@ -1004,7 +1004,7 @@
       "callable": "generate_organic_input_audit",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 510,
+      "source_line": 520,
       "parameters": [
         "conn",
         "location_id",
@@ -1026,7 +1026,7 @@
       "callable": "generate_organic_transition_progress",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 460,
+      "source_line": 468,
       "parameters": [
         "conn",
         "location_id",
@@ -1048,7 +1048,7 @@
       "callable": "generate_participatory_signal",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 132,
+      "source_line": 134,
       "parameters": [
         "conn",
         "location_id",
@@ -1069,7 +1069,7 @@
       "callable": "generate_perpetual_value_stress",
       "source_module": "services.export.reports.commons.scaling",
       "source_file": "services/export/reports/commons/scaling.py",
-      "source_line": 120,
+      "source_line": 124,
       "parameters": [
         "conn",
         "location_id",
@@ -1241,7 +1241,7 @@
       "callable": "generate_redistribution_policy",
       "source_module": "services.export.reports.commons.kokonut",
       "source_file": "services/export/reports/commons/kokonut.py",
-      "source_line": 59,
+      "source_line": 61,
       "parameters": [
         "conn",
         "location_id",
@@ -1415,7 +1415,7 @@
       "callable": "generate_reward_calibration",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 332,
+      "source_line": 336,
       "parameters": [
         "conn",
         "location_id",
@@ -1732,7 +1732,7 @@
       "callable": "generate_state_of_kokonut",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 256,
+      "source_line": 255,
       "parameters": [
         "conn",
         "location_id",
@@ -1753,7 +1753,7 @@
       "callable": "generate_state_of_kokonut_graphs",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 317,
+      "source_line": 316,
       "parameters": [
         "conn",
         "location_id",
@@ -1774,7 +1774,7 @@
       "callable": "generate_statement_of_work",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 563,
+      "source_line": 575,
       "parameters": [
         "conn",
         "location_id",
@@ -1796,7 +1796,7 @@
       "callable": "generate_strategic_reserve",
       "source_module": "services.export.reports.state",
       "source_file": "services/export/reports/state.py",
-      "source_line": 454,
+      "source_line": 453,
       "parameters": [
         "conn",
         "location_id",
@@ -1902,7 +1902,7 @@
       "callable": "generate_token_rewards",
       "source_module": "services.export.reports.operations",
       "source_file": "services/export/reports/operations.py",
-      "source_line": 281,
+      "source_line": 283,
       "parameters": [
         "conn",
         "location_id",
@@ -1946,7 +1946,7 @@
       "callable": "generate_trophic_pyramid",
       "source_module": "services.export.reports.commons.ecological",
       "source_file": "services/export/reports/commons/ecological.py",
-      "source_line": 101,
+      "source_line": 103,
       "parameters": [
         "conn",
         "location_id",

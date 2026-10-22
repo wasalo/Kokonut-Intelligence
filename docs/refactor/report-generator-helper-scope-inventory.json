@@ -65,7 +65,7 @@
         {
           "caller": "generate_adoption_barriers",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 107,
+          "line": 111,
           "depth": 1
         },
         {
@@ -101,13 +101,13 @@
         {
           "caller": "generate_algorithmic_redistribution",
           "callee": "services/export/reports/commons/kokonut.py:_fetch_public_view",
-          "line": 108,
+          "line": 110,
           "depth": 1
         },
         {
           "caller": "generate_algorithmic_redistribution",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 117,
+          "line": 119,
           "depth": 1
         },
         {
@@ -122,7 +122,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 25,
+          "line": 26,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -135,35 +135,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 1,
                 "supplied_count": 1,
@@ -185,7 +185,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 30,
+          "line": 31,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -198,35 +198,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 0,
                 "supplied_count": 0,
@@ -270,13 +270,13 @@
         {
           "caller": "generate_anti_capture_governance",
           "callee": "services/export/reports/commons/kokonut.py:_fetch_public_view",
-          "line": 39,
+          "line": 41,
           "depth": 1
         },
         {
           "caller": "generate_anti_capture_governance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 45,
+          "line": 47,
           "depth": 1
         },
         {
@@ -291,7 +291,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 25,
+          "line": 26,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -304,35 +304,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 1,
                 "supplied_count": 1,
@@ -354,7 +354,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 30,
+          "line": 31,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -367,35 +367,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 0,
                 "supplied_count": 0,
@@ -438,7 +438,7 @@
         {
           "caller": "generate_bio_factory_batch",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 38,
+          "line": 40,
           "depth": 1
         },
         {
@@ -473,7 +473,7 @@
         {
           "caller": "generate_bio_input_provenance",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 91,
+          "line": 95,
           "depth": 1
         },
         {
@@ -508,7 +508,7 @@
         {
           "caller": "generate_bio_quality_test",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 175,
+          "line": 183,
           "depth": 1
         },
         {
@@ -543,7 +543,7 @@
         {
           "caller": "generate_bio_recipe_library",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 138,
+          "line": 144,
           "depth": 1
         },
         {
@@ -581,19 +581,19 @@
         {
           "caller": "generate_bio_regional_input",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 194,
+          "line": 202,
           "depth": 1
         },
         {
           "caller": "generate_bio_regional_input",
           "callee": "services/common/database.py:query",
-          "line": 195,
+          "line": 203,
           "depth": 1
         },
         {
           "caller": "generate_bio_regional_input",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 210,
+          "line": 218,
           "depth": 1
         },
         {
@@ -620,7 +620,7 @@
           "caller_sites": [
             {
               "caller": "generate_bio_regional_input",
-              "line": 195
+              "line": 203
             }
           ],
           "sql_inventory": "caller callsite in the direct report inventory or helper query site"
@@ -3211,7 +3211,7 @@
         {
           "caller": "generate_capital_alignment",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 69,
+          "line": 73,
           "depth": 1
         },
         {
@@ -3287,7 +3287,7 @@
         {
           "caller": "generate_capital_provider_utility",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 571,
+          "line": 570,
           "depth": 1
         },
         {
@@ -3654,37 +3654,37 @@
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 392,
+          "line": 391,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_run_composite_section",
-          "line": 401,
+          "line": 400,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_composite_section_savepoint",
-          "line": 405,
+          "line": 404,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/strategy.py:generate_capital_accounting",
-          "line": 406,
+          "line": 405,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 411,
+          "line": 410,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_harvest_quantity_overview",
-          "line": 428,
+          "line": 427,
           "depth": 1
         },
         {
@@ -4307,18 +4307,6 @@
         {
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 77,
-          "depth": 1
-        },
-        {
-          "caller": "generate_ecological_modeling",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 78,
-          "depth": 1
-        },
-        {
-          "caller": "generate_ecological_modeling",
-          "callee": "services/common/utils.py:serialize_rows",
           "line": 79,
           "depth": 1
         },
@@ -4332,6 +4320,18 @@
           "caller": "generate_ecological_modeling",
           "callee": "services/common/utils.py:serialize_rows",
           "line": 81,
+          "depth": 1
+        },
+        {
+          "caller": "generate_ecological_modeling",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 82,
+          "depth": 1
+        },
+        {
+          "caller": "generate_ecological_modeling",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 83,
           "depth": 1
         },
         {
@@ -4526,19 +4526,19 @@
         {
           "caller": "generate_federation_mutual_aid",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 85,
+          "line": 87,
           "depth": 1
         },
         {
           "caller": "generate_federation_mutual_aid",
           "callee": "services/export/reports/commons/kokonut.py:_fetch_public_view",
-          "line": 86,
+          "line": 88,
           "depth": 1
         },
         {
           "caller": "generate_federation_mutual_aid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 92,
+          "line": 94,
           "depth": 1
         },
         {
@@ -4553,7 +4553,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 25,
+          "line": 26,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -4566,35 +4566,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 1,
                 "supplied_count": 1,
@@ -4616,7 +4616,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 30,
+          "line": 31,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -4629,35 +4629,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 0,
                 "supplied_count": 0,
@@ -4925,7 +4925,7 @@
         {
           "caller": "generate_governance_inclusion",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 115,
+          "line": 121,
           "depth": 1
         },
         {
@@ -5084,7 +5084,7 @@
         {
           "caller": "generate_land_stewardship",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 152,
+          "line": 160,
           "depth": 1
         },
         {
@@ -5119,13 +5119,13 @@
         {
           "caller": "generate_livestock_feed",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 261,
+          "line": 263,
           "depth": 1
         },
         {
           "caller": "generate_livestock_feed",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 262,
+          "line": 264,
           "depth": 1
         },
         {
@@ -5204,19 +5204,19 @@
         {
           "caller": "generate_open_source_impact",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 175,
+          "line": 181,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/database.py:query",
-          "line": 176,
+          "line": 182,
           "depth": 1
         },
         {
           "caller": "generate_open_source_impact",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 182,
+          "line": 188,
           "depth": 1
         },
         {
@@ -5243,7 +5243,7 @@
           "caller_sites": [
             {
               "caller": "generate_open_source_impact",
-              "line": 176
+              "line": 182
             }
           ],
           "sql_inventory": "caller callsite in the direct report inventory or helper query site"
@@ -5273,13 +5273,13 @@
         {
           "caller": "generate_organic_certification_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 439,
+          "line": 447,
           "depth": 1
         },
         {
           "caller": "generate_organic_certification_readiness",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 440,
+          "line": 448,
           "depth": 1
         },
         {
@@ -5314,13 +5314,13 @@
         {
           "caller": "generate_organic_input_audit",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 541,
+          "line": 553,
           "depth": 1
         },
         {
           "caller": "generate_organic_input_audit",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 542,
+          "line": 554,
           "depth": 1
         },
         {
@@ -5355,13 +5355,13 @@
         {
           "caller": "generate_organic_transition_progress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 489,
+          "line": 499,
           "depth": 1
         },
         {
           "caller": "generate_organic_transition_progress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 491,
+          "line": 501,
           "depth": 1
         },
         {
@@ -5398,19 +5398,19 @@
         {
           "caller": "generate_participatory_signal",
           "callee": "services/export/reports/scope.py:require_network_scope",
-          "line": 135,
+          "line": 137,
           "depth": 1
         },
         {
           "caller": "generate_participatory_signal",
           "callee": "services/export/reports/commons/kokonut.py:_fetch_public_view",
-          "line": 136,
+          "line": 138,
           "depth": 1
         },
         {
           "caller": "generate_participatory_signal",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 142,
+          "line": 144,
           "depth": 1
         },
         {
@@ -5425,7 +5425,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 25,
+          "line": 26,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -5438,35 +5438,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 1,
                 "supplied_count": 1,
@@ -5488,7 +5488,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 30,
+          "line": 31,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -5501,35 +5501,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 0,
                 "supplied_count": 0,
@@ -5572,7 +5572,7 @@
         {
           "caller": "generate_perpetual_value_stress",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 158,
+          "line": 164,
           "depth": 1
         },
         {
@@ -7254,13 +7254,13 @@
         {
           "caller": "generate_redistribution_policy",
           "callee": "services/export/reports/commons/kokonut.py:_fetch_public_view",
-          "line": 62,
+          "line": 64,
           "depth": 1
         },
         {
           "caller": "generate_redistribution_policy",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 68,
+          "line": 70,
           "depth": 1
         },
         {
@@ -7275,7 +7275,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 25,
+          "line": 26,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -7288,35 +7288,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 1,
                 "supplied_count": 1,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 1,
                 "supplied_count": 1,
@@ -7338,7 +7338,7 @@
         {
           "source_file": "services/export/reports/commons/kokonut.py",
           "callable": "_fetch_public_view",
-          "line": 30,
+          "line": 31,
           "relations": [
             "v_public_algorithmic_redistribution_mechanism",
             "v_public_anti_capture_governance_policy",
@@ -7351,35 +7351,35 @@
             "mismatch": false,
             "variants": [
               {
-                "call_site_line": 39,
+                "call_site_line": 41,
                 "caller": "generate_anti_capture_governance",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 62,
+                "call_site_line": 64,
                 "caller": "generate_redistribution_policy",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 86,
+                "call_site_line": 88,
                 "caller": "generate_federation_mutual_aid",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 108,
+                "call_site_line": 110,
                 "caller": "generate_algorithmic_redistribution",
                 "placeholder_count": 0,
                 "supplied_count": 0,
                 "mismatch": false
               },
               {
-                "call_site_line": 136,
+                "call_site_line": 138,
                 "caller": "generate_participatory_signal",
                 "placeholder_count": 0,
                 "supplied_count": 0,
@@ -7814,25 +7814,25 @@
         {
           "caller": "generate_reward_calibration",
           "callee": "services/analytics/reward_calibration.py:detect_overjustification_risk",
-          "line": 363,
+          "line": 369,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 366,
-          "depth": 1
-        },
-        {
-          "caller": "generate_reward_calibration",
-          "callee": "services/common/utils.py:serialize_rows",
           "line": 372,
           "depth": 1
         },
         {
           "caller": "generate_reward_calibration",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 373,
+          "line": 378,
+          "depth": 1
+        },
+        {
+          "caller": "generate_reward_calibration",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 379,
           "depth": 1
         },
         {
@@ -7958,13 +7958,13 @@
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 62,
+          "line": 64,
           "depth": 1
         },
         {
           "caller": "generate_scaling_economics",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 63,
+          "line": 65,
           "depth": 1
         },
         {
@@ -8550,25 +8550,31 @@
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 272,
+          "line": 271,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_actors",
-          "line": 273,
+          "line": 272,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_harvest_quantity_overview",
-          "line": 288,
+          "line": 287,
           "depth": 1
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_locations",
           "callee": "services/export/reports/state.py:_run_composite_section",
           "line": 151,
+          "depth": 2
+        },
+        {
+          "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 245,
           "depth": 2
         },
         {
@@ -8587,12 +8593,6 @@
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
           "line": 248,
-          "depth": 2
-        },
-        {
-          "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 249,
           "depth": 2
         },
         {
@@ -8885,13 +8885,13 @@
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/kokonut_graphs.py:build_all",
-          "line": 330,
+          "line": 329,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 350,
+          "line": 349,
           "depth": 1
         },
         {
@@ -9128,73 +9128,73 @@
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 706,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 708,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 709,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 710,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 712,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 714,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 715,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 718,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
-          "line": 719,
-          "depth": 1
-        },
-        {
-          "caller": "generate_statement_of_work",
-          "callee": "services/common/utils.py:serialize_rows",
           "line": 720,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 721,
+          "line": 722,
           "depth": 1
         },
         {
           "caller": "generate_statement_of_work",
           "callee": "services/common/utils.py:serialize_rows",
           "line": 723,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 724,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 726,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 728,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 729,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 732,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 733,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 734,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 735,
+          "depth": 1
+        },
+        {
+          "caller": "generate_statement_of_work",
+          "callee": "services/common/utils.py:serialize_rows",
+          "line": 737,
           "depth": 1
         },
         {
@@ -9235,19 +9235,19 @@
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:reserve_health",
-          "line": 492,
+          "line": 491,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:seed_vault_health",
-          "line": 499,
+          "line": 498,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 501,
+          "line": 500,
           "depth": 1
         },
         {
@@ -10120,7 +10120,7 @@
         {
           "caller": "generate_time_liberation",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 33,
+          "line": 35,
           "depth": 1
         },
         {
@@ -10155,7 +10155,7 @@
         {
           "caller": "generate_token_rewards",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 310,
+          "line": 314,
           "depth": 1
         },
         {
@@ -10225,19 +10225,19 @@
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 142,
+          "line": 146,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 143,
+          "line": 147,
           "depth": 1
         },
         {
           "caller": "generate_trophic_pyramid",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 144,
+          "line": 148,
           "depth": 1
         },
         {

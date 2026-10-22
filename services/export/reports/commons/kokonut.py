@@ -21,15 +21,17 @@ def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: 
         raise ValueError(f"Invalid order_by: {order_by}")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            f"SELECT * FROM {view_name} WHERE location_id = %s OR location_id IS NULL ORDER BY {order_by}",
-            (location_id,),
-        )
-    else:
-        cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                f"SELECT * FROM {view_name} WHERE location_id = %s OR location_id IS NULL ORDER BY {order_by}",
+                (location_id,),
+            )
+        else:
+            cur.execute(f"SELECT * FROM {view_name} ORDER BY {order_by}")
+        rows = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return rows
 
 

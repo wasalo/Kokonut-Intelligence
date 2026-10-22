@@ -5,6 +5,11 @@ from __future__ import annotations
 import pytest
 
 from services.export.reports import core, operations, state, wellbeing
+from services.export.reports.commons import bio_factory as commons_bio_factory
+from services.export.reports.commons import ecological as commons_ecological
+from services.export.reports.commons import kokonut as commons_kokonut
+from services.export.reports.commons import liberation as commons_liberation
+from services.export.reports.commons import scaling as commons_scaling
 from services.export.reports.commons import stewardship as commons_stewardship
 from services.export.reports.commons import wellbeing as commons_wellbeing
 
@@ -46,6 +51,54 @@ class _Connection:
 
 
 _CASES = [
+    *((commons_ecological.generate_ecological_modeling, ("location-1",), ("execute", index)) for index in range(1, 7)),
+    (commons_ecological.generate_ecological_modeling, ("location-1",), ("fetchone", 1)),
+    *((commons_ecological.generate_ecological_modeling, ("location-1",), ("fetchall", index)) for index in range(1, 6)),
+    *((commons_ecological.generate_trophic_pyramid, ("location-1",), ("execute", index)) for index in range(1, 5)),
+    (commons_ecological.generate_trophic_pyramid, ("location-1",), ("fetchone", 1)),
+    *((commons_ecological.generate_trophic_pyramid, ("location-1",), ("fetchall", index)) for index in range(1, 4)),
+    (commons_kokonut._fetch_public_view, ("synthetic_view", "location-1"), ("execute", 1)),
+    (commons_kokonut._fetch_public_view, ("synthetic_view", "location-1"), ("fetchall", 1)),
+    (commons_kokonut._fetch_public_view, ("synthetic_view", None), ("execute", 1)),
+    (commons_kokonut._fetch_public_view, ("synthetic_view", None), ("fetchall", 1)),
+    *((commons_bio_factory.generate_bio_factory_batch, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_bio_factory.generate_bio_factory_batch, ("location-1",), ("fetchone", 1)),
+    (commons_bio_factory.generate_bio_factory_batch, ("location-1",), ("fetchall", 1)),
+    *((commons_bio_factory.generate_bio_input_provenance, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_bio_factory.generate_bio_input_provenance, ("location-1",), ("fetchone", 1)),
+    (commons_bio_factory.generate_bio_input_provenance, ("location-1",), ("fetchall", 1)),
+    (commons_bio_factory.generate_bio_recipe_library, ("location-1",), ("execute", 1)),
+    (commons_bio_factory.generate_bio_recipe_library, ("location-1",), ("fetchall", 1)),
+    (commons_bio_factory.generate_bio_recipe_library, (None,), ("execute", 1)),
+    (commons_bio_factory.generate_bio_recipe_library, (None,), ("fetchall", 1)),
+    *((commons_bio_factory.generate_bio_quality_test, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_bio_factory.generate_bio_quality_test, ("location-1",), ("fetchone", 1)),
+    (commons_bio_factory.generate_bio_quality_test, ("location-1",), ("fetchall", 1)),
+    *((commons_liberation.generate_time_liberation, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_liberation.generate_time_liberation, ("location-1",), ("fetchone", 1)),
+    (commons_liberation.generate_time_liberation, ("location-1",), ("fetchall", 1)),
+    *((commons_liberation.generate_capital_alignment, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_liberation.generate_capital_alignment, ("location-1",), ("fetchone", 1)),
+    (commons_liberation.generate_capital_alignment, ("location-1",), ("fetchall", 1)),
+    (commons_liberation.generate_governance_inclusion, ("location-1",), ("execute", 1)),
+    (commons_liberation.generate_governance_inclusion, ("location-1",), ("fetchall", 1)),
+    (commons_liberation.generate_governance_inclusion, (None,), ("execute", 1)),
+    (commons_liberation.generate_governance_inclusion, (None,), ("fetchall", 1)),
+    *((commons_liberation.generate_land_stewardship, ("location-1",), ("execute", index)) for index in range(1, 3)),
+    (commons_liberation.generate_land_stewardship, ("location-1",), ("fetchone", 1)),
+    (commons_liberation.generate_land_stewardship, ("location-1",), ("fetchall", 1)),
+    (commons_scaling.generate_scaling_economics, ("location-1",), ("execute", 1)),
+    (commons_scaling.generate_scaling_economics, ("location-1",), ("fetchall", 1)),
+    *((commons_scaling.generate_scaling_economics, ("all",), ("execute", index)) for index in range(1, 3)),
+    *((commons_scaling.generate_scaling_economics, ("all",), ("fetchall", index)) for index in range(1, 3)),
+    (commons_scaling.generate_adoption_barriers, ("location-1",), ("execute", 1)),
+    (commons_scaling.generate_adoption_barriers, ("location-1",), ("fetchall", 1)),
+    (commons_scaling.generate_adoption_barriers, (None,), ("execute", 1)),
+    (commons_scaling.generate_adoption_barriers, (None,), ("fetchall", 1)),
+    (commons_scaling.generate_perpetual_value_stress, ("location-1",), ("execute", 1)),
+    (commons_scaling.generate_perpetual_value_stress, ("location-1",), ("fetchall", 1)),
+    (commons_scaling.generate_perpetual_value_stress, (None,), ("execute", 1)),
+    (commons_scaling.generate_perpetual_value_stress, (None,), ("fetchall", 1)),
     *((commons_wellbeing.generate_gnh_alignment, ("location-1",), ("execute", index)) for index in range(1, 3)),
     (commons_wellbeing.generate_gnh_alignment, ("location-1",), ("fetchone", 1)),
     (commons_wellbeing.generate_gnh_alignment, ("location-1",), ("fetchall", 1)),
@@ -138,6 +191,27 @@ _CASES = [
     *((operations.generate_model_validation, ("location-1",), ("execute", index)) for index in range(1, 4)),
     (operations.generate_model_validation, ("location-1",), ("fetchone", 1)),
     *((operations.generate_model_validation, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_livestock_feed, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (operations.generate_livestock_feed, ("location-1",), ("fetchone", 1)),
+    *((operations.generate_livestock_feed, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_token_rewards, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    *((operations.generate_token_rewards, ("location-1",), ("fetchone", index)) for index in range(1, 3)),
+    (operations.generate_token_rewards, ("location-1",), ("fetchall", 1)),
+    *((operations.generate_reward_calibration, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (operations.generate_reward_calibration, ("location-1",), ("fetchone", 1)),
+    *((operations.generate_reward_calibration, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_organic_certification_readiness, ("location-1",), ("execute", index)) for index in range(1, 6)),
+    *((operations.generate_organic_certification_readiness, ("location-1",), ("fetchone", index)) for index in range(1, 4)),
+    *((operations.generate_organic_certification_readiness, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_organic_transition_progress, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (operations.generate_organic_transition_progress, ("location-1",), ("fetchone", 1)),
+    *((operations.generate_organic_transition_progress, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_organic_input_audit, ("location-1",), ("execute", index)) for index in range(1, 4)),
+    (operations.generate_organic_input_audit, ("location-1",), ("fetchone", 1)),
+    *((operations.generate_organic_input_audit, ("location-1",), ("fetchall", index)) for index in range(1, 3)),
+    *((operations.generate_statement_of_work, ("location-1",), ("execute", index)) for index in range(1, 11)),
+    *((operations.generate_statement_of_work, ("location-1",), ("fetchone", index)) for index in range(1, 4)),
+    *((operations.generate_statement_of_work, ("location-1",), ("fetchall", index)) for index in range(1, 8)),
 ]
 
 
@@ -169,5 +243,19 @@ def test_dao_history_closes_cursor_when_voter_query_fails(fail_on):
 
     with pytest.raises(RuntimeError, match="synthetic report query failure"):
         wellbeing.generate_dao_proposal_history(conn)
+
+    assert cursor.closed
+
+
+@pytest.mark.parametrize(
+    "fail_on",
+    [*(('execute', index) for index in range(11, 14)), *(('fetchall', index) for index in range(8, 11))],
+)
+def test_statement_of_work_closes_cursor_when_optional_sow_query_fails(fail_on):
+    cursor = _FailingCursor(fail_on, fetchone_results=[{"name": "Synthetic farm"}, {"id": "sow-1"}])
+    conn = _Connection(cursor)
+
+    with pytest.raises(RuntimeError, match="synthetic report query failure"):
+        operations.generate_statement_of_work(conn, "location-1")
 
     assert cursor.closed

@@ -15094,19 +15094,21 @@ least privilege, and owner acceptance. Evidence:
 ### CAP-066 report-generator cursor cleanup — 22 October 2026
 
 Core farm, crop, environmental, forecast and climate reports, state/location
-and actor rollups, strategic-reserve and capital-provider reports, four
-operational reports, all nine primary wellbeing reports, five commons wellbeing
-reports, four stewardship reports, and report snapshot storage/verification now
+and actor rollups, strategic-reserve and capital-provider reports, all 11
+direct-query operational reports, all nine primary wellbeing reports, commons wellbeing and
+stewardship, ecological modeling and trophic pyramid, public-view helpers,
+bio-factory, liberation, scaling, and report snapshot storage/verification now
 close cursors in `finally` when SQL execution or fetching fails. Snapshot
 insert/fetch failures also roll back before propagating; a missing farm location
-closes before raising. The failure-injection set covers 156 query/fetch points,
+closes before raising. The failure-injection set covers 287 query/fetch points,
 including DAO voter-query errors and both network/farm branches. The focused
-report selection passes 191 tests, and the expanded report/snapshot/CLI/inventory
-selection passes 354. Ruff,
-Python compilation, four generated-inventory freshness checks, capability-matrix
-validation, and `git diff --check` pass. SQL, parameters,
-transaction ownership, and output shapes are unchanged. No database, provider,
-candidate, legacy stack, or migration was used. CAP-066 remains prepared pending
-report/dashboard reference parity, runtime identity and tenant boundaries, and
-owner acceptance. Evidence:
+report selection passes 327 tests, and the expanded report/snapshot/CLI/inventory
+selection passes 490. Ruff, Python compilation, four generated-inventory
+freshness checks, capability-matrix validation, and `git diff --check` pass. SQL,
+parameters, transaction ownership, and output shapes are unchanged. A source scan
+found no direct report cursor left without context management or a `finally` close.
+No database,
+provider, candidate, legacy stack, or migration was used. CAP-066 remains prepared
+pending report/dashboard reference parity, runtime identity and tenant boundaries,
+and owner acceptance. Evidence:
 [report-generator cursor cleanup](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json).

@@ -16,15 +16,14 @@ schemas through 551. This is emulation evidence, not physical Raspberry Pi or
 power acceptance. The public-interest report context and the deterministic
 AI-summary registry/operations/financial/environmental query paths now close
 cursors after both success and failure. Core farm, crop, environmental,
-forecast/climate, state, operational, wellbeing, commons, and snapshot reports
-now do the same; snapshot write failures roll back, and 156 synthetic
-execute/fetch failures verify cleanup, including missing-location handling,
-DAO voter-query errors, and both network/farm report branches. The
-AI-summary/source/safety/CLI and input-preflight selection passes 45 tests; the
-focused report selection passes 191, and the expanded report/snapshot/CLI/
-inventory selection passes 354. Ruff,
-compilation, all
-four generated-inventory freshness checks, and matrix validation pass
+forecast/climate, state, operational, wellbeing, ecological, Kokonut public-view,
+bio-factory, liberation, scaling, and snapshot reports now do the same; snapshot
+write failures roll back, and 287 synthetic execute/fetch failures verify
+cleanup, including missing-location handling, DAO voter-query errors, and both
+network/farm report branches. The AI-summary/source/safety/CLI and input-preflight
+selection passes 45 tests; the focused report selection passes 327, and the
+expanded report/snapshot/CLI/inventory selection passes 490. Ruff, compilation,
+all four generated-inventory freshness checks, and matrix validation pass
 ([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
 [report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json);
 [report-generator evidence](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json)).

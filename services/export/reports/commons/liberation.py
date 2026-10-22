@@ -11,21 +11,23 @@ from ..common import _serialize_rows
 def generate_time_liberation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe time liberation report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_time_liberation_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR observation_date >= %s::date)
-          AND (%s::date IS NULL OR observation_date <= %s::date)
-        ORDER BY observation_date DESC, workflow_area
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    observations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_time_liberation_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR observation_date >= %s::date)
+              AND (%s::date IS NULL OR observation_date <= %s::date)
+            ORDER BY observation_date DESC, workflow_area
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        observations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "time_liberation",
         "location_id": location_id,
@@ -46,21 +48,23 @@ def generate_time_liberation(conn, location_id: str, period_start: str = None, p
 def generate_capital_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital alignment report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_capital_alignment_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR assessment_date >= %s::date)
-          AND (%s::date IS NULL OR assessment_date <= %s::date)
-        ORDER BY assessment_date DESC, provider_type
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    assessments = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_capital_alignment_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR assessment_date >= %s::date)
+              AND (%s::date IS NULL OR assessment_date <= %s::date)
+            ORDER BY assessment_date DESC, provider_type
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        assessments = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     high_risk = [row for row in assessments if row.get("extractive_risk_level") in {"high", "critical"}]
     return {
         "report_type": "capital_alignment",
@@ -84,31 +88,33 @@ def generate_governance_inclusion(
 ) -> dict:
     """Generate a public-safe governance inclusion report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_governance_inclusion_summary
-            WHERE (location_id = %s OR location_id IS NULL)
-              AND (%s::date IS NULL OR observation_date >= %s::date)
-              AND (%s::date IS NULL OR observation_date <= %s::date)
-            ORDER BY observation_date DESC, governance_body
-            """,
-            (location_id, period_start, period_start, period_end, period_end),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_governance_inclusion_summary
-            WHERE (%s::date IS NULL OR observation_date >= %s::date)
-              AND (%s::date IS NULL OR observation_date <= %s::date)
-            ORDER BY observation_date DESC, governance_body
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-    observations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_governance_inclusion_summary
+                WHERE (location_id = %s OR location_id IS NULL)
+                  AND (%s::date IS NULL OR observation_date >= %s::date)
+                  AND (%s::date IS NULL OR observation_date <= %s::date)
+                ORDER BY observation_date DESC, governance_body
+                """,
+                (location_id, period_start, period_start, period_end, period_end),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_governance_inclusion_summary
+                WHERE (%s::date IS NULL OR observation_date >= %s::date)
+                  AND (%s::date IS NULL OR observation_date <= %s::date)
+                ORDER BY observation_date DESC, governance_body
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+        observations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "governance_inclusion",
         "location_id": location_id,
@@ -130,21 +136,23 @@ def generate_governance_inclusion(
 def generate_land_stewardship(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe land stewardship report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_land_stewardship_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR commitment_date >= %s::date)
-          AND (%s::date IS NULL OR commitment_date <= %s::date)
-        ORDER BY commitment_date DESC, stewardship_model
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    commitments = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_land_stewardship_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR commitment_date >= %s::date)
+              AND (%s::date IS NULL OR commitment_date <= %s::date)
+            ORDER BY commitment_date DESC, stewardship_model
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        commitments = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "land_stewardship",
         "location_id": location_id,

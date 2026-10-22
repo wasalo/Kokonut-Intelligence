@@ -241,7 +241,6 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
         total_raised = None
 
     totals_by_currency = dict(sorted(total_raised_by_currency.items()))
-    cur.close()
     return {
         "by_actor": _serialize_rows(by_actor),
         "by_source": _serialize_rows(by_source),

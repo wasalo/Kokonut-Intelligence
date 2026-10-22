@@ -14,21 +14,23 @@ from ..scope import require_network_scope
 def generate_bio_factory_batch(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-organic fertilizer batch report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_bio_factory_batch_summary
-        WHERE (location_id = %s OR location_id IS NULL)
-          AND (%s::date IS NULL OR production_start_date >= %s::date)
-          AND (%s::date IS NULL OR production_end_date IS NULL OR production_end_date <= %s::date)
-        ORDER BY production_start_date DESC, batch_name
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    batches = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_bio_factory_batch_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR production_start_date >= %s::date)
+              AND (%s::date IS NULL OR production_end_date IS NULL OR production_end_date <= %s::date)
+            ORDER BY production_start_date DESC, batch_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        batches = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     total_kg = sum(float(row.get("output_kg_total") or 0) for row in batches)
     total_liters = sum(float(row.get("output_liters_total") or 0) for row in batches)
     return {
@@ -52,19 +54,21 @@ def generate_bio_factory_batch(conn, location_id: str, period_start: str = None,
 def generate_bio_input_provenance(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-input provenance report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_bio_input_provenance_summary
-        WHERE (location_id = %s OR location_id IS NULL)
-        ORDER BY input_category, input_name
-        """,
-        (location_id,),
-    )
-    inputs = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_bio_input_provenance_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+            ORDER BY input_category, input_name
+            """,
+            (location_id,),
+        )
+        inputs = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     lac_inputs = [
         row
         for row in inputs
@@ -107,26 +111,28 @@ def generate_bio_recipe_library(
 ) -> dict:
     """Generate a public-safe bio-organic fertilizer recipe library report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_bio_recipe_library_summary
-            WHERE (location_id = %s OR location_id IS NULL)
-            ORDER BY recipe_type, recipe_name
-            """,
-            (location_id,),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_bio_recipe_library_summary
-            ORDER BY recipe_type, recipe_name
-            """
-        )
-    recipes = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_bio_recipe_library_summary
+                WHERE (location_id = %s OR location_id IS NULL)
+                ORDER BY recipe_type, recipe_name
+                """,
+                (location_id,),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_bio_recipe_library_summary
+                ORDER BY recipe_type, recipe_name
+                """
+            )
+        recipes = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     recipe_types: dict[str, int] = {}
     for row in recipes:
         rt = row.get("recipe_type")
@@ -151,21 +157,23 @@ def generate_bio_recipe_library(
 def generate_bio_quality_test(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe bio-factory quality test report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_bio_factory_quality_test_summary
-        WHERE (location_id = %s OR location_id IS NULL)
-          AND (%s::date IS NULL OR test_date >= %s::date)
-          AND (%s::date IS NULL OR test_date <= %s::date)
-        ORDER BY test_date DESC, parameter_name
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    tests = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_bio_factory_quality_test_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR test_date >= %s::date)
+              AND (%s::date IS NULL OR test_date <= %s::date)
+            ORDER BY test_date DESC, parameter_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        tests = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     test_count = len(tests)
     pass_count = sum(1 for row in tests if row.get("pass_fail") == "pass")
     return {
