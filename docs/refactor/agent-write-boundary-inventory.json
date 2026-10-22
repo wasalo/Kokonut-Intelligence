@@ -24,37 +24,37 @@
   "authenticated_worker_draft_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 336
+      "line": 355
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 352
+      "line": 371
     }
   ],
   "authenticated_worker_summary_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 256,
+      "line": 275,
       "function": "get_location_ai_summary_worker_source_references"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 283,
+      "line": 302,
       "function": "get_location_ai_summary_worker_result"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 336,
+      "line": 355,
       "function": "create_location_ai_summary_worker_draft_with_result"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 352,
+      "line": 371,
       "function": "create_location_ai_summary_worker_draft"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 371,
+      "line": 390,
       "function": "set_location_ai_summary_source_references"
     }
   ],

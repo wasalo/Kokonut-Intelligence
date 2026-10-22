@@ -21,6 +21,28 @@ agent paths, Directus role parity, populated output parity, runtime recovery,
 credential provisioning, tenant RLS, and MAN-CAP-038 acceptance remain open.
 Evidence: [source-reader acceptance](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json).
 
+### CAP-038 isolated deterministic-summary source reader — 22 October 2026
+
+Migration 542 gives deterministic AI-summary generation its own source-reader
+login/group with explicit SELECT on the 13 relations used by the four built-in
+summary types. It rejects other public relation grants and write or schema
+CREATE privileges; the three inherited PostGIS metadata names are permitted
+only when present. `run_worker_summary` now uses this identity in a
+repeatable-read, read-only transaction and keeps draft persistence on the
+separate signed worker connection. The Compose profile has a fixed
+`--deterministic-only` entrypoint and no shared `PG_*`, `DATABASE_URL`, or
+`POSTGRES_PASSWORD` values. Migration 542 apply/replay passes 31 grouped checks
+in disposable PostgreSQL 16, including stale private-summary/write grant
+cleanup. The 105-test focused worker/database/migration/profile selection,
+Ruff, compilation, and diff checks pass. Candidate and legacy databases remain
+untouched; the source login and migration are not deployed. This narrows
+relation access but does not provide per-location database isolation: query
+filters remain application-enforced pending signed source context and RLS.
+Evidence:
+[native source-reader acceptance](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json).
+Checklist: 944 complete / 24 open (968 total); all 66 capability-matrix rows
+remain separately classified, and no MAN-CAP acceptance status changed.
+
 ### CAP-038 network/shared provenance ARM64/QEMU spot check — 22 October 2026
 
 The migration 540 source-provenance acceptance also passed in a
@@ -42,6 +64,15 @@ schema replay or physical Raspberry Pi, storage, power-loss, thermal, or
 performance acceptance. Candidate and legacy databases remain untouched.
 Evidence:
 [ARM64 source-reader acceptance](builds/2026-10-22-recovery/cap-038-agent-synthesis-source-reader-arm64-disposable.json).
+
+### CAP-038 deterministic-summary ARM64/QEMU check — 22 October 2026
+
+Migration 542 and the ordered worker/source-reference chain also passed 31
+grouped checks in the network-disabled ARM64 PostGIS image (`aarch64`). This is
+software emulation of the disposable database slice, not a full schema replay
+or physical Raspberry Pi, storage, power-loss, thermal, or performance test.
+Evidence:
+[ARM64 deterministic-summary acceptance](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-arm64-disposable.json).
 
 ### CAP-038 explicit network and shared-row provenance scopes — 22 October 2026
 

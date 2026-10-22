@@ -16,7 +16,6 @@ from services.agents.worker_draft import (
     create_worker_ai_summary_draft,
     get_worker_ai_summary_draft,
 )
-from services.common.database import get_db
 from services.common.worker_database import get_worker_db
 
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
@@ -192,12 +191,13 @@ def run_worker_summary(
     existing_reader=None,
     draft_writer=None,
 ) -> dict[str, Any]:
-    """Generate under a read-only shared connection and persist as a worker.
+    """Generate through the dedicated deterministic source reader and persist as a worker.
 
     The request lookup happens before generation so an exact retry returns its
     original result without repeating source queries. Source data is read in a
-    read-only transaction; draft creation and provenance attachment use the
-    separate signed worker connection in :mod:`worker_draft`.
+    repeatable-read, read-only transaction under the deterministic source
+    reader role; draft creation and provenance attachment use the separate
+    signed worker connection in :mod:`worker_draft`.
     """
     try:
         location_id = str(UUID(str(location_id)))
@@ -228,10 +228,16 @@ def run_worker_summary(
     if prior is not None:
         return prior
 
-    connection = (connection_factory or get_db)()
+    open_source_connection = connection_factory or (
+        lambda: get_worker_db("agent_summary_deterministic_source")
+    )
+    connection = open_source_connection()
     try:
         with connection.cursor() as cursor:
-            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+            cursor.execute(
+                "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
+            )
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = generate(connection, location_id, summary_type)
@@ -271,9 +277,20 @@ def main() -> None:
         action="store_true",
         help="Require a registered synthesis task and prohibit deterministic summary reads",
     )
+    parser.add_argument(
+        "--deterministic-only",
+        action="store_true",
+        help="Require a built-in summary type and prohibit shared synthesis tasks",
+    )
     args = parser.parse_args()
     if args.source_only and not args.task_key:
         parser.error("--source-only requires --task-key")
+    if args.deterministic_only and not args.summary_type:
+        parser.error("--deterministic-only requires --summary-type")
+    if args.deterministic_only and args.task_key:
+        parser.error("--deterministic-only cannot be combined with --task-key")
+    if args.source_only and args.deterministic_only:
+        parser.error("--source-only and --deterministic-only cannot be combined")
     if args.task_key and args.summary_type:
         parser.error("choose either --task-key or --summary-type")
     if args.task_key:

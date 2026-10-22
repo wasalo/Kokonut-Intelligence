@@ -200,11 +200,12 @@ schema-create privileges. Draft creation still uses the separate signed worker
 connection. Application query filters enforce the registered location/network
 scope; this relation-level boundary does not provide row-level tenant
 isolation or replace the still-open broader RLS review.
-The native PostgreSQL 16 apply/replay acceptance passes 29 grouped checks;
-the same focused migration chain also passes in network-disabled ARM64/QEMU
-emulation (`aarch64`). The latter is not a physical Raspberry Pi or full-schema
-acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json);
-[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-agent-synthesis-source-reader-arm64-disposable.json)).
+The native PostgreSQL 16 chain through migration 541 passes 29 grouped checks.
+With migration 542's deterministic source-reader allowlist added, the chain
+through 542 passes 31 grouped checks in both native PostgreSQL 16 and the
+network-disabled ARM64/QEMU image (`aarch64`). This is not physical Raspberry
+Pi or full-schema acceptance ([native evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-arm64-disposable.json)).
 Catalogue-only write tasks cannot enter this `ai_summary` worker path. Capital-efficiency, bio-factory, regenerative, Commons, GNH,
 Financial Resilience, Open Source Capitalist, Wellbeing, Feedback, and
 Kokonut Commons synthesis attach bounded row IDs for forty approved public
@@ -233,13 +234,17 @@ receipt in the same transaction as its draft. Exact retries return that original
 JSON result without rerunning source queries. Receipts created before migration
 539 have no structured result to reconstruct and keep the content-only
 compatibility fallback. Compose separates deterministic summaries from shared
-synthesis: `agent-summary-worker` retains its existing runtime read settings,
-while `agent-synthesis-worker` receives no shared `PG_*` or `DATABASE_URL`
-values and requires `--task-key`. Its source DSN uses the view-only source login;
-the signed draft DSN and high-entropy credential remain separate. An operator
-still needs to provision the runtime password, source login/password, worker
-login/password, worker credential, and service DSNs; migrations 529–541 are not
-rolled out to the candidate. Stored shared-agent CLI output is reduced to the
+synthesis. `agent-summary-worker` uses a dedicated source login limited to the
+13 source relations read by the four built-in summaries, requires the fixed
+`--deterministic-only` mode, and receives no shared `PG_*`, `DATABASE_URL`, or
+`POSTGRES_PASSWORD` values. `agent-synthesis-worker` likewise receives no
+shared database settings, requires `--task-key`, and uses the separate
+public-view-only source login. Each profile uses the signed worker identity for
+draft persistence. These are relation-level limits; exact location filters
+remain application-enforced and neither role provides tenant RLS. An operator
+still needs to provision the runtime password, both source login/password pairs,
+worker login/password, worker credential, and service DSNs; migrations 529–542
+are not rolled out to the candidate. Stored shared-agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
@@ -257,6 +262,7 @@ identity is exercised with migration 405's signed worker context. See the
 [migration 537](../../schemas/postgres/537_registered_worker_summary_types.sql),
 [migration 540](../../schemas/postgres/540_scoped_agent_source_references.sql),
 [migration 541](../../schemas/postgres/541_agent_synthesis_source_reader.sql),
+[migration 542](../../schemas/postgres/542_agent_deterministic_summary_source_reader.sql),
 [focused tests](../../tests/test_agent_worker_draft.py),
 [capital-efficiency tests](../../tests/test_capital_efficiency.py),
 [bio-factory tests](../../tests/test_bio_factory_operations.py),

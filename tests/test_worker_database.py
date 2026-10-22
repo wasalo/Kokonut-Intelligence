@@ -209,6 +209,30 @@ def test_notification_enqueue_factory_requires_its_distinct_login(monkeypatch):
     connection.close.assert_not_called()
 
 
+def test_deterministic_summary_source_factory_requires_its_distinct_login(monkeypatch):
+    login = "kokonut_agent_summary_deterministic_source_login"
+    connection, cursor = _connection(login)
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+
+    result = worker_database.get_worker_db(
+        "agent_summary_deterministic_source",
+        environ={
+            "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL": (
+                "postgresql://kokonut_agent_summary_deterministic_source_login:secret"
+                "@database/kokonut_intelligence"
+            ),
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+        },
+    )
+
+    assert result is connection
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_not_called()
+
+
 def test_notification_enqueue_factory_rejects_shared_worker_login(monkeypatch):
     connection, _ = _connection("kokonut_worker_login")
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

@@ -36,10 +36,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/539_agent_worker_structured_result_replay.sql",
     ROOT / "schemas/postgres/540_scoped_agent_source_references.sql",
     ROOT / "schemas/postgres/541_agent_synthesis_source_reader.sql",
+    ROOT / "schemas/postgres/542_agent_deterministic_summary_source_reader.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-scoped-agent-source-references-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-deterministic-summary-source-reader-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
@@ -146,6 +147,21 @@ SOURCE_READER_VIEWS = tuple(sorted({
     "v_public_vulnerable_access_summary",
     "v_public_wellbeing_metric_summary",
 }))
+DETERMINISTIC_SOURCE_TABLES = (
+    "crop",
+    "crop_cycle",
+    "expense_category",
+    "expense_event",
+    "farm_registry_record",
+    "harvest_event",
+    "noi_snapshot",
+    "remote_sensing_observation",
+    "sales_event",
+    "sensor_reading",
+    "soil_carbon_measurement",
+    "species_observation",
+    "weather_observation",
+)
 
 
 def _source_reader_acceptance() -> str:
@@ -216,6 +232,89 @@ def _source_reader_acceptance() -> str:
     SET LOCAL ROLE kokonut_agent_summary_source_reader;
     SELECT count(*) FROM public.v_public_capital_efficiency_summary;
     SELECT count(*) FROM public.v_public_bio_regional_input_summary;
+    ROLLBACK;
+    """
+
+
+def _deterministic_source_reader_acceptance() -> str:
+    expected_table_checks = " OR ".join(
+        "NOT has_table_privilege('kokonut_agent_summary_deterministic_reader', "
+        f"'public.{table_name}', 'SELECT')"
+        for table_name in DETERMINISTIC_SOURCE_TABLES
+    )
+    approved_relation_list = ", ".join(
+        f"'{relation_name}'"
+        for relation_name in (
+            *DETERMINISTIC_SOURCE_TABLES,
+            "geography_columns",
+            "geometry_columns",
+            "spatial_ref_sys",
+        )
+    )
+    table_reads = "\n".join(
+        f"SELECT count(*) FROM public.{table_name};"
+        for table_name in DETERMINISTIC_SOURCE_TABLES
+    )
+    return f"""
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_source_login;
+    DO $$
+    BEGIN
+        IF current_user <> 'kokonut_agent_summary_deterministic_source_login' THEN
+            RAISE EXCEPTION 'deterministic source login role was not selected';
+        END IF;
+        IF has_table_privilege(
+            current_user, 'public.harvest_event', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'NOINHERIT deterministic source login unexpectedly inherited reader privileges';
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_deterministic_reader', 'public.ai_summary', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'deterministic source reader can select private ai_summary rows';
+        END IF;
+        IF {expected_table_checks} THEN
+            RAISE EXCEPTION 'deterministic source reader is missing an approved table grant';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND has_table_privilege(
+                   'kokonut_agent_summary_deterministic_reader', relation.oid, 'SELECT'
+               )
+               AND relation.relname::text <> ALL (ARRAY[{approved_relation_list}]::text[])
+        ) THEN
+            RAISE EXCEPTION 'deterministic source reader can select an unapproved public relation';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND (
+                   has_table_privilege('kokonut_agent_summary_deterministic_reader', relation.oid, 'INSERT')
+                   OR has_table_privilege('kokonut_agent_summary_deterministic_reader', relation.oid, 'UPDATE')
+                   OR has_table_privilege('kokonut_agent_summary_deterministic_reader', relation.oid, 'DELETE')
+                   OR has_table_privilege('kokonut_agent_summary_deterministic_reader', relation.oid, 'TRUNCATE')
+               )
+        ) THEN
+            RAISE EXCEPTION 'deterministic source reader has public write privileges';
+        END IF;
+        IF has_schema_privilege(
+            'kokonut_agent_summary_deterministic_reader', 'public', 'CREATE'
+        ) THEN
+            RAISE EXCEPTION 'deterministic source reader can create public objects';
+        END IF;
+    END;
+    $$;
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    {table_reads}
     ROLLBACK;
     """
 
@@ -1456,7 +1555,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, and 539-541 apply; migrations 530-537 and 539-541 replay",
+        "migrations 405, 419, 521-524, 529-537, and 539-542 apply; migrations 530-537 and 539-542 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -1483,6 +1582,8 @@ def main() -> int:
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "synthesis source login has explicit access to the 40 approved public views, permits only three PostGIS metadata catalogs if installed, cannot read private summaries or other public relations, and cannot write data",
+        "deterministic summary source login has explicit SELECT on its 13 source relations only, cannot read private summaries or other public relations, and cannot write data",
+        "migration 542 replay removes stale private-summary reads and writes before reapplying the deterministic source allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
     ]
@@ -1495,7 +1596,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "synthesis source reads use a dedicated relation-level identity with explicit SELECT on 40 registered views; the only other public relation names permitted are three PostGIS metadata catalogs, when installed and already readable by PUBLIC; application queries still enforce declared scope, and this does not establish row-level tenant isolation",
+        "source_reader_note": "shared synthesis and deterministic summary reads use separate relation-level identities; synthesis reads are limited to 40 registered views plus three optional PostGIS metadata catalogs, deterministic summaries to 13 fixed source relations; location filters remain in application queries and these identities do not establish row-level tenant isolation",
         "checks": checks,
     }
     stage = "container_start"
@@ -1511,15 +1612,24 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         for migration_path in MIGRATIONS[2:]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_")):
+            if migration_path.name.startswith(("530_", "531_", "532_", "533_", "534_", "535_", "536_", "537_", "539_", "540_", "541_", "542_")):
+                if migration_path.name.startswith("542_"):
+                    base.psql(
+                        docker,
+                        container,
+                        "GRANT SELECT, INSERT ON public.ai_summary "
+                        "TO kokonut_agent_summary_deterministic_reader;",
+                    )
                 base.psql(docker, container, sql)
         stage = "synthesis_source_reader_role_acceptance"
         base.psql(docker, container, _source_reader_acceptance())
+        stage = "deterministic_summary_source_reader_role_acceptance"
+        base.psql(docker, container, _deterministic_source_reader_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
         stage = "structured_worker_result_first_write_acceptance"

@@ -24,6 +24,11 @@ CREATE TABLE public.remote_sensing_observation (id UUID PRIMARY KEY, location_id
 CREATE TABLE public.weather_observation (id UUID PRIMARY KEY, location_id UUID NOT NULL);
 CREATE TABLE public.crop (id UUID PRIMARY KEY, name TEXT NOT NULL);
 CREATE TABLE public.expense_category (id UUID PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE public.farm_registry_record (
+    id UUID PRIMARY KEY, location_id UUID NOT NULL, status TEXT NOT NULL
+);
+INSERT INTO public.farm_registry_record (id, location_id, status) VALUES
+    ('e0000000-0000-4000-8000-000000000901', 'a0000000-0000-0000-0000-000000000001', 'verified');
 
 INSERT INTO public.harvest_event (id, location_id) VALUES
     ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-0000-0000-000000000001'),

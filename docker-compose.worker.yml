@@ -91,7 +91,7 @@ services:
     profiles:
       - worker
 
-  # Deterministic AI-summary reads keep their own one-shot profile. Shared
+  # Deterministic AI-summary reads use a 13-relation read-only login. Shared
   # synthesis reads use a separate public-view-only database login below.
   # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
   #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID \
@@ -100,7 +100,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    entrypoint: ["python3", "-m", "services.agents.worker_cli"]
+    entrypoint:
+      ["python3", "-m", "services.agents.worker_cli", "--deterministic-only"]
     restart: "no"
     depends_on:
       database:
@@ -109,11 +110,7 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
-      PG_HOST: database
-      PG_PORT: "5432"
-      PG_DB: ${PG_DB:-kokonut_intelligence}
-      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
-      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
