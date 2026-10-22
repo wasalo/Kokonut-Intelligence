@@ -13,14 +13,16 @@ checks on native AMD64 and ARM64/QEMU. The focused worker/source/draft selection
 passes 123 tests. Across the 12 registered synthesis agents, the only unreferenced hints are the already-bound location subject and the private, lifecycle-free organic compliance checklist, whose rows are intentionally count-only. Only the candidate app was recreated and is healthy; no seed
 or farm data ran, and PostgreSQL, Metabase, proxy, and the legacy stack were not
 recreated. Because the candidate and checkpoint contain no location rows,
-populated ecological output parity remains unverified. Checklist: 969 complete
-/ 24 open (993 total); the 66-row matrix remains 30 baseline-retained, 7
+populated ecological output parity remains unverified. Checklist: 970 complete
+/ 24 open (994 total); the 66-row matrix remains 30 baseline-retained, 7
 deployed, and 29 prepared, with all MAN-CAP approvals still open. Separately,
 the full current-source ARM64/QEMU schema replay applied 542 of 542 schemas
 through migration 551 with zero pending/failed entries, no seeds, no network or
 host ports, and verified cleanup ([evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-551.json)).
 This is emulation evidence; physical Raspberry Pi and power acceptance remain
-open.
+open. The public-interest report-context cursor now closes on all exits; its
+focused five-test governance suite, Ruff, compilation, and refreshed SQL
+inventory checks pass ([evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json)).
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

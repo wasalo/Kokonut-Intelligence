@@ -1,3 +1,14 @@
+### Public-interest report cursor cleanup — 22 October 2026
+
+`fetch_public_interest_context()` now closes its cursor in a `finally` block,
+including when a query or fetch fails, while preserving the original exception.
+The focused report-governance suite passes five tests; Ruff, Python compilation,
+the refreshed runtime SQL inventory, report query/helper inventory checks, and
+diff checks pass. No database, candidate, legacy service, or provider was
+contacted. Evidence: [cursor cleanup](builds/2026-10-22-recovery/report-context-cursor-cleanup.json).
+Checklist: 970 complete / 24 open (994 total); capability matrix: 30
+baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+
 ### Current-schema ARM64/QEMU replay through migration 551 — 22 October 2026
 
 A fresh, isolated ARM64 PostgreSQL 16 replay under QEMU applied all 542 current

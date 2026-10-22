@@ -188,229 +188,231 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute(
-        """
-        SELECT stakeholder_group, feedback_type, sentiment, public_summary,
-               evidence_maturity, evidence_maturity_label
-        FROM v_public_stakeholder_feedback_summary
-        WHERE location_id = %s
-        ORDER BY feedback_date DESC, id
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    public_feedback = [dict(r) for r in cur.fetchall()]
+    try:
+        cur.execute(
+            """
+            SELECT stakeholder_group, feedback_type, sentiment, public_summary,
+                   evidence_maturity, evidence_maturity_label
+            FROM v_public_stakeholder_feedback_summary
+            WHERE location_id = %s
+            ORDER BY feedback_date DESC, id
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        public_feedback = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT claim_category, claim_type, claim_text, claim_value, claim_unit,
-               evidence_maturity, evidence_maturity_label, confidence_level,
-               methodology_ref, external_verifier, attestation_uid
-        FROM v_public_impact_claim_summary
-        WHERE location_id = %s
-        ORDER BY claim_date DESC, id
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    public_claims = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT claim_category, claim_type, claim_text, claim_value, claim_unit,
+                   evidence_maturity, evidence_maturity_label, confidence_level,
+                   methodology_ref, external_verifier, attestation_uid
+            FROM v_public_impact_claim_summary
+            WHERE location_id = %s
+            ORDER BY claim_date DESC, id
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        public_claims = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT claim_category, claim_type, status, public_claim,
-               evidence_maturity, COUNT(*) AS claim_count,
-               COUNT(*) FILTER (
-                   WHERE public_claim = TRUE AND evidence_maturity < 4
-               ) AS public_claims_below_threshold,
-               COUNT(*) FILTER (
-                   WHERE public_claim = TRUE
-                     AND claim_category = 'carbon'
-                     AND (
-                       evidence_maturity < 6
-                       OR external_verifier IS NULL
-                       OR methodology_ref IS NULL
-                     )
-               ) AS carbon_publication_gaps,
-               COUNT(*) FILTER (
-                   WHERE evidence_cid IS NULL
-                     AND evidence_hash IS NULL
-                     AND attestation_uid IS NULL
-               ) AS missing_evidence_links
-        FROM impact_claim
-        WHERE location_id = %s AND status != 'rejected'
-        GROUP BY claim_category, claim_type, status, public_claim, evidence_maturity
-        ORDER BY carbon_publication_gaps DESC, public_claims_below_threshold DESC,
-                 missing_evidence_links DESC, claim_count DESC
-        """,
-        (location_id,),
-    )
-    evidence_gaps = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT claim_category, claim_type, status, public_claim,
+                   evidence_maturity, COUNT(*) AS claim_count,
+                   COUNT(*) FILTER (
+                       WHERE public_claim = TRUE AND evidence_maturity < 4
+                   ) AS public_claims_below_threshold,
+                   COUNT(*) FILTER (
+                       WHERE public_claim = TRUE
+                         AND claim_category = 'carbon'
+                         AND (
+                           evidence_maturity < 6
+                           OR external_verifier IS NULL
+                           OR methodology_ref IS NULL
+                         )
+                   ) AS carbon_publication_gaps,
+                   COUNT(*) FILTER (
+                       WHERE evidence_cid IS NULL
+                         AND evidence_hash IS NULL
+                         AND attestation_uid IS NULL
+                   ) AS missing_evidence_links
+            FROM impact_claim
+            WHERE location_id = %s AND status != 'rejected'
+            GROUP BY claim_category, claim_type, status, public_claim, evidence_maturity
+            ORDER BY carbon_publication_gaps DESC, public_claims_below_threshold DESC,
+                     missing_evidence_links DESC, claim_count DESC
+            """,
+            (location_id,),
+        )
+        evidence_gaps = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT stakeholder_group, feedback_type, sentiment, status,
-               consent_given, consent_scope, is_public, evidence_maturity,
-               COUNT(*) AS feedback_count,
-               COUNT(*) FILTER (WHERE consent_given = FALSE) AS private_or_no_consent_count,
-               COUNT(*) FILTER (WHERE harms_or_unintended_consequences IS NOT NULL) AS harm_or_unintended_consequence_count
-        FROM stakeholder_feedback
-        WHERE location_id = %s AND status != 'rejected'
-        GROUP BY stakeholder_group, feedback_type, sentiment, status,
-                 consent_given, consent_scope, is_public, evidence_maturity
-        ORDER BY feedback_count DESC, stakeholder_group
-        """,
-        (location_id,),
-    )
-    feedback_summary = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT stakeholder_group, feedback_type, sentiment, status,
+                   consent_given, consent_scope, is_public, evidence_maturity,
+                   COUNT(*) AS feedback_count,
+                   COUNT(*) FILTER (WHERE consent_given = FALSE) AS private_or_no_consent_count,
+                   COUNT(*) FILTER (WHERE harms_or_unintended_consequences IS NOT NULL) AS harm_or_unintended_consequence_count
+            FROM stakeholder_feedback
+            WHERE location_id = %s AND status != 'rejected'
+            GROUP BY stakeholder_group, feedback_type, sentiment, status,
+                     consent_given, consent_scope, is_public, evidence_maturity
+            ORDER BY feedback_count DESC, stakeholder_group
+            """,
+            (location_id,),
+        )
+        feedback_summary = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT practice_name, practice_type, stakeholder_group, language,
-               public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_context_summary
-        WHERE location_id = %s
-        ORDER BY practice_type, practice_name
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    cultural_context = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT practice_name, practice_type, stakeholder_group, language,
+                   public_summary, evidence_maturity, evidence_maturity_label
+            FROM v_public_cultural_context_summary
+            WHERE location_id = %s
+            ORDER BY practice_type, practice_name
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        cultural_context = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT metric_key, metric_name, stakeholder_group, language,
-               score_value, count_value, public_summary, evidence_maturity,
-               evidence_maturity_label
-        FROM v_public_wellbeing_metric_summary
-        WHERE location_id = %s
-        ORDER BY observation_date DESC, metric_key
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    wellbeing_metrics = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT metric_key, metric_name, stakeholder_group, language,
+                   score_value, count_value, public_summary, evidence_maturity,
+                   evidence_maturity_label
+            FROM v_public_wellbeing_metric_summary
+            WHERE location_id = %s
+            ORDER BY observation_date DESC, metric_key
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        wellbeing_metrics = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT action_type, action_date, stakeholder_group, metric_name,
-               decision_status, public_summary, evidence_maturity,
-               evidence_maturity_label
-        FROM v_public_participatory_governance_summary
-        WHERE location_id = %s
-        ORDER BY action_date DESC, action_type
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    participatory_actions = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT action_type, action_date, stakeholder_group, metric_name,
+                   decision_status, public_summary, evidence_maturity,
+                   evidence_maturity_label
+            FROM v_public_participatory_governance_summary
+            WHERE location_id = %s
+            ORDER BY action_date DESC, action_type
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        participatory_actions = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT plan_name, farm_model, sustainability_status, grant_dependency_pct,
-               reinvestment_pct, public_goods_allocation_pct, runway_months,
-               projected_annual_revenue_usd, projected_annual_noi_usd,
-               public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_financial_sustainability_summary
-        WHERE location_id = %s
-        ORDER BY plan_period_start DESC, plan_name
-        LIMIT 5
-        """,
-        (location_id,),
-    )
-    financial_sustainability = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT plan_name, farm_model, sustainability_status, grant_dependency_pct,
+                   reinvestment_pct, public_goods_allocation_pct, runway_months,
+                   projected_annual_revenue_usd, projected_annual_noi_usd,
+                   public_summary, evidence_maturity, evidence_maturity_label
+            FROM v_public_financial_sustainability_summary
+            WHERE location_id = %s
+            ORDER BY plan_period_start DESC, plan_name
+            LIMIT 5
+            """,
+            (location_id,),
+        )
+        financial_sustainability = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT risk_category, likelihood, impact_level, residual_risk_level,
-               owner_role, review_cadence, next_review_date, public_summary,
-               evidence_maturity, evidence_maturity_label
-        FROM v_public_risk_mitigation_summary
-        WHERE location_id = %s
-        ORDER BY next_review_date NULLS LAST, risk_category
-        LIMIT 10
-        """,
-        (location_id,),
-    )
-    risk_mitigation = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT risk_category, likelihood, impact_level, residual_risk_level,
+                   owner_role, review_cadence, next_review_date, public_summary,
+                   evidence_maturity, evidence_maturity_label
+            FROM v_public_risk_mitigation_summary
+            WHERE location_id = %s
+            ORDER BY next_review_date NULLS LAST, risk_category
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        risk_mitigation = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT COUNT(*) AS evaluated_count,
-               COUNT(*) FILTER (WHERE predicted_value > actual_value) AS overprediction_count,
-               COUNT(*) FILTER (WHERE predicted_value < actual_value) AS underprediction_count,
-               AVG(predicted_value - actual_value) AS mean_signed_error
-        FROM v_public_prediction_accuracy
-        WHERE location_id = %s AND actual_value IS NOT NULL
-        """,
-        (location_id,),
-    )
-    forecast_performance = dict(cur.fetchone() or {})
+        cur.execute(
+            """
+            SELECT COUNT(*) AS evaluated_count,
+                   COUNT(*) FILTER (WHERE predicted_value > actual_value) AS overprediction_count,
+                   COUNT(*) FILTER (WHERE predicted_value < actual_value) AS underprediction_count,
+                   AVG(predicted_value - actual_value) AS mean_signed_error
+            FROM v_public_prediction_accuracy
+            WHERE location_id = %s AND actual_value IS NOT NULL
+            """,
+            (location_id,),
+        )
+        forecast_performance = dict(cur.fetchone() or {})
 
-    cur.execute(
-        """
-        SELECT COUNT(*) FILTER (WHERE milestone_status = 'blocked') AS blocked_count,
-               COUNT(*) FILTER (
-                   WHERE milestone_target_date < CURRENT_DATE
-                     AND milestone_status NOT IN ('completed', 'skipped')
-               ) AS overdue_count,
-               MIN(milestone_target_date) FILTER (
-                   WHERE milestone_target_date < CURRENT_DATE
-                     AND milestone_status NOT IN ('completed', 'skipped')
-               ) AS oldest_overdue_date
-        FROM threat_backcast_plan WHERE location_id = %s
-        """,
-        (location_id,),
-    )
-    backcast_milestone_health = dict(cur.fetchone() or {})
+        cur.execute(
+            """
+            SELECT COUNT(*) FILTER (WHERE milestone_status = 'blocked') AS blocked_count,
+                   COUNT(*) FILTER (
+                       WHERE milestone_target_date < CURRENT_DATE
+                         AND milestone_status NOT IN ('completed', 'skipped')
+                   ) AS overdue_count,
+                   MIN(milestone_target_date) FILTER (
+                       WHERE milestone_target_date < CURRENT_DATE
+                         AND milestone_status NOT IN ('completed', 'skipped')
+                   ) AS oldest_overdue_date
+            FROM threat_backcast_plan WHERE location_id = %s
+            """,
+            (location_id,),
+        )
+        backcast_milestone_health = dict(cur.fetchone() or {})
 
-    cur.execute(
-        """
-        SELECT COUNT(*) AS pending_count, MIN(bac.created_at) AS oldest_pending_at
-        FROM backcast_assumption_challenge bac
-        JOIN backcast_plan bp ON bp.id = bac.backcast_plan_id
-        WHERE bp.location_id = %s AND bac.outcome = 'pending'
-        """,
-        (location_id,),
-    )
-    unresolved_assumption_challenges = dict(cur.fetchone() or {})
+        cur.execute(
+            """
+            SELECT COUNT(*) AS pending_count, MIN(bac.created_at) AS oldest_pending_at
+            FROM backcast_assumption_challenge bac
+            JOIN backcast_plan bp ON bp.id = bac.backcast_plan_id
+            WHERE bp.location_id = %s AND bac.outcome = 'pending'
+            """,
+            (location_id,),
+        )
+        unresolved_assumption_challenges = dict(cur.fetchone() or {})
 
-    cur.execute(
-        """
-        SELECT COUNT(*) FILTER (WHERE v.consensus_reached = FALSE) AS non_consensus_count,
-               MAX(v.iqr) AS maximum_iqr
-        FROM v_delphi_consensus_public v
-        JOIN delphi_study ds ON ds.id = v.study_id
-        WHERE ds.location_id = %s
-        """,
-        (location_id,),
-    )
-    delphi_dissent = dict(cur.fetchone() or {})
+        cur.execute(
+            """
+            SELECT COUNT(*) FILTER (WHERE v.consensus_reached = FALSE) AS non_consensus_count,
+                   MAX(v.iqr) AS maximum_iqr
+            FROM v_delphi_consensus_public v
+            JOIN delphi_study ds ON ds.id = v.study_id
+            WHERE ds.location_id = %s
+            """,
+            (location_id,),
+        )
+        delphi_dissent = dict(cur.fetchone() or {})
 
-    cur.execute(
-        """
-        SELECT composite_score, rating, confidence_level, evidence_maturity_level,
-               period_start, period_end
-        FROM v_crisp_composite_rating
-        WHERE location_id = %s
-        ORDER BY period_end DESC, score_computed_at DESC
-        LIMIT 1
-        """,
-        (location_id,),
-    )
-    crisp_risk = dict(cur.fetchone() or {})
+        cur.execute(
+            """
+            SELECT composite_score, rating, confidence_level, evidence_maturity_level,
+                   period_start, period_end
+            FROM v_crisp_composite_rating
+            WHERE location_id = %s
+            ORDER BY period_end DESC, score_computed_at DESC
+            LIMIT 1
+            """,
+            (location_id,),
+        )
+        crisp_risk = dict(cur.fetchone() or {})
 
-    cur.execute(
-        """
-        SELECT COUNT(*) FILTER (WHERE gate_result='fail') AS failed_scope_count,
-               COUNT(*) FILTER (WHERE gate_result='insufficient_data') AS insufficient_scope_count,
-               COUNT(*) FILTER (WHERE gate_result='pass') AS passed_scope_count
-        FROM v_prediction_calibration_summary
-        WHERE location_id=%s OR location_id IS NULL
-        """,
-        (location_id,),
-    )
-    prediction_calibration = dict(cur.fetchone() or {})
-    cur.close()
+        cur.execute(
+            """
+            SELECT COUNT(*) FILTER (WHERE gate_result='fail') AS failed_scope_count,
+                   COUNT(*) FILTER (WHERE gate_result='insufficient_data') AS insufficient_scope_count,
+                   COUNT(*) FILTER (WHERE gate_result='pass') AS passed_scope_count
+            FROM v_prediction_calibration_summary
+            WHERE location_id=%s OR location_id IS NULL
+            """,
+            (location_id,),
+        )
+        prediction_calibration = dict(cur.fetchone() or {})
+    finally:
+        cur.close()
 
     has_private_feedback = any(row.get("private_or_no_consent_count", 0) for row in feedback_summary)
     has_carbon_gaps = any(row.get("carbon_publication_gaps", 0) for row in evidence_gaps)
