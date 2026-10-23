@@ -50,7 +50,7 @@ TEST_ENV = {
 }
 
 
-def _compose(*files: str) -> dict:
+def _compose(*files: str, env: dict[str, str] | None = None) -> dict:
     command = ["docker", "compose", "--env-file", "/dev/null"]
     for filename in files:
         command.extend(["-f", filename])
@@ -58,7 +58,7 @@ def _compose(*files: str) -> dict:
     result = subprocess.run(
         command,
         cwd=ROOT,
-        env=TEST_ENV,
+        env=TEST_ENV if env is None else env,
         capture_output=True,
         text=True,
         check=False,
@@ -132,6 +132,30 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
     )
     assert login["environment"]["NEXT_PUBLIC_BASE_PATH"] == "/ui/v2/login"
     assert login["environment"]["ZITADEL_SERVICE_USER_TOKEN_FILE"] == "/zitadel/bootstrap/login-client.pat"
+
+
+def test_owner_selected_production_identity_and_callback_hosts_render_exactly() -> None:
+    env = {
+        **TEST_ENV,
+        "KOKONUT_ZITADEL_DOMAIN": "auth.kokonut.network",
+        "KOKONUT_OPERATOR_OIDC_ISSUER": "https://auth.kokonut.network",
+        "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": (
+            "https://hub.kokonut.network/operator/auth/callback"
+        ),
+        "KOKONUT_KERNEL_HTTPS_PORT": "443",
+    }
+    services = _compose(*FILES, env=env)["services"]
+
+    assert services["zitadel-api"]["environment"]["ZITADEL_EXTERNALDOMAIN"] == (
+        "auth.kokonut.network"
+    )
+    assert services["zitadel-api"]["environment"]["ZITADEL_EXTERNALPORT"] == "443"
+    assert services["app"]["environment"]["KOKONUT_OPERATOR_OIDC_ISSUER"] == (
+        "https://auth.kokonut.network"
+    )
+    assert services["app"]["environment"]["KOKONUT_OPERATOR_OIDC_REDIRECT_URI"] == (
+        "https://hub.kokonut.network/operator/auth/callback"
+    )
 
 
 def test_optional_identity_proxy_uses_h2c_and_routes_login_v2_separately() -> None:
