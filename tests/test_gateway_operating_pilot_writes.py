@@ -40,6 +40,12 @@ RESOURCE_PAYLOAD = {
     "urgency": "medium",
     "requested_by": "2026-11-15",
 }
+COMPETENCY_PAYLOAD = {
+    "competency_key": "Facilitation",
+    "current_level": "2.50",
+    "target_level": "4",
+    "evidence_note": "Private synthetic self-assessment evidence",
+}
 
 
 def _connection_with_result(result):
@@ -100,6 +106,76 @@ def test_demand_draft_sets_exact_create_context_and_commits_function_result(monk
     connection.commit.assert_called_once_with()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
+
+
+def test_competency_draft_sets_exact_context_and_commits_private_function_result(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"draft_id": PROFILE_ID, "status": "draft", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.create_location_operating_pilot_competency_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        REQUEST_ID,
+        COMPETENCY_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "create",
+    })]
+    assert "create_location_operating_pilot_competency_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        REQUEST_ID,
+        "facilitation",
+        operating_pilot_writes.Decimal("2.50"),
+        operating_pilot_writes.Decimal("4"),
+        "Private synthetic self-assessment evidence",
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {**COMPETENCY_PAYLOAD, "current_level": True},
+        {**COMPETENCY_PAYLOAD, "current_level": "5.01"},
+        {**COMPETENCY_PAYLOAD, "current_level": "2.001"},
+        {**COMPETENCY_PAYLOAD, "target_level": "2.49"},
+        {**COMPETENCY_PAYLOAD, "competency_key": "invalid key"},
+        {**COMPETENCY_PAYLOAD, "evidence_note": "x" * 2001},
+        {**COMPETENCY_PAYLOAD, "unsupported": "field"},
+    ],
+)
+def test_invalid_competency_draft_fails_before_database_access(payload):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid):
+        operating_pilot_writes.create_location_operating_pilot_competency_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            REQUEST_ID,
+            payload,
+            connection_factory=factory,
+        )
+    factory.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -427,6 +503,40 @@ def test_demand_draft_route_policy_requires_exact_location_create_grant():
         )
         is None
     )
+
+
+def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
+    action = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "draft", "replayed": False})
+    client = _route_app(
+        monkeypatch,
+        action,
+        "create_location_operating_pilot_competency_draft",
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments",
+        json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {"draft_id": PROFILE_ID, "status": "draft", "replayed": False}
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
+
+
+def test_competency_draft_route_policy_requires_exact_location_create_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("GET", path, enabled=True) is None
+    assert auth_route_policy("POST", path + "/extra", enabled=True) is None
+    assert auth_route_policy("POST", path, enabled=False) is None
 
 
 def test_resource_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):

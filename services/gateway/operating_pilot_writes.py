@@ -13,6 +13,7 @@ from uuid import UUID
 from services.common.tenant_context import set_operator_tenant_context
 
 _WORK_TYPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _./-]{0,49}$")
+_COMPETENCY_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,119}$")
 _PRIORITIES = {"low", "medium", "high", "critical"}
 
 
@@ -150,6 +151,61 @@ def _normalize_resource_request_payload(payload: Any) -> tuple[str, str, str, da
     if unexpected:
         raise OperatingPilotWriteInvalid("Resource draft contains unsupported fields")
     return resource_type.strip(), description.strip(), urgency, requested_by
+
+
+def _normalize_competency_draft_payload(
+    payload: Any,
+) -> tuple[str, Decimal, Decimal, str | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Competency draft body must be an object")
+    competency_key = payload.get("competency_key")
+    if not isinstance(competency_key, str) or not _COMPETENCY_KEY.fullmatch(
+        competency_key.strip()
+    ):
+        raise OperatingPilotWriteInvalid(
+            "Competency key must be 1 to 120 letters, numbers, dots, underscores, or hyphens"
+        )
+    competency_key = competency_key.strip().lower()
+
+    levels: dict[str, Decimal] = {}
+    for field in ("current_level", "target_level"):
+        value = payload.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float, str, Decimal)):
+            raise OperatingPilotWriteInvalid(f"{field} must be a decimal from 0 to 5")
+        try:
+            normalized = Decimal(str(value))
+        except (InvalidOperation, ValueError) as exc:
+            raise OperatingPilotWriteInvalid(f"{field} must be a decimal from 0 to 5") from exc
+        if (
+            not normalized.is_finite()
+            or normalized < 0
+            or normalized > 5
+            or normalized.as_tuple().exponent < -2
+        ):
+            raise OperatingPilotWriteInvalid(
+                f"{field} must be from 0 to 5 and use at most two decimals"
+            )
+        levels[field] = normalized
+    if levels["target_level"] < levels["current_level"]:
+        raise OperatingPilotWriteInvalid("Target level cannot be below the self-assessed level")
+
+    evidence_note = payload.get("evidence_note")
+    if evidence_note is not None:
+        if (
+            not isinstance(evidence_note, str)
+            or len(evidence_note) > 2000
+            or "\x00" in evidence_note
+        ):
+            raise OperatingPilotWriteInvalid(
+                "Private evidence note must be text of at most 2000 characters"
+            )
+        evidence_note = evidence_note.strip() or None
+    unexpected = set(payload) - {
+        "competency_key", "current_level", "target_level", "evidence_note"
+    }
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Competency draft contains unsupported fields")
+    return competency_key, levels["current_level"], levels["target_level"], evidence_note
 
 
 def _normalize_capacity_review_payload(payload: Any) -> tuple[str, str | None]:
@@ -343,6 +399,62 @@ def create_location_operating_pilot_resource_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot resource draft returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_operating_pilot_competency_draft(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create a private, self-reported competency draft without asserting verification."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    competency_key, current_level, target_level, evidence_note = (
+        _normalize_competency_draft_payload(payload)
+    )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.create_location_operating_pilot_competency_draft(
+                           %s::uuid, %s::uuid, %s::text, %s::numeric,
+                           %s::numeric, %s::text)""",
+                (
+                    location_id,
+                    request_id,
+                    competency_key,
+                    current_level,
+                    target_level,
+                    evidence_note,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot competency draft returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

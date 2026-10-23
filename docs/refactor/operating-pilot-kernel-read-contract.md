@@ -659,8 +659,8 @@ a separately reviewed forward migration.
 
 These slices do not establish populated Adelphi scope mapping, additional
 capacity workflows beyond own drafts/revision and independent approve/reject,
-resource-request fulfillment, post-allocation work execution,
-competency/learning/coaching workflows, demand fulfillment parity, parity with populated legacy outputs, live
+post-allocation work execution, competency submission/revision/review, learning,
+or coaching workflows, demand fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates
 remain open in `docs/refactor/batches.md`.
@@ -699,3 +699,31 @@ The focused Gateway, read, route-policy, and console selection passes 254 tests.
 The write function locks the approved request and active fulfiller binding, then changes only the request decision/status and appends a private fulfillment receipt in the same transaction. It preserves the independent review attribution; exact retries replay, while changed request reuse and second fulfillment fail closed. Requester self-confirmation is prohibited. This records a human confirmation only and does not assert inventory receipt, expense recognition, or payment. The console requires the separate grant and an explicit acknowledgement, with CSRF/no-store requests and a stable retry ID.
 
 Migration 573 passes apply/replay and 165 grouped assertions on disposable PostgreSQL 16 in native AMD64 and ARM64/QEMU. Focused Gateway, route-policy, console, and migration checks pass 308 tests. QEMU is software portability evidence only. Candidate and legacy remain untouched; migration 573 is not rolled out. Roll back by disabling the routes, exact policy, and console section; retain the additive migration and receipts if it has been applied. Broader ACL/RLS, populated parity, live OIDC/browser behavior, production recovery, and MAN-CAP-037 owner acceptance remain open.
+
+## Private competency self-assessment draft
+
+`POST /operator/api/operating-pilot/{location_id}/competency-assessments` creates
+a private self-reported draft under the exact location `operating_pilot:create`
+grant. Migration 574 rechecks signed tenant context, one active human-party
+binding, the active Adelphi farm mapping, a normalized competency key, and
+0–5 self-assessed and target levels. It stores a bounded private evidence note
+and uses a stable request ID for exact retry replay. Changed payload reuse,
+duplicate open drafts, missing grants, invalid levels, and location mismatches
+fail closed. Responses include only the draft ID, draft status, and replay flag.
+The function writes neither `operating_competency_profile` nor verified
+competency state; submission and independent review remain separate future
+actions. Runtime and Directus have no direct access to the private draft or its
+receipt, and the non-login function owner cannot read the evidence note or
+mutate receipts.
+
+Migration 574 applies and replays with 176 grouped assertions on network-disabled
+disposable PostgreSQL 16 on native AMD64 and linux/arm64 Docker/QEMU
+([native evidence](builds/2026-10-22-recovery/cap-037-competency-draft-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-competency-draft-arm64-disposable.json)).
+Focused Gateway validation and route-policy checks pass 10 tests; Ruff and
+Python compilation pass. QEMU is software portability evidence only. Candidate
+and legacy databases are untouched; migration 574 is not rolled out. Disable
+the route and exact policy to roll back; retain the additive migration and
+private receipts if applied. Competency submission, own-history/revision,
+independent review, populated parity, live OIDC/browser behavior, broader
+ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.
