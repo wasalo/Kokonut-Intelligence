@@ -21,6 +21,34 @@ SOURCE_READER_MIGRATION = "schema:541_agent_synthesis_source_reader.sql"
 sys.path.insert(0, str(ROOT))
 
 
+class ReplayCommandFailure(RuntimeError):
+    """A failed captured replay command, retaining its output for safe parsing."""
+
+    def __init__(self, returncode: int, stdout: str, stderr: str) -> None:
+        super().__init__(f"command failed ({returncode})")
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def started_schema_migrations(output: str) -> list[str]:
+    """Extract ordered migration IDs logged immediately before each apply."""
+    return [
+        match.rstrip(".")
+        for match in re.findall(r"Applying migration (schema:\S+)", output)
+    ]
+
+
+def safe_error_summary(output: str) -> str | None:
+    """Keep only bounded PostgreSQL diagnostic lines in replay evidence."""
+    lines = [
+        line.strip()
+        for line in output.splitlines()
+        if re.search(r"\b(?:ERROR|DETAIL|HINT):", line)
+    ]
+    return " | ".join(lines)[:2000] or None
+
+
 def run(
     command: list[str],
     *,
@@ -39,6 +67,12 @@ def run(
         check=False,
     )
     if result.returncode:
+        if capture:
+            raise ReplayCommandFailure(
+                result.returncode,
+                result.stdout or "",
+                result.stderr or "",
+            )
         raise RuntimeError(
             f"command failed ({result.returncode}): {' '.join(command[:4])}"
         )
@@ -144,7 +178,7 @@ def main() -> int:
         "cleanup": {"attempted": False, "completed": False},
     }
     stage = "image_inspection"
-    started = time.monotonic()
+    started_at = time.monotonic()
     project_started = False
     try:
         image = run(
@@ -175,7 +209,27 @@ def main() -> int:
         )
 
         stage = "schemas_before_signed_source_reader"
-        run(migration_command(project, database, ids[:split_at]), env=env)
+        try:
+            run(
+                migration_command(project, database, ids[:split_at]),
+                env=env,
+                capture=True,
+            )
+        except ReplayCommandFailure as exc:
+            migration_starts = started_schema_migrations(exc.stderr + "\n" + exc.stdout)
+            if migration_starts:
+                failed_migration = migration_starts[-1]
+                applied_count = max(0, len(migration_starts) - 1)
+                evidence["schema_files_applied"] = applied_count
+                evidence["schema_files_pending"] = max(
+                    0, len(ids) - applied_count - 1
+                )
+                evidence["schema_files_failed"] = 1
+                evidence["failed_migration"] = failed_migration
+                if applied_count:
+                    evidence["latest_applied_migration"] = migration_starts[-2]
+                stage = f"migration_{failed_migration.split(':', 1)[1]}"
+            raise
         evidence["schema_files_applied"] = split_at
         evidence["schema_files_pending"] = len(ids) - split_at
         evidence["latest_applied_migration"] = ids[split_at - 1]
@@ -244,6 +298,10 @@ def main() -> int:
     except Exception as exc:  # evidence stores only safe failure metadata
         evidence["failed_stage"] = stage
         evidence["failure"] = type(exc).__name__
+        if isinstance(exc, ReplayCommandFailure):
+            command_diagnostic = safe_error_summary(exc.stderr + "\n" + exc.stdout)
+            if command_diagnostic:
+                evidence["command_diagnostic"] = command_diagnostic
         if stage.startswith("migration_"):
             migration_id = f"schema:{stage.removeprefix('migration_')}"
             evidence["failed_migration"] = migration_id
@@ -270,16 +328,12 @@ def main() -> int:
                     capture_output=True,
                     check=False,
                 )
-                safe_lines = [
-                    line.strip()
-                    for line in diagnostic.stderr.splitlines()
-                    if "ERROR:" in line or "DETAIL:" in line or "HINT:" in line
-                ]
-                if safe_lines:
-                    evidence["migration_diagnostic"] = " | ".join(safe_lines)[:2000]
+                migration_diagnostic = safe_error_summary(diagnostic.stderr)
+                if migration_diagnostic:
+                    evidence["migration_diagnostic"] = migration_diagnostic
         print(f"schema replay failed during {stage} ({type(exc).__name__})", file=sys.stderr)
     finally:
-        evidence["elapsed_seconds"] = round(time.monotonic() - started, 1)
+        evidence["elapsed_seconds"] = round(time.monotonic() - started_at, 1)
         if project_started:
             evidence["cleanup"] = {"attempted": True, "completed": False}
             cleanup = subprocess.run(

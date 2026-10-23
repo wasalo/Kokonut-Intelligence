@@ -53,6 +53,12 @@ inside the optional candidate profile. Directus is not enabled in the Kernel
 candidate; Metabase runs only when the candidate `analytics` profile is selected.
 Neither service is part of the default, minimal, edge, or standard profile.
 
+Fresh schema bootstrap also creates a locked `NOLOGIN` placeholder for the
+historical `directus` role because migrations 595–597 revoke privileges from
+it. This is distinct from the optional Kernel adapter's
+`kokonut_directus_runtime` account. The bootstrap leaves any pre-existing
+`directus` role unchanged; it does not enable Directus or grant it access.
+
 | Identity | Database scope | Required access | Explicit boundary |
 | --- | --- | --- | --- |
 | `kokonut_directus_runtime` | Kernel application database | `CONNECT`; `USAGE`; `SELECT`, `INSERT`, `UPDATE`, `DELETE` on Directus-managed relations; sequence `USAGE`, `SELECT`, `UPDATE` | No ownership, schema `CREATE`, role/database administration, or access to the metadata database. Directus CRUD permissions remain a separate API authorization layer. |

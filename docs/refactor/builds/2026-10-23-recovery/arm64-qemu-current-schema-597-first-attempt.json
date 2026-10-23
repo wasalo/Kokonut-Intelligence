@@ -1,0 +1,39 @@
+{
+  "result": "failed",
+  "date": "2026-10-23",
+  "source_revision": "ba11ae3b",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261023-28da21db",
+  "schema_files_expected": 588,
+  "schema_files_applied": 117,
+  "schema_files_pending": 470,
+  "schema_files_failed": 1,
+  "latest_migration": "schema:597_ai_summary_operator_run_review_attribution.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "failed_stage": "migration_123_analysis_environments.sql",
+  "failure": "RuntimeError",
+  "elapsed_seconds": 547.6,
+  "latest_applied_migration": "schema:122_federation.sql",
+  "failed_migration": "schema:123_analysis_environments.sql",
+  "diagnostic_follow_up": {
+    "native_prefix_through_123": "passed",
+    "arm64_qemu_migration_123_alone": "passed",
+    "arm64_qemu_prefix_through_123": "passed",
+    "interpretation": "The first full replay failure did not reproduce in isolated migration and prefix checks; a fresh full-chain retry is required before updating the current portability status."
+  }
+}

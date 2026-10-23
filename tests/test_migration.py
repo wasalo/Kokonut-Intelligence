@@ -33,9 +33,11 @@ def test_clean_bootstrap_declares_locked_directus_role_for_migration_replay():
     bootstrap = Path(__file__).parents[1] / "scripts" / "bootstrap-optional-roles.sql"
     source = bootstrap.read_text()
 
+    assert "rolname = 'directus'" in source
+    assert "CREATE ROLE directus NOLOGIN NOINHERIT NOSUPERUSER " in source
+    assert "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS" in source
     assert "rolname = 'kokonut_directus_runtime'" in source
     assert "CREATE ROLE kokonut_directus_runtime NOLOGIN NOINHERIT NOSUPERUSER " in source
-    assert "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS" in source
     assert "rolname = 'kokonut_worker_login'" in source
     assert "rolname = 'kokonut_runtime'" in source
 
@@ -50,6 +52,7 @@ def test_schema_migrate_bootstraps_optional_roles_before_applying(monkeypatch, c
     cli.cmd_migrate(schemas_only=True)
 
     assert [operation for operation, _value in operations] == ["bootstrap", "apply"]
+    assert "directus" in operations[0][1]
     assert "kokonut_directus_runtime" in operations[0][1]
     assert "NOLOGIN" in operations[0][1]
     assert "Applying 1 migration(s)" in capsys.readouterr().out

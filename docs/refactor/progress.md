@@ -1,3 +1,26 @@
+### Optional Directus historical-role bootstrap and ARM64 replay diagnostics — 23 October 2026
+
+The clean schema bootstrap now creates a locked `directus` placeholder only
+when the historical role is absent. Migrations 595–597 revoke its old grants;
+without the placeholder, a fresh install with the optional Directus profile
+disabled fails during migration replay. Existing `directus` roles and the
+separate `kokonut_directus_runtime` account are unchanged. The focused
+migration/checker selection passes 40 tests, Ruff, Python compilation, and diff
+checks. A network-disabled ARM64/QEMU PostgreSQL 16 check applied the bootstrap
+twice and verified all seven role flags are disabled; its project and volume
+were removed ([evidence](builds/2026-10-23-recovery/optional-directus-placeholder-role-arm64.json)).
+The preceding full ARM64 replay reached migration 595 and stopped because the
+historical `directus` role was absent ([replay evidence](builds/2026-10-23-recovery/arm64-qemu-current-schema-597.json)).
+
+The full-schema replay checker now records ordered migration progress and
+bounded PostgreSQL diagnostics and no longer reuses the timer variable for the
+migration list. A retry exposed the regression, then migration 002 replayed
+successfully on the isolated database; that interrupted attempt was cleaned
+up. A fresh full current-schema replay remains unverified. No candidate or
+legacy database was touched. Checklist: 1,028 complete / 24 open (1,052 total);
+matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66
+MAN-CAP checks accepted.
+
 ### CAP-038 authenticated worker lifecycle insert guard — 22 October 2026
 
 Migration 579 extends the signed worker lifecycle restriction to terminal

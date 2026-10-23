@@ -6,7 +6,19 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Current implementation status (23 October 2026):** 1,027 checklist items are complete and 24 remain open (1,051 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot and runtime permission-API probe add implementation evidence, not capability acceptance.
+**Current implementation status (23 October 2026):** 1,028 checklist items are complete and 24 remain open (1,052 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot/runtime permission-API probe and locked historical-role bootstrap add implementation evidence, not capability acceptance.
+
+**Fresh-bootstrap compatibility for optional Directus — 23 October 2026:**
+the ordered bootstrap now creates the historical `directus` role as a locked
+`NOLOGIN` placeholder only when absent. This satisfies the role revocations in
+migrations 595–597 while leaving an existing role and the distinct
+`kokonut_directus_runtime` account unchanged. The focused migration/checker
+selection passes 40 tests, with Ruff and compilation. An isolated ARM64/QEMU
+PostgreSQL 16 check applied the bootstrap twice and verified the login,
+inheritance, superuser, database/role creation, replication, and RLS-bypass
+flags are all disabled ([evidence](builds/2026-10-23-recovery/optional-directus-placeholder-role-arm64.json)).
+This closes the missing clean-bootstrap prerequisite, not current-source full
+schema replay or Raspberry Pi hardware/power acceptance.
 
 **Directus effective permission baseline — 23 October 2026:** the pinned Directus 12.1.1 profile applied and replayed the repository permission seed in a fresh disposable Kernel database under `kokonut_directus_runtime`. The snapshot contains 175 rows from nine repository-managed policies: 125 wildcard-field and 50 explicit-field rows; zero managed `farm_activity` permissions remain, and the second seed application leaves the complete snapshot unchanged (SHA-256 `93eec38a…f7877`). A synthetic API probe returns 403 `RESOURCE_RESTRICTED` when creating a custom permission; Agent Write remains read-only and Agent Write/Field Worker writes fail closed without rows. This identifies the unlicensed profile boundary, not successful role/field parity. Built-in/custom policies, broader API authorization, hook effects, populated targets, and MAN-CAP acceptance remain open. Evidence: [effective rows](builds/2026-10-23-recovery/directus-effective-permission-rows.json), [runtime probe](builds/2026-10-23-recovery/directus-effective-permissions.json).
 
