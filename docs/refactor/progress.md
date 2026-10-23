@@ -1,3 +1,20 @@
+### CAP-038 authenticated worker lifecycle guard — 22 October 2026
+
+Migration 578 updates the active governed-status trigger to recognize database
+authenticated members of `kokonut_worker_execution`, even when the legacy
+caller-set `app.agent_id` is blank. It uses `session_user` membership as well
+as `current_user`, so a security-definer wrapper cannot hide the worker login.
+The compatibility marker still adds the restriction for legacy callers but is
+not treated as identity. Disposable PostgreSQL 16 replay of migrations 405 and
+578 passes 22 grouped assertions, including worker denial with a blank marker,
+security-definer denial, allowed non-terminal transitions, and the existing
+human path. Migration unit tests pass 36; Ruff, compilation, and diff checks
+pass. No candidate or legacy database was touched; migration 578 is not rolled
+out. Per-task identities, insert coverage, least-privilege source grants, and
+MAN-CAP-038 remain open. Checklist: 1,004 complete / 24 open (1,028 total);
+matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+Evidence: [disposable PostgreSQL checks](builds/2026-10-22-recovery/cap-038-agent-safety-trigger-disposable.json).
+
 ### CAP-038 deterministic summary output scope — 22 October 2026
 
 The deterministic AI-summary worker now rejects non-object results and rejects

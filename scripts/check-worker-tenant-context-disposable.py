@@ -20,8 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 FIXTURE = ROOT / "tests/fixtures/worker_tenant_context_disposable.sql"
 MIGRATION = ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql"
+AGENT_SAFETY_MIGRATION = ROOT / "schemas/postgres/578_authenticated_agent_safety_trigger.sql"
 DEFAULT_OUTPUT = (
-    ROOT / "docs/refactor/builds/2026-10-16-recovery/worker-tenant-context-disposable.json"
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-agent-safety-trigger-disposable.json"
 )
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -163,6 +164,8 @@ def main() -> int:
         docker_sql(docker, container, FIXTURE.read_text(encoding="utf-8"))
         docker_sql(docker, container, MIGRATION.read_text(encoding="utf-8"))
         docker_sql(docker, container, MIGRATION.read_text(encoding="utf-8"))
+        docker_sql(docker, container, AGENT_SAFETY_MIGRATION.read_text(encoding="utf-8"))
+        docker_sql(docker, container, AGENT_SAFETY_MIGRATION.read_text(encoding="utf-8"))
         docker_sql(
             docker,
             container,
@@ -179,6 +182,8 @@ def main() -> int:
                 '{WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
                 '{RESOURCE}', '{ACTION}', 'disposable fixture'
             );
+            GRANT SELECT, UPDATE ON public.agent_safety_probe
+                TO kokonut_worker_execution, kokonut_runtime;
             """,
         )
         mapped = run([docker, "port", container, "5432/tcp"]).strip().splitlines()
@@ -222,6 +227,78 @@ def main() -> int:
                     raise AssertionError("tampered worker payload passed signature validation")
             checks.append("valid exact worker grant signs tenant/location/actor and operation")
             checks.append("tampered worker context payload fails HMAC validation")
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = ''")
+                try:
+                    cursor.execute(
+                        "UPDATE public.agent_safety_probe SET status = 'verified' WHERE id = 1"
+                    )
+                except psycopg2.Error as exc:
+                    worker.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    worker.rollback()
+                    raise AssertionError(
+                        "authenticated worker role changed a governed status without app.agent_id"
+                    )
+            checks.append(
+                "authenticated worker role cannot verify governed records when app.agent_id is cleared"
+            )
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = ''")
+                try:
+                    cursor.execute(
+                        "SELECT public.agent_safety_security_definer_update_probe(4, 'published')"
+                    )
+                except psycopg2.Error as exc:
+                    worker.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    worker.rollback()
+                    raise AssertionError(
+                        "security-definer worker call bypassed governed lifecycle guard"
+                    )
+            checks.append(
+                "worker session membership preserves lifecycle guard through a security-definer function"
+            )
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute("UPDATE public.agent_safety_probe SET status = 'draft' WHERE id = 2")
+            worker.commit()
+            with runtime.cursor() as cursor:
+                cursor.execute("SELECT status FROM public.agent_safety_probe WHERE id = 2")
+                if cursor.fetchone()[0] != "draft":
+                    raise AssertionError("worker could not perform a permitted non-terminal transition")
+            checks.append("worker can perform allowed non-terminal governed status transitions")
+
+            with runtime.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE public.agent_safety_probe SET status = 'verified' WHERE id = 1"
+                )
+            runtime.commit()
+            checks.append("non-worker runtime retains the existing human lifecycle path")
+
+            with runtime.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = 'synthetic-agent'")
+                try:
+                    cursor.execute(
+                        "UPDATE public.agent_safety_probe SET status = 'published' WHERE id = 3"
+                    )
+                except psycopg2.Error as exc:
+                    runtime.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    runtime.rollback()
+                    raise AssertionError("legacy agent marker stopped restricting lifecycle escalation")
+            checks.append("legacy app.agent_id marker remains restrictive for compatibility")
 
             with worker.cursor() as cursor:
                 cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
@@ -549,17 +626,20 @@ def main() -> int:
         result = {
             "schema_version": 1,
             "date": datetime.now(timezone.utc).date().isoformat(),
-            "scope": "Migration 405 signed worker context and execution-role acceptance",
+            "scope": "Migration 405 signed worker context and migration 578 authenticated agent lifecycle guard acceptance",
             "database": "isolated disposable PostgreSQL 16 container",
-            "migration_file": MIGRATION.relative_to(ROOT).as_posix(),
-            "migration_replay": "passed",
+            "migration_files": [
+                MIGRATION.relative_to(ROOT).as_posix(),
+                AGENT_SAFETY_MIGRATION.relative_to(ROOT).as_posix(),
+            ],
+            "migration_replay": "passed for migrations 405 and 578",
             "command": "python3 scripts/check-worker-tenant-context-disposable.py",
             "container_network": "loopback-only published port; runner makes no external requests",
             "checks": [{"result": "passed", "description": item} for item in checks],
             "candidate_or_legacy_database_access": False,
             "worker_credential_printed": False,
             "limitations": [
-                "Only the worker context migration ran against a minimal synthetic prior-schema fixture.",
+                "Migrations 405 and 578 ran against a minimal synthetic prior-schema fixture; the lifecycle trigger uses one synthetic table instead of replaying all governed tables.",
                 "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised.",
             ],
         }

@@ -48,6 +48,55 @@ INSERT INTO public.location_tenant_owner_verification
     ('a0000000-0000-0000-0000-000000000811', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000801', NULL),
     ('a0000000-0000-0000-0000-000000000812', 'a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000802', NULL);
 
+-- Minimal migration-350 trigger contract for migration 578 acceptance.
+CREATE TABLE public.agent_safety_probe (
+    id INTEGER PRIMARY KEY,
+    status TEXT NOT NULL
+);
+INSERT INTO public.agent_safety_probe (id, status) VALUES
+    (1, 'submitted'),
+    (2, 'submitted'),
+    (3, 'submitted'),
+    (4, 'submitted');
+
+CREATE OR REPLACE FUNCTION public.agent_safety_security_definer_update_probe(
+    target_id INTEGER,
+    next_status TEXT
+)
+RETURNS VOID
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+    UPDATE public.agent_safety_probe
+       SET status = next_status
+     WHERE id = target_id
+$$;
+
+CREATE OR REPLACE FUNCTION public.assert_agent_safety()
+RETURNS TRIGGER AS $$
+DECLARE
+    agent_id TEXT;
+BEGIN
+    agent_id := current_setting('app.agent_id', TRUE);
+    IF agent_id IS NULL OR agent_id = '' THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.status IS DISTINCT FROM OLD.status
+       AND NEW.status IN ('verified', 'published') THEN
+        RAISE EXCEPTION 'Agent % cannot set status to % on %',
+            agent_id, NEW.status, TG_TABLE_NAME;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_agent_safety_probe
+    BEFORE UPDATE ON public.agent_safety_probe
+    FOR EACH ROW
+    WHEN (NEW.status IS DISTINCT FROM OLD.status)
+    EXECUTE FUNCTION public.assert_agent_safety();
+
 ALTER TABLE public.organization ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.organization FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.location ENABLE ROW LEVEL SECURITY;

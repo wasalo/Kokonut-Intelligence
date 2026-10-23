@@ -6,6 +6,17 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 authenticated worker lifecycle guard — 22 October 2026:** migration
+578 makes the existing governed-status trigger recognize authenticated worker
+database logins and their security-definer calls; `app.agent_id` remains only an
+additional restrictive compatibility marker. Disposable PostgreSQL 16 replay
+and 22 grouped checks pass, along with the 36-test migration suite, Ruff,
+compilation, and diff checks. This covers protected status updates only; it
+does not provide per-agent identities, insert protection, least-privilege
+source grants, or MAN-CAP-038 acceptance
+([migration](../schemas/postgres/578_authenticated_agent_safety_trigger.sql);
+[evidence](builds/2026-10-22-recovery/cap-038-agent-safety-trigger-disposable.json)).
+
 **CAP-038 deterministic summary output scope — 22 October 2026:** the signed
 source worker now rejects non-object output and rejects a returned
 `location_id` that differs from the requested location before creating a draft.
