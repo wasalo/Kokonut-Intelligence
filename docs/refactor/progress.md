@@ -15827,3 +15827,16 @@ complete / 24 open (1,051 total); the matrix remains 30 baseline-retained,
 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP checks are accepted.
 Evidence: [stored rows](builds/2026-10-23-recovery/directus-effective-permission-rows.json),
 [runtime probe](builds/2026-10-23-recovery/directus-effective-permissions.json).
+
+### Progress addendum — CI #774 worker inventory refresh, 23 October 2026
+
+Hosted CI #774 failed seven worker source-inventory freshness/coverage checks
+while 9,114 tests and 163 subtests passed. The stored worker closure, function
+graph, SQL inventory, SQL reachability, and boundary preflight were stale for
+the current sources; the graph grew from 95 to 96 source files. Regenerating
+all five reports restored agreement. Their focused suite passes 35 tests in
+41.14 seconds, and `git diff --check` passes. No candidate or legacy database
+was touched by this repair. The repaired reports have not yet received a hosted
+CI rerun ([evidence](builds/2026-10-23-recovery/ci-774-worker-inventory-refresh.json)).
+The checklist remains 1,031 complete / 24 open (1,055 total); capability
+classification and MAN-CAP acceptance are unchanged.

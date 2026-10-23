@@ -182,6 +182,7 @@
         "services.common.errors",
         "services.common.http",
         "services.common.logging",
+        "services.common.smtp",
         "services.common.worker_environment",
         "services.core.features",
         "services.core.providers",
@@ -204,6 +205,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
@@ -546,8 +548,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 19,
+          "line": 18,
           "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -564,19 +572,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 423,
+          "line": 437,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 430,
+          "line": 444,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 431,
+          "line": 445,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -701,6 +709,7 @@
         "services.common.errors",
         "services.common.http",
         "services.common.logging",
+        "services.common.smtp",
         "services.common.tenant_context",
         "services.common.worker_database",
         "services.common.worker_environment",
@@ -726,6 +735,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
@@ -854,8 +864,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 19,
+          "line": 18,
           "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -872,26 +888,32 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 423,
+          "line": 437,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 430,
+          "line": 444,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 431,
+          "line": 445,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
+          "line": 38,
           "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 39,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -6279,6 +6301,7 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.smtp",
         "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.features",
@@ -6292,6 +6315,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
@@ -6380,8 +6404,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 19,
+          "line": 18,
           "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -6398,19 +6428,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 423,
+          "line": 437,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 430,
+          "line": 444,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 431,
+          "line": 445,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -6430,6 +6460,7 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.smtp",
         "services.common.worker_database",
         "services.common.worker_environment",
         "services.core.features",
@@ -6443,6 +6474,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
@@ -6531,8 +6563,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 19,
+          "line": 18,
           "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -6549,19 +6587,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 423,
+          "line": 437,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 430,
+          "line": 444,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 431,
+          "line": 445,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -6583,6 +6621,7 @@
         "services.common.errors",
         "services.common.http",
         "services.common.logging",
+        "services.common.smtp",
         "services.common.tenant_context",
         "services.common.worker_database",
         "services.common.worker_environment",
@@ -6608,6 +6647,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
@@ -6736,8 +6776,14 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 19,
+          "line": 18,
           "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 19,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {
@@ -6754,26 +6800,32 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 423,
+          "line": 437,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 430,
+          "line": 444,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 431,
+          "line": 445,
           "target": "services.core.providers",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 39,
+          "line": 38,
           "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 39,
+          "target": "services.common.smtp",
           "kind": "from"
         },
         {

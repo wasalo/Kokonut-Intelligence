@@ -4,10 +4,10 @@
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 32,
-    "source_files": 95,
+    "source_files": 96,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 678,
-    "direct_call_edges": 931,
+    "function_memberships": 682,
+    "direct_call_edges": 936,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -159,6 +159,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
@@ -213,6 +214,22 @@
           "class_scope": null,
           "source": "services/common/errors.py",
           "line": 4
+        },
+        {
+          "key": "services.common.smtp:send_message",
+          "module": "services.common.smtp",
+          "qualname": "send_message",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 39
+        },
+        {
+          "key": "services.common.smtp:validate_settings",
+          "module": "services.common.smtp",
+          "qualname": "validate_settings",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 16
         },
         {
           "key": "services.common.worker_environment:event_handler_worker_policy",
@@ -644,7 +661,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 420
+          "line": 434
         },
         {
           "key": "services.events.notification_outbox:_finish_attempt",
@@ -652,7 +669,7 @@
           "qualname": "_finish_attempt",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 483
+          "line": 497
         },
         {
           "key": "services.events.notification_outbox:_recover_expired_leases",
@@ -660,7 +677,7 @@
           "qualname": "_recover_expired_leases",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 330
+          "line": 344
         },
         {
           "key": "services.events.notification_outbox:_retry_delay_seconds",
@@ -668,7 +685,7 @@
           "qualname": "_retry_delay_seconds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 478
+          "line": 492
         },
         {
           "key": "services.events.notification_outbox:_storage_thresholds",
@@ -676,7 +693,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 556
+          "line": 570
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -684,7 +701,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 637
+          "line": 651
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -692,7 +709,7 @@
           "qualname": "claim_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 356
+          "line": 370
         },
         {
           "key": "services.events.notification_outbox:deliver_batch",
@@ -700,7 +717,7 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 530
+          "line": 544
         },
         {
           "key": "services.events.notification_outbox:dispose_dead_letter",
@@ -708,7 +725,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 687
+          "line": 701
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -716,7 +733,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 576
+          "line": 590
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -724,7 +741,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 618
+          "line": 632
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -732,7 +749,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 645
+          "line": 659
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -752,6 +769,12 @@
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.common.smtp:send_message",
+          "callee": "services.common.smtp:validate_settings",
+          "source": "services/common/smtp.py",
+          "line": 54
+        },
         {
           "caller": "services.events.bus:EventBus._claim",
           "callee": "services.events.bus:EventBus._get_conn",
@@ -1438,75 +1461,87 @@
         },
         {
           "caller": "services.events.notification_outbox:_configured_channels",
+          "callee": "services.common.smtp:validate_settings",
+          "source": "services/events/notification_outbox.py",
+          "line": 173
+        },
+        {
+          "caller": "services.events.notification_outbox:_configured_channels",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
           "line": 166
         },
         {
           "caller": "services.events.notification_outbox:_deliver",
+          "callee": "services.common.smtp:send_message",
+          "source": "services/events/notification_outbox.py",
+          "line": 477
+        },
+        {
+          "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 433
+          "line": 447
         },
         {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
-          "line": 491
+          "line": 505
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_configured_channels",
           "source": "services/events/notification_outbox.py",
-          "line": 371
+          "line": 385
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 373
+          "line": 387
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 378
+          "line": 392
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 537
+          "line": 551
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 546
+          "line": 560
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 532
+          "line": 546
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 697
+          "line": 711
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 597
+          "line": 611
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 646
+          "line": 660
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -1728,6 +1763,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
@@ -1778,6 +1814,22 @@
           "line": 4
         },
         {
+          "key": "services.common.smtp:send_message",
+          "module": "services.common.smtp",
+          "qualname": "send_message",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 39
+        },
+        {
+          "key": "services.common.smtp:validate_settings",
+          "module": "services.common.smtp",
+          "qualname": "validate_settings",
+          "class_scope": null,
+          "source": "services/common/smtp.py",
+          "line": 16
+        },
+        {
           "key": "services.core.providers:ProviderSettings.from_environment",
           "module": "services.core.providers",
           "qualname": "ProviderSettings.from_environment",
@@ -1815,7 +1867,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 295
+          "line": 309
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -1823,7 +1875,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 175
+          "line": 189
         },
         {
           "key": "services.ingestion.anomaly_detector:_get_event_bus",
@@ -2132,6 +2184,12 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.common.smtp:send_message",
+          "callee": "services.common.smtp:validate_settings",
+          "source": "services/common/smtp.py",
+          "line": 54
+        },
+        {
           "caller": "services.events.bus:EventBus._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/bus.py",
@@ -2153,13 +2211,13 @@
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 318
+          "line": 332
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 185
+          "line": 199
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
@@ -2388,6 +2446,12 @@
           "callee": "services.ingestion.mqtt_actuator:send_actuation_command",
           "source": "services/ingestion/anomaly_detector.py",
           "line": 628
+        },
+        {
+          "caller": "services.ingestion.anomaly_detector:send_email_notification",
+          "callee": "services.common.smtp:send_message",
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 521
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_notifications",
@@ -11623,6 +11687,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
@@ -11700,7 +11765,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 295
+          "line": 309
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -11708,7 +11773,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 175
+          "line": 189
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -11716,7 +11781,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 250
+          "line": 264
         }
       ],
       "direct_call_edges": [
@@ -11772,19 +11837,19 @@
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 318
+          "line": 332
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 185
+          "line": 199
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 261
+          "line": 275
         }
       ],
       "callback_edges": [],
@@ -11799,6 +11864,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",
         "services/core/features.py",
@@ -11884,7 +11950,7 @@
           "qualname": "_prepare_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 295
+          "line": 309
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification",
@@ -11892,7 +11958,7 @@
           "qualname": "enqueue_event_notification",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 175
+          "line": 189
         },
         {
           "key": "services.events.notification_outbox:enqueue_event_notification_isolated",
@@ -11900,7 +11966,7 @@
           "qualname": "enqueue_event_notification_isolated",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 250
+          "line": 264
         }
       ],
       "direct_call_edges": [
@@ -11962,19 +12028,19 @@
           "caller": "services.events.notification_outbox:_prepare_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 318
+          "line": 332
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 185
+          "line": 199
         },
         {
           "caller": "services.events.notification_outbox:enqueue_event_notification_isolated",
           "callee": "services.events.notification_outbox:_prepare_event_notification",
           "source": "services/events/notification_outbox.py",
-          "line": 261
+          "line": 275
         }
       ],
       "callback_edges": [],
@@ -11991,6 +12057,7 @@
         "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/smtp.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
         "services/common/worker_environment.py",

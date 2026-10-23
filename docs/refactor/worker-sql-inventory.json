@@ -4,7 +4,7 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 32,
-    "source_files": 95,
+    "source_files": 96,
     "execution_sites": 341,
     "static_literal_sites": 298,
     "composed_or_variable_sites": 43
@@ -2332,9 +2332,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:196:12",
+      "id": "services/events/notification_outbox.py:210:12",
       "source": "services/events/notification_outbox.py",
-      "line": 196,
+      "line": 210,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2353,9 +2353,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:211:12",
+      "id": "services/events/notification_outbox.py:225:12",
       "source": "services/events/notification_outbox.py",
-      "line": 211,
+      "line": 225,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2374,9 +2374,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:231:16",
+      "id": "services/events/notification_outbox.py:245:16",
       "source": "services/events/notification_outbox.py",
-      "line": 231,
+      "line": 245,
       "column": 16,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2395,9 +2395,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:276:8",
+      "id": "services/events/notification_outbox.py:290:8",
       "source": "services/events/notification_outbox.py",
-      "line": 276,
+      "line": 290,
       "column": 8,
       "scope": "enqueue_event_notification_isolated",
       "method": "execute",
@@ -2414,9 +2414,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:332:8",
+      "id": "services/events/notification_outbox.py:346:8",
       "source": "services/events/notification_outbox.py",
-      "line": 332,
+      "line": 346,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2436,9 +2436,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:343:8",
+      "id": "services/events/notification_outbox.py:357:8",
       "source": "services/events/notification_outbox.py",
-      "line": 343,
+      "line": 357,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2457,9 +2457,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:380:8",
+      "id": "services/events/notification_outbox.py:394:8",
       "source": "services/events/notification_outbox.py",
-      "line": 380,
+      "line": 394,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -2480,9 +2480,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:408:12",
+      "id": "services/events/notification_outbox.py:422:12",
       "source": "services/events/notification_outbox.py",
-      "line": 408,
+      "line": 422,
       "column": 12,
       "scope": "claim_batch",
       "method": "execute",
@@ -2501,9 +2501,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:493:8",
+      "id": "services/events/notification_outbox.py:507:8",
       "source": "services/events/notification_outbox.py",
-      "line": 493,
+      "line": 507,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2522,9 +2522,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:517:8",
+      "id": "services/events/notification_outbox.py:531:8",
       "source": "services/events/notification_outbox.py",
-      "line": 517,
+      "line": 531,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2543,9 +2543,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:579:8",
+      "id": "services/events/notification_outbox.py:593:8",
       "source": "services/events/notification_outbox.py",
-      "line": 579,
+      "line": 593,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2564,9 +2564,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:581:8",
+      "id": "services/events/notification_outbox.py:595:8",
       "source": "services/events/notification_outbox.py",
-      "line": 581,
+      "line": 595,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2586,9 +2586,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:622:8",
+      "id": "services/events/notification_outbox.py:636:8",
       "source": "services/events/notification_outbox.py",
-      "line": 622,
+      "line": 636,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -2607,9 +2607,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:652:8",
+      "id": "services/events/notification_outbox.py:666:8",
       "source": "services/events/notification_outbox.py",
-      "line": 652,
+      "line": 666,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2628,9 +2628,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:663:8",
+      "id": "services/events/notification_outbox.py:677:8",
       "source": "services/events/notification_outbox.py",
-      "line": 663,
+      "line": 677,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2649,9 +2649,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:675:8",
+      "id": "services/events/notification_outbox.py:689:8",
       "source": "services/events/notification_outbox.py",
-      "line": 675,
+      "line": 689,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2670,9 +2670,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:703:8",
+      "id": "services/events/notification_outbox.py:717:8",
       "source": "services/events/notification_outbox.py",
-      "line": 703,
+      "line": 717,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2691,9 +2691,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:714:8",
+      "id": "services/events/notification_outbox.py:728:8",
       "source": "services/events/notification_outbox.py",
-      "line": 714,
+      "line": 728,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2712,9 +2712,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:723:8",
+      "id": "services/events/notification_outbox.py:737:8",
       "source": "services/events/notification_outbox.py",
-      "line": 723,
+      "line": 737,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",

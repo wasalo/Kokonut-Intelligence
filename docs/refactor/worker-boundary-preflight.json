@@ -15,7 +15,7 @@
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 95,
+    "source_file_count": 96,
     "unresolved_local_module_count": 0,
     "known_allowlisted_dynamic_import_site_count": 3,
     "passed": true
