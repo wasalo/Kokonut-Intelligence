@@ -418,6 +418,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "kokonut_agent_holistic_wellbeing_login",
             "AGENT_HOLISTIC_WELLBEING_SOURCE",
         ),
+        (
+            "agent_feedback_source",
+            "kokonut_agent_feedback_login",
+            "AGENT_FEEDBACK_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(

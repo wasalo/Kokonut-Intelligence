@@ -141,6 +141,29 @@ def test_holistic_wellbeing_profile_uses_only_its_source_and_draft_identities():
     }
 
 
+def test_feedback_profile_uses_only_its_source_and_draft_identities():
+    service = _services()["agent-feedback-worker"]
+
+    assert service["entrypoint"] == [
+        "python3",
+        "-m",
+        "services.agents.worker_cli",
+        "--source-only",
+        "--task-key",
+        "feedback_synthesis",
+    ]
+    assert service["profiles"] == ["feedback-worker"]
+    _assert_no_shared_database_environment(service)
+    assert set(service["environment"]) == {
+        "KOKONUT_ENV",
+        "KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
+        "PYTHONDONTWRITEBYTECODE",
+    }
+
+
 def test_ebf_evidence_gap_profile_uses_only_its_signed_source_identity():
     service = _services()["ebf-evidence-gap-worker"]
 

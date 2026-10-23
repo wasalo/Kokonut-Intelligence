@@ -558,6 +558,65 @@ def test_holistic_wellbeing_synthesis_uses_task_specific_source_identity_and_rea
     connection.close.assert_called_once_with()
 
 
+def test_feedback_synthesis_uses_task_specific_source_identity_and_reader(monkeypatch):
+    from services.agents.feedback_agent import agent
+
+    connection, cursor = _source_connection()
+    monkeypatch.setattr(
+        agent,
+        "synthesize",
+        lambda _connection, location_id=None: {
+            "location_id": location_id,
+            "synthesis": "Synthetic feedback draft",
+        },
+    )
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    database_factory = MagicMock(return_value=connection)
+    credential_reader = MagicMock(return_value="f" * 40)
+    context_setter = MagicMock()
+    monkeypatch.setattr(worker_cli, "get_worker_db", database_factory)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", context_setter
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_synthesis(
+        agent,
+        LOCATION_ID,
+        None,
+        persist_draft=False,
+        existing_reader=MagicMock(side_effect=AssertionError("read-only run has no receipt")),
+        draft_writer=MagicMock(side_effect=AssertionError("read-only run cannot write")),
+    )
+
+    assert result == {
+        "summary": {
+            "location_id": LOCATION_ID,
+            "synthesis": "Synthetic feedback draft",
+        }
+    }
+    credential_reader.assert_called_once_with("agent_feedback_source")
+    database_factory.assert_called_once_with("agent_feedback_source")
+    context_setter.assert_called_once_with(
+        connection,
+        credential="f" * 40,
+        location_id=LOCATION_ID,
+    )
+    statements = [call.args[0] for call in cursor.execute.call_args_list]
+    assert statements == [
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_feedback_reader",
+        "SET LOCAL statement_timeout = '15s'",
+        "SET LOCAL lock_timeout = '3s'",
+    ]
+    connection.commit.assert_not_called()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
 def test_registered_synthesis_read_only_run_uses_signed_source_scope_without_receipt_or_write(
     monkeypatch,
 ):

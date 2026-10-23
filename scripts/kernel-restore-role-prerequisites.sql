@@ -53,6 +53,8 @@ BEGIN
         'kokonut_agent_summary_inspection_login',
         'kokonut_agent_ecological_modeling_reader',
         'kokonut_agent_ecological_modeling_login',
+        'kokonut_agent_feedback_reader',
+        'kokonut_agent_feedback_login',
         'kokonut_agent_holistic_wellbeing_reader',
         'kokonut_agent_holistic_wellbeing_login',
         'kokonut_agent_organic_readiness_reader',

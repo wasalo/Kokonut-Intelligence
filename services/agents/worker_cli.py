@@ -43,11 +43,13 @@ _SYNTHESIS_AGENT_MODULES = {
 }
 _SYNTHESIS_SOURCE_IDENTITIES = {
     "ecological_modeling_synthesis": "agent_ecological_modeling_source",
+    "feedback_synthesis": "agent_feedback_source",
     "holistic_wellbeing_synthesis": "agent_holistic_wellbeing_source",
     "organic_readiness_synthesis": "agent_organic_readiness_source",
 }
 _SYNTHESIS_SOURCE_READERS = {
     "ecological_modeling_synthesis": "kokonut_agent_ecological_modeling_reader",
+    "feedback_synthesis": "kokonut_agent_feedback_reader",
     "holistic_wellbeing_synthesis": "kokonut_agent_holistic_wellbeing_reader",
     "organic_readiness_synthesis": "kokonut_agent_organic_readiness_reader",
 }
