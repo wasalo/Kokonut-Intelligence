@@ -204,7 +204,7 @@ worker adapter; legacy/background writers still lack row-level manifests.
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
 role that may switch only to the bounded worker execution role. A one-shot
 `services.agents.worker_cli` exercises this path for the four deterministic
-AI-summary types and the twelve registered shared synthesis tasks. Shared
+AI-summary types and the twelve registered synthesis tasks. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
 `ai_summary` directly. The worker resolves every synthesis task through its explicit twelve-module
 registry, checks the registered class and class-declared metadata before any
@@ -213,14 +213,11 @@ collector reads the class-registered query and view map rather than an
 instance-shadowed value. Focused regressions prove a query override is ignored
 by collection and rejected before receipt lookup. This protects the reviewed
 in-process provenance contract; it does not authenticate Python code or replace
-the worker's signed database scope. The worker then checks the stable request
-receipt before source queries. It runs reads inside a bounded repeatable-read,
-read-only transaction using `kokonut_agent_summary_source_login`. Migration
-543 gives this identity no direct source-view or worker-table reads. It can
-call only the bounded worker-context setter, then switch to the separate
-NOLOGIN `kokonut_agent_summary_source_reader` role. The worker presents its
-source credential for an exact `ai_summary/read` grant before querying. The
-reader's 40 security-barrier wrappers call the database-signed
+the worker's signed database scope. The worker checks the stable request
+receipt before source queries and runs reads inside a bounded repeatable-read,
+read-only transaction. Migrations 580–593 give each registered synthesis task
+its own signed source login and reader role, with an exact `ai_summary/read`
+grant before querying. The task reader's approved security-barrier wrappers call the database-signed
 `current_worker_scope` function on every view read: location views expose only
 the granted location, mixed views add explicitly unassigned records, and
 network views expose public catalogs only after the same exact-location grant.
@@ -231,14 +228,18 @@ pattern to the deterministic summary worker's 13 relations: 11 operational
 sources are exact-location filtered, while crop and expense category remain
 shared network catalogs. That worker installs the wrapper schema first in its
 transaction-local search path, so its legacy query text resolves to filtered
-views and the source login cannot read the original public relations. Read-only
-deterministic generation now uses this same signed source path without creating
-a draft. Likewise, all twelve registered `SynthesisAgent` classes use their
-dedicated signed source reader for read-only `run()` calls as well as draft
+views and the deterministic source login cannot read the original public
+relations. Read-only deterministic generation uses this signed source path
+without creating a draft. All twelve registered `SynthesisAgent` classes use
+their task-specific signed source reader for read-only `run()` calls and draft
 generation; unregistered source contracts fail closed before connecting.
+Migration 594 disables the historical shared synthesis login, removes its
+reader membership and direct privileges, and verifies that the retained
+compatibility roles are inert.
 Listing and digest-inspection CLI operations remain separate read paths and
 need their own operator authorization review. These are scoped source
-boundaries for the two AI-summary worker profiles, not a universal RLS rollout.
+boundaries for the deterministic and task-specific worker profiles, not a
+universal RLS rollout.
 Other service/database paths retain separate tenant-boundary reviews.
 
 The EBF evidence-gap reader uses its own credential and connection identity.
@@ -314,14 +315,15 @@ task-specific synthesis profile. `agent-summary-worker` uses a dedicated source 
 `--deterministic-only` mode, and receives no shared `PG_*`, `DATABASE_URL`, or
 `POSTGRES_PASSWORD` values. Each synthesis profile names one registered task
 and receives only that task's signed, filtered source login; migration 593
-removes the final five Kokonut Commons projections from the broad legacy
-reader. No generic shared synthesis profile remains. Every profile uses the
+moves the final five Kokonut Commons projections off the broad reader, and
+migration 594 disables the historical shared login and strips its residual
+grants. No generic shared synthesis profile remains. Every profile uses the
 signed worker identity for draft persistence. Synthesis reads enforce each
 location grant at the database view boundary, and deterministic summaries use
 a separate signed, location-filtered view boundary. The remaining runtime/RLS
 review is open. An operator still needs to provision the runtime password,
 task source login/password pairs, worker login/password, worker credentials,
-location grants, and service DSNs; migrations 529–593 are not rolled out to
+location grants, and service DSNs; migrations 529–594 are not rolled out to
 the candidate. Stored agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with

@@ -58,6 +58,7 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/591_isolated_bio_factory_worker.sql",
     ROOT / "schemas/postgres/592_isolated_open_source_capitalist_worker.sql",
     ROOT / "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
+    ROOT / "schemas/postgres/594_retire_shared_agent_source_identity.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
@@ -346,7 +347,8 @@ SOURCE_READER_VIEWS = tuple(sorted({
     # views and one network catalogue through its migration-591 task reader.
     # Open Source Capitalist receives three mixed-scope and two network views
     # through its migration-592 task reader. Kokonut Commons' final five views
-    # move to its task reader in migration 593; the shared reader is retired.
+    # move to its task reader in migration 593; migration 594 disables the
+    # historical shared login and removes its remaining role grants.
 
 }))
 DETERMINISTIC_SOURCE_TABLES = (
@@ -2367,61 +2369,92 @@ def _source_reader_acceptance() -> str:
     """
 
 
-def _retired_shared_source_reader_acceptance() -> str:
-    """A valid shared-role context must no longer grant any synthesis view."""
-    return f"""
-    INSERT INTO kokonut_security.worker_principal (id, principal_key)
-    VALUES ('{SOURCE_WORKER_ID}', 'agent-summary-source')
-    ON CONFLICT DO NOTHING;
-    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
-    VALUES ('{SOURCE_WORKER_ID}', '{SOURCE_CREDENTIAL_HASH}')
-    ON CONFLICT DO NOTHING;
-    INSERT INTO kokonut_security.worker_scope_grant (
-        worker_id, tenant_id, location_id, resource, action, granted_by
-    ) VALUES (
-        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
-        'ai_summary', 'read', 'synthetic retired-source acceptance fixture'
-    ) ON CONFLICT DO NOTHING;
-
-    SET ROLE kokonut_agent_summary_source_login;
-    BEGIN;
-    SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
-    );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+def _retired_shared_source_identity_acceptance() -> str:
+    """The historical shared login and reader are inert after migration 594."""
+    return """
     DO $$
+    DECLARE
+        shared_login_oid OID;
+        shared_reader_oid OID;
     BEGIN
+        SELECT oid INTO shared_login_oid FROM pg_catalog.pg_roles
+         WHERE rolname = 'kokonut_agent_summary_source_login';
+        SELECT oid INTO shared_reader_oid FROM pg_catalog.pg_roles
+         WHERE rolname = 'kokonut_agent_summary_source_reader';
+
+        IF shared_login_oid IS NULL OR shared_reader_oid IS NULL THEN
+            RAISE EXCEPTION 'historical shared source roles are missing';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM pg_catalog.pg_roles AS role
+             WHERE role.oid IN (shared_login_oid, shared_reader_oid)
+               AND (role.rolcanlogin OR role.rolsuper OR role.rolcreatedb
+                    OR role.rolcreaterole OR role.rolreplication
+                    OR role.rolbypassrls OR role.rolinherit)
+        ) THEN
+            RAISE EXCEPTION 'historical shared source role is not inert';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM pg_catalog.pg_auth_members AS membership
+             WHERE membership.roleid IN (shared_login_oid, shared_reader_oid)
+                OR membership.member IN (shared_login_oid, shared_reader_oid)
+        ) THEN
+            RAISE EXCEPTION 'historical shared source role retains membership';
+        END IF;
         IF EXISTS (
             SELECT 1
-              FROM pg_catalog.pg_class AS relation
-              JOIN pg_catalog.pg_namespace AS namespace
-                ON namespace.oid = relation.relnamespace
-             WHERE namespace.nspname = 'kokonut_agent_source'
-               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
-               AND has_table_privilege(
-                   'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
-               )
+              FROM (
+                  SELECT relation.relacl AS acl
+                    FROM pg_catalog.pg_class AS relation
+                    JOIN pg_catalog.pg_namespace AS namespace
+                      ON namespace.oid = relation.relnamespace
+                   WHERE namespace.nspname IN ('public', 'kokonut_security', 'kokonut_agent_source')
+                  UNION ALL
+                  SELECT routine.proacl
+                    FROM pg_catalog.pg_proc AS routine
+                    JOIN pg_catalog.pg_namespace AS namespace
+                      ON namespace.oid = routine.pronamespace
+                   WHERE namespace.nspname IN ('public', 'kokonut_security', 'kokonut_agent_source')
+                  UNION ALL
+                  SELECT namespace.nspacl
+                    FROM pg_catalog.pg_namespace AS namespace
+                   WHERE namespace.nspname IN ('public', 'kokonut_security', 'kokonut_agent_source')
+              ) AS object_acl
+              CROSS JOIN LATERAL pg_catalog.aclexplode(object_acl.acl) AS acl
+             WHERE acl.grantee IN (shared_login_oid, shared_reader_oid)
         ) THEN
-            RAISE EXCEPTION 'legacy shared synthesis reader retains a source projection';
+            RAISE EXCEPTION 'historical shared source role retains direct privileges';
         END IF;
-        IF has_table_privilege(
-            'kokonut_agent_summary_source_reader', 'public.ai_summary', 'SELECT'
-        ) OR has_schema_privilege(
-            'kokonut_agent_summary_source_reader', 'kokonut_agent_source', 'CREATE'
-        ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader', 'public.anti_capture_governance_policy', 'SELECT'
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_default_acl AS default_acl
+              CROSS JOIN LATERAL pg_catalog.aclexplode(default_acl.defaclacl) AS acl
+             WHERE acl.grantee IN (shared_login_oid, shared_reader_oid)
         ) THEN
-            RAISE EXCEPTION 'legacy shared synthesis reader retains raw, private, or write-capable access';
+            RAISE EXCEPTION 'historical shared source role remains in default privileges';
         END IF;
-        BEGIN
-            PERFORM 1 FROM public.v_public_capital_efficiency_summary;
-            RAISE EXCEPTION 'legacy shared synthesis reader can bypass a scoped wrapper';
-        EXCEPTION WHEN insufficient_privilege THEN
-            NULL;
-        END;
     END $$;
-    ROLLBACK;
-    RESET ROLE;
+    """
+
+
+def _retired_shared_source_stale_grants() -> str:
+    """Seed an old-identity login and stale privileges for replay coverage."""
+    return """
+    ALTER ROLE kokonut_agent_summary_source_login LOGIN;
+    GRANT kokonut_agent_summary_source_reader
+        TO kokonut_agent_summary_source_login;
+    GRANT USAGE, CREATE ON SCHEMA kokonut_agent_source
+        TO kokonut_agent_summary_source_login,
+           kokonut_agent_summary_source_reader;
+    GRANT SELECT ON kokonut_agent_source.v_public_anti_capture_governance_policy
+        TO kokonut_agent_summary_source_login,
+           kokonut_agent_summary_source_reader;
+    GRANT SELECT ON public.ai_summary
+        TO kokonut_agent_summary_source_login,
+           kokonut_agent_summary_source_reader;
+    GRANT EXECUTE ON FUNCTION kokonut_security.current_worker_scope(TEXT, TEXT)
+        TO kokonut_agent_summary_source_login,
+           kokonut_agent_summary_source_reader;
     """
 
 
@@ -4553,7 +4586,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-593 apply; migrations 530-537, 539-548, 580-593 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-594 apply; migrations 530-537, 539-548, 580-594 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -4579,7 +4612,7 @@ def main() -> int:
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
-        "the legacy shared synthesis reader has no operational projections after task-specific identities are provisioned",
+        "the legacy shared synthesis login and reader are NOLOGIN, have no role memberships or direct grants, and remain inert after stale-grant replay",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
         "migration 541 removes stale public-schema CREATE from the NOLOGIN source reader as well as the source login",
         "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
@@ -4628,7 +4661,7 @@ def main() -> int:
         "migration 593 isolates Kokonut Commons to three location-or-network views and two network-wide public catalogs",
         "migration 593 replay removes stale PUBLIC/shared grants, unrelated projections, raw source access, and schema CREATE privileges",
         "Kokonut Commons mixed views return owned plus unassigned rows and exclude foreign rows; network catalogs require signed context",
-        "the legacy shared synthesis reader has no retained source projections after all task identities are isolated",
+        "the legacy shared synthesis login and reader have no retained source projections after all task identities are isolated",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -4643,7 +4676,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, Open Source Capitalist, and Kokonut Commons use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs; Kokonut Commons sees three location-or-network policy views and two network-wide public catalogs. The legacy shared synthesis reader retains no operational source projection. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, Open Source Capitalist, and Kokonut Commons use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs; Kokonut Commons sees three location-or-network policy views and two network-wide public catalogs. Migration 594 makes the historical shared synthesis login NOLOGIN, removes its reader membership and direct privileges, and verifies that both legacy roles are inert. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "ecological_projection_fixture_note": "Because this focused disposable chain does not apply historical farm/ecology schema migrations 550-551, twenty-seven synthetic security-barrier projections stand in for those outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "holistic_wellbeing_projection_fixture_note": "Migrations 535 and 543 create the real consent-filtered and signed security-barrier source projections in this disposable chain. Synthetic own/foreign rows are added to the fixture source tables before migration 584; no live stakeholder data or candidate/legacy database is used.",
@@ -5036,6 +5069,21 @@ def main() -> int:
                     "WHERE id IN ('e0000000-0000-4000-8000-000000000822', "
                     "'e0000000-0000-4000-8000-000000000823');",
                 )
+            if migration_path.name.startswith("594_"):
+                stage = "migration_594_retired_identity_stale_grants"
+                base.psql(
+                    docker,
+                    container,
+                    _retired_shared_source_stale_grants(),
+                )
+                stage = "migration_594_retired_identity_replay"
+                base.psql(docker, container, sql)
+                stage = "migration_594_retired_identity_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    _retired_shared_source_identity_acceptance(),
+                )
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
                 base.psql(
@@ -5238,8 +5286,16 @@ def main() -> int:
             "END IF; END $$;",
         )
         base.psql(docker, container, _delphi_agent_source_acceptance())
-        stage = "retired_shared_synthesis_reader_acceptance"
-        base.psql(docker, container, _retired_shared_source_reader_acceptance())
+        stage = "retired_shared_synthesis_identity_final_replay"
+        migration_594 = next(path for path in MIGRATIONS if path.name.startswith("594_"))
+        base.psql(
+            docker,
+            container,
+            _retired_shared_source_stale_grants(),
+        )
+        base.psql(docker, container, migration_594.read_text(encoding="utf-8"))
+        stage = "retired_shared_synthesis_identity_acceptance"
+        base.psql(docker, container, _retired_shared_source_identity_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
         stage = "structured_worker_result_first_write_acceptance"

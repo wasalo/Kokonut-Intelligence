@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "24ad30c82a80fc9de76cfdbe1c279d8af39ecd81",
+  "baseline_commit": "7421bd7deb86e88e8e5b5341334b9f616b38f0fc",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3060,7 +3060,8 @@
       "schemas/postgres/590_isolated_financial_resilience_worker.sql",
       "schemas/postgres/591_isolated_bio_factory_worker.sql",
       "schemas/postgres/592_isolated_open_source_capitalist_worker.sql",
-      "schemas/postgres/593_isolated_kokonut_commons_worker.sql"
+      "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
+      "schemas/postgres/594_retire_shared_agent_source_identity.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
