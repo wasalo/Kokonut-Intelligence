@@ -304,7 +304,14 @@ def test_metabase_profile_disables_public_sharing_and_embedding_without_secret()
     assert "MB_APPLICATION_ROOT" not in environment
 
 
-def _run_health_check(tmp_path: Path, *, metabase_enabled: bool) -> tuple[dict, str]:
+def _run_health_check(
+    tmp_path: Path,
+    *,
+    metabase_enabled: bool,
+    fail_curl: bool = False,
+    send_alert: bool = False,
+    smtp_env: dict[str, str] | None = None,
+) -> tuple[dict, str]:
     project_dir = tmp_path / "project"
     scripts_dir = project_dir / "scripts"
     lib_dir = scripts_dir / "lib"
@@ -318,7 +325,19 @@ def _run_health_check(tmp_path: Path, *, metabase_enabled: bool) -> tuple[dict, 
 
     call_log = tmp_path / "calls.log"
     stubs = {
-        "curl": '#!/bin/sh\nprintf \'curl %s\\n\' "$*" >> "$HEALTH_TEST_LOG"\nexit 0\n',
+        "curl": (
+            "#!/bin/sh\n"
+            "printf 'curl %s\\n' \"$*\" >> \"$HEALTH_TEST_LOG\"\n"
+            'if [ "${HEALTH_TEST_FAIL_CURL:-false}" = "true" ]; then exit 22; fi\n'
+            "exit 0\n"
+        ),
+        "python3": (
+            "#!/bin/sh\n"
+            "printf 'smtp %s %s %s %s\\n' \"${ALERT_SMTP_TLS_MODE:-}\" "
+            "\"${ALERT_SMTP_HOST:-}\" \"${ALERT_SMTP_PORT:-}\" "
+            "\"${ALERT_EMAIL_TO:-}\" >> \"$HEALTH_TEST_LOG\"\n"
+            "exit 0\n"
+        ),
         "psql": "#!/bin/sh\nexit 0\n",
         "df": (
             "#!/bin/sh\n"
@@ -350,16 +369,22 @@ def _run_health_check(tmp_path: Path, *, metabase_enabled: bool) -> tuple[dict, 
         "KOKONUT_ALLOW_PLAINTEXT_ENV": "true",
         "PG_PASSWORD": "test-only",
         "METABASE_URL": "http://metabase.invalid:3000",
+        "HEALTH_TEST_FAIL_CURL": "true" if fail_curl else "false",
+        **(smtp_env or {}),
     }
+    args = [str(scripts_dir / "health-check.sh"), "--json"]
+    if send_alert:
+        args.append("--alert")
     result = subprocess.run(
-        [str(scripts_dir / "health-check.sh"), "--json"],
+        args,
         cwd=project_dir,
         env=env,
         capture_output=True,
         text=True,
         check=False,
     )
-    assert result.returncode == 0, result.stderr + result.stdout
+    expected_returncode = 1 if fail_curl else 0
+    assert result.returncode == expected_returncode, result.stderr + result.stdout
     return json.loads(result.stdout), call_log.read_text()
 
 
@@ -371,6 +396,23 @@ def test_health_check_skips_metabase_by_default(tmp_path: Path) -> None:
 def test_health_check_includes_metabase_only_when_enabled(tmp_path: Path) -> None:
     _, calls = _run_health_check(tmp_path, metabase_enabled=True)
     assert "http://metabase.invalid:3000/api/health" in calls
+
+
+def test_health_check_forwards_smtp_tls_mode_to_shared_adapter(tmp_path: Path) -> None:
+    _, calls = _run_health_check(
+        tmp_path,
+        metabase_enabled=False,
+        fail_curl=True,
+        send_alert=True,
+        smtp_env={
+            "ALERT_SMTP_HOST": "smtp.example.test",
+            "ALERT_SMTP_PORT": "465",
+            "ALERT_SMTP_TLS_MODE": "implicit",
+            "ALERT_EMAIL_TO": "ops@example.test",
+        },
+    )
+
+    assert "smtp implicit smtp.example.test 465 ops@example.test" in calls
 
 
 def test_caddy_does_not_require_or_route_to_optional_metabase() -> None:

@@ -8,8 +8,8 @@
     "plain": "explicit opt-in; rejected when SMTP authentication credentials are configured"
   },
   "focused_suite": {
-    "command": "python3 -m pytest tests/test_smtp_transport.py tests/test_notification_outbox.py tests/test_anomaly_notification_error_redaction.py tests/test_data_freshness_notification_outbox.py -q",
-    "passed": 37
+    "command": "python3 -m pytest tests/test_smtp_transport.py tests/test_notification_outbox.py tests/test_anomaly_notification_error_redaction.py tests/test_data_freshness_notification_outbox.py tests/test_compose_metabase_profile.py::test_health_check_forwards_smtp_tls_mode_to_shared_adapter -q",
+    "passed": 38
   },
   "static_checks": {
     "ruff": "passed",
@@ -19,7 +19,8 @@
     "dependency_group_alignment": "passed",
     "provider_boundaries": "passed for 17 vendor import sites",
     "git_diff_check": "passed",
-    "compose_config": "5 relevant Compose configurations passed with synthetic interpolation values; no containers were started"
+    "compose_config": "5 relevant Compose configurations passed with synthetic interpolation values; no containers were started",
+    "health_check_smtp_handoff": "passed with a mocked alert failure; verified implicit TLS mode, host, port, and recipient are forwarded without invoking a provider"
   },
   "provider_calls": false,
   "candidate_or_legacy_database_touched": false,
