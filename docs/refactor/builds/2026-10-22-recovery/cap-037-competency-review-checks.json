@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "scope": "CAP-037 independent competency review routes, policy, console, migration integrity, and disposable PostgreSQL replay",
+  "test_commands": [
+    "python3 -m pytest tests/test_gateway_operating_pilot_reads.py tests/test_gateway_operating_pilot_writes.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_operating_pilot.py -q",
+    "python3 -m pytest tests/test_migration.py -q"
+  ],
+  "tests_passed": 353,
+  "test_groups": {
+    "gateway_route_console_policy": 317,
+    "migration_integrity": 36,
+    "disposable_postgresql_assertion_groups": 199,
+    "native_postgresql_platform": "docker-default",
+    "arm64_qemu_postgresql_platform": "linux/arm64"
+  },
+  "checks": [
+    "exact location review grant and signed operator context are required",
+    "review queue excludes the reviewer's own party, receiptless records, and other locations",
+    "review pagination, verify/reject decisions, self-review denial, exact retries, changed-retry rejection, and submitter-only rejection feedback pass",
+    "decision audit is append-only; runtime and Directus have no direct table access and Directus cannot execute the review functions",
+    "review verification does not modify self-assessed values or canonical competency profiles",
+    "console review controls are grant-gated and use CSRF, no-store, text-only rendering, bounded pagination, confirmation, and stable retry IDs",
+    "Ruff, Python compilation, requirement-group alignment, provider boundaries, runtime SQL inventory, capability matrix integrity, and git diff checks pass"
+  ],
+  "live_browser_or_provider_used": false,
+  "candidate_or_legacy_modified": false,
+  "candidate_migration_rollout": false,
+  "evidence": [
+    "cap-037-competency-review-disposable.json",
+    "cap-037-competency-review-arm64-disposable.json"
+  ],
+  "limitations": [
+    "Docker/QEMU confirms software portability only; no physical Raspberry Pi, power-failure, or performance acceptance is claimed",
+    "live ZITADEL/browser behavior and populated Adelphi data parity remain open",
+    "migration 577 has not been rolled out to the candidate"
+  ]
+}

@@ -1,3 +1,27 @@
+### CAP-037 independent competency review — 22 October 2026
+
+Migration 577 adds a separate exact-location `operating_pilot:review` queue and
+one-time verify/reject decision for receipt-backed submitted competency drafts.
+The database excludes a reviewer's own human party, requires one active human
+binding and the active Adelphi mapping, enforces bounded pagination and stable
+request IDs, and preserves decisions in a private append-only ledger. Rejection
+reasons are required and appear only in the submitter's own history; the
+reviewer response omits them. Verification leaves self-assessed values and
+canonical competency profiles unchanged. The Gateway routes use signed tenant
+context, exact route policy, and no-store responses; the console uses CSRF,
+text-only rendering, and same-decision retries.
+
+The focused Gateway, route-policy, console, and migration selection passes 317
+tests; migration checks pass 36 tests. Ruff, Python compilation, dependency
+groups, provider boundaries, and the regenerated runtime SQL inventory pass.
+Network-disabled disposable PostgreSQL 16 applies and replays migrations
+461–577 with 199 grouped assertions on native Docker; The same 199 assertions pass on linux/arm64 Docker/QEMU. Candidate and legacy are untouched; migration 577 is not rolled out.
+CAP-037 remains prepared (`P`) pending populated Adelphi parity, live
+ZITADEL/browser acceptance, broader ACL/RLS, production recovery, and
+MAN-CAP-037 owner acceptance. Checklist: 1,002 complete / 24 open (1,026 total);
+matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows.
+Evidence: [focused checks](builds/2026-10-22-recovery/cap-037-competency-review-checks.json), [native disposable acceptance](builds/2026-10-22-recovery/cap-037-competency-review-disposable.json), [ARM64/QEMU acceptance](builds/2026-10-22-recovery/cap-037-competency-review-arm64-disposable.json).
+
 ### CAP-037 competency self-service console — 22 October 2026
 
 The operator console now supports private competency draft creation, own-record
@@ -13,11 +37,12 @@ The focused console, Gateway write/read, route-policy, and migration selection
 passes 333 tests, including inline JavaScript syntax. No live browser, provider,
 candidate, legacy database, or migration rollout was used. Evidence:
 [console contract](builds/2026-10-22-recovery/cap-037-competency-console-contract.json).
-CAP-037 remains prepared (`P`); independent review/verification, populated
-Adelphi parity, live ZITADEL/browser acceptance, broader ACL/RLS, production
-recovery, and MAN-CAP-037 owner acceptance remain open. Checklist: 1,001
-complete / 24 open (1,025 total); matrix: 30 baseline-retained, 7 deployed, and
-29 prepared across 66 rows.
+CAP-037 remains prepared (`P`). At that console-only checkpoint, independent
+review/verification, populated Adelphi parity, live ZITADEL/browser
+acceptance, broader ACL/RLS, production recovery, and MAN-CAP-037 owner
+acceptance remained open. Checklist at that checkpoint: 1,001 complete / 24
+open (1,025 total); matrix: 30 baseline-retained, 7 deployed, and 29 prepared
+across 66 rows.
 
 ### CAP-037 private competency draft revision and submission — 22 October 2026
 

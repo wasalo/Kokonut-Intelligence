@@ -1001,6 +1001,15 @@ _EXPECTED_OPERATOR_POLICIES[(
     "GET",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/my-competency-assessments",
 )] = _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "GET",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-review-queue",
+)] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-assessments/"
+    f"{_PARAMETER_SAMPLES['draft_id']}/review",
+)] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
 
 
 def _concrete_paths(route_path):

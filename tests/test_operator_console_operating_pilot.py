@@ -895,6 +895,55 @@ def test_competency_draft_history_revision_and_submission_are_separately_gated()
     assert "operatingPilotPendingCompetencyWrite.location_id !== locationId" in sync_location
 
 
+def test_competency_review_console_is_grant_gated_private_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        '<section id="operating-pilot-competency-review"',
+        '<section id="operating-pilot-own-demand"',
+    )
+    load = _function(
+        source,
+        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+        "function appendOperatingPilotCompetencyReviewRow(item, locationId)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotCompetencyReviewRow(item, locationId)",
+        "async function reviewOperatingPilotCompetencyAssessment(item, locationId, decision, button)",
+    )
+    review = _function(
+        source,
+        "async function reviewOperatingPilotCompetencyAssessment(item, locationId, decision, button)",
+        "function beginOperatingPilotCompetencyRevision(item)",
+    )
+    own_row = _function(
+        source,
+        "function appendOperatingPilotOwnCompetencyRow(item, locationId)",
+        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+    )
+    assert "A separate exact-location review grant is required" in panel
+    assert "Your own submissions are excluded" in panel
+    assert "operatingPilotCompetencyReviewLocations.has(locationId)" in load
+    assert "/competency-review-queue?${params}" in load
+    assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
+    assert "next_offset" in load and "result.has_more === true" in load
+    assert "item.evidence_note" in row
+    assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert '"verified"' in row and '"rejected"' in row
+    assert "item.status !== \"submitted\"" in review
+    assert "window.prompt" in review and "window.confirm" in review
+    assert "csrfToken()" in review and '"X-CSRF-Token": csrf' in review
+    assert 'credentials: "same-origin"' in review and 'cache: "no-store"' in review
+    assert "operatingPilotPendingCompetencyReviewDecisions" in review
+    assert "globalThis.crypto?.randomUUID?.()" in review
+    assert "payload_text !== payloadText" in review
+    assert "/competency-assessments/${encodeURIComponent(item.draft_id)}/review" in review
+    assert "innerHTML" not in panel + load + row + review + own_row
+    assert "item.review_reason" in own_row
+    assert "review_reason" not in row
+
+
 def test_create_only_location_can_open_draft_form_without_reading_queues():
     source = CONSOLE.read_text(encoding="utf-8")
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")

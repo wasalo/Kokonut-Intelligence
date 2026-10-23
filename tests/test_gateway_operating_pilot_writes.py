@@ -1777,6 +1777,130 @@ def test_capacity_review_route_policy_requires_exact_location_review_grant():
     assert auth_route_policy("POST", path + "/extra", enabled=True) is None
 
 
+def test_competency_review_sets_exact_review_context_and_commits_decision(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"draft_id": PROFILE_ID, "status": "verified", "decision": "verified", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.review_location_operating_pilot_competency_assessment(
+        OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
+        {"decision": "verified"}, connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "verified",
+        "decision": "verified",
+        "replayed": False,
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "review",
+    })]
+    assert "review_location_operating_pilot_competency" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID, PROFILE_ID, REQUEST_ID, "verified", None,
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ({"decision": "rejected"}, "reason is required"),
+        ({"decision": "rejected", "reason": "  "}, "reason is required"),
+        ({"decision": "verified", "reason": "not allowed"}, "only accepted when rejecting"),
+        ({"decision": ["verified"]}, "Decision must be"),
+        ({"decision": "rejected", "reason": "x" * 2001}, "at most 2000"),
+        ({"decision": "verified", "actor_id": OPERATOR_ID}, "unsupported fields"),
+    ],
+)
+def test_invalid_competency_review_fails_before_database_access(payload, message):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match=message):
+        operating_pilot_writes.review_location_operating_pilot_competency_assessment(
+            OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, payload,
+            connection_factory=factory,
+        )
+
+    factory.assert_not_called()
+
+
+def _competency_review_route_app(monkeypatch, action, provider=object()):
+    async def run_inline(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "review_location_operating_pilot_competency_assessment",
+        action,
+    )
+    router = APIRouter()
+    register_operating_pilot_routes(router, provider, run_inline, __import__("psycopg2"))
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def attach_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    return TestClient(app)
+
+
+def test_competency_review_http_route_requires_request_and_returns_no_store(monkeypatch):
+    action = MagicMock(return_value={
+        "draft_id": PROFILE_ID, "status": "rejected", "decision": "rejected", "replayed": False,
+    })
+    client = _competency_review_route_app(monkeypatch, action)
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review"
+
+    invalid = client.post(path, json={
+        "request_id": REQUEST_ID, "decision": "verified", "status": "verified",
+    })
+    assert invalid.status_code == 400
+    action.assert_not_called()
+
+    response = client.post(path, json={
+        "request_id": REQUEST_ID,
+        "decision": "rejected",
+        "reason": "Please provide clearer evidence.",
+    })
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["decision"] == "rejected"
+    action.assert_called_once_with(
+        OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID,
+        {"decision": "rejected", "reason": "Please provide clearer evidence."},
+    )
+
+
+def test_competency_review_route_policy_requires_exact_location_review_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}/review"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot", "action": "review", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=False) is None
+    assert auth_route_policy("POST", path + "/extra", enabled=True) is None
+
+
 def test_demand_review_sets_exact_review_context_and_commits_decision(monkeypatch):
     connection, cursor = _connection_with_result(
         {"signal_id": PROFILE_ID, "status": "approved", "decision": "approved", "replayed": False}

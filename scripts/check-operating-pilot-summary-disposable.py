@@ -43,6 +43,7 @@ RESOURCE_FULFILLMENT_MIGRATION = ROOT / "schemas/postgres/573_location_operating
 COMPETENCY_DRAFT_MIGRATION = ROOT / "schemas/postgres/574_location_operating_pilot_competency_draft.sql"
 COMPETENCY_OWN_READ_MIGRATION = ROOT / "schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql"
 COMPETENCY_LIFECYCLE_MIGRATION = ROOT / "schemas/postgres/576_location_operating_pilot_competency_draft_lifecycle.sql"
+COMPETENCY_REVIEW_MIGRATION = ROOT / "schemas/postgres/577_location_operating_pilot_competency_review.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -70,6 +71,8 @@ COMPETENCY_OWN_READ_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/ca
 COMPETENCY_OWN_READ_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-own-read-arm64-disposable.json"
 COMPETENCY_LIFECYCLE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-disposable.json"
 COMPETENCY_LIFECYCLE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-arm64-disposable.json"
+COMPETENCY_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-disposable.json"
+COMPETENCY_REVIEW_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -5075,6 +5078,211 @@ END $$;
 ROLLBACK;
 """
 
+COMPETENCY_REVIEW_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_identity VALUES ('b7000000-0000-4000-8000-000000000006', true);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('b7000000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic competency reviewer');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('b7000000-0000-4000-8000-000000000002',
+        'b7000000-0000-4000-8000-000000000006',
+        'b7000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant VALUES
+ ('b7000000-0000-4000-8000-000000000003', 'b7000000-0000-4000-8000-000000000006',
+  'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'review', NULL, NULL),
+ ('b7000000-0000-4000-8000-000000000004', 'b7000000-0000-4000-8000-000000000006',
+  'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'create', NULL, NULL),
+ ('b7000000-0000-4000-8000-000000000005', 'b7000000-0000-4000-8000-000000000006',
+  'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'submit_own', NULL, NULL);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE
+    verified_draft_id uuid;
+    rejected_draft_id uuid;
+    reviewer_own_draft_id uuid;
+    created jsonb;
+    submitted jsonb;
+    queue_first jsonb;
+    queue_second jsonb;
+    reviewed jsonb;
+    replay jsonb;
+    own_history jsonb;
+    self_review_denied boolean := false;
+    missing_review_grant_denied boolean := false;
+    changed_retry_denied boolean := false;
+    invalid_page_denied boolean := false;
+    wrong_location_denied boolean := false;
+BEGIN
+    created := kokonut_security.create_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'c9000000-0000-4000-8000-000000000001',
+        'facilitation', 2.5, 4, 'Private evidence to verify'
+    );
+    verified_draft_id := (created->>'draft_id')::uuid;
+    PERFORM kokonut_security.submit_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001', verified_draft_id,
+        'c9000000-0000-4000-8000-000000000002'
+    );
+    created := kokonut_security.create_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'c9000000-0000-4000-8000-000000000003',
+        'soil-health', 1.5, 3.5, 'Private evidence to reject'
+    );
+    rejected_draft_id := (created->>'draft_id')::uuid;
+    PERFORM kokonut_security.submit_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001', rejected_draft_id,
+        'c9000000-0000-4000-8000-000000000004'
+    );
+    PERFORM set_config('kokonut.actor_id', 'b7000000-0000-4000-8000-000000000006', true);
+    created := kokonut_security.create_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'c9000000-0000-4000-8000-000000000005',
+        'orchard-management', 1, 3, 'Reviewer own private evidence'
+    );
+    reviewer_own_draft_id := (created->>'draft_id')::uuid;
+    PERFORM kokonut_security.submit_location_operating_pilot_competency_draft(
+        'b0000000-0000-4000-8000-000000000001', reviewer_own_draft_id,
+        'c9000000-0000-4000-8000-000000000006'
+    );
+    queue_first := kokonut_security.location_operating_pilot_competency_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    queue_second := kokonut_security.location_operating_pilot_competency_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    IF queue_first->>'total' <> '2' OR queue_first->>'has_more' <> 'true'
+       OR queue_second->>'total' <> '2' OR queue_second->>'has_more' <> 'false'
+       OR jsonb_array_length(queue_first->'items') <> 1
+       OR jsonb_array_length(queue_second->'items') <> 1
+       OR (queue_first->'items'->0->>'draft_id')::uuid = reviewer_own_draft_id
+       OR (queue_second->'items'->0->>'draft_id')::uuid = reviewer_own_draft_id
+       OR (queue_first->'items'->0->>'draft_id')::uuid = (queue_second->'items'->0->>'draft_id')::uuid
+       OR (queue_first::text || queue_second::text) !~ 'Private evidence to (verify|reject)'
+       OR (queue_first::text || queue_second::text) ~ '(reviewer_own_draft_id|b7000000|party_id|scope_id)' THEN
+        RAISE EXCEPTION 'competency review queue paging, privacy, or self-exclusion mismatch: %, %',
+            queue_first, queue_second;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_competency(
+            'b0000000-0000-4000-8000-000000000001', reviewer_own_draft_id,
+            'c9000000-0000-4000-8000-000000000007', 'verified', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN self_review_denied := true;
+    END;
+    IF NOT self_review_denied THEN RAISE EXCEPTION 'competency self-review was accepted'; END IF;
+    reviewed := kokonut_security.review_location_operating_pilot_competency(
+        'b0000000-0000-4000-8000-000000000001', verified_draft_id,
+        'c9000000-0000-4000-8000-000000000008', 'verified', NULL
+    );
+    replay := kokonut_security.review_location_operating_pilot_competency(
+        'b0000000-0000-4000-8000-000000000001', verified_draft_id,
+        'c9000000-0000-4000-8000-000000000008', 'verified', NULL
+    );
+    IF reviewed->>'status' <> 'verified' OR reviewed->>'replayed' <> 'false'
+       OR replay->>'status' <> 'verified' OR replay->>'replayed' <> 'true'
+       OR (reviewed::text || replay::text) ~ '(reason|Private evidence|reviewer_party|party_id)' THEN
+        RAISE EXCEPTION 'verified decision or exact replay result is invalid: %, %', reviewed, replay;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_competency(
+            'b0000000-0000-4000-8000-000000000001', verified_draft_id,
+            'c9000000-0000-4000-8000-000000000008', 'rejected', 'changed input'
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'changed competency review retry was accepted'; END IF;
+    reviewed := kokonut_security.review_location_operating_pilot_competency(
+        'b0000000-0000-4000-8000-000000000001', rejected_draft_id,
+        'c9000000-0000-4000-8000-000000000009', 'rejected', 'Please add a dated field example.'
+    );
+    IF reviewed->>'status' <> 'rejected' OR reviewed->>'replayed' <> 'false'
+       OR reviewed::text ~ '(Please add|reason|reviewer_party|party_id)' THEN
+        RAISE EXCEPTION 'rejection response exposed private review data: %', reviewed;
+    END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    own_history := kokonut_security.location_operating_pilot_own_competency_drafts(
+        'b0000000-0000-4000-8000-000000000001', 10, 0
+    );
+    IF NOT EXISTS (
+           SELECT 1 FROM jsonb_array_elements(own_history->'items') AS item
+            WHERE item->>'draft_id' = rejected_draft_id::text
+              AND item->>'status' = 'rejected'
+              AND item->>'review_reason' = 'Please add a dated field example.'
+              AND item->>'reviewed_at' IS NOT NULL
+       ) OR NOT EXISTS (
+           SELECT 1 FROM jsonb_array_elements(own_history->'items') AS item
+            WHERE item->>'draft_id' = verified_draft_id::text
+              AND item->>'status' = 'verified'
+              AND item->'review_reason' = 'null'::jsonb
+              AND item->>'reviewed_at' IS NOT NULL
+       ) OR own_history::text ~ '(Reviewer own private evidence|b7000000|reviewer_party_id)' THEN
+        RAISE EXCEPTION 'own competency history did not expose only the submitter review result: %', own_history;
+    END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_competency_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN missing_review_grant_denied := true;
+    END;
+    IF NOT missing_review_grant_denied THEN RAISE EXCEPTION 'read_own grant authorized competency review queue'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'b7000000-0000-4000-8000-000000000006', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_competency_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_page_denied := true;
+    END;
+    IF NOT invalid_page_denied THEN RAISE EXCEPTION 'unbounded competency review page was accepted'; END IF;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_competency(
+            'b0000000-0000-4000-8000-000000000001', reviewer_own_draft_id,
+            'c9000000-0000-4000-8000-000000000010', 'verified', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    IF NOT wrong_location_denied THEN RAISE EXCEPTION 'competency review accepted a mismatched signed location'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.location_operating_pilot_competency_review_queue(uuid,integer,integer)',
+            'EXECUTE')
+       OR NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.review_location_operating_pilot_competency(uuid,uuid,uuid,text,text)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.location_operating_pilot_competency_review_queue(uuid,integer,integer)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.review_location_operating_pilot_competency(uuid,uuid,uuid,text,text)',
+            'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_pilot_competency_review_decision', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_competency_review_decision', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_competency_review_decision', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_competency_review_decision', 'DELETE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader',
+            'public.operating_pilot_competency_review_decision', 'reason', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader',
+            'public.operating_pilot_competency_review_decision', 'reason', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_pilot_competency_draft', 'UPDATE')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_competency_draft', 'UPDATE') THEN
+        RAISE EXCEPTION 'competency review function and private append-only ACL boundaries are incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -5158,7 +5366,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 576 and test private competency revision/submission",
     )
+    parser.add_argument(
+        "--competency-review",
+        action="store_true",
+        help="Also apply/replay migration 577 and test independent competency decisions",
+    )
     args = parser.parse_args(argv)
+    if args.competency_review:
+        args.competency_lifecycle = True
     if args.competency_lifecycle:
         args.competency_own_read = True
     if args.competency_own_read:
@@ -5182,6 +5397,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (COMPETENCY_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else COMPETENCY_REVIEW_OUTPUT)
+        if args.competency_review
+        else
         (COMPETENCY_LIFECYCLE_ARM64_OUTPUT if args.platform == "linux/arm64" else COMPETENCY_LIFECYCLE_OUTPUT)
         if args.competency_lifecycle
         else
@@ -5247,7 +5465,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -5482,6 +5700,19 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 576 applies and replays while preserving prior assessment and receipt state",
             ]
         )
+    if args.competency_review:
+        evidence["migrations"].append(COMPETENCY_REVIEW_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "competency review queue requires the exact signed location review grant, one active human reviewer binding, and active Adelphi farm mapping",
+                "queue returns only receipt-backed submitted assessments, excludes the reviewer's own party, and pages deterministically within limits",
+                "verify and reject decisions require a distinct reviewer party, operate only on submitted receipt-backed drafts, and preserve self-assessed values",
+                "exact request retry replays while changed retry, duplicate decision, self-review, missing grant, mismatched location, and invalid page fail closed",
+                "rejection reason is required and private; the review response omits it, and only the submitter's own history exposes rejection feedback and review time",
+                "runtime can execute bounded review functions; Directus cannot, runtime/directus cannot access the decision ledger, and the function owner cannot update or delete it",
+                "migration 577 applies and replays while preserving prior drafts, submissions, and decisions",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -5638,11 +5869,17 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, competency_lifecycle_migration)
             psql(docker, container, competency_lifecycle_migration)
             psql(docker, container, COMPETENCY_LIFECYCLE_ACCEPTANCE)
+        if args.competency_review:
+            competency_review_migration = COMPETENCY_REVIEW_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, competency_review_migration)
+            psql(docker, container, competency_review_migration)
+            psql(docker, container, COMPETENCY_REVIEW_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            198 if args.competency_lifecycle
+            199 if args.competency_review
+            else 198 if args.competency_lifecycle
             else
             184 if args.competency_own_read
             else 176 if args.competency_draft
@@ -5662,7 +5899,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            576 if args.competency_lifecycle
+            577 if args.competency_review
+            else 576 if args.competency_lifecycle
             else
             575 if args.competency_own_read
             else 574 if args.competency_draft
