@@ -50,6 +50,7 @@ _PARAMETER_SAMPLES = {
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddc",
+    "resource_request_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddcb",
     "draft_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
@@ -967,6 +968,12 @@ for _retirement_route_action, _retirement_policy_action in {
         scoped=True,
         location_id=_LOCATION_ID,
     )
+
+_EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/resource-requests/"
+    f"{_PARAMETER_SAMPLES['resource_request_id']}/review",
+)] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
 
 
 def _concrete_paths(route_path):

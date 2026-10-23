@@ -713,7 +713,7 @@
             <p id="operating-pilot-resource-review-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Record</th><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th></tr></thead>
+                <thead><tr><th>Record</th><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-resource-review-rows"></tbody>
               </table>
             </div>
@@ -794,6 +794,23 @@
               <p id="operating-pilot-work-claim-review-decision-status" class="muted" role="status" aria-live="polite"></p>
               <button id="operating-pilot-work-claim-review-cancel" class="secondary" type="button">Cancel</button>
               <button id="operating-pilot-work-claim-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
+          <dialog id="operating-pilot-resource-review-dialog" aria-labelledby="operating-pilot-resource-review-dialog-heading">
+            <form id="operating-pilot-resource-review-form">
+              <h3 id="operating-pilot-resource-review-dialog-heading">Review submitted resource request</h3>
+              <p id="operating-pilot-resource-review-request" class="muted"></p>
+              <label for="operating-pilot-resource-review-decision">Decision</label>
+              <select id="operating-pilot-resource-review-decision" required>
+                <option value="approved">Approve request</option>
+                <option value="rejected">Reject request</option>
+              </select>
+              <label id="operating-pilot-resource-review-reason-label" for="operating-pilot-resource-review-reason" hidden>Reason for rejection</label>
+              <textarea id="operating-pilot-resource-review-reason" maxlength="2000" rows="4" hidden></textarea>
+              <label><input id="operating-pilot-resource-review-acknowledged" type="checkbox" required> I reviewed this request and am authorized to record this decision.</label>
+              <p id="operating-pilot-resource-review-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-resource-review-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-resource-review-submit" type="submit">Record decision</button>
             </form>
           </dialog>
           <dialog id="operating-pilot-work-claim-allocation-dialog" aria-labelledby="operating-pilot-work-claim-allocation-dialog-heading">
@@ -2038,6 +2055,15 @@
       const operatingPilotResourceReviewStatus = document.querySelector("#operating-pilot-resource-review-status");
       const operatingPilotResourceReviewRows = document.querySelector("#operating-pilot-resource-review-rows");
       const operatingPilotResourceReviewMore = document.querySelector("#operating-pilot-resource-review-more");
+      const operatingPilotResourceReviewDialog = document.querySelector("#operating-pilot-resource-review-dialog");
+      const operatingPilotResourceReviewForm = document.querySelector("#operating-pilot-resource-review-form");
+      const operatingPilotResourceReviewRequest = document.querySelector("#operating-pilot-resource-review-request");
+      const operatingPilotResourceReviewDecision = document.querySelector("#operating-pilot-resource-review-decision");
+      const operatingPilotResourceReviewReason = document.querySelector("#operating-pilot-resource-review-reason");
+      const operatingPilotResourceReviewReasonLabel = document.querySelector("#operating-pilot-resource-review-reason-label");
+      const operatingPilotResourceReviewAcknowledged = document.querySelector("#operating-pilot-resource-review-acknowledged");
+      const operatingPilotResourceReviewDecisionStatus = document.querySelector("#operating-pilot-resource-review-decision-status");
+      const operatingPilotResourceReviewSubmit = document.querySelector("#operating-pilot-resource-review-submit");
       const operatingPilotDemandReviewDialog = document.querySelector("#operating-pilot-demand-review-dialog");
       const operatingPilotDemandReviewForm = document.querySelector("#operating-pilot-demand-review-form");
       const operatingPilotDemandReviewSignal = document.querySelector("#operating-pilot-demand-review-signal");
@@ -2072,6 +2098,7 @@
       const operatingPilotWorkClaimAllocationSubmit = document.querySelector("#operating-pilot-work-claim-allocation-submit");
       let operatingPilotPendingCapacityReview = null;
       let operatingPilotPendingDemandReview = null;
+      let operatingPilotPendingResourceReview = null;
       let operatingPilotPendingWorkClaimReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
@@ -2097,6 +2124,7 @@
       const operatingPilotPendingResourceSubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
+      const operatingPilotPendingResourceReviewDecisions = new Map();
       const operatingPilotPendingWorkClaimReviewDecisions = new Map();
       const operatingPilotPendingWorkClaimAllocations = new Map();
       const operatingPilotPendingWorkClaims = new Map();
@@ -4198,7 +4226,7 @@
           const result = await response.json();
           if (requestVersion !== operatingPilotResourceReviewRequestVersion
               || locationId !== operatingPilotLocation.value) return;
-          for (const item of result.items || []) appendOperatingPilotResourceReviewRow(item);
+          for (const item of result.items || []) appendOperatingPilotResourceReviewRow(item, locationId);
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
           operatingPilotResourceReviewMore.hidden = !canContinue;
@@ -4221,7 +4249,7 @@
         }
       }
 
-      function appendOperatingPilotResourceReviewRow(item) {
+      function appendOperatingPilotResourceReviewRow(item, locationId) {
         const row = document.createElement("tr");
         for (const value of [
           item.resource_request_id,
@@ -4234,7 +4262,104 @@
           cell.textContent = operatingPilotDisplayValue(value);
           row.append(cell);
         }
+        const actionCell = document.createElement("td");
+        const review = document.createElement("button");
+        review.type = "button";
+        review.className = "secondary";
+        review.textContent = "Review request";
+        review.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotCapacityReviewLocations.has(locationId)) return;
+          operatingPilotPendingResourceReview = {
+            resource_request_id: item.resource_request_id,
+            location_id: locationId
+          };
+          operatingPilotResourceReviewForm.reset();
+          operatingPilotResourceReviewReason.value = "";
+          operatingPilotResourceReviewRequest.textContent =
+            `Record ${operatingPilotDisplayValue(item.resource_request_id)}`;
+          operatingPilotResourceReviewDecisionStatus.textContent =
+            "A rejection requires a reason. Approval does not fulfill the request. Exact retries reuse their request ID.";
+          syncOperatingPilotResourceReviewReason();
+          operatingPilotResourceReviewDialog.showModal();
+        });
+        actionCell.append(review);
+        row.append(actionCell);
         operatingPilotResourceReviewRows.append(row);
+      }
+
+      function syncOperatingPilotResourceReviewReason() {
+        const rejecting = operatingPilotResourceReviewDecision.value === "rejected";
+        operatingPilotResourceReviewReason.hidden = !rejecting;
+        operatingPilotResourceReviewReasonLabel.hidden = !rejecting;
+        operatingPilotResourceReviewReason.required = rejecting;
+      }
+
+      async function submitOperatingPilotResourceReview(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingResourceReview;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(pending.location_id)) return;
+        const decision = operatingPilotResourceReviewDecision.value;
+        const reason = operatingPilotResourceReviewReason.value.trim();
+        if (decision === "rejected" && !reason) {
+          operatingPilotResourceReviewDecisionStatus.textContent = "Enter a reason before rejecting this request.";
+          operatingPilotResourceReviewReason.focus();
+          return;
+        }
+        if (!operatingPilotResourceReviewAcknowledged.checked) {
+          operatingPilotResourceReviewDecisionStatus.textContent = "Confirm that you reviewed the request and are authorized to decide.";
+          operatingPilotResourceReviewAcknowledged.focus();
+          return;
+        }
+        const payload = { decision, reason: reason || null };
+        const signature = JSON.stringify(payload);
+        let pendingRequest = operatingPilotPendingResourceReviewDecisions.get(
+          pending.resource_request_id
+        );
+        if (!pendingRequest || pendingRequest.signature !== signature) {
+          pendingRequest = { request_id: crypto.randomUUID(), signature };
+          operatingPilotPendingResourceReviewDecisions.set(
+            pending.resource_request_id, pendingRequest
+          );
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotResourceReviewDecisionStatus.textContent = "Refresh the page to establish a protected session before deciding.";
+          return;
+        }
+        operatingPilotResourceReviewSubmit.disabled = true;
+        operatingPilotResourceReviewDecisionStatus.textContent = "Recording independent resource review decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/resource-requests/${encodeURIComponent(pending.resource_request_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pendingRequest.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.resource_request_id !== pending.resource_request_id
+              || result.decision !== decision || result.status !== "reviewed") {
+            throw new Error("The review response did not match this decision. Retry using the same request.");
+          }
+          operatingPilotPendingResourceReviewDecisions.delete(pending.resource_request_id);
+          operatingPilotPendingResourceReview = null;
+          operatingPilotResourceReviewDialog.close();
+          operatingPilotResourceReviewStatus.textContent =
+            `${decision === "approved" ? "Approved" : "Rejected"} request recorded${result.replayed ? " (confirmed retry)" : ""}. Fulfillment remains separate.`;
+          await loadOperatingPilotResourceReviewQueue();
+        } catch (error) {
+          operatingPilotResourceReviewDecisionStatus.textContent =
+            `${error.message} Retry with the same decision and reason to reuse the request ID.`;
+        } finally {
+          operatingPilotResourceReviewSubmit.disabled = false;
+        }
       }
 
       async function loadOperatingPilotWorkClaimReviewQueue(append = false) {
@@ -17475,6 +17600,11 @@
           operatingPilotPendingDemandReview = null;
           operatingPilotDemandReviewDialog.close();
         }
+        if (operatingPilotPendingResourceReview
+            && operatingPilotPendingResourceReview.location_id !== operatingPilotLocation.value) {
+          operatingPilotPendingResourceReview = null;
+          operatingPilotResourceReviewDialog.close();
+        }
         if (operatingPilotPendingDemandEdit
             && operatingPilotPendingDemandEdit.location_id !== operatingPilotLocation.value) {
           cancelOperatingPilotDemandEdit();
@@ -17525,6 +17655,21 @@
       operatingPilotDemandReviewMore.addEventListener(
         "click", () => loadOperatingPilotDemandReviewQueue(true)
       );
+      operatingPilotResourceReviewDecision.addEventListener(
+        "change", syncOperatingPilotResourceReviewReason
+      );
+      operatingPilotResourceReviewForm.addEventListener(
+        "submit", submitOperatingPilotResourceReview
+      );
+      document.querySelector("#operating-pilot-resource-review-cancel").addEventListener(
+        "click", () => {
+          operatingPilotPendingResourceReview = null;
+          operatingPilotResourceReviewDialog.close();
+        }
+      );
+      operatingPilotResourceReviewDialog.addEventListener("cancel", () => {
+        operatingPilotPendingResourceReview = null;
+      });
       document.querySelector("#operating-pilot-resource-review-refresh").addEventListener(
         "click", () => loadOperatingPilotResourceReviewQueue()
       );

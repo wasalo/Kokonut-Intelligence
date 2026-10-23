@@ -673,11 +673,11 @@ def test_resource_review_queue_is_bounded_receipt_scoped_and_review_grant_gated(
     reader = _function(
         source,
         "async function loadOperatingPilotResourceReviewQueue(append = false)",
-        "function appendOperatingPilotResourceReviewRow(item)",
+        "function appendOperatingPilotResourceReviewRow(item, locationId)",
     )
     row = _function(
         source,
-        "function appendOperatingPilotResourceReviewRow(item)",
+        "function appendOperatingPilotResourceReviewRow(item, locationId)",
         "async function loadOperatingPilotWorkClaimReviewQueue(append = false)",
     )
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
@@ -695,6 +695,34 @@ def test_resource_review_queue_is_bounded_receipt_scoped_and_review_grant_gated(
     assert "await loadOperatingPilotResourceReviewQueue()" in initialize
     assert 'click", () => loadOperatingPilotResourceReviewQueue(true)' in source
     assert "No decision or fulfillment was recorded." in reader
+
+
+def test_resource_review_decision_is_acknowledged_idempotent_and_fulfillment_separate():
+    source = CONSOLE.read_text(encoding="utf-8")
+    review = _function(
+        source,
+        "async function submitOperatingPilotResourceReview(event)",
+        "async function loadOperatingPilotWorkClaimReviewQueue(append = false)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotResourceReviewRow(item, locationId)",
+        "function syncOperatingPilotResourceReviewReason()",
+    )
+    assert 'resource-requests/${encodeURIComponent(pending.resource_request_id)}/review' in review
+    assert 'method: "POST"' in review
+    assert 'credentials: "same-origin"' in review
+    assert 'cache: "no-store"' in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "operatingPilotPendingResourceReviewDecisions.get(" in review
+    assert "pendingRequest.signature !== signature" in review
+    assert "operatingPilotResourceReviewAcknowledged.checked" in review
+    assert "result.status !== \"reviewed\"" in review
+    assert "Fulfillment remains separate." in review
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in row
+    assert 'id="operating-pilot-resource-review-acknowledged" type="checkbox" required' in source
+    assert 'id="operating-pilot-resource-review-reason" maxlength="2000"' in source
+    assert "innerHTML" not in row
 
 
 def test_demand_review_decision_is_independent_acknowledged_and_idempotent():

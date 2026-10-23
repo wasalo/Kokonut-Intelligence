@@ -38,6 +38,7 @@ OWN_RESOURCE_MIGRATION = ROOT / "schemas/postgres/568_location_own_operating_pil
 OWN_RESOURCE_REVISION_MIGRATION = ROOT / "schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql"
 OWN_RESOURCE_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql"
 RESOURCE_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/571_location_operating_pilot_resource_review_queue.sql"
+RESOURCE_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/572_location_operating_pilot_resource_review_decision.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -55,6 +56,8 @@ OWN_RESOURCE_SUBMISSION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recover
 OWN_RESOURCE_SUBMISSION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json"
 RESOURCE_REVIEW_QUEUE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-queue-disposable.json"
 RESOURCE_REVIEW_QUEUE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-queue-arm64-disposable.json"
+RESOURCE_REVIEW_DECISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-decision-disposable.json"
+RESOURCE_REVIEW_DECISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-decision-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -218,7 +221,8 @@ CREATE TABLE public.operating_resource_request (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(), requested_by_party_id uuid NOT NULL, scope_type text NOT NULL,
     scope_id uuid NOT NULL, decision text NOT NULL, decision_reason text, description text,
     resource_type text NOT NULL DEFAULT 'other', urgency text NOT NULL DEFAULT 'medium',
-    requested_by date NOT NULL DEFAULT CURRENT_DATE, status text NOT NULL DEFAULT 'submitted'
+    requested_by date NOT NULL DEFAULT CURRENT_DATE, status text NOT NULL DEFAULT 'submitted',
+    updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.operating_coaching_session (
     id uuid PRIMARY KEY, coachee_party_id uuid NOT NULL, scope_type text NOT NULL,
@@ -4171,6 +4175,260 @@ ROLLBACK;
 """
 
 
+RESOURCE_REVIEW_DECISION_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_identity VALUES
+ ('a0000000-0000-4000-8000-000000000003', true);
+INSERT INTO public.party (id, party_type, status, display_name) VALUES
+ ('d8000000-0000-4000-8000-000000000003', 'person', 'active', 'Synthetic reviewer'),
+ ('d8000000-0000-4000-8000-000000000004', 'person', 'active', 'Synthetic no-grant operator');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at) VALUES
+ ('d8000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000003', NULL),
+ ('d8000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000003', 'd8000000-0000-4000-8000-000000000004', NULL);
+INSERT INTO public.operator_organization_membership VALUES
+ ('a2000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant VALUES
+ ('a1000000-0000-4000-8000-000000000091', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1000000-0000-4000-8000-000000000092', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operating_resource_request (
+    id, requested_by_party_id, scope_type, scope_id, decision,
+    resource_type, description, status
+) VALUES (
+    'f2100000-0000-4000-8000-000000000001',
+    'f2000000-0000-4000-8000-000000000012', 'adelphi',
+    'e9000000-0000-4000-8000-000000000001', 'pending',
+    'legacy', 'PRIVATE receiptless legacy request', 'submitted'
+);
+
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_draft jsonb; second_draft jsonb;
+        first_submit jsonb; second_submit jsonb;
+BEGIN
+    first_draft := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9910000-0000-4000-8000-000000000021',
+        'irrigation pump', 'PRIVATE approved request details', 'high', CURRENT_DATE + 25
+    );
+    first_submit := kokonut_security.submit_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        (first_draft->>'draft_id')::uuid,
+        'd9910000-0000-4000-8000-000000000022'
+    );
+    second_draft := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9910000-0000-4000-8000-000000000023',
+        'water tank', 'PRIVATE rejected request details', 'medium', CURRENT_DATE + 30
+    );
+    second_submit := kokonut_security.submit_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        (second_draft->>'draft_id')::uuid,
+        'd9910000-0000-4000-8000-000000000024'
+    );
+    IF first_submit->>'status' <> 'submitted' OR second_submit->>'status' <> 'submitted' THEN
+        RAISE EXCEPTION 'synthetic resource requests were not submitted';
+    END IF;
+END $$;
+RESET ROLE;
+SELECT set_config(
+    'kokonut.test_resource_approval_id',
+    (SELECT receipt.resource_request_id::text
+       FROM public.operating_resource_request_draft_submission_receipt AS receipt
+      WHERE receipt.operator_id = 'a0000000-0000-4000-8000-000000000001'
+        AND receipt.request_id = 'd9910000-0000-4000-8000-000000000022'),
+    true
+);
+SELECT set_config(
+    'kokonut.test_resource_rejection_id',
+    (SELECT receipt.resource_request_id::text
+       FROM public.operating_resource_request_draft_submission_receipt AS receipt
+      WHERE receipt.operator_id = 'a0000000-0000-4000-8000-000000000001'
+        AND receipt.request_id = 'd9910000-0000-4000-8000-000000000024'),
+    true
+);
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE approved jsonb; replay jsonb; rejected jsonb;
+        approval_resource_request_id UUID := current_setting('kokonut.test_resource_approval_id')::UUID;
+        rejection_resource_request_id UUID := current_setting('kokonut.test_resource_rejection_id')::UUID;
+        self_review_denied boolean := false; no_grant_denied boolean := false;
+        location_denied boolean := false; legacy_denied boolean := false;
+        invalid_reason_denied boolean := false; invalid_decision_denied boolean := false;
+        changed_retry_denied boolean := false; duplicate_decision_denied boolean := false;
+        direct_update_denied boolean := false;
+        approval_request_id UUID := 'd9910000-0000-4000-8000-000000000031';
+        rejection_request_id UUID := 'd9910000-0000-4000-8000-000000000032';
+BEGIN
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+            approval_request_id, 'approved', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN self_review_denied := true;
+    END;
+    IF NOT self_review_denied THEN RAISE EXCEPTION 'resource submitter reviewed own request'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    approved := kokonut_security.review_location_operating_pilot_resource_request(
+        'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+        approval_request_id, 'approved', NULL
+    );
+    replay := kokonut_security.review_location_operating_pilot_resource_request(
+        'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+        approval_request_id, 'approved', NULL
+    );
+    IF approved->>'status' <> 'reviewed'
+       OR approved->>'decision' <> 'approved'
+       OR approved->>'replayed' <> 'false'
+       OR approved ? 'reason'
+       OR replay->>'replayed' <> 'true' THEN
+        RAISE EXCEPTION 'resource approval or exact replay response mismatch: %, %', approved, replay;
+    END IF;
+
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+            approval_request_id, 'rejected', 'Changed retry input'
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'changed retry input was accepted'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', rejection_resource_request_id,
+            'd9910000-0000-4000-8000-000000000033', 'rejected', '   '
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_reason_denied := true;
+    END;
+    IF NOT invalid_reason_denied THEN RAISE EXCEPTION 'rejection without a reason was accepted'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', rejection_resource_request_id,
+            'd9910000-0000-4000-8000-000000000034', 'partially_approved', 'Unsupported'
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_decision_denied := true;
+    END;
+    IF NOT invalid_decision_denied THEN RAISE EXCEPTION 'unsupported partial decision was accepted'; END IF;
+
+    rejected := kokonut_security.review_location_operating_pilot_resource_request(
+        'b0000000-0000-4000-8000-000000000001', rejection_resource_request_id,
+        rejection_request_id, 'rejected', 'Quote exceeds approved budget.'
+    );
+    IF rejected->>'status' <> 'reviewed'
+       OR rejected->>'decision' <> 'rejected'
+       OR rejected->>'replayed' <> 'false'
+       OR rejected ? 'reason' THEN
+        RAISE EXCEPTION 'resource rejection response mismatch: %', rejected;
+    END IF;
+
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', rejection_resource_request_id,
+            'd9910000-0000-4000-8000-000000000035', 'approved', NULL
+        );
+    EXCEPTION WHEN unique_violation THEN duplicate_decision_denied := true;
+    END;
+    IF NOT duplicate_decision_denied THEN RAISE EXCEPTION 'second decision was accepted'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001',
+            'f2100000-0000-4000-8000-000000000001',
+            'd9910000-0000-4000-8000-000000000036', 'approved', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN legacy_denied := true;
+    END;
+    IF NOT legacy_denied THEN RAISE EXCEPTION 'receiptless legacy request was reviewable'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+            'd9910000-0000-4000-8000-000000000037', 'approved', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'operator without grant was accepted'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.review_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', approval_resource_request_id,
+            'd9910000-0000-4000-8000-000000000038', 'approved', NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'mismatched signed location was accepted'; END IF;
+
+    BEGIN
+        PERFORM decision_reason FROM public.operating_resource_request;
+    EXCEPTION WHEN insufficient_privilege THEN direct_update_denied := true;
+    END;
+    IF NOT direct_update_denied THEN RAISE EXCEPTION 'runtime read canonical decision fields directly'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+DECLARE approved_row RECORD; rejected_row RECORD;
+BEGIN
+    SELECT request.status, request.decision, request.decision_reason,
+           request.decided_by_party_id, decision.reviewer_party_id
+      INTO approved_row
+      FROM public.operating_resource_request AS request
+      JOIN public.operating_resource_request_review_decision AS decision
+        ON decision.resource_request_id = request.id
+     WHERE request.id = current_setting('kokonut.test_resource_approval_id')::UUID;
+    SELECT request.status, request.decision, request.decision_reason,
+           request.decided_by_party_id, decision.reason
+      INTO rejected_row
+      FROM public.operating_resource_request AS request
+      JOIN public.operating_resource_request_review_decision AS decision
+        ON decision.resource_request_id = request.id
+     WHERE request.id = current_setting('kokonut.test_resource_rejection_id')::UUID;
+    IF approved_row.status <> 'reviewed' OR approved_row.decision <> 'approved'
+       OR approved_row.decision_reason IS NOT NULL
+       OR approved_row.decided_by_party_id IS DISTINCT FROM approved_row.reviewer_party_id
+       OR rejected_row.status <> 'reviewed' OR rejected_row.decision <> 'declined'
+       OR rejected_row.decision_reason <> 'Quote exceeds approved budget.'
+       OR rejected_row.decision_reason IS DISTINCT FROM rejected_row.reason
+       OR rejected_row.decided_by_party_id IS NULL THEN
+        RAISE EXCEPTION 'canonical reviewed state or private audit receipt mismatch';
+    END IF;
+    IF (SELECT count(*) FROM public.operating_resource_request_review_decision) <> 2 THEN
+        RAISE EXCEPTION 'review receipt replay or rejection was not atomic';
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+        'kokonut_runtime',
+        'kokonut_security.review_location_operating_pilot_resource_request(uuid,uuid,uuid,text,text)',
+        'EXECUTE'
+    )
+       OR has_function_privilege(
+        'kokonut_directus_runtime',
+        'kokonut_security.review_location_operating_pilot_resource_request(uuid,uuid,uuid,text,text)',
+        'EXECUTE'
+    )
+       OR has_table_privilege('kokonut_runtime', 'public.operating_resource_request_review_decision', 'SELECT')
+       OR has_any_column_privilege('kokonut_directus_runtime', 'public.operating_resource_request_review_decision', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_review_decision', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_review_decision', 'DELETE')
+       OR has_any_column_privilege('kokonut_runtime', 'public.operating_resource_request', 'UPDATE')
+       OR has_any_column_privilege('kokonut_directus_runtime', 'public.operating_resource_request', 'UPDATE') THEN
+        RAISE EXCEPTION 'resource review decision function or audit ACL boundary failed';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -4228,7 +4486,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 571 and test the independent resource-review queue",
     )
+    parser.add_argument(
+        "--resource-request-review-decision",
+        action="store_true",
+        help="Also apply/replay migration 572 and test independent resource-request decisions",
+    )
     args = parser.parse_args(argv)
+    if args.resource_request_review_decision:
+        args.resource_request_review_queue = True
     if args.resource_request_review_queue:
         args.resource_request_own_submission = True
     if args.resource_request_own_submission:
@@ -4242,6 +4507,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (RESOURCE_REVIEW_DECISION_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_REVIEW_DECISION_OUTPUT)
+        if args.resource_request_review_decision
+        else
         (RESOURCE_REVIEW_QUEUE_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_REVIEW_QUEUE_OUTPUT)
         if args.resource_request_review_queue
         else
@@ -4292,7 +4560,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -4459,6 +4727,21 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 571 reapplies cleanly without changing existing resource submissions",
             ]
         )
+    if args.resource_request_review_decision:
+        evidence["migrations"].append(RESOURCE_REVIEW_DECISION_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "approve/reject requires exact signed review scope, one active human binding, and the active Adelphi location mapping",
+                "only receipt-backed submitted Kernel requests are eligible; self-review and receiptless legacy rows fail closed",
+                "approval records approved/reviewed and rejection records declined/reviewed with a mandatory private reason",
+                "review decisions store reviewer attribution and append-only idempotency receipts atomically without fulfilling requests",
+                "exact retry replays; changed input, unsupported partial decisions, and duplicate decisions fail closed",
+                "decision responses omit the private reason and reject invalid request scope before state changes",
+                "runtime can execute only the bounded decision function; Directus cannot execute it or read the private receipt",
+                "runtime and Directus cannot update canonical request decision columns; the non-login audit owner cannot mutate receipts",
+                "migration 572 reapplies cleanly while preserving previous decisions and receipts",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -4589,10 +4872,16 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, resource_review_queue_migration)
             psql(docker, container, resource_review_queue_migration)
             psql(docker, container, RESOURCE_REVIEW_QUEUE_ACCEPTANCE)
+        if args.resource_request_review_decision:
+            resource_review_decision_migration = RESOURCE_REVIEW_DECISION_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, resource_review_decision_migration)
+            psql(docker, container, resource_review_decision_migration)
+            psql(docker, container, RESOURCE_REVIEW_DECISION_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            130 if args.resource_request_review_queue
+            146 if args.resource_request_review_decision
+            else 130 if args.resource_request_review_queue
             else 123 if args.resource_request_own_submission
             else
             107 if args.resource_request_own_revision
@@ -4606,6 +4895,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
+            572 if args.resource_request_review_decision
+            else
             571 if args.resource_request_review_queue
             else
             570 if args.resource_request_own_submission
