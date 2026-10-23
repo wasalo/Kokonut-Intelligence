@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, and suppressed resource-request category page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, suppressed resource-request category page, private resource-request draft creation/history/revision/submission, and independent resource-request review queue
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`; `schemas/postgres/567_location_operating_pilot_resource_request_draft.sql`; `schemas/postgres/568_location_own_operating_pilot_resource_requests.sql`; `schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql`; `schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql`; `schemas/postgres/571_location_operating_pilot_resource_review_queue.sql`
 
 ## Route and authorization
 
@@ -611,10 +611,10 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
-569, and 570, exercises active and internal scopes, checks aggregate
+569, 570, and 571, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
-demand/capacity/resource revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
+demand/capacity/resource revision and submission replay, resource review-queue scope and redaction, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
 submission eligibility, capacity approval/rejection, rejection-reason
 validation, reviewer self-denial, exact retry/collision behavior, rejected-record
 revision, append-only decision history, private resource-draft replay/scope, own-resource exact paging/ownership/redaction and ACLs, and data redaction; it also
@@ -636,7 +636,7 @@ and linux/arm64 Docker/QEMU
 ([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-read-arm64-disposable.json)).
 The focused Gateway, policy, console, and migration selection passes 170 tests;
 Ruff and Python compilation pass. Candidate and legacy remain untouched, and
-migrations 567–570 have not been rolled out.
+migrations 567–571 have not been rolled out.
 
 Migration 569 and all 107 grouped assertions pass on native PostgreSQL 16
 ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-revision-disposable.json))
@@ -650,7 +650,7 @@ Candidate and legacy remain untouched, and migration 569 is not rolled out.
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
-569, or 570 are applied, retain their ordered functions, receipts,
+569, 570, or 571 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
@@ -659,7 +659,7 @@ a separately reviewed forward migration.
 
 These slices do not establish populated Adelphi scope mapping, additional
 capacity workflows beyond own drafts/revision and independent approve/reject,
-resource-request review and fulfillment, post-allocation work execution,
+resource-request review decisions and fulfillment, post-allocation work execution,
 competency/learning/coaching workflows, demand fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates
@@ -672,4 +672,13 @@ remain open in `docs/refactor/batches.md`.
 
 The non-login reader role can insert only the required request columns and update only draft status, canonical-link ID, and update time. Runtime and Directus cannot read or mutate the canonical resource-request table or submission receipt directly; the Gateway invokes only the bounded function. The former unscoped management create and decision helpers fail before opening a cursor. The operator console requires both `read_own` and `submit_own`, asks for confirmation, sends a same-origin CSRF-protected no-store request, preserves one request ID across retries, and removes editing once the row is submitted.
 
-Migration 570 and all 123 grouped assertions pass on network-disabled disposable PostgreSQL 16 ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json)). The focused Gateway, route-policy, console, management-helper, and migration selection passes 171 tests with one database-backed test skipped; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. QEMU is software emulation only. Candidate and legacy remain untouched, and migration 570 is not rolled out. Before rollout, disable the route, exact policy, and console button; if applied, retain the additive function, receipt, roles, and ACLs. Resource review and fulfillment, populated parity, live OIDC/browser, universal ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.
+Migration 570 and all 123 grouped assertions pass on network-disabled disposable PostgreSQL 16 ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json)). The focused Gateway, route-policy, console, management-helper, and migration selection passes 171 tests with one database-backed test skipped; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. QEMU is software emulation only. Candidate and legacy remain untouched, and migration 570 is not rolled out. Before rollout, disable the route, exact policy, and console button; if applied, retain the additive function, receipt, roles, and ACLs. Resource review decisions and fulfillment, populated parity, live OIDC/browser, universal ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.
+
+
+## Independent resource-request review queue
+
+`GET /operator/api/operating-pilot/{location_id}/resource-review-queue` is a read-only, no-store OIDC route under the exact location `operating_pilot:review` grant. Migration 571 rechecks signed tenant context and the grant in the same read-only transaction, requires one active human-party binding and the active Adelphi farm mapping, and returns only receipt-backed Kernel submissions that remain `submitted` / `pending` with a linked submitted draft. It excludes the reviewer's own submissions, legacy receiptless requests, unrelated farms, and internal pilot scope. The response includes only the request ID, resource type, description, urgency, and needed-by date needed by the authorized reviewer; requester identity and internal lifecycle metadata are omitted. Limit is capped at 50 and offset at 10,000.
+
+Runtime and Directus cannot directly query the canonical request or submission-receipt tables. The non-login reader function owner receives only column-scoped request access needed to evaluate and return this projection; the Gateway invokes only the bounded function. The console shows the queue only when the exact review grant is present and renders request content as text. This slice does not approve, reject, or fulfill a request.
+
+Migration 571 and all 130 grouped assertions pass on network-disabled disposable PostgreSQL 16 ([native evidence](builds/2026-10-22-recovery/cap-037-resource-request-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-resource-request-review-queue-arm64-disposable.json)). The focused Gateway, route-policy, and console checks pass 146 tests. QEMU is software emulation only. Candidate and legacy remain untouched, and migration 571 is not rolled out. Disable the route, exact policy, and console panel to roll back; retain the additive migration and its ACLs if applied. Independent review decisions, fulfillment, populated parity, live OIDC/browser, universal ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.

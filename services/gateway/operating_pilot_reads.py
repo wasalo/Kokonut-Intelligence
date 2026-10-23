@@ -415,6 +415,54 @@ def get_location_operating_pilot_demand_review_queue(
             connection.close()
 
 
+def get_location_operating_pilot_resource_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return submitted Kernel resource requests for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    limit, offset = _normalize_page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.location_operating_pilot_resource_review_queue("
+                "%s::uuid, %s::integer, %s::integer)",
+                (location_id, limit, offset),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating resource review queue returned no result")
+            page = row[0]
+            if isinstance(page, str):
+                page = json.loads(page)
+            return {"location_id": location_id, **page}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
 def get_location_operating_pilot_work_claims(
     operator_id: str,
     location_id: str,

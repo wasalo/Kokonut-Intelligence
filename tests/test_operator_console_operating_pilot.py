@@ -30,6 +30,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-own-resources-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
     assert 'id="operating-pilot-demand-review-rows"' in panel.group()
+    assert 'id="operating-pilot-resource-review-rows"' in panel.group()
     assert 'id="operating-pilot-work-opportunities-rows"' in panel.group()
     assert 'id="operating-pilot-work-opportunities"' in panel.group()
     assert 'id="operating-pilot-work-claim-review-rows"' in panel.group()
@@ -665,6 +666,35 @@ def test_demand_review_queue_is_bounded_redacted_and_review_grant_gated():
     assert "reads.push(loadOperatingPilotDemandReviewQueue())" in initialize
     assert "await loadOperatingPilotDemandReviewQueue()" in initialize
     assert 'click", () => loadOperatingPilotDemandReviewQueue(true)' in source
+
+
+def test_resource_review_queue_is_bounded_receipt_scoped_and_review_grant_gated():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadOperatingPilotResourceReviewQueue(append = false)",
+        "function appendOperatingPilotResourceReviewRow(item)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotResourceReviewRow(item)",
+        "async function loadOperatingPilotWorkClaimReviewQueue(append = false)",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in reader
+    assert "resource-review-queue?${params}" in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "requestVersion !== operatingPilotResourceReviewRequestVersion" in reader
+    assert "locationId !== operatingPilotLocation.value" in reader
+    assert "item.description" in row
+    assert 'cell.textContent = operatingPilotDisplayValue(value)' in row
+    assert "innerHTML" not in row
+    assert "operatingPilotResourceReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in initialize
+    assert "reads.push(loadOperatingPilotResourceReviewQueue())" in initialize
+    assert "await loadOperatingPilotResourceReviewQueue()" in initialize
+    assert 'click", () => loadOperatingPilotResourceReviewQueue(true)' in source
+    assert "No decision or fulfillment was recorded." in reader
 
 
 def test_demand_review_decision_is_independent_acknowledged_and_idempotent():

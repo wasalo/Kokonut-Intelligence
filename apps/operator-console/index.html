@@ -706,6 +706,19 @@
             </div>
             <button id="operating-pilot-demand-review-more" class="secondary" type="button" hidden>Load more demand submissions</button>
           </section>
+          <section id="operating-pilot-resource-review" hidden aria-labelledby="operating-pilot-resource-review-heading">
+            <h3 id="operating-pilot-resource-review-heading">Independent resource-request review queue</h3>
+            <p class="muted">A separate exact-location review grant is required. Your own submissions and legacy requests are excluded. Request details are shown only to support review; decisions and fulfillment remain separate workflows.</p>
+            <div class="toolbar"><button id="operating-pilot-resource-review-refresh" type="button">Refresh resource review queue</button></div>
+            <p id="operating-pilot-resource-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Record</th><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th></tr></thead>
+                <tbody id="operating-pilot-resource-review-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-resource-review-more" class="secondary" type="button" hidden>Load more resource requests</button>
+          </section>
           <section id="operating-pilot-work-claim-review" hidden aria-labelledby="operating-pilot-work-claim-review-heading">
             <h3 id="operating-pilot-work-claim-review-heading">Independent work-claim review queue</h3>
             <p class="muted">A separate exact-location review grant is required. Your own claims are excluded. Claimant identity, private evidence, and decision reasons are not shown. Acceptance records eligibility for a later allocation decision; it does not assign work.</p>
@@ -2021,6 +2034,10 @@
       const operatingPilotDemandReviewStatus = document.querySelector("#operating-pilot-demand-review-status");
       const operatingPilotDemandReviewRows = document.querySelector("#operating-pilot-demand-review-rows");
       const operatingPilotDemandReviewMore = document.querySelector("#operating-pilot-demand-review-more");
+      const operatingPilotResourceReview = document.querySelector("#operating-pilot-resource-review");
+      const operatingPilotResourceReviewStatus = document.querySelector("#operating-pilot-resource-review-status");
+      const operatingPilotResourceReviewRows = document.querySelector("#operating-pilot-resource-review-rows");
+      const operatingPilotResourceReviewMore = document.querySelector("#operating-pilot-resource-review-more");
       const operatingPilotDemandReviewDialog = document.querySelector("#operating-pilot-demand-review-dialog");
       const operatingPilotDemandReviewForm = document.querySelector("#operating-pilot-demand-review-form");
       const operatingPilotDemandReviewSignal = document.querySelector("#operating-pilot-demand-review-signal");
@@ -2094,6 +2111,7 @@
       let operatingPilotOwnResourcesRequestVersion = 0;
       let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandReviewRequestVersion = 0;
+      let operatingPilotResourceReviewRequestVersion = 0;
       let operatingPilotWorkClaimReviewRequestVersion = 0;
       let operatingPilotWorkClaimAllocationRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
@@ -2106,6 +2124,7 @@
       let operatingPilotOwnResourcesOffset = 0;
       let operatingPilotCapacityReviewOffset = 0;
       let operatingPilotDemandReviewOffset = 0;
+      let operatingPilotResourceReviewOffset = 0;
       let operatingPilotWorkClaimReviewOffset = 0;
       let operatingPilotWorkClaimAllocationOffset = 0;
       let operatingPilotPendingWorkClaimAllocation = null;
@@ -4153,6 +4172,71 @@
         }
       }
 
+      async function loadOperatingPilotResourceReviewQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotResourceReviewRequestVersion;
+        if (!operatingPilotCapacityReviewLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotResourceReviewOffset = 0;
+          operatingPilotResourceReviewRows.replaceChildren();
+          operatingPilotResourceReviewMore.hidden = true;
+        }
+        const offset = append ? operatingPilotResourceReviewOffset : 0;
+        operatingPilotResourceReviewMore.disabled = true;
+        operatingPilotResourceReviewStatus.textContent = "Loading submitted resource requests for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            throw new Error(response.status === 401 || response.status === 403
+              ? "A current session and exact location review grant are required."
+              : "The resource review queue could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== operatingPilotResourceReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotResourceReviewRow(item);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotResourceReviewMore.hidden = !canContinue;
+          operatingPilotResourceReviewOffset = canContinue ? nextOffset : 0;
+          operatingPilotResourceReviewStatus.textContent = canContinue
+            ? "Showing a bounded page of receipt-backed submitted requests."
+            : operatingPilotResourceReviewRows.childElementCount
+              ? "Submitted Kernel resource requests loaded. No decision or fulfillment was recorded."
+              : "No Kernel resource requests are awaiting independent review.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotResourceReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotResourceReviewMore.hidden = true;
+          operatingPilotResourceReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotResourceReviewRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotResourceReviewMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotResourceReviewRow(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.resource_request_id,
+          item.resource_type,
+          item.description,
+          item.urgency,
+          item.requested_by
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        operatingPilotResourceReviewRows.append(row);
+      }
+
       async function loadOperatingPilotWorkClaimReviewQueue(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotWorkClaimReviewRequestVersion;
@@ -4469,6 +4553,7 @@
         operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotResourceReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkClaimReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkClaimAllocation.hidden = !operatingPilotAllocateLocations.has(locationId);
         operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
@@ -4491,6 +4576,7 @@
           operatingPilotResourceStatus.textContent = "A location read grant is required to view resource categories.";
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotDemandReviewRows.replaceChildren();
+          operatingPilotResourceReviewRows.replaceChildren();
           operatingPilotWorkClaimReviewRows.replaceChildren();
           operatingPilotWorkClaimAllocationRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
@@ -4511,10 +4597,12 @@
           if (operatingPilotCapacityReviewLocations.has(locationId)) {
             await loadOperatingPilotCapacityReviewQueue();
             await loadOperatingPilotDemandReviewQueue();
+            await loadOperatingPilotResourceReviewQueue();
             await loadOperatingPilotWorkClaimReviewQueue();
           } else {
             operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
+            operatingPilotResourceReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
           }
           if (operatingPilotAllocateLocations.has(locationId)) {
@@ -4540,12 +4628,15 @@
         if (operatingPilotCapacityReviewLocations.has(locationId)) {
           reads.push(loadOperatingPilotCapacityReviewQueue());
           reads.push(loadOperatingPilotDemandReviewQueue());
+          reads.push(loadOperatingPilotResourceReviewQueue());
           reads.push(loadOperatingPilotWorkClaimReviewQueue());
         } else {
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotDemandReviewRows.replaceChildren();
           operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
+          operatingPilotResourceReviewRows.replaceChildren();
+          operatingPilotResourceReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotWorkClaimReviewRows.replaceChildren();
           operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
         }
@@ -17433,6 +17524,12 @@
       );
       operatingPilotDemandReviewMore.addEventListener(
         "click", () => loadOperatingPilotDemandReviewQueue(true)
+      );
+      document.querySelector("#operating-pilot-resource-review-refresh").addEventListener(
+        "click", () => loadOperatingPilotResourceReviewQueue()
+      );
+      operatingPilotResourceReviewMore.addEventListener(
+        "click", () => loadOperatingPilotResourceReviewQueue(true)
       );
       operatingPilotDemandReviewDecision.addEventListener("change", syncOperatingPilotDemandReviewReason);
       operatingPilotDemandReviewForm.addEventListener("submit", submitOperatingPilotDemandReview);
