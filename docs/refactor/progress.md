@@ -15840,3 +15840,8 @@ was touched by this repair. The repaired reports have not yet received a hosted
 CI rerun ([evidence](builds/2026-10-23-recovery/ci-774-worker-inventory-refresh.json)).
 The checklist remains 1,031 complete / 24 open (1,055 total); capability
 classification and MAN-CAP acceptance are unchanged.
+
+
+### Progress addendum — CAP-066 report parent-row scope inference, 23 October 2026
+
+The AST report-query analyzer now carries a location-scoped parent row into child queries inside `try` and `if` branches while keeping each branch's inference state separate. Regressions cover the Statement of Work parent row and its three child tables, EBF scorecard summary and child row, plus an unscoped branch replacement that must remain unscoped. The generated inventory covers 94 report types and 176 direct query sites: 131 have a location-scope signal, six are conditional, and none are unresolved by the bounded SQL extractor. Statement of Work is classified as scoped at all 13 sites; EBF is scoped at both sites. The focused suite passes 48 tests; Ruff, generated-inventory freshness, and whitespace checks pass. This is static source evidence only; it does not prove authorization/RLS, database execution, semantic or populated report parity, or owner acceptance. No database, provider, candidate, or legacy service was used. The checklist remains 1,031 complete / 24 open (1,055 total); the capability matrix remains 30 baseline-retained, 7 deployed, and 29 prepared, with 0/66 MAN-CAP checks accepted. [Evidence](builds/2026-10-23-recovery/report-parent-row-scope-inheritance.json).

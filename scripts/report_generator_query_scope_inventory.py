@@ -1124,8 +1124,10 @@ def _propagate_parent_row_scope(
 
     Supports simple ``fetchone`` aliases and ``fetchall`` list aliases iterated
     by a direct ``for`` loop. Only a source query already marked location-bound
-    can make its fetched rows scoped. Branches and arbitrary row transformations
-    are deliberately not followed.
+    can make its fetched rows scoped. ``try`` and ``if`` bodies are analyzed
+    with branch-local copies of known rows/cursors; those states are never
+    merged back into the enclosing block. Arbitrary row transformations remain
+    unresolved.
     """
     query_nodes: dict[int, list[ast.Call]] = {}
     for node in ast.walk(function):
@@ -1147,6 +1149,50 @@ def _propagate_parent_row_scope(
         for statement in statements:
             if isinstance(statement, (ast.With, ast.AsyncWith)):
                 process_block(statement.body, rows, collections, cursors)
+                continue
+            if isinstance(statement, ast.Try):
+                process_block(
+                    statement.body,
+                    dict(rows),
+                    dict(collections),
+                    dict(cursors),
+                )
+                for handler in statement.handlers:
+                    process_block(
+                        handler.body,
+                        dict(rows),
+                        dict(collections),
+                        dict(cursors),
+                    )
+                process_block(
+                    statement.orelse,
+                    dict(rows),
+                    dict(collections),
+                    dict(cursors),
+                )
+                process_block(
+                    statement.finalbody,
+                    dict(rows),
+                    dict(collections),
+                    dict(cursors),
+                )
+                continue
+            if isinstance(statement, ast.If):
+                # A child query inside either branch can still be scoped by a
+                # previously location-bound parent row. Keep each branch's
+                # assignments local so an unscoped replacement cannot escape.
+                process_block(
+                    statement.body,
+                    dict(rows),
+                    dict(collections),
+                    dict(cursors),
+                )
+                process_block(
+                    statement.orelse,
+                    dict(rows),
+                    dict(collections),
+                    dict(cursors),
+                )
                 continue
             if isinstance(statement, (ast.For, ast.AsyncFor)):
                 loop_rows = dict(rows)

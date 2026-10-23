@@ -673,13 +673,16 @@ def test_classifier_recognizes_child_query_scoped_by_location_bound_parent_row()
         '''
 def generate(conn, location_id):
     cur = conn.cursor()
-    cur.execute(
-        "SELECT id FROM statement_of_work WHERE location_id = %s",
-        (location_id,),
-    )
-    sow = cur.fetchone()
-    if sow:
-        cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+    try:
+        cur.execute(
+            "SELECT id FROM statement_of_work WHERE location_id = %s",
+            (location_id,),
+        )
+        sow = cur.fetchone()
+        if sow:
+            cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+    finally:
+        cur.close()
 ''',
         "generate",
     )
@@ -715,11 +718,29 @@ def generate(conn, location_id):
 ''',
         "generate",
     )
+    branch_replaced = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id FROM statement_of_work WHERE location_id = %s", (location_id,))
+        sow = cur.fetchone()
+        if refresh:
+            cur.execute("SELECT id FROM statement_of_work WHERE status = %s", ("active",))
+            sow = cur.fetchone()
+            cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s", (sow["id"],))
+    finally:
+        cur.close()
+''',
+        "generate",
+    )
 
     assert unscoped["queries"][1]["location_scope_via_parent_row"] is False
     assert unscoped["queries"][1]["bound_location_scope_signal"] is False
     assert replaced["queries"][2]["location_scope_via_parent_row"] is False
     assert replaced["queries"][2]["bound_location_scope_signal"] is False
+    assert branch_replaced["queries"][2]["location_scope_via_parent_row"] is False
+    assert branch_replaced["queries"][2]["bound_location_scope_signal"] is False
 
 
 def test_classifier_propagates_conditional_location_scope_through_fetched_parent_list():
@@ -1209,3 +1230,44 @@ def test_inventory_output_and_freshness_check_are_deterministic(tmp_path):
 
     output.write_text(first + " ", encoding="utf-8")
     assert main(["--check", str(output)]) == 1
+
+
+def test_statement_of_work_child_queries_inherit_location_scoped_parent_scope():
+    source = (ROOT / "services/export/reports/operations.py").read_text(encoding="utf-8")
+    analysis = analyze_function_source(source, "generate_statement_of_work")
+    parents = [
+        query for query in analysis["queries"] if "statement_of_work" in query["relations"]
+    ]
+    children = [
+        query
+        for query in analysis["queries"]
+        if any(
+            relation in {"sow_deliverable", "sow_payment_schedule", "sow_change_request"}
+            for relation in query["relations"]
+        )
+    ]
+
+    assert len(parents) == 1
+    assert parents[0]["bound_location_scope_signal"] is True
+    assert len(children) == 3
+    assert all(query["location_scope_via_parent_row"] for query in children)
+    assert all(query["bound_location_scope_signal"] for query in children)
+
+
+def test_ebf_pillar_queries_inherit_location_scoped_scorecard_parent():
+    source = (ROOT / "services/export/reports/wellbeing.py").read_text(encoding="utf-8")
+    analysis = analyze_function_source(source, "generate_ebf_scorecard")
+    parent = next(
+        query
+        for query in analysis["queries"]
+        if "v_public_ebf_scorecard_summary" in query["relations"]
+    )
+    child = next(
+        query
+        for query in analysis["queries"]
+        if "v_public_ebf_scorecard" in query["relations"]
+    )
+
+    assert parent["bound_location_scope_signal"] is True
+    assert child["location_scope_via_parent_row"] is True
+    assert child["bound_location_scope_signal"] is True

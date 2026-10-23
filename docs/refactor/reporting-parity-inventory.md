@@ -80,28 +80,34 @@ its two focused tests pass without importing service modules or loading SOPS
 configuration ([evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
 
 A second AST-only [query-scope inventory](report-generator-query-scope-inventory.json)
-now maps the direct `execute`/`query` calls in those generators. It finds 177
-query sites: 126 show a bound location predicate, a `location.id` lookup, or
-one of the recognized indirect location keys. The recognizer includes
-attestation rows bound by `subject_type='location'` and a parameterized
-`subject_id`, which correctly classifies the farm-summary attestation query.
-Across report types, 34 have that signal for every direct query, 3 add it
-conditionally when a location is supplied across 5 query sites, 16 mix scoped
-and no-scope direct queries, 13
-have no bound location scope visible in their direct SQL, and 28 issue no
-direct query from the registered function. Twelve queries allow
+maps the direct `execute`/`query` calls in those generators. It currently finds
+176 query sites, of which 131 contain a recognized location-scope signal; six
+queries are conditional and zero direct query sites are unresolved by the
+bounded SQL extractor. Across report types, 37 have a scope signal for every
+direct query, four add it conditionally, twelve mix scoped and no-scope direct
+queries, thirteen have no bound location scope visible in their direct SQL,
+and 28 issue no direct query from the registered function. Twelve queries allow
 `location_id IS NULL`, which may intentionally include shared reference rows.
-The no-scope and mixed groups include possible network-level
-reports, reference-data lookups, conditional fallbacks, and helper-mediated
-reads; the scan cannot distinguish intended behavior from a scope defect.
-All current direct query sites were resolved by the bounded literal, f-string,
-string-join, and augmented-string rules. It records relation names and source
-lines without retaining SQL text. Seven query-scope tests and two report-source
-inventory tests pass with Ruff and generated-inventory checks, without importing
-report services or loading SOPS. This is a review map, not an
-authorization or RLS proof; helper call paths, view lineage, audience, and
-populated semantic parity still need review against owner-approved contracts
-and fixtures ([evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).
+The no-scope and mixed groups include possible network-level reports,
+reference-data lookups, conditional fallbacks, and helper-mediated reads; the
+scan cannot distinguish intended behavior from a scope defect.
+
+The scanner now propagates location scope through parent rows into child queries
+inside `try` and `if` branches while keeping each branch's inferred state
+separate. Source regressions confirm that the Statement of Work report's
+location-filtered parent query scopes its three child reads, and that EBF's
+location-filtered scorecard summary scopes its child scorecard read. The
+Statement of Work inventory is now 13/13 scoped; EBF's direct queries classify
+as scoped. A negative regression confirms that replacing a parent row with an
+unscoped branch result does not inherit the earlier scope. The focused
+query-scope suite passes 48 tests with Ruff and generated-inventory checks;
+the scan records relations and source lines without retaining SQL text and
+does not import report services or load SOPS. This is a source-review map, not
+an authorization, RLS, PostgreSQL execution, or output-parity proof. Helper
+call paths, view lineage, audience, and populated semantic parity still need
+review against owner-approved contracts and fixtures
+([current inventory](report-generator-query-scope-inventory.json);
+[evidence](builds/2026-10-23-recovery/report-parent-row-scope-inheritance.json)).
 
 A third AST-only [helper-scope inventory](report-generator-helper-scope-inventory.json)
 follows statically imported and same-module helper functions across the local
