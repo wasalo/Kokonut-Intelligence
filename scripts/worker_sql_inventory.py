@@ -127,6 +127,167 @@ def _local_statement_kind(function: ast.FunctionDef | ast.AsyncFunctionDef, name
     return next(iter(kinds)) if assigned_templates and len(kinds) == 1 and "UNKNOWN" not in kinds else "UNKNOWN"
 
 
+def _operation_map_variants(
+    tree: ast.Module, function: ast.FunctionDef | ast.AsyncFunctionDef, name: str
+) -> list[dict] | None:
+    """Resolve a local SQL variable returned by a guarded immutable SQL map.
+
+    This is deliberately narrow: it accepts a single local assignment from a
+    helper that returns ``IMMUTABLE_MAP[operation]`` and whose map values are
+    module-level literal SQL constants. It records hashes and statement
+    metadata only, never SQL text or runtime parameter values.
+    """
+    parameters = [*function.args.posonlyargs, *function.args.args, *function.args.kwonlyargs]
+    if function.args.vararg:
+        parameters.append(function.args.vararg)
+    if function.args.kwarg:
+        parameters.append(function.args.kwarg)
+    if any(parameter.arg == name for parameter in parameters):
+        return None
+
+    local_values: list[ast.AST] = []
+    pending = list(function.body)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        if isinstance(node, ast.Assign):
+            if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+                local_values.append(node.value)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == name:
+            if node.value is not None:
+                local_values.append(node.value)
+        elif isinstance(node, ast.NamedExpr) and isinstance(node.target, ast.Name) and node.target.id == name:
+            local_values.append(node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)) and _target_binds_name(node.target, name):
+            return None
+        elif isinstance(node, (ast.With, ast.AsyncWith)) and any(
+            item.optional_vars and _target_binds_name(item.optional_vars, name) for item in node.items
+        ):
+            return None
+        elif isinstance(node, ast.AugAssign) and _target_binds_name(node.target, name):
+            return None
+        elif isinstance(node, ast.ExceptHandler) and node.name == name:
+            return None
+        pending.extend(ast.iter_child_nodes(node))
+
+    if len(local_values) != 1:
+        return None
+    assignment = local_values[0]
+    if not (
+        isinstance(assignment, ast.Call)
+        and isinstance(assignment.func, ast.Name)
+        and len(assignment.args) == 1
+        and isinstance(assignment.args[0], ast.Name)
+    ):
+        return None
+    resolver_name = assignment.func.id
+    resolver = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == resolver_name
+        ),
+        None,
+    )
+    if resolver is None:
+        return None
+    return_values = [node.value for node in ast.walk(resolver) if isinstance(node, ast.Return) and node.value]
+    if len(return_values) != 1 or not isinstance(return_values[0], ast.Subscript):
+        return None
+    mapping_name = return_values[0].value
+    if not isinstance(mapping_name, ast.Name):
+        return None
+    resolver_parameters = {
+        parameter.arg
+        for parameter in [*resolver.args.posonlyargs, *resolver.args.args, *resolver.args.kwonlyargs]
+    }
+    if resolver.args.vararg:
+        resolver_parameters.add(resolver.args.vararg.arg)
+    if resolver.args.kwarg:
+        resolver_parameters.add(resolver.args.kwarg.arg)
+    index = return_values[0].slice
+    if not isinstance(index, ast.Name) or index.id not in resolver_parameters:
+        return None
+
+    proxy_imported = any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "types"
+        and any(
+            alias.name == "MappingProxyType" and (alias.asname or alias.name) == "MappingProxyType"
+            for alias in node.names
+        )
+        for node in tree.body
+    )
+    if not proxy_imported:
+        return None
+
+    mapping_assignments = [
+            node
+            for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == mapping_name.id for target in node.targets)
+    ]
+    if len(mapping_assignments) != 1:
+        return None
+    mapping_assignment = mapping_assignments[0]
+    mapping_call = mapping_assignment.value
+    if not (
+        isinstance(mapping_call, ast.Call)
+        and isinstance(mapping_call.func, ast.Name)
+        and mapping_call.func.id == "MappingProxyType"
+        and len(mapping_call.args) == 1
+        and isinstance(mapping_call.args[0], ast.Dict)
+    ):
+        return None
+
+    assignments_by_name: dict[str, list[ast.AST]] = defaultdict(list)
+    for statement in tree.body:
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    assignments_by_name[target.id].append(statement.value)
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+            if statement.value is not None:
+                assignments_by_name[statement.target.id].append(statement.value)
+
+    constants: dict[str, str] = {}
+    for constant_name, assignments in assignments_by_name.items():
+        if len(assignments) != 1:
+            continue
+        query, kind = _query_template(assignments[0])
+        if kind == "literal" and query.strip():
+            constants[constant_name] = query
+
+    variants = []
+    entries = zip(mapping_call.args[0].keys, mapping_call.args[0].values)
+    seen_operations = set()
+    for key_node, value_node in entries:
+        if not isinstance(key_node, ast.Constant) or not isinstance(key_node.value, str):
+            return None
+        if key_node.value in seen_operations:
+            return None
+        seen_operations.add(key_node.value)
+        if isinstance(value_node, ast.Name):
+            query = constants.get(value_node.id)
+        elif isinstance(value_node, ast.Constant) and isinstance(value_node.value, str):
+            query = value_node.value
+        else:
+            return None
+        if not query:
+            return None
+        normalized = _normalized_query(query)
+        variants.append(
+            {
+                "operation": key_node.value,
+                "statement_kind": _statement_kind(query),
+                "candidate_relations": _candidate_relations(query),
+                "static_sql_sha256": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
+            }
+        )
+    return sorted(variants, key=lambda item: item["operation"]) if variants else None
+
+
 def _target_binds_name(target: ast.expr, name: str) -> bool:
     if isinstance(target, ast.Name):
         return target.id == name
@@ -136,9 +297,10 @@ def _target_binds_name(target: ast.expr, name: str) -> bool:
 
 
 class _SQLCallVisitor(ast.NodeVisitor):
-    def __init__(self, source: str, operations: list[str]):
+    def __init__(self, source: str, operations: list[str], tree: ast.Module):
         self.source = source
         self.operations = operations
+        self.tree = tree
         self.scope: list[str] = []
         self.functions: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self.sites: list[dict] = []
@@ -177,12 +339,21 @@ class _SQLCallVisitor(ast.NodeVisitor):
         query, expression_kind = _query_template(query_node)
         normalized = _normalized_query(query)
         statement_kind = _statement_kind(query)
+        statement_variants = None
         if statement_kind == "UNKNOWN" and isinstance(query_node, ast.Name) and self.functions:
             statement_kind = _local_statement_kind(self.functions[-1], query_node.id)
+            if statement_kind == "UNKNOWN":
+                statement_variants = _operation_map_variants(
+                    self.tree, self.functions[-1], query_node.id
+                )
+                if statement_variants:
+                    kinds = {variant["statement_kind"] for variant in statement_variants}
+                    if len(kinds) == 1:
+                        statement_kind = next(iter(kinds))
         fingerprint = None
         if expression_kind == "literal" and normalized:
             fingerprint = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-        return {
+        site = {
             "id": f"{self.source}:{node.lineno}:{node.col_offset}",
             "source": self.source,
             "line": node.lineno,
@@ -195,6 +366,9 @@ class _SQLCallVisitor(ast.NodeVisitor):
             "static_sql_sha256": fingerprint,
             "operation_refs": self.operations,
         }
+        if statement_variants:
+            site["statement_variants"] = statement_variants
+        return site
 
 
 def build_inventory() -> dict:
@@ -212,7 +386,7 @@ def build_inventory() -> dict:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=source)
         except (OSError, SyntaxError) as exc:
             raise ValueError(f"Unable to parse worker SQL source {source}") from exc
-        visitor = _SQLCallVisitor(source, sorted(operation_refs))
+        visitor = _SQLCallVisitor(source, sorted(operation_refs), tree)
         visitor.visit(tree)
         sites.extend(visitor.sites)
 

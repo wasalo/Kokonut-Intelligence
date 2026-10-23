@@ -10,6 +10,7 @@ from scripts.worker_source_closure import build_inventory as build_source_closur
 from scripts.worker_sql_inventory import (
     ROOT,
     _local_statement_kind,
+    _operation_map_variants,
     _query_template,
     _serialize,
     build_inventory,
@@ -111,10 +112,73 @@ def test_unknown_sql_sites_include_generic_adapters_and_reviewed_dispatch_paths(
         # The provider selects one of four source-defined SQL templates, then
         # passes the template and bound values to this shared persistence helper.
         ("services/ingestion/gee_climate.py", 92),
-        # The inventory does not resolve the anomaly worker's fixed named-operation map.
-        ("services/ingestion/sensor_anomaly_worker.py", 110),
-        ("services/ingestion/sensor_anomaly_worker.py", 117),
     ]
+
+
+def test_sensor_anomaly_sql_inventory_records_only_fixed_map_variants():
+    inventory = _load_inventory()
+    sites = [
+        site
+        for site in inventory["execution_sites"]
+        if site["source"] == "services/ingestion/sensor_anomaly_worker.py"
+    ]
+
+    assert [(site["line"], site["statement_kind"]) for site in sites] == [
+        (110, "SELECT"),
+        (117, "SELECT"),
+    ]
+    assert all(len(site["statement_variants"]) == 12 for site in sites)
+    for site in sites:
+        variants = site["statement_variants"]
+        assert {variant["operation"] for variant in variants} == {
+            "read_source",
+            "list_rules",
+            "reserve_effect",
+            "check_cooldown",
+            "evaluate_rule",
+            "record_outcome",
+            "create_alert",
+            "create_claim",
+            "publish_alert",
+            "enqueue_notification",
+            "check_actuator",
+            "create_actuation",
+        }
+        assert all(variant["statement_kind"] == "SELECT" for variant in variants)
+        assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in variants)
+        assert all("sql" not in variant and "query" not in variant for variant in variants)
+
+
+def test_sql_map_inventory_resolver_requires_immutable_literal_variants():
+    safe_tree = ast.parse(
+        'from types import MappingProxyType\n'
+        'READ_SQL = "SELECT id FROM source"\n'
+        '_QUERY_SQL = MappingProxyType({"read": READ_SQL})\n'
+        'def _statement_for(operation):\n'
+        '    return _QUERY_SQL[operation]\n'
+        'def query(operation):\n'
+        '    statement = _statement_for(operation)\n'
+        '    cursor.execute(statement)\n'
+    )
+    query_function = next(node for node in safe_tree.body if isinstance(node, ast.FunctionDef) and node.name == "query")
+    variants = _operation_map_variants(safe_tree, query_function, "statement")
+    assert len(variants) == 1
+    assert variants[0]["operation"] == "read"
+    assert variants[0]["statement_kind"] == "SELECT"
+    assert variants[0]["candidate_relations"] == ["source"]
+    assert re.fullmatch(r"[0-9a-f]{64}", variants[0]["static_sql_sha256"])
+
+    mutable_tree = ast.parse(
+        'READ_SQL = "SELECT id FROM source"\n'
+        '_QUERY_SQL = {"read": READ_SQL}\n'
+        'def _statement_for(operation):\n'
+        '    return _QUERY_SQL[operation]\n'
+        'def query(operation):\n'
+        '    statement = _statement_for(operation)\n'
+        '    cursor.execute(statement)\n'
+    )
+    mutable_function = next(node for node in mutable_tree.body if isinstance(node, ast.FunctionDef) and node.name == "query")
+    assert _operation_map_variants(mutable_tree, mutable_function, "statement") is None
 
 
 def test_sensor_anomaly_worker_dispatches_only_named_fixed_sql_operations():

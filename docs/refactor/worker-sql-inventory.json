@@ -5127,12 +5127,92 @@
       "scope": "_one",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statement_variants": [
+        {
+          "operation": "check_actuator",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "bf8fb10bd39c9e34e3cd433d635d65817908461964347b7dd0301d2e512a6a71"
+        },
+        {
+          "operation": "check_cooldown",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "3f20ac86292908e7ab2407b136192ef907368652db34beeaf091b3ca38eefb07"
+        },
+        {
+          "operation": "create_actuation",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "180d332338875b97b17a705a1a470e3c5ec7ff24f22a70ea26fd6b432fce1ed4"
+        },
+        {
+          "operation": "create_alert",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.create_sensor_anomaly_alert"
+          ],
+          "static_sql_sha256": "9ac59eb198aaa44edc1ebf517c43105d203a095f7b8f5e50fb6cf0a8744145a2"
+        },
+        {
+          "operation": "create_claim",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "ae1205a4b98bd6e333f0f286b59616d82c734165669fc1fe95f01ca0baa241ce"
+        },
+        {
+          "operation": "enqueue_notification",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "0ae3e3261d7b92d22efcc56277d320df2d75c471752194819cd093b3a1e8b17c"
+        },
+        {
+          "operation": "evaluate_rule",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "9e5675bc4cb3a94f84627dd7fa94994a43494258fe0d0b053adffcdfd94fc943"
+        },
+        {
+          "operation": "list_rules",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_rules"
+          ],
+          "static_sql_sha256": "28a195ef02dc91e10d1d114088091b1626d2e9214d4c5164c74415e175e25dd7"
+        },
+        {
+          "operation": "publish_alert",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "a54077ec6649d40d02962738312ce8b0364a03fa7b2cd4b36e8486ba75b5a4f5"
+        },
+        {
+          "operation": "read_source",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.read_sensor_anomaly_source"
+          ],
+          "static_sql_sha256": "ad3387818c6d160f59f114319adf12194dc8f13499e66bd9dc73d65814cf501c"
+        },
+        {
+          "operation": "record_outcome",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "f594f88b5722a839b4e9103dd579a3794db77a28021693ce91fc3420425840f7"
+        },
+        {
+          "operation": "reserve_effect",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "d4ae84fb28e5b84e8c0249533c26f2cdbdc1ff38c76fdd40a5c273cf3369fc0e"
+        }
       ]
     },
     {
@@ -5143,12 +5223,92 @@
       "scope": "_many",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statement_variants": [
+        {
+          "operation": "check_actuator",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "bf8fb10bd39c9e34e3cd433d635d65817908461964347b7dd0301d2e512a6a71"
+        },
+        {
+          "operation": "check_cooldown",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "3f20ac86292908e7ab2407b136192ef907368652db34beeaf091b3ca38eefb07"
+        },
+        {
+          "operation": "create_actuation",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "180d332338875b97b17a705a1a470e3c5ec7ff24f22a70ea26fd6b432fce1ed4"
+        },
+        {
+          "operation": "create_alert",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.create_sensor_anomaly_alert"
+          ],
+          "static_sql_sha256": "9ac59eb198aaa44edc1ebf517c43105d203a095f7b8f5e50fb6cf0a8744145a2"
+        },
+        {
+          "operation": "create_claim",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "ae1205a4b98bd6e333f0f286b59616d82c734165669fc1fe95f01ca0baa241ce"
+        },
+        {
+          "operation": "enqueue_notification",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "0ae3e3261d7b92d22efcc56277d320df2d75c471752194819cd093b3a1e8b17c"
+        },
+        {
+          "operation": "evaluate_rule",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "9e5675bc4cb3a94f84627dd7fa94994a43494258fe0d0b053adffcdfd94fc943"
+        },
+        {
+          "operation": "list_rules",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.list_sensor_anomaly_rules"
+          ],
+          "static_sql_sha256": "28a195ef02dc91e10d1d114088091b1626d2e9214d4c5164c74415e175e25dd7"
+        },
+        {
+          "operation": "publish_alert",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "a54077ec6649d40d02962738312ce8b0364a03fa7b2cd4b36e8486ba75b5a4f5"
+        },
+        {
+          "operation": "read_source",
+          "statement_kind": "SELECT",
+          "candidate_relations": [
+            "kokonut_security.read_sensor_anomaly_source"
+          ],
+          "static_sql_sha256": "ad3387818c6d160f59f114319adf12194dc8f13499e66bd9dc73d65814cf501c"
+        },
+        {
+          "operation": "record_outcome",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "f594f88b5722a839b4e9103dd579a3794db77a28021693ce91fc3420425840f7"
+        },
+        {
+          "operation": "reserve_effect",
+          "statement_kind": "SELECT",
+          "candidate_relations": [],
+          "static_sql_sha256": "d4ae84fb28e5b84e8c0249533c26f2cdbdc1ff38c76fdd40a5c273cf3369fc0e"
+        }
       ]
     },
     {

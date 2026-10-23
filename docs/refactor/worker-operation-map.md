@@ -287,15 +287,16 @@ calls, the NOI reconciliation's fixed location-filter fragment with a bound
 UUID, and the climate worker's fixed migration-function calls. The anomaly
 worker's `_one`/`_many` helpers now accept only one of twelve named operations
 from an immutable map of fixed SQL; an AST regression pins every call site to a
-literal operation name, and unknown names fail before cursor access. The
-generated SQL inventory still reports those two `cursor.execute(statement)`
-sites as `UNKNOWN` because it does not resolve the map. Three generic
-database-adapter sites remain `UNKNOWN` because their SQL is supplied by
-callers, so their complete caller set still needs tracing. Reviewed application
-fragments bind values and use fixed source-controlled fragments. No user-derived
-identifier interpolation was found in the reviewed call sites. Keep this review
-current as the inventory changes. The static call graph
-follows local instance types and the explicit metric registry, but 72 SQL sites
+literal operation name, and unknown names fail before cursor access. The worker
+and runtime SQL inventories recognize this guarded immutable map and record
+all twelve variants for each of its two execution sites using operation names,
+statement kinds, relation candidates, and hashes only. The three shared
+database-adapter sites and the GEE climate template-dispatch site remain
+`UNKNOWN`; their source/caller contracts need separate review. Reviewed
+application fragments bind values and use fixed source-controlled fragments.
+No user-derived identifier interpolation was found in the reviewed call sites.
+Keep this review current as the inventory changes. The static call graph
+follows local instance types and the explicit metric registry, but 75 SQL sites
 still have no direct static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map

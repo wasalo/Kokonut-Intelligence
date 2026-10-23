@@ -1,0 +1,48 @@
+{
+  "result": "passed",
+  "base_commit": "7cd3464c",
+  "inventory_change": "Resolve guarded immutable SQL operation maps into per-operation hashes and statement metadata without persisting query text.",
+  "sensor_anomaly_worker": {
+    "execution_sites": 2,
+    "variants_per_site": 12,
+    "variant_records": 24,
+    "distinct_operation_variants": 12,
+    "statement_kind": "SELECT",
+    "raw_sql_persisted": false
+  },
+  "worker_sql_inventory": {
+    "execution_sites": 341,
+    "static_literal_sites": 298,
+    "composed_or_variable_sites": 43,
+    "unknown_statement_sites": [
+      "services/common/database.py:77",
+      "services/common/database.py:80",
+      "services/common/database.py:142",
+      "services/ingestion/gee_climate.py:92"
+    ]
+  },
+  "tests": {
+    "command": "python3 -m pytest tests/test_worker_sql_inventory.py tests/test_runtime_sql_inventory.py tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py tests/test_worker_operation_map.py tests/test_worker_boundary_preflight.py -q",
+    "passed": 48
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "worker_sql_inventory": "current",
+    "runtime_sql_inventory": "current",
+    "worker_sql_reachability": "current",
+    "worker_function_reachability": "current",
+    "worker_source_closure": "current",
+    "worker_boundary_preflight": "current",
+    "worker_effect_inventory": "current",
+    "capability_matrix": "valid; 66 rows, 30 baseline-retained, 7 deployed, 29 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_target": "none",
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "The inventory reports source evidence only and does not establish database authorization, tenant isolation, or runtime SQL effects.",
+    "Three shared database adapter sites and the GEE climate template-dispatch site remain unknown for statement classification."
+  ]
+}

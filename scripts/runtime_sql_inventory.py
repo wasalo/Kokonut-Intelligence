@@ -45,7 +45,7 @@ def _scan_source(source: str, path: Path, operation_refs: list[str]) -> list[dic
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=source)
     except (OSError, SyntaxError, UnicodeError) as exc:
         raise ValueError(f"Unable to parse runtime SQL source {source}") from exc
-    visitor = _SQLCallVisitor(source, operation_refs)
+    visitor = _SQLCallVisitor(source, operation_refs, tree)
     visitor.visit(tree)
     for site in visitor.sites:
         site["statement_group"] = _statement_group(site["statement_kind"])
