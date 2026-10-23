@@ -17,7 +17,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `seed.sh` | Bootstrap locked placeholders for optional worker/runtime role names, wait for the final PostgreSQL TCP listener, then apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
 | `check-agent-safety-superuser-disposable.py` | Exercise migration 598 worker/admin lifecycle guards on network-disabled temporary PostgreSQL | CI, manual |
-| `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL | CI, manual |
+| `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL; a 180-second startup bound is the default; optional `--platform linux/arm64 --startup-timeout 360` runs the focused contract under QEMU | CI, manual |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
 ## Metric Computation

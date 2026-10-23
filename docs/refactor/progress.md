@@ -27,6 +27,17 @@ and live login remain open. The capability matrix is still 30 baseline-
 retained, 7 deployed, and 29 prepared across 66 capabilities; no MAN-CAP
 check was accepted. Checklist: 1,034 complete / 24 open (1,058 total).
 
+The schema-bootstrap Compose health check now allows five minutes for the
+initial database setup used by slow ARM64/QEMU emulation; its focused contract
+suite passes. The targeted migration-599 PostgreSQL acceptance passes on the ARM64 image (`aarch64`) and on a native PostGIS image (`x86_64`), including migration replay and all six scope, parity, privilege, and read-only checks ([ARM64](builds/2026-10-23-recovery/credit-adjustment-worker-arm64-disposable.json); [native](builds/2026-10-23-recovery/credit-adjustment-worker-native-postgis-disposable.json)). The runner defaults to a bounded 180-second startup allowance after the local Docker host exceeded its former 60-second default.
+A separate full schema replay through 599 reached database health but then
+failed at `schema:000_extensions.sql` before applying any schema; the runner
+captured no PostgreSQL diagnostic and cleaned up its isolated container and
+volume ([attempt](builds/2026-10-23-recovery/arm64-qemu-current-schema-599.json)).
+The previous full replay through 598 remains the latest complete bootstrap
+evidence. This failed attempt does not test migration 599 in the full schema
+chain or physical Raspberry Pi behavior.
+
 ### CI #771 lifecycle guard correction — 23 October 2026
 
 CI #771 completed the ordered schema replay through migration 597, then failed

@@ -48,6 +48,7 @@ def test_schema_bootstrap_default_is_pinned_and_networkless() -> None:
     database = _database_config()
 
     assert database["image"] == PINNED_AMD64_IMAGE
+    assert database["healthcheck"]["start_period"] == "5m0s"
     assert database["network_mode"] == "none"
     assert not database.get("ports")
     assert not database.get("networks")

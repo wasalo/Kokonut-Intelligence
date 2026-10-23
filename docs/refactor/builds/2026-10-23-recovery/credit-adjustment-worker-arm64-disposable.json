@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "postgres_major": 16,
+  "database_image": "kokonut-kernel-postgis-arm64:local",
+  "requested_platform": "linux/arm64",
+  "container_architecture": "aarch64",
+  "startup_timeout_seconds": 360,
+  "migrations": [
+    405,
+    419,
+    599
+  ],
+  "replay": "zero pending migration function changes; migration 599 applied twice",
+  "locations": 2,
+  "checks": [
+    "migrations 405, 419, and 599 apply in order; migration 599 replays cleanly",
+    "signed location-A check returns only eligible location-A credits and applies the legacy 0.1% threshold",
+    "fallback recomputation uses verified tree rows and deterministic first/last soil measurements",
+    "bounded function rejects a location argument that differs from signed context",
+    "worker login reaches only the execution role; execution role can call the bounded function but cannot directly read source tables",
+    "read-only worker created no adjustment, retirement, or review records"
+  ],
+  "candidate_touched": false,
+  "legacy_touched": false,
+  "provider_called": false
+}

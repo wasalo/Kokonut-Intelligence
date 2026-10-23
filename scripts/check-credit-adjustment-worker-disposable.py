@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import os
@@ -50,8 +51,25 @@ def docker_sql(docker: str, container: str, statement: str) -> str:
     )
 
 
-def wait_ready(docker: str, container: str) -> None:
-    deadline = time.monotonic() + 60
+def docker_run_command(
+    docker: str,
+    container: str,
+    image: str,
+    password: str,
+    platform: str | None = None,
+) -> list[str]:
+    command = [docker, "run", "-d", "--rm", "--name", container]
+    if platform is not None:
+        command.extend(("--platform", platform))
+    command.extend((
+        "-e", f"POSTGRES_PASSWORD={password}",
+        "-p", "127.0.0.1::5432", image,
+    ))
+    return command
+
+
+def wait_ready(docker: str, container: str, *, timeout_seconds: int = 60) -> None:
+    deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         result = subprocess.run(
             [docker, "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
@@ -70,14 +88,30 @@ def connect(port: int, user: str, password: str):
     )
 
 
+def build_argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output", nargs="?", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--image",
+        default=os.getenv("CREDIT_ADJUSTMENT_TEST_IMAGE", "postgres:16"),
+    )
+    parser.add_argument("--platform", choices=("linux/amd64", "linux/arm64"))
+    parser.add_argument("--startup-timeout", type=int, default=180)
+    return parser
+
+
 def main() -> int:
+    parser = build_argument_parser()
+    args = parser.parse_args()
+    if not 30 <= args.startup_timeout <= 900:
+        parser.error("--startup-timeout must be between 30 and 900 seconds")
+
     docker = shutil.which("docker")
     if not docker:
         raise RuntimeError("Docker CLI is unavailable")
     container = f"kokonut-credit-check-{os.getpid()}-{secrets.token_hex(3)}"
-    image = os.getenv("CREDIT_ADJUSTMENT_TEST_IMAGE", "postgres:16")
     admin_password = secrets.token_urlsafe(24)
-    output = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUTPUT
+    output = args.output
     created = False
     admin = None
     checks: list[str] = []
@@ -89,13 +123,18 @@ def main() -> int:
         )
     }
     try:
-        run([
-            docker, "run", "-d", "--rm", "--name", container,
-            "-e", f"POSTGRES_PASSWORD={admin_password}",
-            "-p", "127.0.0.1::5432", image,
-        ])
+        run(docker_run_command(
+            docker, container, args.image, admin_password, args.platform
+        ))
         created = True
-        wait_ready(docker, container)
+        wait_ready(docker, container, timeout_seconds=args.startup_timeout)
+        architecture = run([docker, "exec", container, "uname", "-m"]).strip()
+        expected_architecture = {
+            "linux/amd64": "x86_64",
+            "linux/arm64": "aarch64",
+        }.get(args.platform)
+        if expected_architecture is not None and architecture != expected_architecture:
+            raise RuntimeError("disposable PostgreSQL container architecture mismatch")
         docker_sql(docker, container, FIXTURE_CONTEXT.read_text(encoding="utf-8"))
         docker_sql(docker, container, MIGRATION_CONTEXT.read_text(encoding="utf-8"))
         docker_sql(docker, container, MIGRATION_ACL.read_text(encoding="utf-8"))
@@ -203,6 +242,10 @@ def main() -> int:
         evidence = {
             "status": "passed",
             "postgres_major": 16,
+            "database_image": args.image,
+            "requested_platform": args.platform,
+            "container_architecture": architecture,
+            "startup_timeout_seconds": args.startup_timeout,
             "migrations": [405, 419, 599],
             "replay": "zero pending migration function changes; migration 599 applied twice",
             "locations": 2,

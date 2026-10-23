@@ -6,7 +6,7 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Current implementation status (23 October 2026):** 1,033 checklist items are complete and 24 remain open (1,057 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot/runtime permission-API probe, locked historical-role bootstrap, full ARM64/QEMU schema replay, and production-host OIDC Compose contract add implementation evidence, not capability acceptance.
+**Current implementation status (23 October 2026):** 1,034 checklist items are complete and 24 remain open (1,058 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot/runtime permission-API probe, locked historical-role bootstrap, full ARM64/QEMU schema replay through migration 598, targeted migration 599 ARM64 acceptance, and production-host OIDC Compose contract add implementation evidence, not capability acceptance.
 
 **Current clean-schema and lifecycle guard checks — 23 October 2026:** a
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files
@@ -24,6 +24,21 @@ capability classification or MAN-CAP acceptance. Evidence: [ARM64/QEMU schema
 replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json),
 [repeatable worker/admin check](builds/2026-10-23-recovery/agent-safety-superuser-ci-regression.json),
 [PostgreSQL 16.15 boundary check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
+
+**Migration 599 ARM64 portability — 23 October 2026:** the targeted disposable
+credit-adjustment acceptance passes on the ARM64 PostGIS image under QEMU and
+on a native PostGIS image. The containers report `aarch64` and `x86_64`,
+respectively; migrations 405, 419, and 599 apply, migration 599 replays, and all
+six signed-scope, fallback-parity, privilege, and read-only checks pass on each
+architecture. A separate full clean-schema attempt through 599 reached database
+health after the five-minute startup grace period but failed at the first
+`000_extensions.sql` command before any schema was applied; the runner captured
+no PostgreSQL diagnostic and cleaned up its temporary project. Full current
+schema replay through 599 remains open; this evidence does not establish
+physical Raspberry Pi behavior or MAN-CAP acceptance ([targeted ARM64
+acceptance](builds/2026-10-23-recovery/credit-adjustment-worker-arm64-disposable.json);
+[native acceptance](builds/2026-10-23-recovery/credit-adjustment-worker-native-postgis-disposable.json);
+[full replay attempt](builds/2026-10-23-recovery/arm64-qemu-current-schema-599.json)).
 
 **Fresh-bootstrap compatibility for optional Directus — 23 October 2026:**
 the ordered bootstrap now creates the historical `directus` role as a locked
