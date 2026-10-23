@@ -1,3 +1,20 @@
+### CAP-038 authenticated worker lifecycle insert guard — 22 October 2026
+
+Migration 579 extends the signed worker lifecycle restriction to terminal
+inserts on the same 43 governed tables already covered by migration 350's
+update triggers. It discovers those tables through `pg_trigger`, uses a
+replay-safe trigger name, and checks authenticated worker login membership
+through security-definer paths. Disposable PostgreSQL 16 replay of migrations
+405, 578, and 579 passes 28 grouped assertions, including direct and
+security-definer terminal-insert denial, allowed draft insertion, human-path
+preservation, marker compatibility, and one-trigger replay. The migration suite
+passes 36 tests; Ruff, compilation, and diff checks pass. Only one synthetic
+trigger table was used; candidate and legacy were untouched, and migration 579
+is not rolled out. Per-task identity and broader source-query least privilege
+remain open. Checklist: 1,005 complete / 24 open (1,029 total); matrix:
+30 baseline-retained, 7 deployed, and 29 prepared across 66 rows. Evidence:
+[disposable checks](builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json).
+
 ### CAP-038 authenticated worker lifecycle guard — 22 October 2026
 
 Migration 578 updates the active governed-status trigger to recognize database

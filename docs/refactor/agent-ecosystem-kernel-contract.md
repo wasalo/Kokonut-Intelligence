@@ -101,11 +101,13 @@ run without decrypting `.env.sops`.
 - Migration 350 remains unchanged, but migration 578 replaces the active
   trigger function so it blocks verified/published status changes from
   authenticated `kokonut_worker_execution` logins, including calls routed
-  through `SECURITY DEFINER` functions. The caller-set `app.agent_id` marker
-  remains an extra restrictive compatibility signal and does not establish
-  identity. The trigger still does not cover inserts, per-agent identities, or
-  source-query least privilege; it is not treated as a complete agent boundary
-  ([migration 578](../../schemas/postgres/578_authenticated_agent_safety_trigger.sql)).
+  through `SECURITY DEFINER` functions. Migration 579 adds terminal-status
+  insert guards to the same 43 tables that had migration 350 update triggers.
+  The caller-set `app.agent_id` marker remains an extra restrictive
+  compatibility signal and does not establish identity. Per-agent identities,
+  broader insert coverage, and source-query least privilege remain open; this
+  is not a complete agent boundary ([migration 578](../../schemas/postgres/578_authenticated_agent_safety_trigger.sql);
+  [migration 579](../../schemas/postgres/579_agent_safety_insert_guard.sql)).
 - The legacy Python `set_agent_context()` helper now fails closed before it
   issues SQL. `SET LOCAL app.agent_id` cannot authenticate the caller, so
   retaining a callable setter would invite code to mistake an arbitrary session

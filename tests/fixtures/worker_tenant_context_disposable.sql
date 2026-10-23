@@ -73,6 +73,19 @@ AS $$
      WHERE id = target_id
 $$;
 
+CREATE OR REPLACE FUNCTION public.agent_safety_security_definer_insert_probe(
+    target_id INTEGER,
+    next_status TEXT
+)
+RETURNS VOID
+LANGUAGE SQL
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+    INSERT INTO public.agent_safety_probe (id, status)
+    VALUES (target_id, next_status)
+$$;
+
 CREATE OR REPLACE FUNCTION public.assert_agent_safety()
 RETURNS TRIGGER AS $$
 DECLARE

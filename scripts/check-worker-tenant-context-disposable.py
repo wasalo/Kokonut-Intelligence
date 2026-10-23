@@ -21,8 +21,9 @@ sys.path.insert(0, str(ROOT))
 FIXTURE = ROOT / "tests/fixtures/worker_tenant_context_disposable.sql"
 MIGRATION = ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql"
 AGENT_SAFETY_MIGRATION = ROOT / "schemas/postgres/578_authenticated_agent_safety_trigger.sql"
+AGENT_SAFETY_INSERT_MIGRATION = ROOT / "schemas/postgres/579_agent_safety_insert_guard.sql"
 DEFAULT_OUTPUT = (
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-agent-safety-trigger-disposable.json"
+    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json"
 )
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -166,6 +167,8 @@ def main() -> int:
         docker_sql(docker, container, MIGRATION.read_text(encoding="utf-8"))
         docker_sql(docker, container, AGENT_SAFETY_MIGRATION.read_text(encoding="utf-8"))
         docker_sql(docker, container, AGENT_SAFETY_MIGRATION.read_text(encoding="utf-8"))
+        docker_sql(docker, container, AGENT_SAFETY_INSERT_MIGRATION.read_text(encoding="utf-8"))
+        docker_sql(docker, container, AGENT_SAFETY_INSERT_MIGRATION.read_text(encoding="utf-8"))
         docker_sql(
             docker,
             container,
@@ -182,7 +185,7 @@ def main() -> int:
                 '{WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
                 '{RESOURCE}', '{ACTION}', 'disposable fixture'
             );
-            GRANT SELECT, UPDATE ON public.agent_safety_probe
+            GRANT SELECT, INSERT, UPDATE ON public.agent_safety_probe
                 TO kokonut_worker_execution, kokonut_runtime;
             """,
         )
@@ -195,6 +198,16 @@ def main() -> int:
         runtime = connect(port, "kokonut_runtime", runtime_password)
         admin = connect(port, "postgres", admin_password)
         try:
+            with admin.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) FROM pg_catalog.pg_trigger "
+                    "WHERE tgrelid = 'public.agent_safety_probe'::pg_catalog.regclass "
+                    "AND tgname = 'trg_agent_safety_insert' AND NOT tgisinternal"
+                )
+                if cursor.fetchone()[0] != 1:
+                    raise AssertionError("migration replay did not leave exactly one insert trigger")
+            checks.append("migration replay leaves one idempotent terminal-status insert trigger")
+
             context = set_context(worker)
             if (
                 context.tenant_id != TENANT_ID
@@ -299,6 +312,68 @@ def main() -> int:
                     runtime.rollback()
                     raise AssertionError("legacy agent marker stopped restricting lifecycle escalation")
             checks.append("legacy app.agent_id marker remains restrictive for compatibility")
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = ''")
+                try:
+                    cursor.execute(
+                        "INSERT INTO public.agent_safety_probe (id, status) VALUES (5, 'verified')"
+                    )
+                except psycopg2.Error as exc:
+                    worker.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    worker.rollback()
+                    raise AssertionError("worker inserted a terminal-status governed record")
+            checks.append("worker cannot insert a verified record when app.agent_id is cleared")
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = ''")
+                try:
+                    cursor.execute(
+                        "SELECT public.agent_safety_security_definer_insert_probe(6, 'published')"
+                    )
+                except psycopg2.Error as exc:
+                    worker.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    worker.rollback()
+                    raise AssertionError("security-definer worker call inserted a terminal status")
+            checks.append("worker session membership protects terminal inserts through security-definer functions")
+
+            set_context(worker)
+            with worker.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO public.agent_safety_probe (id, status) VALUES (7, 'draft')"
+                )
+            worker.commit()
+            checks.append("worker can insert a draft governed record")
+
+            with runtime.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO public.agent_safety_probe (id, status) VALUES (8, 'verified')"
+                )
+            runtime.commit()
+            checks.append("non-worker runtime retains terminal human insert behavior")
+
+            with runtime.cursor() as cursor:
+                cursor.execute("SET LOCAL app.agent_id = 'synthetic-agent'")
+                try:
+                    cursor.execute(
+                        "INSERT INTO public.agent_safety_probe (id, status) VALUES (9, 'published')"
+                    )
+                except psycopg2.Error as exc:
+                    runtime.rollback()
+                    if exc.pgcode != "42501":
+                        raise
+                else:
+                    runtime.rollback()
+                    raise AssertionError("legacy agent marker stopped restricting terminal inserts")
+            checks.append("legacy app.agent_id marker also restricts terminal inserts")
 
             with worker.cursor() as cursor:
                 cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
@@ -626,20 +701,21 @@ def main() -> int:
         result = {
             "schema_version": 1,
             "date": datetime.now(timezone.utc).date().isoformat(),
-            "scope": "Migration 405 signed worker context and migration 578 authenticated agent lifecycle guard acceptance",
+            "scope": "Migration 405 signed worker context and migrations 578–579 authenticated agent lifecycle guard acceptance",
             "database": "isolated disposable PostgreSQL 16 container",
             "migration_files": [
                 MIGRATION.relative_to(ROOT).as_posix(),
                 AGENT_SAFETY_MIGRATION.relative_to(ROOT).as_posix(),
+                AGENT_SAFETY_INSERT_MIGRATION.relative_to(ROOT).as_posix(),
             ],
-            "migration_replay": "passed for migrations 405 and 578",
+            "migration_replay": "passed for migrations 405, 578, and 579",
             "command": "python3 scripts/check-worker-tenant-context-disposable.py",
             "container_network": "loopback-only published port; runner makes no external requests",
             "checks": [{"result": "passed", "description": item} for item in checks],
             "candidate_or_legacy_database_access": False,
             "worker_credential_printed": False,
             "limitations": [
-                "Migrations 405 and 578 ran against a minimal synthetic prior-schema fixture; the lifecycle trigger uses one synthetic table instead of replaying all governed tables.",
+                "Migrations 405, 578, and 579 ran against a minimal synthetic prior-schema fixture; the lifecycle triggers use one synthetic table instead of replaying all governed tables.",
                 "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised.",
             ],
         }
