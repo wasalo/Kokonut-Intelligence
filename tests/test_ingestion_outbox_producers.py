@@ -240,7 +240,21 @@ def test_weather_run_rolls_back_and_closes_when_outbox_enqueue_fails(monkeypatch
     ]
     monkeypatch.setattr(weather, "get_db", lambda: conn)
     monkeypatch.setattr(weather, "OPENWEATHERMAP_API_KEY", "test-key")
-    monkeypatch.setattr(weather, "fetch_weather", lambda *_args: {"dt": 1})
+    monkeypatch.setattr(
+        weather,
+        "fetch_weather",
+        lambda *_args: {
+            "dt": 1,
+            "id": 1234,
+            "main": {"temp": 23.2, "humidity": 70, "pressure": 1013},
+            "wind": {"speed": 1.0, "deg": 180},
+            "rain": {},
+            "clouds": {"all": 20},
+            "visibility": 10000,
+            "weather": [{"main": "Clear", "description": "clear sky"}],
+            "sys": {"country": "DO"},
+        },
+    )
     monkeypatch.setattr(weather, "log_ingestion", lambda **_kwargs: None)
     monkeypatch.setattr(weather.time, "sleep", lambda *_args: None)
     monkeypatch.setattr(

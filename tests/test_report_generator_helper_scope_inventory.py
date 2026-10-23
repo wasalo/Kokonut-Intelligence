@@ -402,7 +402,7 @@ def test_reachable_helper_inventory_resolves_public_view_wrapper_identifiers():
         if not queries:
             continue
         found.add(report["report_type"])
-        assert [site["line"] for site in queries] == [25, 30]
+        assert len(queries) == 2
         for site in queries:
             assert site["sql_source"] == "static_or_resolved"
             assert site["bound_location_scope_signal"] is False

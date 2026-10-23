@@ -110,24 +110,31 @@ def main() -> int:
         started = True
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
-            ready = subprocess.run(
-                [
-                    "docker",
-                    "exec",
-                    container,
-                    "pg_isready",
-                    "-h",
-                    "127.0.0.1",
-                    "-U",
-                    "postgres",
-                    "-d",
-                    "postgres",
-                ],
-                text=True,
-                capture_output=True,
-                check=False,
-                timeout=10,
-            )
+            try:
+                ready = subprocess.run(
+                    [
+                        "docker",
+                        "exec",
+                        container,
+                        "pg_isready",
+                        "-h",
+                        "127.0.0.1",
+                        "-U",
+                        "postgres",
+                        "-d",
+                        "postgres",
+                    ],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                    timeout=10,
+                )
+            except subprocess.TimeoutExpired:
+                # Docker Desktop may accept `run` before its exec endpoint is
+                # responsive. Keep polling until the overall readiness window
+                # expires instead of failing on one slow daemon round trip.
+                time.sleep(0.5)
+                continue
             if ready.returncode == 0:
                 break
             time.sleep(0.5)

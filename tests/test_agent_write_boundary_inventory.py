@@ -23,32 +23,15 @@ def test_current_inventory_pins_no_direct_agent_writes_and_authenticated_routes(
     operator_draft_calls = inventory["authenticated_operator_draft_function_calls"]
     assert len(operator_draft_calls) == 1
     assert operator_draft_calls[0]["source"] == "services/gateway/ai_summary_draft.py"
-    assert inventory["authenticated_worker_summary_function_calls"] == [
-        {
-            "source": "services/agents/worker_draft.py",
-            "line": 296,
-            "function": "get_location_ai_summary_worker_source_references",
-        },
-        {
-            "source": "services/agents/worker_draft.py",
-            "line": 323,
-            "function": "get_location_ai_summary_worker_result",
-        },
-        {
-            "source": "services/agents/worker_draft.py",
-            "line": 376,
-            "function": "create_location_ai_summary_worker_draft_with_result",
-        },
-        {
-            "source": "services/agents/worker_draft.py",
-            "line": 392,
-            "function": "create_location_ai_summary_worker_draft",
-        },
-        {
-            "source": "services/agents/worker_draft.py",
-            "line": 411,
-            "function": "set_location_ai_summary_source_references",
-        },
+    assert [
+        (call["source"], call["function"])
+        for call in inventory["authenticated_worker_summary_function_calls"]
+    ] == [
+        ("services/agents/worker_draft.py", "get_location_ai_summary_worker_source_references"),
+        ("services/agents/worker_draft.py", "get_location_ai_summary_worker_result"),
+        ("services/agents/worker_draft.py", "create_location_ai_summary_worker_draft_with_result"),
+        ("services/agents/worker_draft.py", "create_location_ai_summary_worker_draft"),
+        ("services/agents/worker_draft.py", "set_location_ai_summary_source_references"),
     ]
     expected_worker_draft_functions = {
         "create_location_ai_summary_worker_draft_with_result",

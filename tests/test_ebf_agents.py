@@ -117,7 +117,7 @@ def test_evidence_gap_run_uses_signed_source_reader_and_exact_scope(monkeypatch)
     assert output["evidence_gaps"][0]["pillar_key"] == "soil_health"
     source_context.assert_called_once_with(
         connection,
-        credential="agent_summary_source-synthetic-credential-value-123456",
+        credential="agent_ebf_source-synthetic-credential-value-123456",
         location_id=LOCATION_ID,
         resource="ebf_scorecard",
         action="read",
@@ -126,7 +126,7 @@ def test_evidence_gap_run_uses_signed_source_reader_and_exact_scope(monkeypatch)
     statements = [call.args[0].strip() for call in setup_cursor.execute.call_args_list]
     assert statements[:4] == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
-        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
+        "SET LOCAL ROLE kokonut_agent_ebf_source_reader",
         "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
     ]

@@ -206,7 +206,10 @@ def test_agent_blocked_from_publishing_via_direct_sql(db):
 
         # Set agent context and try to publish — should fail
         cur.execute("SET LOCAL app.agent_id = 'test_agent'")
-        with pytest.raises(psycopg2.errors.RaiseException, match="Agent test_agent cannot set status to published"):
+        with pytest.raises(
+            psycopg2.errors.InsufficientPrivilege,
+            match="Agent worker operations cannot set status to published",
+        ):
             cur.execute(
                 "UPDATE test_agent_safety_check SET status = 'published' WHERE id = %s",
                 (row_id,),
