@@ -16,6 +16,7 @@ from services.common.tenant_context import (
     bind_operator_session_token_hash,
     clear_operator_tenant_context,
     reset_operator_session_token_hash,
+    set_agent_summary_draft_tenant_context,
     set_agent_summary_source_tenant_context,
     set_gateway_tenant_context,
     set_mobile_device_tenant_context,
@@ -483,6 +484,36 @@ def test_sets_agent_summary_source_context_without_worker_execution_role():
     assert raw_credential not in repr(context_params)
     assert all("SET LOCAL ROLE kokonut_worker_execution" not in sql
                for sql, _params in connection.calls)
+
+
+def test_task_summary_draft_context_sets_narrow_role_after_signed_scope():
+    connection = FakeConnection(
+        (TENANT_ID, LOCATION_ID, OPERATOR_ID, "system_worker")
+    )
+
+    context = set_agent_summary_draft_tenant_context(
+        connection,
+        credential="s" * 40,
+        location_id=LOCATION_ID,
+    )
+
+    statements = [sql for sql, _params in connection.calls]
+    scope_index = next(
+        index for index, statement in enumerate(statements)
+        if "set_worker_tenant_context" in statement
+    )
+    writer_role_index = statements.index(
+        "SET LOCAL ROLE kokonut_agent_task_summary_writer"
+    )
+    registration_index = statements.index(
+        "SELECT kokonut_security.register_current_ai_summary_worker_task()"
+    )
+    assert scope_index < writer_role_index
+    assert writer_role_index < registration_index
+    assert "SET LOCAL ROLE kokonut_worker_execution" not in statements
+    assert context == WorkerTenantContext(
+        TENANT_ID, LOCATION_ID, OPERATOR_ID, "ai_summary", "draft"
+    )
 
 
 def test_worker_context_denial_clears_scope_and_never_sends_raw_credential():

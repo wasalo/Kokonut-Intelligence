@@ -68,7 +68,7 @@ def list_location_ai_summary_reviews(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT * FROM kokonut_security.list_location_ai_summary_reviews_with_sources(
+                """SELECT * FROM kokonut_security.list_location_ai_summary_reviews_with_worker_task(
                            %s::uuid, %s::integer, %s::integer
                        )""",
                 (location_id, page_size + 1, page_offset),
@@ -88,6 +88,7 @@ def list_location_ai_summary_reviews(
                 review_ready,
                 blocked_reasons,
                 source_references,
+                creator_task_key,
             ) = row
             reviews.append(
                 {
@@ -101,6 +102,7 @@ def list_location_ai_summary_reviews(
                     "created_at": created_at,
                     "review_ready": review_ready,
                     "blocked_reasons": blocked_reasons or [],
+                    "creator_task_key": creator_task_key,
                 }
             )
         return {

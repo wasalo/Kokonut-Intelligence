@@ -172,8 +172,20 @@ def run_worker_synthesis(
     if persist_draft:
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
 
+    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(agent.task_key)
+    source_reader = _SYNTHESIS_SOURCE_READERS.get(agent.task_key)
+    if source_identity is None or source_reader is None:
+        raise ValueError("synthesis task has no isolated source identity")
+
     if persist_draft:
-        read_existing = existing_reader or get_worker_ai_summary_draft
+        read_existing = existing_reader or (
+            lambda location, summary_type, worker_request_id: get_worker_ai_summary_draft(
+                location,
+                summary_type,
+                worker_request_id,
+                worker_key=source_identity,
+            )
+        )
         prior = read_existing(location_id, agent.summary_type, request_id)
         if prior is not None:
             original_summary = prior.get("worker_result")
@@ -186,10 +198,6 @@ def run_worker_synthesis(
                 "replayed": True,
             }
 
-    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(agent.task_key)
-    source_reader = _SYNTHESIS_SOURCE_READERS.get(agent.task_key)
-    if source_identity is None or source_reader is None:
-        raise ValueError("synthesis task has no isolated source identity")
     source_credential = get_worker_credential(source_identity)
     open_source_connection = connection_factory or (
         lambda: get_worker_db(source_identity)
@@ -235,7 +243,15 @@ def run_worker_synthesis(
     if not persist_draft:
         return {"summary": summary}
 
-    write_draft = draft_writer or create_worker_ai_summary_draft
+    write_draft = draft_writer or (
+        lambda location, summary_type, worker_request_id, draft: create_worker_ai_summary_draft(
+            location,
+            summary_type,
+            worker_request_id,
+            draft,
+            worker_key=source_identity,
+        )
+    )
     saved = write_draft(location_id, agent.summary_type, request_id, payload)
     return {
         "summary": summary,
@@ -297,7 +313,14 @@ def run_worker_summary(
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
     if persist_draft:
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-        read_existing = existing_reader or get_worker_ai_summary_draft
+        read_existing = existing_reader or (
+            lambda location, summary_type, worker_request_id: get_worker_ai_summary_draft(
+                location,
+                summary_type,
+                worker_request_id,
+                worker_key="agent_summary_deterministic_source",
+            )
+        )
         prior = read_existing(location_id, summary_type, request_id)
         if prior is not None:
             return prior
@@ -345,7 +368,15 @@ def run_worker_summary(
         "model_version": summary.get("model_version", "rules-v1"),
         "worker_result": summary,
     }
-    write_draft = draft_writer or create_worker_ai_summary_draft
+    write_draft = draft_writer or (
+        lambda location, current_summary_type, worker_request_id, draft: create_worker_ai_summary_draft(
+            location,
+            current_summary_type,
+            worker_request_id,
+            draft,
+            worker_key="agent_summary_deterministic_source",
+        )
+    )
     return write_draft(location_id, summary_type, request_id, payload)
 
 

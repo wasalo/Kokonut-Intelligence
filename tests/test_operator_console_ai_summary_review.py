@@ -49,6 +49,8 @@ def test_queue_uses_bounded_same_origin_no_store_reads_and_safe_text_rendering()
     assert "content.textContent = String(summary.content || \"\")" in reader
     assert "item.textContent = blocker" in reader
     assert "summary.source_references" in reader
+    assert 'summary.creator_task_key === "unregistered_worker"' in reader
+    assert "Agent task: ${summary.creator_task_key}" in reader
     assert "recordIds.length" in reader
     assert "item.textContent = recordId" in reader
     assert "summary.review_ready === true && blockers.length === 0" in reader

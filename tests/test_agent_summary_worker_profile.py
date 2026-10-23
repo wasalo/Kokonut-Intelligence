@@ -21,7 +21,7 @@ def _assert_no_shared_database_environment(service):
     )
 
 
-def test_deterministic_summary_profile_uses_only_its_source_and_draft_identities():
+def test_deterministic_summary_profile_uses_only_its_task_identity():
     service = _services()["agent-summary-worker"]
 
     assert service["entrypoint"] == [
@@ -34,8 +34,6 @@ def test_deterministic_summary_profile_uses_only_its_source_and_draft_identities
     _assert_no_shared_database_environment(service)
     assert "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL" in service["environment"]
     assert "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL" in service["environment"]
-    assert "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL" in service["environment"]
-    assert "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL" in service["environment"]
 
 
 def test_summary_inspection_profile_uses_only_its_signed_source_identity():
@@ -56,7 +54,7 @@ def test_summary_inspection_profile_uses_only_its_signed_source_identity():
     }
 
 
-def test_kokonut_commons_profile_uses_only_its_source_and_draft_identities():
+def test_kokonut_commons_profile_uses_only_its_task_identity():
     services = _services()
     service = services["agent-kokonut-commons-worker"]
 
@@ -75,13 +73,11 @@ def test_kokonut_commons_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_organic_readiness_profile_uses_only_its_source_and_draft_identities():
+def test_organic_readiness_profile_uses_only_its_task_identity():
     service = _services()["agent-organic-readiness-worker"]
 
     assert service["entrypoint"] == [
@@ -98,13 +94,11 @@ def test_organic_readiness_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_ecological_modeling_profile_uses_only_its_source_and_draft_identities():
+def test_ecological_modeling_profile_uses_only_its_task_identity():
     service = _services()["agent-ecological-modeling-worker"]
 
     assert service["entrypoint"] == [
@@ -121,13 +115,11 @@ def test_ecological_modeling_profile_uses_only_its_source_and_draft_identities()
         "KOKONUT_ENV",
         "KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_holistic_wellbeing_profile_uses_only_its_source_and_draft_identities():
+def test_holistic_wellbeing_profile_uses_only_its_task_identity():
     service = _services()["agent-holistic-wellbeing-worker"]
 
     assert service["entrypoint"] == [
@@ -144,13 +136,11 @@ def test_holistic_wellbeing_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_feedback_profile_uses_only_its_source_and_draft_identities():
+def test_feedback_profile_uses_only_its_task_identity():
     service = _services()["agent-feedback-worker"]
 
     assert service["entrypoint"] == [
@@ -167,13 +157,11 @@ def test_feedback_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_commons_liberation_profile_uses_only_its_source_and_draft_identities():
+def test_commons_liberation_profile_uses_only_its_task_identity():
     service = _services()["agent-commons-liberation-worker"]
 
     assert service["entrypoint"] == [
@@ -190,13 +178,11 @@ def test_commons_liberation_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_gnh_alignment_profile_uses_only_its_source_and_draft_identities():
+def test_gnh_alignment_profile_uses_only_its_task_identity():
     service = _services()["agent-gnh-alignment-worker"]
 
     assert service["entrypoint"] == [
@@ -213,13 +199,11 @@ def test_gnh_alignment_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_regenerator_profile_uses_only_its_source_and_draft_identities():
+def test_regenerator_profile_uses_only_its_task_identity():
     service = _services()["agent-regenerator-worker"]
 
     assert service["entrypoint"] == [
@@ -236,13 +220,11 @@ def test_regenerator_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_REGENERATOR_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_REGENERATOR_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_capital_efficiency_profile_uses_only_its_source_and_draft_identities():
+def test_capital_efficiency_profile_uses_only_its_task_identity():
     service = _services()["agent-capital-efficiency-worker"]
 
     assert service["entrypoint"] == [
@@ -259,13 +241,11 @@ def test_capital_efficiency_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_financial_resilience_profile_uses_only_its_source_and_draft_identities():
+def test_financial_resilience_profile_uses_only_its_task_identity():
     service = _services()["agent-financial-resilience-worker"]
 
     assert service["entrypoint"] == [
@@ -282,13 +262,11 @@ def test_financial_resilience_profile_uses_only_its_source_and_draft_identities(
         "KOKONUT_ENV",
         "KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_bio_factory_profile_uses_only_its_source_and_draft_identities():
+def test_bio_factory_profile_uses_only_its_task_identity():
     service = _services()["agent-bio-factory-worker"]
 
     assert service["entrypoint"] == [
@@ -305,13 +283,11 @@ def test_bio_factory_profile_uses_only_its_source_and_draft_identities():
         "KOKONUT_ENV",
         "KOKONUT_AGENT_BIO_FACTORY_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_BIO_FACTORY_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 
 
-def test_open_source_capitalist_profile_uses_only_its_source_and_draft_identities():
+def test_open_source_capitalist_profile_uses_only_its_task_identity():
     service = _services()["agent-open-source-capitalist-worker"]
 
     assert service["entrypoint"] == [
@@ -328,8 +304,6 @@ def test_open_source_capitalist_profile_uses_only_its_source_and_draft_identitie
         "KOKONUT_ENV",
         "KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_DATABASE_URL",
         "KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_WORKER_CREDENTIAL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 

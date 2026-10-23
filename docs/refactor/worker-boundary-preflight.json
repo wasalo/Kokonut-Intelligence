@@ -27,9 +27,9 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 339,
+    "execution_site_count": 341,
     "sites_with_static_operation_path": 266,
-    "sites_without_static_function_match": 73,
+    "sites_without_static_function_match": 75,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -187,17 +187,27 @@
         "import_closure_operation_count": 32
       },
       {
-        "site": "services/common/tenant_context.py:281:8",
+        "site": "services/common/tenant_context.py:191:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },
       {
-        "site": "services/common/tenant_context.py:361:8",
+        "site": "services/common/tenant_context.py:192:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },
       {
-        "site": "services/common/tenant_context.py:427:8",
+        "site": "services/common/tenant_context.py:309:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 12
+      },
+      {
+        "site": "services/common/tenant_context.py:389:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 12
+      },
+      {
+        "site": "services/common/tenant_context.py:455:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 12
       },

@@ -200,6 +200,73 @@ def test_worker_store_sets_exact_signed_scope_before_bounded_function(monkeypatc
     assert connection.closed
 
 
+def test_registered_task_writer_uses_its_own_credential_and_narrow_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection()
+    credential_keys: list[str] = []
+    context_calls: list[tuple[Any, dict[str, Any]]] = []
+    monkeypatch.setattr(
+        worker_draft,
+        "get_worker_credential",
+        lambda key: credential_keys.append(key) or "t" * 40,
+    )
+    monkeypatch.setattr(
+        worker_draft,
+        "get_worker_db",
+        lambda key: credential_keys.append(key) or connection,
+    )
+    monkeypatch.setattr(
+        worker_draft,
+        "set_agent_summary_draft_tenant_context",
+        lambda conn, **kwargs: context_calls.append((conn, kwargs)),
+    )
+    monkeypatch.setattr(
+        worker_draft,
+        "set_worker_tenant_context",
+        lambda *_args, **_kwargs: pytest.fail("task writer used shared execution context"),
+    )
+
+    result = worker_draft.create_worker_ai_summary_draft(
+        LOCATION_ID,
+        "holistic_wellbeing",
+        REQUEST_ID,
+        {"content": "Task-attributed draft", "source_tables": ["harvest_event"]},
+        worker_key="agent_holistic_wellbeing_source",
+    )
+
+    assert credential_keys == [
+        "agent_holistic_wellbeing_source",
+        "agent_holistic_wellbeing_source",
+    ]
+    assert context_calls == [
+        (
+            connection,
+            {"credential": "t" * 40, "location_id": LOCATION_ID},
+        )
+    ]
+    assert result["summary_id"] == "c0000000-0000-4000-8000-000000000001"
+    assert connection.commits == 1 and connection.closed
+
+
+def test_task_writer_rejects_unregistered_identity_before_secret_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        worker_draft,
+        "get_worker_credential",
+        lambda *_args: pytest.fail("unregistered identity reached secret lookup"),
+    )
+    with pytest.raises(AgentDraftInvalid, match="registered task draft identity"):
+        worker_draft.get_worker_ai_summary_draft(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            worker_key="agent_summary_source",
+            connection_factory=lambda: pytest.fail("unregistered identity opened DB"),
+        )
+
+
 def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch: pytest.MonkeyPatch) -> None:
     connection = FakeConnection()
     connection.lookup_result = (

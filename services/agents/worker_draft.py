@@ -13,10 +13,30 @@ from collections.abc import Callable, Mapping
 from typing import Any
 from uuid import UUID
 
-from services.common.tenant_context import set_worker_tenant_context
+from services.common.tenant_context import (
+    set_agent_summary_draft_tenant_context,
+    set_worker_tenant_context,
+)
 from services.common.worker_database import get_worker_credential, get_worker_db
 
 _WORKER_KEY = "agent_summary_draft"
+_TASK_WRITER_KEYS = frozenset(
+    {
+        "agent_summary_deterministic_source",
+        "agent_organic_readiness_source",
+        "agent_ecological_modeling_source",
+        "agent_holistic_wellbeing_source",
+        "agent_feedback_source",
+        "agent_commons_liberation_source",
+        "agent_gnh_alignment_source",
+        "agent_regenerator_source",
+        "agent_capital_efficiency_source",
+        "agent_financial_resilience_source",
+        "agent_bio_factory_source",
+        "agent_open_source_capitalist_source",
+        "agent_kokonut_commons_source",
+    }
+)
 _SUMMARY_TYPE = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
 DETERMINISTIC_SUMMARY_TYPES = ("operations", "financial", "environmental", "combined")
 SYNTHESIS_SUMMARY_TYPES = frozenset(
@@ -258,17 +278,36 @@ def _serialize_worker_result(
     return encoded
 
 
-def _set_context(connection: Any, *, credential: str, location_id: str) -> None:
+def _set_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+    worker_key: str,
+) -> None:
     with connection.cursor() as cursor:
         cursor.execute("SET LOCAL statement_timeout = '15s'")
         cursor.execute("SET LOCAL lock_timeout = '3s'")
-    set_worker_tenant_context(
-        connection,
-        credential=credential,
-        location_id=location_id,
-        resource="ai_summary",
-        action="draft",
-    )
+    if worker_key in _TASK_WRITER_KEYS:
+        set_agent_summary_draft_tenant_context(
+            connection, credential=credential, location_id=location_id
+        )
+    else:
+        set_worker_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            resource="ai_summary",
+            action="draft",
+        )
+
+
+def _resolve_worker_key(worker_key: str | None) -> str:
+    if worker_key is None:
+        return _WORKER_KEY
+    if not isinstance(worker_key, str) or worker_key not in _TASK_WRITER_KEYS:
+        raise AgentDraftInvalid("worker_key is not a registered task draft identity")
+    return worker_key
 
 
 def _read_row(row: tuple[Any, ...] | None, *, replayed: bool) -> dict[str, Any] | None:
@@ -308,6 +347,7 @@ def get_worker_ai_summary_draft(
     summary_type: str,
     request_id: str,
     *,
+    worker_key: str | None = None,
     connection_factory: Callable[[], Any] | None = None,
 ) -> dict[str, Any] | None:
     """Return a prior exact worker request before an agent recomputes output."""
@@ -315,10 +355,16 @@ def get_worker_ai_summary_draft(
     request_id = _uuid(request_id, "request_id")
     if not isinstance(summary_type, str) or not _SUMMARY_TYPE.fullmatch(summary_type):
         raise AgentDraftInvalid("summary_type is invalid")
-    credential = get_worker_credential(_WORKER_KEY)
-    connection = (connection_factory or (lambda: get_worker_db(_WORKER_KEY)))()
+    worker_key = _resolve_worker_key(worker_key)
+    credential = get_worker_credential(worker_key)
+    connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
     try:
-        _set_context(connection, credential=credential, location_id=location_id)
+        _set_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            worker_key=worker_key,
+        )
         with connection.cursor() as cursor:
             cursor.execute(
                 """SELECT * FROM kokonut_security.get_location_ai_summary_worker_result(
@@ -349,6 +395,7 @@ def create_worker_ai_summary_draft(
     request_id: str,
     summary: Mapping[str, Any],
     *,
+    worker_key: str | None = None,
     connection_factory: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     """Create or replay one draft under the exact signed worker scope.
@@ -367,10 +414,16 @@ def create_worker_ai_summary_draft(
         source_references_json,
     ) = _validate_payload(summary_type, summary)
     worker_result_json = _serialize_worker_result(summary, content=content)
-    credential = get_worker_credential(_WORKER_KEY)
-    connection = (connection_factory or (lambda: get_worker_db(_WORKER_KEY)))()
+    worker_key = _resolve_worker_key(worker_key)
+    credential = get_worker_credential(worker_key)
+    connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
     try:
-        _set_context(connection, credential=credential, location_id=location_id)
+        _set_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            worker_key=worker_key,
+        )
         with connection.cursor() as cursor:
             if worker_result_json is not None:
                 cursor.execute(

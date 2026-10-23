@@ -15324,6 +15324,13 @@
               : "Creation time unavailable";
             summaryCell.append(summaryType, document.createElement("br"), summaryId,
               document.createElement("br"), created);
+            if (typeof summary.creator_task_key === "string") {
+              const creatorTask = document.createElement("small");
+              creatorTask.textContent = summary.creator_task_key === "unregistered_worker"
+                ? "Agent task identity is unregistered"
+                : `Agent task: ${summary.creator_task_key}`;
+              summaryCell.append(document.createElement("br"), creatorTask);
+            }
 
             const contentCell = document.createElement("td");
             const content = document.createElement("pre");

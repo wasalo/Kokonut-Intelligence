@@ -3319,7 +3319,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -3431,13 +3431,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -6068,7 +6068,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -6276,13 +6276,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -8088,7 +8088,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -8248,13 +8248,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -9067,7 +9067,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -9195,13 +9195,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -9386,7 +9386,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -9522,13 +9522,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -10392,7 +10392,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -10464,13 +10464,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -10643,7 +10643,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -10771,13 +10771,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -10914,7 +10914,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -11042,13 +11042,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -11185,7 +11185,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -11313,13 +11313,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -11456,7 +11456,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -11584,13 +11584,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",
@@ -12030,7 +12030,7 @@
           "qualname": "_set_worker_context",
           "class_scope": null,
           "source": "services/common/tenant_context.py",
-          "line": 194
+          "line": 222
         },
         {
           "key": "services.common.tenant_context:clear_tenant_context",
@@ -12166,13 +12166,13 @@
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:_normalize_uuid",
           "source": "services/common/tenant_context.py",
-          "line": 217
+          "line": 245
         },
         {
           "caller": "services.common.tenant_context:_set_worker_context",
           "callee": "services.common.tenant_context:clear_tenant_context",
           "source": "services/common/tenant_context.py",
-          "line": 208
+          "line": 236
         },
         {
           "caller": "services.common.tenant_context:set_worker_tenant_context",

@@ -316,14 +316,24 @@ task-specific synthesis profile. `agent-summary-worker` uses a dedicated source 
 `POSTGRES_PASSWORD` values. Each synthesis profile names one registered task
 and receives only that task's signed, filtered source login; migration 593
 moves the final five Kokonut Commons projections off the broad reader, and
-migration 594 disables the historical shared login and strips its residual
-grants. No generic shared synthesis profile remains. Every profile uses the
-signed worker identity for draft persistence. Synthesis reads enforce each
-location grant at the database view boundary, and deterministic summaries use
-a separate signed, location-filtered view boundary. The remaining runtime/RLS
-review is open. An operator still needs to provision the runtime password,
-task source login/password pairs, worker login/password, worker credentials,
-location grants, and service DSNs; migrations 529–594 are not rolled out to
+migration 594 disables the historical shared source login and strips its
+residual grants. Migration 595 lets deterministic and registered synthesis
+task identities create drafts through a function-only writer role; these
+logins do not join broad `kokonut_worker_execution`. Before draft creation, a
+function derives the task key from the authenticated PostgreSQL session login
+and binds it to the signed worker ID in a private attribution table. Reviewers
+can read that narrow mapping without querying `worker_principal` through its
+forced RLS policy. The review queue disables verification for unregistered
+worker identities, and a database trigger enforces that rule while still
+allowing a human to reject an unregistered legacy draft. No generic shared
+synthesis profile remains.
+Each task that stores drafts needs its own exact `ai_summary:read` and
+`ai_summary:draft` grants at the selected location. Synthesis reads enforce
+each location grant at the database view boundary, and deterministic summaries
+use a separate signed, location-filtered view boundary. The remaining
+runtime/RLS review is open. An operator still needs to provision the runtime
+password, task source login/password pairs, worker credentials, separate
+location grants, and service DSNs; migrations 529–595 are not rolled out to
 the candidate. Stored agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with

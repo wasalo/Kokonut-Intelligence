@@ -167,6 +167,34 @@ def set_agent_summary_source_tenant_context(
     )
 
 
+def set_agent_summary_draft_tenant_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+) -> WorkerTenantContext:
+    """Set a signed exact-location draft scope for a registered agent task.
+
+    Task source logins do not receive the broad ``kokonut_worker_execution``
+    role. After the signed scope is installed, they may switch to the narrow
+    function-only ``kokonut_agent_task_summary_writer`` role.
+    """
+    context = _set_worker_context(
+        connection,
+        credential=credential,
+        location_id=location_id,
+        resource="ai_summary",
+        action="draft",
+        switch_to_execution_role=False,
+    )
+    with connection.cursor() as cursor:
+        cursor.execute("SET LOCAL ROLE kokonut_agent_task_summary_writer")
+        cursor.execute(
+            "SELECT kokonut_security.register_current_ai_summary_worker_task()"
+        )
+    return context
+
+
 def set_agent_source_tenant_context(
     connection: Any,
     *,

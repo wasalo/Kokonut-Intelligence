@@ -59,10 +59,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/592_isolated_open_source_capitalist_worker.sql",
     ROOT / "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
     ROOT / "schemas/postgres/594_retire_shared_agent_source_identity.sql",
+    ROOT / "schemas/postgres/595_agent_task_draft_attribution.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-gnh-alignment-identity-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-task-draft-attribution-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -3772,6 +3773,83 @@ def _worker_acceptance() -> str:
     """
 
 
+def _task_writer_acceptance() -> str:
+    request_id = "d0000000-0000-4000-8000-000000009099"
+    return f"""
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{HOLISTIC_WELLBEING_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'draft', 'synthetic task-writer acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    CREATE TABLE public.agent_task_worker_ai_summary_test_result (
+        summary_id UUID NOT NULL
+    );
+    GRANT SELECT ON TABLE public.agent_task_worker_ai_summary_test_result
+        TO kokonut_runtime;
+    GRANT INSERT ON TABLE public.agent_task_worker_ai_summary_test_result
+        TO kokonut_agent_task_summary_writer;
+
+    ALTER ROLE kokonut_agent_holistic_wellbeing_login LOGIN;
+    SET SESSION AUTHORIZATION kokonut_agent_holistic_wellbeing_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{HOLISTIC_WELLBEING_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        'ai_summary', 'draft'
+    );
+    SET LOCAL ROLE kokonut_agent_task_summary_writer;
+    SELECT kokonut_security.register_current_ai_summary_worker_task();
+    DO $$
+    BEGIN
+        IF current_user <> 'kokonut_agent_task_summary_writer'
+           OR NOT has_function_privilege(
+               current_user,
+               'kokonut_security.create_location_ai_summary_worker_draft_with_result(uuid,text,text,text[],text,uuid,jsonb)',
+               'EXECUTE'
+           )
+           OR has_table_privilege(current_user, 'public.ai_summary', 'INSERT')
+           OR has_table_privilege(current_user, 'public.ai_summary', 'UPDATE') THEN
+            RAISE EXCEPTION 'task writer role does not have the narrow function-only contract';
+        END IF;
+    END;
+    $$;
+    INSERT INTO public.agent_task_worker_ai_summary_test_result (summary_id)
+    SELECT summary_id
+      FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+          '{LOCATION_ID}', 'holistic_wellbeing',
+          'Task-attributed synthetic draft.', ARRAY['harvest_event'], 'agent-v2',
+          '{request_id}',
+          '{{"location_id":"{LOCATION_ID}","synthesis":"Task-attributed synthetic draft."}}'::jsonb
+      );
+    COMMIT;
+    RESET ROLE;
+    RESET SESSION AUTHORIZATION;
+    ALTER ROLE kokonut_agent_holistic_wellbeing_login NOLOGIN;
+
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.ai_summary AS summary
+             WHERE summary.id = (
+                 SELECT summary_id FROM public.agent_task_worker_ai_summary_test_result
+             )
+               AND summary.created_by_worker_id = '{HOLISTIC_WELLBEING_SOURCE_WORKER_ID}'
+               AND summary.status = 'draft'
+        ) THEN
+            RAISE EXCEPTION 'task draft did not retain authenticated worker attribution';
+        END IF;
+        IF pg_catalog.pg_has_role(
+            'kokonut_agent_holistic_wellbeing_login',
+            'kokonut_worker_execution', 'MEMBER'
+        ) THEN
+            RAISE EXCEPTION 'task source login gained broad worker execution membership';
+        END IF;
+    END;
+    $$;
+    """
+
+
 def _worker_result_create_acceptance() -> str:
     request_id = "d0000000-0000-4000-8000-000000009800"
     return f"""
@@ -4388,6 +4466,7 @@ def _review_acceptance() -> str:
     DECLARE queue_row RECORD;
             decision_row RECORD;
             worker_summary_id UUID;
+            task_summary_id UUID;
             scoped_source_references JSONB;
             denied BOOLEAN;
     BEGIN
@@ -4414,6 +4493,33 @@ def _review_acceptance() -> str:
            OR queue_row.source_references -> 'expense_category' -> 'record_ids'
               <> '["e0000000-0000-4000-8000-000000000104"]'::jsonb THEN
             RAISE EXCEPTION 'independent reviewer queue did not expose worker source references';
+        END IF;
+
+        SELECT summary_id INTO STRICT task_summary_id
+          FROM public.agent_task_worker_ai_summary_test_result;
+        SELECT * INTO queue_row
+          FROM kokonut_security.list_location_ai_summary_reviews_with_worker_task(
+              '{LOCATION_ID}', 51, 0
+          )
+         WHERE summary_id = task_summary_id;
+        IF NOT FOUND OR NOT queue_row.review_ready
+           OR queue_row.creator_task_key <> 'holistic_wellbeing_synthesis'
+           OR 'worker_task_unregistered' = ANY(queue_row.blocked_reasons) THEN
+            RAISE EXCEPTION
+                'review queue did not expose the authenticated task identity (found=%, ready=%, task=%, blockers=%)',
+                FOUND, queue_row.review_ready, queue_row.creator_task_key,
+                queue_row.blocked_reasons;
+        END IF;
+
+        SELECT * INTO queue_row
+          FROM kokonut_security.list_location_ai_summary_reviews_with_worker_task(
+              '{LOCATION_ID}', 51, 0
+          )
+         WHERE summary_id = worker_summary_id;
+        IF NOT FOUND OR queue_row.review_ready
+           OR queue_row.creator_task_key <> 'unregistered_worker'
+           OR NOT ('worker_task_unregistered' = ANY(queue_row.blocked_reasons)) THEN
+            RAISE EXCEPTION 'legacy shared-writer draft was not blocked from verification';
         END IF;
 
         SELECT * INTO queue_row
@@ -4447,7 +4553,7 @@ def _review_acceptance() -> str:
 
         SELECT * INTO decision_row
           FROM kokonut_security.decide_location_ai_summary_review(
-              '{LOCATION_ID}', worker_summary_id, 'approve',
+              '{LOCATION_ID}', task_summary_id, 'approve',
               'd0000000-0000-4000-8000-000000000904', 'approved_after_review'
           );
         IF decision_row.resulting_status <> 'verified' THEN
@@ -4463,6 +4569,18 @@ def _review_acceptance() -> str:
         EXCEPTION WHEN SQLSTATE '55000' THEN denied := TRUE;
         END;
         IF NOT denied THEN RAISE EXCEPTION 'unattributed legacy draft was approved'; END IF;
+
+        denied := FALSE;
+        BEGIN
+            PERFORM * FROM kokonut_security.decide_location_ai_summary_review(
+                '{LOCATION_ID}', worker_summary_id, 'approve',
+                'd0000000-0000-4000-8000-000000000906', 'approved_after_review'
+            );
+        EXCEPTION WHEN SQLSTATE '55000' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'unregistered shared-writer draft was verified';
+        END IF;
     END;
     $$;
     COMMIT;
@@ -4473,13 +4591,13 @@ def _review_acceptance() -> str:
             denied BOOLEAN;
     BEGIN
         SELECT summary_id INTO STRICT worker_summary_id
-          FROM public.agent_worker_ai_summary_test_result;
+          FROM public.agent_task_worker_ai_summary_test_result;
         IF NOT EXISTS (
             SELECT 1 FROM public.ai_summary
              WHERE id = worker_summary_id AND status = 'verified'
                AND reviewed_by = '{reviewer_id}' AND reviewed_at IS NOT NULL
                AND created_by IS NULL
-               AND created_by_worker_id = '{WORKER_ID}'
+               AND created_by_worker_id = '{HOLISTIC_WELLBEING_SOURCE_WORKER_ID}'
         ) THEN RAISE EXCEPTION 'worker attribution or independent review was not persisted'; END IF;
         IF (SELECT count(*) FROM public.lifecycle_transition
              WHERE entity_id = worker_summary_id
@@ -4586,7 +4704,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-594 apply; migrations 530-537, 539-548, 580-594 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-595 apply; migrations 530-537, 539-548, 580-595 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -4610,7 +4728,10 @@ def main() -> int:
         "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
         "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
-        "independent operator review sees the worker attribution and can verify only to verified",
+        "migration 595 grants registered source logins a function-only task writer role without broad worker execution membership",
+        "task-specific signed worker identity creates a draft attributed to its principal under an exact ai_summary:draft grant",
+        "review queue displays the registered task key, blocks unknown task identities from verification, and retains human rejection",
+        "independent operator review sees authenticated task attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "the legacy shared synthesis login and reader are NOLOGIN, have no role memberships or direct grants, and remain inert after stale-grant replay",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
@@ -4676,7 +4797,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, Open Source Capitalist, and Kokonut Commons use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs; Kokonut Commons sees three location-or-network policy views and two network-wide public catalogs. Migration 594 makes the historical shared synthesis login NOLOGIN, removes its reader membership and direct privileges, and verifies that both legacy roles are inert. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, Open Source Capitalist, and Kokonut Commons use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs; Kokonut Commons sees three location-or-network policy views and two network-wide public catalogs. Migration 594 makes the historical shared synthesis login NOLOGIN, removes its reader membership and direct privileges, and verifies that both legacy roles are inert. Migration 595 adds a function-only task-writer role to thirteen deterministic/synthesis source logins, binds signed worker IDs to task keys derived from authenticated PostgreSQL logins, and blocks human verification when a worker identity is unregistered. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials and per-location draft grants are not provisioned by these disposable checks.",
         "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "ecological_projection_fixture_note": "Because this focused disposable chain does not apply historical farm/ecology schema migrations 550-551, twenty-seven synthetic security-barrier projections stand in for those outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "holistic_wellbeing_projection_fixture_note": "Migrations 535 and 543 create the real consent-filtered and signed security-barrier source projections in this disposable chain. Synthetic own/foreign rows are added to the fixture source tables before migration 584; no live stakeholder data or candidate/legacy database is used.",
@@ -4724,6 +4845,7 @@ def main() -> int:
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
+            stage = f"{migration_path.stem}_apply"
             sql = migration_path.read_text(encoding="utf-8")
             if migration_path.name.startswith("548_"):
                 stage = "delphi_agent_source_fixture"
@@ -5084,6 +5206,35 @@ def main() -> int:
                     container,
                     _retired_shared_source_identity_acceptance(),
                 )
+            if migration_path.name.startswith("595_"):
+                stage = "migration_595_stale_writer_grants"
+                base.psql(
+                    docker,
+                    container,
+                    "GRANT SELECT ON TABLE public.ai_summary "
+                    "TO kokonut_agent_task_summary_writer; "
+                    "GRANT CREATE ON SCHEMA public, kokonut_security "
+                    "TO kokonut_agent_task_summary_writer; "
+                    "GRANT EXECUTE ON FUNCTION "
+                    "kokonut_security.get_location_ai_summary_worker_draft_request(uuid,text,uuid) "
+                    "TO kokonut_agent_task_summary_writer;",
+                )
+                stage = "migration_595_task_writer_replay"
+                base.psql(docker, container, sql)
+                stage = "migration_595_task_writer_privilege_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ BEGIN "
+                    "IF has_table_privilege('kokonut_agent_task_summary_writer', "
+                    "'public.ai_summary', 'SELECT') "
+                    "OR has_schema_privilege('kokonut_agent_task_summary_writer', 'public', 'CREATE') "
+                    "OR has_schema_privilege('kokonut_agent_task_summary_writer', 'kokonut_security', 'CREATE') "
+                    "OR has_function_privilege('kokonut_agent_task_summary_writer', "
+                    "'kokonut_security.get_location_ai_summary_worker_draft_request(uuid,text,uuid)', "
+                    "'EXECUTE') THEN RAISE EXCEPTION 'migration 595 replay retained stale task-writer grants'; "
+                    "END IF; END $$;",
+                )
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
                 base.psql(
@@ -5298,6 +5449,8 @@ def main() -> int:
         base.psql(docker, container, _retired_shared_source_identity_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
+        stage = "task_identity_draft_acceptance"
+        base.psql(docker, container, _task_writer_acceptance())
         stage = "structured_worker_result_first_write_acceptance"
         base.psql(docker, container, _worker_result_create_acceptance())
         stage = "structured_worker_result_exact_retry_acceptance"

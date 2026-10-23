@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 32,
     "source_files": 95,
-    "execution_sites": 339,
-    "static_literal_sites": 296,
+    "execution_sites": 341,
+    "static_literal_sites": 298,
     "composed_or_variable_sites": 43
   },
   "execution_sites": [
@@ -973,9 +973,61 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:226:12",
+      "id": "services/common/tenant_context.py:191:8",
       "source": "services/common/tenant_context.py",
-      "line": 226,
+      "line": 191,
+      "column": 8,
+      "scope": "set_agent_summary_draft_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "static_sql_sha256": "7ddcdb2b4def30484f415765324f7a1f6d2521ffa31e5cbc415878d37b21a444",
+      "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
+      ]
+    },
+    {
+      "id": "services/common/tenant_context.py:192:8",
+      "source": "services/common/tenant_context.py",
+      "line": 192,
+      "column": 8,
+      "scope": "set_agent_summary_draft_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "33fd6f903d5f1d3b1dcbf049d90d6383ca8f7191b7519390815b46651d70967d",
+      "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
+      ]
+    },
+    {
+      "id": "services/common/tenant_context.py:254:12",
+      "source": "services/common/tenant_context.py",
+      "line": 254,
       "column": 12,
       "scope": "_set_worker_context",
       "method": "execute",
@@ -999,9 +1051,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:227:8",
+      "id": "services/common/tenant_context.py:255:8",
       "source": "services/common/tenant_context.py",
-      "line": 227,
+      "line": 255,
       "column": 8,
       "scope": "_set_worker_context",
       "method": "execute",
@@ -1027,9 +1079,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:281:8",
+      "id": "services/common/tenant_context.py:309:8",
       "source": "services/common/tenant_context.py",
-      "line": 281,
+      "line": 309,
       "column": 8,
       "scope": "set_mobile_device_tenant_context",
       "method": "execute",
@@ -1055,9 +1107,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:361:8",
+      "id": "services/common/tenant_context.py:389:8",
       "source": "services/common/tenant_context.py",
-      "line": 361,
+      "line": 389,
       "column": 8,
       "scope": "set_operator_tenant_context",
       "method": "execute",
@@ -1083,9 +1135,9 @@
       ]
     },
     {
-      "id": "services/common/tenant_context.py:427:8",
+      "id": "services/common/tenant_context.py:455:8",
       "source": "services/common/tenant_context.py",
-      "line": 427,
+      "line": 455,
       "column": 8,
       "scope": "set_gateway_tenant_context",
       "method": "execute",

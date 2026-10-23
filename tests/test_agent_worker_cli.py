@@ -88,6 +88,33 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
     assert result == {"summary_id": "saved-id", "replayed": False}
 
 
+def test_deterministic_worker_uses_its_task_identity_for_default_draft_writer(
+    monkeypatch,
+):
+    connection, _cursor = _source_connection()
+    writer = MagicMock(return_value={"summary_id": "saved-id", "replayed": False})
+    monkeypatch.setattr(worker_cli, "create_worker_ai_summary_draft", writer)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    worker_cli.run_worker_summary(
+        LOCATION_ID,
+        "operations",
+        REQUEST_ID,
+        connection_factory=lambda: connection,
+        summary_builder=lambda *_args: {
+            "location_id": LOCATION_ID,
+            "content": "Task identity draft",
+            "source_tables": ["harvest_event"],
+        },
+        existing_reader=lambda *_args: None,
+    )
+
+    assert writer.call_args.args[:3] == (LOCATION_ID, "operations", REQUEST_ID)
+    assert writer.call_args.kwargs["worker_key"] == "agent_summary_deterministic_source"
+
+
 def test_kokonut_commons_synthesis_uses_task_specific_source_identity_and_reader(
     monkeypatch,
 ):
@@ -147,6 +174,48 @@ def test_kokonut_commons_synthesis_uses_task_specific_source_identity_and_reader
     connection.commit.assert_not_called()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
+
+
+def test_synthesis_worker_uses_its_task_identity_for_default_draft_writer(monkeypatch):
+    from services.agents.kokonut_commons_agent import agent
+
+    connection, _cursor = _source_connection()
+    monkeypatch.setattr(
+        agent,
+        "synthesize",
+        lambda _connection, location_id=None: {
+            "location_id": location_id,
+            "synthesis": "Task-attributed draft",
+        },
+    )
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    monkeypatch.setattr(
+        worker_cli,
+        "get_worker_db",
+        lambda _key: connection,
+    )
+    writer = MagicMock(return_value={"summary_id": "saved-id", "replayed": False})
+    monkeypatch.setattr(worker_cli, "create_worker_ai_summary_draft", writer)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    worker_cli.run_worker_synthesis(
+        agent,
+        LOCATION_ID,
+        REQUEST_ID,
+        existing_reader=lambda *_args: None,
+    )
+
+    assert writer.call_args.args[:3] == (
+        LOCATION_ID,
+        "kokonut_commons",
+        REQUEST_ID,
+    )
+    assert writer.call_args.kwargs["worker_key"] == "agent_kokonut_commons_source"
 
 
 def test_unmapped_synthesis_task_fails_before_source_identity_lookup(monkeypatch):
