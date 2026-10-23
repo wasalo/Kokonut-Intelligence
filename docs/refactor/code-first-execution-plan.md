@@ -7,7 +7,7 @@
 
 **Previous batch — current-source ARM64 replay and CI #771 correction:** the clean bootstrap now creates a locked historical `directus` placeholder only when absent, and the corrected network-disabled ARM64/QEMU PostgreSQL 16 run applied all 588 schema files through migration 597 with zero pending or failed files and successful cleanup. CI #771 then found that a PostgreSQL superuser seed session was classified as a worker because superusers have implicit membership in every role. New migration 598 excludes that implicit membership while retaining denial for explicit worker roles and non-superuser worker logins. Focused migration/agent-safety checks pass 49 tests with nine existing DB-dependent skips; Ruff, compilation, and network-disabled PostgreSQL 16.4/16.15 replay/role checks pass. The repeatable role test is integrated into the CI runner, replays migration 598 twice, and verifies admin/operator publication, worker terminal-state denial, and marker restrictions. The prior full-schema evidence records source `ba11ae3b` with the dirty working tree later committed as `c0eb4837`; it predates migration 598, which is separately verified. Candidate and legacy databases remain untouched; CI #772 later completed with failure and subsequent CI #773 passed on `b69b824c`. The repeatable role check is included in the current pushed batch. The Directus permission API boundary and owner parity gate remain open. Evidence: [full ARM64 replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json), [repeatable lifecycle check](builds/2026-10-23-recovery/agent-safety-superuser-ci-regression.json), [PostgreSQL 16.15 role check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json), [Directus permission probe](builds/2026-10-23-recovery/directus-effective-permissions.json). This correction builds on the preceding pushed clean-bootstrap batch.
 
-Refactor status: docs/refactor/batches.md has 1,030 complete / 24 open checkboxes (1,054 total); 97.7% is checkbox completion, not capability acceptance. The 66-row capability matrix has 30 baseline-retained, 7 deployed, and 29 prepared capabilities; all 66 named MAN-CAP acceptance checks remain open. Human/runtime gates are tracked separately in docs/refactor/open-follow-ups.md.
+Refactor status: docs/refactor/batches.md has 1,031 complete / 24 open checkboxes (1,055 total); 97.7% is checkbox completion, not capability acceptance. The 66-row capability matrix has 30 baseline-retained, 7 deployed, and 29 prepared capabilities; all 66 named MAN-CAP acceptance checks remain open. Human/runtime gates are tracked separately in docs/refactor/open-follow-ups.md.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned
@@ -1223,7 +1223,7 @@ Directus mandatory or move Kokonut's org/location authorization into that IdP.
 
 The owner selected **self-hosted ZITADEL** on 15 October. Keep it as an
 optional, replaceable identity profile behind Caddy, while retaining Kokonut's
-current session/scope/tenant layer. The identity hostname, issuer/client
+current session/scope/tenant layer. The owner selected auth.kokonut.network as the ZITADEL identity hostname on 23 October. Issuer/client
 details, test accounts, and secret provisioning remain open; no IdP has been
 installed or configured. See the [ZITADEL provider plan](zitadel-provider.md).
 
@@ -1268,7 +1268,7 @@ database, then used as the rollback reference for the separately approved five-f
 | Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. Migrations 405–414 integrate the sensor-anomaly handler with its dedicated DSN/credential, signed tenant context, bounded operations, and one caller-owned transaction. Forty-five focused anomaly/EventBus tests and eight end-to-end disposable PostgreSQL checks pass, including child crash after commit and attempt-two retry without duplicate effects ([delivery evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json]). Existing context, role-isolation, owner-transfer/revocation/expiry, signature/replay-denial, and transaction-lock checks also pass ([acceptance](builds/2026-10-16-recovery/worker-tenant-context-disposable.json)). Remaining code work covers control-plane separation and other worker/Gateway scopes; a real worker login, credential, and active location grant still need deployment provisioning before activation or RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
 | Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | The owner supplied the common cross-lifecycle review audience: liquidity providers, DAO members, guild members, and the wider community. This does not grant blanket report access. Per-report visibility/scope, populated semantic fixtures, external/operator-edited consumers, and DB roles follow farm-data ingestion. |
-| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
+| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after issuer/client settings, test identity, and secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
 | Curated seed write | 8 | **Complete:** the five owner-approved catalog migrations applied successfully through the explicit candidate Compose target; ledger checksums and resulting counts are recorded ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json)). | The owner approved and completed this local reference write. Remaining pilot/curated seed files stay held; production import is not authorized by this operation. |
 | Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, synthetic PostgreSQL acceptance, and candidate migrations 401–402 are complete. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
@@ -1731,7 +1731,7 @@ Evidence: [migration check](builds/2026-10-16-recovery/weather-forecast-worker-d
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
-operators (OFU-16), alert destination/on-call owner (OFU-05), report retention
+operators (OFU-16), SMTP endpoint/routing/on-call owner (OFU-05), report retention
 policy (OFU-03), R2 account/live objects (OFU-08), and production topology
 (OFU-06) remain owner gates.
 
@@ -1833,23 +1833,28 @@ deployment or semantic acceptance:
   outputs follow the planned farm-data ingestion (OFU-04/14). Directus should
   consume organization/location grants; supported consumers and runtime
   identity still need isolated parity evidence (OFU-09/15).
-- **Production operations:** alert destination/on-call (OFU-05), public
+- **Production operations:** SMTP is the selected alert channel, but its
+  production endpoint/credentials, recipient routing/severity, and accountable
+  on-call owner remain open (OFU-05); public
   ingress, trusted proxy hops, TLS, and production recovery topology (OFU-06),
   active scheduler inventory/operators (OFU-16), and scheduling the
   owner-selected 24-hour recovery window (OFU-13). Replica/failover checks are
   deferred to production.
-- **Provider setup:** identity hostname, issuer/client settings and test
-  identities for the selected self-hosted ZITADEL provider (OFU-07); R2
+- **Provider setup:** `auth.kokonut.network` is the selected identity hostname
+  for self-hosted ZITADEL; the exact issuer URL, client ID, callback/redirect,
+  test operator identity, and provisioning owner remain open (OFU-07); R2
   credentials and lifecycle policy (OFU-08); browser vault and trusted local
   HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** the five selected reference catalogs (OFU-17) were
   applied to the local candidate after separate approval. The earlier 30-file
-  proposal is superseded; pilot rows remain held. Migrations 392–434 are rolled
-  out to the local candidate; 425 schema entries are applied through migration
-  434, with zero pending or failed entries. No migration 435 or later is
-  applied. Runtime credential provisioning remains tracked under OFU-19. The
-  candidate has six recorded seed entries; 115 unselected seed sources remain
-  pending.
+  proposal is superseded; pilot rows remain held. The latest recorded local
+  candidate rollout is migration 551: 542 schema entries applied, zero
+  pending at that source point, and only the app service recreated. Current
+  source is through migration 598, so 47 later schema entries require a fresh
+  checkpoint, restore rehearsal, ordered rollout, and candidate health checks
+  before the candidate is current ([rollout evidence](builds/2026-10-22-recovery/candidate-migration-551-rollout.json)).
+  Runtime credential provisioning remains tracked under OFU-19. The candidate
+  has six recorded seed entries; 115 unselected seed sources remain pending.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate
