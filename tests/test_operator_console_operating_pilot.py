@@ -833,6 +833,68 @@ def test_rejected_own_capacity_records_can_be_revised_but_not_resubmitted_as_is(
     assert 'item.status === "draft" || hasPendingSubmission' in row
 
 
+def test_competency_draft_history_revision_and_submission_are_separately_gated():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(source, '<section id="operating-pilot-competency"', '<section id="operating-pilot-own-demand"')
+    load = _function(
+        source,
+        "async function loadOperatingPilotOwnCompetencyAssessments(append = false)",
+        "function appendOperatingPilotOwnCompetencyRow(item, locationId)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnCompetencyRow(item, locationId)",
+        "function beginOperatingPilotCompetencyRevision(item)",
+    )
+    revise = _function(
+        source,
+        "function beginOperatingPilotCompetencyRevision(item)",
+        "function cancelOperatingPilotCompetencyRevision()",
+    )
+    save = _function(
+        source,
+        "async function saveOperatingPilotCompetencyDraft(event)",
+        "async function submitOperatingPilotCompetencyAssessment(item, locationId, button)",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotCompetencyAssessment(item, locationId, button)",
+        "function appendOperatingPilotOwnDemandRow(item, locationId)",
+    )
+    sync_location = _function(
+        source,
+        "function syncOperatingPilotCompetencyEditorLocation(locationId)",
+        "async function loadOperatingPilot()",
+    )
+    assert 'id="operating-pilot-competency-form"' in panel
+    assert 'id="operating-pilot-competency-evidence"' in panel
+    assert 'id="operating-pilot-competency-rows"' in panel
+    assert "operatingPilotCompetencyReadLocations.has(locationId)" in load
+    assert "/my-competency-assessments?${params}" in load
+    assert 'cache: "no-store"' in load and 'credentials: "same-origin"' in load
+    assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    assert 'operatingPilotCompetencyEditLocations.has(locationId)' in row
+    assert 'operatingPilotCompetencySubmitLocations.has(locationId)' in row
+    assert 'item.status === "draft"' in row
+    assert 'operatingPilotCompetencyEditLocations.has(locationId)' in revise
+    assert '"draft", "rejected"' in revise
+    assert "/competency-assessments/${encodeURIComponent(draftId)}" in save
+    assert 'method: draftId ? "PUT" : "POST"' in save
+    assert '"X-CSRF-Token": csrf' in save
+    assert 'cache: "no-store"' in save and 'credentials: "same-origin"' in save
+    assert "payload_text !== payloadText" in save
+    assert 'operatingPilotCompetencySubmitLocations.has(locationId)' in submit
+    assert 'window.confirm("Submit this self-assessment for independent human review?' in submit
+    assert "/competency-assessments/${encodeURIComponent(item.draft_id)}/submit" in submit
+    assert 'method: "POST"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "innerHTML" not in panel + load + row + revise + save + submit
+    assert "operatingPilotCompetencyForm.reset()" in sync_location
+    assert "JSON.parse(pending.payload_text)" in sync_location
+    assert "Return to that location and retry it unchanged" in sync_location
+    assert "operatingPilotPendingCompetencyWrite.location_id !== locationId" in sync_location
+
+
 def test_create_only_location_can_open_draft_form_without_reading_queues():
     source = CONSOLE.read_text(encoding="utf-8")
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")

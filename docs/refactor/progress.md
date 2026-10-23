@@ -1,8 +1,29 @@
+### CAP-037 competency self-service console — 22 October 2026
+
+The operator console now supports private competency draft creation, own-record
+history, owner revision, and submission for independent review. Each action is
+gated by its distinct exact location grant. Reads are bounded, same-origin, and
+no-store; writes use CSRF and stable request IDs. Values render as text. An
+uncertain write stays bound to its original location and exact payload: changing
+locations clears the form and hides the pending editor, while returning restores
+the request for an unchanged retry. Submission remains separate from review and
+verification.
+
+The focused console, Gateway write/read, route-policy, and migration selection
+passes 333 tests, including inline JavaScript syntax. No live browser, provider,
+candidate, legacy database, or migration rollout was used. Evidence:
+[console contract](builds/2026-10-22-recovery/cap-037-competency-console-contract.json).
+CAP-037 remains prepared (`P`); independent review/verification, populated
+Adelphi parity, live ZITADEL/browser acceptance, broader ACL/RLS, production
+recovery, and MAN-CAP-037 owner acceptance remain open. Checklist: 1,001
+complete / 24 open (1,025 total); matrix: 30 baseline-retained, 7 deployed, and
+29 prepared across 66 rows.
+
 ### CAP-037 private competency draft revision and submission — 22 October 2026
 
 Migration 576 adds separate `operating_pilot:edit_own` and `operating_pilot:submit_own` actions for receipt-backed competency assessments. Revision supersedes only the caller’s own draft or rejected assessment, preserves the prior version, and creates a bounded replacement atomically. Submission changes only the caller’s own draft to `submitted`; review and verification remain independent. Private receipts make exact retries replay and reject changed request reuse. Runtime can call only the bounded functions, while runtime and Directus have no direct table access.
 
-The focused Gateway write and route-policy selection passes 131 tests. Network-disabled disposable PostgreSQL 16 applies and replays migrations through 576 and passes 198 grouped assertions covering revision, submission, retry collision, ownership, grant/location denial, one-way lifecycle, and role boundaries ([native evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-arm64-disposable.json)). QEMU verifies software portability only, not physical Raspberry Pi acceptance. Candidate and legacy remain untouched; migration 576 is not rolled out. The operator console still needs competency create/history/revision/submission controls, and independent competency review, populated parity, live OIDC/browser behavior, broader ACL/RLS, recovery, and MAN-CAP-037 acceptance remain open. Checklist snapshot: 1,001 complete / 24 open (1,025 total); matrix: 30 baseline-retained, 7 deployed, 29 prepared; CAP-037 remains prepared (`P`).
+The focused Gateway write and route-policy selection passes 131 tests. Network-disabled disposable PostgreSQL 16 applies and replays migrations through 576 and passes 198 grouped assertions covering revision, submission, retry collision, ownership, grant/location denial, one-way lifecycle, and role boundaries ([native evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-arm64-disposable.json)). QEMU verifies software portability only, not physical Raspberry Pi acceptance. Candidate and legacy remain untouched; migration 576 is not rolled out. Console create/history/revision/submission parity is now implemented and statically checked. Independent competency review/verification, populated parity, live OIDC/browser behavior, broader ACL/RLS, recovery, and MAN-CAP-037 acceptance remain open. Checklist snapshot: 1,001 complete / 24 open (1,025 total); matrix: 30 baseline-retained, 7 deployed, 29 prepared; CAP-037 remains prepared (`P`).
 
 ### CAP-037 private own competency-assessment history — 22 October 2026
 

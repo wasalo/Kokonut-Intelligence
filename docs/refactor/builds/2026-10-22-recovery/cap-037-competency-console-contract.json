@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "scope": "operator-console competency assessment draft, own-history, revision, submission, and location-switch behavior",
+  "test_command": "python3 -m pytest tests/test_operator_console_operating_pilot.py tests/test_gateway_operating_pilot_writes.py tests/test_gateway_operating_pilot_reads.py tests/test_operator_route_policy_inventory.py tests/test_migration.py -q",
+  "tests_passed": 333,
+  "checks": [
+    "console fields and actions require their distinct exact location grants",
+    "same-origin reads are no-store and writes carry CSRF tokens and stable request IDs",
+    "private assessment data is rendered as text, with bounded history pagination",
+    "draft revision and submission remain separate actions; submission does not verify competency",
+    "uncertain writes preserve the exact request and retry identity",
+    "switching locations clears competency form fields, hides an unresolved write outside its original location, and restores the unchanged request when returning",
+    "focused Gateway, route-policy, and migration regressions remain passing"
+  ],
+  "browser_or_database_runtime_used": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "static console contract and inline JavaScript syntax checks do not replace live OIDC/browser acceptance",
+    "independent review and verification actions are not implemented by this console slice",
+    "migration 576 has not been rolled out to the candidate"
+  ]
+}

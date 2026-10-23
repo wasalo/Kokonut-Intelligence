@@ -668,6 +668,31 @@
             </div>
             <button id="operating-pilot-own-capacity-more" class="secondary" type="button" hidden>Load more of your records</button>
           </section>
+          <section id="operating-pilot-competency" hidden aria-labelledby="operating-pilot-competency-heading">
+            <h3 id="operating-pilot-competency-heading">Your competency self-assessments</h3>
+            <p class="muted">A separate exact-location read_own grant shows only your private, receipt-backed assessments. An exact create grant starts a draft; edit_own replaces only your draft or rejected assessment, and submit_own sends it for independent review. Submission does not verify competency.</p>
+            <form id="operating-pilot-competency-form" class="stacked-form" hidden>
+              <label for="operating-pilot-competency-key">Competency key</label>
+              <input id="operating-pilot-competency-key" type="text" maxlength="120" required autocomplete="off">
+              <label for="operating-pilot-competency-current">Your current level (0–5)</label>
+              <input id="operating-pilot-competency-current" type="number" min="0" max="5" step="0.01" required>
+              <label for="operating-pilot-competency-target">Target level (0–5)</label>
+              <input id="operating-pilot-competency-target" type="number" min="0" max="5" step="0.01" required>
+              <label for="operating-pilot-competency-evidence">Private evidence note (optional)</label>
+              <textarea id="operating-pilot-competency-evidence" maxlength="2000" rows="3"></textarea>
+              <button id="operating-pilot-competency-save" type="submit">Save private competency draft</button>
+              <button id="operating-pilot-competency-cancel" class="secondary" type="button" hidden>Cancel draft revision</button>
+            </form>
+            <p id="operating-pilot-competency-form-status" class="muted" role="status" aria-live="polite"></p>
+            <p id="operating-pilot-competency-history-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Competency</th><th>Self-assessed level</th><th>Target level</th><th>Private evidence</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-competency-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-competency-more" class="secondary" type="button" hidden>Load more of your assessments</button>
+          </section>
           <section id="operating-pilot-own-demand" hidden aria-labelledby="operating-pilot-own-demand-heading">
             <h3 id="operating-pilot-own-demand-heading">Your demand records</h3>
             <p class="muted">This separate exact-location read_own grant shows only your receipt-backed demand records and private planning notes. It does not expose another submitter’s records or provide review or fulfillment actions.</p>
@@ -2057,6 +2082,18 @@
       const operatingPilotOwnResourcesStatus = document.querySelector("#operating-pilot-own-resources-status");
       const operatingPilotOwnResourcesRows = document.querySelector("#operating-pilot-own-resources-rows");
       const operatingPilotOwnResourcesMore = document.querySelector("#operating-pilot-own-resources-more");
+      const operatingPilotCompetency = document.querySelector("#operating-pilot-competency");
+      const operatingPilotCompetencyForm = document.querySelector("#operating-pilot-competency-form");
+      const operatingPilotCompetencyKey = document.querySelector("#operating-pilot-competency-key");
+      const operatingPilotCompetencyCurrent = document.querySelector("#operating-pilot-competency-current");
+      const operatingPilotCompetencyTarget = document.querySelector("#operating-pilot-competency-target");
+      const operatingPilotCompetencyEvidence = document.querySelector("#operating-pilot-competency-evidence");
+      const operatingPilotCompetencySave = document.querySelector("#operating-pilot-competency-save");
+      const operatingPilotCompetencyCancel = document.querySelector("#operating-pilot-competency-cancel");
+      const operatingPilotCompetencyFormStatus = document.querySelector("#operating-pilot-competency-form-status");
+      const operatingPilotCompetencyHistoryStatus = document.querySelector("#operating-pilot-competency-history-status");
+      const operatingPilotCompetencyRows = document.querySelector("#operating-pilot-competency-rows");
+      const operatingPilotCompetencyMore = document.querySelector("#operating-pilot-competency-more");
       const operatingPilotCapacityReview = document.querySelector("#operating-pilot-capacity-review");
       const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
       const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
@@ -2139,6 +2176,10 @@
       let operatingPilotSubmitOwnResourceLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotOwnDemandLocations = new Set();
+      let operatingPilotCompetencyReadLocations = new Set();
+      let operatingPilotCompetencyCreateLocations = new Set();
+      let operatingPilotCompetencyEditLocations = new Set();
+      let operatingPilotCompetencySubmitLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
       let operatingPilotEditOwnDemandLocations = new Set();
       let operatingPilotEditOwnResourceLocations = new Set();
@@ -2154,7 +2195,13 @@
       let operatingPilotPendingCapacityEdit = null;
       let operatingPilotPendingResourceCreate = null;
       let operatingPilotPendingResourceEdit = null;
+      let operatingPilotCompetencyEditingDraftId = null;
+      let operatingPilotPendingCompetencyWrite = null;
+      let operatingPilotCompetencyFormLocationId = null;
+      let operatingPilotCompetencyOffset = 0;
+      let operatingPilotCompetencyRequestVersion = 0;
       let operatingPilotPendingResourceFulfillment = null;
+      const operatingPilotPendingCompetencySubmissions = new Map();
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingResourceSubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
@@ -3777,6 +3824,245 @@
         }
       }
 
+      async function loadOperatingPilotOwnCompetencyAssessments(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotCompetencyRequestVersion;
+        if (!operatingPilotCompetencyReadLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotCompetencyOffset = 0;
+          operatingPilotCompetencyRows.replaceChildren();
+          operatingPilotCompetencyMore.hidden = true;
+        }
+        const offset = append ? operatingPilotCompetencyOffset : 0;
+        operatingPilotCompetencyMore.disabled = true;
+        operatingPilotCompetencyHistoryStatus.textContent = "Loading your competency assessments…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/my-competency-assessments?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotCompetencyRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) appendOperatingPilotOwnCompetencyRow(item, locationId);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotCompetencyMore.hidden = !canContinue;
+          operatingPilotCompetencyOffset = canContinue ? nextOffset : 0;
+          operatingPilotCompetencyHistoryStatus.textContent = canContinue
+            ? "Showing a bounded page of your private competency assessments."
+            : operatingPilotCompetencyRows.childElementCount
+              ? "Your competency assessments are loaded."
+              : "You have no private competency assessments for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotCompetencyRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotCompetencyMore.hidden = true;
+          operatingPilotCompetencyHistoryStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotCompetencyRequestVersion) {
+            operatingPilotCompetencyMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotOwnCompetencyRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.competency_key,
+          item.current_level,
+          item.target_level,
+          item.evidence_note,
+          item.status,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actions = document.createElement("td");
+        if (["draft", "rejected"].includes(item.status)
+            && operatingPilotCompetencyEditLocations.has(locationId)) {
+          const revise = document.createElement("button");
+          revise.type = "button";
+          revise.textContent = "Revise";
+          revise.addEventListener("click", () => beginOperatingPilotCompetencyRevision(item));
+          actions.append(revise);
+        }
+        if (item.status === "draft" && operatingPilotCompetencySubmitLocations.has(locationId)) {
+          const submit = document.createElement("button");
+          submit.type = "button";
+          submit.className = "secondary";
+          submit.textContent = "Submit for review";
+          submit.addEventListener("click", () => submitOperatingPilotCompetencyAssessment(item, locationId, submit));
+          actions.append(submit);
+        }
+        if (!actions.childElementCount) actions.textContent = "No available own-record action";
+        row.append(actions);
+        operatingPilotCompetencyRows.append(row);
+      }
+
+      function beginOperatingPilotCompetencyRevision(item) {
+        const locationId = operatingPilotLocation.value;
+        if (!operatingPilotCompetencyEditLocations.has(locationId)
+            || !operatingPilotCompetencyReadLocations.has(locationId)
+            || !["draft", "rejected"].includes(item.status)
+            || operatingPilotPendingCompetencyWrite) return;
+        operatingPilotCompetencyEditingDraftId = item.draft_id;
+        operatingPilotCompetencyKey.value = item.competency_key || "";
+        operatingPilotCompetencyCurrent.value = item.current_level ?? "";
+        operatingPilotCompetencyTarget.value = item.target_level ?? "";
+        operatingPilotCompetencyEvidence.value = item.evidence_note || "";
+        operatingPilotCompetencySave.textContent = "Save revised competency draft";
+        operatingPilotCompetencyCancel.hidden = false;
+        operatingPilotCompetencyFormStatus.textContent = "Revising only your own draft. The prior version will remain in history.";
+        operatingPilotCompetencyKey.focus();
+      }
+
+      function cancelOperatingPilotCompetencyRevision() {
+        if (operatingPilotPendingCompetencyWrite) {
+          operatingPilotCompetencyFormStatus.textContent = "Retry the unchanged request before cancelling; its outcome may be uncertain.";
+          return;
+        }
+        operatingPilotCompetencyEditingDraftId = null;
+        operatingPilotCompetencyForm.reset();
+        operatingPilotCompetencySave.textContent = "Save private competency draft";
+        operatingPilotCompetencyCancel.hidden = true;
+        operatingPilotCompetencyFormStatus.textContent = "";
+      }
+
+      async function saveOperatingPilotCompetencyDraft(event) {
+        event.preventDefault();
+        const locationId = operatingPilotLocation.value;
+        const draftId = operatingPilotCompetencyEditingDraftId;
+        const authorized = draftId
+          ? operatingPilotCompetencyEditLocations.has(locationId)
+          : operatingPilotCompetencyCreateLocations.has(locationId);
+        if (!authorized || locationId !== operatingPilotLocation.value) return;
+        const payload = {
+          competency_key: operatingPilotCompetencyKey.value.trim().toLowerCase(),
+          current_level: operatingPilotCompetencyCurrent.value,
+          target_level: operatingPilotCompetencyTarget.value,
+          evidence_note: operatingPilotCompetencyEvidence.value.trim() || null
+        };
+        const payloadText = JSON.stringify(payload);
+        if (operatingPilotPendingCompetencyWrite
+            && (operatingPilotPendingCompetencyWrite.location_id !== locationId
+              || operatingPilotPendingCompetencyWrite.draft_id !== draftId
+              || operatingPilotPendingCompetencyWrite.payload_text !== payloadText)) {
+          operatingPilotCompetencyFormStatus.textContent = "Retry the unchanged request first so its original request ID remains bound to the same assessment and evidence.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotCompetencyFormStatus.textContent = "Refresh the page to establish a protected session before saving.";
+          return;
+        }
+        if (!operatingPilotPendingCompetencyWrite) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotCompetencyFormStatus.textContent = "A secure browser context is required to save a competency assessment.";
+            return;
+          }
+          operatingPilotPendingCompetencyWrite = {
+            location_id: locationId,
+            draft_id: draftId,
+            payload_text: payloadText,
+            request_id: requestId
+          };
+        }
+        const pending = operatingPilotPendingCompetencyWrite;
+        operatingPilotCompetencySave.disabled = true;
+        operatingPilotCompetencyFormStatus.textContent = draftId
+          ? "Saving your revised private competency draft…"
+          : "Saving your private competency draft…";
+        try {
+          const path = draftId
+            ? `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/competency-assessments/${encodeURIComponent(draftId)}`
+            : `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/competency-assessments`;
+          const response = await fetch(path, {
+            method: draftId ? "PUT" : "POST",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+            body: JSON.stringify({ request_id: pending.request_id, ...payload })
+          });
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (locationId !== operatingPilotLocation.value
+              || result.status !== "draft"
+              || typeof result.draft_id !== "string") return;
+          operatingPilotPendingCompetencyWrite = null;
+          operatingPilotCompetencyEditingDraftId = null;
+          operatingPilotCompetencyForm.reset();
+          operatingPilotCompetencySave.textContent = "Save private competency draft";
+          operatingPilotCompetencyCancel.hidden = true;
+          operatingPilotCompetencyFormStatus.textContent = result.replayed
+            ? "Your draft was confirmed after retry; no verification was recorded."
+            : "Private competency draft saved. It has not been submitted or verified.";
+          if (operatingPilotCompetencyReadLocations.has(locationId)) {
+            await loadOperatingPilotOwnCompetencyAssessments();
+          }
+        } catch (error) {
+          if (locationId === operatingPilotLocation.value) {
+            operatingPilotCompetencyFormStatus.textContent = `${error.message} Retry without changing the fields to reuse the same request ID.`;
+          }
+        } finally {
+          operatingPilotCompetencySave.disabled = false;
+        }
+      }
+
+      async function submitOperatingPilotCompetencyAssessment(item, locationId, button) {
+        if (!operatingPilotCompetencySubmitLocations.has(locationId)
+            || !operatingPilotCompetencyReadLocations.has(locationId)
+            || locationId !== operatingPilotLocation.value
+            || item.status !== "draft") return;
+        if (!window.confirm("Submit this self-assessment for independent human review? Submission does not verify competency.")) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotCompetencyHistoryStatus.textContent = "Refresh the page to establish a protected session before submitting.";
+          return;
+        }
+        let requestId = operatingPilotPendingCompetencySubmissions.get(item.draft_id);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotCompetencyHistoryStatus.textContent = "A secure browser context is required to submit this assessment.";
+            return;
+          }
+          operatingPilotPendingCompetencySubmissions.set(item.draft_id, requestId);
+        }
+        button.disabled = true;
+        operatingPilotCompetencyHistoryStatus.textContent = "Submitting your assessment for independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/competency-assessments/${encodeURIComponent(item.draft_id)}/submit`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (locationId !== operatingPilotLocation.value) return;
+          if (result.draft_id !== item.draft_id || result.status !== "submitted") {
+            throw new Error("The submission response did not match this assessment. Retry using the same request ID.");
+          }
+          operatingPilotPendingCompetencySubmissions.delete(item.draft_id);
+          await loadOperatingPilotOwnCompetencyAssessments();
+          operatingPilotCompetencyHistoryStatus.textContent = `Assessment submitted${result.replayed ? " (confirmed retry)" : ""}. Independent review and verification remain separate.`;
+        } catch (error) {
+          operatingPilotCompetencyHistoryStatus.textContent = `${error.message} Retry this assessment to reuse its original request ID.`;
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       function appendOperatingPilotOwnDemandRow(item, locationId) {
         const row = document.createElement("tr");
         for (const value of [
@@ -4847,8 +5133,36 @@
         }
       }
 
+      function syncOperatingPilotCompetencyEditorLocation(locationId) {
+        if (operatingPilotCompetencyFormLocationId !== locationId) {
+          operatingPilotCompetencyEditingDraftId = null;
+          operatingPilotCompetencyForm.reset();
+          operatingPilotCompetencySave.textContent = "Save private competency draft";
+          operatingPilotCompetencyCancel.hidden = true;
+          operatingPilotCompetencyFormStatus.textContent = operatingPilotPendingCompetencyWrite
+            && operatingPilotPendingCompetencyWrite.location_id !== locationId
+            ? "A competency write for another location has an uncertain outcome. Return to that location and retry it unchanged before starting another."
+            : "";
+          operatingPilotCompetencyFormLocationId = locationId;
+        }
+        const pending = operatingPilotPendingCompetencyWrite;
+        if (!pending || pending.location_id !== locationId) return;
+        const payload = JSON.parse(pending.payload_text);
+        operatingPilotCompetencyEditingDraftId = pending.draft_id;
+        operatingPilotCompetencyKey.value = payload.competency_key;
+        operatingPilotCompetencyCurrent.value = payload.current_level;
+        operatingPilotCompetencyTarget.value = payload.target_level;
+        operatingPilotCompetencyEvidence.value = payload.evidence_note || "";
+        operatingPilotCompetencySave.textContent = pending.draft_id
+          ? "Retry revised competency draft"
+          : "Retry competency draft save";
+        operatingPilotCompetencyCancel.hidden = true;
+        operatingPilotCompetencyFormStatus.textContent = "Retry the unchanged request to confirm its outcome before editing or starting another draft.";
+      }
+
       async function loadOperatingPilot() {
         const locationId = operatingPilotLocation.value;
+        syncOperatingPilotCompetencyEditorLocation(locationId);
         operatingPilotDemandCreate.hidden = !operatingPilotCreateLocations.has(locationId)
           && !(operatingPilotOwnDemandLocations.has(locationId)
             && operatingPilotEditOwnDemandLocations.has(locationId));
@@ -4862,6 +5176,13 @@
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId);
+        operatingPilotCompetency.hidden = !operatingPilotCompetencyReadLocations.has(locationId)
+          && !operatingPilotCompetencyCreateLocations.has(locationId)
+          && !operatingPilotCompetencyEditLocations.has(locationId);
+        operatingPilotCompetencyForm.hidden = (!operatingPilotCompetencyCreateLocations.has(locationId)
+          && !operatingPilotCompetencyEditLocations.has(locationId))
+          || (operatingPilotPendingCompetencyWrite !== null
+            && operatingPilotPendingCompetencyWrite.location_id !== locationId);
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotResourceReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
@@ -4897,6 +5218,13 @@
           } else {
             operatingPilotOwnCapacityRows.replaceChildren();
             operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+          }
+          if (operatingPilotCompetencyReadLocations.has(locationId)) {
+            await loadOperatingPilotOwnCompetencyAssessments();
+          } else {
+            operatingPilotCompetencyRows.replaceChildren();
+            operatingPilotCompetencyMore.hidden = true;
+            operatingPilotCompetencyHistoryStatus.textContent = "A separate exact location read_own grant is required to view your assessments.";
           }
           if (operatingPilotOwnDemandLocations.has(locationId)) {
             await loadOperatingPilotOwnDemandSignals();
@@ -4975,6 +5303,13 @@
         } else {
           operatingPilotOwnCapacityRows.replaceChildren();
           operatingPilotOwnCapacityStatus.textContent = "A separate exact location read_own grant is required to view your capacity records.";
+        }
+        if (operatingPilotCompetencyReadLocations.has(locationId)) {
+          reads.push(loadOperatingPilotOwnCompetencyAssessments());
+        } else {
+          operatingPilotCompetencyRows.replaceChildren();
+          operatingPilotCompetencyMore.hidden = true;
+          operatingPilotCompetencyHistoryStatus.textContent = "A separate exact location read_own grant is required to view your assessments.";
         }
         if (operatingPilotOwnDemandLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnDemandSignals());
@@ -13782,6 +14117,7 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotCreateLocations = new Set(operatingPilotCreateLocationIds);
+          operatingPilotCompetencyCreateLocations = new Set(operatingPilotCreateLocationIds);
           const operatingPilotSubmitOwnDemandLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "submit_own")
             .map((scope) => scope.location_id)
@@ -13795,6 +14131,7 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotOwnCapacityLocations = new Set(operatingPilotOwnCapacityLocationIds);
+          operatingPilotCompetencyReadLocations = new Set(operatingPilotOwnCapacityLocationIds);
           operatingPilotOwnDemandLocations = new Set(operatingPilotOwnCapacityLocationIds);
           const operatingPilotSubmitOwnCapacityLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "submit_own")
@@ -13810,6 +14147,8 @@
           operatingPilotEditOwnCapacityLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           operatingPilotEditOwnDemandLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           operatingPilotEditOwnResourceLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
+          operatingPilotCompetencyEditLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
+          operatingPilotCompetencySubmitLocations = new Set(operatingPilotSubmitOwnCapacityLocationIds);
           const operatingPilotCapacityReviewLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "review")
             .map((scope) => scope.location_id)
@@ -17834,6 +18173,9 @@
       operatingPilotDemandEditCancel.addEventListener("click", cancelOperatingPilotDemandEdit);
       operatingPilotDemandSubmit.addEventListener("click", submitOperatingPilotDemandSignal);
       operatingPilotCapacityCreateForm.addEventListener("submit", submitOperatingPilotCapacityDraft);
+      operatingPilotCompetencyForm.addEventListener("submit", saveOperatingPilotCompetencyDraft);
+      operatingPilotCompetencyCancel.addEventListener("click", cancelOperatingPilotCompetencyRevision);
+      operatingPilotCompetencyMore.addEventListener("click", () => loadOperatingPilotOwnCompetencyAssessments(true));
       operatingPilotResourceCreateForm.addEventListener("submit", submitOperatingPilotResourceDraft);
       operatingPilotResourceEditCancel.addEventListener("click", cancelOperatingPilotResourceEdit);
       operatingPilotCapacityEditCancel.addEventListener("click", cancelOperatingPilotCapacityEdit);
