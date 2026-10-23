@@ -6,7 +6,21 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Current implementation status (23 October 2026):** 1,028 checklist items are complete and 24 remain open (1,052 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot/runtime permission-API probe and locked historical-role bootstrap add implementation evidence, not capability acceptance.
+**Current implementation status (23 October 2026):** 1,028 checklist items are complete and 24 remain open (1,052 total). Capability classification remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP acceptance checks are closed. The Directus seed snapshot/runtime permission-API probe, locked historical-role bootstrap, and full ARM64/QEMU schema replay add implementation evidence, not capability acceptance.
+
+**Current clean-schema and lifecycle guard checks — 23 October 2026:** a
+network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files
+through migration 597 with zero pending/failed files and successful cleanup.
+CI #771 then exposed that a PostgreSQL superuser was implicitly classified as
+a worker by migration 579's role-membership check during pilot seeding. New
+migration 598 excludes superuser sessions from that inference while retaining
+terminal-state denial for explicit worker roles and non-superuser worker
+logins. The focused source/migration selection passes 48 tests (nine existing
+database-dependent skips), and a disposable PostgreSQL 16.15 replay/role check
+passes twice with admin/operator publication allowed and worker publication
+denied. This does not change capability classification or MAN-CAP acceptance.
+Evidence: [ARM64/QEMU schema replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json),
+[worker/admin boundary](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
 
 **Fresh-bootstrap compatibility for optional Directus — 23 October 2026:**
 the ordered bootstrap now creates the historical `directus` role as a locked

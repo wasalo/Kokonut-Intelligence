@@ -1,0 +1,25 @@
+{
+  "result": "passed",
+  "date": "2026-10-23",
+  "migration": "598_agent_safety_superuser_session_guard.sql",
+  "database": "PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2)",
+  "image": "postgres:16",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "synthetic_fixture_only": true,
+  "migration_replays": 2,
+  "assertions": {
+    "superuser_administrative_insert_published_allowed": true,
+    "ordinary_non_worker_operator_insert_published_allowed": true,
+    "worker_login_can_insert_draft": true,
+    "worker_login_cannot_insert_published": true,
+    "worker_login_cannot_promote_draft_to_published": true,
+    "superuser_explicit_set_role_worker_cannot_insert_published": true
+  },
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "candidate_or_legacy_touched": false,
+  "business_data_used": false
+}

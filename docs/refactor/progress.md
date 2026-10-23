@@ -1,3 +1,20 @@
+### CI #771 lifecycle guard correction — 23 October 2026
+
+CI #771 completed the ordered schema replay through migration 597, then failed
+while loading pilot seeds: the `kokonut` database administrator was classified
+as a worker because PostgreSQL superusers have implicit membership in every
+role. Migration 598 now excludes superuser session membership from that
+inference while continuing to block explicit `SET ROLE kokonut_worker_execution`
+and non-superuser worker logins. It does not change trigger attachments or
+worker lifecycle rules. The focused migration/agent-safety selection passes 48
+tests with nine existing database-dependent skips; Ruff, Python compilation,
+and whitespace checks pass. Network-disabled disposable PostgreSQL 16.15
+replayed migration 598 twice: superuser and ordinary operator publication
+succeeded; worker draft creation succeeded; worker terminal inserts/promotions
+and explicit worker `SET ROLE` were denied. The container was removed. Candidate
+and legacy databases were untouched. The fix is pushed on PR #68; the new hosted
+CI result is pending. Evidence: [disposable role check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
+
 ### Optional Directus historical-role bootstrap and ARM64 replay diagnostics — 23 October 2026
 
 The clean schema bootstrap now creates a locked `directus` placeholder only
@@ -14,12 +31,16 @@ historical `directus` role was absent ([replay evidence](builds/2026-10-23-recov
 
 The full-schema replay checker now records ordered migration progress and
 bounded PostgreSQL diagnostics and no longer reuses the timer variable for the
-migration list. A retry exposed the regression, then migration 002 replayed
-successfully on the isolated database; that interrupted attempt was cleaned
-up. A fresh full current-schema replay remains unverified. No candidate or
-legacy database was touched. Checklist: 1,028 complete / 24 open (1,052 total);
-matrix: 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows; 0/66
-MAN-CAP checks accepted.
+migration list. The corrected isolated ARM64/QEMU replay applied all 588
+schema files through migration 597 with zero pending or failed files, no seeds
+or published ports, `aarch64`, and successful cleanup. Its recorded source
+revision is `ba11ae3b` with a dirty working tree containing the bootstrap and
+checker changes committed as `c0eb4837`; migration 598 was added afterward and
+is covered separately above. This is software portability evidence, not
+Raspberry Pi hardware acceptance. No candidate or legacy database was touched
+([replay evidence](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json)).
+Checklist: 1,028 complete / 24 open (1,052 total); matrix: 30 baseline-retained,
+7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP checks accepted.
 
 ### CAP-038 authenticated worker lifecycle insert guard — 22 October 2026
 

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "48f1dfb8ecbeabab666bf68b67cd89457c562fdc",
+  "baseline_commit": "c0eb483702cf2e68f3bc55551742f98cba0b6e1f",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3063,7 +3063,9 @@
       "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
       "schemas/postgres/594_retire_shared_agent_source_identity.sql",
       "schemas/postgres/595_agent_task_draft_attribution.sql",
-      "schemas/postgres/596_agent_task_run_review_attribution.sql"
+      "schemas/postgres/596_agent_task_run_review_attribution.sql",
+      "schemas/postgres/597_ai_summary_operator_run_review_attribution.sql",
+      "schemas/postgres/598_agent_safety_superuser_session_guard.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -5641,6 +5643,7 @@
     "tests/test_agent_action_log_redaction.py",
     "tests/test_agent_input_preflight.py",
     "tests/test_agent_safety.py",
+    "tests/test_agent_safety_migration.py",
     "tests/test_agent_source_metadata.py",
     "tests/test_agent_summary_worker_profile.py",
     "tests/test_agent_tasks.py",
@@ -5657,6 +5660,7 @@
     "tests/test_anomaly_detector_cli_parity.py",
     "tests/test_anomaly_detector_cli_scope.py",
     "tests/test_anomaly_notification_error_redaction.py",
+    "tests/test_arm64_schema_replay.py",
     "tests/test_attestation.py",
     "tests/test_attestation_cli_error_redaction.py",
     "tests/test_attestation_reconciliation_error_redaction.py",
@@ -5789,6 +5793,7 @@
     "tests/test_device_manager_cli_contract.py",
     "tests/test_digital_finance.py",
     "tests/test_digital_twin.py",
+    "tests/test_directus_effective_permissions.py",
     "tests/test_directus_extension_compatibility.py",
     "tests/test_directus_metadata.py",
     "tests/test_directus_permission_inventory.py",
