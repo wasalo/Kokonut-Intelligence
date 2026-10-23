@@ -453,6 +453,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "kokonut_agent_bio_factory_login",
             "AGENT_BIO_FACTORY_SOURCE",
         ),
+        (
+            "agent_open_source_capitalist_source",
+            "kokonut_agent_open_source_capitalist_login",
+            "AGENT_OPEN_SOURCE_CAPITALIST_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(

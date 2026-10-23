@@ -15693,3 +15693,31 @@ Migration 590 moves Financial Resilience synthesis off the shared source reader.
 ### CAP-038 isolated Bio Factory source identity — 23 October 2026
 
 Migration 591 moves Bio Factory synthesis off the shared source reader. Its task-specific SET-only login assumes a NOLOGIN reader restricted to four location-filtered views for batches, input provenance, recipes, and quality tests, plus the network-wide regional input catalogue. The shared identity loses all five. Worker dispatch, source DSN/credential mapping, restore-role prerequisites, .env.example, and the optional Compose profile use the task-specific identity while preserving the separate draft writer. The focused worker/database/profile/migration selection passes 158 tests, including 36 migration-integrity checks. Ruff, Python compilation, Compose configuration, dependency/provider boundaries, refreshed inventories, capability validation, and diff checks pass. Network-disabled disposable PostgreSQL 16 applies/replays through 591 with 72 grouped assertions on native AMD64 ([native evidence](builds/2026-10-23-recovery/cap-038-bio-factory-identity-native-disposable.json)) and ARM64/QEMU ([ARM64/QEMU evidence](builds/2026-10-23-recovery/cap-038-bio-factory-identity-arm64-disposable.json)). Synthetic foreign rows are filtered by signed context; the explicit public catalogue remains network-wide. QEMU demonstrates software portability only, not physical Raspberry Pi operation. Candidate and legacy were untouched; migration 591 and real credentials/grants are not deployed. Disable the task/profile to roll back and retain the additive migration if applied. CAP-038 remains prepared pending credentials/grants, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical device acceptance, and human review. Checklist: 1,017 complete / 24 open (1,041 total); the 66-row matrix remains 30 baseline-retained, 7 deployed, and 29 prepared, with 0/66 MAN-CAP checks accepted.
+
+### CAP-038 isolated Open Source Capitalist source identity — 23 October 2026
+
+Migration 592 moves Open Source Capitalist synthesis off the shared source
+reader. A task-specific SET-only login assumes a NOLOGIN reader with access to
+three location-or-network projections and two network-wide catalogs; signed
+context returns owned and unassigned rows while filtering foreign locations.
+The shared reader loses all five views and retains only the five Kokonut Commons
+projections. Replay clears PUBLIC/shared access, unrelated views, raw source
+tables, and schema-create grants. Worker dispatch, DSN/credential mapping,
+restore-role prerequisites, `.env.example`, and an optional Compose profile use
+the isolated identity while keeping draft writing separate. The focused
+worker/database/profile/migration selection passes 161 tests, including 36
+migration-integrity checks. Ruff, compilation, Compose profile configuration,
+dependency/provider checks, regenerated inventories, capability validation,
+and diff checks pass. Network-disabled disposable PostgreSQL 16 applies and
+replays through migration 592 with 75 grouped assertions on native AMD64 and
+ARM64/QEMU ([native evidence](builds/2026-10-23-recovery/cap-038-open-source-capitalist-identity-native-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-23-recovery/cap-038-open-source-capitalist-identity-arm64-disposable.json)).
+QEMU demonstrates software portability only, not physical Raspberry Pi
+behavior. Candidate and legacy remain untouched; migration 592 and real
+credentials/grants are not deployed. Rollback disables the task profile and
+reverts its dispatch/configuration while preserving the additive migration if
+applied. CAP-038 remains prepared pending credentials/grants, populated parity,
+live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery,
+physical Raspberry Pi acceptance, and human review. Checklist: 1,018 complete /
+24 open (1,042 total); the matrix remains 30 baseline-retained, 7 deployed, and
+29 prepared across 66 rows, with 0/66 MAN-CAP checks accepted.

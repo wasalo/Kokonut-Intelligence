@@ -472,6 +472,41 @@ services:
     profiles:
       - bio-factory-worker
 
+  # Open Source Capitalist synthesis reads three location-or-network views
+  # and two explicitly network-wide catalogs through its task identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile open-source-capitalist-worker run --rm agent-open-source-capitalist-worker \
+  #     --location-id UUID --request-id UUID
+  agent-open-source-capitalist-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "open_source_capitalist_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - open-source-capitalist-worker
+
   # Exact-location AI-summary list and digest inspection; no draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
