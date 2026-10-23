@@ -575,6 +575,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    nutrient_events_match = re.fullmatch(
+        r"/operator/api/nutrients/([0-9a-fA-F-]{36})/events/(inputs|removals)", path
+    )
+    if nutrient_events_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "nutrient_budget",
+            "action": "read",
+            "public": False,
+            "location_id": nutrient_events_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     ecocredit_match = re.fullmatch(
         r"/operator/api/ecocredits/([0-9a-fA-F-]{36})/batches", path
     )

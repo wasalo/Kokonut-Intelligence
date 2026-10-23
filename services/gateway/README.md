@@ -213,6 +213,16 @@ includes a plot ID when its farm belongs to the requested location. Notes and
 arbitrary metadata are excluded. See the
 [soil-test Kernel read contract](../../docs/refactor/nutrient-soil-tests-kernel-read-contract.md).
 
+Nutrient input and harvest-removal records are available at
+`GET /operator/api/nutrients/{location_id}/events/inputs` and
+`GET /operator/api/nutrients/{location_id}/events/removals` under the same
+exact location grant. Each is paginated, retains both event and parent-budget
+status, and omits notes, metadata, costs, budget IDs, and unvalidated removal
+source text. A plot ID is returned only when its farm belongs to the requested
+location. Input costs remain unavailable until the schema defines their
+currency. See the
+[event Kernel read contract](../../docs/refactor/nutrient-events-kernel-read-contract.md).
+
 Global Baal governance reads are available at:
 
 - `GET /api/v1/governance/baal/config`

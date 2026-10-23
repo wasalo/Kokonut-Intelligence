@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,040 checklist items complete and 25
-open (1,065 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,041 checklist items complete and 25
+open (1,066 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -100,7 +100,7 @@ acceptance remains separate; none is marked accepted.
   notes, and costs. The 116-test Gateway/nutrient/operator-auth selection,
   Ruff, compilation, runtime SQL inventory, capability validation, and diff
   checks pass. No migration, provider, candidate, or legacy database was used.
-  Detailed nutrient input/removal views, simulation detail/state, model and
+  Input-cost currency semantics, simulation detail/state, model and
   frozen-fixture/populated parity, live OIDC/browser, RLS, and MAN-CAP-002
   remain open ([contract](nutrient-balances-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-balances-kernel-read.json)).
@@ -113,11 +113,30 @@ acceptance remains separate; none is marked accepted.
   queries in a repeatable-read, read-only transaction. Both queries filter the
   requested location and lifecycle; a plot ID is returned only when its farm
   belongs to that location. Status is preserved, and notes/metadata are never
-  selected. The focused new contract suite passes 11 tests. Input/removal detail,
+  selected. The focused new contract suite passes 11 tests. Input/removal details are now available, while input-cost currency semantics,
   model and populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remain
   open. No migration, provider, candidate, or legacy database was used
   ([contract](nutrient-soil-tests-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-soil-tests-kernel-read.json)).
+
+### CAP-002 nutrient input and harvest-removal event reads — 23 October 2026
+
+- [x] Add private OIDC reads for `/events/inputs` and `/events/removals` under
+  the exact location `nutrient_budget:read` grant. Both reads filter child rows
+  through the requested parent budget location, preserve event and budget
+  lifecycle separately, and return only `recorded`/`verified` event statuses.
+  Pagination is bounded and tenant context is set before count/page queries in
+  a repeatable-read, read-only transaction. Plot IDs are suppressed unless the
+  related plot's farm is in the location. The response omits budget IDs, costs,
+  notes, metadata, and unreviewed removal-source text. The combined focused
+  Gateway/domain/operator-auth selection passes 141 tests; Ruff, compilation,
+  runtime SQL inventory, capability validation, and diff checks pass. No
+  migration, provider, candidate, or legacy database was used. Cost output and
+  legacy cost-summary parity remain open because `nutrient_input.cost` has no
+  documented currency. Simulation detail/state, model/populated parity, live
+  OIDC/browser, RLS, and MAN-CAP-002 also remain open
+  ([contract](nutrient-events-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-nutrient-events-kernel-read.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

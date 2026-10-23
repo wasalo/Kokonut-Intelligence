@@ -1560,17 +1560,19 @@ Work by domain family and keep each change narrow:
 CAP-002 now has tenant-scoped, read-only Gateway projections for
 verified/published yield summaries, active irrigation-zone status, completed
 crop-simulation run summaries, grouped N/P/K balances from the
-verified/published latest-budget view, and recorded/verified soil-test
-observations with advisory nutrient rates. Soil-test reads retain lifecycle
-status and omit notes/metadata; the simulation endpoint reads stored outputs
-only and does not run or validate the model. Continue with detailed nutrient
-input/removal reads, simulation detail/state, and frozen-fixture/populated
-parity before requesting MAN-CAP-002 acceptance. The endpoints and their limits
-are recorded in the [yield read contract](yield-monitoring-kernel-read-contract.md),
-[irrigation status contract](irrigation-status-kernel-read-contract.md),
-[crop-simulation run contract](crop-simulation-runs-kernel-read-contract.md),
-[nutrient-balance contract](nutrient-balances-kernel-read-contract.md), and
-[soil-test contract](nutrient-soil-tests-kernel-read-contract.md).
+verified/published latest-budget view, recorded/verified soil-test observations
+with advisory nutrient rates, and paginated input/removal records with explicit
+lifecycle status. Soil-test and event reads omit notes/metadata; the simulation
+endpoint reads stored outputs only and does not run or validate the model.
+Continue with nutrient input-cost currency semantics, simulation detail/state,
+and frozen-fixture/populated parity before requesting MAN-CAP-002 acceptance.
+The endpoints and their limits are recorded in the [yield read
+contract](yield-monitoring-kernel-read-contract.md), [irrigation status
+contract](irrigation-status-kernel-read-contract.md), [crop-simulation run
+contract](crop-simulation-runs-kernel-read-contract.md), [nutrient-balance
+contract](nutrient-balances-kernel-read-contract.md), [soil-test
+contract](nutrient-soil-tests-kernel-read-contract.md), and [nutrient-events
+contract](nutrient-events-kernel-read-contract.md).
 
 For each slice, identify the canonical data contract, optional provider
 boundary, lifecycle/human-review boundary, minimum-dependency execution path,
