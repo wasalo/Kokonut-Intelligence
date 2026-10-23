@@ -1,0 +1,21 @@
+# Kokonut Protocol bridge and reconciliation
+
+`services/protocol_bridge/execution.py` connects KI-approved execution intents to Kokonut Protocol request envelopes and imports destination outcomes back into KI. `services/protocol_bridge/connector.py` defines a transport-injected contract port matching the NEAR hub's `get_execution_request` and `propose_execution` methods. KI remains canonical for its operations, project/location crosswalk, human approvals, and review state. The connector validates and reconciles exact request state but contains no NEAR RPC client, signing key, or broadcaster; it does not call an external network by itself.
+
+## Governed flow
+
+1. A human creates a project crosswalk with `create_project_mapping(protocol_project_id, location_id, mapped_by_party_id)`. A different identified human activates it with `activate_project_mapping(...)`; an identified human can revoke it with `revoke_project_mapping(...)`. The database enforces one active location mapping per Protocol project and prevents agents from writing the bridge collections.
+2. `create_execution_intent(...)` validates the Protocol v1 EVM request against the active crosswalk and the Base Sepolia (`84532`) / Gnosis Chiado (`10200`) allowlist. It stores a canonical request snapshot and hash as a draft. Expired, timezone-naive, malformed, mainnet, or cross-project requests fail closed.
+3. Submit the snapshot with `submit_execution_intent(...)`. Identified human parties distinct from the requester record approvals through `record_execution_approval(...)`; the configured threshold is a distinct-human quorum. Database triggers protect approval records from edits/deletion.
+4. `export_approved_intent(...)` checks the active crosswalk, current expiry, immutable request hash, and human quorum, then creates/reuses one durable outbox envelope. After the database transaction commits, call `submit_execution_envelope(envelope, client)`. The injected client must implement the NEAR view `get_execution_request(request_id)` and contract-method adapter `propose_execution(request)` and must return from proposal only after finality. The connector reads by request ID before proposing, verifies the exact stored request after proposing, and re-reads after ambiguous transport failures so a retry cannot create a changed or duplicate proposal. Only after it confirms the exact Protocol request should the caller call `mark_outbox_dispatched(...)` with the same payload hash; if no matching request is confirmed, leave the outbox ready and retry the unchanged envelope. The actual RPC/signing transport is intentionally not configured here; no live transaction is performed.
+5. After the EVM adapter reports consensus finality and a matching committed effect, `record_reconciliation(...)` stores the immutable receipt/effect evidence as `submitted`. Confirmation-depth-only, mismatched, or unfinalized results are rejected. An identified human separately calls `verify_reconciliation(...)`; this review does not itself change accounting or farm records.
+
+## State and limits
+
+- Migration `600_protocol_execution_bridge.sql` adds the explicit project↔location crosswalk, execution-intent snapshot, approval-gated outbox, and destination reconciliation record with database-level checks and transition guards.
+- The generic KI `approval` table remains the human decision log. Bridge approval actions are distinct-person votes; the requester cannot approve their own intent.
+- The outbox is a durable handoff record, not a signing or broadcast worker. Transport authentication, NEAR submission, destination execution, and retries remain responsibilities of a separately configured connector.
+- Reconciliation evidence is a report from the trusted adapter boundary, not a cryptographic light-client proof. KI records it as `submitted` and requires separate human verification before any downstream use.
+- No cumulative spending cap, automatic accounting mutation, mainnet operation, production signing, or autonomous authorization is implemented.
+
+Run the focused unit tests with `python3 -m unittest tests.test_protocol_bridge -v`. Apply migrations only through KI's ordered/checksummed migration runner; do not manually apply SQL to staging or production.

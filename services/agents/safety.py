@@ -207,6 +207,10 @@ GOVERNED_COLLECTIONS = {
     "capital_diversion_observation",
     "capital_capture_risk",
     "regenerative_credit_ledger",
+    "protocol_project_location",
+    "protocol_execution_intent",
+    "protocol_execution_outbox",
+    "protocol_execution_reconciliation",
 }
 
 STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
@@ -253,6 +257,10 @@ STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
     "governance_proposal_review",
     "governance_tactical_session",
     "governance_circle_link",
+    "protocol_project_location",
+    "protocol_execution_intent",
+    "protocol_execution_outbox",
+    "protocol_execution_reconciliation",
 }
 
 

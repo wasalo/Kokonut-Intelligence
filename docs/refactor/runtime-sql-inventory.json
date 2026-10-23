@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 905,
-    "execution_sites": 4620,
+    "source_files": 908,
+    "execution_sites": 4623,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4278,
+    "sites_without_worker_operation_refs": 4281,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,29 +15,29 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2731,
+      "SELECT": 2732,
       "SET": 496,
-      "UNKNOWN": 198,
-      "UPDATE": 428,
+      "UNKNOWN": 199,
+      "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2731,
+      "read_candidate": 2732,
       "schema_change": 1,
       "transaction_or_session": 539,
-      "unknown_requires_manual_review": 198,
+      "unknown_requires_manual_review": 199,
       "with_requires_manual_review": 27,
-      "write_candidate": 1124
+      "write_candidate": 1125
     },
     "expression_kinds": {
       "composed": 17,
-      "composed_or_variable": 274,
+      "composed_or_variable": 275,
       "fstring": 287,
-      "literal": 4042
+      "literal": 4044
     },
-    "relation_candidates": 1200,
-    "sites_without_relation_candidates": 998,
-    "service_packages": 67
+    "relation_candidates": 1202,
+    "sites_without_relation_candidates": 999,
+    "service_packages": 68
   },
   "service_packages": {
     "<root>": {
@@ -624,6 +624,19 @@
       "non_literal_sites": 1,
       "sites_with_worker_operation_refs": 0
     },
+    "protocol_bridge": {
+      "source_files": 3,
+      "execution_sites": 3,
+      "statement_groups": {
+        "read_candidate": 1,
+        "unknown_requires_manual_review": 1,
+        "write_candidate": 1
+      },
+      "candidate_relation_names": 3,
+      "sites_without_relation_candidates": 1,
+      "non_literal_sites": 1,
+      "sites_with_worker_operation_refs": 0
+    },
     "rdf": {
       "source_files": 7,
       "execution_sites": 21,
@@ -878,6 +891,7 @@
     "api_key": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/grpc/auth.py"]},
     "app_project_metadata": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/metadata_api/app_metadata.py"]},
     "app_role": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/grpc/auth.py"]},
+    "approval": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/protocol_bridge/execution.py"]},
     "assessment_dimension": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/decision/policy_engine.py","services/orientation/assess.py"]},
     "assessment_signal": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/decision/policy_engine.py","services/orientation/assess.py"]},
     "asset_booking": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/cooperative.py"]},
@@ -1531,7 +1545,7 @@
     "partner_evaluation": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/partner_lifecycle.py"]},
     "partner_lifecycle": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/partner_lifecycle.py","services/analytics/regional_readiness.py"]},
     "partner_scorecard": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/partner_lifecycle.py"]},
-    "party": {"execution_site_count": 7,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/competitive_landscape.py","services/analytics/governance_proposals.py","services/analytics/stakeholders.py","services/management/work_selection.py","services/mobile/api.py"]},
+    "party": {"execution_site_count": 8,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/competitive_landscape.py","services/analytics/governance_proposals.py","services/analytics/stakeholders.py","services/management/work_selection.py","services/mobile/api.py","services/protocol_bridge/execution.py"]},
     "party_identifier": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/stakeholder_identity_resolution.py","services/analytics/stakeholders.py"]},
     "party_relationship": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/stakeholders.py"]},
     "party_resolution_case": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/stakeholder_identity_resolution.py"]},
@@ -1622,6 +1636,7 @@
     "project_link": {"execution_site_count": 3,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/metadata_api/project_info.py"]},
     "project_reference_id": {"execution_site_count": 3,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/metadata_api/project_info.py"]},
     "protocol": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/ingestion/baal_indexer.py","services/ingestion/gnosis_indexer.py","services/metrics/calculators/digital_lego.py","services/revenue_multiplier/dimensions/web3_replication.py"]},
+    "protocol_execution_intent": {"execution_site_count": 1,"statement_kinds": ["UPDATE"],"statement_groups": ["write_candidate"],"source_files": ["services/protocol_bridge/execution.py"]},
     "provenance_event": {"execution_site_count": 9,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/traceability.py"]},
     "pub": {"execution_site_count": 7,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/analytics/value_stream.py","services/metrics/calculators/first_time_through_yield.py","services/metrics/calculators/governed_lead_time.py","services/metrics/calculators/rework_rate.py","services/systems/process_control.py"]},
     "public.api_key": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/api_key_provisioning.py"]},
@@ -6163,6 +6178,9 @@
     {"id": "services/predictions/service.py:416:8","source": "services/predictions/service.py","line": 416,"column": 8,"scope": "PredictionService.compare_outside_view","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["prediction_ledger","reference_class"],"static_sql_sha256": "5310a92576ea211f6537423ff6ffc235d21f5ad89d38b4f8922f0bee5bd4c074","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/predictions/service.py:440:8","source": "services/predictions/service.py","line": 440,"column": 8,"scope": "PredictionService.compare_outside_view","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["SET","outside_view_comparison"],"static_sql_sha256": "d357ff910a22e4d80afde50c98f0c295826ed74804104926b1bbe3a41bf81881","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/predictions/service.py:470:8","source": "services/predictions/service.py","line": 470,"column": 8,"scope": "PredictionService._compute_fit_dimensions","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["prediction_evaluation","prediction_outcome"],"static_sql_sha256": "0dc364585adf1a9f6e86a7685221f67ad3cad246d6673fb7da9fb8706a18525f","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/protocol_bridge/execution.py:189:11","source": "services/protocol_bridge/execution.py","line": 189,"column": 11,"scope": "_one","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
+    {"id": "services/protocol_bridge/execution.py:317:16","source": "services/protocol_bridge/execution.py","line": 317,"column": 16,"scope": "export_approved_intent","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["approval","party"],"static_sql_sha256": "d4e7ef3bc2db7a73deb4f89f020a3189608532a79ceef4b83c6cb5327c0213e9","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/protocol_bridge/execution.py:343:8","source": "services/protocol_bridge/execution.py","line": 343,"column": 8,"scope": "export_approved_intent","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["protocol_execution_intent"],"static_sql_sha256": "aede71322e95a90dbd7002c0ceb28521b25c7f38e8556ec6608fca5bc50d60bc","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/rdf/evidence_chain.py:19:12","source": "services/rdf/evidence_chain.py","line": 19,"column": 12,"scope": "build_evidence_chain","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["impact_claim"],"static_sql_sha256": "1490cbdef235979368cade91b2867bb7272ae8007cee2d85f060b77b966b238b","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/rdf/graph_builder.py:39:8","source": "services/rdf/graph_builder.py","line": 39,"column": 8,"scope": "build_location_graph","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "3f61fd105ca66f60748babdcd34aabcda494df016c6487d464e33578d86eca2e","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/rdf/graph_builder.py:99:8","source": "services/rdf/graph_builder.py","line": 99,"column": 8,"scope": "build_location_graph","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm_registry_record"],"static_sql_sha256": "8fc0f47022e75b06777f5d2f702ff4c2e758310edb9fb214e7d4cce798269068","operation_refs": [],"statement_group": "read_candidate"},

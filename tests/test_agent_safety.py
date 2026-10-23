@@ -91,6 +91,20 @@ def test_stakeholder_human_review_collections_are_write_protected() -> None:
         assert decision.requires_human_approval is True
 
 
+def test_protocol_bridge_records_are_human_write_protected():
+    for collection in (
+        "protocol_project_location",
+        "protocol_execution_intent",
+        "protocol_execution_outbox",
+        "protocol_execution_reconciliation",
+    ):
+        decision = assess_agent_action("create", collection, {})
+        assert decision.allowed is False
+        assert decision.requires_human_approval is True
+        read_decision = assess_agent_action("read", collection, {})
+        assert read_decision.allowed is True
+
+
 def test_agent_can_read_stakeholder_records() -> None:
     decision = assess_agent_action("read", "stakeholder_decision", {})
     assert decision.allowed is True
