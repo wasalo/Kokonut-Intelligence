@@ -1,0 +1,32 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped soil-test observations and advisory nutrient rates",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "d20d76bb",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_nutrient_soil_tests.py tests/test_gateway_nutrient_balances.py tests/test_nutrient_budget.py tests/test_operator_auth.py -q",
+    "passed": 127,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "validated: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact private nutrient_budget:read location policy; other methods and suffixes do not match",
+    "Invalid location UUID and pagination fail before opening PostgreSQL",
+    "Repeatable-read, read-only transaction installs signed tenant context before count and page queries",
+    "Both soil-test queries filter the requested location and only recorded/verified lifecycle states",
+    "Rows are ordered deterministically and bounded by page size and offset limits",
+    "Plot IDs are returned only when the related farm belongs to the requested location",
+    "Recorded status remains recorded; verified status remains verified",
+    "Measurements and advisory N/P/K rates are projected without notes, metadata, or location names",
+    "The connection is rolled back and closed; authenticated HTTP responses are no-store and missing grants deny before the handler"
+  ],
+  "rollback": "Remove the additive Gateway route, exact policy, service module, test, and documentation; no schema or data rollback is needed."
+}

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,039 checklist items complete and 25
-open (1,064 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,040 checklist items complete and 25
+open (1,065 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -100,10 +100,24 @@ acceptance remains separate; none is marked accepted.
   notes, and costs. The 116-test Gateway/nutrient/operator-auth selection,
   Ruff, compilation, runtime SQL inventory, capability validation, and diff
   checks pass. No migration, provider, candidate, or legacy database was used.
-  Detailed nutrient input/soil-test views, simulation detail/state, model and
+  Detailed nutrient input/removal views, simulation detail/state, model and
   frozen-fixture/populated parity, live OIDC/browser, RLS, and MAN-CAP-002
   remain open ([contract](nutrient-balances-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-balances-kernel-read.json)).
+
+### CAP-002 location-scoped soil-test observations — 23 October 2026
+
+- [x] Add a private OIDC read for recorded/verified soil-test observations and
+  advisory nutrient rates under the exact location `nutrient_budget:read`
+  grant. The read installs signed tenant context before bounded count/page
+  queries in a repeatable-read, read-only transaction. Both queries filter the
+  requested location and lifecycle; a plot ID is returned only when its farm
+  belongs to that location. Status is preserved, and notes/metadata are never
+  selected. The focused new contract suite passes 11 tests. Input/removal detail,
+  model and populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remain
+  open. No migration, provider, candidate, or legacy database was used
+  ([contract](nutrient-soil-tests-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-nutrient-soil-tests-kernel-read.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

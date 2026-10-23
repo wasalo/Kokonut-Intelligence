@@ -205,6 +205,14 @@ and crop from the canonical verified/published balance view. It omits
 plot/budget identifiers, product-level inputs, soil-test notes, and costs. See
 the [Kernel read contract](../../docs/refactor/nutrient-balances-kernel-read-contract.md).
 
+Location-scoped soil-test observations and recommendations are available at
+`GET /operator/api/nutrients/{location_id}/soil-tests` with the same exact
+`nutrient_budget:read` grant. The bounded read retains `recorded` versus
+`verified` status, returns measured values and advisory N/P/K rates, and only
+includes a plot ID when its farm belongs to the requested location. Notes and
+arbitrary metadata are excluded. See the
+[soil-test Kernel read contract](../../docs/refactor/nutrient-soil-tests-kernel-read-contract.md).
+
 Global Baal governance reads are available at:
 
 - `GET /api/v1/governance/baal/config`
