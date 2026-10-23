@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-23",
+  "result": "passed",
+  "prefect_version": "3.8.8",
+  "focused_suite": {
+    "command": "python3 -m pytest tests/test_prefect_runtime_acceptance.py tests/test_prefect_workflow.py -q",
+    "passed": 28
+  },
+  "runtime_contracts": {
+    "parallel_task_submission": "passed",
+    "metrics_before_dependent_tasks": "passed",
+    "job_spec_retry_and_failure_propagation": "passed",
+    "deployment_flow_name_and_schedule_resolution": "passed"
+  },
+  "execution_boundary": {
+    "prefect_backend": "temporary local Prefect API with SQLite test state",
+    "job_handlers": "mocked",
+    "kokonut_database_access": false,
+    "provider_access": false,
+    "schedule_activation": false,
+    "dispatcher_transfer": false,
+    "test_backend_cleanup": "completed"
+  },
+  "limitations": [
+    "does not verify a production Prefect server",
+    "does not resolve schedule ownership or active provider state",
+    "does not verify durable scheduler recovery or cutover"
+  ]
+}

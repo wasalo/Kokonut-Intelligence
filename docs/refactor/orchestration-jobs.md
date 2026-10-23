@@ -22,8 +22,10 @@ and scheduled flow entry points remain available.
 
 This follows Prefect's documented
 [task submission API](https://docs.prefect.io/latest/tutorial/flows), replacing
-the baseline calls to `.submit()` on ordinary flow objects. Runtime acceptance
-against the selected Prefect installation remains pending.
+the baseline calls to `.submit()` on ordinary flow objects. The current
+Prefect 3 runtime, retry, dependency-order, and deployment-resolution contracts
+are exercised against an isolated local test harness; this does not activate or
+transfer schedule ownership.
 
 ## Authority and adoption
 
@@ -98,11 +100,16 @@ the fan-out reports process outcomes, not verified acquisition of every dataset.
    (`tests/test_core_jobs_contract.py` and
    `tests/test_scheduled_command_contracts.py`). The subprocess is substituted;
    no provider or database is contacted.
-2. Prefect runtime checks for parallel submission, task retry settings,
-   metrics-before-dependent-work ordering, and failure propagation.
-3. Confirm standalone flow names and deployment schedules resolve unchanged in
-   the selected Prefect runtime; current tests inspect the checked-in source and
-   deployment file only.
+2. **Prefect runtime contract passed:** the isolated runtime suite checks
+   parallel task submission, JobSpec-derived retries, metrics-before-dependent
+   work ordering, and task failure propagation. It runs against the local
+   Prefect test harness and SQLite state, with all job handlers mocked
+   (`tests/test_prefect_runtime_acceptance.py`).
+3. **Flow/deployment resolution passed:** each checked-in deployment resolves
+   to an importable Prefect flow with the same registered name, and the four
+   scheduled deployment cron strings match their current declarations. The
+   checks use the real Prefect 3.8.8 flow objects and YAML, without creating a
+   deployment or schedule (`tests/test_prefect_runtime_acceptance.py`).
 4. Check climate UUID conversion, cursor/connection cleanup on read failure,
    partial failure reports, timeouts, remaining-location continuation, and empty
    batches. Reconcile sensor input and climate/remote-sensing provider outcomes
@@ -110,10 +117,11 @@ the fan-out reports process outcomes, not verified acquisition of every dataset.
 5. Rehearse restart, lease expiry, duplicate delivery, and rollback before
    transferring any dispatcher ownership to the PostgreSQL scheduler.
 
-The new dispatcher checks are source-level and substitute subprocess execution.
-No Prefect server, provider, database, schedule activation, migration, or
-dispatcher cutover was exercised. Static lint and provider-boundary checks do
-not close those runtime gates.
+The dispatcher checks substitute subprocess execution. Prefect runtime checks
+use an isolated local API and temporary SQLite database; every domain job is
+mocked. No production Prefect server, provider, Kokonut database, schedule
+activation, migration, or dispatcher cutover was exercised. These checks do
+not close schedule ownership or runtime recovery gates.
 
 ## Rollback
 
