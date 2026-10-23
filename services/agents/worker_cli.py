@@ -48,6 +48,7 @@ _SYNTHESIS_SOURCE_IDENTITIES = {
     "gnh_alignment_synthesis": "agent_gnh_alignment_source",
     "holistic_wellbeing_synthesis": "agent_holistic_wellbeing_source",
     "organic_readiness_synthesis": "agent_organic_readiness_source",
+    "regenerator_synthesis": "agent_regenerator_source",
 }
 _SYNTHESIS_SOURCE_READERS = {
     "commons_liberation_synthesis": "kokonut_agent_commons_liberation_reader",
@@ -56,6 +57,7 @@ _SYNTHESIS_SOURCE_READERS = {
     "gnh_alignment_synthesis": "kokonut_agent_gnh_alignment_reader",
     "holistic_wellbeing_synthesis": "kokonut_agent_holistic_wellbeing_reader",
     "organic_readiness_synthesis": "kokonut_agent_organic_readiness_reader",
+    "regenerator_synthesis": "kokonut_agent_regenerator_reader",
 }
 
 

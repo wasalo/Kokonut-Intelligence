@@ -433,6 +433,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "kokonut_agent_gnh_alignment_login",
             "AGENT_GNH_ALIGNMENT_SOURCE",
         ),
+        (
+            "agent_regenerator_source",
+            "kokonut_agent_regenerator_login",
+            "AGENT_REGENERATOR_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(

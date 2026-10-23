@@ -15621,3 +15621,34 @@ Migration 586 moves Commons Liberation off the broad synthesis source reader. A 
 ### CAP-038 isolated GNH Alignment source identity — 23 October 2026
 
 Migration 587 moves GNH Alignment off the broad synthesis source reader. A dedicated SET-only login establishes signed `ai_summary/read` context and assumes a NOLOGIN reader restricted to five location-filtered projections covering GNH alignment, cultural preservation, renewable energy, vulnerable access, and foundational wellbeing. The shared reader loses all five. Replay removes stale PUBLIC/shared grants, unrelated projections, raw source tables and private summaries, and schema-create privileges. Worker dispatch, named connection mapping, restore prerequisites, `.env.example`, and the optional Compose profile use the task-specific source credential while draft writing remains separate. The focused worker/database/profile/migration selection passes 146 tests; Ruff, Python compilation, Compose configuration, dependency/provider checks, capability validation, refreshed inventories, and diff checks pass. Network-disabled disposable PostgreSQL 16 applies/replays through migration 587 with 60 grouped assertions on native AMD64 ([native](builds/2026-10-23-recovery/cap-038-gnh-alignment-identity-native-disposable.json)) and ARM64/QEMU ([ARM64/QEMU](builds/2026-10-23-recovery/cap-038-gnh-alignment-identity-arm64-disposable.json)). The fixture adds one foreign row to each of five real source views alongside one owned row; signed context exposes only the owned location. QEMU is software portability evidence only. Candidate and legacy remain untouched; migration 587 and real worker credentials/grants are not deployed. CAP-038 remains prepared pending grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and owner review. Roll back by disabling the task/profile and preserve the additive migration if applied. Checklist: 1,013 complete / 24 open (1,037 total); matrix remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows, with 0/66 named MAN-CAP checks accepted.
+
+
+### CAP-038 isolated Regenerator source identity — 23 October 2026
+
+Migration 588 moves Regenerator synthesis off the broad source reader. Its
+dedicated SET-only login establishes signed `ai_summary/read` context and
+assumes a NOLOGIN reader restricted to four location-filtered public
+projections: regenerative outcomes, community governance, replication
+readiness, and adaptive stewardship. The shared reader loses all four. Replay
+removes stale PUBLIC/shared grants, unrelated views, raw source tables, private
+summary access, and schema-create privileges. Worker dispatch, named connection
+mapping, restore prerequisites, `.env.example`, and an optional Compose profile
+use the task-specific credential; draft writing remains separate. The focused
+worker/database/profile/migration selection passes 149 tests; migration
+integrity passes 36. Ruff, Python compilation, Compose configuration,
+dependency/provider boundaries, capability validation, refreshed inventories,
+and diff checks pass. Network-disabled disposable PostgreSQL 16 applies/replays
+the focused chain through 588 with 63 grouped assertions on native AMD64
+([evidence](builds/2026-10-23-recovery/cap-038-regenerator-identity-native-disposable.json))
+and ARM64/QEMU
+([evidence](builds/2026-10-23-recovery/cap-038-regenerator-identity-arm64-disposable.json)).
+Each real signed security-barrier view returns only its synthetic owned row and
+excludes the foreign row. QEMU is software portability evidence only. Candidate
+and legacy remain untouched; migration 588 and its real credentials/grants are
+not deployed. Disable the task/profile to roll back and preserve the additive
+migration if applied. CAP-038 remains prepared pending grant provisioning,
+populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS,
+production recovery, physical Raspberry Pi acceptance, and human review.
+Checklist: 1,014 complete / 24 open (1,038 total); matrix remains
+30 baseline-retained, 7 deployed, and 29 prepared across 66 rows, with 0/66
+named MAN-CAP checks accepted.

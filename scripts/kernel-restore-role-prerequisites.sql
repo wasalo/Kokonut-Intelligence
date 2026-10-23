@@ -52,6 +52,8 @@ BEGIN
         'kokonut_agent_commons_liberation_login',
         'kokonut_agent_gnh_alignment_reader',
         'kokonut_agent_gnh_alignment_login',
+        'kokonut_agent_regenerator_reader',
+        'kokonut_agent_regenerator_login',
         'kokonut_agent_summary_deterministic_source_login',
         'kokonut_agent_summary_inspection_reader',
         'kokonut_agent_summary_inspection_login',
