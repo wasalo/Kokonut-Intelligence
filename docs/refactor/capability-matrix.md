@@ -1945,6 +1945,22 @@ and performs no writes. No job was registered or activated. MAN-CAP-020 credit
 custody/retirement parity, worker identity, and tenant context remain unaccepted
 ([historical command evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json)).
 
+**23 October 2026 signed credit-adjustment worker (CAP-020 / CAP-047):**
+migration 599 adds a default-off signed `credit_adjustment` worker whose bounded
+function verifies `carbon_credit_adjustment/read`, enforces the exact signed
+location, and reads only the source columns needed for the legacy recomputation
+and 0.1% report threshold. The existing Prefect adapter keeps the prior
+read-only command until the feature is enabled; new native plans still target
+the default-off worker and remain disabled. The focused worker/job selection
+passes 256 tests, Ruff passes, and disposable PostgreSQL 16 replay passes six
+grouped checks for summary/fallback parity, cross-location denial, direct-table
+denial, and zero writes ([worker](../../services/analytics/carbon_credit_adjustment_worker.py);
+[migration](../../schemas/postgres/599_signed_credit_adjustment_check_worker.sql);
+[evidence](builds/2026-10-23-recovery/credit-adjustment-worker-disposable.json)).
+No candidate or legacy database, schedule, provider, or worker credential was
+used. CAP-020 stays prepared; grant/credential provisioning, schedule/output
+ownership, broader credit-ledger parity, and MAN-CAP acceptance remain open.
+
 Python and TypeScript SDKs now expose schema-checked read models for the
 `carbon_credit`, `credit_adjustment`, `credit_retirement`, and `credit_transfer`
 tables. Their SQL lifecycle and transfer/adjustment literals are checked in

@@ -79,6 +79,34 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
 
 
+def test_scheduled_credit_adjustment_worker_receives_only_its_exact_secret_pair():
+    source = {
+        "KOKONUT_CREDIT_ADJUSTMENT_DATABASE_URL": "postgresql://credit-worker",
+        "KOKONUT_CREDIT_ADJUSTMENT_WORKER_CREDENTIAL": "credit-secret",
+        "KOKONUT_NOI_SNAPSHOT_DATABASE_URL": "postgresql://noi-worker",
+        "KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "noi-secret",
+        "PG_HOST": "database",
+        "PG_PORT": "5432",
+        "PG_DB": "kokonut_intelligence",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "database-admin-secret",
+    }
+    module = "services.analytics.carbon_credit_adjustment_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "credit_adjustment"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_CREDIT_ADJUSTMENT_DATABASE_URL": "postgresql://credit-worker",
+        "KOKONUT_CREDIT_ADJUSTMENT_WORKER_CREDENTIAL": "credit-secret",
+        ISOLATED_WORKER_KEY_ENV: "credit_adjustment",
+    }
+
+
 def test_scheduled_weather_forecast_worker_receives_only_its_exact_secret_pair():
     source = {
         "KOKONUT_WEATHER_FORECAST_DATABASE_URL": "postgresql://forecast-worker",

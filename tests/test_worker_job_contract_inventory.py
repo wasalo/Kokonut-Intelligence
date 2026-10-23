@@ -43,6 +43,8 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     assert jobs["climate"]["reason"] == "schema accepts the modeled input; each scheduled instance must provide it"
     assert jobs["credit_adjustment"]["required_inputs"] == ["location_id"]
     assert jobs["credit_adjustment"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["credit_adjustment"]["module"] == "services.analytics.carbon_credit_adjustment_worker"
+    assert jobs["credit_adjustment"]["worker_key"] == "credit_adjustment"
     assert jobs["metrics"]["required_inputs"] == ["location_id"]
     assert jobs["metrics"]["status"] == "required_runtime_inputs_validated"
     assert jobs["sensors"]["required_inputs"] == ["location_id", "driver_instance_id"]

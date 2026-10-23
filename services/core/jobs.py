@@ -139,7 +139,7 @@ JOBS = MappingProxyType(
         ),
         "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
         "credit_adjustment": JobSpec(
-            "services.analytics.carbon_credit_adjustment_check",
+            "services.analytics.carbon_credit_adjustment_worker",
             (),
             600,
             2,
@@ -174,6 +174,16 @@ JOBS = MappingProxyType(
             "Sensor and ingestion projection delivery",
         ),
     }
+)
+
+_LEGACY_CREDIT_ADJUSTMENT = JobSpec(
+    "services.analytics.carbon_credit_adjustment_check",
+    (),
+    600,
+    2,
+    600,
+    "Credit adjustment check (legacy compatibility)",
+    required_inputs=("location_id",),
 )
 
 
@@ -267,9 +277,16 @@ def run_job(
     chain: str | None = None,
 ) -> dict[str, str]:
     """Invoke one known operation through its canonical JobSpec."""
+    spec = JOBS[job_id]
+    if job_id == "credit_adjustment" and not is_enabled("signed_credit_adjustment_worker"):
+        # Keep the existing Prefect daily flow usable until the owner has
+        # provisioned the signed login/grant and explicitly enabled the new
+        # worker. Native Kernel plans still point at the default-off worker.
+        job_id = "credit_adjustment_legacy"
+        spec = _LEGACY_CREDIT_ADJUSTMENT
     return _run_job_spec(
         job_id,
-        JOBS[job_id],
+        spec,
         location_id=location_id,
         driver_instance_id=driver_instance_id,
         chain=chain,

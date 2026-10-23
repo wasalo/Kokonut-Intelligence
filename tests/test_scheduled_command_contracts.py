@@ -56,6 +56,10 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
         ("services.metrics.noi_snapshot_worker", ["--location-id", str(uuid4())]),
+        (
+            "services.analytics.carbon_credit_adjustment_worker",
+            ["--location-id", str(uuid4())],
+        ),
         ("services.ingestion.data_freshness", ["--check"]),
         ("services.export.dataset_refresh", ["--all"]),
         (
@@ -97,6 +101,11 @@ def test_supported_operations_accept_valid_argv(module, arguments):
             ["--location-id", str(uuid4()), "--driver-instance-id", "invalid"],
         ),
         ("services.analytics.carbon_credit_adjustment_check", []),
+        ("services.analytics.carbon_credit_adjustment_worker", []),
+        (
+            "services.analytics.carbon_credit_adjustment_worker",
+            ["--location-id", str(uuid4()), "--all-locations"],
+        ),
         ("services.ingestion.weather", []),
         ("services.ingestion.weather_worker", []),
         ("services.ingestion.weather_forecast", []),
@@ -176,7 +185,7 @@ def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
 def test_credit_adjustment_job_uses_dedicated_read_only_entrypoint():
     job = JOBS["credit_adjustment"]
 
-    assert job.module == "services.analytics.carbon_credit_adjustment_check"
+    assert job.module == "services.analytics.carbon_credit_adjustment_worker"
     assert job.scheduler_allowed
     assert job.required_inputs == ("location_id",)
     with pytest.raises(ScheduledCommandRejected, match="requires one explicit location"):

@@ -91,6 +91,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--json": None,
     },
     "services.metrics.noi_snapshot_worker": {"--location-id": "uuid"},
+    "services.analytics.carbon_credit_adjustment_worker": {"--location-id": "uuid"},
     "services.ingestion.data_freshness": {
         "--check": None,
         "--source": "identifier",
@@ -323,6 +324,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     elif module_path == "services.analytics.carbon_credit_adjustment_check":
         if "--location-id" not in options:
             raise _reject("scheduled carbon-credit check requires one explicit location")
+
+    elif module_path == "services.analytics.carbon_credit_adjustment_worker":
+        if options != {"--location-id"}:
+            raise _reject("signed carbon-credit check requires one explicit location")
 
     elif module_path == "services.ingestion.remote_sensing_fetcher":
         if "--run-jobs" not in options:

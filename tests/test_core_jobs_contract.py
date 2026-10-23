@@ -45,6 +45,7 @@ def test_job_dispatch_uses_catalog_interpreter_arguments_and_timeout(job_id, job
     with (
         patch("services.core.jobs.worker_subprocess_environment", return_value=child_env),
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
+        patch("services.core.jobs.is_enabled", return_value=True),
     ):
         result = run_job(job_id, **job_inputs)
 
@@ -78,7 +79,8 @@ def test_weather_dispatch_uses_signed_worker_and_exact_environment_allowlist():
     spec = JOBS["weather"]
     completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
     with patch("services.core.jobs.worker_subprocess_environment", return_value={"PATH": "/bin"}) as env, \
-            patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+            patch("services.core.jobs.subprocess.run", return_value=completed) as run, \
+            patch("services.core.jobs.is_enabled", return_value=True):
         assert run_job("weather", location_id=_LOCATION_ID)["status"] == "success"
 
     run.assert_called_once()
@@ -98,6 +100,42 @@ def test_credit_adjustment_dispatch_requires_one_location_before_subprocess():
             run_job("credit_adjustment")
 
     run.assert_not_called()
+
+
+def test_credit_adjustment_dispatch_uses_signed_worker_and_exact_secrets():
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr="")
+    with patch("services.core.jobs.worker_subprocess_environment", return_value={"PATH": "/bin"}) as env, \
+            patch("services.core.jobs.subprocess.run", return_value=completed) as run, \
+            patch("services.core.jobs.is_enabled", return_value=True):
+        assert run_job("credit_adjustment", location_id=_LOCATION_ID)["status"] == "success"
+
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.analytics.carbon_credit_adjustment_worker",
+        "--location-id",
+        _LOCATION_ID,
+    ]
+    env.assert_called_once_with(
+        allowed_worker_keys=("credit_adjustment",), isolated_database_credentials=True
+    )
+
+
+def test_credit_adjustment_dispatch_preserves_legacy_prefect_path_until_worker_enabled():
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="[]", stderr="")
+    with patch("services.core.jobs.worker_subprocess_environment", return_value={"PATH": "/bin"}) as env, \
+            patch("services.core.jobs.subprocess.run", return_value=completed) as run, \
+            patch("services.core.jobs.is_enabled", return_value=False):
+        assert run_job("credit_adjustment", location_id=_LOCATION_ID)["status"] == "success"
+
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.analytics.carbon_credit_adjustment_check",
+        "--location-id",
+        _LOCATION_ID,
+    ]
+    env.assert_called_once_with(allowed_worker_keys=(), isolated_database_credentials=False)
 
 
 def test_metrics_dispatch_requires_one_location_before_subprocess():

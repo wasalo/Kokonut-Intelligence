@@ -17,6 +17,7 @@ ALLOWED_EVENT_HANDLERS = frozenset(
 ALLOWED_SCHEDULED_MODULES = frozenset(
     {
         "services.analytics.carbon_credit_adjustment_check",
+        "services.analytics.carbon_credit_adjustment_worker",
         # Preserve the legacy module for persisted tasks until schedule owners
         # reconcile them; new Kernel plans use the signed worker module.
         "services.ingestion.weather",

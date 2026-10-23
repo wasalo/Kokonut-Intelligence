@@ -135,6 +135,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a worker-specific credential, signed location grant, and bounded function for NOI snapshot reconciliation",
     },
+    "signed_credit_adjustment_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_SIGNED_CREDIT_ADJUSTMENT_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific credential, signed location grant, and bounded read-only function for credit adjustment checks",
+    },
     "signed_weather_forecast_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER", "false").lower() == "true",
         "critical": False,

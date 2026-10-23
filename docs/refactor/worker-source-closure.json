@@ -170,6 +170,131 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.analytics.carbon_credit_adjustment_worker",
+      "root_modules": [
+        "services.analytics.carbon_credit_adjustment_worker"
+      ],
+      "modules": [
+        "services.analytics.carbon_credit_adjustment_worker",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers"
+      ],
+      "source_files": [
+        "services/analytics/carbon_credit_adjustment_worker.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/analytics/carbon_credit_adjustment_worker.py",
+          "line": 8,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credit_adjustment_worker.py",
+          "line": 9,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credit_adjustment_worker.py",
+          "line": 10,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credit_adjustment_worker.py",
+          "line": 11,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 8,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 11,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 210,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.events",
       "root_modules": [
         "services.events"

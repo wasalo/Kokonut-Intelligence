@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 32,
-    "sql_execution_sites": 341,
-    "statically_reachable_site_memberships": 339,
-    "unique_sites_with_static_operation_path": 266,
+    "operation_roots": 33,
+    "sql_execution_sites": 342,
+    "statically_reachable_site_memberships": 344,
+    "unique_sites_with_static_operation_path": 267,
     "sites_without_static_function_match": 75,
     "unmatched_functions_absent_from_all_worker_graphs": 75,
     "sites_reached_by_multiple_operations": 13
@@ -24,6 +24,19 @@
         "services/analytics/carbon_balance.py:177:8",
         "services/analytics/carbon_balance.py:205:8",
         "services/analytics/carbon_credits.py:491:4"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.analytics.carbon_credit_adjustment_worker",
+      "operation_ref": "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
+      "statically_reachable_sql_site_count": 5,
+      "statically_reachable_sql_site_ids": [
+        "services/analytics/carbon_credit_adjustment_worker.py:32:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:254:12",
+        "services/common/tenant_context.py:255:8",
+        "services/common/worker_database.py:134:12"
       ]
     },
     {
@@ -763,6 +776,27 @@
       "static_link_status": "no_static_function_match",
       "function_in_any_worker_graph": false,
       "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/analytics/carbon_credit_adjustment_worker.py:32:12",
+      "source": "services/analytics/carbon_credit_adjustment_worker.py",
+      "line": 32,
+      "scope": "check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.credit_adjustment_snapshot_for_location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/carbon_credits.py:35:4",
@@ -1558,6 +1592,7 @@
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1606,6 +1641,7 @@
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1654,6 +1690,7 @@
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.analytics.carbon_credit_adjustment_check",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1699,6 +1736,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1713,6 +1751,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_worker",
@@ -1739,6 +1778,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1767,6 +1807,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1795,6 +1836,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1809,6 +1851,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_worker",
@@ -1837,6 +1880,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1851,6 +1895,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.sensor_worker",
@@ -1879,6 +1924,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1909,6 +1955,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1939,6 +1986,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
@@ -1969,6 +2017,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.eas_worker",
@@ -1988,6 +2037,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_worker",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.market_data_worker",

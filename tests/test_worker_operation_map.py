@@ -146,6 +146,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     noi_snapshot = scheduled["services.metrics.noi_snapshot_worker"]
     events = scheduled["services.events"]
     credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
+    signed_credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_worker"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
     legacy_weather_forecasts = scheduled["services.ingestion.weather_forecast"]
     weather_forecasts = scheduled["services.ingestion.weather_forecast_worker"]
@@ -182,6 +183,16 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert credit_adjustments["external_effects"] == []
     assert "read-only transaction" in credit_adjustments["idempotency"]
     assert "interactive credit-management CLI is not scheduler-allowlisted" in credit_adjustments["scope"]
+    assert signed_credit_adjustments["worker_key"] == "credit_adjustment"
+    assert set(signed_credit_adjustments["reads"]) == {
+        "public.carbon_credit",
+        "public.climate_impact_summary",
+        "public.tree_inventory",
+        "public.soil_carbon_measurement",
+    }
+    assert signed_credit_adjustments["writes"] == []
+    assert signed_credit_adjustments["external_effects"] == []
+    assert "signed context" in signed_credit_adjustments["retry_boundary"]
     assert set(projections["reads"]) == {"public.clickhouse_outbox"}
     assert set(projections["writes"]) == {
         "public.clickhouse_outbox",

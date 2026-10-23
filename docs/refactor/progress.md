@@ -1,3 +1,32 @@
+### Signed credit-adjustment worker and SMTP credential provisioning — 23 October 2026
+
+Migration 599 and a dedicated default-off worker now protect scheduled credit
+adjustment checks with transaction-bound `carbon_credit_adjustment/read`
+context, exact-location function checks, and limited source-column privileges.
+The optional Prefect flow retains the old read-only command until the owner
+provisions the dedicated login/grant and enables the feature; native plans
+remain disabled. Six disposable PostgreSQL 16 checks pass for replay,
+summary/fallback parity, cross-location denial, direct-table denial, and no
+ledger mutation. The focused worker/scheduler/contract selection passes 256
+tests with Ruff; generated worker inventories are current, and all 19 Compose-profile tests pass. No candidate or
+legacy database, provider, or schedule was touched. Evidence:
+[migration acceptance](builds/2026-10-23-recovery/credit-adjustment-worker-disposable.json).
+
+The owner selected Maileroo SMTP and supplied `auth@mail.kokonut.network` as
+the SMTP account/sender. The official host `smtp.maileroo.com`, port 587,
+STARTTLS mode, SMTP credential, and API sending key are now configured or
+encrypted in `.env.sops` for local and staging age recipients. The two key
+assignments were removed from the ignored plaintext `.env`; no secret values
+were logged. Since no alert recipient or severity/on-call routing was selected,
+`ALERT_EMAIL_TO` remains unset and no delivery was attempted. Live provider
+acceptance remains open.
+
+The owner also selected `hello@kokonut.network` as the intended ZITADEL test
+operator email. Client ID, issuer discovery/registration, account creation,
+and live login remain open. The capability matrix is still 30 baseline-
+retained, 7 deployed, and 29 prepared across 66 capabilities; no MAN-CAP
+check was accepted. Checklist: 1,034 complete / 24 open (1,058 total).
+
 ### CI #771 lifecycle guard correction — 23 October 2026
 
 CI #771 completed the ordered schema replay through migration 597, then failed

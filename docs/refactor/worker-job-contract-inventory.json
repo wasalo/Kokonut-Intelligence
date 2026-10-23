@@ -4,7 +4,7 @@
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
     "catalog_jobs": 18,
-    "allowlisted_modules": 25,
+    "allowlisted_modules": 26,
     "outcomes": {
       "default_arguments_accepted": 5,
       "required_runtime_inputs_validated": 13
@@ -35,8 +35,8 @@
     },
     {
       "job": "credit_adjustment",
-      "module": "services.analytics.carbon_credit_adjustment_check",
-      "worker_key": null,
+      "module": "services.analytics.carbon_credit_adjustment_worker",
+      "worker_key": "credit_adjustment",
       "argument_count": 0,
       "required_inputs": [
         "location_id"
