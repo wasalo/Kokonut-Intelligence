@@ -24,6 +24,7 @@ _WORKER_LOGINS = {
     "agent_summary_deterministic_source": "kokonut_agent_summary_deterministic_source_login",
     "agent_summary_inspection_source": "kokonut_agent_summary_inspection_login",
     "agent_organic_readiness_source": "kokonut_agent_organic_readiness_login",
+    "agent_ecological_modeling_source": "kokonut_agent_ecological_modeling_login",
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",

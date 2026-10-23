@@ -173,7 +173,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/climate_worker.py:51:12",
         "services/ingestion/climate_worker.py:90:12"
       ]
@@ -232,7 +232,7 @@
       "operation_ref": "scheduled_module:services.ingestion.eas_worker",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/eas_worker.py:137:20",
         "services/ingestion/eas_worker.py:159:12",
         "services/ingestion/eas_worker.py:187:12",
@@ -280,7 +280,7 @@
       "operation_ref": "scheduled_module:services.ingestion.market_data_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/market_data_worker.py:55:12"
       ]
     },
@@ -315,7 +315,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/remote_sensing_worker.py:160:12",
         "services/ingestion/remote_sensing_worker.py:53:12"
       ]
@@ -345,7 +345,7 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_worker",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/rpc_worker.py:108:12",
         "services/ingestion/rpc_worker.py:142:12",
         "services/ingestion/rpc_worker.py:171:12",
@@ -387,7 +387,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/sensor_worker.py:240:12",
         "services/ingestion/sensor_worker.py:271:12",
         "services/ingestion/sensor_worker.py:48:12",
@@ -441,7 +441,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/weather_forecast_worker.py:44:12",
         "services/ingestion/weather_forecast_worker.py:85:12"
       ]
@@ -455,7 +455,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/weather_worker.py:113:12",
         "services/ingestion/weather_worker.py:68:12"
       ]
@@ -506,7 +506,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/metrics/noi_snapshot_worker.py:29:12"
       ]
     },
@@ -521,7 +521,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12"
+        "services/common/worker_database.py:125:12"
       ]
     },
     {
@@ -535,7 +535,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12"
+        "services/common/worker_database.py:125:12"
       ]
     },
     {
@@ -549,7 +549,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12"
+        "services/common/worker_database.py:125:12"
       ]
     },
     {
@@ -563,7 +563,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12"
+        "services/common/worker_database.py:125:12"
       ]
     },
     {
@@ -572,7 +572,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/events/notification_outbox.py:196:12",
         "services/events/notification_outbox.py:211:12",
         "services/events/notification_outbox.py:231:16",
@@ -585,7 +585,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/events/notification_outbox.py:196:12",
         "services/events/notification_outbox.py:211:12",
         "services/events/notification_outbox.py:231:16",
@@ -601,7 +601,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:226:12",
         "services/common/tenant_context.py:227:8",
-        "services/common/worker_database.py:124:12",
+        "services/common/worker_database.py:125:12",
         "services/ingestion/sensor_anomaly_worker.py:83:8",
         "services/ingestion/sensor_anomaly_worker.py:89:8"
       ]
@@ -1897,9 +1897,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/worker_database.py:124:12",
+      "id": "services/common/worker_database.py:125:12",
       "source": "services/common/worker_database.py",
-      "line": 124,
+      "line": 125,
       "scope": "get_worker_db",
       "method": "execute",
       "expression_kind": "literal",

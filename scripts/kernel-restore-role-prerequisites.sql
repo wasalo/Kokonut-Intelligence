@@ -51,6 +51,8 @@ BEGIN
         'kokonut_agent_summary_deterministic_source_login',
         'kokonut_agent_summary_inspection_reader',
         'kokonut_agent_summary_inspection_login',
+        'kokonut_agent_ecological_modeling_reader',
+        'kokonut_agent_ecological_modeling_login',
         'kokonut_agent_organic_readiness_reader',
         'kokonut_agent_organic_readiness_login',
         'kokonut_agent_summary_draft_login',

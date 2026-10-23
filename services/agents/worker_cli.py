@@ -42,9 +42,11 @@ _SYNTHESIS_AGENT_MODULES = {
     "ecological_modeling_synthesis": "services.agents.ecological_modeling_agent",
 }
 _SYNTHESIS_SOURCE_IDENTITIES = {
+    "ecological_modeling_synthesis": "agent_ecological_modeling_source",
     "organic_readiness_synthesis": "agent_organic_readiness_source",
 }
 _SYNTHESIS_SOURCE_READERS = {
+    "ecological_modeling_synthesis": "kokonut_agent_ecological_modeling_reader",
     "organic_readiness_synthesis": "kokonut_agent_organic_readiness_reader",
 }
 

@@ -157,6 +157,41 @@ services:
     profiles:
       - organic-readiness-worker
 
+  # Ecological modeling uses fourteen scoped calculation projections and
+  # thirteen location-qualified provenance views under its own reader.
+  # After sourcing secrets:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ecological-modeling-worker run --rm agent-ecological-modeling-worker \
+  #     --location-id UUID --request-id UUID
+  agent-ecological-modeling-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "ecological_modeling_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ecological-modeling-worker
+
   # Exact-location AI-summary list and digest inspection; no draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
