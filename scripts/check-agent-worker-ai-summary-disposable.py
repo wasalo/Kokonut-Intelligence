@@ -60,10 +60,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
     ROOT / "schemas/postgres/594_retire_shared_agent_source_identity.sql",
     ROOT / "schemas/postgres/595_agent_task_draft_attribution.sql",
+    ROOT / "schemas/postgres/596_agent_task_run_review_attribution.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-task-draft-attribution-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-agent-run-attribution-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -74,6 +75,7 @@ TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 OTHER_LOCATION_ID = "a0000000-0000-0000-0000-000000000002"
 REQUEST_ID = "d0000000-0000-4000-8000-000000000901"
+TASK_REQUEST_ID = "d0000000-0000-4000-8000-000000009099"
 RAW_CREDENTIAL = "synthetic-agent-summary-worker-credential-2026-10-21"
 CREDENTIAL_HASH = hashlib.sha256(RAW_CREDENTIAL.encode("utf-8")).hexdigest()
 SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000902"
@@ -3774,7 +3776,7 @@ def _worker_acceptance() -> str:
 
 
 def _task_writer_acceptance() -> str:
-    request_id = "d0000000-0000-4000-8000-000000009099"
+    request_id = TASK_REQUEST_ID
     return f"""
     INSERT INTO kokonut_security.worker_scope_grant (
         worker_id, tenant_id, location_id, resource, action, granted_by
@@ -4498,17 +4500,30 @@ def _review_acceptance() -> str:
         SELECT summary_id INTO STRICT task_summary_id
           FROM public.agent_task_worker_ai_summary_test_result;
         SELECT * INTO queue_row
-          FROM kokonut_security.list_location_ai_summary_reviews_with_worker_task(
+          FROM kokonut_security.list_location_ai_summary_reviews_with_worker_run(
               '{LOCATION_ID}', 51, 0
           )
          WHERE summary_id = task_summary_id;
         IF NOT FOUND OR NOT queue_row.review_ready
            OR queue_row.creator_task_key <> 'holistic_wellbeing_synthesis'
+           OR queue_row.creator_run_id <> '{TASK_REQUEST_ID}'
            OR 'worker_task_unregistered' = ANY(queue_row.blocked_reasons) THEN
             RAISE EXCEPTION
-                'review queue did not expose the authenticated task identity (found=%, ready=%, task=%, blockers=%)',
+                'review queue did not expose authenticated task/run identity (found=%, ready=%, task=%, run=%, blockers=%)',
                 FOUND, queue_row.review_ready, queue_row.creator_task_key,
+                queue_row.creator_run_id,
                 queue_row.blocked_reasons;
+        END IF;
+
+        denied := FALSE;
+        BEGIN
+            PERFORM * FROM kokonut_security.list_location_ai_summary_reviews_with_worker_run(
+                '{OTHER_LOCATION_ID}', 51, 0
+            );
+        EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'worker run attribution was returned outside the signed review location';
         END IF;
 
         SELECT * INTO queue_row
@@ -4704,7 +4719,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-595 apply; migrations 530-537, 539-548, 580-595 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-596 apply; migrations 530-537, 539-548, 580-596 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -4731,6 +4746,8 @@ def main() -> int:
         "migration 595 grants registered source logins a function-only task writer role without broad worker execution membership",
         "task-specific signed worker identity creates a draft attributed to its principal under an exact ai_summary:draft grant",
         "review queue displays the registered task key, blocks unknown task identities from verification, and retains human rejection",
+        "review queue returns the opaque worker request UUID as run attribution only for the matching signed location",
+        "run attribution is backed by column-only reviewer access; runtime, Directus, and task writers cannot read request receipts directly",
         "independent operator review sees authenticated task attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "the legacy shared synthesis login and reader are NOLOGIN, have no role memberships or direct grants, and remain inert after stale-grant replay",
@@ -5233,6 +5250,34 @@ def main() -> int:
                     "OR has_function_privilege('kokonut_agent_task_summary_writer', "
                     "'kokonut_security.get_location_ai_summary_worker_draft_request(uuid,text,uuid)', "
                     "'EXECUTE') THEN RAISE EXCEPTION 'migration 595 replay retained stale task-writer grants'; "
+                    "END IF; END $$;",
+                )
+            if migration_path.name.startswith("596_"):
+                stage = "migration_596_stale_request_access"
+                base.psql(
+                    docker,
+                    container,
+                    "GRANT SELECT ON TABLE public.ai_summary_agent_draft_request "
+                    "TO kokonut_ai_summary_reviewer, kokonut_runtime, directus;",
+                )
+                stage = "migration_596_run_attribution_replay"
+                base.psql(docker, container, sql)
+                stage = "migration_596_run_attribution_privilege_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    "DO $$ BEGIN "
+                    "IF has_table_privilege('kokonut_ai_summary_reviewer', "
+                    "'public.ai_summary_agent_draft_request', 'SELECT') "
+                    "OR has_table_privilege('kokonut_runtime', "
+                    "'public.ai_summary_agent_draft_request', 'SELECT') "
+                    "OR has_table_privilege('directus', "
+                    "'public.ai_summary_agent_draft_request', 'SELECT') "
+                    "OR NOT has_column_privilege('kokonut_ai_summary_reviewer', "
+                    "'public.ai_summary_agent_draft_request', 'request_id', 'SELECT') "
+                    "OR has_column_privilege('kokonut_ai_summary_reviewer', "
+                    "'public.ai_summary_agent_draft_request', 'request_hash', 'SELECT') "
+                    "THEN RAISE EXCEPTION 'migration 596 replay retained broad request access'; "
                     "END IF; END $$;",
                 )
             if migration_path.name.startswith("541_"):

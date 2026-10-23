@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "0289b412c00e59f514379909725e3e1eecb70890",
+  "baseline_commit": "beca5c480207b1f926c545f0e45d4979a6d3c97a",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3062,7 +3062,8 @@
       "schemas/postgres/592_isolated_open_source_capitalist_worker.sql",
       "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
       "schemas/postgres/594_retire_shared_agent_source_identity.sql",
-      "schemas/postgres/595_agent_task_draft_attribution.sql"
+      "schemas/postgres/595_agent_task_draft_attribution.sql",
+      "schemas/postgres/596_agent_task_run_review_attribution.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

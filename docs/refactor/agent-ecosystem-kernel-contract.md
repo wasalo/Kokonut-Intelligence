@@ -327,13 +327,25 @@ forced RLS policy. The review queue disables verification for unregistered
 worker identities, and a database trigger enforces that rule while still
 allowing a human to reject an unregistered legacy draft. No generic shared
 synthesis profile remains.
+
+Migration 596 adds `list_location_ai_summary_reviews_with_worker_run` as the
+review-facing wrapper. It calls the existing signed, bounded task-review
+function, then joins the request receipt only by the returned summary ID and
+the requested location. The wrapper returns the receipt's opaque `request_id`
+as `creator_run_id`; it does not expose the worker principal or the request
+hash. The reviewer role has column-only SELECT on the receipt's request,
+summary, and location IDs. Runtime, Directus, and task writers cannot query the
+receipt table directly, and only the runtime may call the wrapper. The operator
+console displays the identifier as an agent run. It identifies a worker request
+and does not establish which human initiated it; human-initiated run attribution
+remains open.
 Each task that stores drafts needs its own exact `ai_summary:read` and
 `ai_summary:draft` grants at the selected location. Synthesis reads enforce
 each location grant at the database view boundary, and deterministic summaries
 use a separate signed, location-filtered view boundary. The remaining
 runtime/RLS review is open. An operator still needs to provision the runtime
 password, task source login/password pairs, worker credentials, separate
-location grants, and service DSNs; migrations 529–595 are not rolled out to
+  location grants, and service DSNs; migrations 529–596 are not rolled out to
 the candidate. Stored agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with

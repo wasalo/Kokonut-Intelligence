@@ -82,6 +82,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
         [],
         {"harvest_event": {"record_ids": [], "row_count": 0, "truncated": False}},
         "holistic_wellbeing_synthesis",
+        REQUEST_ID,
     )
     connection = _Connection([row])
     with patch.object(review, "set_operator_tenant_context", _set_context):
@@ -93,7 +94,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
 
     query_index = next(
         index for index, event in enumerate(connection.events)
-        if "list_location_ai_summary_reviews" in event
+        if "list_location_ai_summary_reviews_with_worker_run" in event
     )
     assert connection.events.index("SIGNED_CONTEXT") < query_index
     assert connection.context == {
@@ -105,6 +106,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
     assert result["summaries"][0]["summary_id"] == SUMMARY_ID
     assert result["summaries"][0]["review_ready"] is True
     assert result["summaries"][0]["creator_task_key"] == "holistic_wellbeing_synthesis"
+    assert result["summaries"][0]["creator_run_id"] == REQUEST_ID
     assert result["summaries"][0]["source_references"]["harvest_event"]["row_count"] == 0
     assert connection.rolled_back and connection.closed
     assert not connection.committed

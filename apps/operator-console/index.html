@@ -15331,6 +15331,11 @@
                 : `Agent task: ${summary.creator_task_key}`;
               summaryCell.append(document.createElement("br"), creatorTask);
             }
+            if (typeof summary.creator_run_id === "string") {
+              const creatorRun = document.createElement("small");
+              creatorRun.textContent = `Agent run: ${summary.creator_run_id}`;
+              summaryCell.append(document.createElement("br"), creatorRun);
+            }
 
             const contentCell = document.createElement("td");
             const content = document.createElement("pre");
