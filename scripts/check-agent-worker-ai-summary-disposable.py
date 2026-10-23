@@ -46,10 +46,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
     ROOT / "schemas/postgres/580_agent_source_worker_identity_split.sql",
     ROOT / "schemas/postgres/581_isolated_ai_summary_inspection_worker.sql",
+    ROOT / "schemas/postgres/582_isolated_organic_readiness_worker.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-summary-inspection-identity-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-organic-readiness-identity-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -92,6 +93,28 @@ INSPECTION_SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-inspection-source-cr
 INSPECTION_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     INSPECTION_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
+ORGANIC_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000908"
+ORGANIC_SOURCE_RAW_CREDENTIAL = "synthetic-organic-readiness-source-credential-2026-10-23"
+ORGANIC_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    ORGANIC_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+ORGANIC_SOURCE_VIEW_NAMES = (
+    "organic_readiness_assessment",
+    "organic_transition_plan",
+    "organic_input_audit",
+    "buffer_zone",
+    "harvest_handling_record",
+    "organic_certification_record",
+    "organic_compliance_checklist",
+    "prohibited_substance_record",
+    "v_public_organic_readiness",
+    "v_public_organic_transition",
+    "v_public_organic_input_audit",
+    "v_public_buffer_zone_status",
+    "v_public_organic_harvest_segregation",
+    "v_public_organic_certifications",
+    "v_public_organic_prohibited_substance_audit",
+)
 ADDITIONAL_SOURCE_TABLES = [
     "time_liberation_observation",
     "capital_alignment_assessment",
@@ -352,6 +375,138 @@ ALTER TABLE public.evidence_maturity_level FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.impact_claim ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.impact_claim FORCE ROW LEVEL SECURITY;
 """
+
+
+def _organic_source_projection_fixture() -> str:
+    statements = []
+    for view_name in ORGANIC_SOURCE_VIEW_NAMES:
+        statements.append(
+            f"""
+            CREATE VIEW kokonut_agent_source.{view_name}
+            WITH (security_barrier = true) AS
+            SELECT source_row.location_id
+              FROM (VALUES ('{LOCATION_ID}'::uuid), ('{OTHER_LOCATION_ID}'::uuid))
+                   AS source_row(location_id)
+             WHERE EXISTS (
+                   SELECT 1
+                     FROM kokonut_security.current_worker_scope('ai_summary', 'read') AS scope
+                    WHERE scope.location_id = source_row.location_id
+             );
+            GRANT SELECT ON kokonut_agent_source.{view_name}
+                TO kokonut_agent_summary_source_reader;
+            """
+        )
+    return "\n".join(statements)
+
+
+def _organic_source_scope_acceptance() -> str:
+    view_names_sql = ", ".join(f"'{name}'" for name in ORGANIC_SOURCE_VIEW_NAMES)
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{ORGANIC_SOURCE_WORKER_ID}', 'agent-organic-readiness-source')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{ORGANIC_SOURCE_WORKER_ID}', '{ORGANIC_SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{ORGANIC_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic organic-readiness source acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    DO $$ BEGIN
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_source.organic_readiness_assessment', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_login',
+            'kokonut_agent_source.organic_readiness_assessment', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'shared synthesis roles retain organic source access';
+        END IF;
+        IF NOT has_table_privilege(
+            'kokonut_agent_organic_readiness_reader',
+            'kokonut_agent_source.organic_readiness_assessment', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_organic_readiness_reader',
+            'kokonut_agent_source.v_public_capital_efficiency_summary', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_organic_readiness_login',
+            'kokonut_agent_source.organic_readiness_assessment', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_organic_readiness_reader', 'public.ai_summary', 'SELECT'
+        ) OR has_schema_privilege(
+            'kokonut_agent_organic_readiness_login', 'kokonut_agent_source', 'USAGE'
+        ) OR has_function_privilege(
+            'kokonut_agent_organic_readiness_login',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) THEN
+            RAISE EXCEPTION 'organic source login/reader exceeds the task contract';
+        END IF;
+    END $$;
+
+    SET ROLE kokonut_agent_organic_readiness_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_organic_readiness_reader;
+    DO $$
+    DECLARE view_name TEXT; visible_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{view_names_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO visible_rows;
+            IF visible_rows <> 0 THEN
+                RAISE EXCEPTION 'organic projection % returned rows before signed context', view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{ORGANIC_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_organic_readiness_reader;
+    DO $$
+    DECLARE view_name TEXT; own_rows BIGINT; foreign_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{view_names_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO own_rows USING '{LOCATION_ID}'::UUID;
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO foreign_rows USING '{OTHER_LOCATION_ID}'::UUID;
+            IF own_rows <> 1 OR foreign_rows <> 0 THEN
+                RAISE EXCEPTION 'organic projection % violated signed location scope', view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+    RESET ROLE;
+    """
+
+
+def _organic_source_stale_grants() -> str:
+    view_names = ", ".join(
+        f"kokonut_agent_source.{name}" for name in ORGANIC_SOURCE_VIEW_NAMES
+    )
+    return f"""
+    GRANT SELECT ON {view_names}
+        TO PUBLIC, kokonut_agent_summary_source_reader,
+           kokonut_agent_summary_source_login;
+    GRANT SELECT ON kokonut_agent_source.v_public_capital_efficiency_summary
+        TO kokonut_agent_organic_readiness_reader;
+    GRANT SELECT ON public.ai_summary
+        TO kokonut_agent_organic_readiness_reader,
+           kokonut_agent_organic_readiness_login;
+    GRANT CREATE ON SCHEMA public, kokonut_security, kokonut_agent_source
+        TO kokonut_agent_organic_readiness_reader,
+           kokonut_agent_organic_readiness_login;
+    """
 
 
 def _source_reader_acceptance() -> str:
@@ -2617,7 +2772,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580, and 581 apply; migrations 530-537, 539-548, 580, and 581 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-582 apply; migrations 530-537, 539-548, 580-582 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -2656,6 +2811,9 @@ def main() -> int:
         "migration 580 replay restores the task-specific grants after replaying migration 548 and removes Delphi access from the general synthesis reader",
         "migration 581 splits summary inspection from deterministic reads and exposes digest metadata without summary content",
         "migration 581 replay removes stale raw-content, deterministic-reader, public-view, and schema-create grants while retaining the exact inspection projections",
+        "migration 582 isolates organic readiness to a task-specific signed login and exactly fifteen location-filtered source projections",
+        "migration 582 replay removes stale PUBLIC/shared synthesis access, extra source projections, direct table grants, and schema CREATE privileges",
+        "organic readiness source returns no rows without signed context and returns only the granted location after context setup",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -2670,7 +2828,8 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use separate database-signed ai_summary/read identities. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections; signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, and organic readiness use separate database-signed ai_summary/read identities. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees exactly fifteen task-specific projections; EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "checks": checks,
     }
     if PLATFORM == "linux/arm64" and IMAGE == "sogis/postgis:16-3.4":
@@ -2703,7 +2862,7 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581_582"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
@@ -2720,6 +2879,10 @@ def main() -> int:
                 stage = "migration_580_apply"
             if migration_path.name.startswith("581_"):
                 stage = "migration_581_apply"
+            if migration_path.name.startswith("582_"):
+                stage = "organic_source_projection_fixture"
+                base.psql(docker, container, _organic_source_projection_fixture())
+                stage = "migration_582_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -2783,6 +2946,13 @@ def main() -> int:
                 )
                 stage = "migration_541_apply"
             base.psql(docker, container, sql)
+            if migration_path.name.startswith("582_"):
+                stage = "migration_582_signed_scope_acceptance"
+                base.psql(docker, container, _organic_source_scope_acceptance())
+                stage = "migration_582_stale_grant_replay"
+                base.psql(docker, container, _organic_source_stale_grants())
+                base.psql(docker, container, sql)
+                base.psql(docker, container, _organic_source_scope_acceptance())
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
                 base.psql(

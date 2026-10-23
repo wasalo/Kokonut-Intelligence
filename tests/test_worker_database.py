@@ -403,6 +403,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
         ("agent_ebf_source", "kokonut_agent_ebf_source_login", "AGENT_EBF_SOURCE"),
         ("agent_cids_source", "kokonut_agent_cids_source_login", "AGENT_CIDS_SOURCE"),
         ("agent_delphi_source", "kokonut_agent_delphi_source_login", "AGENT_DELPHI_SOURCE"),
+        (
+            "agent_organic_readiness_source",
+            "kokonut_agent_organic_readiness_login",
+            "AGENT_ORGANIC_READINESS_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(

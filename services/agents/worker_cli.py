@@ -41,6 +41,12 @@ _SYNTHESIS_AGENT_MODULES = {
     "organic_readiness_synthesis": "services.agents.organic_readiness_agent",
     "ecological_modeling_synthesis": "services.agents.ecological_modeling_agent",
 }
+_SYNTHESIS_SOURCE_IDENTITIES = {
+    "organic_readiness_synthesis": "agent_organic_readiness_source",
+}
+_SYNTHESIS_SOURCE_READERS = {
+    "organic_readiness_synthesis": "kokonut_agent_organic_readiness_reader",
+}
 
 
 def resolve_synthesis_agent(task_key: str) -> Any:
@@ -158,9 +164,15 @@ def run_worker_synthesis(
                 "replayed": True,
             }
 
-    source_credential = get_worker_credential("agent_summary_source")
+    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(
+        agent.task_key, "agent_summary_source"
+    )
+    source_reader = _SYNTHESIS_SOURCE_READERS.get(
+        agent.task_key, "kokonut_agent_summary_source_reader"
+    )
+    source_credential = get_worker_credential(source_identity)
     open_source_connection = connection_factory or (
-        lambda: get_worker_db("agent_summary_source")
+        lambda: get_worker_db(source_identity)
     )
     connection = open_source_connection()
     try:
@@ -172,7 +184,7 @@ def run_worker_synthesis(
             location_id=location_id,
         )
         with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute(f"SET LOCAL ROLE {source_reader}")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = agent.synthesize(connection, location_id)

@@ -122,6 +122,41 @@ services:
     profiles:
       - agent-summary-worker
 
+  # Organic readiness runs only its 15 location-scoped source projections.
+  # It cannot use the broader shared synthesis source identity.
+  # After sourcing secrets:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile organic-readiness-worker run --rm agent-organic-readiness-worker \
+  #     --location-id UUID --request-id UUID
+  agent-organic-readiness-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "organic_readiness_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - organic-readiness-worker
+
   # Exact-location AI-summary list and digest inspection; no draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
