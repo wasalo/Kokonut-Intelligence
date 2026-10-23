@@ -308,19 +308,21 @@ stores each new worker call's bounded structured result in a private append-only
 receipt in the same transaction as its draft. Exact retries return that original
 JSON result without rerunning source queries. Receipts created before migration
 539 have no structured result to reconstruct and keep the content-only
-compatibility fallback. Compose separates deterministic summaries from shared
-synthesis. `agent-summary-worker` uses a dedicated source login limited to the
+compatibility fallback. Compose separates deterministic summaries from each
+task-specific synthesis profile. `agent-summary-worker` uses a dedicated source login limited to the
 13 source relations read by the four built-in summaries, requires the fixed
 `--deterministic-only` mode, and receives no shared `PG_*`, `DATABASE_URL`, or
-`POSTGRES_PASSWORD` values. `agent-synthesis-worker` likewise receives no
-shared database settings, requires `--task-key`, and uses the signed, filtered
-source login. Each profile uses the signed worker identity for draft
-persistence. Shared synthesis reads enforce each location grant at the
-database view boundary, and deterministic summaries use a separate signed,
-location-filtered view boundary. The remaining runtime/RLS review is open. An operator
-still needs to provision the runtime password, both source login/password pairs,
-worker login/password, both worker credentials, location grants, and service
-DSNs; migrations 529–544 are not rolled out to the candidate. Stored shared-agent CLI output is reduced to the
+`POSTGRES_PASSWORD` values. Each synthesis profile names one registered task
+and receives only that task's signed, filtered source login; migration 593
+removes the final five Kokonut Commons projections from the broad legacy
+reader. No generic shared synthesis profile remains. Every profile uses the
+signed worker identity for draft persistence. Synthesis reads enforce each
+location grant at the database view boundary, and deterministic summaries use
+a separate signed, location-filtered view boundary. The remaining runtime/RLS
+review is open. An operator still needs to provision the runtime password,
+task source login/password pairs, worker login/password, worker credentials,
+location grants, and service DSNs; migrations 529–593 are not rolled out to
+the candidate. Stored agent CLI output is reduced to the
 draft ID, request ID, status, and replay flag. For example, run a task through
 the isolated profile with
 `--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance

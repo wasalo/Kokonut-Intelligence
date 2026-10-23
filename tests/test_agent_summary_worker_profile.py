@@ -56,20 +56,29 @@ def test_summary_inspection_profile_uses_only_its_signed_source_identity():
     }
 
 
-def test_shared_synthesis_profile_remains_separate_and_source_only():
-    service = _services()["agent-synthesis-worker"]
+def test_kokonut_commons_profile_uses_only_its_source_and_draft_identities():
+    services = _services()
+    service = services["agent-kokonut-commons-worker"]
 
+    assert "agent-synthesis-worker" not in services
     assert service["entrypoint"] == [
         "python3",
         "-m",
         "services.agents.worker_cli",
         "--source-only",
+        "--task-key",
+        "kokonut_commons_synthesis",
     ]
-    assert service["profiles"] == ["agent-synthesis-worker"]
+    assert service["profiles"] == ["kokonut-commons-worker"]
     _assert_no_shared_database_environment(service)
-    assert "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL" in service["environment"]
-    assert "KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL" in service["environment"]
-    assert "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL" in service["environment"]
+    assert set(service["environment"]) == {
+        "KOKONUT_ENV",
+        "KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
+        "PYTHONDONTWRITEBYTECODE",
+    }
 
 
 def test_organic_readiness_profile_uses_only_its_source_and_draft_identities():

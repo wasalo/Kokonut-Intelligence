@@ -88,6 +88,107 @@ def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
     assert result == {"summary_id": "saved-id", "replayed": False}
 
 
+def test_kokonut_commons_synthesis_uses_task_specific_source_identity_and_reader(
+    monkeypatch,
+):
+    from services.agents.kokonut_commons_agent import agent
+
+    connection, cursor = _source_connection()
+    monkeypatch.setattr(
+        agent,
+        "synthesize",
+        lambda _connection, location_id=None: {
+            "location_id": location_id,
+            "synthesis": "Synthetic Kokonut Commons draft",
+        },
+    )
+    monkeypatch.setattr(agent, "collect_source_references", lambda *_args: {})
+    database_factory = MagicMock(return_value=connection)
+    credential_reader = MagicMock(return_value="f" * 40)
+    context_setter = MagicMock()
+    monkeypatch.setattr(worker_cli, "get_worker_db", database_factory)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", context_setter
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_synthesis(
+        agent,
+        LOCATION_ID,
+        None,
+        persist_draft=False,
+        existing_reader=MagicMock(side_effect=AssertionError("read-only run has no receipt")),
+        draft_writer=MagicMock(side_effect=AssertionError("read-only run cannot write")),
+    )
+
+    assert result == {
+        "summary": {
+            "location_id": LOCATION_ID,
+            "synthesis": "Synthetic Kokonut Commons draft",
+        }
+    }
+    credential_reader.assert_called_once_with("agent_kokonut_commons_source")
+    database_factory.assert_called_once_with("agent_kokonut_commons_source")
+    context_setter.assert_called_once_with(
+        connection,
+        credential="f" * 40,
+        location_id=LOCATION_ID,
+    )
+    statements = [call.args[0] for call in cursor.execute.call_args_list]
+    assert statements == [
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_kokonut_commons_reader",
+        "SET LOCAL statement_timeout = '15s'",
+        "SET LOCAL lock_timeout = '3s'",
+    ]
+    connection.commit.assert_not_called()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_unmapped_synthesis_task_fails_before_source_identity_lookup(monkeypatch):
+    agent = _synthetic_synthesis_agent()
+    monkeypatch.setattr(
+        worker_cli,
+        "_SYNTHESIS_SOURCE_IDENTITIES",
+        {
+            task_key: identity
+            for task_key, identity in worker_cli._SYNTHESIS_SOURCE_IDENTITIES.items()
+            if task_key != agent.task_key
+        },
+    )
+    credential_reader = MagicMock(side_effect=AssertionError("no source credential lookup"))
+    database_factory = MagicMock(side_effect=AssertionError("no database connection"))
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+    monkeypatch.setattr(worker_cli, "get_worker_db", database_factory)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    with pytest.raises(ValueError, match="no isolated source identity"):
+        worker_cli.run_worker_synthesis(
+            agent,
+            LOCATION_ID,
+            None,
+            persist_draft=False,
+            existing_reader=MagicMock(side_effect=AssertionError("no receipt")),
+            draft_writer=MagicMock(side_effect=AssertionError("no draft write")),
+        )
+
+    credential_reader.assert_not_called()
+    database_factory.assert_not_called()
+
+
+def test_every_registered_synthesis_task_has_an_isolated_source_contract():
+    registered = set(worker_cli._SYNTHESIS_AGENT_MODULES)
+
+    assert set(worker_cli._SYNTHESIS_SOURCE_IDENTITIES) == registered
+    assert set(worker_cli._SYNTHESIS_SOURCE_READERS) == registered
+
+
 def test_worker_cli_does_not_write_after_source_generation_failure():
     connection, _cursor = _source_connection()
     writer = MagicMock()

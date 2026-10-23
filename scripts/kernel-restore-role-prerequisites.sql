@@ -62,6 +62,8 @@ BEGIN
         'kokonut_agent_bio_factory_login',
         'kokonut_agent_open_source_capitalist_reader',
         'kokonut_agent_open_source_capitalist_login',
+        'kokonut_agent_kokonut_commons_reader',
+        'kokonut_agent_kokonut_commons_login',
         'kokonut_agent_summary_deterministic_source_login',
         'kokonut_agent_summary_inspection_reader',
         'kokonut_agent_summary_inspection_login',

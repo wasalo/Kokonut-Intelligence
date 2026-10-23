@@ -536,19 +536,25 @@ services:
     profiles:
       - ai-summary-inspection-worker
 
-  # Shared synthesis has no PG_* or shared DATABASE_URL credentials. Its
-  # source login can read only signed, location-filtered wrapper views;
-  # signed draft persistence uses the separate agent_summary_draft identity.
+  # Kokonut Commons reads use a task-specific signed identity; draft writing
+  # remains on the separate agent_summary_draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
-  #     --profile agent-synthesis-worker run --rm agent-synthesis-worker \
-  #     --task-key feedback_synthesis --location-id UUID --request-id UUID
-  agent-synthesis-worker:
+  #     --profile kokonut-commons-worker run --rm agent-kokonut-commons-worker \
+  #     --location-id UUID --request-id UUID
+  agent-kokonut-commons-worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
     entrypoint:
-      ["python3", "-m", "services.agents.worker_cli", "--source-only"]
+      [
+        "python3",
+        "-m",
+        "services.agents.worker_cli",
+        "--source-only",
+        "--task-key",
+        "kokonut_commons_synthesis",
+      ]
     restart: "no"
     depends_on:
       database:
@@ -557,8 +563,8 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
-      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
-      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
       KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
@@ -567,7 +573,7 @@ services:
         limits:
           memory: 512M
     profiles:
-      - agent-synthesis-worker
+      - kokonut-commons-worker
 
   # EBF evidence-gap reads use a task-specific login and one narrow projection.
   # Example:

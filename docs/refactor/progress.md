@@ -4859,7 +4859,7 @@ the receipt commits with event projections, outbox intents, and the range
 checkpoint.
 
 The focused Gnosis recovery, outbox producer, scheduled-command, and migration
-suite passes 165 tests; Ruff and compilation pass. A disposable PostgreSQL 16
+suite passes 164 tests; Ruff and compilation pass. A disposable PostgreSQL 16
 runner verifies migration 423 apply/replay, new receipt insertion, duplicate
 suppression, fail-closed block-hash mismatch, and transaction rollback. No live
 provider, candidate/legacy database, or schedule was accessed. Migrations
@@ -15721,3 +15721,7 @@ live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery,
 physical Raspberry Pi acceptance, and human review. Checklist: 1,018 complete /
 24 open (1,042 total); the matrix remains 30 baseline-retained, 7 deployed, and
 29 prepared across 66 rows, with 0/66 MAN-CAP checks accepted.
+
+### Progress addendum — CAP-038 isolated Kokonut Commons source identity, 23 October 2026
+
+Migration 593 gives Kokonut Commons synthesis a task-specific signed login and NOLOGIN reader limited to three location-or-network governance views plus two network-wide public catalogs. It removes the final five projections from the legacy shared synthesis reader, so no task-specific synthesis source remains on that identity. Worker dispatch now fails closed when an agent lacks an isolated identity; the `kokonut-commons-worker` profile receives only that source identity and the separate draft writer, and the generic synthesis profile/environment template is removed. Focused worker/database/profile/migration checks pass (164), including migration integrity (36); Ruff and Python compilation pass. Network-disabled disposable PostgreSQL 16 applies/replays through 593 with 79 grouped assertions on native AMD64 ([native evidence](builds/2026-10-23-recovery/cap-038-kokonut-commons-identity-native-disposable.json)) and ARM64/QEMU ([ARM64/QEMU evidence](builds/2026-10-23-recovery/cap-038-kokonut-commons-identity-arm64-disposable.json)). Signed tests prove owned and unassigned rows remain visible, foreign rows are excluded, network catalogs require context, and the retired shared reader returns no source projections. QEMU is software portability evidence only, not hardware Raspberry Pi acceptance. Candidate and legacy remain untouched; migration 593 and real credentials/grants are not deployed. Disable the profile to roll back; retain the additive migration if applied. CAP-038 remains prepared pending credential/grant provisioning, populated parity, live OIDC/provider/browser acceptance, broader ACL/RLS, production recovery, physical Raspberry Pi acceptance, and human review. Checklist: 1,019 complete / 24 open (1,043 total); 30 baseline-retained, 7 deployed, 29 prepared, and 0/66 MAN-CAP checks accepted.

@@ -370,31 +370,34 @@ def test_agent_summary_draft_factory_requires_its_dedicated_worker_login(monkeyp
     connection.rollback.assert_called_once_with()
 
 
-def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
+def test_retired_shared_agent_source_login_is_not_accepted(monkeypatch):
     connection, cursor = _connection("kokonut_agent_summary_source_login")
     connect = MagicMock(return_value=connection)
     monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
     dsn = "postgresql://kokonut_agent_summary_source_login:secret@database/kokonut_intelligence"
 
-    result = worker_database.get_worker_db(
-        "agent_summary_source",
-        environ={
-            "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL": dsn,
-            "PG_USER": "kokonut_runtime",
-            "PG_PASSWORD": "unused-shared-password",
-            "DATABASE_URL": "postgresql://kokonut_runtime:unused@database/kokonut_intelligence",
-        },
-    )
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="worker database login must be kokonut_worker_login",
+    ):
+        worker_database.get_worker_db(
+            "agent_summary_source",
+            environ={
+                "KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL": dsn,
+                "PG_USER": "kokonut_runtime",
+                "PG_PASSWORD": "unused-shared-password",
+                "DATABASE_URL": "postgresql://kokonut_runtime:unused@database/kokonut_intelligence",
+            },
+        )
 
-    assert result is connection
     connect.assert_called_once_with(
         dsn,
         connect_timeout=8,
         application_name="kokonut-worker-agent_summary_source",
     )
     cursor.execute.assert_called_once_with("SELECT current_user")
-    connection.rollback.assert_called_once_with()
-    connection.close.assert_not_called()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
 
 
 @pytest.mark.parametrize(
@@ -457,6 +460,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "agent_open_source_capitalist_source",
             "kokonut_agent_open_source_capitalist_login",
             "AGENT_OPEN_SOURCE_CAPITALIST_SOURCE",
+        ),
+        (
+            "agent_kokonut_commons_source",
+            "kokonut_agent_kokonut_commons_login",
+            "AGENT_KOKONUT_COMMONS_SOURCE",
         ),
     ],
 )

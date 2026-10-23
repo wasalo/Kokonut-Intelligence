@@ -53,6 +53,7 @@ _SYNTHESIS_SOURCE_IDENTITIES = {
     "financial_resilience_synthesis": "agent_financial_resilience_source",
     "bio_factory_synthesis": "agent_bio_factory_source",
     "open_source_capitalist_synthesis": "agent_open_source_capitalist_source",
+    "kokonut_commons_synthesis": "agent_kokonut_commons_source",
 }
 _SYNTHESIS_SOURCE_READERS = {
     "commons_liberation_synthesis": "kokonut_agent_commons_liberation_reader",
@@ -66,6 +67,7 @@ _SYNTHESIS_SOURCE_READERS = {
     "financial_resilience_synthesis": "kokonut_agent_financial_resilience_reader",
     "bio_factory_synthesis": "kokonut_agent_bio_factory_reader",
     "open_source_capitalist_synthesis": "kokonut_agent_open_source_capitalist_reader",
+    "kokonut_commons_synthesis": "kokonut_agent_kokonut_commons_reader",
 }
 
 
@@ -184,12 +186,10 @@ def run_worker_synthesis(
                 "replayed": True,
             }
 
-    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(
-        agent.task_key, "agent_summary_source"
-    )
-    source_reader = _SYNTHESIS_SOURCE_READERS.get(
-        agent.task_key, "kokonut_agent_summary_source_reader"
-    )
+    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(agent.task_key)
+    source_reader = _SYNTHESIS_SOURCE_READERS.get(agent.task_key)
+    if source_identity is None or source_reader is None:
+        raise ValueError("synthesis task has no isolated source identity")
     source_credential = get_worker_credential(source_identity)
     open_source_connection = connection_factory or (
         lambda: get_worker_db(source_identity)

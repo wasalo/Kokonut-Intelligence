@@ -57,6 +57,7 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/590_isolated_financial_resilience_worker.sql",
     ROOT / "schemas/postgres/591_isolated_bio_factory_worker.sql",
     ROOT / "schemas/postgres/592_isolated_open_source_capitalist_worker.sql",
+    ROOT / "schemas/postgres/593_isolated_kokonut_commons_worker.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
@@ -158,6 +159,11 @@ OPEN_SOURCE_CAPITALIST_SOURCE_RAW_CREDENTIAL = "synthetic-open-source-capitalist
 OPEN_SOURCE_CAPITALIST_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     OPEN_SOURCE_CAPITALIST_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
+KOKONUT_COMMONS_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000919"
+KOKONUT_COMMONS_SOURCE_RAW_CREDENTIAL = "synthetic-kokonut-commons-source-credential-2026-10-23"
+KOKONUT_COMMONS_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    KOKONUT_COMMONS_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
 ORGANIC_SOURCE_VIEW_NAMES = (
     "organic_readiness_assessment",
     "organic_transition_plan",
@@ -229,6 +235,15 @@ OPEN_SOURCE_CAPITALIST_SOURCE_VIEW_NAMES = (
     "v_public_open_source_impact_artifact",
 )
 OPEN_SOURCE_CAPITALIST_LOCATION_VIEW_NAMES = OPEN_SOURCE_CAPITALIST_SOURCE_VIEW_NAMES[:3]
+KOKONUT_COMMONS_SOURCE_VIEW_NAMES = (
+    "v_public_anti_capture_governance_policy",
+    "v_public_commons_redistribution_policy",
+    "v_public_algorithmic_redistribution_mechanism",
+    "v_public_federation_protocol",
+    "v_public_participatory_signal_experiment",
+)
+KOKONUT_COMMONS_LOCATION_VIEW_NAMES = KOKONUT_COMMONS_SOURCE_VIEW_NAMES[:3]
+KOKONUT_COMMONS_NETWORK_VIEW_NAMES = KOKONUT_COMMONS_SOURCE_VIEW_NAMES[3:]
 ECOLOGICAL_SOURCE_VIEW_NAMES = (
     "ecological_interaction",
     "energy_flow_measurement",
@@ -314,11 +329,6 @@ NETWORK_SOURCE_VIEWS = {
     "participatory_signal_experiment": "v_public_participatory_signal_experiment",
 }
 SOURCE_READER_VIEWS = tuple(sorted({
-    "v_public_algorithmic_redistribution_mechanism",
-    "v_public_anti_capture_governance_policy",
-    "v_public_commons_redistribution_policy",
-    "v_public_federation_protocol",
-    "v_public_participatory_signal_experiment",
     # Holistic wellbeing receives these consent-filtered projections through
     # its own migration-584 task reader.
     # Feedback receives its consent-safe summary through a separate
@@ -335,7 +345,8 @@ SOURCE_READER_VIEWS = tuple(sorted({
     # through its migration-590 task reader. Bio Factory receives four location
     # views and one network catalogue through its migration-591 task reader.
     # Open Source Capitalist receives three mixed-scope and two network views
-    # through its migration-592 task reader.
+    # through its migration-592 task reader. Kokonut Commons' final five views
+    # move to its task reader in migration 593; the shared reader is retired.
 
 }))
 DETERMINISTIC_SOURCE_TABLES = (
@@ -2046,6 +2057,184 @@ def _open_source_capitalist_source_stale_grants() -> str:
     """
 
 
+def _kokonut_commons_source_projection_fixture() -> str:
+    """Add foreign rows and an unassigned mechanism to exercise signed scope."""
+    return f"""
+    INSERT INTO public.anti_capture_governance_policy (id, location_id, status)
+    VALUES ('e0000000-0000-4000-8000-000000000820', '{OTHER_LOCATION_ID}', 'published');
+    INSERT INTO public.commons_redistribution_policy (id, location_id, status)
+    VALUES ('e0000000-0000-4000-8000-000000000821', '{OTHER_LOCATION_ID}', 'published');
+    INSERT INTO public.algorithmic_redistribution_mechanism (id, location_id, status) VALUES
+        ('e0000000-0000-4000-8000-000000000822', '{OTHER_LOCATION_ID}', 'published'),
+        ('e0000000-0000-4000-8000-000000000823', NULL, 'published');
+    """
+
+
+def _kokonut_commons_source_scope_acceptance() -> str:
+    all_views_sql = ", ".join(f"'{name}'" for name in KOKONUT_COMMONS_SOURCE_VIEW_NAMES)
+    location_views_sql = ", ".join(f"'{name}'" for name in KOKONUT_COMMONS_LOCATION_VIEW_NAMES)
+    network_views_sql = ", ".join(f"'{name}'" for name in KOKONUT_COMMONS_NETWORK_VIEW_NAMES)
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{KOKONUT_COMMONS_SOURCE_WORKER_ID}', 'agent-kokonut-commons-source')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{KOKONUT_COMMONS_SOURCE_WORKER_ID}', '{KOKONUT_COMMONS_SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{KOKONUT_COMMONS_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic Kokonut Commons source acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.unnest(ARRAY[{all_views_sql}]::TEXT[]) AS approved(view_name)
+             WHERE NOT has_table_privilege(
+                 'kokonut_agent_kokonut_commons_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name), 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name), 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_login',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name), 'SELECT'
+             )
+        ) OR has_table_privilege(
+            'kokonut_agent_kokonut_commons_reader', 'public.ai_summary', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_kokonut_commons_reader', 'public.anti_capture_governance_policy', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_kokonut_commons_reader',
+            'kokonut_agent_source.v_public_farm_launch_unit_economics', 'SELECT'
+        ) OR has_schema_privilege(
+            'kokonut_agent_kokonut_commons_login', 'kokonut_agent_source', 'USAGE'
+        ) OR NOT has_function_privilege(
+            'kokonut_agent_kokonut_commons_login',
+            'kokonut_security.set_worker_tenant_context(text,uuid,text,text)', 'EXECUTE'
+        ) OR has_function_privilege(
+            'kokonut_agent_kokonut_commons_login',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) OR NOT has_function_privilege(
+            'kokonut_agent_kokonut_commons_reader',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) OR has_schema_privilege(
+            'kokonut_agent_kokonut_commons_reader', 'kokonut_agent_source', 'CREATE'
+        ) THEN
+            RAISE EXCEPTION 'Kokonut Commons source roles exceed their exact projection contract';
+        END IF;
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'kokonut_agent_source'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND has_table_privilege(
+                   'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
+               )
+        ) THEN
+            RAISE EXCEPTION 'the shared synthesis reader still has a source projection';
+        END IF;
+    END $$;
+
+    SET ROLE kokonut_agent_kokonut_commons_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_kokonut_commons_reader;
+    DO $$
+    DECLARE view_name TEXT; visible_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{all_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO visible_rows;
+            IF visible_rows <> 0 THEN
+                RAISE EXCEPTION 'Kokonut Commons projection % returned rows without signed context', view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{KOKONUT_COMMONS_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_kokonut_commons_reader;
+    DO $$
+    DECLARE view_name TEXT; own_rows BIGINT; shared_rows BIGINT; foreign_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{location_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1', view_name
+            ) INTO own_rows USING '{LOCATION_ID}'::UUID;
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id IS NULL', view_name
+            ) INTO shared_rows;
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1', view_name
+            ) INTO foreign_rows USING '{OTHER_LOCATION_ID}'::UUID;
+            IF own_rows <> 1 OR shared_rows <> 1 OR foreign_rows <> 0 THEN
+                RAISE EXCEPTION 'Kokonut Commons mixed view % violated signed scope (own %, shared %, foreign %)',
+                    view_name, own_rows, shared_rows, foreign_rows;
+            END IF;
+        END LOOP;
+        FOREACH view_name IN ARRAY ARRAY[{network_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO own_rows;
+            IF own_rows <> 1 THEN
+                RAISE EXCEPTION 'Kokonut Commons network view % returned %, expected one',
+                    view_name, own_rows;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{KOKONUT_COMMONS_SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_kokonut_commons_reader;
+    DO $$
+    DECLARE view_name TEXT; visible_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{all_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO visible_rows;
+            IF visible_rows <> 0 THEN
+                RAISE EXCEPTION 'ungranted Kokonut Commons location saw rows in %', view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+    RESET ROLE;
+    """
+
+
+def _kokonut_commons_source_stale_grants() -> str:
+    views = ", ".join(
+        f"kokonut_agent_source.{name}" for name in KOKONUT_COMMONS_SOURCE_VIEW_NAMES
+    )
+    return f"""
+    GRANT SELECT ON {views}
+        TO PUBLIC, kokonut_agent_summary_source_reader,
+           kokonut_agent_summary_source_login;
+    GRANT SELECT ON kokonut_agent_source.v_public_farm_launch_unit_economics
+        TO kokonut_agent_kokonut_commons_reader;
+    GRANT SELECT ON public.ai_summary, public.anti_capture_governance_policy,
+        public.commons_redistribution_policy, public.algorithmic_redistribution_mechanism
+        TO kokonut_agent_kokonut_commons_reader,
+           kokonut_agent_kokonut_commons_login;
+    GRANT CREATE ON SCHEMA public, kokonut_security, kokonut_agent_source
+        TO kokonut_agent_kokonut_commons_reader,
+           kokonut_agent_kokonut_commons_login;
+    """
+
+
 
 def _source_reader_acceptance() -> str:
     approved_view_list = ", ".join(f"'{view_name}'" for view_name in SOURCE_READER_VIEWS)
@@ -2175,6 +2364,64 @@ def _source_reader_acceptance() -> str:
     END;
     $$;
     ROLLBACK;
+    """
+
+
+def _retired_shared_source_reader_acceptance() -> str:
+    """A valid shared-role context must no longer grant any synthesis view."""
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{SOURCE_WORKER_ID}', 'agent-summary-source')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{SOURCE_WORKER_ID}', '{SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic retired-source acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    SET ROLE kokonut_agent_summary_source_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.pg_class AS relation
+              JOIN pg_catalog.pg_namespace AS namespace
+                ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'kokonut_agent_source'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND has_table_privilege(
+                   'kokonut_agent_summary_source_reader', relation.oid, 'SELECT'
+               )
+        ) THEN
+            RAISE EXCEPTION 'legacy shared synthesis reader retains a source projection';
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_source_reader', 'public.ai_summary', 'SELECT'
+        ) OR has_schema_privilege(
+            'kokonut_agent_summary_source_reader', 'kokonut_agent_source', 'CREATE'
+        ) OR has_table_privilege(
+            'kokonut_agent_summary_source_reader', 'public.anti_capture_governance_policy', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'legacy shared synthesis reader retains raw, private, or write-capable access';
+        END IF;
+        BEGIN
+            PERFORM 1 FROM public.v_public_capital_efficiency_summary;
+            RAISE EXCEPTION 'legacy shared synthesis reader can bypass a scoped wrapper';
+        EXCEPTION WHEN insufficient_privilege THEN
+            NULL;
+        END;
+    END $$;
+    ROLLBACK;
+    RESET ROLE;
     """
 
 
@@ -4306,7 +4553,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-592 apply; migrations 530-537, 539-548, 580-592 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-593 apply; migrations 530-537, 539-548, 580-593 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -4332,7 +4579,7 @@ def main() -> int:
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
-        "synthesis source login can invoke only its bounded context setter; the shared reader retains only the five Kokonut Commons projections, with no raw/private/security tables and explicit network/mixed-scope behavior",
+        "the legacy shared synthesis reader has no operational projections after task-specific identities are provisioned",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
         "migration 541 removes stale public-schema CREATE from the NOLOGIN source reader as well as the source login",
         "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
@@ -4378,6 +4625,10 @@ def main() -> int:
         "migration 592 isolates Open Source Capitalist to three location-or-network views and two network-wide public catalogs",
         "migration 592 replay removes stale PUBLIC/shared grants, unrelated projections, raw source access, and schema CREATE privileges",
         "Open Source Capitalist mixed views return owned plus unassigned rows and exclude foreign rows; network catalogs require signed context",
+        "migration 593 isolates Kokonut Commons to three location-or-network views and two network-wide public catalogs",
+        "migration 593 replay removes stale PUBLIC/shared grants, unrelated projections, raw source access, and schema CREATE privileges",
+        "Kokonut Commons mixed views return owned plus unassigned rows and exclude foreign rows; network catalogs require signed context",
+        "the legacy shared synthesis reader has no retained source projections after all task identities are isolated",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -4392,7 +4643,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, and Open Source Capitalist use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs. The remaining shared reader retains five Kokonut Commons projections. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, Financial Resilience, Bio Factory, Open Source Capitalist, and Kokonut Commons use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view; Bio Factory sees four location-filtered views and one public network-wide regional input catalogue; Open Source Capitalist sees three location-or-network views and two network-wide public catalogs; Kokonut Commons sees three location-or-network policy views and two network-wide public catalogs. The legacy shared synthesis reader retains no operational source projection. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "ecological_projection_fixture_note": "Because this focused disposable chain does not apply historical farm/ecology schema migrations 550-551, twenty-seven synthetic security-barrier projections stand in for those outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "holistic_wellbeing_projection_fixture_note": "Migrations 535 and 543 create the real consent-filtered and signed security-barrier source projections in this disposable chain. Synthetic own/foreign rows are added to the fixture source tables before migration 584; no live stakeholder data or candidate/legacy database is used.",
@@ -4525,6 +4776,14 @@ def main() -> int:
                     _open_source_capitalist_projection_fixture(),
                 )
                 stage = "migration_592_apply"
+            if migration_path.name.startswith("593_"):
+                stage = "kokonut_commons_foreign_location_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    _kokonut_commons_source_projection_fixture(),
+                )
+                stage = "migration_593_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -4747,6 +5006,36 @@ def main() -> int:
                     "WHERE id IN ('e0000000-0000-4000-8000-000000000812', "
                     "'e0000000-0000-4000-8000-000000000813');",
                 )
+            if migration_path.name.startswith("593_"):
+                stage = "migration_593_signed_scope_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    _kokonut_commons_source_scope_acceptance(),
+                )
+                stage = "migration_593_stale_grant_replay"
+                base.psql(
+                    docker,
+                    container,
+                    _kokonut_commons_source_stale_grants(),
+                )
+                base.psql(docker, container, sql)
+                base.psql(
+                    docker,
+                    container,
+                    _kokonut_commons_source_scope_acceptance(),
+                )
+                base.psql(
+                    docker,
+                    container,
+                    "DELETE FROM public.anti_capture_governance_policy "
+                    "WHERE id = 'e0000000-0000-4000-8000-000000000820'; "
+                    "DELETE FROM public.commons_redistribution_policy "
+                    "WHERE id = 'e0000000-0000-4000-8000-000000000821'; "
+                    "DELETE FROM public.algorithmic_redistribution_mechanism "
+                    "WHERE id IN ('e0000000-0000-4000-8000-000000000822', "
+                    "'e0000000-0000-4000-8000-000000000823');",
+                )
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
                 base.psql(
@@ -4866,10 +5155,6 @@ def main() -> int:
                         "TO kokonut_agent_summary_deterministic_source_login;",
                     )
                 base.psql(docker, container, sql)
-        stage = "synthesis_source_reader_role_acceptance"
-        base.psql(docker, container, _source_reader_acceptance())
-        stage = "synthesis_source_reader_signed_location_scope_acceptance"
-        base.psql(docker, container, _source_reader_scope_acceptance())
         stage = "ebf_evidence_gap_signed_source_scope_acceptance"
         base.psql(docker, container, _ebf_source_scope_acceptance())
         stage = "cids_export_signed_source_scope_acceptance"
@@ -4953,6 +5238,8 @@ def main() -> int:
             "END IF; END $$;",
         )
         base.psql(docker, container, _delphi_agent_source_acceptance())
+        stage = "retired_shared_synthesis_reader_acceptance"
+        base.psql(docker, container, _retired_shared_source_reader_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
         stage = "structured_worker_result_first_write_acceptance"
