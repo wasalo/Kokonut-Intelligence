@@ -21,10 +21,13 @@ Browser ── HTTPS ── Caddy ──┬── hub.kokonut.network ── Ker
 Kernel Gateway ── OIDC discovery/token verification ── ZITADEL issuer
 ```
 
-The owner has selected `hub.kokonut.network` for the application but has not
-selected a separate identity hostname. Keep that value configurable until the
-DNS name is provided. The OIDC callback remains on the app origin at
-`/operator/auth/callback`.
+The owner selected `hub.kokonut.network` for the application and
+`auth.kokonut.network` for the identity provider on 23 October 2026. The
+expected production issuer is `https://auth.kokonut.network`; confirm it from
+ZITADEL discovery during live acceptance before provisioning the client. Keep
+the identity hostname configurable. Local development keeps the existing
+`zitadel.localhost` default, and the OIDC callback remains on the app origin at
+`/operator/auth/callback` (production: `https://hub.kokonut.network/operator/auth/callback`).
 
 ## Optional deployment shape
 
