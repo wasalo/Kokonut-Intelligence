@@ -15,12 +15,15 @@ CI #771 then exposed that a PostgreSQL superuser was implicitly classified as
 a worker by migration 579's role-membership check during pilot seeding. New
 migration 598 excludes superuser sessions from that inference while retaining
 terminal-state denial for explicit worker roles and non-superuser worker
-logins. The focused source/migration selection passes 48 tests (nine existing
-database-dependent skips), and a disposable PostgreSQL 16.15 replay/role check
-passes twice with admin/operator publication allowed and worker publication
-denied. This does not change capability classification or MAN-CAP acceptance.
-Evidence: [ARM64/QEMU schema replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json),
-[worker/admin boundary](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
+logins. A repeatable role-boundary regression now runs in the full CI script
+using the digest-pinned Compose PostgreSQL image. The focused source/migration
+selection passes 49 tests (nine existing database-dependent skips); disposable
+PostgreSQL 16.4 and 16.15 replay/role checks pass with admin/operator
+publication allowed and worker publication denied. This does not change
+capability classification or MAN-CAP acceptance. Evidence: [ARM64/QEMU schema
+replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json),
+[repeatable worker/admin check](builds/2026-10-23-recovery/agent-safety-superuser-ci-regression.json),
+[PostgreSQL 16.15 boundary check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
 
 **Fresh-bootstrap compatibility for optional Directus — 23 October 2026:**
 the ordered bootstrap now creates the historical `directus` role as a locked

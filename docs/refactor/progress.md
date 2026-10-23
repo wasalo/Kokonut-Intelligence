@@ -6,14 +6,19 @@ as a worker because PostgreSQL superusers have implicit membership in every
 role. Migration 598 now excludes superuser session membership from that
 inference while continuing to block explicit `SET ROLE kokonut_worker_execution`
 and non-superuser worker logins. It does not change trigger attachments or
-worker lifecycle rules. The focused migration/agent-safety selection passes 48
+worker lifecycle rules. The focused migration/agent-safety selection passes 49
 tests with nine existing database-dependent skips; Ruff, Python compilation,
-and whitespace checks pass. Network-disabled disposable PostgreSQL 16.15
-replayed migration 598 twice: superuser and ordinary operator publication
-succeeded; worker draft creation succeeded; worker terminal inserts/promotions
-and explicit worker `SET ROLE` were denied. The container was removed. Candidate
-and legacy databases were untouched. The fix is pushed on PR #68; the new hosted
-CI result is pending. Evidence: [disposable role check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json).
+and whitespace checks pass. A repeatable check is now part of the full CI
+runner and uses the digest-pinned Compose PostgreSQL image in a network-disabled
+temporary container. It replays migration 598 twice and verifies admin/operator
+publication, worker draft success, terminal insert/promotion denial, explicit
+worker `SET ROLE` denial, and the restrictive compatibility marker. The pinned
+PostGIS PostgreSQL 16.4 run passed and cleaned up; the earlier PostgreSQL 16.15
+check also passed ([CI regression evidence](builds/2026-10-23-recovery/agent-safety-superuser-ci-regression.json); [role check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json)).
+Candidate and legacy databases were untouched. Migration 598 is pushed on PR
+#68 as `7f4acf73`; CI #772 is running its full schema/seed gate. The repeatable
+role-boundary check added to the local next batch will run in hosted CI after
+that batch is pushed.
 
 ### Optional Directus historical-role bootstrap and ARM64 replay diagnostics — 23 October 2026
 

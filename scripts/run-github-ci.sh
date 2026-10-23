@@ -142,6 +142,9 @@ pip-audit -r requirements.txt
 echo '=== Fast-fail CI checks ==='
 ./scripts/ci-check.sh
 
+echo '=== Agent lifecycle worker/admin boundary ==='
+python3 scripts/check-agent-safety-superuser-disposable.py
+
 echo '=== Starting isolated CI infrastructure ==='
 export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
 docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v --remove-orphans 2>/dev/null || true
