@@ -1558,14 +1558,17 @@ Work by domain family and keep each change narrow:
    (CAP-064–066, plus CAP-001/007/031/039 where shared reporting is involved).
 
 CAP-002 now has tenant-scoped, read-only Gateway projections for
-verified/published yield summaries, active irrigation-zone status, and
-completed crop-simulation run summaries. The simulation endpoint reads stored
-outputs only; it does not run or validate the model. Continue with nutrient
-outputs, simulation detail/state, and frozen-fixture/populated parity before
-requesting MAN-CAP-002 acceptance. The endpoints and their limits are recorded
-in the [yield read contract](yield-monitoring-kernel-read-contract.md),
-[irrigation status contract](irrigation-status-kernel-read-contract.md), and
-[crop-simulation run contract](crop-simulation-runs-kernel-read-contract.md).
+verified/published yield summaries, active irrigation-zone status, completed
+crop-simulation run summaries, and grouped N/P/K balances from the
+verified/published latest-budget view. The simulation endpoint reads stored
+outputs only; it does not run or validate the model. Continue with detailed
+nutrient input/soil-test views, simulation detail/state, and
+frozen-fixture/populated parity before requesting MAN-CAP-002 acceptance. The
+endpoints and their limits are recorded in the [yield read
+contract](yield-monitoring-kernel-read-contract.md), [irrigation status
+contract](irrigation-status-kernel-read-contract.md), [crop-simulation run
+contract](crop-simulation-runs-kernel-read-contract.md), and [nutrient-balance
+contract](nutrient-balances-kernel-read-contract.md).
 
 For each slice, identify the canonical data contract, optional provider
 boundary, lifecycle/human-review boundary, minimum-dependency execution path,

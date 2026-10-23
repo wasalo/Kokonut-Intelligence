@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 916,
-    "execution_sites": 4651,
+    "source_files": 918,
+    "execution_sites": 4656,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4309,
+    "sites_without_worker_operation_refs": 4314,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2748,
-      "SET": 508,
+      "SELECT": 2750,
+      "SET": 511,
       "UNKNOWN": 199,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2748,
+      "read_candidate": 2750,
       "schema_change": 1,
-      "transaction_or_session": 551,
+      "transaction_or_session": 554,
       "unknown_requires_manual_review": 199,
       "with_requires_manual_review": 27,
       "write_candidate": 1125
@@ -33,10 +33,10 @@
       "composed": 17,
       "composed_or_variable": 275,
       "fstring": 287,
-      "literal": 4072
+      "literal": 4077
     },
     "relation_candidates": 1202,
-    "sites_without_relation_candidates": 1011,
+    "sites_without_relation_candidates": 1014,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,17 +365,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 104,
-      "execution_sites": 786,
+      "source_files": 106,
+      "execution_sites": 791,
       "statement_groups": {
-        "read_candidate": 286,
-        "transaction_or_session": 444,
+        "read_candidate": 288,
+        "transaction_or_session": 447,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
-      "candidate_relation_names": 193,
-      "sites_without_relation_candidates": 517,
+      "candidate_relation_names": 194,
+      "sites_without_relation_candidates": 520,
       "non_literal_sites": 12,
       "sites_with_worker_operation_refs": 0
     },
@@ -1930,7 +1930,7 @@
     "v_market_dispute_performance": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/export/reports/strategy.py"]},
     "v_measurement_schedule": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/measurement_schedule.py"]},
     "v_mobile_collection_use_eligibility": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/farm_activity_workflow.py","services/gateway/operator_mobile_review.py"]},
-    "v_nutrient_balance": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/nutrient_budget.py"]},
+    "v_nutrient_balance": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/nutrient_budget.py","services/gateway/nutrient_balances.py"]},
     "v_nutrient_input_summary": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/nutrient_budget.py"]},
     "v_operating_capacity_gap": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/management/capacity_signals.py"]},
     "v_operating_competency_gaps": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/management/learning_plans.py"]},
@@ -4739,6 +4739,11 @@
     {"id": "services/gateway/management_work_reads.py:50:12","source": "services/gateway/management_work_reads.py","line": 50,"column": 12,"scope": "location_management_work_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/management_work_reads.py:51:12","source": "services/gateway/management_work_reads.py","line": 51,"column": 12,"scope": "location_management_work_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/management_work_reads.py:60:12","source": "services/gateway/management_work_reads.py","line": 60,"column": 12,"scope": "location_management_work_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.location_management_work_summary"],"static_sql_sha256": "181b9f4f125bf54e5bdfae91676c7ebae8e197eeb9b9fe69303366d0f93a1ee7","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/nutrient_balances.py:56:12","source": "services/gateway/nutrient_balances.py","line": 56,"column": 12,"scope": "get_location_nutrient_balances","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/nutrient_balances.py:57:12","source": "services/gateway/nutrient_balances.py","line": 57,"column": 12,"scope": "get_location_nutrient_balances","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/nutrient_balances.py:58:12","source": "services/gateway/nutrient_balances.py","line": 58,"column": 12,"scope": "get_location_nutrient_balances","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/nutrient_balances.py:69:12","source": "services/gateway/nutrient_balances.py","line": 69,"column": 12,"scope": "get_location_nutrient_balances","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_nutrient_balance"],"static_sql_sha256": "d0785f796809faa00efa339bb47c79b1498808c288c23eebeda02a6863cc39ce","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/nutrient_balances.py:83:12","source": "services/gateway/nutrient_balances.py","line": 83,"column": 12,"scope": "get_location_nutrient_balances","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["v_nutrient_balance"],"static_sql_sha256": "571be74e61160b922bd6c1cb8ac12aea8e3573f87d3e5e58665cab5eef912f25","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/operating_pilot_reads.py:50:12","source": "services/gateway/operating_pilot_reads.py","line": 50,"column": 12,"scope": "get_location_operating_pilot_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operating_pilot_reads.py:51:12","source": "services/gateway/operating_pilot_reads.py","line": 51,"column": 12,"scope": "get_location_operating_pilot_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operating_pilot_reads.py:52:12","source": "services/gateway/operating_pilot_reads.py","line": 52,"column": 12,"scope": "get_location_operating_pilot_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
