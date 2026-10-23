@@ -20,7 +20,8 @@
     "provider_boundaries": "passed for 17 vendor import sites",
     "git_diff_check": "passed",
     "compose_config": "5 relevant Compose configurations passed with synthetic interpolation values; no containers were started",
-    "health_check_smtp_handoff": "passed with a mocked alert failure; verified implicit TLS mode, host, port, and recipient are forwarded without invoking a provider"
+    "health_check_smtp_handoff": "passed with a mocked alert failure; verified implicit TLS mode, host, port, and recipient are forwarded without invoking a provider",
+    "compose_profile_tests": "19 passed; includes the mocked SMTP health-check handoff regression also counted in the focused SMTP selection"
   },
   "provider_calls": false,
   "candidate_or_legacy_database_touched": false,
