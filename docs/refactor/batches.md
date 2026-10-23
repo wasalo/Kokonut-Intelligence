@@ -21,7 +21,7 @@ Remaining work is ordered in [the code-first execution plan](code-first-executio
 
 **Current snapshot (23 October 2026):** 1,036 checklist items complete and 25
 open (1,061 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 29 baseline-retained, 7 deployed, and 31 prepared. Named MAN-CAP
+rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 ### CAP-003 initial traceability Kernel read slice — 23 October 2026
@@ -40,6 +40,22 @@ acceptance remains separate; none is marked accepted.
   CAP-003 is now prepared, not accepted; populated legacy-output parity, live
   ZITADEL/browser behavior, database RLS, audience review, recovery, and
   MAN-CAP-003 remain open.
+
+### CAP-002 first yield-summary Kernel read slice — 23 October 2026
+
+- [x] Add an OIDC operator read for verified/published harvest-yield summaries
+  under the exact location `yield_monitoring:read` grant. The read-only service
+  sets signed tenant context before four explicitly location-filtered queries,
+  groups measures by stored yield unit, bounds recent rows to ten, and excludes
+  draft/submitted observations, source identifiers, actors, arbitrary metadata,
+  and evidence. The focused Gateway/yield tests pass 23 cases and the broader
+  operator-auth selection passes 89; Ruff, compilation, runtime SQL inventory,
+  and capability-matrix validation pass. No migration, provider, candidate, or
+  legacy database was used. CAP-002
+  remains partial: irrigation, crop simulation, nutrient outputs, frozen-fixture
+  parity, populated data, live OIDC/browser acceptance, and MAN-CAP-002 remain
+  open ([contract](yield-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-yield-summary-kernel-read.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

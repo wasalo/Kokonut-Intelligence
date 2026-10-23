@@ -510,6 +510,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    yield_summary_match = re.fullmatch(
+        r"/operator/api/yield-monitoring/([0-9a-fA-F-]{36})/summary", path
+    )
+    if yield_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "yield_monitoring",
+            "action": "read",
+            "public": False,
+            "location_id": yield_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     ecocredit_match = re.fullmatch(
         r"/operator/api/ecocredits/([0-9a-fA-F-]{36})/batches", path
     )
@@ -4278,12 +4291,14 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.threatcasting_routes import register_threatcasting_routes
     from services.gateway.traceability_routes import register_traceability_routes
     from services.gateway.true_cost_routes import register_true_cost_routes
+    from services.gateway.yield_monitoring_routes import register_yield_monitoring_routes
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
     register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
+    register_yield_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)
