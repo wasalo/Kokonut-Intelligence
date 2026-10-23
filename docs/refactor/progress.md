@@ -1,3 +1,7 @@
+### Progress addendum — CAP-002 crop-simulation run detail and daily state, 23 October 2026
+
+The private OIDC Gateway now exposes `GET /operator/api/crop-simulations/{location_id}/runs/{run_id}` under exact location `digital_twin:read`. In one repeatable-read, read-only transaction, the service installs signed tenant context, validates the completed run at the requested active/archived crop-simulation twin, then returns a bounded page of persisted daily soil, crop, water, weather, and carbon state. Every query repeats location and lifecycle scope. Parameters, arbitrary metadata, errors, costs, revenues, and margins are excluded; the route never executes the model. The Gateway/digital-twin/operator-auth selection passes 112 tests; Ruff, compilation, regenerated runtime SQL inventory, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-002 remains prepared pending model/frozen-fixture and populated-data parity, live OIDC/browser behavior, direct-database RLS, and MAN-CAP-002 acceptance. Checklist: 1,042 complete / 25 open (1,067 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-run-detail.json).
+
 ### CAP-003 traceability Kernel read path — 23 October 2026
 
 The native OIDC operator Gateway now exposes a bounded batch list and detail

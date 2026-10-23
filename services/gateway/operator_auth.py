@@ -549,6 +549,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    crop_simulation_run_detail_match = re.fullmatch(
+        r"/operator/api/crop-simulations/([0-9a-fA-F-]{36})/runs/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if crop_simulation_run_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "digital_twin",
+            "action": "read",
+            "public": False,
+            "location_id": crop_simulation_run_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     nutrient_balances_match = re.fullmatch(
         r"/operator/api/nutrients/([0-9a-fA-F-]{36})/balances", path
     )

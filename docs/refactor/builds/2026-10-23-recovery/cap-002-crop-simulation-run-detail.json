@@ -1,0 +1,33 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped crop-simulation run detail and paginated daily state",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "015ba433",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_crop_simulations.py tests/test_digital_twin.py tests/test_operator_auth.py -q",
+    "passed": 112,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "validated: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact private GET policy requires digital_twin:read scoped to the requested location; other methods and suffixes remain unmatched",
+    "Invalid location/run UUIDs and page values fail before opening PostgreSQL",
+    "One repeatable-read, read-only transaction installs signed tenant context before run lookup, state count, and state page reads",
+    "Run and child-state queries repeat requested location, crop_simulation type, active/archived twin lifecycle, and completed run filters",
+    "State pages are bounded to a maximum of 50 records and ordered by day/date with an internal ID tie-breaker",
+    "Only stored summary and soil, crop, water, weather, and carbon state fields are returned",
+    "Run parameters, arbitrary metadata, errors, costs, revenue, margin, configuration, and state IDs are excluded",
+    "Missing tenant grants deny before the detail service; responses are no-store and vary by cookie",
+    "Connection rollback/close executes on success and missing-run paths"
+  ],
+  "known_gap": "No model correctness or populated legacy parity is claimed; live OIDC/browser, direct-database RLS/least-privilege, and MAN-CAP-002 remain open.",
+  "rollback": "Remove the additive detail route and exact policy, service function, focused tests, and documentation; no schema or data rollback is needed."
+}

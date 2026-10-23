@@ -136,3 +136,137 @@ def get_location_crop_simulation_runs(
             conn.rollback()
         finally:
             conn.close()
+
+
+def get_location_crop_simulation_run_detail(
+    operator_id: str,
+    location_id: str,
+    run_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Return a completed run and a bounded page of its persisted daily states."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    run_id = _uuid(run_id, "run")
+    limit, offset = _page(limit, offset)
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = '5s'")
+            cur.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="digital_twin",
+            action="read",
+        )
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT dt.id AS twin_id, dt.name AS twin_name,
+                       sr.id AS run_id, sr.started_at,
+                       sr.completed_at, sr.duration_ms, sr.final_yield,
+                       sr.final_yield_unit, sr.total_water_mm,
+                       sr.total_nitrogen_kg, sr.avg_soil_carbon_pct
+                  FROM simulation_run AS sr
+                  JOIN digital_twin AS dt ON dt.id = sr.twin_id
+                 WHERE dt.location_id = %s::uuid
+                   AND dt.twin_type = 'crop_simulation'
+                   AND dt.status IN ('active', 'archived')
+                   AND sr.status = 'completed'
+                   AND sr.id = %s::uuid
+                """,
+                (location_id, run_id),
+            )
+            columns = [column[0] for column in cur.description]
+            row = cur.fetchone()
+            if row is None:
+                return None
+            run = dict(zip(columns, row))
+
+            state_scope = """
+                FROM simulation_state AS ss
+                JOIN simulation_run AS sr ON sr.id = ss.run_id
+                JOIN digital_twin AS dt ON dt.id = sr.twin_id
+               WHERE dt.location_id = %s::uuid
+                 AND dt.twin_type = 'crop_simulation'
+                 AND dt.status IN ('active', 'archived')
+                 AND sr.status = 'completed'
+                 AND sr.id = %s::uuid
+            """
+            cur.execute(
+                "SELECT COUNT(*) " + state_scope,
+                (location_id, run_id),
+            )
+            total_states = int(cur.fetchone()[0] or 0)
+
+            cur.execute(
+                """
+                SELECT ss.day_number, ss.state_date,
+                       ss.soil_moisture_pct, ss.soil_nitrogen_ppm,
+                       ss.soil_carbon_pct, ss.soil_temperature_c,
+                       ss.gdd_accumulated, ss.crop_biomass_kg_ha,
+                       ss.leaf_area_index, ss.crop_stage, ss.root_depth_cm,
+                       ss.rainfall_mm, ss.irrigation_mm, ss.et_actual_mm,
+                       ss.drainage_mm, ss.temp_avg_c, ss.temp_min_c,
+                       ss.temp_max_c, ss.solar_radiation_mj, ss.humidity_pct,
+                       ss.wind_speed_kmh, ss.carbon_sequestered_kg_ha,
+                       ss.carbon_emitted_kg_ha
+            """ + state_scope + """
+                 ORDER BY ss.day_number, ss.state_date, ss.id
+                 LIMIT %s OFFSET %s
+                """,
+                (location_id, run_id, limit + 1, offset),
+            )
+            state_columns = [column[0] for column in cur.description]
+            state_rows = [dict(zip(state_columns, state)) for state in cur.fetchall()]
+
+        states = []
+        for state in state_rows[:limit]:
+            states.append(
+                {
+                    key: (
+                        _iso(value)
+                        if key == "state_date"
+                        else _number(value)
+                        if key not in {"day_number", "crop_stage"}
+                        else value
+                    )
+                    for key, value in state.items()
+                }
+            )
+
+        return {
+            "location_id": location_id,
+            "run": {
+                "twin_id": str(run["twin_id"]),
+                "twin_name": run["twin_name"],
+                "run_id": str(run["run_id"]),
+                "started_at": _iso(run["started_at"]),
+                "completed_at": _iso(run["completed_at"]),
+                "duration_ms": run["duration_ms"],
+                "final_yield": _number(run["final_yield"]),
+                "final_yield_unit": run["final_yield_unit"],
+                "total_water_mm": _number(run["total_water_mm"]),
+                "total_nitrogen_kg": _number(run["total_nitrogen_kg"]),
+                "avg_soil_carbon_pct": _number(run["avg_soil_carbon_pct"]),
+            },
+            "total_states": total_states,
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(state_rows) > limit,
+            "states": states,
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()

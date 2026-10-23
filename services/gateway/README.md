@@ -194,7 +194,11 @@ location-scoped `digital_twin:read` grant. Results are paginated and include
 run timing, yield, water, nitrogen, and soil-carbon summaries. Raw parameter
 JSON, metadata, errors, and financial values are excluded. The route reads
 persisted completed runs only; it does not execute simulations or claim model
-parity. See the
+parity. A matching
+`GET /operator/api/crop-simulations/{location_id}/runs/{run_id}` route returns
+the same allowlisted run summary plus a paginated set of persisted daily soil,
+crop, water, weather, and carbon states. Every query is scoped by location and
+completed-run lifecycle; state IDs and metadata remain private. See the
 [Kernel read contract](../../docs/refactor/crop-simulation-runs-kernel-read-contract.md).
 
 Verified and published nutrient balances are available at

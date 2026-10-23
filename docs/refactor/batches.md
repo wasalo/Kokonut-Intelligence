@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,041 checklist items complete and 25
-open (1,066 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,042 checklist items complete and 25
+open (1,067 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -88,6 +88,10 @@ acceptance remains separate; none is marked accepted.
   detail/state parity, nutrient outputs, frozen-fixture/populated parity, live
   OIDC/browser, RLS, and MAN-CAP-002 remain open ([contract](crop-simulation-runs-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-runs-kernel-read.json)).
+
+### CAP-002 crop-simulation run detail and daily state — 23 October 2026
+
+- [x] Add a private OIDC detail read for one completed crop-simulation run under the exact location `digital_twin:read` grant. The repeatable-read, read-only service installs signed tenant context before the run lookup, state count, and state page; each query repeats the requested location, twin type/lifecycle, and completed-run filters. The bounded projection exposes the existing run summary and paginated persisted soil, crop, water, weather, and carbon state while excluding parameters, arbitrary metadata, errors, financial values, and state IDs. The focused Gateway/digital-twin/operator-auth selection passes 112 tests; Ruff, compilation, runtime SQL inventory, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. Model/frozen-fixture/populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remain open ([contract](crop-simulation-runs-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-run-detail.json)).
 
 ### CAP-002 governed nutrient balance summaries — 23 October 2026
 
