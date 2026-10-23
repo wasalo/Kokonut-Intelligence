@@ -1,0 +1,19 @@
+{
+  "result": "passed",
+  "date": "2026-10-23",
+  "source_revision": "7679b3ea",
+  "runtime_platform": "linux/arm64",
+  "runtime_architecture": "aarch64",
+  "execution": "Docker QEMU",
+  "database_image": "kokonut-kernel-candidate-arm64:local",
+  "network_mode": "none",
+  "repository_mount": "read-only",
+  "command": "python -m unittest tests.test_protocol_bridge tests.test_protocol_connector",
+  "tests_run": 21,
+  "failures": 0,
+  "errors": 0,
+  "candidate_or_legacy_touched": false,
+  "external_provider_contacted": false,
+  "physical_raspberry_pi_tested": false,
+  "qualification": "Software portability evidence only; this does not validate a live NEAR/EVM adapter, signing, broadcast, or physical Raspberry Pi behavior."
+}

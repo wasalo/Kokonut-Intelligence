@@ -1,3 +1,20 @@
+### Protocol execution bridge source and portability checks — 23 October 2026
+
+The pulled branch head 7679b3ea adds the prepared CAP-067 bridge. The focused
+bridge/connector/agent-safety selection passes 32 tests with nine database-
+dependent skips; Ruff and Python compilation pass. The network-disabled native
+PostgreSQL 16 replay applies all 591 current schema files through migration 600
+with zero pending or failed migrations, no seeds, and successful cleanup.
+Twenty-one bridge and connector tests pass under linux/arm64 QEMU (aarch64)
+with the repository mounted read-only. Evidence:
+[native schema replay](builds/2026-10-23-recovery/protocol-bridge-current-schema-600-native.json),
+[ARM64 unit smoke](builds/2026-10-23-recovery/protocol-bridge-arm64-unit-smoke.json).
+
+This does not establish a concrete NEAR/EVM client, Gateway route authorization,
+tenant database ACL/RLS, live proposal/finality, external transaction, candidate
+rollout, or physical Raspberry Pi behavior. CAP-067 is prepared; MAN-CAP-067
+remains open. The branch does not sign or broadcast transactions from KI.
+
 ### Signed credit-adjustment worker and SMTP credential provisioning — 23 October 2026
 
 Migration 599 and a dedicated default-off worker now protect scheduled credit

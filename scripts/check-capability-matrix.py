@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX = ROOT / "docs/refactor/capability-matrix.md"
-EXPECTED_IDS = [f"CAP-{number:03d}" for number in range(1, 67)]
+EXPECTED_IDS = [f"CAP-{number:03d}" for number in range(1, 68)]
 STATUS_PREFIX = re.compile(r"^([BDP])\s+—\s+")
 PATH_REFERENCE = re.compile(
     r"(?<![A-Za-z0-9_.-])(?:tests|services|schemas|extensions|contracts|proto|sdk)/"
@@ -40,7 +40,7 @@ def check_matrix() -> list[str]:
         extra = sorted(set(ids) - set(EXPECTED_IDS))
         duplicates = sorted(item for item, count in Counter(ids).items() if count > 1)
         errors.append(
-            "capability IDs must appear once in order CAP-001..CAP-066; "
+            "capability IDs must appear once in order CAP-001..CAP-067; "
             f"missing={missing}, extra={extra}, duplicates={duplicates}"
         )
 

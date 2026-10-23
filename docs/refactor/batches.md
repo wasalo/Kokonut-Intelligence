@@ -19,9 +19,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,034 checklist items complete and 24
-open (1,058 total). The [capability matrix](capability-matrix.md) has 66 validated
-rows: 30 baseline-retained, 7 deployed, and 29 prepared. Named MAN-CAP
+**Current snapshot (23 October 2026):** 1,035 checklist items complete and 25
+open (1,060 total). The [capability matrix](capability-matrix.md) has 67 validated
+rows: 30 baseline-retained, 7 deployed, and 30 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
@@ -2257,3 +2257,9 @@ The AST scope inventory now follows a location-filtered parent row into child re
 ### Candidate migrations 552–598 rollout — 23 October 2026
 
 - [x] Restore-rehearse the fresh age-encrypted candidate checkpoint and apply migrations 552–598 through the ordered, checksummed schema runner. The 8,507,750-byte PostgreSQL-only archive restored into an internal-only `template0` clone; its pre-rollout 542-schema ledger fingerprint, six seed rows, 1,464 public relations, and extension versions matched the candidate. `pg_restore --no-privileges` omitted four candidate-verified ACL/role-membership states; these were reconciled only on the isolated clone before replay. The ordered runner applied all 47 migrations on both clone and candidate, with zero failures; both now match at 589 schema entries through 598, six unchanged seed entries, zero pending/failed rows, fingerprint `401959937f1fbe433338fab0bd18f854`, and 1,486 public relations. No seed SQL or farm rows were added. Only the candidate app was rebuilt/recreated; it is healthy, `/health` returns 200, and anonymous `GET /operator/api/farm-activity-records` returns 401 with `Cache-Control: no-store`. Candidate PostgreSQL, Metabase, and proxy were not recreated; the legacy stack was untouched. The prior app image is tagged `kokonut-kernel-candidate-app:rollback-pre-552-598-20261023`; the encrypted checkpoint and stopped recovery volume are retained. The checkpoint is same-host/database-only and excludes global roles/grants, other databases, volumes, and media, so it is not production or off-host recovery evidence ([rollout](builds/2026-10-23-recovery/candidate-migrations-552-598-rollout.json)). Checklist: 1,032 complete / 24 open (1,056 total); matrix remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows, with 0/66 MAN-CAP checks accepted.
+
+
+### CAP-067 governed Protocol execution bridge — 23 October 2026
+
+- [x] Track the newly added KI-to-Protocol bridge as a prepared extension beyond the original 66-capability baseline. Migration 600 defines an approved project/location crosswalk, immutable EVM testnet intent snapshot, distinct-human approval quorum, durable outbound envelope, and separately reviewed finalized-effect reconciliation. The focused bridge/connector/safety selection passes 32 tests with nine database-dependent skips; Ruff and Python compilation pass. Network-disabled native PostgreSQL 16 applies all 591 ordered schemas through migration 600 with zero pending/failed migrations, no seeds, and successful cleanup ([native replay](builds/2026-10-23-recovery/protocol-bridge-current-schema-600-native.json)). Twenty-one bridge and connector tests pass under linux/arm64 QEMU (aarch64) with the source mounted read-only ([ARM64 evidence](builds/2026-10-23-recovery/protocol-bridge-arm64-unit-smoke.json)). Candidate and legacy databases are untouched.
+- [ ] Complete the authenticated runtime boundary and live test-network acceptance for CAP-067. The current commit supplies source helpers and a transport-injected client interface, but no registered Gateway routes, task-specific database identity/tenant ACL, concrete NEAR/EVM adapter, signing or broadcast integration, or live-chain finality evidence. Keep the feature prepared and disabled until exact operator authorization, idempotent proposal/retry, destination effect verification, and separate human reconciliation review are accepted. No KI transaction signing or source-record publication is in scope.
