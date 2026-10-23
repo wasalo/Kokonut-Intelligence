@@ -17,6 +17,7 @@ import psycopg2
 _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 _WORKER_LOGINS = {
     "agent_commons_liberation_source": "kokonut_agent_commons_liberation_login",
+    "agent_gnh_alignment_source": "kokonut_agent_gnh_alignment_login",
     "agent_summary_draft": "kokonut_agent_summary_draft_login",
     "agent_summary_source": "kokonut_agent_summary_source_login",
     "agent_ebf_source": "kokonut_agent_ebf_source_login",

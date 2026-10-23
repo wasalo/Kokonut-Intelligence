@@ -297,6 +297,41 @@ services:
     profiles:
       - commons-liberation-worker
 
+  # GNH Alignment synthesis reads five public, location-filtered projections
+  # through its own signed source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile gnh-alignment-worker run --rm agent-gnh-alignment-worker \
+  #     --location-id UUID --request-id UUID
+  agent-gnh-alignment-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "gnh_alignment_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - gnh-alignment-worker
+
   # Exact-location AI-summary list and digest inspection; no draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \

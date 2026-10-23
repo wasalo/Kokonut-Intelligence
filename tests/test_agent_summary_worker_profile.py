@@ -187,6 +187,29 @@ def test_commons_liberation_profile_uses_only_its_source_and_draft_identities():
     }
 
 
+def test_gnh_alignment_profile_uses_only_its_source_and_draft_identities():
+    service = _services()["agent-gnh-alignment-worker"]
+
+    assert service["entrypoint"] == [
+        "python3",
+        "-m",
+        "services.agents.worker_cli",
+        "--source-only",
+        "--task-key",
+        "gnh_alignment_synthesis",
+    ]
+    assert service["profiles"] == ["gnh-alignment-worker"]
+    _assert_no_shared_database_environment(service)
+    assert set(service["environment"]) == {
+        "KOKONUT_ENV",
+        "KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL",
+        "PYTHONDONTWRITEBYTECODE",
+    }
+
+
 def test_ebf_evidence_gap_profile_uses_only_its_signed_source_identity():
     service = _services()["ebf-evidence-gap-worker"]
 
