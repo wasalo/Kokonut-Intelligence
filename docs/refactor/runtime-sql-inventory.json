@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 914,
-    "execution_sites": 4646,
+    "source_files": 916,
+    "execution_sites": 4651,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4304,
+    "sites_without_worker_operation_refs": 4309,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2746,
-      "SET": 505,
+      "SELECT": 2748,
+      "SET": 508,
       "UNKNOWN": 199,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2746,
+      "read_candidate": 2748,
       "schema_change": 1,
-      "transaction_or_session": 548,
+      "transaction_or_session": 551,
       "unknown_requires_manual_review": 199,
       "with_requires_manual_review": 27,
       "write_candidate": 1125
@@ -33,10 +33,10 @@
       "composed": 17,
       "composed_or_variable": 275,
       "fstring": 287,
-      "literal": 4067
+      "literal": 4072
     },
     "relation_candidates": 1202,
-    "sites_without_relation_candidates": 1008,
+    "sites_without_relation_candidates": 1011,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,17 +365,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 102,
-      "execution_sites": 781,
+      "source_files": 104,
+      "execution_sites": 786,
       "statement_groups": {
-        "read_candidate": 284,
-        "transaction_or_session": 441,
+        "read_candidate": 286,
+        "transaction_or_session": 444,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
-      "candidate_relation_names": 191,
-      "sites_without_relation_candidates": 514,
+      "candidate_relation_names": 193,
+      "sites_without_relation_candidates": 517,
       "non_literal_sites": 12,
       "sites_with_worker_operation_refs": 0
     },
@@ -1099,7 +1099,7 @@
     "dfs_insurance_product_type": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/digital_finance.py"]},
     "digital_lego_usage": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/fortune500/calculator.py","services/ingestion/gnosis_indexer.py","services/metrics/calculators/digital_lego.py","services/revenue_multiplier/dimensions/web3_replication.py"]},
     "digital_lending": {"execution_site_count": 7,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_finance.py"]},
-    "digital_twin": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_twin.py"]},
+    "digital_twin": {"execution_site_count": 7,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_twin.py","services/gateway/crop_simulations.py"]},
     "driver_instance": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/drivers/cli.py","services/drivers/registry.py"]},
     "driver_instance_log": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/drivers/registry.py"]},
     "driver_registry": {"execution_site_count": 8,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/drivers/cli.py","services/drivers/registry.py"]},
@@ -1743,7 +1743,7 @@
     "shipment": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/logistics.py"]},
     "shipment_item": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/logistics.py"]},
     "simulation_config": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_twin.py"]},
-    "simulation_run": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_twin.py"]},
+    "simulation_run": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_twin.py","services/gateway/crop_simulations.py"]},
     "simulation_state": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/analytics/digital_twin.py"]},
     "situation_assessment": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/decision/policy_engine.py","services/orientation/assess.py","services/systems/leverage.py"]},
     "skill_assessment": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/extension.py"]},
@@ -4583,6 +4583,11 @@
     {"id": "services/gateway/credit_custody.py:42:12","source": "services/gateway/credit_custody.py","line": 42,"column": 12,"scope": "get_credit_custody_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/credit_custody.py:54:12","source": "services/gateway/credit_custody.py","line": 54,"column": 12,"scope": "get_credit_custody_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["carbon_credit"],"static_sql_sha256": "e6ba4039cffb842ba6fc5b18b80a13d79acf020f3f5308a6ebb6be492d913289","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/credit_custody.py:68:12","source": "services/gateway/credit_custody.py","line": 68,"column": 12,"scope": "get_credit_custody_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["credit_retirement"],"static_sql_sha256": "0e244b5e0d1d131d411e06d8c80eb8119abff26eb7e16ece8266c1497d6a07f7","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/crop_simulations.py:60:12","source": "services/gateway/crop_simulations.py","line": 60,"column": 12,"scope": "get_location_crop_simulation_runs","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/crop_simulations.py:61:12","source": "services/gateway/crop_simulations.py","line": 61,"column": 12,"scope": "get_location_crop_simulation_runs","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/crop_simulations.py:62:12","source": "services/gateway/crop_simulations.py","line": 62,"column": 12,"scope": "get_location_crop_simulation_runs","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/crop_simulations.py:73:12","source": "services/gateway/crop_simulations.py","line": 73,"column": 12,"scope": "get_location_crop_simulation_runs","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["digital_twin","simulation_run"],"static_sql_sha256": "a95a95db96803d4ce8acd8b8d42a10c0fce0d3b387b1a55be5e80a74b368e86d","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/crop_simulations.py:87:12","source": "services/gateway/crop_simulations.py","line": 87,"column": 12,"scope": "get_location_crop_simulation_runs","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["digital_twin","simulation_run"],"static_sql_sha256": "2c067d7128e080f2c7197ba99dd3f85f407da83fb2960912eb2678f808ba486a","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/data_stream.py:174:17","source": "services/gateway/data_stream.py","line": 174,"column": 17,"scope": "list_gateway_data_stream_posts","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/gateway/data_stream.py:223:17","source": "services/gateway/data_stream.py","line": 223,"column": 17,"scope": "list_gateway_data_stream_files","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/gateway/data_stream.py:289:17","source": "services/gateway/data_stream.py","line": 289,"column": 17,"scope": "get_gateway_data_stream_attestation","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "unknown_requires_manual_review"},

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,037 checklist items complete and 25
-open (1,062 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,038 checklist items complete and 25
+open (1,063 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -72,6 +72,22 @@ acceptance remains separate; none is marked accepted.
   simulation, nutrients, frozen-fixture/populated parity, live OIDC/browser,
   RLS, and MAN-CAP-002 remain open ([contract](irrigation-status-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-irrigation-status-kernel-read.json)).
+
+### CAP-002 completed crop-simulation run summaries — 23 October 2026
+
+- [x] Add a private OIDC read for completed `crop_simulation` runs under the
+  exact location `digital_twin:read` grant. A repeatable-read, read-only
+  transaction sets signed tenant context before a count and bounded page query;
+  both queries repeat the location, twin-type, twin-lifecycle, and completed-run
+  predicates. The summary exposes yield/unit, water, nitrogen, soil-carbon, and
+  run timing while excluding raw parameter JSON, metadata, errors, and financial
+  values. The 105-test Gateway/digital-twin/operator-auth selection, Ruff,
+  compilation, runtime SQL inventory, capability validation, and diff checks
+  pass. This reads persisted results and does not run or validate the model. No
+  migration, provider, candidate, or legacy database was used. Simulation
+  detail/state parity, nutrient outputs, frozen-fixture/populated parity, live
+  OIDC/browser, RLS, and MAN-CAP-002 remain open ([contract](crop-simulation-runs-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-runs-kernel-read.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

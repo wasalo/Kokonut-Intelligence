@@ -188,6 +188,14 @@ free text, GPS, evidence URLs, and arbitrary metadata are omitted. These routes
 are read-only and do not establish public/community visibility or populated-data
 parity; see the [Kernel read contract](../../docs/refactor/traceability-kernel-read-contract.md).
 
+Completed crop-simulation run summaries are available at
+`GET /operator/api/crop-simulations/{location_id}/runs` with an exact
+location-scoped `digital_twin:read` grant. Results are paginated and include
+run timing, yield, water, nitrogen, and soil-carbon summaries. Raw parameter
+JSON, metadata, errors, and financial values are excluded. The route reads
+persisted completed runs only; it does not execute simulations or claim model
+parity. See the [Kernel read contract](../../docs/refactor/crop-simulation-runs-kernel-read-contract.md).
+
 Global Baal governance reads are available at:
 
 - `GET /api/v1/governance/baal/config`
