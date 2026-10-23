@@ -33,6 +33,7 @@ DEMAND_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/563_location_operati
 WORK_OPPORTUNITIES_MIGRATION = ROOT / "schemas/postgres/564_location_operating_pilot_work_opportunities.sql"
 WORK_CLAIM_REVIEW_MIGRATION = ROOT / "schemas/postgres/565_location_operating_pilot_work_claim_review.sql"
 WORK_CLAIM_ALLOCATION_MIGRATION = ROOT / "schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql"
+RESOURCE_DRAFT_MIGRATION = ROOT / "schemas/postgres/567_location_operating_pilot_resource_request_draft.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -40,6 +41,8 @@ WORK_CLAIM_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-
 WORK_CLAIM_REVIEW_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-review-arm64-disposable.json"
 WORK_CLAIM_ALLOCATION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-allocation-disposable.json"
 WORK_CLAIM_ALLOCATION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-allocation-arm64-disposable.json"
+RESOURCE_DRAFT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-draft-disposable.json"
+RESOURCE_DRAFT_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-draft-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -3328,6 +3331,122 @@ DELETE FROM public.operator_scope_grant
 COMMIT;
 """
 
+RESOURCE_DRAFT_ACCEPTANCE = r"""
+BEGIN;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE created jsonb; replay jsonb; changed_retry_denied boolean := false;
+        no_grant_denied boolean := false; location_denied boolean := false;
+        invalid_denied boolean := false; expected_draft uuid;
+BEGIN
+    created := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9700000-0000-4000-8000-000000000001',
+        'irrigation tools', 'Synthetic private request for drip-line connectors',
+        'medium', CURRENT_DATE + 14
+    );
+    replay := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9700000-0000-4000-8000-000000000001',
+        'irrigation tools', 'Synthetic private request for drip-line connectors',
+        'medium', CURRENT_DATE + 14
+    );
+    expected_draft := (created->>'draft_id')::uuid;
+    IF expected_draft IS NULL
+       OR created->>'status' <> 'draft' OR created->>'replayed' <> 'false'
+       OR replay->>'draft_id' <> created->>'draft_id'
+       OR replay->>'status' <> 'draft' OR replay->>'replayed' <> 'true'
+       OR created::text ~* '(Synthetic private|requested_by_party_id|scope_id|description)' THEN
+        RAISE EXCEPTION 'resource draft create/replay or projection mismatch: %, %', created, replay;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_resource_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9700000-0000-4000-8000-000000000001',
+            'different resource', 'Synthetic private request for drip-line connectors',
+            'medium', CURRENT_DATE + 14
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'changed resource request retry was accepted'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_resource_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9700000-0000-4000-8000-000000000002',
+            'tools', 'No create grant', 'low', CURRENT_DATE + 1
+        );
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'resource draft accepted a read-only grant'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_resource_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9700000-0000-4000-8000-000000000003',
+            'tools', 'Wrong signed location', 'low', CURRENT_DATE + 1
+        );
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'resource draft accepted a different signed location'; END IF;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_resource_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9700000-0000-4000-8000-000000000004',
+            'tools', 'Invalid urgency', 'immediate', CURRENT_DATE + 1
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_denied := true;
+    END;
+    IF NOT invalid_denied THEN RAISE EXCEPTION 'resource draft accepted unsupported urgency'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+DECLARE expected uuid := 'd9700000-0000-4000-8000-000000000001';
+BEGIN
+    IF (SELECT count(*) FROM public.operating_resource_request_draft WHERE id = (
+            SELECT draft_id FROM public.operating_resource_request_draft_receipt
+             WHERE request_id = expected)) <> 1
+       OR (SELECT status FROM public.operating_resource_request_draft WHERE id = (
+            SELECT draft_id FROM public.operating_resource_request_draft_receipt
+             WHERE request_id = expected)) <> 'draft'
+       OR (SELECT description FROM public.operating_resource_request_draft WHERE id = (
+            SELECT draft_id FROM public.operating_resource_request_draft_receipt
+             WHERE request_id = expected)) <> 'Synthetic private request for drip-line connectors'
+       OR (SELECT count(*) FROM public.operating_resource_request
+            WHERE description = 'Synthetic private request for drip-line connectors') <> 0 THEN
+        RAISE EXCEPTION 'resource request draft was not stored privately outside the submitted table';
+    END IF;
+    IF NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.create_location_operating_pilot_resource_draft(uuid,uuid,text,text,text,date)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.create_location_operating_pilot_resource_draft(uuid,uuid,text,text,text,date)',
+            'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_resource_request_draft', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_resource_request_draft', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_resource_request_draft', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft', 'description', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft', 'description', 'INSERT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft_receipt', 'DELETE')
+       OR (SELECT count(*) FROM public.operating_resource_request_draft_receipt
+            WHERE request_id = expected) <> 1 THEN
+        RAISE EXCEPTION 'resource draft function, table, or append-only receipt ACL failed';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -3361,10 +3480,20 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migrations through 566 and test explicit claim allocation",
     )
+    parser.add_argument(
+        "--resource-request-draft",
+        action="store_true",
+        help="Also apply/replay migrations through 567 and test private resource-request drafts",
+    )
     args = parser.parse_args(argv)
+    if args.resource_request_draft:
+        args.work_claim_allocation = True
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (RESOURCE_DRAFT_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_DRAFT_OUTPUT)
+        if args.resource_request_draft
+        else
         (WORK_CLAIM_ALLOCATION_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_ALLOCATION_OUTPUT)
         if args.work_claim_allocation
         else (WORK_CLAIM_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_REVIEW_OUTPUT)
@@ -3402,7 +3531,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -3432,6 +3561,12 @@ def main(argv: list[str] | None = None) -> int:
             "capacity submissions require the separate exact submit-own grant and preserve ownership, signed scope, and draft-only eligibility",
             "exact capacity submission retries replay; changed request reuse, missing grants, cross-party profiles, non-drafts, and location mismatch fail closed",
             "capacity submission receipt access is limited to the non-login function owner; runtime and Directus cannot read or write it directly",
+            "resource draft creation requires exact signed location context, a current create grant, one active human binding, and an active Adelphi farm mapping",
+            "resource drafts remain in a private Kernel table and do not appear in the existing submitted resource table or public aggregates",
+            "resource draft fields are bounded; exact retry replays while changed request-ID reuse is rejected",
+            "resource draft results omit requester identity, scope, description, and urgency and do not submit or review the request",
+            "runtime receives only function execution; Directus and runtime cannot access resource drafts or receipts directly",
+            "the non-login function owner can insert private drafts but cannot select descriptions or mutate receipts",
             "capacity review queue requires an exact review grant, excludes the reviewer own human party, and returns only submitted self-reported Adelphi rows",
             "capacity review pages are bounded, location-scoped, deterministic, and omit notes, party IDs, scope IDs, and source metadata",
             "capacity review queue denies missing grants and signed-location mismatch; runtime can execute it while Directus cannot",
@@ -3499,6 +3634,14 @@ def main(argv: list[str] | None = None) -> int:
                 "allocation sets only work-item allocation_status and assignee_party_id; lifecycle status and accepted claim review remain unchanged",
                 "allocation receipt is append-only and exact retries replay; changed request reuse and repeat allocation fail closed",
                 "runtime receives bounded allocation function access only; Directus and runtime cannot access allocation receipts or update assignee columns directly",
+            ]
+        )
+    if args.resource_request_draft:
+        evidence["migrations"].append(RESOURCE_DRAFT_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "resource drafts are excluded from legacy submitted request storage and aggregate/category projections",
+                "resource create, exact retry, changed retry, missing grant, signed-location mismatch, invalid input, and ACL assertions pass",
             ]
         )
     try:
@@ -3585,6 +3728,10 @@ def main(argv: list[str] | None = None) -> int:
             work_claim_allocation_migration = WORK_CLAIM_ALLOCATION_MIGRATION.read_text(encoding="utf-8")
             psql(docker, container, work_claim_allocation_migration)
             psql(docker, container, work_claim_allocation_migration)
+        if args.resource_request_draft:
+            resource_draft_migration = RESOURCE_DRAFT_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, resource_draft_migration)
+            psql(docker, container, resource_draft_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -3602,10 +3749,13 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, WORK_CLAIM_REVIEW_ACCEPTANCE)
         if args.work_claim_allocation:
             psql(docker, container, WORK_CLAIM_ALLOCATION_ACCEPTANCE)
+        if args.resource_request_draft:
+            psql(docker, container, RESOURCE_DRAFT_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            82 if args.work_claim_allocation
+            88 if args.resource_request_draft
+            else 82 if args.work_claim_allocation
             else 74 if args.work_claim_review
             else 67 if args.work_opportunities
             else 65 if args.demand_review_decision
@@ -3613,7 +3763,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            566 if args.work_claim_allocation
+            567 if args.resource_request_draft
+            else 566 if args.work_claim_allocation
             else 565 if args.work_claim_review
             else 564 if args.work_opportunities
             else 563 if args.demand_review_decision

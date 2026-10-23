@@ -25,6 +25,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert "Location-scoped operating summary" in panel.group()
     assert 'id="operating-pilot-demand-create-form"' in panel.group()
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
+    assert 'id="operating-pilot-resource-create-form"' in panel.group()
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
     assert 'id="operating-pilot-demand-review-rows"' in panel.group()
@@ -92,6 +93,24 @@ def test_work_claim_cohort_suppression_never_renders_individual_claim_data():
     assert "item.work_type" in claims
     for private_field in ("claim_id", "work_item_id", "claimant_party_id", "decision_reason"):
         assert private_field not in claims
+
+
+def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(source, 'id="operating-pilot-resource-create"', 'id="operating-pilot-own-capacity"')
+    submit = _function(source, "async function submitOperatingPilotResourceDraft(event)", "function cancelOperatingPilotCapacityEdit()")
+    assert "operatingPilotResourceCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in source
+    assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests`' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert "crypto.randomUUID()" in submit
+    assert "result.status !== \"draft\"" in submit
+    assert "Private resource draft saved" in submit
+    assert "not visible in the review queue" in submit
+    assert "innerHTML" not in submit
+    assert "description" in panel
+    assert "funding decision" in panel
 
 
 def test_work_opportunities_show_claim_action_only_under_claim_own_and_keep_it_proposal_only():

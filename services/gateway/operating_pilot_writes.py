@@ -128,6 +128,30 @@ def _normalize_capacity_payload(payload: Any) -> tuple[date, date, Decimal, Deci
     )
 
 
+def _normalize_resource_request_payload(payload: Any) -> tuple[str, str, str, date]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Resource draft body must be an object")
+    resource_type = payload.get("resource_type")
+    if not isinstance(resource_type, str) or not _WORK_TYPE.fullmatch(resource_type.strip()):
+        raise OperatingPilotWriteInvalid("Resource type must be 1 to 50 safe characters")
+    description = payload.get("description")
+    if (
+        not isinstance(description, str)
+        or not description.strip()
+        or len(description) > 2000
+        or "\x00" in description
+    ):
+        raise OperatingPilotWriteInvalid("Description must be text of 1 to 2000 characters")
+    urgency = payload.get("urgency", "medium")
+    if not isinstance(urgency, str) or urgency not in _PRIORITIES:
+        raise OperatingPilotWriteInvalid("Urgency must be low, medium, high, or critical")
+    requested_by = _normalize_date(payload.get("requested_by"), "requested_by")
+    unexpected = set(payload) - {"resource_type", "description", "urgency", "requested_by"}
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Resource draft contains unsupported fields")
+    return resource_type.strip(), description.strip(), urgency, requested_by
+
+
 def _normalize_capacity_review_payload(payload: Any) -> tuple[str, str | None]:
     if not isinstance(payload, dict):
         raise OperatingPilotWriteInvalid("Capacity review body must be an object")
@@ -254,6 +278,52 @@ def create_location_operating_pilot_demand_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot demand draft returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_operating_pilot_resource_draft(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create or replay a private resource-request draft without submitting it."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    resource_type, description, urgency, requested_by = _normalize_resource_request_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.create_location_operating_pilot_resource_draft(
+                           %s::uuid, %s::uuid, %s::text, %s::text, %s::text, %s::date)""",
+                (location_id, request_id, resource_type, description, urgency, requested_by),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot resource draft returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

@@ -34,6 +34,12 @@ PAYLOAD = {
     "priority": "high",
     "description": "Private synthetic planning note",
 }
+RESOURCE_PAYLOAD = {
+    "resource_type": "irrigation tools",
+    "description": "Synthetic request for replacement drip-line connectors",
+    "urgency": "medium",
+    "requested_by": "2026-11-15",
+}
 
 
 def _connection_with_result(result):
@@ -145,11 +151,112 @@ def test_demand_draft_failure_rolls_back_and_closes_connection(monkeypatch):
     connection.close.assert_called_once_with()
 
 
-def _route_app(monkeypatch, action):
+def test_resource_draft_sets_exact_create_context_and_commits(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"draft_id": REQUEST_ID, "status": "draft", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.create_location_operating_pilot_resource_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        REQUEST_ID,
+        RESOURCE_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "operating_pilot",
+                "action": "create",
+            },
+        )
+    ]
+    assert "SET LOCAL statement_timeout" in cursor.execute.call_args_list[0].args[0]
+    assert "create_location_operating_pilot_resource_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        REQUEST_ID,
+        "irrigation tools",
+        "Synthetic request for replacement drip-line connectors",
+        "medium",
+        operating_pilot_writes.date(2026, 11, 15),
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"resource_type": " "}, "Resource type"),
+        ({"resource_type": "<script>"}, "Resource type"),
+        ({"description": " "}, "Description"),
+        ({"description": "x" * 2001}, "Description"),
+        ({"description": "unsafe\x00text"}, "Description"),
+        ({"urgency": "immediate"}, "Urgency"),
+        ({"requested_by": "2026-02-30"}, "requested_by"),
+        ({"party_id": OPERATOR_ID}, "unsupported fields"),
+    ],
+)
+def test_invalid_resource_draft_is_rejected_before_database_access(changes, message):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match=message):
+        operating_pilot_writes.create_location_operating_pilot_resource_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            REQUEST_ID,
+            {**RESOURCE_PAYLOAD, **changes},
+            connection_factory=factory,
+        )
+
+    factory.assert_not_called()
+
+
+def test_resource_draft_failure_rolls_back_and_closes_connection(monkeypatch):
+    connection, _ = _connection_with_result(None)
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(RuntimeError, match="returned no result"):
+        operating_pilot_writes.create_location_operating_pilot_resource_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            REQUEST_ID,
+            RESOURCE_PAYLOAD,
+            connection_factory=lambda: connection,
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
+def _route_app(monkeypatch, action, operation="create_location_operating_pilot_demand_draft"):
     async def run_inline(function, *args, **kwargs):
         return function(*args, **kwargs)
 
-    monkeypatch.setattr(operating_pilot_writes, "create_location_operating_pilot_demand_draft", action)
+    monkeypatch.setattr(operating_pilot_writes, operation, action)
     router = APIRouter()
     register_operating_pilot_routes(router, object(), run_inline, __import__("psycopg2"))
     app = FastAPI()
@@ -212,6 +319,41 @@ def test_demand_draft_route_policy_requires_exact_location_create_grant():
         )
         is None
     )
+
+
+def test_resource_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
+    action = MagicMock(return_value={"draft_id": REQUEST_ID, "status": "draft", "replayed": False})
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_resource_draft")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["status"] == "draft"
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, RESOURCE_PAYLOAD)
+
+
+def test_resource_draft_route_policy_requires_exact_location_create_grant():
+    assert auth_route_policy(
+        "POST",
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
+        enabled=True,
+    ) == {
+        "resource": "operating_pilot",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy(
+        "POST",
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
+        enabled=False,
+    ) is None
 
 
 def test_capacity_draft_sets_exact_create_context_and_commits_function_result(monkeypatch):
