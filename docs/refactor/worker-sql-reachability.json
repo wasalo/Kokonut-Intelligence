@@ -5727,7 +5727,7 @@
       "scope": "_persist_summary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "INSERT",
       "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.climate_data",

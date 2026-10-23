@@ -291,9 +291,11 @@ literal operation name, and unknown names fail before cursor access. The worker
 and runtime SQL inventories recognize this guarded immutable map and record
 all twelve variants for each of its two execution sites using operation names,
 statement kinds, relation candidates, and hashes only. The three shared
-database-adapter sites and the GEE climate template-dispatch site remain
-`UNKNOWN`; their source/caller contracts need separate review. Reviewed
-application fragments bind values and use fixed source-controlled fragments.
+database-adapter sites remain `UNKNOWN`; their source/caller contracts need
+separate review. The GEE climate persistence helper is resolved from its four
+same-module callers, each of which supplies a literal query template and binds
+values separately. Reviewed application fragments use fixed source-controlled
+SQL and bound values.
 No user-derived identifier interpolation was found in the reviewed call sites.
 Keep this review current as the inventory changes. The static call graph
 follows local instance types and the explicit metric registry, but 75 SQL sites

@@ -4313,12 +4313,50 @@
       "scope": "_persist_summary",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "INSERT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.climate_worker"
+      ],
+      "statement_variants": [
+        {
+          "operation": "fetch_era5_land@478",
+          "statement_kind": "INSERT",
+          "candidate_relations": [
+            "SET",
+            "ncep_weather_summary"
+          ],
+          "static_sql_sha256": "22510a69d2e1e48b63c18133c806b707538c1280d4788949f39ad1683c375feb"
+        },
+        {
+          "operation": "fetch_modis_lst@200",
+          "statement_kind": "INSERT",
+          "candidate_relations": [
+            "SET",
+            "modis_lst_summary"
+          ],
+          "static_sql_sha256": "e61fd0ef89b0c17bfa1cd395cbe10bd687ed10c84c64d2fc7aa91b66ea0378db"
+        },
+        {
+          "operation": "fetch_sentinel1_sar@359",
+          "statement_kind": "INSERT",
+          "candidate_relations": [
+            "SET",
+            "sentinel1_sar_summary"
+          ],
+          "static_sql_sha256": "19d33cfc4c3b81ae05806ed716bb050a411d01889896ff6998c53150c8034b8e"
+        },
+        {
+          "operation": "fetch_smap_moisture@278",
+          "statement_kind": "INSERT",
+          "candidate_relations": [
+            "SET",
+            "smap_soil_moisture"
+          ],
+          "static_sql_sha256": "44c765906983b8e86dfab08af6e423e2fa9dfc60ff101194856e6ae48a7887cc"
+        }
       ]
     },
     {

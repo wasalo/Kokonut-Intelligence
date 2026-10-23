@@ -9,6 +9,7 @@ import re
 from scripts.worker_source_closure import build_inventory as build_source_closure
 from scripts.worker_sql_inventory import (
     ROOT,
+    _literal_caller_variants,
     _local_statement_kind,
     _operation_map_variants,
     _query_template,
@@ -109,10 +110,58 @@ def test_unknown_sql_sites_include_generic_adapters_and_reviewed_dispatch_paths(
         ("services/common/database.py", 77),
         ("services/common/database.py", 80),
         ("services/common/database.py", 142),
-        # The provider selects one of four source-defined SQL templates, then
-        # passes the template and bound values to this shared persistence helper.
-        ("services/ingestion/gee_climate.py", 92),
     ]
+
+
+def test_gee_climate_inventory_records_its_four_literal_caller_templates():
+    inventory = _load_inventory()
+    site = next(
+        site
+        for site in inventory["execution_sites"]
+        if site["source"] == "services/ingestion/gee_climate.py" and site["line"] == 92
+    )
+
+    assert site["statement_kind"] == "INSERT"
+    assert len(site["statement_variants"]) == 4
+    assert {variant["operation"].split("@", 1)[0] for variant in site["statement_variants"]} == {
+        "fetch_modis_lst",
+        "fetch_smap_moisture",
+        "fetch_sentinel1_sar",
+        "fetch_era5_land",
+    }
+    assert all(variant["statement_kind"] == "INSERT" for variant in site["statement_variants"])
+    assert all(re.fullmatch(r"[0-9a-f]{64}", variant["static_sql_sha256"]) for variant in site["statement_variants"])
+    assert all("sql" not in variant and "query" not in variant for variant in site["statement_variants"])
+
+
+def test_local_caller_sql_resolution_fails_closed_on_dynamic_or_positional_inputs():
+    safe_tree = ast.parse(
+        'def _persist(sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    sql = "INSERT INTO first_table (value) VALUES (%s)"\n'
+        '    _persist(sql=sql)\n'
+        'def fetch_two():\n'
+        '    sql = "INSERT INTO second_table (value) VALUES (%s)"\n'
+        '    _persist(sql=sql)\n'
+    )
+    helper = next(node for node in safe_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist")
+    variants = _literal_caller_variants(safe_tree, helper, "sql")
+    assert variants is not None
+    assert {variant["operation"].split("@", 1)[0] for variant in variants} == {"fetch_one", "fetch_two"}
+    assert {variant["candidate_relations"][0] for variant in variants} == {"first_table", "second_table"}
+
+    dynamic_tree = ast.parse(
+        'def _persist(sql):\n'
+        '    cursor.execute(sql)\n'
+        'def fetch_one():\n'
+        '    sql = build_query()\n'
+        '    _persist(sql=sql)\n'
+    )
+    dynamic_helper = next(
+        node for node in dynamic_tree.body if isinstance(node, ast.FunctionDef) and node.name == "_persist"
+    )
+    assert _literal_caller_variants(dynamic_tree, dynamic_helper, "sql") is None
 
 
 def test_sensor_anomaly_sql_inventory_records_only_fixed_map_variants():
