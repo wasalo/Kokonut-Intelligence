@@ -104,10 +104,15 @@ run without decrypting `.env.sops`.
   through `SECURITY DEFINER` functions. Migration 579 adds terminal-status
   insert guards to the same 43 tables that had migration 350 update triggers.
   The caller-set `app.agent_id` marker remains an extra restrictive
-  compatibility signal and does not establish identity. Per-agent identities,
-  broader insert coverage, and source-query least privilege remain open; this
+  compatibility signal and does not establish identity. Migration 579 covers
+  terminal inserts on the same 43 tables as migration 350's update triggers;
+  the disposable fixture exercises all 43 names, while full ARM64/QEMU schema
+  replay confirms migration application. Per-agent identities, protection for
+  other governed tables, RLS, and source-query least privilege remain open; this
   is not a complete agent boundary ([migration 578](../../schemas/postgres/578_authenticated_agent_safety_trigger.sql);
-  [migration 579](../../schemas/postgres/579_agent_safety_insert_guard.sql)).
+  [migration 579](../../schemas/postgres/579_agent_safety_insert_guard.sql);
+  [disposable evidence](builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json);
+  [ARM64/QEMU evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-579.json)).
 - The legacy Python `set_agent_context()` helper now fails closed before it
   issues SQL. `SET LOCAL app.agent_id` cannot authenticate the caller, so
   retaining a callable setter would invite code to mistake an arbitrary session

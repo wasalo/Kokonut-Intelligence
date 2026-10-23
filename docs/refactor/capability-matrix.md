@@ -9,13 +9,19 @@ All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation a
 **CAP-038 authenticated worker lifecycle insert guard — 22 October 2026:**
 migration 579 adds replay-safe terminal-status insert triggers to the same 43
 tables already guarded for updates. The disposable PostgreSQL 16 chain passes
-28 grouped checks across migrations 405, 578, and 579, including worker denial
-through a security-definer wrapper and human-path preservation; the migration
-unit suite passes 36 tests with Ruff, compilation, and diff checks. The synthetic
-fixture covers one representative table. Per-task identities, broader source
+30 grouped checks across migrations 405, 578, and 579, including worker denial
+through a security-definer wrapper, terminal insert denial on all 43 governed
+table names, allowed drafts, and human-path preservation. The fixture excludes
+an unrelated status table without a lifecycle trigger. The migration unit suite
+passes 36 tests with Ruff, compilation, and diff checks. A network-disabled
+ARM64/QEMU replay applies all 570 current schema files through migration 579
+with zero pending/failed, no seeds or ports, `aarch64`, and verified cleanup.
+The lifecycle fixture uses minimal synthetic table definitions; this does not
+establish physical Raspberry Pi behavior. Per-task identities, broader source
 least privilege, and MAN-CAP-038 acceptance remain open
 ([migration](../schemas/postgres/579_agent_safety_insert_guard.sql);
-[evidence](builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json)).
+[disposable evidence](builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-579.json)).
 
 **CAP-038 authenticated worker lifecycle guard — 22 October 2026:** migration
 578 makes the existing governed-status trigger recognize authenticated worker

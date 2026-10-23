@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ FIXTURE = ROOT / "tests/fixtures/worker_tenant_context_disposable.sql"
 MIGRATION = ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql"
 AGENT_SAFETY_MIGRATION = ROOT / "schemas/postgres/578_authenticated_agent_safety_trigger.sql"
 AGENT_SAFETY_INSERT_MIGRATION = ROOT / "schemas/postgres/579_agent_safety_insert_guard.sql"
+AGENT_SAFETY_UPDATE_MIGRATION = ROOT / "schemas/postgres/350_agent_safety_triggers.sql"
 DEFAULT_OUTPUT = (
     ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-agent-safety-insert-disposable.json"
 )
@@ -128,6 +130,36 @@ def assert_no_context(connection) -> None:
             raise AssertionError("denied or transaction-ended worker scope remained active")
 
 
+def governed_tables() -> list[str]:
+    """Read the exact legacy trigger targets that migration 579 extends."""
+    source = AGENT_SAFETY_UPDATE_MIGRATION.read_text(encoding="utf-8")
+    names = re.findall(
+        r"CREATE TRIGGER trg_agent_safety\s+BEFORE UPDATE ON ([a-z][a-z0-9_]*)",
+        source,
+        flags=re.IGNORECASE,
+    )
+    if len(names) != 43 or len(set(names)) != len(names):
+        raise RuntimeError("migration 350 governed trigger inventory changed; review the disposable fixture")
+    return names
+
+
+def create_governed_table_fixtures(docker: str, container: str, names: list[str]) -> None:
+    """Model all 43 migration-350 trigger targets in the minimal fixture."""
+    statements = [
+        f"CREATE TABLE public.{name} (id INTEGER PRIMARY KEY, status TEXT NOT NULL);\n"
+        f"INSERT INTO public.{name} (id, status) VALUES (1, 'submitted');\n"
+        f"CREATE TRIGGER trg_agent_safety BEFORE UPDATE ON public.{name} "
+        "FOR EACH ROW WHEN (NEW.status IS DISTINCT FROM OLD.status) "
+        "EXECUTE FUNCTION public.assert_agent_safety('status');"
+        for name in names
+    ]
+    statements.append(
+        "CREATE TABLE public.agent_safety_unmanaged_probe "
+        "(id INTEGER PRIMARY KEY, status TEXT NOT NULL);"
+    )
+    docker_sql(docker, container, "\n".join(statements))
+
+
 def main() -> int:
     docker = shutil.which("docker")
     if not docker:
@@ -144,6 +176,7 @@ def main() -> int:
 
     created = False
     checks: list[str] = []
+    governed = governed_tables()
     try:
         run(
             [
@@ -163,6 +196,7 @@ def main() -> int:
         created = True
         wait_ready(docker, container)
         docker_sql(docker, container, FIXTURE.read_text(encoding="utf-8"))
+        create_governed_table_fixtures(docker, container, governed)
         docker_sql(docker, container, MIGRATION.read_text(encoding="utf-8"))
         docker_sql(docker, container, MIGRATION.read_text(encoding="utf-8"))
         docker_sql(docker, container, AGENT_SAFETY_MIGRATION.read_text(encoding="utf-8"))
@@ -185,7 +219,8 @@ def main() -> int:
                 '{WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
                 '{RESOURCE}', '{ACTION}', 'disposable fixture'
             );
-            GRANT SELECT, INSERT, UPDATE ON public.agent_safety_probe
+            GRANT SELECT, INSERT, UPDATE ON public.agent_safety_probe,
+                public.agent_safety_unmanaged_probe, {", ".join(f"public.{name}" for name in governed)}
                 TO kokonut_worker_execution, kokonut_runtime;
             """,
         )
@@ -200,13 +235,37 @@ def main() -> int:
         try:
             with admin.cursor() as cursor:
                 cursor.execute(
+                    "SELECT relation.relname FROM pg_catalog.pg_trigger AS trigger_row "
+                    "JOIN pg_catalog.pg_class AS relation ON relation.oid = trigger_row.tgrelid "
+                    "JOIN pg_catalog.pg_namespace AS namespace ON namespace.oid = relation.relnamespace "
+                    "WHERE namespace.nspname = 'public' "
+                    "AND trigger_row.tgname = 'trg_agent_safety_insert' "
+                    "AND NOT trigger_row.tgisinternal ORDER BY relation.relname"
+                )
+                actual_insert_targets = {row[0] for row in cursor.fetchall()}
+                expected_insert_targets = {*governed, "agent_safety_probe"}
+                if actual_insert_targets != expected_insert_targets:
+                    raise AssertionError(
+                        "migration replay insert triggers differ from the 43 governed targets"
+                    )
+                cursor.execute(
                     "SELECT count(*) FROM pg_catalog.pg_trigger "
                     "WHERE tgrelid = 'public.agent_safety_probe'::pg_catalog.regclass "
                     "AND tgname = 'trg_agent_safety_insert' AND NOT tgisinternal"
                 )
                 if cursor.fetchone()[0] != 1:
                     raise AssertionError("migration replay did not leave exactly one insert trigger")
-            checks.append("migration replay leaves one idempotent terminal-status insert trigger")
+                cursor.execute(
+                    "SELECT count(*) FROM pg_catalog.pg_trigger "
+                    "WHERE tgrelid = 'public.agent_safety_unmanaged_probe'::pg_catalog.regclass "
+                    "AND tgname = 'trg_agent_safety_insert' AND NOT tgisinternal"
+                )
+                if cursor.fetchone()[0] != 0:
+                    raise AssertionError("migration guarded a status table without a lifecycle trigger")
+            checks.append(
+                "migration replay creates exactly one insert guard on all 43 legacy governed tables and the probe"
+            )
+            checks.append("migration excludes a status table without the governed lifecycle trigger")
 
             context = set_context(worker)
             if (
@@ -374,6 +433,34 @@ def main() -> int:
                     runtime.rollback()
                     raise AssertionError("legacy agent marker stopped restricting terminal inserts")
             checks.append("legacy app.agent_id marker also restricts terminal inserts")
+
+            for table_name in governed:
+                for terminal_status in ("verified", "published"):
+                    set_context(worker)
+                    with worker.cursor() as cursor:
+                        cursor.execute("SET LOCAL app.agent_id = ''")
+                        try:
+                            cursor.execute(
+                                f"INSERT INTO public.{table_name} (id, status) VALUES (2, '{terminal_status}')"
+                            )
+                        except psycopg2.Error as exc:
+                            worker.rollback()
+                            if exc.pgcode != "42501":
+                                raise
+                        else:
+                            worker.rollback()
+                            raise AssertionError(
+                                f"worker inserted {terminal_status} into governed table {table_name}"
+                            )
+                set_context(worker)
+                with worker.cursor() as cursor:
+                    cursor.execute(
+                        f"INSERT INTO public.{table_name} (id, status) VALUES (2, 'draft')"
+                    )
+                worker.commit()
+            checks.append(
+                "authenticated worker cannot insert verified or published rows across all 43 governed tables; draft inserts remain allowed"
+            )
 
             with worker.cursor() as cursor:
                 cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
@@ -715,7 +802,7 @@ def main() -> int:
             "candidate_or_legacy_database_access": False,
             "worker_credential_printed": False,
             "limitations": [
-                "Migrations 405, 578, and 579 ran against a minimal synthetic prior-schema fixture; the lifecycle triggers use one synthetic table instead of replaying all governed tables.",
+                "Migrations 405, 578, and 579 ran against a minimal synthetic prior-schema fixture. It creates synthetic definitions for all 43 governed table names extracted from migration 350 plus one security-definer probe; it does not replay the historical table DDL.",
                 "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised.",
             ],
         }

@@ -14,7 +14,11 @@
   "checks": [
     {
       "result": "passed",
-      "description": "migration replay leaves one idempotent terminal-status insert trigger"
+      "description": "migration replay creates exactly one insert guard on all 43 legacy governed tables and the probe"
+    },
+    {
+      "result": "passed",
+      "description": "migration excludes a status table without the governed lifecycle trigger"
     },
     {
       "result": "passed",
@@ -63,6 +67,10 @@
     {
       "result": "passed",
       "description": "legacy app.agent_id marker also restricts terminal inserts"
+    },
+    {
+      "result": "passed",
+      "description": "authenticated worker cannot insert verified or published rows across all 43 governed tables; draft inserts remain allowed"
     },
     {
       "result": "passed",
@@ -128,7 +136,7 @@
   "candidate_or_legacy_database_access": false,
   "worker_credential_printed": false,
   "limitations": [
-    "Migrations 405, 578, and 579 ran against a minimal synthetic prior-schema fixture; the lifecycle triggers use one synthetic table instead of replaying all governed tables.",
+    "Migrations 405, 578, and 579 ran against a minimal synthetic prior-schema fixture. It creates synthetic definitions for all 43 governed table names extracted from migration 350 plus one security-definer probe; it does not replay the historical table DDL.",
     "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised."
   ]
 }
