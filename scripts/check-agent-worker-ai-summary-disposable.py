@@ -50,10 +50,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/583_isolated_ecological_modeling_worker.sql",
     ROOT / "schemas/postgres/584_isolated_holistic_wellbeing_worker.sql",
     ROOT / "schemas/postgres/585_isolated_feedback_worker.sql",
+    ROOT / "schemas/postgres/586_isolated_commons_liberation_worker.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-feedback-identity-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-commons-liberation-identity-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -116,6 +117,11 @@ FEEDBACK_SOURCE_RAW_CREDENTIAL = "synthetic-feedback-source-credential-2026-10-2
 FEEDBACK_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     FEEDBACK_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
+COMMONS_LIBERATION_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000912"
+COMMONS_LIBERATION_SOURCE_RAW_CREDENTIAL = "synthetic-commons-liberation-source-credential-2026-10-23"
+COMMONS_LIBERATION_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    COMMONS_LIBERATION_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
 ORGANIC_SOURCE_VIEW_NAMES = (
     "organic_readiness_assessment",
     "organic_transition_plan",
@@ -139,6 +145,12 @@ HOLISTIC_WELLBEING_SOURCE_VIEW_NAMES = (
     "v_public_participatory_governance_summary",
 )
 FEEDBACK_SOURCE_VIEW_NAMES = ("v_public_stakeholder_feedback_summary",)
+COMMONS_LIBERATION_SOURCE_VIEW_NAMES = (
+    "v_public_time_liberation_summary",
+    "v_public_capital_alignment_summary",
+    "v_public_governance_inclusion_summary",
+    "v_public_land_stewardship_summary",
+)
 ECOLOGICAL_SOURCE_VIEW_NAMES = (
     "ecological_interaction",
     "energy_flow_measurement",
@@ -233,7 +245,6 @@ SOURCE_READER_VIEWS = tuple(sorted({
     "v_public_bio_input_provenance_summary",
     "v_public_bio_recipe_library_summary",
     "v_public_bio_regional_input_summary",
-    "v_public_capital_alignment_summary",
     "v_public_capital_efficiency_summary",
     "v_public_capital_provider_utility_summary",
     "v_public_commons_redistribution_policy",
@@ -244,10 +255,8 @@ SOURCE_READER_VIEWS = tuple(sorted({
     "v_public_financial_sustainability_summary",
     "v_public_foundational_wellbeing_summary",
     "v_public_gnh_alignment_summary",
-    "v_public_governance_inclusion_summary",
     "v_public_governance_throughput_summary",
     "v_public_green_paper_publication_status",
-    "v_public_land_stewardship_summary",
     "v_public_network_scaling_target",
     "v_public_open_source_impact_artifact",
     "v_public_participatory_signal_experiment",
@@ -258,12 +267,13 @@ SOURCE_READER_VIEWS = tuple(sorted({
     "v_public_replication_readiness_summary",
     "v_public_risk_mitigation_summary",
     "v_public_scaling_roadmap_summary",
-    "v_public_time_liberation_summary",
     "v_public_vulnerable_access_summary",
     # Holistic wellbeing receives these consent-filtered projections through
     # its own migration-584 task reader.
     # Feedback receives its consent-safe summary through a separate
     # migration-585 task reader.
+    # Commons Liberation receives four location-filtered views through its
+    # migration-586 task reader.
 }))
 DETERMINISTIC_SOURCE_TABLES = (
     "crop",
@@ -935,6 +945,148 @@ def _feedback_source_stale_grants() -> str:
         TO kokonut_agent_feedback_reader, kokonut_agent_feedback_login;
     GRANT CREATE ON SCHEMA public, kokonut_security, kokonut_agent_source
         TO kokonut_agent_feedback_reader, kokonut_agent_feedback_login;
+    """
+
+
+def _commons_liberation_source_projection_fixture() -> str:
+    tables = (
+        "time_liberation_observation",
+        "capital_alignment_assessment",
+        "governance_inclusion_observation",
+        "land_stewardship_commitment",
+    )
+    return "\n".join(
+        f"INSERT INTO public.{table} (id, location_id, status) "
+        f"VALUES ('e0000000-0000-4000-8000-{index:012d}', "
+        f"'{OTHER_LOCATION_ID}', 'published');"
+        for index, table in enumerate(tables, start=981)
+    )
+
+
+def _commons_liberation_source_scope_acceptance() -> str:
+    view_names_sql = ", ".join(
+        f"'{name}'" for name in COMMONS_LIBERATION_SOURCE_VIEW_NAMES
+    )
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{COMMONS_LIBERATION_SOURCE_WORKER_ID}', 'agent-commons-liberation-source')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{COMMONS_LIBERATION_SOURCE_WORKER_ID}',
+            '{COMMONS_LIBERATION_SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{COMMONS_LIBERATION_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic commons liberation acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.unnest(ARRAY[{view_names_sql}]::TEXT[]) AS approved(view_name)
+             WHERE NOT has_table_privilege(
+                 'kokonut_agent_commons_liberation_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_login',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             )
+        ) OR has_table_privilege(
+            'kokonut_agent_commons_liberation_reader',
+            'kokonut_agent_source.v_public_cultural_context_summary', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_commons_liberation_reader',
+            'public.time_liberation_observation', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_commons_liberation_login',
+            'public.capital_alignment_assessment', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_commons_liberation_reader', 'public.ai_summary', 'SELECT'
+        ) OR has_schema_privilege(
+            'kokonut_agent_commons_liberation_login', 'kokonut_agent_source', 'USAGE'
+        ) OR has_function_privilege(
+            'kokonut_agent_commons_liberation_login',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) THEN
+            RAISE EXCEPTION 'commons liberation roles exceed their task source contract';
+        END IF;
+    END $$;
+
+    SET ROLE kokonut_agent_commons_liberation_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_commons_liberation_reader;
+    DO $$
+    DECLARE view_name TEXT; visible_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{view_names_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO visible_rows;
+            IF visible_rows <> 0 THEN
+                RAISE EXCEPTION 'commons liberation view % returned rows without signed context',
+                    view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{COMMONS_LIBERATION_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_commons_liberation_reader;
+    DO $$
+    DECLARE view_name TEXT; own_rows BIGINT; foreign_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{view_names_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO own_rows USING '{LOCATION_ID}'::UUID;
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO foreign_rows USING '{OTHER_LOCATION_ID}'::UUID;
+            IF own_rows <> 1 OR foreign_rows <> 0 THEN
+                RAISE EXCEPTION 'commons liberation view % violated signed scope (own %, foreign %)',
+                    view_name, own_rows, foreign_rows;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+    RESET ROLE;
+    """
+
+
+def _commons_liberation_source_stale_grants() -> str:
+    views = ", ".join(
+        f"kokonut_agent_source.{name}"
+        for name in COMMONS_LIBERATION_SOURCE_VIEW_NAMES
+    )
+    return f"""
+    GRANT SELECT ON {views}
+        TO PUBLIC, kokonut_agent_summary_source_reader,
+           kokonut_agent_summary_source_login;
+    GRANT SELECT ON kokonut_agent_source.v_public_cultural_context_summary,
+        kokonut_agent_source.v_public_capital_efficiency_summary
+        TO kokonut_agent_commons_liberation_reader;
+    GRANT SELECT ON public.ai_summary, public.time_liberation_observation,
+        public.capital_alignment_assessment
+        TO kokonut_agent_commons_liberation_reader,
+           kokonut_agent_commons_liberation_login;
+    GRANT CREATE ON SCHEMA public, kokonut_security, kokonut_agent_source
+        TO kokonut_agent_commons_liberation_reader,
+           kokonut_agent_commons_liberation_login;
     """
 
 
@@ -3201,7 +3353,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-585 apply; migrations 530-537, 539-548, 580-585 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-586 apply; migrations 530-537, 539-548, 580-586 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -3227,7 +3379,7 @@ def main() -> int:
         "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
         "independent operator review sees the worker attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
-        "synthesis source login can invoke only its bounded context setter; the shared reader sees the remaining 37 signed location-filtered wrappers after task-specific isolation, with no raw/private/security tables and explicit network/mixed-scope behavior",
+        "synthesis source login can invoke only its bounded context setter; the shared reader sees the remaining 32 signed location-filtered wrappers after task-specific isolation, with no raw/private/security tables and explicit network/mixed-scope behavior",
         "migration 541 removes inherited query-statistics access and stale direct table, sequence, function, and schema-create grants from the source login",
         "migration 541 removes stale public-schema CREATE from the NOLOGIN source reader as well as the source login",
         "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
@@ -3252,6 +3404,9 @@ def main() -> int:
         "migration 585 isolates feedback synthesis to its one consent-safe public summary and removes it from the shared synthesis reader",
         "migration 585 replay removes stale PUBLIC/shared grants, unrelated wellbeing/capital projections, raw feedback access, and schema CREATE privileges",
         "feedback source returns no rows without signed context and only the owned location after signed scope, excluding foreign feedback",
+        "migration 586 isolates Commons Liberation to four location-filtered projections and removes them from the shared synthesis reader",
+        "migration 586 replay removes stale PUBLIC/shared grants, unrelated wellbeing/capital projections, raw source access, and schema CREATE privileges",
+        "Commons Liberation source returns no rows without signed context and only owned rows across its four views, excluding foreign locations",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -3266,11 +3421,12 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, and feedback use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees only its consent-safe stakeholder summary. The remaining shared reader retains 36 registered source projections. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, and Commons Liberation use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views. The remaining shared reader retains 32 registered source projections. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "ecological_projection_fixture_note": "Because this focused disposable chain does not apply historical farm/ecology schema migrations 550-551, twenty-seven synthetic security-barrier projections stand in for those outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "holistic_wellbeing_projection_fixture_note": "Migrations 535 and 543 create the real consent-filtered and signed security-barrier source projections in this disposable chain. Synthetic own/foreign rows are added to the fixture source tables before migration 584; no live stakeholder data or candidate/legacy database is used.",
         "feedback_projection_fixture_note": "Migrations 535 and 543 create the signed stakeholder-feedback summary from the disposable consent-safe view. The focused fixture already contains one consented owned row, one private row, and one consented foreign row; the signed security-barrier view must reveal only the owned row. No live feedback or candidate/legacy database is used.",
+        "commons_liberation_projection_fixture_note": "Migrations 534 and 543 create the real location-filtered security-barrier projections. The fixture adds one synthetic published foreign-location row to each of four source tables, alongside one owned fixture row, and the real signed scope function must return only the owned rows.",
         "checks": checks,
     }
     if PLATFORM == "linux/arm64" and IMAGE == "sogis/postgis:16-3.4":
@@ -3303,7 +3459,7 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581_582_583_584_585"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581_582_583_584_585_586"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
@@ -3336,6 +3492,14 @@ def main() -> int:
                 stage = "migration_584_apply"
             if migration_path.name.startswith("585_"):
                 stage = "migration_585_apply"
+            if migration_path.name.startswith("586_"):
+                stage = "commons_liberation_foreign_location_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    _commons_liberation_source_projection_fixture(),
+                )
+                stage = "migration_586_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -3427,6 +3591,21 @@ def main() -> int:
                 base.psql(docker, container, _feedback_source_stale_grants())
                 base.psql(docker, container, sql)
                 base.psql(docker, container, _feedback_source_scope_acceptance())
+            if migration_path.name.startswith("586_"):
+                stage = "migration_586_signed_scope_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    _commons_liberation_source_scope_acceptance(),
+                )
+                stage = "migration_586_stale_grant_replay"
+                base.psql(docker, container, _commons_liberation_source_stale_grants())
+                base.psql(docker, container, sql)
+                base.psql(
+                    docker,
+                    container,
+                    _commons_liberation_source_scope_acceptance(),
+                )
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
                 base.psql(
