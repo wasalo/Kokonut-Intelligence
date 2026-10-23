@@ -559,14 +559,23 @@ Identical retries return the original draft; reusing the request ID with changed
 input fails closed. The response contains only a draft identifier, lifecycle
 label, replay flag, and location. The operator console shows the form only under
 the create grant, uses CSRF-protected same-origin no-store requests, and keeps
-the same request ID while retrying unchanged values. Draft history, revision,
-submission, review, and fulfillment are not part of this slice.
+the same request ID while retrying unchanged values. Migration 567 alone did not
+provide history, revision, submission, review, or fulfillment; migration 568 adds
+the own-history read described below.
 
-The non-login function owner can insert bounded draft fields and read only the
-generated draft ID; it cannot select descriptions or update/delete receipts.
-Runtime can execute only the bounded function and runtime/Directus have no
-direct draft or receipt table access. This is not a complete resource-request
-workflow or a universal least-privilege/RLS claim.
+The create function returns only the generated draft ID and lifecycle label.
+The non-login function owner has bounded insert access and the column-level
+read access needed by create-retry validation and the subsequent own-history
+projection; it cannot update or delete receipts. Runtime can execute only the
+bounded functions, while runtime and Directus have no direct draft or receipt
+table access. This is not a complete resource-request workflow or a universal
+least-privilege/RLS claim.
+
+## Private resource-request history
+
+Migration 568 adds `GET /operator/api/operating-pilot/{location_id}/my-resource-requests` under the exact location `operating_pilot:read_own` grant. The bounded page is receipt-backed and restricted to the signed operator, the active location, exactly one active person binding, and the active Adelphi farm scope. It returns only the operator’s own resource type, private description, urgency, needed-by date, lifecycle label, and timestamps, in deterministic newest-first order. Receipt digests and operator, party, and scope identifiers are never returned.
+
+The create function continues to return only its draft ID and lifecycle label. Its non-login function owner shares the required narrow `SELECT` grants with the own-history function; it retains receipt-digest read access internally because exact create retries must validate the stored input digest. The own-history SQL projection never selects or serializes that digest. Runtime and Directus have no direct draft or receipt access, and Directus cannot execute the history function. The console gates the panel on `read_own`, uses no-store same-origin requests and text-only rendering, and caps pages at 50.
 
 ## Verification and rollback
 
@@ -579,13 +588,13 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, and 567, exercises active and internal scopes, checks aggregate
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, and 568, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
 demand/capacity revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
 submission eligibility, capacity approval/rejection, rejection-reason
 validation, reviewer self-denial, exact retry/collision behavior, rejected-record
-revision, append-only decision history, private resource-draft replay/scope, and data redaction; it also
+revision, append-only decision history, private resource-draft replay/scope, own-resource exact paging/ownership/redaction and ACLs, and data redaction; it also
 inspects runtime, Directus, and reader privileges, including pre-existing
 table-level and column-level demand and capacity write grants:
 `scripts/check-operating-pilot-summary-disposable.py`. Migration 559 and all 54 grouped assertions pass in the 13-migration network-disabled acceptance on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-draft-submission-arm64-disposable.json)). This is emulated software portability evidence, not physical Raspberry Pi acceptance. The migration 461–560 disposable suite and all 56 grouped assertions pass on native PostgreSQL 16 and under linux/arm64 Docker/QEMU emulation ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-queue-arm64-disposable.json)). Migration 561 applies/replays in the 15-migration suite with all 58 grouped assertions passing on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-read-arm64-disposable.json)). Those QEMU checks establish software portability only, not physical Raspberry Pi acceptance. Migration 562 also applies/replays with 61 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-demand-revision-arm64-disposable.json)). The migration 461–563 acceptance passes 65 grouped assertions on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-demand-review-decision-arm64-disposable.json)). QEMU is software emulation only, not physical Raspberry Pi acceptance. Migration 564 and all 67 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-opportunities-arm64-disposable.json)). Migration 565 and all 74 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-claim-review-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-claim-review-arm64-disposable.json)). Migration 566 and all 82 grouped assertions pass on native PostgreSQL 16 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-work-claim-allocation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-work-claim-allocation-arm64-disposable.json)). The focused Gateway, route-policy, and console selection passes 39 tests; Ruff, Python compilation, and inline JavaScript syntax pass. QEMU establishes software portability only, not Raspberry Pi hardware, performance, power-loss, or recovery acceptance. Migrations 559–566 are not deployed to candidate or legacy databases. Roll back by disabling the review/allocation routes, exact policies, and console panels; preserve the additive migration and private receipts if it is later applied.
@@ -598,9 +607,17 @@ The focused Gateway, policy, and console selection passes 114 tests with Ruff,
 Python compilation, and inline JavaScript syntax checks. Candidate and legacy
 databases remain untouched, and migration 567 has not been rolled out.
 
+Migration 568 and all 96 grouped assertions pass on native PostgreSQL 16
+([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-read-disposable.json))
+and linux/arm64 Docker/QEMU
+([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-read-arm64-disposable.json)).
+The focused Gateway, policy, console, and migration selection passes 170 tests;
+Ruff and Python compilation pass. Candidate and legacy remain untouched, and
+migrations 567–568 have not been rolled out.
+
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, or 567 are applied, retain their ordered functions, receipts,
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, or 568 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.

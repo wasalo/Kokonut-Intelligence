@@ -34,6 +34,7 @@ WORK_OPPORTUNITIES_MIGRATION = ROOT / "schemas/postgres/564_location_operating_p
 WORK_CLAIM_REVIEW_MIGRATION = ROOT / "schemas/postgres/565_location_operating_pilot_work_claim_review.sql"
 WORK_CLAIM_ALLOCATION_MIGRATION = ROOT / "schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql"
 RESOURCE_DRAFT_MIGRATION = ROOT / "schemas/postgres/567_location_operating_pilot_resource_request_draft.sql"
+OWN_RESOURCE_MIGRATION = ROOT / "schemas/postgres/568_location_own_operating_pilot_resource_requests.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -43,6 +44,8 @@ WORK_CLAIM_ALLOCATION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/
 WORK_CLAIM_ALLOCATION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-claim-allocation-arm64-disposable.json"
 RESOURCE_DRAFT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-draft-disposable.json"
 RESOURCE_DRAFT_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-draft-arm64-disposable.json"
+OWN_RESOURCE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-resource-request-read-disposable.json"
+OWN_RESOURCE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-resource-request-read-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -3435,13 +3438,154 @@ BEGIN
        OR has_table_privilege('kokonut_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_resource_request_draft', 'INSERT')
        OR has_table_privilege('kokonut_directus_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
-       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft', 'description', 'SELECT')
        OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft', 'description', 'INSERT')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft_receipt', 'UPDATE')
        OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_resource_request_draft_receipt', 'DELETE')
        OR (SELECT count(*) FROM public.operating_resource_request_draft_receipt
             WHERE request_id = expected) <> 1 THEN
         RAISE EXCEPTION 'resource draft function, table, or append-only receipt ACL failed';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
+OWN_RESOURCE_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operating_resource_request_draft (
+    id, operator_id, location_id, scope_type, scope_id, requested_by_party_id,
+    resource_type, description, urgency, requested_by
+) VALUES (
+    'd9800000-0000-4000-8000-000000000003',
+    'a0000000-0000-4000-8000-000000000002',
+    'b0000000-0000-4000-8000-000000000001', 'adelphi',
+    'c2000000-0000-4000-8000-000000000001',
+    'd8000000-0000-4000-8000-000000000001',
+    'foreign pump', 'FOREIGN OPERATOR PRIVATE DESCRIPTION', 'critical', CURRENT_DATE + 30
+);
+INSERT INTO public.operating_resource_request_draft_receipt (
+    operator_id, request_id, location_id, draft_id, input_digest
+) VALUES (
+    'a0000000-0000-4000-8000-000000000002',
+    'd9800000-0000-4000-8000-000000000004',
+    'b0000000-0000-4000-8000-000000000001',
+    'd9800000-0000-4000-8000-000000000003', decode(repeat('ab', 32), 'hex')
+);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_draft jsonb; second_draft jsonb; first_page jsonb; second_page jsonb;
+        own_ids text; denied boolean := false; wrong_location_denied boolean := false;
+        invalid_page_denied boolean := false; first_id uuid; second_id uuid;
+BEGIN
+    first_draft := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9800000-0000-4000-8000-000000000001',
+        'irrigation', 'OWN PRIVATE RESOURCE REQUEST A', 'low', CURRENT_DATE + 12
+    );
+    second_draft := kokonut_security.create_location_operating_pilot_resource_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9800000-0000-4000-8000-000000000002',
+        'seed storage', 'OWN PRIVATE RESOURCE REQUEST B', 'high', CURRENT_DATE + 18
+    );
+    first_id := (first_draft->>'draft_id')::uuid;
+    second_id := (second_draft->>'draft_id')::uuid;
+    first_page := kokonut_security.location_operating_pilot_own_resource_requests(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    second_page := kokonut_security.location_operating_pilot_own_resource_requests(
+        'b0000000-0000-4000-8000-000000000001', 1, 1
+    );
+    own_ids := first_page::text || second_page::text;
+    IF first_id IS NULL OR second_id IS NULL OR first_id = second_id
+       OR (first_page->>'total')::integer <> 2
+       OR first_page->>'has_more' <> 'true'
+       OR second_page->>'has_more' <> 'false'
+       OR (first_page->'items'->0->>'draft_id') = (second_page->'items'->0->>'draft_id')
+       OR own_ids !~ 'OWN PRIVATE RESOURCE REQUEST A'
+       OR own_ids !~ 'OWN PRIVATE RESOURCE REQUEST B'
+       OR own_ids ~* '(FOREIGN OPERATOR|input_digest|operator_id|requested_by_party_id|scope_id)' THEN
+        RAISE EXCEPTION 'own resource history pagination, privacy, or ownership failed: %, %',
+            first_page, second_page;
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_resource_requests(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'read-only operator used own-resource history without read_own'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_resource_requests(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    IF NOT wrong_location_denied THEN RAISE EXCEPTION 'own-resource history accepted a mismatched signed location'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_resource_requests(
+            'b0000000-0000-4000-8000-000000000001', 0, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_page_denied := true;
+    END;
+    IF NOT invalid_page_denied THEN RAISE EXCEPTION 'own-resource history accepted invalid page bounds'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_indexes
+         WHERE schemaname = 'public'
+           AND tablename = 'operating_resource_request_draft'
+           AND indexname = 'idx_operating_resource_request_draft_owner_updated'
+    ) THEN
+        RAISE EXCEPTION 'own-resource history ordering index is missing';
+    END IF;
+    IF NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.location_operating_pilot_own_resource_requests(uuid,integer,integer)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.location_operating_pilot_own_resource_requests(uuid,integer,integer)',
+            'EXECUTE')
+       OR has_any_column_privilege(
+            'kokonut_runtime', 'public.operating_resource_request_draft', 'SELECT')
+       OR has_any_column_privilege(
+            'kokonut_directus_runtime', 'public.operating_resource_request_draft', 'SELECT')
+       OR has_any_column_privilege(
+            'kokonut_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
+       OR has_any_column_privilege(
+            'kokonut_directus_runtime', 'public.operating_resource_request_draft_receipt', 'SELECT')
+       OR NOT has_column_privilege(
+            'kokonut_operating_pilot_reader',
+            'public.operating_resource_request_draft', 'description', 'SELECT')
+       OR has_column_privilege(
+            'kokonut_operating_pilot_reader',
+            'public.operating_resource_request_draft_receipt', 'input_digest', 'SELECT') = false
+       OR NOT has_column_privilege(
+            'kokonut_operating_pilot_reader',
+            'public.operating_resource_request_draft_receipt', 'draft_id', 'SELECT') THEN
+        RAISE EXCEPTION 'own-resource function or private table ACL boundary failed';
+    END IF;
+    IF (SELECT count(*) FROM public.operating_resource_request_draft
+         WHERE id = 'd9800000-0000-4000-8000-000000000003') <> 1
+       OR (SELECT count(*) FROM public.operating_resource_request_draft_receipt
+            WHERE operator_id = 'a0000000-0000-4000-8000-000000000001'
+              AND request_id IN (
+                  'd9800000-0000-4000-8000-000000000001',
+                  'd9800000-0000-4000-8000-000000000002'
+              )) <> 2 THEN
+        RAISE EXCEPTION 'own-resource history modified or lost receipt-backed records';
     END IF;
 END $$;
 ROLLBACK;
@@ -3485,13 +3629,22 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migrations through 567 and test private resource-request drafts",
     )
+    parser.add_argument(
+        "--resource-request-own-read",
+        action="store_true",
+        help="Also apply/replay migration 568 and test private paginated resource-request history",
+    )
     args = parser.parse_args(argv)
+    if args.resource_request_own_read:
+        args.resource_request_draft = True
     if args.resource_request_draft:
         args.work_claim_allocation = True
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
-        (RESOURCE_DRAFT_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_DRAFT_OUTPUT)
+        (OWN_RESOURCE_ARM64_OUTPUT if args.platform == "linux/arm64" else OWN_RESOURCE_OUTPUT)
+        if args.resource_request_own_read
+        else (RESOURCE_DRAFT_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_DRAFT_OUTPUT)
         if args.resource_request_draft
         else
         (WORK_CLAIM_ALLOCATION_ARM64_OUTPUT if args.platform == "linux/arm64" else WORK_CLAIM_ALLOCATION_OUTPUT)
@@ -3531,7 +3684,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -3566,7 +3719,7 @@ def main(argv: list[str] | None = None) -> int:
             "resource draft fields are bounded; exact retry replays while changed request-ID reuse is rejected",
             "resource draft results omit requester identity, scope, description, and urgency and do not submit or review the request",
             "runtime receives only function execution; Directus and runtime cannot access resource drafts or receipts directly",
-            "the non-login function owner can insert private drafts but cannot select descriptions or mutate receipts",
+            "runtime and Directus cannot read drafts or receipts directly; the non-login function owner receives only bounded function-required columns and cannot mutate receipts",
             "capacity review queue requires an exact review grant, excludes the reviewer own human party, and returns only submitted self-reported Adelphi rows",
             "capacity review pages are bounded, location-scoped, deterministic, and omit notes, party IDs, scope IDs, and source metadata",
             "capacity review queue denies missing grants and signed-location mismatch; runtime can execute it while Directus cannot",
@@ -3642,6 +3795,20 @@ def main(argv: list[str] | None = None) -> int:
             [
                 "resource drafts are excluded from legacy submitted request storage and aggregate/category projections",
                 "resource create, exact retry, changed retry, missing grant, signed-location mismatch, invalid input, and ACL assertions pass",
+            ]
+        )
+    if args.resource_request_own_read:
+        evidence["migrations"].append(OWN_RESOURCE_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "own resource history requires exact signed location context, exact read_own grant, one active human-party binding, and the active Adelphi farm mapping",
+                "history includes only this operator's receipt-backed resource drafts and excludes other operators, locations, and non-Adelphi scope",
+                "private descriptions and urgency are available only through the bounded own-history function; receipt digests and operator/person/scope IDs are omitted",
+                "own resource pages use the owner/location/update ordering index, are bounded to 50, and expose correct total/next-page metadata",
+                "missing read_own, mismatched signed location, invalid bounds, and missing active scope fail closed",
+                "runtime has function execution only; Directus cannot execute; neither can directly read draft rows or receipts",
+                "the API projection omits receipt digests while preserving internal digest reads required to validate create retries",
+                "migration 568 reapplies cleanly and preserves the existing append-only creation receipts",
             ]
         )
     try:
@@ -3732,6 +3899,10 @@ def main(argv: list[str] | None = None) -> int:
             resource_draft_migration = RESOURCE_DRAFT_MIGRATION.read_text(encoding="utf-8")
             psql(docker, container, resource_draft_migration)
             psql(docker, container, resource_draft_migration)
+        if args.resource_request_own_read:
+            own_resource_migration = OWN_RESOURCE_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, own_resource_migration)
+            psql(docker, container, own_resource_migration)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, CAPACITY_REVISION_ACCEPTANCE)
         psql(docker, container, CAPACITY_SUBMISSION_ACCEPTANCE)
@@ -3751,10 +3922,13 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, WORK_CLAIM_ALLOCATION_ACCEPTANCE)
         if args.resource_request_draft:
             psql(docker, container, RESOURCE_DRAFT_ACCEPTANCE)
+        if args.resource_request_own_read:
+            psql(docker, container, OWN_RESOURCE_ACCEPTANCE)
         psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            88 if args.resource_request_draft
+            96 if args.resource_request_own_read
+            else 88 if args.resource_request_draft
             else 82 if args.work_claim_allocation
             else 74 if args.work_claim_review
             else 67 if args.work_opportunities
@@ -3763,7 +3937,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            567 if args.resource_request_draft
+            568 if args.resource_request_own_read
+            else 567 if args.resource_request_draft
             else 566 if args.work_claim_allocation
             else 565 if args.work_claim_review
             else 564 if args.work_opportunities

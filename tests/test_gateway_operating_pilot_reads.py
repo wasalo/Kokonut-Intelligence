@@ -1385,3 +1385,126 @@ def test_http_own_demand_history_maps_denials_to_no_store_responses(
     assert response.status_code == status_code
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
+
+
+def test_own_resource_history_uses_read_own_context_and_bounded_read_only_transaction():
+    page = {
+        "items": [{"resource_type": "irrigation", "description": "private request"}],
+        "limit": 2,
+        "offset": 4,
+        "has_more": False,
+        "next_offset": None,
+        "total": 1,
+    }
+    connection = _Connection(page)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.get_location_operating_pilot_own_resource_requests(
+            OPERATOR_ID, LOCATION_ID, limit=2, offset=4,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "read_own",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_operating_pilot_own_resource_requests" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 2, 4)
+    assert result == {"location_id": LOCATION_ID, **page}
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [
+    (0, 0), (51, 0), (True, 0), (25, -1), (25, 10001), (25, False),
+])
+def test_own_resource_history_invalid_bounds_fail_before_database_access(limit, offset):
+    with pytest.raises(reads.OperatingPilotReadInvalid):
+        reads.get_location_operating_pilot_own_resource_requests(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page must fail before DB access"),
+        )
+
+
+def test_own_resource_history_tenant_denial_rolls_back_without_projection():
+    connection = _Connection({})
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.get_location_operating_pilot_own_resource_requests(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+    assert not any("location_operating_pilot_own_resource_requests" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
+def test_http_own_resource_history_is_no_store_scoped_and_bounded(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    calls = []
+    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_resource_requests",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(router, object(), run_in_threadpool,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-resource-requests?limit=7&offset=14"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == page
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]
+
+
+def test_http_own_resource_history_fails_closed_when_oidc_is_disabled(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_resource_requests",
+        lambda *_args, **_kwargs: pytest.fail("disabled OIDC must not query own resources"),
+    )
+    app = FastAPI()
+    router = APIRouter()
+    register_operating_pilot_routes(router, None, lambda *_args: None,
+                                    SimpleNamespace(Error=Exception))
+    app.include_router(router)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/my-resource-requests"
+        )
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"

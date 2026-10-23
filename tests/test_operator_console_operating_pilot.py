@@ -27,6 +27,7 @@ def test_operating_pilot_surface_is_gated_by_exact_location_read_grants():
     assert 'id="operating-pilot-capacity-create-form"' in panel.group()
     assert 'id="operating-pilot-resource-create-form"' in panel.group()
     assert 'id="operating-pilot-own-capacity-rows"' in panel.group()
+    assert 'id="operating-pilot-own-resources-rows"' in panel.group()
     assert 'id="operating-pilot-capacity-review-rows"' in panel.group()
     assert 'id="operating-pilot-demand-review-rows"' in panel.group()
     assert 'id="operating-pilot-work-opportunities-rows"' in panel.group()
@@ -111,6 +112,38 @@ def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
     assert "innerHTML" not in submit
     assert "description" in panel
     assert "funding decision" in panel
+
+
+def test_own_resource_history_is_read_own_gated_private_paged_and_safely_rendered():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        'id="operating-pilot-own-resources"',
+        'id="operating-pilot-own-capacity"',
+    )
+    loader = _function(
+        source,
+        "async function loadOperatingPilotOwnResourceRequests(append = false)",
+        "async function loadOperatingPilotCapacityReviewQueue(",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnResourceRow(item)",
+        "async function loadOperatingPilotOwnResourceRequests(",
+    )
+    assert "operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId)" in source
+    assert "/my-resource-requests?${params}" in loader
+    assert "operatingPilotOwnDemandLocations.has(locationId)" in loader
+    assert 'credentials: "same-origin"' in loader
+    assert 'cache: "no-store"' in loader
+    assert "nextOffset <= 10000" in loader
+    assert "operatingPilotOwnResourcesRequestVersion" in loader
+    assert "locationId !== operatingPilotLocation.value" in loader
+    assert "innerHTML" not in loader
+    assert "cell.textContent = operatingPilotDisplayValue(value)" in row
+    for field in ("resource_type", "description", "urgency", "requested_by", "status"):
+        assert f"item.{field}" in row
+    assert "read_own grant" in panel
 
 
 def test_work_opportunities_show_claim_action_only_under_claim_own_and_keep_it_proposal_only():
