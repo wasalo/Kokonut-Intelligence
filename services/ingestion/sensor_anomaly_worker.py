@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import uuid
+from types import MappingProxyType
 from typing import Any
 
 from services.common.tenant_context import set_worker_tenant_context
@@ -78,13 +79,40 @@ class SensorAnomalyWorkerError(RuntimeError):
     """Raised when a bounded anomaly operation returns an invalid result."""
 
 
-def _one(connection: Any, statement: str, params: tuple[Any, ...]):
+_QUERY_SQL = MappingProxyType(
+    {
+        "read_source": SOURCE_SQL,
+        "list_rules": RULES_SQL,
+        "reserve_effect": RESERVE_SQL,
+        "check_cooldown": COOLDOWN_SQL,
+        "evaluate_rule": EVALUATE_SQL,
+        "record_outcome": OUTCOME_SQL,
+        "create_alert": CREATE_ALERT_SQL,
+        "create_claim": CREATE_CLAIM_SQL,
+        "publish_alert": PUBLISH_ALERT_SQL,
+        "enqueue_notification": ENQUEUE_NOTIFICATION_SQL,
+        "check_actuator": HAS_ACTUATOR_SQL,
+        "create_actuation": CREATE_ACTUATION_SQL,
+    }
+)
+
+
+def _statement_for(operation: str) -> str:
+    try:
+        return _QUERY_SQL[operation]
+    except (KeyError, TypeError) as exc:
+        raise SensorAnomalyWorkerError("unsupported sensor anomaly query operation") from exc
+
+
+def _one(connection: Any, operation: str, params: tuple[Any, ...]):
+    statement = _statement_for(operation)
     with connection.cursor() as cursor:
         cursor.execute(statement, params)
         return cursor.fetchone()
 
 
-def _many(connection: Any, statement: str, params: tuple[Any, ...]):
+def _many(connection: Any, operation: str, params: tuple[Any, ...]):
+    statement = _statement_for(operation)
     with connection.cursor() as cursor:
         cursor.execute(statement, params)
         return cursor.fetchall()
@@ -125,7 +153,7 @@ def _record_outcome(
 ) -> None:
     row = _one(
         connection,
-        OUTCOME_SQL,
+        "record_outcome",
         (event_id, reading_id, rule_id, location_id, outcome),
     )
     if row is None or row[0] is not True:
@@ -189,7 +217,7 @@ def _enqueue_notifications(
             raise ValueError("notification payload exceeds the 16 KiB limit")
         result = _one(
             connection,
-            ENQUEUE_NOTIFICATION_SQL,
+            "enqueue_notification",
             (
                 alert_event_id,
                 event_id,
@@ -230,14 +258,14 @@ def process_sensor_reading(
             action="process",
         )
         source_row = _one(
-            connection, SOURCE_SQL, (stable_event_id, stable_location_id, sensor_id)
+            connection, "read_source", (stable_event_id, stable_location_id, sensor_id)
         )
         if source_row is None:
             raise SensorAnomalyWorkerError("sensor-reading source was not found")
         source = dict(enumerate(source_row))
         rules = [_rule(row) for row in _many(
             connection,
-            RULES_SQL,
+            "list_rules",
             (source[8], stable_location_id),
         )]
         stats["rules"] = len(rules)
@@ -245,7 +273,7 @@ def process_sensor_reading(
         for rule in rules:
             reserved = _one(
                 connection,
-                RESERVE_SQL,
+                "reserve_effect",
                 (stable_event_id, source[0], rule["id"], stable_location_id),
             )
             if reserved is None:
@@ -257,7 +285,7 @@ def process_sensor_reading(
 
             cooling = _one(
                 connection,
-                COOLDOWN_SQL,
+                "check_cooldown",
                 (source[8], rule["id"], stable_location_id),
             )
             if cooling is None:
@@ -275,7 +303,7 @@ def process_sensor_reading(
 
             matches = _one(
                 connection,
-                EVALUATE_SQL,
+                "evaluate_rule",
                 (stable_event_id, source[0], rule["id"], stable_location_id),
             )
             if matches is None:
@@ -290,7 +318,7 @@ def process_sensor_reading(
             )
             alert_result = _one(
                 connection,
-                CREATE_ALERT_SQL,
+                "create_alert",
                 (
                     stable_event_id,
                     source[0],
@@ -308,7 +336,7 @@ def process_sensor_reading(
             if rule["auto_create_claim"] and rule["claim_type"]:
                 claim_result = _one(
                     connection,
-                    CREATE_CLAIM_SQL,
+                    "create_claim",
                     (
                         stable_event_id,
                         source[0],
@@ -325,7 +353,7 @@ def process_sensor_reading(
             alert_event_id = str(uuid.uuid4())
             publish_result = _one(
                 connection,
-                PUBLISH_ALERT_SQL,
+                "publish_alert",
                 (
                     alert_event_id,
                     stable_event_id,
@@ -362,7 +390,7 @@ def process_sensor_reading(
 
             actuator = _one(
                 connection,
-                HAS_ACTUATOR_SQL,
+                "check_actuator",
                 (
                     alert_event_id,
                     stable_event_id,
@@ -377,7 +405,7 @@ def process_sensor_reading(
             if actuator[0] is True:
                 intent = _one(
                     connection,
-                    CREATE_ACTUATION_SQL,
+                    "create_actuation",
                     (
                         alert_event_id,
                         stable_event_id,

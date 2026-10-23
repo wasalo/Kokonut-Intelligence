@@ -602,8 +602,8 @@
         "services/common/tenant_context.py:254:12",
         "services/common/tenant_context.py:255:8",
         "services/common/worker_database.py:134:12",
-        "services/ingestion/sensor_anomaly_worker.py:83:8",
-        "services/ingestion/sensor_anomaly_worker.py:89:8"
+        "services/ingestion/sensor_anomaly_worker.py:110:8",
+        "services/ingestion/sensor_anomaly_worker.py:117:8"
       ]
     }
   ],
@@ -6723,9 +6723,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:83:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:110:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 83,
+      "line": 110,
       "scope": "_one",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -6743,9 +6743,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:89:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:117:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 89,
+      "line": 117,
       "scope": "_many",
       "method": "execute",
       "expression_kind": "composed_or_variable",

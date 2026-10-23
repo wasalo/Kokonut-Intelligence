@@ -407,6 +407,20 @@ def _process_worker(connection):
         )
 
 
+def test_sensor_anomaly_worker_rejects_unregistered_query_before_cursor_access():
+    from services.ingestion.sensor_anomaly_worker import (
+        SensorAnomalyWorkerError,
+        _one,
+    )
+
+    class NoCursorConnection:
+        def cursor(self):
+            raise AssertionError("unknown query operations must fail before cursor access")
+
+    with pytest.raises(SensorAnomalyWorkerError, match="unsupported sensor anomaly query"):
+        _one(NoCursorConnection(), "SELECT * FROM public.location", ())
+
+
 def test_sensor_anomaly_worker_runs_bounded_effects_in_one_signed_transaction():
     connection = _AnomalyWorkerConnection()
 

@@ -439,6 +439,8 @@ durable per-reading/rule outcome receipt as data, including its location scope.
 This does not run detection or change MAN-CAP-040 acceptance. See [the parity
 record](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json).
 
+**CAP-040 / CAP-047 sensor-anomaly SQL operation boundary — 23 October 2026:** the anomaly worker's database helpers now take literal operation names from an immutable twelve-entry map of fixed SQL instead of accepting SQL strings from their callers. An AST check ensures every use is a registered literal; an unknown operation fails before opening a cursor. The focused anomaly, worker inventory, function reachability, and boundary preflight selection passes 62 tests; Ruff, compilation, and generated inventory checks pass. The generic SQL scanner still reports the helper's local execute argument as unknown because it does not resolve the operation map; the explicit map and source regression cover that limitation. No database/provider or candidate/legacy service was used. This improves the worker boundary but does not accept MAN-CAP-040/047 ([implementation](../services/ingestion/sensor_anomaly_worker.py); [evidence](builds/2026-10-23-recovery/worker-anomaly-named-sql-operations.json)). Checklist: 1,023 complete / 24 open (1,047 total); matrix remains 30 baseline-retained, 7 deployed, and 29 prepared across 66 rows, with 0/66 MAN-CAP checks accepted.
+
 
 **SDK method inventory note — 18 October 2026:** the offline cross-language
 regression now checks method names, inherited generic methods, and argument

@@ -101,7 +101,7 @@ def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
     )
 
 
-def test_unknown_sql_sites_include_generic_adapters_and_climate_template_dispatch():
+def test_unknown_sql_sites_include_generic_adapters_and_reviewed_dispatch_paths():
     unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
 
     assert [(site["source"], site["line"]) for site in unknown] == [
@@ -111,9 +111,33 @@ def test_unknown_sql_sites_include_generic_adapters_and_climate_template_dispatc
         # The provider selects one of four source-defined SQL templates, then
         # passes the template and bound values to this shared persistence helper.
         ("services/ingestion/gee_climate.py", 92),
-        ("services/ingestion/sensor_anomaly_worker.py", 83),
-        ("services/ingestion/sensor_anomaly_worker.py", 89),
+        # The inventory does not resolve the anomaly worker's fixed named-operation map.
+        ("services/ingestion/sensor_anomaly_worker.py", 110),
+        ("services/ingestion/sensor_anomaly_worker.py", 117),
     ]
+
+
+def test_sensor_anomaly_worker_dispatches_only_named_fixed_sql_operations():
+    from services.ingestion.sensor_anomaly_worker import _QUERY_SQL
+
+    source = (ROOT / "services" / "ingestion" / "sensor_anomaly_worker.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+    operation_names = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        if not isinstance(node.func, ast.Name) or node.func.id not in {"_one", "_many"}:
+            continue
+        assert len(node.args) >= 2
+        operation = node.args[1]
+        assert isinstance(operation, ast.Constant) and isinstance(operation.value, str)
+        operation_names.append(operation.value)
+
+    assert set(operation_names) == set(_QUERY_SQL)
+    assert len(_QUERY_SQL) == 12
+    assert len(set(_QUERY_SQL.values())) == len(_QUERY_SQL)
 
 
 def test_gee_climate_template_dispatch_uses_literal_templates_and_bound_values():

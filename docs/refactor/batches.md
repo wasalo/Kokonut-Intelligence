@@ -269,6 +269,8 @@ these new tags are build candidates only.
 Preparation evidence: [recovery record](recovery-preparation.md). Batch 2 remains
 open; logical provider ownership and remaining recovery evidence are unresolved.
 
+- [x] Replace the sensor-anomaly worker's generic SQL-string helpers with a closed set of twelve named operations backed by immutable fixed SQL. Every `_one`/`_many` call site passes a literal operation name, an AST regression covers all registered operations, and an unsupported name fails before cursor access. The focused anomaly/worker-SQL/reachability/preflight selection passes 62 tests; Ruff, compilation, five generated worker-inventory checks, and diff checks pass. The SQL scanner still labels the helper's local `statement` argument `UNKNOWN`, but the executable mapping is explicit and guarded. No database, provider, candidate, or legacy stack was used ([implementation](../../services/ingestion/sensor_anomaly_worker.py); [tests](../../tests/test_anomaly_detector.py); [inventory test](../../tests/test_worker_sql_inventory.py); [worker map](worker-operation-map.md); [evidence](builds/2026-10-23-recovery/worker-anomaly-named-sql-operations.json)). Checklist: 1,023 complete / 24 open (1,047 total).
+
 Gate: restore evidence covers schema, domain rows, private media and durable work;
 legacy storage remains recoverable. Rollback: use isolated volumes and keep original
 backups/volumes; no production cutover in this batch.

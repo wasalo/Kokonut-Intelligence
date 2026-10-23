@@ -5120,9 +5120,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:83:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:110:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 83,
+      "line": 110,
       "column": 8,
       "scope": "_one",
       "method": "execute",
@@ -5136,9 +5136,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_anomaly_worker.py:89:8",
+      "id": "services/ingestion/sensor_anomaly_worker.py:117:8",
       "source": "services/ingestion/sensor_anomaly_worker.py",
-      "line": 89,
+      "line": 117,
       "column": 8,
       "scope": "_many",
       "method": "execute",

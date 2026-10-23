@@ -1016,19 +1016,19 @@
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 11,
+          "line": 12,
           "target": "services.common.tenant_context",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         }
@@ -6898,19 +6898,19 @@
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 11,
+          "line": 12,
           "target": "services.common.tenant_context",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_anomaly_worker.py",
-          "line": 13,
+          "line": 14,
           "target": "services.events.notification_outbox",
           "kind": "from"
         }

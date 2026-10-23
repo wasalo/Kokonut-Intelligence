@@ -282,14 +282,19 @@ This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
 dynamic call graph. Source-pattern review now covers all 43 composed/variable
 SQL sites: the prior 36-site review, the remote-sensing update builder, signed
-context cleanup, the anomaly worker's generic query wrappers, shared database
-helper calls, the NOI reconciliation's fixed location-filter fragment with a
-bound UUID, and the climate worker's fixed migration-function calls. Reviewed
-application fragments bind values and use
-fixed source-controlled fragments; three generic database-adapter sites remain
-`UNKNOWN` because their SQL is supplied by callers, so their complete caller
-set still needs tracing. No user-derived identifier interpolation was found
-in the reviewed call sites. Keep this review current as the inventory changes. The static call graph
+context cleanup, the anomaly worker's query helpers, shared database helper
+calls, the NOI reconciliation's fixed location-filter fragment with a bound
+UUID, and the climate worker's fixed migration-function calls. The anomaly
+worker's `_one`/`_many` helpers now accept only one of twelve named operations
+from an immutable map of fixed SQL; an AST regression pins every call site to a
+literal operation name, and unknown names fail before cursor access. The
+generated SQL inventory still reports those two `cursor.execute(statement)`
+sites as `UNKNOWN` because it does not resolve the map. Three generic
+database-adapter sites remain `UNKNOWN` because their SQL is supplied by
+callers, so their complete caller set still needs tracing. Reviewed application
+fragments bind values and use fixed source-controlled fragments. No user-derived
+identifier interpolation was found in the reviewed call sites. Keep this review
+current as the inventory changes. The static call graph
 follows local instance types and the explicit metric registry, but 72 SQL sites
 still have no direct static function match.
 It does not account for all callback/provider dispatch,
