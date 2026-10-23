@@ -719,6 +719,19 @@
             </div>
             <button id="operating-pilot-resource-review-more" class="secondary" type="button" hidden>Load more resource requests</button>
           </section>
+          <section id="operating-pilot-resource-fulfillment" hidden aria-labelledby="operating-pilot-resource-fulfillment-heading">
+            <h3 id="operating-pilot-resource-fulfillment-heading">Approved requests awaiting fulfillment</h3>
+            <p class="muted">A separate exact-location fulfillment grant is required. Recording fulfillment is a human confirmation that the requested resource or service was delivered; it does not record inventory, expense, or payment evidence.</p>
+            <div class="toolbar"><button id="operating-pilot-resource-fulfillment-refresh" type="button">Refresh fulfillment queue</button></div>
+            <p id="operating-pilot-resource-fulfillment-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Record</th><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-resource-fulfillment-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-resource-fulfillment-more" class="secondary" type="button" hidden>Load more approved requests</button>
+          </section>
           <section id="operating-pilot-work-claim-review" hidden aria-labelledby="operating-pilot-work-claim-review-heading">
             <h3 id="operating-pilot-work-claim-review-heading">Independent work-claim review queue</h3>
             <p class="muted">A separate exact-location review grant is required. Your own claims are excluded. Claimant identity, private evidence, and decision reasons are not shown. Acceptance records eligibility for a later allocation decision; it does not assign work.</p>
@@ -811,6 +824,16 @@
               <p id="operating-pilot-resource-review-decision-status" class="muted" role="status" aria-live="polite"></p>
               <button id="operating-pilot-resource-review-cancel" class="secondary" type="button">Cancel</button>
               <button id="operating-pilot-resource-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
+          <dialog id="operating-pilot-resource-fulfillment-dialog" aria-labelledby="operating-pilot-resource-fulfillment-dialog-heading">
+            <form id="operating-pilot-resource-fulfillment-form">
+              <h3 id="operating-pilot-resource-fulfillment-dialog-heading">Confirm resource fulfillment</h3>
+              <p id="operating-pilot-resource-fulfillment-item" class="muted"></p>
+              <label><input id="operating-pilot-resource-fulfillment-acknowledged" type="checkbox" required> I confirm the approved resource or service was delivered or completed. This does not record inventory, expense, or payment.</label>
+              <p id="operating-pilot-resource-fulfillment-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-resource-fulfillment-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-resource-fulfillment-submit" type="submit">Record fulfillment</button>
             </form>
           </dialog>
           <dialog id="operating-pilot-work-claim-allocation-dialog" aria-labelledby="operating-pilot-work-claim-allocation-dialog-heading">
@@ -2064,6 +2087,16 @@
       const operatingPilotResourceReviewAcknowledged = document.querySelector("#operating-pilot-resource-review-acknowledged");
       const operatingPilotResourceReviewDecisionStatus = document.querySelector("#operating-pilot-resource-review-decision-status");
       const operatingPilotResourceReviewSubmit = document.querySelector("#operating-pilot-resource-review-submit");
+      const operatingPilotResourceFulfillment = document.querySelector("#operating-pilot-resource-fulfillment");
+      const operatingPilotResourceFulfillmentStatus = document.querySelector("#operating-pilot-resource-fulfillment-status");
+      const operatingPilotResourceFulfillmentRows = document.querySelector("#operating-pilot-resource-fulfillment-rows");
+      const operatingPilotResourceFulfillmentMore = document.querySelector("#operating-pilot-resource-fulfillment-more");
+      const operatingPilotResourceFulfillmentDialog = document.querySelector("#operating-pilot-resource-fulfillment-dialog");
+      const operatingPilotResourceFulfillmentForm = document.querySelector("#operating-pilot-resource-fulfillment-form");
+      const operatingPilotResourceFulfillmentItem = document.querySelector("#operating-pilot-resource-fulfillment-item");
+      const operatingPilotResourceFulfillmentAcknowledged = document.querySelector("#operating-pilot-resource-fulfillment-acknowledged");
+      const operatingPilotResourceFulfillmentDecisionStatus = document.querySelector("#operating-pilot-resource-fulfillment-decision-status");
+      const operatingPilotResourceFulfillmentSubmit = document.querySelector("#operating-pilot-resource-fulfillment-submit");
       const operatingPilotDemandReviewDialog = document.querySelector("#operating-pilot-demand-review-dialog");
       const operatingPilotDemandReviewForm = document.querySelector("#operating-pilot-demand-review-form");
       const operatingPilotDemandReviewSignal = document.querySelector("#operating-pilot-demand-review-signal");
@@ -2111,6 +2144,7 @@
       let operatingPilotEditOwnResourceLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
+      let operatingPilotResourceFulfillmentLocations = new Set();
       let operatingPilotClaimOwnLocations = new Set();
       let operatingPilotAllocateLocations = new Set();
       let operatingPilotPendingDemandCreate = null;
@@ -2120,11 +2154,13 @@
       let operatingPilotPendingCapacityEdit = null;
       let operatingPilotPendingResourceCreate = null;
       let operatingPilotPendingResourceEdit = null;
+      let operatingPilotPendingResourceFulfillment = null;
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingResourceSubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
       const operatingPilotPendingResourceReviewDecisions = new Map();
+      const operatingPilotPendingResourceFulfillments = new Map();
       const operatingPilotPendingWorkClaimReviewDecisions = new Map();
       const operatingPilotPendingWorkClaimAllocations = new Map();
       const operatingPilotPendingWorkClaims = new Map();
@@ -2140,6 +2176,7 @@
       let operatingPilotCapacityReviewRequestVersion = 0;
       let operatingPilotDemandReviewRequestVersion = 0;
       let operatingPilotResourceReviewRequestVersion = 0;
+      let operatingPilotResourceFulfillmentRequestVersion = 0;
       let operatingPilotWorkClaimReviewRequestVersion = 0;
       let operatingPilotWorkClaimAllocationRequestVersion = 0;
       let operatingPilotDemandOffset = 0;
@@ -2153,6 +2190,7 @@
       let operatingPilotCapacityReviewOffset = 0;
       let operatingPilotDemandReviewOffset = 0;
       let operatingPilotResourceReviewOffset = 0;
+      let operatingPilotResourceFulfillmentOffset = 0;
       let operatingPilotWorkClaimReviewOffset = 0;
       let operatingPilotWorkClaimAllocationOffset = 0;
       let operatingPilotPendingWorkClaimAllocation = null;
@@ -4362,6 +4400,154 @@
         }
       }
 
+      async function loadOperatingPilotResourceFulfillmentQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotResourceFulfillmentRequestVersion;
+        if (!operatingPilotResourceFulfillmentLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotResourceFulfillmentOffset = 0;
+          operatingPilotResourceFulfillmentRows.replaceChildren();
+          operatingPilotResourceFulfillmentMore.hidden = true;
+        }
+        const offset = append ? operatingPilotResourceFulfillmentOffset : 0;
+        operatingPilotResourceFulfillmentMore.disabled = true;
+        operatingPilotResourceFulfillmentStatus.textContent = "Loading approved Kernel requests awaiting fulfillment confirmation…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-fulfillment-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            throw new Error(response.status === 401 || response.status === 403
+              ? "A current session and exact location fulfill grant are required."
+              : "The resource fulfillment queue could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== operatingPilotResourceFulfillmentRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotResourceFulfillmentRow(item, locationId);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotResourceFulfillmentMore.hidden = !canContinue;
+          operatingPilotResourceFulfillmentOffset = canContinue ? nextOffset : 0;
+          operatingPilotResourceFulfillmentStatus.textContent = canContinue
+            ? "Showing a bounded page of approved Kernel requests."
+            : operatingPilotResourceFulfillmentRows.childElementCount
+              ? "Approved Kernel requests loaded. Fulfillment confirmation does not record inventory, expense, or payment."
+              : "No approved Kernel requests are awaiting fulfillment confirmation.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotResourceFulfillmentRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotResourceFulfillmentMore.hidden = true;
+          operatingPilotResourceFulfillmentStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotResourceFulfillmentRequestVersion
+              && locationId === operatingPilotLocation.value) {
+            operatingPilotResourceFulfillmentMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotResourceFulfillmentRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.resource_request_id,
+          item.resource_type,
+          item.description,
+          item.urgency,
+          item.requested_by
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const fulfill = document.createElement("button");
+        fulfill.type = "button";
+        fulfill.className = "secondary";
+        fulfill.textContent = "Confirm fulfilled";
+        fulfill.addEventListener("click", () => {
+          if (locationId !== operatingPilotLocation.value
+              || !operatingPilotResourceFulfillmentLocations.has(locationId)) return;
+          operatingPilotPendingResourceFulfillment = {
+            resource_request_id: item.resource_request_id,
+            location_id: locationId
+          };
+          operatingPilotResourceFulfillmentForm.reset();
+          operatingPilotResourceFulfillmentItem.textContent =
+            `${operatingPilotDisplayValue(item.resource_type)} · ${operatingPilotDisplayValue(item.description)} · ${operatingPilotDisplayValue(item.urgency)}`;
+          operatingPilotResourceFulfillmentDecisionStatus.textContent =
+            "Only an approved, receipt-backed Kernel request can be confirmed. This does not record inventory, expense, or payment.";
+          operatingPilotResourceFulfillmentDialog.showModal();
+        });
+        actionCell.append(fulfill);
+        row.append(actionCell);
+        operatingPilotResourceFulfillmentRows.append(row);
+      }
+
+      async function submitOperatingPilotResourceFulfillment(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingResourceFulfillment;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotResourceFulfillmentLocations.has(pending.location_id)) return;
+        if (!operatingPilotResourceFulfillmentAcknowledged.checked) {
+          operatingPilotResourceFulfillmentDecisionStatus.textContent =
+            "Confirm that the approved resource or service was delivered before recording fulfillment.";
+          operatingPilotResourceFulfillmentAcknowledged.focus();
+          return;
+        }
+        let requestId = operatingPilotPendingResourceFulfillments.get(
+          pending.resource_request_id
+        );
+        if (!requestId) {
+          requestId = crypto.randomUUID();
+          operatingPilotPendingResourceFulfillments.set(
+            pending.resource_request_id, requestId
+          );
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotResourceFulfillmentDecisionStatus.textContent =
+            "Refresh the page to establish a protected session before recording fulfillment.";
+          return;
+        }
+        operatingPilotResourceFulfillmentSubmit.disabled = true;
+        operatingPilotResourceFulfillmentDecisionStatus.textContent = "Recording human fulfillment confirmation…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/resource-requests/${encodeURIComponent(pending.resource_request_id)}/fulfill`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.resource_request_id !== pending.resource_request_id
+              || result.status !== "closed" || result.decision !== "fulfilled") {
+            throw new Error("The fulfillment response did not match this request. Retry with the same request ID.");
+          }
+          operatingPilotPendingResourceFulfillments.delete(pending.resource_request_id);
+          operatingPilotPendingResourceFulfillment = null;
+          operatingPilotResourceFulfillmentDialog.close();
+          operatingPilotResourceFulfillmentStatus.textContent =
+            `Human fulfillment confirmation recorded${result.replayed ? " (confirmed retry)" : ""}. No inventory, expense, or payment was recorded.`;
+          await loadOperatingPilotResourceFulfillmentQueue();
+        } catch (error) {
+          operatingPilotResourceFulfillmentDecisionStatus.textContent =
+            `${error.message} Retry to reuse the same request ID.`;
+        } finally {
+          operatingPilotResourceFulfillmentSubmit.disabled = false;
+        }
+      }
+
       async function loadOperatingPilotWorkClaimReviewQueue(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotWorkClaimReviewRequestVersion;
@@ -4679,6 +4865,7 @@
         operatingPilotCapacityReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotDemandReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotResourceReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotResourceFulfillment.hidden = !operatingPilotResourceFulfillmentLocations.has(locationId);
         operatingPilotWorkClaimReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkClaimAllocation.hidden = !operatingPilotAllocateLocations.has(locationId);
         operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
@@ -4702,6 +4889,7 @@
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotDemandReviewRows.replaceChildren();
           operatingPilotResourceReviewRows.replaceChildren();
+          operatingPilotResourceFulfillmentRows.replaceChildren();
           operatingPilotWorkClaimReviewRows.replaceChildren();
           operatingPilotWorkClaimAllocationRows.replaceChildren();
           if (operatingPilotOwnCapacityLocations.has(locationId)) {
@@ -4729,6 +4917,11 @@
             operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotResourceReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
+          }
+          if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
+            await loadOperatingPilotResourceFulfillmentQueue();
+          } else {
+            operatingPilotResourceFulfillmentStatus.textContent = "A separate exact location fulfill grant is required.";
           }
           if (operatingPilotAllocateLocations.has(locationId)) {
             await loadOperatingPilotWorkClaimAllocationQueue();
@@ -4764,6 +4957,12 @@
           operatingPilotResourceReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotWorkClaimReviewRows.replaceChildren();
           operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
+        }
+        if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
+          reads.push(loadOperatingPilotResourceFulfillmentQueue());
+        } else {
+          operatingPilotResourceFulfillmentRows.replaceChildren();
+          operatingPilotResourceFulfillmentStatus.textContent = "A separate exact location fulfill grant is required.";
         }
         if (operatingPilotAllocateLocations.has(locationId)) {
           reads.push(loadOperatingPilotWorkClaimAllocationQueue());
@@ -13617,6 +13816,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotCapacityReviewLocations = new Set(operatingPilotCapacityReviewLocationIds);
+          const operatingPilotResourceFulfillmentLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "fulfill")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotResourceFulfillmentLocations = new Set(operatingPilotResourceFulfillmentLocationIds);
           const operatingPilotClaimOwnLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "claim_own")
             .map((scope) => scope.location_id)
@@ -13636,6 +13841,7 @@
             ...operatingPilotOwnCapacityLocationIds,
             ...operatingPilotEditOwnCapacityLocationIds,
             ...operatingPilotCapacityReviewLocationIds,
+            ...operatingPilotResourceFulfillmentLocationIds,
             ...operatingPilotClaimOwnLocationIds,
             ...operatingPilotAllocateLocationIds
           ])];
@@ -17605,6 +17811,11 @@
           operatingPilotPendingResourceReview = null;
           operatingPilotResourceReviewDialog.close();
         }
+        if (operatingPilotPendingResourceFulfillment
+            && operatingPilotPendingResourceFulfillment.location_id !== operatingPilotLocation.value) {
+          operatingPilotPendingResourceFulfillment = null;
+          operatingPilotResourceFulfillmentDialog.close();
+        }
         if (operatingPilotPendingDemandEdit
             && operatingPilotPendingDemandEdit.location_id !== operatingPilotLocation.value) {
           cancelOperatingPilotDemandEdit();
@@ -17675,6 +17886,24 @@
       );
       operatingPilotResourceReviewMore.addEventListener(
         "click", () => loadOperatingPilotResourceReviewQueue(true)
+      );
+      operatingPilotResourceFulfillmentForm.addEventListener(
+        "submit", submitOperatingPilotResourceFulfillment
+      );
+      document.querySelector("#operating-pilot-resource-fulfillment-cancel").addEventListener(
+        "click", () => {
+          operatingPilotPendingResourceFulfillment = null;
+          operatingPilotResourceFulfillmentDialog.close();
+        }
+      );
+      operatingPilotResourceFulfillmentDialog.addEventListener("cancel", () => {
+        operatingPilotPendingResourceFulfillment = null;
+      });
+      document.querySelector("#operating-pilot-resource-fulfillment-refresh").addEventListener(
+        "click", () => loadOperatingPilotResourceFulfillmentQueue()
+      );
+      operatingPilotResourceFulfillmentMore.addEventListener(
+        "click", () => loadOperatingPilotResourceFulfillmentQueue(true)
       );
       operatingPilotDemandReviewDecision.addEventListener("change", syncOperatingPilotDemandReviewReason);
       operatingPilotDemandReviewForm.addEventListener("submit", submitOperatingPilotDemandReview);

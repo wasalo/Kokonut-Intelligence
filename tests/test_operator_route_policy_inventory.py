@@ -974,6 +974,15 @@ _EXPECTED_OPERATOR_POLICIES[(
     f"/operator/api/operating-pilot/{_LOCATION_ID}/resource-requests/"
     f"{_PARAMETER_SAMPLES['resource_request_id']}/review",
 )] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "GET",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/resource-fulfillment-queue",
+)] = _expected("operating_pilot", "fulfill", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/resource-requests/"
+    f"{_PARAMETER_SAMPLES['resource_request_id']}/fulfill",
+)] = _expected("operating_pilot", "fulfill", scoped=True, location_id=_LOCATION_ID)
 
 
 def _concrete_paths(route_path):

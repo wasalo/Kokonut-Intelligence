@@ -725,12 +725,50 @@ def test_resource_review_decision_is_acknowledged_idempotent_and_fulfillment_sep
     assert "innerHTML" not in row
 
 
+def test_resource_fulfillment_is_separately_granted_acknowledged_and_auditable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    loader = _function(
+        source,
+        "async function loadOperatingPilotResourceFulfillmentQueue(append = false)",
+        "function appendOperatingPilotResourceFulfillmentRow(item, locationId)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotResourceFulfillmentRow(item, locationId)",
+        "async function submitOperatingPilotResourceFulfillment(event)",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotResourceFulfillment(event)",
+        "async function loadOperatingPilotWorkClaimReviewQueue(append = false)",
+    )
+    assert 'scope.action === "fulfill"' in source
+    assert "...operatingPilotResourceFulfillmentLocationIds" in source
+    assert "operatingPilotResourceFulfillment.hidden = !operatingPilotResourceFulfillmentLocations.has(locationId)" in source
+    assert "resource-fulfillment-queue?${params}" in loader
+    assert "requestVersion !== operatingPilotResourceFulfillmentRequestVersion" in loader
+    assert 'credentials: "same-origin"' in loader and 'cache: "no-store"' in loader
+    assert "innerHTML" not in row
+    assert "operatingPilotResourceFulfillmentLocations.has(locationId)" in row
+    assert "operatingPilotResourceFulfillmentAcknowledged.checked" in submit
+    assert "operatingPilotPendingResourceFulfillments.get(" in submit
+    assert "operatingPilotPendingResourceFulfillments.set(" in submit
+    assert "pendingRequest" not in submit
+    assert '/resource-requests/${encodeURIComponent(pending.resource_request_id)}/fulfill' in submit
+    assert 'method: "POST"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'cache: "no-store"' in submit
+    assert "result.decision !== \"fulfilled\"" in submit
+    assert "does not record inventory, expense, or payment" in source
+    assert 'id="operating-pilot-resource-fulfillment-acknowledged" type="checkbox" required' in source
+
+
 def test_demand_review_decision_is_independent_acknowledged_and_idempotent():
     source = CONSOLE.read_text(encoding="utf-8")
     submit = _function(
         source,
         "async function submitOperatingPilotDemandReview(event)",
-        "async function loadOperatingPilot()",
+        "async function loadOperatingPilotResourceFulfillmentQueue(append = false)",
     )
     assert "operatingPilotPendingDemandReview" in submit
     assert "operatingPilotCapacityReviewLocations.has(pending.location_id)" in submit

@@ -991,3 +991,49 @@ def review_location_operating_pilot_resource_request(
         raise
     finally:
         connection.close()
+
+
+def fulfill_location_operating_pilot_resource_request(
+    operator_id: str,
+    location_id: str,
+    resource_request_id: str,
+    request_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record an exact-location human confirmation for an approved request."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    resource_request_id = _normalize_uuid(resource_request_id, "resource_request")
+    request_id = _normalize_uuid(request_id, "request")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="fulfill",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.fulfill_location_operating_pilot_resource_request(
+                           %s::uuid, %s::uuid, %s::uuid)""",
+                (location_id, resource_request_id, request_id),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating resource fulfillment returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

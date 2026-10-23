@@ -39,6 +39,7 @@ OWN_RESOURCE_REVISION_MIGRATION = ROOT / "schemas/postgres/569_location_operatin
 OWN_RESOURCE_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql"
 RESOURCE_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/571_location_operating_pilot_resource_review_queue.sql"
 RESOURCE_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/572_location_operating_pilot_resource_review_decision.sql"
+RESOURCE_FULFILLMENT_MIGRATION = ROOT / "schemas/postgres/573_location_operating_pilot_resource_fulfillment.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -58,6 +59,8 @@ RESOURCE_REVIEW_QUEUE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/
 RESOURCE_REVIEW_QUEUE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-queue-arm64-disposable.json"
 RESOURCE_REVIEW_DECISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-decision-disposable.json"
 RESOURCE_REVIEW_DECISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-review-decision-arm64-disposable.json"
+RESOURCE_FULFILLMENT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-fulfillment-disposable.json"
+RESOURCE_FULFILLMENT_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-resource-request-fulfillment-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -4429,6 +4432,254 @@ ROLLBACK;
 """
 
 
+RESOURCE_FULFILLMENT_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_identity VALUES
+ ('a0000000-0000-4000-8000-000000000030', true),
+ ('a0000000-0000-4000-8000-000000000031', true);
+INSERT INTO public.party (id, party_type, status, display_name) VALUES
+ ('d8000000-0000-4000-8000-000000000032', 'person', 'active', 'Synthetic reviewer'),
+ ('d8000000-0000-4000-8000-000000000033', 'person', 'active', 'Synthetic fulfiller'),
+ ('d8000000-0000-4000-8000-000000000034', 'person', 'active', 'Synthetic ungranted operator');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at) VALUES
+ ('d8000000-0000-4000-8000-000000000042', 'a0000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000032', NULL),
+ ('d8000000-0000-4000-8000-000000000043', 'a0000000-0000-4000-8000-000000000030', 'd8000000-0000-4000-8000-000000000033', NULL),
+ ('d8000000-0000-4000-8000-000000000044', 'a0000000-0000-4000-8000-000000000031', 'd8000000-0000-4000-8000-000000000034', NULL);
+INSERT INTO public.operator_organization_membership VALUES
+ ('a2000000-0000-4000-8000-000000000030', 'a0000000-0000-4000-8000-000000000030', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant VALUES
+ ('a1000000-0000-4000-8000-000000000191', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'fulfill', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1000000-0000-4000-8000-000000000192', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1000000-0000-4000-8000-000000000193', 'a0000000-0000-4000-8000-000000000030', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'fulfill', 'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operating_resource_request (
+    id, requested_by_party_id, scope_type, scope_id, decision, decision_reason,
+    resource_type, description, urgency, requested_by, status,
+    decided_by_party_id, decided_at
+) VALUES
+ ('f2100000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'approved', NULL, 'irrigation pump', 'Approved request one', 'high', CURRENT_DATE + 10, 'reviewed', 'd8000000-0000-4000-8000-000000000032', now()),
+ ('f2100000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'declined', 'Not approved', 'seed stock', 'Declined request', 'medium', CURRENT_DATE + 8, 'reviewed', 'd8000000-0000-4000-8000-000000000032', now()),
+ ('f2100000-0000-4000-8000-000000000003', 'd8000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'approved', NULL, 'legacy item', 'Receiptless legacy approved row', 'low', CURRENT_DATE + 7, 'reviewed', 'd8000000-0000-4000-8000-000000000032', now()),
+ ('f2100000-0000-4000-8000-000000000004', 'd8000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'approved', NULL, 'water tank', 'Approved request two', 'medium', CURRENT_DATE + 6, 'reviewed', 'd8000000-0000-4000-8000-000000000032', now());
+INSERT INTO public.operating_resource_request_draft (
+    id, operator_id, location_id, scope_type, scope_id, requested_by_party_id,
+    resource_type, description, urgency, requested_by, status, submitted_request_id
+) VALUES
+ ('d9100000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000001', 'irrigation pump', 'Approved request one', 'high', CURRENT_DATE + 10, 'submitted', 'f2100000-0000-4000-8000-000000000001'),
+ ('d9100000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000001', 'seed stock', 'Declined request', 'medium', CURRENT_DATE + 8, 'submitted', 'f2100000-0000-4000-8000-000000000002'),
+ ('d9100000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'd8000000-0000-4000-8000-000000000001', 'water tank', 'Approved request two', 'medium', CURRENT_DATE + 6, 'submitted', 'f2100000-0000-4000-8000-000000000004');
+INSERT INTO public.operating_resource_request_draft_submission_receipt (
+    operator_id, request_id, location_id, draft_id, resource_request_id
+) VALUES
+ ('a0000000-0000-4000-8000-000000000001', 'd9910000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'd9100000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001'),
+ ('a0000000-0000-4000-8000-000000000001', 'd9910000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'd9100000-0000-4000-8000-000000000002', 'f2100000-0000-4000-8000-000000000002'),
+ ('a0000000-0000-4000-8000-000000000001', 'd9910000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000001', 'd9100000-0000-4000-8000-000000000004', 'f2100000-0000-4000-8000-000000000004');
+INSERT INTO public.operating_resource_request_review_decision (
+    reviewer_operator_id, reviewer_party_id, request_id, location_id,
+    resource_request_id, decision, reason, input_digest
+) VALUES
+ ('a0000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000032', 'd9920000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001', 'approved', NULL, pg_catalog.sha256(pg_catalog.convert_to('approval-one', 'UTF8'))),
+ ('a0000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000032', 'd9920000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000002', 'rejected', 'Not approved', pg_catalog.sha256(pg_catalog.convert_to('approval-two', 'UTF8'))),
+ ('a0000000-0000-4000-8000-000000000002', 'd8000000-0000-4000-8000-000000000032', 'd9920000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000004', 'approved', NULL, pg_catalog.sha256(pg_catalog.convert_to('approval-four', 'UTF8')));
+
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000030', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE page jsonb; result jsonb; replay jsonb;
+        self_denied boolean := false; no_grant_denied boolean := false;
+        location_denied boolean := false; declined_denied boolean := false;
+        legacy_denied boolean := false; changed_retry_denied boolean := false;
+        duplicate_denied boolean := false; direct_update_denied boolean := false;
+        request_id UUID := 'd9930000-0000-4000-8000-000000000001';
+BEGIN
+    page := kokonut_security.location_operating_pilot_resource_fulfillment_queue(
+        'b0000000-0000-4000-8000-000000000001', 50, 0
+    );
+    IF (page->>'total')::INTEGER <> 2
+       OR pg_catalog.jsonb_array_length(page->'items') <> 2
+       OR page ? 'requester_party_id'
+       OR page::TEXT LIKE '%d8000000-0000-4000-8000-000000000001%' THEN
+        RAISE EXCEPTION 'fulfillment queue included an ineligible row or requester identity: %', page;
+    END IF;
+    IF NOT (page->'items' @> pg_catalog.jsonb_build_array(
+        pg_catalog.jsonb_build_object('resource_request_id', 'f2100000-0000-4000-8000-000000000001')
+    )) OR NOT (page->'items' @> pg_catalog.jsonb_build_array(
+        pg_catalog.jsonb_build_object('resource_request_id', 'f2100000-0000-4000-8000-000000000004')
+    )) THEN
+        RAISE EXCEPTION 'approved Kernel requests are missing from fulfillment queue';
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.fulfill_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001', request_id
+        );
+    EXCEPTION WHEN insufficient_privilege THEN self_denied := true;
+    END;
+    IF NOT self_denied THEN RAISE EXCEPTION 'requester confirmed own fulfillment'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000031', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_resource_fulfillment_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'operator without exact fulfill grant was accepted'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000030', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_resource_fulfillment_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'mismatched signed location was accepted'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000030', true);
+    result := kokonut_security.fulfill_location_operating_pilot_resource_request(
+        'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001', request_id
+    );
+    replay := kokonut_security.fulfill_location_operating_pilot_resource_request(
+        'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001', request_id
+    );
+    IF result->>'decision' <> 'fulfilled' OR result->>'status' <> 'closed'
+       OR result->>'replayed' <> 'false' OR replay->>'replayed' <> 'true' THEN
+        RAISE EXCEPTION 'fulfillment or exact retry response mismatch: %, %', result, replay;
+    END IF;
+
+    BEGIN
+        PERFORM kokonut_security.fulfill_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000004', request_id
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'fulfillment request ID accepted changed input'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.fulfill_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000001',
+            'd9930000-0000-4000-8000-000000000002'
+        );
+    EXCEPTION WHEN unique_violation THEN duplicate_denied := true;
+    END;
+    IF NOT duplicate_denied THEN RAISE EXCEPTION 'second fulfillment decision was accepted'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.fulfill_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000002',
+            'd9930000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN declined_denied := true;
+    END;
+    IF NOT declined_denied THEN RAISE EXCEPTION 'declined request was fulfillable'; END IF;
+
+    BEGIN
+        PERFORM kokonut_security.fulfill_location_operating_pilot_resource_request(
+            'b0000000-0000-4000-8000-000000000001', 'f2100000-0000-4000-8000-000000000003',
+            'd9930000-0000-4000-8000-000000000004'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN legacy_denied := true;
+    END;
+    IF NOT legacy_denied THEN RAISE EXCEPTION 'receiptless legacy request was fulfillable'; END IF;
+
+    BEGIN
+        UPDATE public.operating_resource_request
+           SET decision = 'pending'
+         WHERE id = 'f2100000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN insufficient_privilege THEN direct_update_denied := true;
+    END;
+    IF NOT direct_update_denied THEN RAISE EXCEPTION 'runtime directly mutated resource decision'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+DECLARE request_row RECORD; page jsonb;
+BEGIN
+    SELECT request.status, request.decision, request.decided_by_party_id,
+           receipt.fulfiller_party_id
+      INTO request_row
+      FROM public.operating_resource_request AS request
+      JOIN public.operating_resource_request_fulfillment_receipt AS receipt
+        ON receipt.resource_request_id = request.id
+     WHERE request.id = 'f2100000-0000-4000-8000-000000000001';
+    IF request_row.status <> 'closed' OR request_row.decision <> 'fulfilled'
+       OR request_row.decided_by_party_id <> 'd8000000-0000-4000-8000-000000000032'
+       OR request_row.fulfiller_party_id <> 'd8000000-0000-4000-8000-000000000033'
+       OR (SELECT count(*) FROM public.operating_resource_request_fulfillment_receipt) <> 1 THEN
+        RAISE EXCEPTION 'fulfillment did not preserve review attribution and one receipt';
+    END IF;
+    PERFORM set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000030', true);
+    PERFORM set_config('kokonut.actor_type', 'operator', true);
+    page := kokonut_security.location_operating_pilot_resource_fulfillment_queue(
+        'b0000000-0000-4000-8000-000000000001', 50, 0
+    );
+    IF (page->>'total')::INTEGER <> 1
+       OR NOT (page->'items' @> pg_catalog.jsonb_build_array(
+           pg_catalog.jsonb_build_object('resource_request_id', 'f2100000-0000-4000-8000-000000000004')
+       )) THEN
+        RAISE EXCEPTION 'completed resource request remained in fulfillment queue: %', page;
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+        'kokonut_runtime',
+        'kokonut_security.location_operating_pilot_resource_fulfillment_queue(uuid,integer,integer)',
+        'EXECUTE'
+    ) OR NOT has_function_privilege(
+        'kokonut_runtime',
+        'kokonut_security.fulfill_location_operating_pilot_resource_request(uuid,uuid,uuid)',
+        'EXECUTE'
+    ) OR has_function_privilege(
+        'kokonut_directus_runtime',
+        'kokonut_security.fulfill_location_operating_pilot_resource_request(uuid,uuid,uuid)',
+        'EXECUTE'
+    ) OR has_table_privilege(
+        'kokonut_runtime', 'public.operating_resource_request_fulfillment_receipt', 'SELECT'
+    ) OR has_any_column_privilege(
+        'kokonut_directus_runtime', 'public.operating_resource_request_fulfillment_receipt', 'SELECT'
+    ) OR has_table_privilege(
+        'kokonut_operating_pilot_reader', 'public.operating_resource_request_fulfillment_receipt', 'UPDATE'
+    ) OR has_table_privilege(
+        'kokonut_operating_pilot_reader', 'public.operating_resource_request_fulfillment_receipt', 'DELETE'
+    ) OR has_any_column_privilege(
+        'kokonut_runtime', 'public.operating_resource_request', 'UPDATE'
+    ) OR has_any_column_privilege(
+        'kokonut_directus_runtime', 'public.operating_resource_request', 'UPDATE'
+    ) THEN
+        RAISE EXCEPTION 'resource fulfillment function or append-only ACL boundary failed';
+    END IF;
+END $$;
+COMMIT;
+BEGIN READ ONLY;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000030', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE page jsonb;
+BEGIN
+    page := kokonut_security.location_operating_pilot_resource_fulfillment_queue(
+        'b0000000-0000-4000-8000-000000000001', 50, 0
+    );
+    IF (page->>'total')::INTEGER <> 1
+       OR NOT (page->'items' @> pg_catalog.jsonb_build_array(
+           pg_catalog.jsonb_build_object('resource_request_id', 'f2100000-0000-4000-8000-000000000004')
+       )) THEN
+        RAISE EXCEPTION 'read-only fulfillment queue returned unexpected rows: %', page;
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -4491,7 +4742,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 572 and test independent resource-request decisions",
     )
+    parser.add_argument(
+        "--resource-request-fulfillment",
+        action="store_true",
+        help="Also apply/replay migration 573 and test independently confirmed resource fulfillment",
+    )
     args = parser.parse_args(argv)
+    if args.resource_request_fulfillment:
+        args.resource_request_review_decision = True
     if args.resource_request_review_decision:
         args.resource_request_review_queue = True
     if args.resource_request_review_queue:
@@ -4507,6 +4765,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (RESOURCE_FULFILLMENT_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_FULFILLMENT_OUTPUT)
+        if args.resource_request_fulfillment
+        else
         (RESOURCE_REVIEW_DECISION_ARM64_OUTPUT if args.platform == "linux/arm64" else RESOURCE_REVIEW_DECISION_OUTPUT)
         if args.resource_request_review_decision
         else
@@ -4560,7 +4821,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"migrations 461, 479, 480, 526, 538, and 552–{573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -4742,6 +5003,21 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 572 reapplies cleanly while preserving previous decisions and receipts",
             ]
         )
+    if args.resource_request_fulfillment:
+        evidence["migrations"].append(RESOURCE_FULFILLMENT_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "fulfillment queue and action require exact signed fulfill scope, one active human binding, and active Adelphi mapping",
+                "queue includes only independently approved receipt-backed Kernel requests and excludes declined, receiptless legacy, and already fulfilled rows",
+                "requesters cannot confirm their own fulfillment; missing grants and signed-location mismatch fail closed",
+                "fulfillment atomically records closed/fulfilled plus one private append-only receipt while preserving reviewer attribution",
+                "exact fulfillment retries replay; changed request-ID reuse and duplicate decisions fail closed",
+                "the bounded queue omits requester identity and approval reason; fulfillment records no inventory, expense, or payment evidence",
+                "runtime can execute the queue and fulfillment functions only; Directus cannot execute them or read receipts",
+                "runtime and Directus cannot update canonical resource requests; the function owner cannot update or delete fulfillment receipts",
+                "migration 573 reapplies cleanly and completed requests leave the fulfillment queue",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -4877,10 +5153,18 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, resource_review_decision_migration)
             psql(docker, container, resource_review_decision_migration)
             psql(docker, container, RESOURCE_REVIEW_DECISION_ACCEPTANCE)
-        psql(docker, container, PRIVACY_SUPPRESSION)
+        if args.resource_request_fulfillment:
+            psql(docker, container, PRIVACY_SUPPRESSION)
+            resource_fulfillment_migration = RESOURCE_FULFILLMENT_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, resource_fulfillment_migration)
+            psql(docker, container, resource_fulfillment_migration)
+            psql(docker, container, RESOURCE_FULFILLMENT_ACCEPTANCE)
+        else:
+            psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            146 if args.resource_request_review_decision
+            165 if args.resource_request_fulfillment
+            else 146 if args.resource_request_review_decision
             else 130 if args.resource_request_review_queue
             else 123 if args.resource_request_own_submission
             else
@@ -4895,7 +5179,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            572 if args.resource_request_review_decision
+            573 if args.resource_request_fulfillment
+            else 572 if args.resource_request_review_decision
             else
             571 if args.resource_request_review_queue
             else

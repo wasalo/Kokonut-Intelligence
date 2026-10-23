@@ -17,6 +17,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         get_location_operating_pilot_own_demand_signals,
         get_location_operating_pilot_own_resource_requests,
         get_location_operating_pilot_resource_categories,
+        get_location_operating_pilot_resource_fulfillment_queue,
         get_location_operating_pilot_resource_review_queue,
         get_location_operating_pilot_summary,
         get_location_operating_pilot_work_claim_allocation_queue,
@@ -31,6 +32,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         create_location_operating_pilot_capacity_draft,
         create_location_operating_pilot_demand_draft,
         create_location_operating_pilot_resource_draft,
+        fulfill_location_operating_pilot_resource_request,
         review_location_operating_pilot_capacity,
         review_location_operating_pilot_demand,
         review_location_operating_pilot_resource_request,
@@ -1556,6 +1558,67 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
+    @router.get("/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue")
+    async def location_operating_pilot_resource_fulfillment_queue(
+        request: Request,
+        location_id: str,
+        limit: int = 25,
+        offset: int = 0,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_operating_pilot_resource_fulfillment_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified resource fulfillment access is required"},
+                headers=headers,
+            )
+        except OperatingPilotReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location fulfillment grant and active human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Resource fulfillment page is outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource fulfillment queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource fulfillment queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
     @router.post(
         "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review"
     )
@@ -1640,6 +1703,86 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Operating resource review decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill"
+    )
+    async def fulfill_operating_pilot_resource_request(
+        request: Request, location_id: str, resource_request_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Resource fulfillment body must be valid JSON"},
+                headers=headers,
+            )
+        if not isinstance(payload, dict) or set(payload) != {"request_id"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Resource fulfillment requires only a request ID"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                fulfill_location_operating_pilot_resource_request,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                resource_request_id,
+                payload["request_id"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified resource fulfillment access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location fulfillment grant and independent human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The fulfillment request conflicts or this resource was already fulfilled"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            if pgcode == "40001":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The resource request changed before fulfillment was recorded"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating resource fulfillment unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating resource fulfillment unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
