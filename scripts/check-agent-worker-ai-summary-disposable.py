@@ -44,10 +44,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/546_signed_cids_export_source.sql",
     ROOT / "schemas/postgres/547_signed_ai_summary_inspection_source.sql",
     ROOT / "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
+    ROOT / "schemas/postgres/580_agent_source_worker_identity_split.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-038-delphi-agent-source-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-agent-source-principal-split-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -64,6 +65,21 @@ SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000902"
 SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-source-credential-2026-10-22"
 SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+EBF_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000904"
+EBF_SOURCE_RAW_CREDENTIAL = "synthetic-agent-ebf-source-credential-2026-10-23"
+EBF_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    EBF_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+CIDS_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000905"
+CIDS_SOURCE_RAW_CREDENTIAL = "synthetic-agent-cids-source-credential-2026-10-23"
+CIDS_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    CIDS_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+DELPHI_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000906"
+DELPHI_SOURCE_RAW_CREDENTIAL = "synthetic-agent-delphi-source-credential-2026-10-23"
+DELPHI_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    DELPHI_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
 DETERMINISTIC_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000903"
 DETERMINISTIC_SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-deterministic-source-credential"
@@ -553,16 +569,20 @@ def _source_reader_scope_acceptance() -> str:
 
 def _ebf_source_scope_acceptance() -> str:
     return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{EBF_SOURCE_WORKER_ID}', 'agent-ebf-source');
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{EBF_SOURCE_WORKER_ID}', '{EBF_SOURCE_CREDENTIAL_HASH}');
     INSERT INTO kokonut_security.worker_scope_grant (
         worker_id, tenant_id, location_id, resource, action, granted_by
     ) VALUES (
-        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        '{EBF_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
         'ebf_scorecard', 'read', 'synthetic EBF source-reader acceptance fixture'
     );
 
-    SET ROLE kokonut_agent_summary_source_login;
+    SET ROLE kokonut_agent_ebf_source_login;
     BEGIN;
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_ebf_source_reader;
     DO $$
     DECLARE visible_rows BIGINT;
             exposed_columns TEXT[];
@@ -591,22 +611,22 @@ def _ebf_source_scope_acceptance() -> str:
             RAISE EXCEPTION 'EBF source was visible without signed location context';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_ebf_source_reader',
             'public.v_ebf_evidence_gap_summary', 'SELECT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_login',
+            'kokonut_agent_ebf_source_login',
             'kokonut_agent_source.v_ebf_evidence_gap_summary', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'EBF reader can bypass its signed wrapper or source login bypasses NOLOGIN role';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_ebf_source_reader',
             'kokonut_agent_source.v_ebf_evidence_gap_summary', 'INSERT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_ebf_source_reader',
             'kokonut_agent_source.v_ebf_evidence_gap_summary', 'UPDATE'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_ebf_source_reader',
             'kokonut_agent_source.v_ebf_evidence_gap_summary', 'DELETE'
         ) THEN
             RAISE EXCEPTION 'EBF source reader has write privileges';
@@ -622,13 +642,12 @@ def _ebf_source_scope_acceptance() -> str:
 
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ebf_scorecard', 'read'
+        '{EBF_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ebf_scorecard', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_ebf_source_reader;
     DO $$
     DECLARE visible_rows BIGINT;
             foreign_rows BIGINT;
-            synthesis_rows BIGINT;
     BEGIN
         SELECT count(*) INTO visible_rows
           FROM kokonut_agent_source.v_ebf_evidence_gap_summary
@@ -636,14 +655,15 @@ def _ebf_source_scope_acceptance() -> str:
         SELECT count(*) INTO foreign_rows
           FROM kokonut_agent_source.v_ebf_evidence_gap_summary
          WHERE location_id <> '{LOCATION_ID}';
-        SELECT count(*) INTO synthesis_rows
-          FROM kokonut_agent_source.v_public_capital_efficiency_summary;
         IF visible_rows <> 1 OR foreign_rows <> 0 THEN
             RAISE EXCEPTION 'signed EBF wrapper scope mismatch: visible %, foreign %',
                 visible_rows, foreign_rows;
         END IF;
-        IF synthesis_rows <> 0 THEN
-            RAISE EXCEPTION 'EBF grant unexpectedly authorized synthesis views';
+        IF has_table_privilege(
+            'kokonut_agent_ebf_source_reader',
+            'kokonut_agent_source.v_public_capital_efficiency_summary', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'EBF role can select synthesis source views';
         END IF;
     END;
     $$;
@@ -651,9 +671,9 @@ def _ebf_source_scope_acceptance() -> str:
 
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'ebf_scorecard', 'read'
+        '{EBF_SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'ebf_scorecard', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_ebf_source_reader;
     DO $$
     DECLARE visible_rows BIGINT;
     BEGIN
@@ -671,16 +691,20 @@ def _ebf_source_scope_acceptance() -> str:
 
 def _cids_source_acceptance() -> str:
     return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{CIDS_SOURCE_WORKER_ID}', 'agent-cids-source');
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{CIDS_SOURCE_WORKER_ID}', '{CIDS_SOURCE_CREDENTIAL_HASH}');
     INSERT INTO kokonut_security.worker_scope_grant (
         worker_id, tenant_id, location_id, resource, action, granted_by
     ) VALUES (
-        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        '{CIDS_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
         'cids_export', 'read', 'synthetic CIDS source-reader acceptance fixture'
     );
 
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
+        '{CIDS_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
     );
     SET LOCAL ROLE kokonut_agent_summary_source_view_owner;
     DO $$
@@ -703,9 +727,9 @@ def _cids_source_acceptance() -> str:
     $$;
     ROLLBACK;
 
-    SET ROLE kokonut_agent_summary_source_login;
+    SET ROLE kokonut_agent_cids_source_login;
     BEGIN;
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_cids_source_reader;
     DO $$
     DECLARE visible_rows BIGINT;
     BEGIN
@@ -719,9 +743,9 @@ def _cids_source_acceptance() -> str:
 
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
+        '{CIDS_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'ai_summary', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_cids_source_reader;
     DO $$
     DECLARE visible_rows BIGINT;
     BEGIN
@@ -735,9 +759,9 @@ def _cids_source_acceptance() -> str:
 
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
+        '{CIDS_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'cids_export', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_cids_source_reader;
     DO $$
     DECLARE
         row_count BIGINT;
@@ -811,23 +835,23 @@ def _cids_source_acceptance() -> str:
             RAISE EXCEPTION 'CIDS feedback wrapper exposed unexpected columns: %', exposed_columns;
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader', 'public.stakeholder_feedback', 'SELECT'
+            'kokonut_agent_cids_source_reader', 'public.stakeholder_feedback', 'SELECT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader', 'public.impact_claim', 'SELECT'
+            'kokonut_agent_cids_source_reader', 'public.impact_claim', 'SELECT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_login',
+            'kokonut_agent_cids_source_login',
             'kokonut_agent_source.cids_location', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'CIDS source identities can bypass projection views';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_cids_source_reader',
             'kokonut_agent_source.cids_location', 'INSERT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_cids_source_reader',
             'kokonut_agent_source.cids_location', 'UPDATE'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_cids_source_reader',
             'kokonut_agent_source.cids_location', 'DELETE'
         ) THEN
             RAISE EXCEPTION 'CIDS projection reader has write privileges';
@@ -837,9 +861,11 @@ def _cids_source_acceptance() -> str:
         EXCEPTION WHEN insufficient_privilege THEN denied := TRUE;
         END;
         IF NOT denied THEN RAISE EXCEPTION 'CIDS reader selected raw feedback'; END IF;
-        SELECT count(*) INTO row_count FROM kokonut_agent_source.v_public_capital_efficiency_summary;
-        IF row_count <> 0 THEN
-            RAISE EXCEPTION 'CIDS grant unexpectedly authorized synthesis source views';
+        IF has_table_privilege(
+            'kokonut_agent_cids_source_reader',
+            'kokonut_agent_source.v_public_capital_efficiency_summary', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'CIDS role can select synthesis source views';
         END IF;
     END;
     $$;
@@ -1173,10 +1199,16 @@ def _summary_inspection_acceptance() -> str:
 def _delphi_agent_source_acceptance() -> str:
     study_id = "d1000000-0000-4000-8000-000000000001"
     return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{DELPHI_SOURCE_WORKER_ID}', 'agent-delphi-source')
+    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{DELPHI_SOURCE_WORKER_ID}', '{DELPHI_SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT (credential_hash) DO NOTHING;
     INSERT INTO kokonut_security.worker_scope_grant (
         worker_id, tenant_id, location_id, resource, action, granted_by
     ) VALUES (
-        '{SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        '{DELPHI_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
         'delphi', 'read', 'synthetic Delphi source acceptance fixture'
     ) ON CONFLICT DO NOTHING;
 
@@ -1190,7 +1222,7 @@ def _delphi_agent_source_acceptance() -> str:
     ALTER TABLE public.delphi_panel_member FORCE ROW LEVEL SECURITY;
 
     BEGIN;
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_delphi_source_reader;
     SET LOCAL search_path = kokonut_agent_source, public;
     DO $$
     DECLARE visible_rows BIGINT;
@@ -1200,10 +1232,10 @@ def _delphi_agent_source_acceptance() -> str:
             RAISE EXCEPTION 'Delphi source was visible without signed location context';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_delphi_source_reader',
             'public.delphi_contribution', 'SELECT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_login',
+            'kokonut_agent_delphi_source_login',
             'public.delphi_contribution', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'Delphi source roles can query contribution rows directly';
@@ -1214,13 +1246,13 @@ def _delphi_agent_source_acceptance() -> str:
         EXCEPTION WHEN insufficient_privilege THEN NULL;
         END;
         IF has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_delphi_source_reader',
             'kokonut_agent_source.delphi_live_summary', 'INSERT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_delphi_source_reader',
             'kokonut_agent_source.delphi_live_summary', 'UPDATE'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_source_reader',
+            'kokonut_agent_delphi_source_reader',
             'kokonut_agent_source.delphi_live_summary', 'DELETE'
         ) THEN
             RAISE EXCEPTION 'Delphi source reader has write access';
@@ -1229,12 +1261,12 @@ def _delphi_agent_source_acceptance() -> str:
     $$;
     ROLLBACK;
 
-    SET ROLE kokonut_agent_summary_source_login;
+    SET ROLE kokonut_agent_delphi_source_login;
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'delphi', 'read'
+        '{DELPHI_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}', 'delphi', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_delphi_source_reader;
     SET LOCAL search_path = kokonut_agent_source, public;
     DO $$
     DECLARE summary_row RECORD;
@@ -1286,12 +1318,12 @@ def _delphi_agent_source_acceptance() -> str:
     ROLLBACK;
     RESET ROLE;
 
-    SET ROLE kokonut_agent_summary_source_login;
+    SET ROLE kokonut_agent_delphi_source_login;
     BEGIN;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'delphi', 'read'
+        '{DELPHI_SOURCE_CREDENTIAL_HASH}', '{OTHER_LOCATION_ID}', 'delphi', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_source_reader;
+    SET LOCAL ROLE kokonut_agent_delphi_source_reader;
     SET LOCAL search_path = kokonut_agent_source, public;
     DO $$
     DECLARE visible_rows BIGINT;
@@ -2543,7 +2575,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, and 539-548 apply; migrations 530-537 and 539-548 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, and 580 apply; migrations 530-537, 539-548, and 580 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -2574,10 +2606,12 @@ def main() -> int:
         "migration 541 removes stale public-schema CREATE from the NOLOGIN source reader as well as the source login",
         "migration 544 removes stale public-schema CREATE from the deterministic source login in addition to its relation, sequence, and function grants",
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
-        "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; replay removes stale raw-view and wrapper read/write grants",
-        "migration 546 exposes six minimal CIDS projections only under cids_export/read, filters exact location under forced RLS, withholds private feedback text, preserves ai_summary/read, and clears stale grants on replay",
+        "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; migration 580 moves it to a dedicated reader/login pair",
+        "migration 546 exposes six minimal CIDS projections only under cids_export/read and migration 580 moves them to a dedicated reader/login pair",
         "migration 547 exposes exact-location AI-summary list previews and digest inputs only under ai_summary/read, works under forced RLS, denies raw-table access, and removes stale grants on replay",
-        "migration 548 exposes only consented, thresholded Delphi aggregates under delphi/read, works under forced RLS, denies participant-token/reasoning/raw-table access, and removes stale grants on replay",
+        "migration 548 exposes only consented, thresholded Delphi aggregates under delphi/read; migration 580 moves it to a dedicated reader/login pair",
+        "migration 580 gives EBF, CIDS, and Delphi independent SET-only logins and exact read-only projection roles; their login credentials cannot read synthesis or one another's views",
+        "migration 580 replay restores the task-specific grants after replaying migration 548 and removes Delphi access from the general synthesis reader",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -2592,7 +2626,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants; EBF evidence gaps use ebf_scorecard/read; CIDS uses cids_export/read; Delphi agent summaries use delphi/read. Security-barrier wrappers enforce each exact location and resource grants do not authorize one another",
+        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections; signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "checks": checks,
     }
     if PLATFORM == "linux/arm64" and IMAGE == "sogis/postgis:16-3.4":
@@ -2638,6 +2672,8 @@ def main() -> int:
                     DELPHI_SOURCE_FIXTURE.read_text(encoding="utf-8"),
                 )
                 stage = "migration_548_apply"
+            if migration_path.name.startswith("580_"):
+                stage = "migration_580_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -2847,18 +2883,25 @@ def main() -> int:
             "TO kokonut_agent_summary_source_login;",
         )
         migration_548 = next(path for path in MIGRATIONS if path.name.startswith("548_"))
+        migration_580 = next(path for path in MIGRATIONS if path.name.startswith("580_"))
         base.psql(docker, container, migration_548.read_text(encoding="utf-8"))
+        base.psql(docker, container, migration_580.read_text(encoding="utf-8"))
         base.psql(
             docker,
             container,
             "DO $$ BEGIN "
             "IF has_table_privilege('kokonut_agent_summary_source_reader', 'public.delphi_contribution', 'SELECT') "
             "OR has_table_privilege('kokonut_agent_summary_source_login', 'public.delphi_contribution', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'SELECT') "
             "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'INSERT') "
             "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'UPDATE') "
             "OR has_table_privilege('kokonut_agent_summary_source_reader', 'kokonut_agent_source.delphi_live_summary', 'DELETE') "
             "OR has_schema_privilege('kokonut_agent_summary_source_login', 'kokonut_agent_source', 'USAGE') "
-            "THEN RAISE EXCEPTION 'migration 548 replay retained a stale Delphi source grant'; END IF; END $$;",
+            "THEN RAISE EXCEPTION 'migration 580 replay retained a stale Delphi source grant'; END IF; "
+            "IF NOT has_table_privilege('kokonut_agent_delphi_source_reader', "
+            "'kokonut_agent_source.delphi_live_summary', 'SELECT') THEN "
+            "RAISE EXCEPTION 'migration 580 replay removed the dedicated Delphi read grant'; "
+            "END IF; END $$;",
         )
         base.psql(docker, container, _delphi_agent_source_acceptance())
         stage = "signed_worker_acceptance"

@@ -126,6 +126,8 @@ def test_delphi_agent_worker_uses_signed_location_and_safe_projection(monkeypatc
         source_row,
     ]
     monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    credential_reader = MagicMock(return_value="d" * 40)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
     monkeypatch.setattr(
         "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
     )
@@ -141,11 +143,12 @@ def test_delphi_agent_worker_uses_signed_location_and_safe_projection(monkeypatc
         "read",
     )
     assert statements[3:7] == [
-        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
+        "SET LOCAL ROLE kokonut_agent_delphi_source_reader",
         "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
+    credential_reader.assert_called_once_with("agent_delphi_source")
     assert "FROM kokonut_agent_source.delphi_live_summary" in statements[-1]
     assert cursor.execute.call_args_list[-1].args[1] == (study_id, LOCATION_ID)
     assert result == source_row
@@ -945,6 +948,7 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     context_setter = MagicMock(
         side_effect=lambda *_args, **_kwargs: events.append("signed-context")
     )
+    credential_reader = MagicMock(return_value="c" * 40)
     source_factory = MagicMock(return_value=connection)
     action_policy = MagicMock()
     document = {
@@ -954,6 +958,7 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     }
     exporter = MagicMock(side_effect=lambda *_args, **_kwargs: events.append("export") or document)
     monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
     monkeypatch.setattr(worker_cli, "set_agent_source_tenant_context", context_setter)
     monkeypatch.setattr(
         "services.agents.safety.assert_agent_action_allowed", action_policy
@@ -965,19 +970,20 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
     assert statements == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
-        "SET LOCAL ROLE kokonut_agent_summary_source_reader",
+        "SET LOCAL ROLE kokonut_agent_cids_source_reader",
         "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
         "SET LOCAL lock_timeout = '3s'",
     ]
     context_setter.assert_called_once_with(
         connection,
-        credential="s" * 40,
+        credential="c" * 40,
         location_id=LOCATION_ID,
         resource="cids_export",
         action="read",
     )
-    source_factory.assert_called_once_with("agent_summary_source")
+    source_factory.assert_called_once_with("agent_cids_source")
+    credential_reader.assert_called_once_with("agent_cids_source")
     exporter.assert_called_once_with(
         connection, LOCATION_ID, source_schema="kokonut_agent_source"
     )
@@ -992,6 +998,48 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
         "cids_version": "3.2.0",
     }
     connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_ebf_worker_uses_its_task_specific_source_identity(monkeypatch):
+    connection, cursor = _source_connection()
+    scorecard_id = "00000000-0000-0000-0000-000000000abc"
+    context_setter = MagicMock()
+    credential_reader = MagicMock(return_value="e" * 40)
+    source_factory = MagicMock(return_value=connection)
+    result = {"evidence_gaps": [], "recommendations": []}
+    analyzer = MagicMock(return_value=result)
+    monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
+    monkeypatch.setattr(worker_cli, "set_agent_source_tenant_context", context_setter)
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+    monkeypatch.setattr(
+        "services.agents.ebf_evidence_gap_agent.analyze_evidence_gaps", analyzer
+    )
+
+    output = worker_cli.run_worker_ebf_evidence_gap(scorecard_id, LOCATION_ID)
+
+    statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
+    assert statements == [
+        "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
+        "SET LOCAL ROLE kokonut_agent_ebf_source_reader",
+        "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
+        "SET LOCAL statement_timeout = '15s'",
+        "SET LOCAL lock_timeout = '3s'",
+    ]
+    credential_reader.assert_called_once_with("agent_ebf_source")
+    source_factory.assert_called_once_with("agent_ebf_source")
+    context_setter.assert_called_once_with(
+        connection,
+        credential="e" * 40,
+        location_id=LOCATION_ID,
+        resource="ebf_scorecard",
+        action="read",
+    )
+    analyzer.assert_called_once_with(connection, scorecard_id, LOCATION_ID)
+    assert output == result
     connection.close.assert_called_once_with()
 
 

@@ -436,8 +436,8 @@ def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str
         "read", "ebf_scorecard", {"location_id": location_id}
     )
 
-    credential = get_worker_credential("agent_summary_source")
-    connection = get_worker_db("agent_summary_source")
+    credential = get_worker_credential("agent_ebf_source")
+    connection = get_worker_db("agent_ebf_source")
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -449,7 +449,7 @@ def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str
             action="read",
         )
         with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL ROLE kokonut_agent_ebf_source_reader")
             cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
@@ -486,8 +486,8 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
         raise ValueError("location_id must be a UUID") from exc
     assert_agent_action_allowed("read", "cids_export", {"location_id": location_id})
 
-    credential = get_worker_credential("agent_summary_source")
-    connection = get_worker_db("agent_summary_source")
+    credential = get_worker_credential("agent_cids_source")
+    connection = get_worker_db("agent_cids_source")
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -499,7 +499,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
             action="read",
         )
         with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL ROLE kokonut_agent_cids_source_reader")
             cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
@@ -547,8 +547,8 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
         raise ValueError("; ".join(input_errors))
     assert_agent_action_allowed("read", "delphi_study", {"location_id": location_id})
 
-    credential = get_worker_credential("agent_summary_source")
-    connection = get_worker_db("agent_summary_source")
+    credential = get_worker_credential("agent_delphi_source")
+    connection = get_worker_db("agent_delphi_source")
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -560,7 +560,7 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
             action="read",
         )
         with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL ROLE kokonut_agent_summary_source_reader")
+            cursor.execute("SET LOCAL ROLE kokonut_agent_delphi_source_reader")
             cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")

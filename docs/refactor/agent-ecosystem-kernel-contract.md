@@ -241,23 +241,26 @@ need their own operator authorization review. These are scoped source
 boundaries for the two AI-summary worker profiles, not a universal RLS rollout.
 Other service/database paths retain separate tenant-boundary reviews.
 
-The EBF evidence-gap reader uses the same isolated source login but requires a
-separate exact `ebf_scorecard/read` grant. Migration 545 creates a security-
-barrier wrapper filtered through the database-signed scope and exposes only
-the scorecard/location keys and columns consumed by the EBF query; raw public
-view access, wrapper writes, and source-login access to the wrapper schema are
-revoked. It runs in a repeatable-read, read-only transaction and rolls back on
-failure. This closes the EBF source boundary only; other non-synthesis agent
-reads and operator authorization remain separate work.
+The EBF evidence-gap reader uses its own credential and connection identity.
+Migration 545 creates a security-barrier wrapper filtered through the database-
+signed `ebf_scorecard/read` scope and exposes only the scorecard/location keys
+and columns consumed by the EBF query. Migration 580 gives this worker a
+separate SET-only login and reader role with SELECT on that single projection;
+it cannot select synthesis, CIDS, or Delphi views. It runs in a repeatable-
+read, read-only transaction and rolls back on failure. Credential and location-
+grant provisioning, live runtime acceptance, and operator authorization remain
+separate work.
 
-The CIDS Essential Tier export now uses that source login through a separate
-exact `cids_export/read` grant. Migration 546 adds six minimal security-barrier
+The CIDS Essential Tier export uses its own credential and connection
+identity under an exact `cids_export/read` grant. Migration 546 adds six minimal security-barrier
 projections for the location, published outcomes, impact mappings, verified
 metrics, consent-eligible feedback metadata, and verified impact claims. The
 feedback wrapper deliberately excludes the public-summary text; the existing
 graph builder receives only the fields declared by the projection contract.
-The worker establishes signed context before switching to the NOLOGIN reader
-and runs in a repeatable-read, read-only transaction. Migration-owned RLS
+Migration 580 gives CIDS a separate SET-only login and reader role with SELECT
+on those six projections only; EBF, Delphi, and synthesis projections are
+outside its SQL privileges. The worker establishes signed context before
+switching to the NOLOGIN reader and runs in a repeatable-read, read-only transaction. Migration-owned RLS
 policies constrain the shared source-view owner to the current exact CIDS
 location and separately preserve the existing `ai_summary/read` views. The
 optional `cids-export-worker` Compose profile receives the source DSN and
@@ -439,8 +442,11 @@ it withholds panel and item aggregates until the greater of three and the
 study's configured minimum participant count is met. It never returns
 participant display tokens or contribution reasoning.
 
-The source-only worker connection runs repeatable-read/read-only and switches
-to the NOLOGIN reader role before selecting the exact study/location pair.
+The Delphi source worker has a separate credential, SET-only login, and
+NOLOGIN reader role. Migration 580 grants it SELECT on `delphi_live_summary`
+only; it cannot query synthesis, EBF, or CIDS projections. The connection runs
+repeatable-read/read-only and switches to that reader before selecting the
+exact study/location pair.
 The in-memory recommendation suggestion includes the same location scope;
 persistence and review remain on the authenticated Delphi Gateway routes.
 This closes the agent facilitator's shared-runtime read path only. The legacy

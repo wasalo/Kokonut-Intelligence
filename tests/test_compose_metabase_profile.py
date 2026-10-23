@@ -158,8 +158,8 @@ def test_cids_export_worker_is_opt_in_and_has_no_shared_database_identity() -> N
     service = config["services"]["cids-export-worker"]
 
     assert service["entrypoint"] == ["python3", "-m", "services.agents.cids_agent"]
-    assert service["environment"]["KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL"] == ""
-    assert service["environment"]["KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL"] == ""
+    assert service["environment"]["KOKONUT_AGENT_CIDS_SOURCE_DATABASE_URL"] == ""
+    assert service["environment"]["KOKONUT_AGENT_CIDS_SOURCE_WORKER_CREDENTIAL"] == ""
     assert not any(
         name.startswith("PG_") or name == "DATABASE_URL"
         for name in service["environment"]

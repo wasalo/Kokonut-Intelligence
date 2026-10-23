@@ -184,8 +184,7 @@ services:
     profiles:
       - agent-synthesis-worker
 
-  # EBF evidence-gap reads use the same isolated source login but a separate
-  # ebf_scorecard/read grant and the narrow migration-545 wrapper.
+  # EBF evidence-gap reads use a task-specific login and one narrow projection.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile ebf-evidence-gap-worker run --rm ebf-evidence-gap-worker \
@@ -204,8 +203,8 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
-      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
-      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_EBF_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_EBF_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_EBF_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_EBF_SOURCE_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
     deploy:
       resources:
@@ -214,8 +213,7 @@ services:
     profiles:
       - ebf-evidence-gap-worker
 
-  # CIDS export uses the same isolated source login, a separate
-  # cids_export/read grant, and the minimal migration-546 projection views.
+  # CIDS export uses a task-specific login and the six minimal projection views.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile cids-export-worker run --rm cids-export-worker --location-id UUID
@@ -233,8 +231,8 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
-      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
-      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_CIDS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_CIDS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_CIDS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_CIDS_SOURCE_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
     deploy:
       resources:
@@ -243,8 +241,7 @@ services:
     profiles:
       - cids-export-worker
 
-  # Delphi agent reads use the shared source-only login with a dedicated
-  # delphi/read scope and a consent-aware aggregate projection.
+  # Delphi agent reads use a task-specific login and consent-aware projection.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile delphi-agent-worker run --rm delphi-agent-worker \
@@ -262,8 +259,8 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
-      KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_SOURCE_DATABASE_URL:-}
-      KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_DELPHI_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_DELPHI_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_DELPHI_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_DELPHI_SOURCE_WORKER_CREDENTIAL:-}
       PYTHONDONTWRITEBYTECODE: "1"
     deploy:
       resources:

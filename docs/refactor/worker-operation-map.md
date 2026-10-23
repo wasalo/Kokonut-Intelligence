@@ -313,8 +313,11 @@ Before worker RLS or runtime-grant reduction:
 4. Provision worker credentials and exact grants for remaining operations.
    Child environment filtering is implemented, with exact routing for the
    anomaly and cache handlers; the two global notification handlers have a
-   separate exact login route. Do not infer a single location for
-   cross-location work.
+   separate exact login route. Synthesis, EBF evidence gaps, CIDS, and Delphi
+   now have separate source credentials and narrowly granted reader roles.
+   These remain unprovisioned in deployment until controlled credential and
+   grant setup is completed. Do not infer a single location for cross-location
+   work.
 5. Re-run the reviewed worker operations under the final role in disposable
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.

@@ -373,6 +373,41 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
     connection.close.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("worker_key", "login", "env_prefix"),
+    [
+        ("agent_ebf_source", "kokonut_agent_ebf_source_login", "AGENT_EBF_SOURCE"),
+        ("agent_cids_source", "kokonut_agent_cids_source_login", "AGENT_CIDS_SOURCE"),
+        ("agent_delphi_source", "kokonut_agent_delphi_source_login", "AGENT_DELPHI_SOURCE"),
+    ],
+)
+def test_task_specific_agent_source_factories_require_their_own_login(
+    monkeypatch, worker_key, login, env_prefix
+):
+    connection, cursor = _connection(login)
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = f"postgresql://{login}:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        worker_key,
+        environ={
+            f"KOKONUT_{env_prefix}_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name=f"kokonut-worker-{worker_key}",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.rollback.assert_called_once_with()
+
+
 def test_sensor_ingestion_factory_has_no_shared_dsn_fallback(monkeypatch):
     connect = MagicMock()
     monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
