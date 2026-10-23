@@ -496,6 +496,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    traceability_match = re.fullmatch(
+        r"/operator/api/traceability/([0-9a-fA-F-]{36})/batches(?:/([0-9a-fA-F-]{36}))?",
+        path,
+    )
+    if traceability_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "traceability",
+            "action": "read",
+            "public": False,
+            "location_id": traceability_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     ecocredit_match = re.fullmatch(
         r"/operator/api/ecocredits/([0-9a-fA-F-]{36})/batches", path
     )
@@ -4262,12 +4276,14 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.stakeholder_trust_routes import register_stakeholder_trust_routes
     from services.gateway.strategy_routes import register_strategy_routes
     from services.gateway.threatcasting_routes import register_threatcasting_routes
+    from services.gateway.traceability_routes import register_traceability_routes
     from services.gateway.true_cost_routes import register_true_cost_routes
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
     register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
+    register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)

@@ -19,10 +19,27 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,035 checklist items complete and 25
-open (1,060 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 30 baseline-retained, 7 deployed, and 30 prepared. Named MAN-CAP
+**Current snapshot (23 October 2026):** 1,036 checklist items complete and 25
+open (1,061 total). The [capability matrix](capability-matrix.md) has 67 validated
+rows: 29 baseline-retained, 7 deployed, and 31 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-003 initial traceability Kernel read slice — 23 October 2026
+
+- [x] Add OIDC operator batch-list and batch-detail reads under the exact
+  location `traceability:read` grant. Signed tenant context is established on
+  the same read-only PostgreSQL connection before queries; each child query
+  rechecks the batch's requested location. Pagination and related collections
+  are bounded. The projection covers custody sequence, quality inspections,
+  certifications, food-safety checks, and provenance while omitting actor names,
+  free text, GPS, evidence links, and arbitrary metadata. The focused Gateway
+  and operator-auth selection passes 76 tests; Ruff, compilation, and the
+  regenerated runtime SQL inventory pass. No migration or candidate/legacy
+  database was used ([contract](traceability-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-003-traceability-kernel-read.json)).
+  CAP-003 is now prepared, not accepted; populated legacy-output parity, live
+  ZITADEL/browser behavior, database RLS, audience review, recovery, and
+  MAN-CAP-003 remain open.
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

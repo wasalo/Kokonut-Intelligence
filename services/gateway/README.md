@@ -179,6 +179,15 @@ omits beneficiary, wallet, statement, evidence, request-key, and reviewer-note
 details. Retirement approval, rejection, cancellation, and chain actions are
 not exposed by this read.
 
+Location-scoped produce traceability is available at
+`GET /operator/api/traceability/{location_id}/batches` and
+`GET /operator/api/traceability/{location_id}/batches/{batch_id}` with an exact
+`traceability:read` grant. The list is paginated; detail returns bounded custody,
+quality, certification, food-safety, and provenance records. Actor identities,
+free text, GPS, evidence URLs, and arbitrary metadata are omitted. These routes
+are read-only and do not establish public/community visibility or populated-data
+parity; see the [Kernel read contract](../../docs/refactor/traceability-kernel-read-contract.md).
+
 Global Baal governance reads are available at:
 
 - `GET /api/v1/governance/baal/config`
@@ -202,6 +211,7 @@ global DAO access.
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
 - `attestations` and `attestation_routes` — scoped metadata reads for location EAS proofs.
 - `credit_custody` and `credit_custody_routes` — aggregate carbon-credit and retirement state.
+- `traceability` and `traceability_routes` — bounded location-scoped batch, custody, quality, certification, food-safety, and provenance reads.
 - `ecocredits` and `ecocredit_routes` — location-scoped batch and aggregate ledger reads.
 - `audit` — Gateway audit — request logging.
 - `auth` — Gateway auth — unified authentication (API key, capability token, session).

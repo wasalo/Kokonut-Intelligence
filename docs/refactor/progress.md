@@ -1,3 +1,19 @@
+### CAP-003 traceability Kernel read path — 23 October 2026
+
+The native OIDC operator Gateway now exposes a bounded batch list and detail
+projection behind an exact location `traceability:read` grant. The service
+sets signed tenant context before querying, keeps the transaction read-only,
+and repeats the location predicate on each related custody, quality,
+certification, food-safety, and provenance collection. It omits names, free
+text, GPS, evidence links, and arbitrary JSON. The 76-test traceability and
+operator-auth selection passes; Ruff, compilation, and the regenerated runtime
+SQL inventory pass. No schema migration or candidate/legacy database was
+needed. CAP-003 moves to prepared; populated legacy parity, live OIDC/browser,
+RLS/runtime-role boundaries, audience review, and MAN-CAP-003 remain open
+([contract](traceability-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-003-traceability-kernel-read.json)).
+Checklist: 1,036 complete / 25 open (1,061 total); matrix: 29 baseline-retained,
+7 deployed, 31 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+
 ### Protocol execution bridge source and portability checks — 23 October 2026
 
 The pulled branch head 7679b3ea adds the prepared CAP-067 bridge. The focused
