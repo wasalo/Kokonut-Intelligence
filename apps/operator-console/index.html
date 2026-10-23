@@ -640,6 +640,7 @@
               <label for="operating-pilot-resource-create-requested-by">Needed by</label>
               <input id="operating-pilot-resource-create-requested-by" type="date" required>
               <button id="operating-pilot-resource-create-submit" type="submit">Save private resource draft</button>
+              <button id="operating-pilot-resource-edit-cancel" class="secondary" type="button" hidden>Cancel draft edit</button>
             </form>
             <p id="operating-pilot-resource-create-status" class="muted" role="status" aria-live="polite"></p>
           </section>
@@ -649,7 +650,7 @@
             <p id="operating-pilot-own-resources-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th><th>Status</th><th>Updated</th></tr></thead>
+                <thead><tr><th>Resource</th><th>Description</th><th>Urgency</th><th>Needed by</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-own-resources-rows"></tbody>
               </table>
             </div>
@@ -1971,6 +1972,7 @@
       const operatingPilotResourceCreate = document.querySelector("#operating-pilot-resource-create");
       const operatingPilotResourceCreateForm = document.querySelector("#operating-pilot-resource-create-form");
       const operatingPilotResourceCreateStatus = document.querySelector("#operating-pilot-resource-create-status");
+      const operatingPilotResourceEditCancel = document.querySelector("#operating-pilot-resource-edit-cancel");
       const operatingPilotCapacityCreateStatus = document.querySelector("#operating-pilot-capacity-create-status");
       const operatingPilotCapacityEditCancel = document.querySelector("#operating-pilot-capacity-edit-cancel");
       const operatingPilotCapacityCreateHeading = document.querySelector("#operating-pilot-capacity-create-heading");
@@ -2061,6 +2063,7 @@
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
       let operatingPilotEditOwnDemandLocations = new Set();
+      let operatingPilotEditOwnResourceLocations = new Set();
       let operatingPilotSubmitOwnCapacityLocations = new Set();
       let operatingPilotCapacityReviewLocations = new Set();
       let operatingPilotClaimOwnLocations = new Set();
@@ -2071,6 +2074,7 @@
       let operatingPilotPendingCapacityCreate = null;
       let operatingPilotPendingCapacityEdit = null;
       let operatingPilotPendingResourceCreate = null;
+      let operatingPilotPendingResourceEdit = null;
       const operatingPilotPendingCapacitySubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
@@ -3047,8 +3051,13 @@
       async function submitOperatingPilotResourceDraft(event) {
         event.preventDefault();
         const locationId = operatingPilotLocation.value;
-        if (!operatingPilotCreateLocations.has(locationId)) {
-          operatingPilotResourceCreateStatus.textContent = "A current exact location create grant is required.";
+        const draftId = operatingPilotPendingResourceEdit?.draft_id || null;
+        const isEditing = draftId !== null;
+        if (isEditing ? !operatingPilotEditOwnResourceLocations.has(locationId)
+          : !operatingPilotCreateLocations.has(locationId)) {
+          operatingPilotResourceCreateStatus.textContent = isEditing
+            ? "A current exact location edit-own grant is required."
+            : "A current exact location create grant is required.";
           return;
         }
         const csrf = csrfToken();
@@ -3062,19 +3071,23 @@
           urgency: document.querySelector("#operating-pilot-resource-create-urgency").value,
           requested_by: document.querySelector("#operating-pilot-resource-create-requested-by").value
         };
-        const fingerprint = JSON.stringify({ locationId, ...payload });
+        const fingerprint = JSON.stringify({ locationId, draftId, ...payload });
         if (!operatingPilotPendingResourceCreate
             || operatingPilotPendingResourceCreate.fingerprint !== fingerprint) {
           operatingPilotPendingResourceCreate = { fingerprint, request_id: crypto.randomUUID() };
         }
         const submit = document.querySelector("#operating-pilot-resource-create-submit");
         submit.disabled = true;
-        operatingPilotResourceCreateStatus.textContent = "Saving a private resource-request draft…";
+        operatingPilotResourceCreateStatus.textContent = isEditing
+          ? "Saving a revised private resource-request draft…"
+          : "Saving a private resource-request draft…";
         try {
           const response = await fetch(
-            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests`,
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests${
+              isEditing ? `/${encodeURIComponent(draftId)}` : ""
+            }`,
             {
-              method: "POST", credentials: "same-origin", cache: "no-store",
+              method: isEditing ? "PUT" : "POST", credentials: "same-origin", cache: "no-store",
               headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
               body: JSON.stringify({ ...payload, request_id: operatingPilotPendingResourceCreate.request_id })
             }
@@ -3087,10 +3100,18 @@
           if (locationId !== operatingPilotLocation.value) return;
           if (result.status !== "draft") throw new Error("The resource request was not saved as a draft.");
           operatingPilotPendingResourceCreate = null;
+          operatingPilotPendingResourceEdit = null;
           operatingPilotResourceCreateForm.reset();
-          operatingPilotResourceCreateStatus.textContent = result.replayed
-            ? "Your private resource draft was confirmed after retry. It remains unsubmitted."
-            : "Private resource draft saved. It remains unsubmitted and is not visible in the review queue.";
+          operatingPilotResourceEditCancel.hidden = true;
+          document.querySelector("#operating-pilot-resource-create-heading").textContent = "Request a resource draft";
+          document.querySelector("#operating-pilot-resource-create-submit").textContent = "Save private resource draft";
+          operatingPilotResourceCreateStatus.textContent = isEditing
+            ? result.replayed
+              ? "Your revised resource draft was confirmed after retry. The prior version remains superseded."
+              : "Resource draft revised. The prior version remains superseded; the replacement is private and unsubmitted."
+            : result.replayed
+              ? "Your private resource draft was confirmed after retry. It remains unsubmitted."
+              : "Private resource draft saved. It remains unsubmitted and is not visible in the review queue.";
           if (operatingPilotOwnDemandLocations.has(locationId)) {
             await loadOperatingPilotOwnResourceRequests();
           }
@@ -3099,6 +3120,34 @@
         } finally {
           submit.disabled = false;
         }
+      }
+
+      function cancelOperatingPilotResourceEdit() {
+        operatingPilotPendingResourceEdit = null;
+        operatingPilotPendingResourceCreate = null;
+        operatingPilotResourceCreateForm.reset();
+        operatingPilotResourceEditCancel.hidden = true;
+        document.querySelector("#operating-pilot-resource-create-heading").textContent = "Request a resource draft";
+        document.querySelector("#operating-pilot-resource-create-submit").textContent = "Save private resource draft";
+        operatingPilotResourceCreateStatus.textContent = "Draft edit canceled.";
+      }
+
+      function startOperatingPilotResourceEdit(item, locationId) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotOwnDemandLocations.has(locationId)
+            || !operatingPilotEditOwnResourceLocations.has(locationId)
+            || item.status !== "draft") return;
+        operatingPilotPendingResourceEdit = { draft_id: item.draft_id, location_id: locationId };
+        operatingPilotPendingResourceCreate = null;
+        document.querySelector("#operating-pilot-resource-create-type").value = item.resource_type || "";
+        document.querySelector("#operating-pilot-resource-create-description").value = item.description || "";
+        document.querySelector("#operating-pilot-resource-create-urgency").value = item.urgency || "medium";
+        document.querySelector("#operating-pilot-resource-create-requested-by").value = item.requested_by || "";
+        document.querySelector("#operating-pilot-resource-create-heading").textContent = "Revise your private resource draft";
+        document.querySelector("#operating-pilot-resource-create-submit").textContent = "Save revised resource draft";
+        operatingPilotResourceEditCancel.hidden = false;
+        operatingPilotResourceCreateStatus.textContent = "Only your own receipt-backed unsubmitted resource draft can be revised. Its prior version remains in history as superseded.";
+        operatingPilotResourceCreate.scrollIntoView({ block: "nearest" });
       }
 
       function cancelOperatingPilotCapacityEdit() {
@@ -3681,6 +3730,17 @@
           cell.textContent = operatingPilotDisplayValue(value);
           row.append(cell);
         }
+        const actionCell = document.createElement("td");
+        const locationId = operatingPilotLocation.value;
+        if (operatingPilotEditOwnResourceLocations.has(locationId) && item.status === "draft") {
+          const edit = document.createElement("button");
+          edit.type = "button";
+          edit.className = "secondary";
+          edit.textContent = "Edit your draft";
+          edit.addEventListener("click", () => startOperatingPilotResourceEdit(item, locationId));
+          actionCell.append(edit);
+        }
+        row.append(actionCell);
         operatingPilotOwnResourcesRows.append(row);
       }
 
@@ -4345,7 +4405,9 @@
         operatingPilotCapacityCreate.hidden = !operatingPilotCreateLocations.has(locationId)
           && !(operatingPilotOwnCapacityLocations.has(locationId)
             && operatingPilotEditOwnCapacityLocations.has(locationId));
-        operatingPilotResourceCreate.hidden = !operatingPilotCreateLocations.has(locationId);
+        operatingPilotResourceCreate.hidden = !operatingPilotCreateLocations.has(locationId)
+          && !(operatingPilotOwnDemandLocations.has(locationId)
+            && operatingPilotEditOwnResourceLocations.has(locationId));
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId);
@@ -13275,6 +13337,7 @@
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotEditOwnCapacityLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           operatingPilotEditOwnDemandLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
+          operatingPilotEditOwnResourceLocations = new Set(operatingPilotEditOwnCapacityLocationIds);
           const operatingPilotCapacityReviewLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "review")
             .map((scope) => scope.location_id)
@@ -17272,6 +17335,10 @@
             && operatingPilotPendingCapacityEdit.location_id !== operatingPilotLocation.value) {
           cancelOperatingPilotCapacityEdit();
         }
+        if (operatingPilotPendingResourceEdit
+            && operatingPilotPendingResourceEdit.location_id !== operatingPilotLocation.value) {
+          cancelOperatingPilotResourceEdit();
+        }
         loadOperatingPilot();
       });
       operatingPilotDemandCreateForm.addEventListener("submit", submitOperatingPilotDemandDraft);
@@ -17279,6 +17346,7 @@
       operatingPilotDemandSubmit.addEventListener("click", submitOperatingPilotDemandSignal);
       operatingPilotCapacityCreateForm.addEventListener("submit", submitOperatingPilotCapacityDraft);
       operatingPilotResourceCreateForm.addEventListener("submit", submitOperatingPilotResourceDraft);
+      operatingPilotResourceEditCancel.addEventListener("click", cancelOperatingPilotResourceEdit);
       operatingPilotCapacityEditCancel.addEventListener("click", cancelOperatingPilotCapacityEdit);
       operatingPilotCapacityReviewDecision.addEventListener("change", syncOperatingPilotCapacityReviewReason);
       operatingPilotCapacityReviewForm.addEventListener("submit", submitOperatingPilotCapacityReview);

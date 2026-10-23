@@ -252,6 +252,114 @@ def test_resource_draft_failure_rolls_back_and_closes_connection(monkeypatch):
     connection.close.assert_called_once_with()
 
 
+def test_resource_revision_sets_exact_edit_own_context_and_commits_result(monkeypatch):
+    replacement_id = "e0000000-0000-4000-8000-000000000002"
+    connection, cursor = _connection_with_result(
+        {
+            "draft_id": replacement_id,
+            "replaced_draft_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.revise_location_operating_pilot_resource_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {**RESOURCE_PAYLOAD, "resource_type": "irrigation pumps"},
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": replacement_id,
+        "replaced_draft_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "operating_pilot",
+                "action": "edit_own",
+            },
+        )
+    ]
+    assert "SET LOCAL statement_timeout" in cursor.execute.call_args_list[0].args[0]
+    assert "revise_location_operating_pilot_resource_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        "irrigation pumps",
+        RESOURCE_PAYLOAD["description"],
+        "medium",
+        operating_pilot_writes.date(2026, 11, 15),
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("draft_id", "request_id", "payload", "message"),
+    [
+        ("not-a-draft-id", REQUEST_ID, RESOURCE_PAYLOAD, "draft identifier"),
+        (PROFILE_ID, "not-a-request-id", RESOURCE_PAYLOAD, "request identifier"),
+        (PROFILE_ID, REQUEST_ID, {**RESOURCE_PAYLOAD, "description": "unsafe\x00text"}, "Description"),
+        (PROFILE_ID, REQUEST_ID, {**RESOURCE_PAYLOAD, "urgency": "immediate"}, "Urgency"),
+    ],
+)
+def test_invalid_resource_revision_fails_before_database_access(draft_id, request_id, payload, message):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match=message):
+        operating_pilot_writes.revise_location_operating_pilot_resource_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            draft_id,
+            request_id,
+            payload,
+            connection_factory=factory,
+        )
+
+    factory.assert_not_called()
+
+
+def test_resource_revision_failure_rolls_back_and_closes_connection(monkeypatch):
+    connection, _cursor = _connection_with_result(None)
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(RuntimeError, match="revision returned no result"):
+        operating_pilot_writes.revise_location_operating_pilot_resource_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            PROFILE_ID,
+            REQUEST_ID,
+            RESOURCE_PAYLOAD,
+            connection_factory=lambda: connection,
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 def _route_app(monkeypatch, action, operation="create_location_operating_pilot_demand_draft"):
     async def run_inline(function, *args, **kwargs):
         return function(*args, **kwargs)
@@ -354,6 +462,55 @@ def test_resource_draft_route_policy_requires_exact_location_create_grant():
         f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
         enabled=False,
     ) is None
+
+
+def test_resource_revision_http_route_passes_ids_and_uses_no_store(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "draft_id": REQUEST_ID,
+            "replaced_draft_id": PROFILE_ID,
+            "status": "draft",
+            "replayed": False,
+        }
+    )
+    client = _route_app(monkeypatch, action, "revise_location_operating_pilot_resource_draft")
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["status"] == "draft"
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, RESOURCE_PAYLOAD)
+
+
+def test_resource_revision_route_denies_missing_edit_own_context(monkeypatch):
+    action = MagicMock(side_effect=TenantContextDenied("denied"))
+    client = _route_app(monkeypatch, action, "revise_location_operating_pilot_resource_draft")
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}",
+        json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 403
+    assert "edit-own access" in response.json()["error"]
+
+
+def test_resource_revision_route_policy_requires_exact_location_edit_own_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests/{PROFILE_ID}"
+    assert auth_route_policy("PUT", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "edit_own",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("PUT", path, enabled=False) is None
 
 
 def test_capacity_draft_sets_exact_create_context_and_commits_function_result(monkeypatch):

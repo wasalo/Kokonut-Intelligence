@@ -577,6 +577,28 @@ Migration 568 adds `GET /operator/api/operating-pilot/{location_id}/my-resource-
 
 The create function continues to return only its draft ID and lifecycle label. Its non-login function owner shares the required narrow `SELECT` grants with the own-history function; it retains receipt-digest read access internally because exact create retries must validate the stored input digest. The own-history SQL projection never selects or serializes that digest. Runtime and Directus have no direct draft or receipt access, and Directus cannot execute the history function. The console gates the panel on `read_own`, uses no-store same-origin requests and text-only rendering, and caps pages at 50.
 
+## Own resource draft revision
+
+`PUT /operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}`
+uses the exact location `operating_pilot:edit_own` grant. Migration 569
+requires signed operator/location context, one active human-party binding, an
+active Adelphi farm mapping, and the original operator/location creation
+receipt. Only the caller's current `draft` version is eligible; submitted,
+superseded, receiptless, foreign-owner, other-farm, mismatched-location, and
+missing-grant cases fail closed. One transaction marks the old version
+`superseded`, creates a new private draft, adds the normal receipt needed by
+own-history, and appends a separate revision receipt. Exact retries replay the
+same replacement; changed inputs and reuse of a create request ID fail closed.
+Revision does not submit, review, approve, or fulfill the request.
+
+The console adds edit controls only to own-history rows with `draft` status and
+the exact `edit_own` scope. The editor also requires `read_own` so it can load
+and bind the private version being edited. It preserves the same request ID for
+unchanged retries, sends a CSRF-protected same-origin `no-store` request, and
+uses text-only rendering. The non-login function owner can update only draft
+status and update time and can read/write the append-only revision receipt;
+runtime and Directus cannot execute it or access those receipts directly.
+
 ## Verification and rollback
 
 The Gateway contract and exact route policy are covered by
@@ -588,10 +610,11 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_console_operating_pilot.py`, and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, and 568, exercises active and internal scopes, checks aggregate
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
+and 569, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
-demand/capacity revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
+demand/capacity/resource revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
 submission eligibility, capacity approval/rejection, rejection-reason
 validation, reviewer self-denial, exact retry/collision behavior, rejected-record
 revision, append-only decision history, private resource-draft replay/scope, own-resource exact paging/ownership/redaction and ACLs, and data redaction; it also
@@ -613,11 +636,21 @@ and linux/arm64 Docker/QEMU
 ([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-read-arm64-disposable.json)).
 The focused Gateway, policy, console, and migration selection passes 170 tests;
 Ruff and Python compilation pass. Candidate and legacy remain untouched, and
-migrations 567–568 have not been rolled out.
+migrations 567–569 have not been rolled out.
+
+Migration 569 and all 107 grouped assertions pass on native PostgreSQL 16
+([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-revision-disposable.json))
+and linux/arm64 Docker/QEMU
+([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-revision-arm64-disposable.json)).
+The focused Gateway, route-policy, console, and migration selection passes 161
+tests; Ruff, Python compilation, and inline JavaScript syntax pass. QEMU is
+software portability evidence only, not physical Raspberry Pi acceptance.
+Candidate and legacy remain untouched, and migration 569 is not rolled out.
 
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
-554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, or 568 are applied, retain their ordered functions, receipts,
+554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
+or 569 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
@@ -626,8 +659,8 @@ a separately reviewed forward migration.
 
 These slices do not establish populated Adelphi scope mapping, additional
 capacity workflows beyond own drafts/revision and independent approve/reject,
-post-allocation work execution or fulfillment, competency/learning/resource/coaching workflows, demand
-fulfillment parity, parity with populated legacy outputs, live
+resource-request submission/review/fulfillment, post-allocation work execution,
+competency/learning/coaching workflows, demand fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates
 remain open in `docs/refactor/batches.md`.

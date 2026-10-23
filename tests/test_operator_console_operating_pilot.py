@@ -101,7 +101,9 @@ def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
     panel = _function(source, 'id="operating-pilot-resource-create"', 'id="operating-pilot-own-capacity"')
     submit = _function(source, "async function submitOperatingPilotResourceDraft(event)", "function cancelOperatingPilotCapacityEdit()")
     assert "operatingPilotResourceCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in source
-    assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests`' in submit
+    assert "&& !(operatingPilotOwnDemandLocations.has(locationId)" in source
+    assert "operatingPilotEditOwnResourceLocations.has(locationId)" in source
+    assert '`/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests${' in submit
     assert '"X-CSRF-Token": csrf' in submit
     assert 'credentials: "same-origin"' in submit
     assert 'cache: "no-store"' in submit
@@ -112,6 +114,39 @@ def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
     assert "innerHTML" not in submit
     assert "description" in panel
     assert "funding decision" in panel
+    assert 'id="operating-pilot-resource-edit-cancel"' in panel
+    assert '"PUT" : "POST"' in submit
+    assert "saving a revised private resource-request draft" in submit.lower()
+
+
+def test_resource_revision_is_edit_own_gated_idempotent_and_keeps_submission_separate():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotResourceDraft(event)",
+        "function cancelOperatingPilotCapacityEdit()",
+    )
+    edit = _function(
+        source,
+        "function startOperatingPilotResourceEdit(item, locationId)",
+        "async function loadOperatingPilotCapacityReviewQueue(",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnResourceRow(item)",
+        "async function loadOperatingPilotOwnResourceRequests(",
+    )
+    assert "operatingPilotEditOwnResourceLocations.has(locationId)" in submit
+    assert '`/${encodeURIComponent(draftId)}`' in submit
+    assert 'method: isEditing ? "PUT" : "POST"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "operatingPilotPendingResourceCreate.request_id" in submit
+    assert "result.replayed" in submit
+    assert "status === \"draft\"" in edit
+    assert "item.draft_id" in edit
+    assert "operatingPilotEditOwnResourceLocations.has(locationId)" in row
+    assert 'item.status === "draft"' in row
+    assert "textContent = \"Edit your draft\"" in row
 
 
 def test_own_resource_history_is_read_own_gated_private_paged_and_safely_rendered():
