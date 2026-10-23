@@ -338,7 +338,16 @@ summary, and location IDs. Runtime, Directus, and task writers cannot query the
 receipt table directly, and only the runtime may call the wrapper. The operator
 console displays the identifier as an agent run. It identifies a worker request
 and does not establish which human initiated it; human-initiated run attribution
-remains open.
+remains open for background and synthesis agents. Migration 597 adds a separate
+exact-location wrapper for authenticated operator-created deterministic drafts.
+It returns `creator_operator_id` and `creator_request_id` only when the creator
+matches the immutable operator request receipt. The reviewer role receives
+column-only access to the receipt; runtime, Directus, task writers, and PUBLIC
+do not. Request payloads, hashes, email, and profile fields are not exposed.
+The console labels these separately from worker task/run IDs. This covers the
+existing deterministic operator-draft request path; it does not attribute
+legacy/background agent runs or human initiation of future synthesis tasks.
+Migration 597 is not deployed.
 Each task that stores drafts needs its own exact `ai_summary:read` and
 `ai_summary:draft` grants at the selected location. Synthesis reads enforce
 each location grant at the database view boundary, and deterministic summaries

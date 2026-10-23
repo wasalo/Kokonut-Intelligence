@@ -83,6 +83,9 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
         {"harvest_event": {"record_ids": [], "row_count": 0, "truncated": False}},
         "holistic_wellbeing_synthesis",
         REQUEST_ID,
+        "registered_worker",
+        None,
+        None,
     )
     connection = _Connection([row])
     with patch.object(review, "set_operator_tenant_context", _set_context):
@@ -94,7 +97,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
 
     query_index = next(
         index for index, event in enumerate(connection.events)
-        if "list_location_ai_summary_reviews_with_worker_run" in event
+        if "list_location_ai_summary_reviews_with_creator" in event
     )
     assert connection.events.index("SIGNED_CONTEXT") < query_index
     assert connection.context == {
@@ -107,9 +110,47 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
     assert result["summaries"][0]["review_ready"] is True
     assert result["summaries"][0]["creator_task_key"] == "holistic_wellbeing_synthesis"
     assert result["summaries"][0]["creator_run_id"] == REQUEST_ID
+    assert result["summaries"][0]["creator_kind"] == "registered_worker"
+    assert result["summaries"][0]["creator_operator_id"] is None
+    assert result["summaries"][0]["creator_request_id"] is None
     assert result["summaries"][0]["source_references"]["harvest_event"]["row_count"] == 0
     assert connection.rolled_back and connection.closed
     assert not connection.committed
+
+
+def test_review_queue_returns_human_creator_and_request_receipt():
+    request_id = str(uuid4())
+    row = (
+        SUMMARY_ID,
+        "operations",
+        "Operator-created draft",
+        False,
+        ["harvest_event"],
+        "rules-v1",
+        None,
+        False,
+        ["self_review"],
+        {"harvest_event": {"record_ids": [], "row_count": 0, "truncated": False}},
+        None,
+        None,
+        "operator",
+        OPERATOR_ID,
+        request_id,
+    )
+    connection = _Connection([row])
+    with patch.object(review, "set_operator_tenant_context", _set_context):
+        result = review.list_location_ai_summary_reviews(
+            OPERATOR_ID,
+            LOCATION_ID,
+            connection_factory=lambda: connection,
+        )
+
+    summary = result["summaries"][0]
+    assert summary["creator_kind"] == "operator"
+    assert summary["creator_operator_id"] == OPERATOR_ID
+    assert summary["creator_request_id"] == request_id
+    assert summary["creator_task_key"] is None
+    assert summary["creator_run_id"] is None
 
 
 @pytest.mark.parametrize(

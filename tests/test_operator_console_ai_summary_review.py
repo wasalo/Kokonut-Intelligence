@@ -53,6 +53,11 @@ def test_queue_uses_bounded_same_origin_no_store_reads_and_safe_text_rendering()
     assert "Agent task: ${summary.creator_task_key}" in reader
     assert 'typeof summary.creator_run_id === "string"' in reader
     assert "Agent run: ${summary.creator_run_id}" in reader
+    assert 'summary.creator_kind === "operator"' in reader
+    assert 'typeof summary.creator_operator_id === "string"' in reader
+    assert "Created by operator: ${summary.creator_operator_id}" in reader
+    assert 'typeof summary.creator_request_id === "string"' in reader
+    assert "Operator request: ${summary.creator_request_id}" in reader
     assert "recordIds.length" in reader
     assert "item.textContent = recordId" in reader
     assert "summary.review_ready === true && blockers.length === 0" in reader

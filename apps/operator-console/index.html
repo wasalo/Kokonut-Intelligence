@@ -15336,6 +15336,22 @@
               creatorRun.textContent = `Agent run: ${summary.creator_run_id}`;
               summaryCell.append(document.createElement("br"), creatorRun);
             }
+            if (summary.creator_kind === "operator") {
+              const creator = document.createElement("small");
+              creator.textContent = typeof summary.creator_operator_id === "string"
+                ? `Created by operator: ${summary.creator_operator_id}`
+                : "Created by an authenticated operator";
+              summaryCell.append(document.createElement("br"), creator);
+              if (typeof summary.creator_request_id === "string") {
+                const request = document.createElement("small");
+                request.textContent = `Operator request: ${summary.creator_request_id}`;
+                summaryCell.append(document.createElement("br"), request);
+              }
+            } else if (summary.creator_kind === "unattributed") {
+              const creator = document.createElement("small");
+              creator.textContent = "Creator attribution unavailable";
+              summaryCell.append(document.createElement("br"), creator);
+            }
 
             const contentCell = document.createElement("td");
             const content = document.createElement("pre");
