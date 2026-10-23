@@ -1,0 +1,137 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "checked_at": "2026-10-23T12:41:50.390788+00:00",
+  "cleanup": "passed",
+  "database": "fresh isolated Kernel PostgreSQL volume",
+  "directus_health": 200,
+  "loopback_only": true,
+  "owner_backed_bootstrap": "passed",
+  "owner_login": 200,
+  "permission_seed": {
+    "explicit_field_rows": 50,
+    "first_application": "passed",
+    "other_curated_permissions": 14,
+    "permission_rows": 175,
+    "replay": "passed",
+    "replay_snapshot_unchanged": true,
+    "repository_managed_farm_activity_permissions": 0,
+    "rows_by_collection_action": {
+      "agent_action_log:create": 2,
+      "agent_action_log:read": 3,
+      "agent_identity:create": 2,
+      "agent_identity:read": 4,
+      "agent_task:create": 2,
+      "agent_task:read": 4,
+      "agent_task:update": 2,
+      "ai_summary:create": 2,
+      "ai_summary:read": 3,
+      "approval:create": 1,
+      "approval:read": 6,
+      "attestation_plan:read": 1,
+      "attestation_record:read": 3,
+      "attestation_request:create": 1,
+      "attestation_request:read": 1,
+      "capex_breakdown:read": 1,
+      "capital_source:read": 1,
+      "dashboard_dataset:read": 1,
+      "digital_lego_usage:read": 1,
+      "expense_category:read": 7,
+      "expense_event:create": 2,
+      "expense_event:read": 9,
+      "expense_event:update": 4,
+      "field_note:create": 3,
+      "field_note:read": 9,
+      "field_note:update": 2,
+      "file_upload:create": 1,
+      "file_upload:read": 1,
+      "forecast_output:read": 4,
+      "forecast_scenario:read": 4,
+      "harvest_event:create": 2,
+      "harvest_event:read": 9,
+      "harvest_event:update": 3,
+      "labor_event:create": 1,
+      "labor_event:read": 7,
+      "labor_event:update": 3,
+      "loss_event:create": 1,
+      "loss_event:read": 7,
+      "loss_event:update": 3,
+      "metric_definition:read": 5,
+      "metric_proposal:create": 1,
+      "metric_proposal:read": 1,
+      "metric_proposal:update": 1,
+      "metric_value:read": 1,
+      "mrv_claim:create": 2,
+      "mrv_claim:read": 4,
+      "mrv_claim:update": 1,
+      "noi_snapshot:read": 3,
+      "report_snapshot:read": 1,
+      "revenue_event:read": 3,
+      "revenue_event:update": 2,
+      "sales_event:create": 1,
+      "sales_event:read": 8,
+      "sales_event:update": 3,
+      "stakeholder_feedback:create": 1,
+      "stakeholder_feedback:read": 3,
+      "stakeholder_feedback:update": 2,
+      "stakeholder_feedback_review:create": 1,
+      "water_access:read": 1,
+      "workflow_history:read": 7
+    },
+    "rows_by_policy": {
+      "Agent Full Policy": 26,
+      "Agent Read-Only Policy": 14,
+      "Agent Write Policy": 19,
+      "Analyst Policy": 12,
+      "Auditor Policy": 28,
+      "Field Worker Policy": 28,
+      "Finance Policy": 14,
+      "Manager Policy": 19,
+      "Supervisor Policy": 15
+    },
+    "snapshot_sha256": "93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877",
+    "wildcard_field_rows": 125
+  },
+  "profile": "optional Directus overlay",
+  "project": "kokonut-directus-profile-check-a6c2090e27",
+  "role_api_acceptance": {
+    "agent_write_allowlisted_create_status": 403,
+    "agent_write_effective_permissions": {
+      "create": {
+        "access": "none",
+        "fields": null
+      },
+      "delete": {
+        "access": "none",
+        "fields": null
+      },
+      "read": {
+        "access": "full",
+        "fields": [
+          "*"
+        ]
+      },
+      "share": {
+        "access": "none",
+        "fields": null
+      },
+      "update": {
+        "access": "none",
+        "fields": null
+      }
+    },
+    "agent_write_forbidden_field_status": null,
+    "collection": "agent_task",
+    "custom_permissions_license_restricted": true,
+    "denied_operations_preserved_row_count": true,
+    "field_worker_ungranted_create_status": 403,
+    "permission_management_api_status": 403,
+    "permission_management_error_codes": [
+      "RESOURCE_RESTRICTED"
+    ],
+    "persisted_synthetic_rows": 0,
+    "synthetic_role_users_removed_with_database": true
+  },
+  "runtime_database_identity": "kokonut_directus_runtime",
+  "secrets_logged": false,
+  "status": "passed"
+}

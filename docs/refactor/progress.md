@@ -15755,3 +15755,26 @@ The static SQL inventory now follows the private GEE climate persistence helper 
 ### Progress addendum — CAP-038 authenticated operator-request attribution, 23 October 2026
 
 Migration 597 adds an exact-location AI-summary review wrapper for authenticated operator-created deterministic drafts. It labels a creator as an operator only when `created_by` matches the immutable request receipt, then returns only the opaque operator UUID and request UUID. Request hashes, payloads, email, and profile details stay private. The reviewer role receives column-only receipt access; runtime, Directus, task-writer roles, and PUBLIC receive none. Focused Gateway and console checks pass 35 tests; Ruff, Python compilation, and JavaScript syntax checks pass. Network-disabled disposable PostgreSQL 16 applies and replays migrations through 597 with 86 grouped assertions on native AMD64 ([native evidence](builds/2026-10-23-recovery/cap-038-operator-run-attribution-native-disposable.json)) and ARM64/QEMU using `sogis/postgis:16-3.4` ([ARM64/QEMU evidence](builds/2026-10-23-recovery/cap-038-operator-run-attribution-arm64-disposable.json)). QEMU confirms software portability only, not physical Raspberry Pi behavior. Candidate and legacy remain untouched, and migration 597 is not deployed. This closes attribution for the existing operator-created deterministic draft request path only; future human-started synthesis runs and legacy/background agent attribution remain open. Checklist: 1,025 complete / 24 open (1,049 total); matrix remains 30 baseline-retained, 7 deployed, and 29 prepared; 0/66 MAN-CAP checks are accepted.
+
+
+### Progress addendum — Directus permission API boundary, 23 October 2026
+
+The fresh Directus 12.1.1 effective-permission snapshot remains stable at 175
+stored rows across the nine managed policies (125 wildcard-field, 50 explicit-
+field), with zero managed `farm_activity` rows and unchanged seed replay
+(SHA-256 `93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877`).
+The pinned unlicensed runtime probe now demonstrates the actual API boundary:
+creating a synthetic `agent_task` permission returns 403 `RESOURCE_RESTRICTED`
+for `custom_permission_rules_enabled`; `/permissions/me` exposes Agent Write
+read access only; Agent Write and Field Worker create attempts both return 403
+and persist no rows. The owner-backed bootstrap and health check return 200, the
+runtime DB identity is `kokonut_directus_runtime`, and cleanup removes the
+disposable project/volume. Four focused snapshot/license-gate tests pass with
+Ruff, compilation, and whitespace checks. This verifies fail-closed behavior
+and identifies the Directus license prerequisite; it does not prove role/field
+parity. The Directus parent gate and CAP-001 remain open. No candidate, legacy
+database, provider credential, or business record was used. Checklist: 1,027
+complete / 24 open (1,051 total); the matrix remains 30 baseline-retained,
+7 deployed, and 29 prepared across 66 rows; 0/66 MAN-CAP checks are accepted.
+Evidence: [stored rows](builds/2026-10-23-recovery/directus-effective-permission-rows.json),
+[runtime probe](builds/2026-10-23-recovery/directus-effective-permissions.json).

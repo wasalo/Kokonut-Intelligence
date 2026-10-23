@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
@@ -16,9 +17,19 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from directus_permission_snapshot import (
+    MANAGED_POLICY_IDS,
+    custom_permission_license_restricted,
+    permission_snapshot_query,
+    summarize_permission_snapshot,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = f"kokonut-directus-profile-check-{uuid.uuid4().hex[:10]}"
-EVIDENCE = ROOT / "docs/refactor/builds/2026-10-15-recovery/directus-profile-disposable.json"
+EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permissions.json"
+SNAPSHOT_EVIDENCE = ROOT / "docs/refactor/builds/2026-10-23-recovery/directus-effective-permission-rows.json"
+PERMISSION_SEED = ROOT / "config/directus/permissions.sql"
+EXPECTED_PERMISSION_ROWS = 175
 
 
 def free_loopback_port() -> int:
@@ -73,12 +84,20 @@ def require_success(result: subprocess.CompletedProcess[str], action: str, env: 
     raise RuntimeError(f"{action} failed ({result.returncode}):\n" + "\n".join(diagnostic.splitlines()[-35:]))
 
 
-def request(url: str, *, body: dict[str, str] | None = None) -> tuple[int, dict | str]:
+def request(
+    url: str,
+    *,
+    body: dict[str, object] | None = None,
+    token: str | None = None,
+) -> tuple[int, dict | str]:
     data = json.dumps(body).encode("utf-8") if body is not None else None
+    headers = {"Content-Type": "application/json"} if data is not None else {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json"} if data is not None else {},
+        headers=headers,
     )
     try:
         with urllib.request.urlopen(req, timeout=3) as response:
@@ -88,7 +107,38 @@ def request(url: str, *, body: dict[str, str] | None = None) -> tuple[int, dict 
             except json.JSONDecodeError:
                 return response.status, payload.decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        return exc.code, exc.read().decode("utf-8", errors="replace")
+        payload = exc.read()
+        try:
+            return exc.code, json.loads(payload) if payload else ""
+        except json.JSONDecodeError:
+            return exc.code, payload.decode("utf-8", errors="replace")
+
+
+def api_error_codes(payload: dict | str) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    errors = payload.get("errors")
+    if not isinstance(errors, list):
+        return []
+    return [
+        str(error.get("extensions", {}).get("code"))
+        for error in errors
+        if isinstance(error, dict) and isinstance(error.get("extensions"), dict)
+        and error["extensions"].get("code")
+    ]
+
+
+def api_error_messages(payload: dict | str) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+    errors = payload.get("errors")
+    if not isinstance(errors, list):
+        return []
+    return [
+        str(error["message"])
+        for error in errors
+        if isinstance(error, dict) and isinstance(error.get("message"), str)
+    ]
 
 
 def main() -> int:
@@ -123,6 +173,7 @@ def main() -> int:
         "secrets_logged": False,
         "candidate_or_legacy_database_used": False,
     }
+    first_permission_rows: list[dict] | None = None
 
     try:
         build_extensions = run(["make", "hooks-build"], env=env)
@@ -152,7 +203,22 @@ def main() -> int:
                 break
             time.sleep(1)
         if not database_ready:
-            raise RuntimeError("disposable Kernel PostgreSQL did not become ready")
+            container_status = run([*compose, "ps", "--all"], env=env)
+            database_logs = run(
+                [*compose, "logs", "--no-color", "--tail", "40", "database"], env=env
+            )
+            diagnostics = "\n".join(
+                (
+                    "disposable Kernel PostgreSQL did not become ready",
+                    "compose ps:",
+                    container_status.stdout or container_status.stderr,
+                    "database logs:",
+                    database_logs.stdout or database_logs.stderr,
+                )
+            )
+            for secret in secrets_by_name.values():
+                diagnostics = diagnostics.replace(secret, "[redacted]")
+            raise RuntimeError(diagnostics)
 
         schema_setup = run(
             [
@@ -174,12 +240,49 @@ def main() -> int:
         )
         require_success(schema_setup, "migration-owned Kokonut schema fixture", env)
 
+        agent_task_setup = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                """
+                CREATE TABLE public.agent_task (
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    task_type varchar(100) NOT NULL,
+                    subject_type varchar(100),
+                    subject_id uuid,
+                    requested_by uuid,
+                    inputs jsonb NOT NULL DEFAULT '{}'::jsonb,
+                    output jsonb,
+                    error_message text,
+                    execution_status varchar(50) DEFAULT 'queued',
+                    review_status varchar(50) DEFAULT 'draft',
+                    high_risk boolean DEFAULT false,
+                    requires_human_approval boolean DEFAULT false,
+                    created_at timestamptz DEFAULT now(),
+                    updated_at timestamptz DEFAULT now()
+                )
+                """,
+            ],
+            env=env,
+        )
+        require_success(agent_task_setup, "synthetic Directus agent_task collection", env)
+
         role = run([*compose, "--profile", "directus-admin", "run", "--rm", "directus-role-bootstrap"], env=env)
         require_success(role, "Directus role bootstrap", env)
         bootstrap = run([*compose, "--profile", "directus-admin", "run", "--rm", "directus-bootstrap"], env=env)
         require_success(bootstrap, "owner-backed Directus bootstrap", env)
 
-        permission_seed = (ROOT / "config/directus/permissions.sql").read_text(encoding="utf-8")
+        permission_seed = PERMISSION_SEED.read_text(encoding="utf-8")
         permission_seed_command = [
             *compose,
             "exec",
@@ -196,22 +299,13 @@ def main() -> int:
         ]
         seed_first = run(permission_seed_command, env=env, input_text=permission_seed)
         require_success(seed_first, "Directus permission seed", env)
-        permission_counts_query = """
+        policy_ids = ",\n".join(f"'{policy_id}'" for policy_id in MANAGED_POLICY_IDS)
+        permission_counts_query = f"""
             SELECT
                 count(*) FILTER (WHERE collection = 'farm_activity'),
                 count(*) FILTER (WHERE collection = 'field_note')
               FROM public.directus_permissions
-             WHERE policy IN (
-                'b1000000-0000-0000-0000-000000000001',
-                'b1000000-0000-0000-0000-000000000002',
-                'b1000000-0000-0000-0000-000000000003',
-                'b1000000-0000-0000-0000-000000000004',
-                'b1000000-0000-0000-0000-000000000005',
-                'b1000000-0000-0000-0000-000000000006',
-                'b1000000-0000-0000-0000-000000000007',
-                'b1000000-0000-0000-0000-000000000008',
-                'b1000000-0000-0000-0000-000000000009'
-             )
+             WHERE policy IN ({policy_ids})
         """
 
         def permission_counts() -> tuple[int, int]:
@@ -242,14 +336,53 @@ def main() -> int:
                 raise RuntimeError("Directus permission seed returned an unexpected count shape")
             return int(values[0]), int(values[1])
 
+        def effective_permission_rows() -> list[dict]:
+            result = run(
+                [
+                    *compose,
+                    "exec",
+                    "-T",
+                    "database",
+                    "psql",
+                    "-X",
+                    "-t",
+                    "-A",
+                    "-U",
+                    "kokonut",
+                    "-d",
+                    "kokonut_intelligence",
+                    "-c",
+                    permission_snapshot_query(),
+                ],
+                env=env,
+            )
+            require_success(result, "Directus effective permission snapshot", env)
+            try:
+                rows = json.loads(result.stdout.strip())
+            except json.JSONDecodeError as exc:
+                raise RuntimeError("Directus permission snapshot returned invalid JSON") from exc
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise RuntimeError("Directus permission snapshot returned an unexpected shape")
+            return rows
+
         first_counts = permission_counts()
         if first_counts[0] != 0 or first_counts[1] == 0:
             raise RuntimeError("Directus seed must remove farm_activity while preserving other role permissions")
+        first_permission_rows = effective_permission_rows()
+        if len(first_permission_rows) != EXPECTED_PERMISSION_ROWS:
+            raise RuntimeError(
+                "fresh Directus seed effective row count differs from its curated source inventory"
+            )
+        if any(row.get("collection") == "farm_activity" for row in first_permission_rows):
+            raise RuntimeError("managed farm_activity permissions remain after the fresh seed")
         seed_replay = run(permission_seed_command, env=env, input_text=permission_seed)
         require_success(seed_replay, "Directus permission seed replay", env)
         replay_counts = permission_counts()
         if replay_counts != first_counts:
             raise RuntimeError("Directus permission seed replay changed curated role-permission counts")
+        replay_permission_rows = effective_permission_rows()
+        if replay_permission_rows != first_permission_rows:
+            raise RuntimeError("Directus permission seed replay changed the effective permission snapshot")
 
         start = run([*compose, "up", "-d", "directus"], env=env)
         require_success(start, "Directus runtime start", env)
@@ -274,6 +407,191 @@ def main() -> int:
         )
         if login_status != 200 or not isinstance(login, dict) or not login.get("data", {}).get("access_token"):
             raise RuntimeError(f"Directus owner login failed with HTTP {login_status}")
+        admin_token = login["data"]["access_token"]
+
+        def create_role_user(role_id: str, role_name: str) -> tuple[str, str]:
+            email = f"{role_name.lower().replace(' ', '-')}-{uuid.uuid4().hex[:12]}@example.com"
+            password = secrets.token_urlsafe(32)
+            status, payload = request(
+                f"{base_url}/users",
+                token=admin_token,
+                body={"email": email, "password": password, "role": role_id, "status": "active"},
+            )
+            user_id = payload.get("data", {}).get("id") if isinstance(payload, dict) else None
+            if status not in (200, 201) or not isinstance(user_id, str):
+                raise RuntimeError(f"synthetic {role_name} Directus user creation failed with HTTP {status}")
+            return email, password
+
+        def role_login(email: str, password: str, role_name: str, role_id: str) -> str:
+            status, payload = request(
+                f"{base_url}/auth/login",
+                body={"email": email, "password": password},
+            )
+            access_token = (
+                payload.get("data", {}).get("access_token") if isinstance(payload, dict) else None
+            )
+            if status != 200 or not isinstance(access_token, str):
+                raise RuntimeError(f"synthetic {role_name} Directus login failed with HTTP {status}")
+            me_status, me_payload = request(f"{base_url}/users/me", token=access_token)
+            actual_role = (
+                me_payload.get("data", {}).get("role")
+                if isinstance(me_payload, dict)
+                else None
+            )
+            if me_status != 200 or actual_role != role_id:
+                raise RuntimeError(
+                    f"synthetic {role_name} Directus identity role mismatch (HTTP {me_status})"
+                )
+            return access_token
+
+        agent_write_email, agent_write_password = create_role_user(
+            "a1000000-0000-0000-0000-000000000007", "Agent Write"
+        )
+        field_worker_email, field_worker_password = create_role_user(
+            "a1000000-0000-0000-0000-000000000001", "Field Worker"
+        )
+        agent_write_role_id = "a1000000-0000-0000-0000-000000000007"
+        field_worker_role_id = "a1000000-0000-0000-0000-000000000001"
+        agent_write_token = role_login(
+            agent_write_email, agent_write_password, "Agent Write", agent_write_role_id
+        )
+        field_worker_token = role_login(
+            field_worker_email, field_worker_password, "Field Worker", field_worker_role_id
+        )
+
+        api_permission_status, api_permission_payload = request(
+            f"{base_url}/permissions",
+            token=admin_token,
+            body={
+                "collection": "agent_task",
+                "action": "create",
+                "permissions": {},
+                "validation": {},
+                "fields": ["task_type", "inputs", "subject_id", "subject_type", "requested_by"],
+                "policy": "b1000000-0000-0000-0000-000000000007",
+            },
+        )
+        permission_api_restricted = custom_permission_license_restricted(
+            api_permission_status, api_permission_payload
+        )
+        if api_permission_status not in (200, 201) and not permission_api_restricted:
+            raise RuntimeError(
+                "Directus permission API returned an unexpected result "
+                f"(HTTP {api_permission_status}; codes {api_error_codes(api_permission_payload)}; "
+                f"messages {api_error_messages(api_permission_payload)})"
+            )
+
+        permissions_me_status, permissions_me_payload = request(
+            f"{base_url}/permissions/me", token=agent_write_token
+        )
+        permissions_me_data = (
+            permissions_me_payload.get("data")
+            if isinstance(permissions_me_payload, dict)
+            else None
+        )
+        raw_agent_task_permissions = (
+            permissions_me_data.get("agent_task", {})
+            if isinstance(permissions_me_data, dict)
+            else {}
+        )
+        agent_task_permissions = {
+            action: {
+                "access": permission.get("access"),
+                "fields": permission.get("fields"),
+            }
+            for action, permission in raw_agent_task_permissions.items()
+            if isinstance(permission, dict)
+        }
+
+        agent_read_status, agent_read_payload = request(
+            f"{base_url}/items/agent_task", token=agent_write_token
+        )
+        if agent_read_status != 200:
+            raise RuntimeError(
+                "Agent Write could not read its permitted agent_task collection "
+                f"(HTTP {agent_read_status}; Directus error codes "
+                f"{api_error_codes(agent_read_payload)}; messages "
+                f"{api_error_messages(agent_read_payload)})"
+            )
+
+        allowed_create_status, allowed_create = request(
+            f"{base_url}/items/agent_task",
+            token=agent_write_token,
+            body={
+                "task_type": "cids_export",
+                "subject_type": "synthetic_acceptance",
+                "inputs": {"fixture": True},
+            },
+        )
+        if permission_api_restricted:
+            if allowed_create_status not in (401, 403, 404):
+                raise RuntimeError(
+                    "Agent Write unexpectedly created an item while Directus custom permissions "
+                    f"are license-restricted (HTTP {allowed_create_status})"
+                )
+            if agent_task_permissions.get("create", {}).get("access") != "none":
+                raise RuntimeError(
+                    "Directus custom permission license restriction did not fail closed for Agent Write"
+                )
+            forbidden_field_status = None
+        else:
+            if allowed_create_status not in (200, 201):
+                raise RuntimeError(
+                    "Agent Write could not create an allowlisted agent_task after the Directus API "
+                    f"accepted its grant (HTTP {allowed_create_status}; codes "
+                    f"{api_error_codes(allowed_create)}; messages {api_error_messages(allowed_create)}; "
+                    f"permissions/me HTTP {permissions_me_status}, agent_task {agent_task_permissions})"
+                )
+
+            forbidden_field_status, _ = request(
+                f"{base_url}/items/agent_task",
+                token=agent_write_token,
+                body={
+                    "task_type": "cids_export",
+                    "inputs": {"fixture": "forbidden field"},
+                    "review_status": "published",
+                },
+            )
+            if forbidden_field_status not in (400, 403, 422):
+                raise RuntimeError(
+                    "Agent Write forbidden-field create did not fail closed "
+                    f"(HTTP {forbidden_field_status})"
+                )
+
+        ungranted_create_status, _ = request(
+            f"{base_url}/items/agent_task",
+            token=field_worker_token,
+            body={"task_type": "cids_export", "inputs": {"fixture": "ungranted role"}},
+        )
+        if ungranted_create_status not in (401, 403, 404):
+            raise RuntimeError(
+                "Field Worker could create agent_task without a create permission "
+                f"(HTTP {ungranted_create_status})"
+            )
+
+        task_count = run(
+            [
+                *compose,
+                "exec",
+                "-T",
+                "database",
+                "psql",
+                "-U",
+                "kokonut",
+                "-d",
+                "kokonut_intelligence",
+                "-X",
+                "-t",
+                "-A",
+                "-c",
+                "SELECT count(*) FROM public.agent_task",
+            ],
+            env=env,
+        )
+        require_success(task_count, "synthetic Directus agent_task row count", env)
+        expected_task_count = "0" if permission_api_restricted else "1"
+        if task_count.stdout.strip() != expected_task_count:
+            raise RuntimeError("Directus denied/forbidden agent_task requests changed the synthetic row count")
 
         database_result = run(
             [
@@ -306,11 +624,26 @@ def main() -> int:
                 "owner_login": login_status,
                 "runtime_database_identity": "kokonut_directus_runtime",
                 "owner_backed_bootstrap": "passed",
+                "role_api_acceptance": {
+                    "collection": "agent_task",
+                    "permission_management_api_status": api_permission_status,
+                    "custom_permissions_license_restricted": permission_api_restricted,
+                    "permission_management_error_codes": api_error_codes(api_permission_payload),
+                    "agent_write_effective_permissions": agent_task_permissions,
+                    "agent_write_allowlisted_create_status": allowed_create_status,
+                    "agent_write_forbidden_field_status": forbidden_field_status,
+                    "field_worker_ungranted_create_status": ungranted_create_status,
+                    "persisted_synthetic_rows": int(expected_task_count),
+                    "denied_operations_preserved_row_count": True,
+                    "synthetic_role_users_removed_with_database": True,
+                },
                 "permission_seed": {
                     "first_application": "passed",
                     "replay": "passed",
                     "repository_managed_farm_activity_permissions": first_counts[0],
                     "other_curated_permissions": first_counts[1],
+                    **summarize_permission_snapshot(first_permission_rows),
+                    "replay_snapshot_unchanged": True,
                 },
                 "loopback_only": True,
             }
@@ -322,7 +655,33 @@ def main() -> int:
         if cleanup.returncode:
             raise RuntimeError("failed to remove the disposable Directus profile project")
         if evidence["status"] == "passed":
+            if first_permission_rows is None:
+                raise RuntimeError("passed Directus evidence is missing its effective permission snapshot")
             EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
+            source_bytes = PERMISSION_SEED.read_bytes()
+            snapshot = {
+                "format_version": 1,
+                "result": "passed",
+                "runtime": "Directus 12.1.1",
+                "database": "fresh isolated Kernel PostgreSQL volume",
+                "database_identity": "kokonut_directus_runtime",
+                "permission_seed": "config/directus/permissions.sql",
+                "permission_seed_sha256": hashlib.sha256(source_bytes).hexdigest(),
+                "applied_and_replayed": True,
+                "replay_snapshot_unchanged": True,
+                "limitations": [
+                    "This captures repository-managed policies in a fresh disposable profile, not a populated deployment.",
+                    "Built-in Directus policies and operator-created custom policies are excluded.",
+                    "The snapshot describes effective stored role/field/row filters after the seed, but does not test API requests for every role or hook side effect.",
+                    "No candidate or legacy database, provider credentials, or business records were used.",
+                ],
+                "summary": summarize_permission_snapshot(first_permission_rows),
+                "permissions": first_permission_rows,
+            }
+            SNAPSHOT_EVIDENCE.write_text(
+                json.dumps(snapshot, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
             EVIDENCE.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     if evidence["status"] == "passed":

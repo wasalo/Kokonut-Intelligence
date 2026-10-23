@@ -1,6 +1,6 @@
 # Directus parity inventory
 
-**Review date:** 16 October 2026
+**Review date:** 23 October 2026
 **Status:** source inventory, the fail-closed tenant authorization adapter,
 and an organization/location permission seed repair are implemented. Pinned
 Directus 12.1.1 acceptance confirms grant-scoped Field Note reads, but the
@@ -18,6 +18,19 @@ now provides scoped operations for non-Field-Collector farm-activity records.
 Migration 404 and its disposable PostgreSQL acceptance establish this bounded
 Gateway slice only; broader collection, field/relationship, hook, and schedule
 parity remain open.
+
+The 23 October runtime probe confirms the pinned unlicensed Directus profile
+cannot provide custom permission management: an owner request to create an
+`agent_task` rule returns `403 RESOURCE_RESTRICTED` for
+`custom_permission_rules_enabled`. `/permissions/me` reports Agent Write as
+read-only even though the fresh seed contains its create/update rows. Both the
+Agent Write and an ungranted Field Worker create attempts returned 403, and the
+synthetic table remained empty. This is useful fail-closed evidence and a
+license/configuration prerequisite, not successful role or field parity. Four
+focused checks and the pinned disposable profile pass their diagnostic
+acceptance; broader Directus parity and CAP-001 remain open
+([evidence](builds/2026-10-23-recovery/directus-effective-permissions.json);
+[runner](../../scripts/check-directus-profile-disposable.py)).
 
 The disposable API fixture now matches the owner-selected split: farm activity
 is denied through Directus even when a synthetic operator has valid tenant
@@ -45,6 +58,20 @@ the Gateway-only decision. The inventory also records four literal
 `farm_activity` cleanup. It inventories source declarations and mutations only. It does not compute the effective result of conditional inserts, later
 updates/deletes, built-in or operator-created policies, or a running Directus
 database, and it does not itself authorize narrowing any role's access.
+
+A separate pinned-runtime acceptance now captures the effective rows produced by
+the seed in a fresh disposable profile. The nine repository-managed policies
+produce 175 rows (125 wildcard-field, 50 explicit-field); no managed
+`farm_activity` rows remain, and seed replay preserves the complete normalized
+snapshot (SHA-256 `93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877`).
+The profile starts healthy and authenticates a synthetic owner under the
+dedicated `kokonut_directus_runtime` database identity. This closes the gap
+between literal source declarations and effective stored rows for one clean
+profile only. The snapshot excludes built-in and operator-created policies and
+does not verify API enforcement for each role, populated-target parity, hook
+effects, or schedule ownership ([runner](../../scripts/check-directus-profile-disposable.py);
+[rows](builds/2026-10-23-recovery/directus-effective-permission-rows.json);
+[summary](builds/2026-10-23-recovery/directus-effective-permissions.json)).
 
 The hook register function also now subscribes to the collection-qualified
 `<collection>.items.create` and `<collection>.items.update` events documented

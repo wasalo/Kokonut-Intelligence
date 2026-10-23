@@ -1,0 +1,2176 @@
+{
+  "applied_and_replayed": true,
+  "database": "fresh isolated Kernel PostgreSQL volume",
+  "database_identity": "kokonut_directus_runtime",
+  "format_version": 1,
+  "limitations": [
+    "This captures repository-managed policies in a fresh disposable profile, not a populated deployment.",
+    "Built-in Directus policies and operator-created custom policies are excluded.",
+    "The snapshot describes effective stored role/field/row filters after the seed, but does not test API requests for every role or hook side effect.",
+    "No candidate or legacy database, provider credentials, or business records were used."
+  ],
+  "permission_seed": "config/directus/permissions.sql",
+  "permission_seed_sha256": "7b0c7eb631047f30a3d802d44e7fea40f492e38301a2bcce88736087c075e096",
+  "permissions": [
+    {
+      "action": "create",
+      "collection": "agent_action_log",
+      "fields": "task_id,action,collection,record_id,payload_hash,action_result,metadata",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_action_log",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "agent_identity",
+      "fields": "agent_name,agent_state,metadata,operator_wallet",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_identity",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "agent_task",
+      "fields": "task_type,inputs,subject_id,subject_type,requested_by",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_task",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "agent_task",
+      "fields": "execution_status,output,error_message",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "ai_summary",
+      "fields": "subject_type,subject_id,summary_type,content,source_record_ids,source_tables,model_version,confidence",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "ai_summary",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "attestation_record",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "attestation_request",
+      "fields": "subject_type,subject_id,event_type,location_id",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "attestation_request",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "expense_event",
+      "fields": "expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id,location_id",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "field_note",
+      "fields": "note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_output",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_scenario",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "harvest_event",
+      "fields": "harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_definition",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "mrv_claim",
+      "fields": "claim_type,claim_date,claim_data,source_record_ids,evidence_urls,location_id,plot_id",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "mrv_claim",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "mrv_claim",
+      "fields": "status,review_notes",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Agent Full Policy",
+      "roles": [
+        "Agent Full"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_identity",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_task",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "ai_summary",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "attestation_record",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_output",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_scenario",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_definition",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "mrv_claim",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Agent Read-Only Policy",
+      "roles": [
+        "Agent Read-Only"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "agent_action_log",
+      "fields": "task_id,action,collection,record_id,payload_hash,action_result,metadata",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_action_log",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "agent_identity",
+      "fields": "agent_name,agent_state,metadata,operator_wallet",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_identity",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "agent_task",
+      "fields": "task_type,inputs,subject_id,subject_type,requested_by",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_task",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "agent_task",
+      "fields": "execution_status,output,error_message",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "ai_summary",
+      "fields": "subject_type,subject_id,summary_type,content,source_record_ids,source_tables,model_version,confidence",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "ai_summary",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "field_note",
+      "fields": "note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_output",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_scenario",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_definition",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "mrv_claim",
+      "fields": "claim_type,claim_date,claim_data,source_record_ids,evidence_urls,location_id,plot_id",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "mrv_claim",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Agent Write Policy",
+      "roles": [
+        "Agent Write"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_definition",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "noi_snapshot",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "status": {
+          "_in": [
+            "verified",
+            "published"
+          ]
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "stakeholder_feedback",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {
+        "_and": [
+          {
+            "status": {
+              "_in": [
+                "verified",
+                "published"
+              ]
+            }
+          },
+          {
+            "is_public": {
+              "_eq": true
+            }
+          },
+          {
+            "consent_given": {
+              "_eq": true
+            }
+          },
+          {
+            "party_id": {
+              "_nnull": true
+            }
+          }
+        ]
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Analyst Policy",
+      "roles": [
+        "Analyst"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_action_log",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_identity",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "agent_task",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "attestation_plan",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "attestation_record",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "capex_breakdown",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "capital_source",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "dashboard_dataset",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "digital_lego_usage",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_output",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "forecast_scenario",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_definition",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_value",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "mrv_claim",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "noi_snapshot",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "report_snapshot",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "revenue_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "stakeholder_feedback",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "water_access",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Auditor Policy",
+      "roles": [
+        "Auditor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "expense_event",
+      "fields": "expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "expense_event",
+      "fields": "expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "field_note",
+      "fields": "note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "field_note",
+      "fields": "note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "file_upload",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "file_upload",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "harvest_event",
+      "fields": "harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "harvest_event",
+      "fields": "harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "labor_event",
+      "fields": "staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "labor_event",
+      "fields": "staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "loss_event",
+      "fields": "loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "loss_event",
+      "fields": "loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "metric_proposal",
+      "fields": "location_id,proposed_by,proposed_by_role,proposal_date,metric_name,metric_description,unit_of_measure,category,rationale,data_source,collection_method,frequency,stakeholder_groups,discussion_notes",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "metric_proposal",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "sales_event",
+      "fields": "sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id,location_id,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "sales_event",
+      "fields": "sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {
+        "status": {
+          "_eq": "draft"
+        }
+      },
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "stakeholder_feedback",
+      "fields": "location_id,farm_id,plot_id,party_id,feedback_type,stakeholder_group,stakeholder_name,feedback_date,feedback_text,language,sentiment,themes,suggested_improvements,harms_or_unintended_consequences,consent_given,consent_scope,consent_notes,public_summary,source_system,source_id,source_raw",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "stakeholder_feedback",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Field Worker Policy",
+      "roles": [
+        "Field Worker"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "expense_event",
+      "fields": "status,rejection_reason",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "noi_snapshot",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "revenue_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "revenue_event",
+      "fields": "status,rejection_reason",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "sales_event",
+      "fields": "status,rejection_reason",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Finance Policy",
+      "roles": [
+        "Finance"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "expense_event",
+      "fields": "status,rejection_reason",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "field_note",
+      "fields": "status",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "harvest_event",
+      "fields": "status,rejection_reason",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "labor_event",
+      "fields": "status",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "loss_event",
+      "fields": "status,rejection_reason",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "metric_proposal",
+      "fields": "status,reviewed_by,review_date,implementation_date,metric_definition_id,discussion_notes,metadata",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "revenue_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "revenue_event",
+      "fields": "status,rejection_reason",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "stakeholder_feedback",
+      "fields": "status,public_summary,consent_notes,is_public,evidence_maturity,metadata",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "create",
+      "collection": "stakeholder_feedback_review",
+      "fields": "feedback_id,reviewer_id,action,response_text,escalation_level,due_at,resolved_at,metadata",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Manager Policy",
+      "roles": [
+        "Manager"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "approval",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_category",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "expense_event",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "expense_event",
+      "fields": "status",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "field_note",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "harvest_event",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "harvest_event",
+      "fields": "status",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "labor_event",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "labor_event",
+      "fields": "status",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "loss_event",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "loss_event",
+      "fields": "status",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "sales_event",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "sales_event",
+      "fields": "status",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    },
+    {
+      "action": "update",
+      "collection": "stakeholder_feedback",
+      "fields": "status,public_summary,consent_notes,metadata",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {
+        "_and": [
+          {
+            "status": {
+              "_in": [
+                "draft",
+                "submitted",
+                "verified"
+              ]
+            }
+          }
+        ]
+      },
+      "validation": {}
+    },
+    {
+      "action": "read",
+      "collection": "workflow_history",
+      "fields": "*",
+      "policy": "Supervisor Policy",
+      "roles": [
+        "Supervisor"
+      ],
+      "row_filter": {},
+      "validation": {}
+    }
+  ],
+  "replay_snapshot_unchanged": true,
+  "result": "passed",
+  "runtime": "Directus 12.1.1",
+  "summary": {
+    "explicit_field_rows": 50,
+    "permission_rows": 175,
+    "rows_by_collection_action": {
+      "agent_action_log:create": 2,
+      "agent_action_log:read": 3,
+      "agent_identity:create": 2,
+      "agent_identity:read": 4,
+      "agent_task:create": 2,
+      "agent_task:read": 4,
+      "agent_task:update": 2,
+      "ai_summary:create": 2,
+      "ai_summary:read": 3,
+      "approval:create": 1,
+      "approval:read": 6,
+      "attestation_plan:read": 1,
+      "attestation_record:read": 3,
+      "attestation_request:create": 1,
+      "attestation_request:read": 1,
+      "capex_breakdown:read": 1,
+      "capital_source:read": 1,
+      "dashboard_dataset:read": 1,
+      "digital_lego_usage:read": 1,
+      "expense_category:read": 7,
+      "expense_event:create": 2,
+      "expense_event:read": 9,
+      "expense_event:update": 4,
+      "field_note:create": 3,
+      "field_note:read": 9,
+      "field_note:update": 2,
+      "file_upload:create": 1,
+      "file_upload:read": 1,
+      "forecast_output:read": 4,
+      "forecast_scenario:read": 4,
+      "harvest_event:create": 2,
+      "harvest_event:read": 9,
+      "harvest_event:update": 3,
+      "labor_event:create": 1,
+      "labor_event:read": 7,
+      "labor_event:update": 3,
+      "loss_event:create": 1,
+      "loss_event:read": 7,
+      "loss_event:update": 3,
+      "metric_definition:read": 5,
+      "metric_proposal:create": 1,
+      "metric_proposal:read": 1,
+      "metric_proposal:update": 1,
+      "metric_value:read": 1,
+      "mrv_claim:create": 2,
+      "mrv_claim:read": 4,
+      "mrv_claim:update": 1,
+      "noi_snapshot:read": 3,
+      "report_snapshot:read": 1,
+      "revenue_event:read": 3,
+      "revenue_event:update": 2,
+      "sales_event:create": 1,
+      "sales_event:read": 8,
+      "sales_event:update": 3,
+      "stakeholder_feedback:create": 1,
+      "stakeholder_feedback:read": 3,
+      "stakeholder_feedback:update": 2,
+      "stakeholder_feedback_review:create": 1,
+      "water_access:read": 1,
+      "workflow_history:read": 7
+    },
+    "rows_by_policy": {
+      "Agent Full Policy": 26,
+      "Agent Read-Only Policy": 14,
+      "Agent Write Policy": 19,
+      "Analyst Policy": 12,
+      "Auditor Policy": 28,
+      "Field Worker Policy": 28,
+      "Finance Policy": 14,
+      "Manager Policy": 19,
+      "Supervisor Policy": 15
+    },
+    "snapshot_sha256": "93eec38af045957bb9087c2cfa5549226cb51f3555e1822350c59548989f7877",
+    "wildcard_field_rows": 125
+  }
+}
