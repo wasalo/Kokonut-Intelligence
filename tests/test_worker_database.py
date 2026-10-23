@@ -448,6 +448,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "kokonut_agent_financial_resilience_login",
             "AGENT_FINANCIAL_RESILIENCE_SOURCE",
         ),
+        (
+            "agent_bio_factory_source",
+            "kokonut_agent_bio_factory_login",
+            "AGENT_BIO_FACTORY_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(

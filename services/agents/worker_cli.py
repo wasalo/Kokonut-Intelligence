@@ -51,6 +51,7 @@ _SYNTHESIS_SOURCE_IDENTITIES = {
     "regenerator_synthesis": "agent_regenerator_source",
     "capital_efficiency_synthesis": "agent_capital_efficiency_source",
     "financial_resilience_synthesis": "agent_financial_resilience_source",
+    "bio_factory_synthesis": "agent_bio_factory_source",
 }
 _SYNTHESIS_SOURCE_READERS = {
     "commons_liberation_synthesis": "kokonut_agent_commons_liberation_reader",
@@ -62,6 +63,7 @@ _SYNTHESIS_SOURCE_READERS = {
     "regenerator_synthesis": "kokonut_agent_regenerator_reader",
     "capital_efficiency_synthesis": "kokonut_agent_capital_efficiency_reader",
     "financial_resilience_synthesis": "kokonut_agent_financial_resilience_reader",
+    "bio_factory_synthesis": "kokonut_agent_bio_factory_reader",
 }
 
 
