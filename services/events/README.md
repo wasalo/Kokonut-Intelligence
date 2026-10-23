@@ -78,6 +78,12 @@ Directus feature to be enabled and `DIRECTUS_ADMIN_TOKEN`; webhook enqueueing
 requires `ALERT_WEBHOOK_URL`. An unconfigured channel is skipped, matching the
 legacy optional-provider behavior.
 
+SMTP sending uses the shared dependency-free `services.common.smtp` adapter.
+`ALERT_SMTP_TLS_MODE` defaults to verified `starttls`; configure `implicit` for
+SMTPS. `plain` must be explicitly selected for a trusted private relay and is
+rejected when either authentication credential is set. The same transport
+contract is used by the outbox, legacy anomaly CLI, and health-check script.
+
 Set `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE=true` and provide
 `KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL` only after the runtime-role
 bootstrap provisions the distinct `KOKONUT_NOTIFICATION_ENQUEUE_USER` and

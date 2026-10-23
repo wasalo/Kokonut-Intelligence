@@ -26,7 +26,6 @@ Usage:
 import argparse
 import json
 import os
-import smtplib
 import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
@@ -37,6 +36,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.cli import print_json
+from services.common.smtp import send_message
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
@@ -518,14 +518,14 @@ Kokonut Intelligence Alert System
 """
         msg.attach(MIMEText(body, "plain"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.ehlo()
-            if SMTP_PORT != 25:
-                server.starttls()
-                server.ehlo()
-            if SMTP_USER:
-                server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(msg)
+        send_message(
+            msg,
+            host=SMTP_HOST,
+            port=SMTP_PORT,
+            username=SMTP_USER,
+            password=SMTP_PASSWORD,
+            tls_mode=os.environ.get("ALERT_SMTP_TLS_MODE", "starttls").strip().lower(),
+        )
 
         logger.info("Email notification sent for alert %s", alert_data["alert_id"])
         return True

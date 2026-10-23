@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "result": "passed",
+  "component": "shared SMTP transport for durable notifications, legacy anomaly mail, and health-check alerts",
+  "tls_modes": {
+    "starttls": "default; validates certificates using the system trust store",
+    "implicit": "SMTP over TLS for SMTPS relays",
+    "plain": "explicit opt-in; rejected when SMTP authentication credentials are configured"
+  },
+  "focused_suite": {
+    "command": "python3 -m pytest tests/test_smtp_transport.py tests/test_notification_outbox.py tests/test_anomaly_notification_error_redaction.py tests/test_data_freshness_notification_outbox.py -q",
+    "passed": 37
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "health_check_shell_syntax": "passed",
+    "compose_yaml_parse": "5 changed Compose files parsed",
+    "dependency_group_alignment": "passed",
+    "provider_boundaries": "passed for 17 vendor import sites",
+    "git_diff_check": "passed",
+    "compose_config": "5 relevant Compose configurations passed with synthetic interpolation values; no containers were started"
+  },
+  "provider_calls": false,
+  "candidate_or_legacy_database_touched": false,
+  "limitations": [
+    "SMTP credentials and destination remain unconfigured; no live delivery or deliverability was tested.",
+    "Plain SMTP is permitted only as an explicit, unauthenticated private-relay choice."
+  ]
+}

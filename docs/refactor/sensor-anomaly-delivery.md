@@ -58,6 +58,7 @@ SMTP configuration is optional and forwarded only to Kernel app/worker roles:
 ```dotenv
 ALERT_SMTP_HOST=
 ALERT_SMTP_PORT=587
+ALERT_SMTP_TLS_MODE=starttls
 ALERT_SMTP_USER=
 ALERT_SMTP_PASSWORD=
 ALERT_EMAIL_FROM=alerts@kokonut.network
@@ -65,6 +66,11 @@ ALERT_EMAIL_TO=
 ```
 
 Email is enabled only when both `ALERT_SMTP_HOST` and `ALERT_EMAIL_TO` are set.
+The shared transport defaults to verified STARTTLS on any configured port. Set
+`ALERT_SMTP_TLS_MODE=implicit` for SMTPS (commonly port 465). `plain` is an
+explicit opt-in for trusted private relays and is rejected when an SMTP username
+or password is configured. The same transport contract is used by the durable
+notification worker and the legacy anomaly CLI.
 Directus still requires its feature flag and admin token. Provider settings are
 read at delivery time, so disabled or removed providers remain unclaimed rather
 than consuming retry attempts.

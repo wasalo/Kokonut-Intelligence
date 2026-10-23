@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import json
 import os
-import smtplib
 import uuid
 from email.message import EmailMessage
 from typing import Any
 
 from services.common.logging import get_logger
+from services.common.smtp import send_message, validate_settings
 
 logger = get_logger("events.notification_outbox")
 
@@ -168,7 +168,21 @@ def _configured_channels(environment: dict[str, str] | None = None) -> list[str]
         channels.append("directus")
     if (environment.get("ALERT_SMTP_HOST", "").strip()
             and environment.get("ALERT_EMAIL_TO", "").strip()):
-        channels.append("email")
+        try:
+            smtp_port = int(environment.get("ALERT_SMTP_PORT", "587"))
+            validate_settings(
+                host=environment.get("ALERT_SMTP_HOST", ""),
+                port=smtp_port,
+                username=environment.get("ALERT_SMTP_USER", "").strip(),
+                password=environment.get("ALERT_SMTP_PASSWORD", ""),
+                tls_mode=environment.get("ALERT_SMTP_TLS_MODE", "starttls"),
+            )
+        except (TypeError, ValueError) as exc:
+            logger.warning(
+                "Email notification channel is not configured (%s)", type(exc).__name__
+            )
+        else:
+            channels.append("email")
     return channels
 
 
@@ -460,15 +474,15 @@ def _deliver(row: dict[str, Any]) -> None:
         msg["X-Kokonut-Idempotency-Key"] = str(row["id"])
         msg.set_content(str(row["payload"].get("body") or "Kokonut sensor alert"))
 
-        with smtplib.SMTP(host, port, timeout=10) as server:
-            server.ehlo()
-            if port != 25:
-                server.starttls()
-                server.ehlo()
-            username = os.environ.get("ALERT_SMTP_USER", "").strip()
-            if username:
-                server.login(username, os.environ.get("ALERT_SMTP_PASSWORD", ""))
-            server.send_message(msg)
+        send_message(
+            msg,
+            host=host,
+            port=port,
+            username=os.environ.get("ALERT_SMTP_USER", "").strip(),
+            password=os.environ.get("ALERT_SMTP_PASSWORD", ""),
+            tls_mode=os.environ.get("ALERT_SMTP_TLS_MODE", "starttls").strip().lower(),
+            timeout=10,
+        )
         return
     else:
         raise NotificationConfigurationError("unsupported notification channel")

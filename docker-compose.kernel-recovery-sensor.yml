@@ -46,6 +46,7 @@ services:
       ALERT_WEBHOOK_URL: http://webhook.invalid/synthetic
       ALERT_SMTP_HOST: smtp.invalid
       ALERT_SMTP_PORT: "587"
+      ALERT_SMTP_TLS_MODE: "starttls"
       ALERT_SMTP_USER: synthetic-user
       ALERT_SMTP_PASSWORD: synthetic-password
       ALERT_EMAIL_FROM: synthetic-alerts@example.invalid

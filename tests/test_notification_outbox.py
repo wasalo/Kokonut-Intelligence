@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from services.common import smtp
 from services.events import handlers, notification_outbox
 
 
@@ -343,18 +344,19 @@ def test_email_delivery_uses_stable_idempotency_headers_and_closes_smtp(monkeypa
     monkeypatch.setenv("ALERT_EMAIL_TO", "review@example.test")
     server = MagicMock()
     server.__enter__.return_value = server
-    monkeypatch.setattr(notification_outbox.smtplib, "SMTP", MagicMock(return_value=server))
+    monkeypatch.setattr("services.common.smtp.smtplib.SMTP", MagicMock(return_value=server))
     row = _row("outbox-123", channel="email")
     row["payload"] = {"subject": "Synthetic alert", "body": "Test message"}
 
     notification_outbox._deliver(row)
 
-    notification_outbox.smtplib.SMTP.assert_called_once_with(
+    smtp.smtplib.SMTP.assert_called_once_with(
         "smtp.example.test", 587, timeout=10
     )
     server.__enter__.assert_called_once()
     server.ehlo.assert_called()
     server.starttls.assert_called_once()
+    assert "context" in server.starttls.call_args.kwargs
     server.send_message.assert_called_once()
     message = server.send_message.call_args.args[0]
     assert message["X-Kokonut-Idempotency-Key"] == "outbox-123"
@@ -367,8 +369,7 @@ def test_email_provider_exception_is_recorded_by_class_only(monkeypatch):
     monkeypatch.setenv("ALERT_SMTP_PORT", "25")
     monkeypatch.setenv("ALERT_EMAIL_TO", "review@example.test")
     monkeypatch.setattr(
-        notification_outbox.smtplib,
-        "SMTP",
+        "services.common.smtp.smtplib.SMTP",
         MagicMock(side_effect=OSError("credential-bearing provider detail")),
     )
     row = _row("email-failure", channel="email")
@@ -381,6 +382,39 @@ def test_email_provider_exception_is_recorded_by_class_only(monkeypatch):
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1, "lease_lost": 0}
     assert finish.call_args.kwargs == {"success": False, "error_class": "OSError"}
+
+
+@pytest.mark.parametrize(
+    ("smtp_settings", "error_class"),
+    [
+        ({"ALERT_SMTP_TLS_MODE": "disabled"}, "SMTPConfigurationError"),
+        (
+            {"ALERT_SMTP_TLS_MODE": "plain", "ALERT_SMTP_USER": "synthetic-user"},
+            "SMTPConfigurationError",
+        ),
+        ({"ALERT_SMTP_PORT": "not-a-port"}, "ValueError"),
+    ],
+)
+def test_invalid_smtp_settings_keep_email_rows_unclaimed_and_other_channels_active(
+    smtp_settings, error_class, monkeypatch
+):
+    logger = MagicMock()
+    monkeypatch.setattr(notification_outbox, "logger", logger)
+    environment = {
+        "ALERT_WEBHOOK_URL": "https://hooks.example.test/synthetic",
+        "ALERT_SMTP_HOST": "smtp.example.test",
+        "ALERT_SMTP_PORT": "587",
+        "ALERT_EMAIL_TO": "review@example.test",
+        **smtp_settings,
+    }
+
+    channels = notification_outbox._configured_channels(environment)
+
+    assert channels == ["webhook"]
+    assert logger.warning.call_args.args == (
+        "Email notification channel is not configured (%s)",
+        error_class,
+    )
 
 
 @pytest.mark.parametrize(

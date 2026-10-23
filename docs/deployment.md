@@ -234,7 +234,7 @@ The platform includes `scripts/health-check.sh` for continuous health monitoring
 | Channel | Env vars | Notes |
 |---------|----------|-------|
 | Webhook | `ALERT_WEBHOOK_URL` | Slack/Discord/Teams incoming webhook |
-| Email | `ALERT_SMTP_HOST`, `ALERT_SMTP_USER`, `ALERT_SMTP_PASSWORD`, `ALERT_EMAIL_TO` | SMTP with TLS |
+| Email | `ALERT_SMTP_HOST`, `ALERT_SMTP_PORT`, `ALERT_SMTP_TLS_MODE`, `ALERT_SMTP_USER`, `ALERT_SMTP_PASSWORD`, `ALERT_EMAIL_TO` | Verified STARTTLS by default; configure `implicit` for SMTPS. Plain SMTP requires explicit opt-in and cannot use authentication. |
 
 Both channels can be active simultaneously. Alerts are only sent on failure — healthy checks produce no output (quiet cron).
 

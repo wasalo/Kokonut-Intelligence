@@ -28,7 +28,7 @@ def test_email_delivery_failure_logs_only_exception_class(monkeypatch):
     monkeypatch.setattr(anomaly_detector, "ALERT_EMAIL_TO", "alerts@example.invalid")
 
     with patch(
-        "services.ingestion.anomaly_detector.smtplib.SMTP",
+        "services.common.smtp.smtplib.SMTP",
         side_effect=RuntimeError(f"smtp URL included token={SECRET}"),
     ):
         assert anomaly_detector.send_email_notification(ALERT) is False
