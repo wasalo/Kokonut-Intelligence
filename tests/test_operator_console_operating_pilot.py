@@ -149,6 +149,32 @@ def test_resource_revision_is_edit_own_gated_idempotent_and_keeps_submission_sep
     assert "textContent = \"Edit your draft\"" in row
 
 
+def test_resource_submission_requires_submit_own_confirmation_and_stable_retry():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitOperatingPilotResourceRequest(item, locationId, button)",
+        "function cancelOperatingPilotCapacityEdit()",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnResourceRow(item)",
+        "async function loadOperatingPilotOwnResourceRequests(",
+    )
+    assert "operatingPilotSubmitOwnResourceLocations.has(locationId)" in submit
+    assert 'item.status !== "draft"' in submit
+    assert "window.confirm" in submit
+    assert 'method: "POST"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert "operatingPilotPendingResourceSubmissions.get(item.draft_id)" in submit
+    assert "operatingPilotPendingResourceSubmissions.set(item.draft_id, requestId)" in submit
+    assert "result.status !== \"submitted\"" in submit
+    assert 'submit.textContent = "Submit for review"' in row
+    assert "operatingPilotSubmitOwnResourceLocations.has(locationId)" in row
+
+
 def test_own_resource_history_is_read_own_gated_private_paged_and_safely_rendered():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(
@@ -471,7 +497,7 @@ def test_capacity_draft_form_is_create_grant_gated_and_never_submits_or_approves
     submit = _function(
         source,
         "async function submitOperatingPilotCapacityDraft(event)",
-        "function cancelOperatingPilotCapacityEdit()",
+        "async function submitOperatingPilotResourceDraft(event)",
     )
     assert "operatingPilotCreateLocations.has(locationId)" in submit
     assert "const csrf = csrfToken()" in submit

@@ -8,11 +8,10 @@ import pytest
 from services.ingestion.base import get_db
 from services.management import operating_support
 
-
 PARTY_ID = "b0000000-0000-0000-0000-000000002505"
 
 
-def test_resource_request_and_private_coaching():
+def test_private_coaching():
     try:
         conn = get_db()
     except Exception as exc:  # pragma: no cover
@@ -27,19 +26,40 @@ def test_resource_request_and_private_coaching():
         conn.commit()
         session = operating_support.record_coaching_session(conn, "adelphi", org_id, PARTY_ID, "field data access", privacy_level="private")
         assert session["privacy_level"] == "private"
-        request = operating_support.request_resource(conn, "adelphi", org_id, PARTY_ID, "connectivity", "Reliable field connectivity for reporting", urgency="high")
-        decision = operating_support.decide_resource(conn, str(request["id"]), PARTY_ID, "approved", reason="Pilot infrastructure budget")
-        assert decision["decision"] == "approved"
     finally:
         conn.rollback()
         with conn.cursor() as cur:
             cur.execute("DELETE FROM operating_coaching_session WHERE scope_id = %s::uuid", (org_id,))
-            cur.execute("DELETE FROM operating_resource_request WHERE scope_id = %s::uuid", (org_id,))
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
             if org_id:
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+@pytest.mark.parametrize(
+    ("function", "args", "kwargs"),
+    [
+        (
+            operating_support.request_resource,
+            ("internal", "scope-id", PARTY_ID, "water", "Private water request"),
+            {},
+        ),
+        (
+            operating_support.decide_resource,
+            ("request-id", PARTY_ID, "approved"),
+            {"reason": "reviewed"},
+        ),
+    ],
+)
+def test_unscoped_resource_mutations_fail_before_database_access(function, args, kwargs):
+    connection = MagicMock()
+
+    with pytest.raises(RuntimeError, match="operating-pilot Gateway"):
+        function(connection, *args, **kwargs)
+
+    connection.cursor.assert_not_called()
+    connection.commit.assert_not_called()
 
 
 def test_clean_helper_converts_uuids():

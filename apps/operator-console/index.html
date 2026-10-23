@@ -646,7 +646,7 @@
           </section>
           <section id="operating-pilot-own-resources" hidden aria-labelledby="operating-pilot-own-resources-heading">
             <h3 id="operating-pilot-own-resources-heading">Your resource requests</h3>
-            <p class="muted">A separate exact-location read_own grant shows only your receipt-backed resource drafts and private descriptions. Drafts remain unsubmitted until a separate lifecycle action is implemented.</p>
+            <p class="muted">A separate exact-location read_own grant shows only your receipt-backed resource drafts and private descriptions. An exact submit_own grant lets you submit a draft for independent review; submission makes it pending and closes editing.</p>
             <p id="operating-pilot-own-resources-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
@@ -2059,6 +2059,7 @@
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotSubmitOwnDemandLocations = new Set();
+      let operatingPilotSubmitOwnResourceLocations = new Set();
       let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotEditOwnCapacityLocations = new Set();
@@ -2076,6 +2077,7 @@
       let operatingPilotPendingResourceCreate = null;
       let operatingPilotPendingResourceEdit = null;
       const operatingPilotPendingCapacitySubmissions = new Map();
+      const operatingPilotPendingResourceSubmissions = new Map();
       const operatingPilotPendingCapacityReviewDecisions = new Map();
       const operatingPilotPendingDemandReviewDecisions = new Map();
       const operatingPilotPendingWorkClaimReviewDecisions = new Map();
@@ -3150,6 +3152,52 @@
         operatingPilotResourceCreate.scrollIntoView({ block: "nearest" });
       }
 
+      async function submitOperatingPilotResourceRequest(item, locationId, button) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotOwnDemandLocations.has(locationId)
+            || !operatingPilotSubmitOwnResourceLocations.has(locationId)
+            || item.status !== "draft") return;
+        if (!window.confirm("Submit this resource request for independent review? Its description will enter the review workflow, and this draft can no longer be edited.")) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotOwnResourcesStatus.textContent = "Refresh the page to establish a protected session before submitting this request.";
+          return;
+        }
+        let requestId = operatingPilotPendingResourceSubmissions.get(item.draft_id);
+        if (!requestId) {
+          requestId = crypto.randomUUID();
+          operatingPilotPendingResourceSubmissions.set(item.draft_id, requestId);
+        }
+        button.disabled = true;
+        operatingPilotOwnResourcesStatus.textContent = "Submitting your resource request for independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/resource-requests/${encodeURIComponent(item.draft_id)}/submit`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ request_id: requestId })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (locationId !== operatingPilotLocation.value) return;
+          if (result.draft_id !== item.draft_id || result.status !== "submitted") {
+            throw new Error("The submission response did not match this draft. Retry with the same request.");
+          }
+          operatingPilotPendingResourceSubmissions.delete(item.draft_id);
+          await loadOperatingPilotOwnResourceRequests();
+          operatingPilotOwnResourcesStatus.textContent = result.replayed
+            ? "Submission confirmed after retry. The request is pending independent review."
+            : "Resource request submitted and pending independent review; the draft is no longer editable.";
+        } catch (error) {
+          operatingPilotOwnResourcesStatus.textContent = `${error.message} Retry to reuse the same request ID.`;
+          button.disabled = false;
+        }
+      }
+
       function cancelOperatingPilotCapacityEdit() {
         operatingPilotPendingCapacityEdit = null;
         operatingPilotPendingCapacityCreate = null;
@@ -3739,6 +3787,14 @@
           edit.textContent = "Edit your draft";
           edit.addEventListener("click", () => startOperatingPilotResourceEdit(item, locationId));
           actionCell.append(edit);
+        }
+        if (operatingPilotSubmitOwnResourceLocations.has(locationId) && item.status === "draft") {
+          const submit = document.createElement("button");
+          submit.type = "button";
+          submit.className = "secondary";
+          submit.textContent = "Submit for review";
+          submit.addEventListener("click", () => submitOperatingPilotResourceRequest(item, locationId, submit));
+          actionCell.append(submit);
         }
         row.append(actionCell);
         operatingPilotOwnResourcesRows.append(row);
@@ -13317,6 +13373,7 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotSubmitOwnDemandLocations = new Set(operatingPilotSubmitOwnDemandLocationIds);
+          operatingPilotSubmitOwnResourceLocations = new Set(operatingPilotSubmitOwnDemandLocationIds);
           const operatingPilotOwnCapacityLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "read_own")
             .map((scope) => scope.location_id)

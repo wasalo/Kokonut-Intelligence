@@ -623,6 +623,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/resource-requests/dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     ): _expected("operating_pilot", "edit_own", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/resource-requests/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit",
+    ): _expected("operating_pilot", "submit_own", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/stakeholder-identity/11111111-1111-4111-8111-111111111111/cases",
     ): _expected("stakeholder_identity", "review", scoped=True, location_id=_LOCATION_ID),

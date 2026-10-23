@@ -611,7 +611,7 @@ The Gateway contract and exact route policy are covered by
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
 acceptance runner applies/replays migrations 461, 479, 480, 526, 538, 552, 553,
 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
-and 569, exercises active and internal scopes, checks aggregate
+569, and 570, exercises active and internal scopes, checks aggregate
 values, demand/capacity/own-capacity/claim/resource-category paging,
 small-cohort suppression, separate read-own/edit-own/submit-own enforcement,
 demand/capacity/resource revision and submission replay, demand review-queue paging and redaction, independent demand approve/reject, location-scoped work opportunity paging and self-claim proposals, independent work-claim review paging and decisions, self-review denial, exact retry replay and collision rollback, old-version preservation,
@@ -636,7 +636,7 @@ and linux/arm64 Docker/QEMU
 ([ARM64 evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-read-arm64-disposable.json)).
 The focused Gateway, policy, console, and migration selection passes 170 tests;
 Ruff and Python compilation pass. Candidate and legacy remain untouched, and
-migrations 567–569 have not been rolled out.
+migrations 567–570 have not been rolled out.
 
 Migration 569 and all 107 grouped assertions pass on native PostgreSQL 16
 ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-revision-disposable.json))
@@ -650,7 +650,7 @@ Candidate and legacy remain untouched, and migration 569 is not rolled out.
 Before migration rollout, disable the capability by removing the route/service
 registration and route policy. If migrations 461, 479, 480, 526, 538, 552, 553,
 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568,
-or 569 are applied, retain their ordered functions, receipts,
+569, or 570 are applied, retain their ordered functions, receipts,
 roles, and ACLs; disable only the affected route. Do not delete created drafts or edit or
 reverse an applied migration. Re-enabling any prior direct-write path requires
 a separately reviewed forward migration.
@@ -659,8 +659,17 @@ a separately reviewed forward migration.
 
 These slices do not establish populated Adelphi scope mapping, additional
 capacity workflows beyond own drafts/revision and independent approve/reject,
-resource-request submission/review/fulfillment, post-allocation work execution,
+resource-request review and fulfillment, post-allocation work execution,
 competency/learning/coaching workflows, demand fulfillment parity, parity with populated legacy outputs, live
 OIDC/browser behavior, operator audience review, production recovery,
 universal direct-database ACL/RLS, or MAN-CAP-037 owner acceptance. Those gates
 remain open in `docs/refactor/batches.md`.
+
+
+## Private resource-request submission
+
+`POST /operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit` accepts only a stable `request_id` under the exact location `operating_pilot:submit_own` grant. Migration 570 rechecks signed context, one active person binding, active Adelphi scope, and the operator's original draft receipt. It copies the private draft's bounded values into the canonical legacy resource-request table with `status = submitted` and `decision = pending`, updates the private draft's link/status, and appends the submission receipt atomically. Exact retry returns the same draft status without creating another canonical row. Reuse for a different draft, create/revision receipt collisions, repeat submission, wrong location, and missing grant fail closed. The response omits the canonical request ID. Independent review and fulfillment remain separate actions.
+
+The non-login reader role can insert only the required request columns and update only draft status, canonical-link ID, and update time. Runtime and Directus cannot read or mutate the canonical resource-request table or submission receipt directly; the Gateway invokes only the bounded function. The former unscoped management create and decision helpers fail before opening a cursor. The operator console requires both `read_own` and `submit_own`, asks for confirmation, sends a same-origin CSRF-protected no-store request, preserves one request ID across retries, and removes editing once the row is submitted.
+
+Migration 570 and all 123 grouped assertions pass on network-disabled disposable PostgreSQL 16 ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json)). The focused Gateway, route-policy, console, management-helper, and migration selection passes 171 tests with one database-backed test skipped; Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. QEMU is software emulation only. Candidate and legacy remain untouched, and migration 570 is not rolled out. Before rollout, disable the route, exact policy, and console button; if applied, retain the additive function, receipt, roles, and ACLs. Resource review and fulfillment, populated parity, live OIDC/browser, universal ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.
