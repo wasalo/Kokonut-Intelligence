@@ -467,6 +467,111 @@ def create_location_operating_pilot_competency_draft(
         connection.close()
 
 
+def revise_location_operating_pilot_competency_draft(
+    operator_id: str,
+    location_id: str,
+    draft_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Supersede and replace the caller's own competency draft or rejected assessment."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    draft_id = _normalize_uuid(draft_id, "draft")
+    request_id = _normalize_uuid(request_id, "request")
+    competency_key, current_level, target_level, evidence_note = (
+        _normalize_competency_draft_payload(payload)
+    )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="edit_own",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.revise_location_operating_pilot_competency_draft(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text,
+                           %s::numeric, %s::numeric, %s::text)""",
+                (
+                    location_id,
+                    draft_id,
+                    request_id,
+                    competency_key,
+                    current_level,
+                    target_level,
+                    evidence_note,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot competency revision returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def submit_location_operating_pilot_competency_draft(
+    operator_id: str,
+    location_id: str,
+    draft_id: str,
+    request_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit only the caller's own competency draft for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    draft_id = _normalize_uuid(draft_id, "draft")
+    request_id = _normalize_uuid(request_id, "request")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="submit_own",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.submit_location_operating_pilot_competency_draft(
+                           %s::uuid, %s::uuid, %s::uuid)""",
+                (location_id, draft_id, request_id),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot competency submission returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def revise_location_operating_pilot_resource_draft(
     operator_id: str,
     location_id: str,

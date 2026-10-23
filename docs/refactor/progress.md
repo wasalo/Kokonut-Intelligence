@@ -1,3 +1,9 @@
+### CAP-037 private competency draft revision and submission — 22 October 2026
+
+Migration 576 adds separate `operating_pilot:edit_own` and `operating_pilot:submit_own` actions for receipt-backed competency assessments. Revision supersedes only the caller’s own draft or rejected assessment, preserves the prior version, and creates a bounded replacement atomically. Submission changes only the caller’s own draft to `submitted`; review and verification remain independent. Private receipts make exact retries replay and reject changed request reuse. Runtime can call only the bounded functions, while runtime and Directus have no direct table access.
+
+The focused Gateway write and route-policy selection passes 131 tests. Network-disabled disposable PostgreSQL 16 applies and replays migrations through 576 and passes 198 grouped assertions covering revision, submission, retry collision, ownership, grant/location denial, one-way lifecycle, and role boundaries ([native evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-arm64-disposable.json)). QEMU verifies software portability only, not physical Raspberry Pi acceptance. Candidate and legacy remain untouched; migration 576 is not rolled out. The operator console still needs competency create/history/revision/submission controls, and independent competency review, populated parity, live OIDC/browser behavior, broader ACL/RLS, recovery, and MAN-CAP-037 acceptance remain open. Checklist snapshot: 1,001 complete / 24 open (1,025 total); matrix: 30 baseline-retained, 7 deployed, 29 prepared; CAP-037 remains prepared (`P`).
+
 ### CAP-037 private own competency-assessment history — 22 October 2026
 
 Added `GET /operator/api/operating-pilot/{location_id}/my-competency-assessments`

@@ -3,36 +3,9 @@
 **Updated:** 22 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current batch — CAP-038 source-boundary and resource-lifecycle hardening:**
-the candidate has migrations through 551 with zero pending, after a fresh
-age-encrypted checkpoint and restore rehearsal. Its app is healthy; no seed or
-farm data was written, and the legacy stack was untouched. Ecological modeling
-captures bounded provenance for 13 of 14 inputs; the 12-agent audit retains
-only the signed location subject and a sensitive, lifecycle-free organic
-compliance count as intentional non-row references. Network-disabled
-PostgreSQL 16 apply/replay of migrations 550–551 passed seven grouped checks on
-native AMD64 and ARM64/QEMU, and the full QEMU replay applied all 542 current
-schemas through 551. This is emulation evidence, not physical Raspberry Pi or
-power acceptance. The public-interest report context and the deterministic
-AI-summary registry/operations/financial/environmental query paths now close
-cursors after both success and failure. Core farm, crop, environmental,
-forecast/climate, state, operational, wellbeing, ecological, Kokonut public-view,
-bio-factory, liberation, scaling, and snapshot reports now do the same; snapshot
-write failures roll back, and 287 synthetic execute/fetch failures verify
-cleanup, including missing-location handling, DAO voter-query errors, and both
-network/farm report branches. The AI-summary/source/safety/CLI and input-preflight
-selection passes 45 tests; the focused report selection passes 327, and the
-expanded report/snapshot/CLI/inventory selection passes 493. Ruff, compilation,
-all four generated-inventory freshness checks, and matrix validation pass
-([AI-summary evidence](builds/2026-10-22-recovery/ai-summary-cursor-cleanup.json);
-[report-context evidence](builds/2026-10-22-recovery/report-context-cursor-cleanup.json);
-[report-generator evidence](builds/2026-10-22-recovery/report-generator-cursor-cleanup.json)).
-No database or provider was accessed for these cleanups, and no migration was
-needed. Checklist: 972 complete / 24 open (996 total); the 66-row matrix
-remains 30 baseline-retained, 7 deployed, and 29 prepared, with all MAN-CAP
-approvals still open. Populated farm parity, runtime credentials, broader
-least privilege, physical device acceptance, and human review gates remain
-open.
+**Current batch — CAP-037 competency lifecycle:** private self-assessment draft creation and own-history are followed by migration 576's own-draft revision and submission actions. Revision retains the prior version, exact retry receipts prevent changed-input reuse, and submission is a separate one-way transition. Focused Gateway and policy checks pass 131 tests; network-disabled PostgreSQL 16 replay through 576 passes 198 grouped assertions natively. Native and ARM64/QEMU disposable PostgreSQL 16 acceptance passes 198 grouped assertions. QEMU is software emulation evidence, not physical Raspberry Pi acceptance. The migration is not rolled out; candidate and legacy databases remain untouched. Console create/history/revision/submission controls, independent review, populated farm parity, live ZITADEL OIDC/browser acceptance, broader ACL/RLS, production recovery, and MAN-CAP owner acceptance remain open.
+
+**Refactor status:** `docs/refactor/batches.md` has 1,001 complete / 24 open checkboxes (1,025 total); 97.7% is checkbox completion, not capability acceptance. The 66-row capability matrix has 30 baseline-retained, 7 deployed, and 29 prepared capabilities; all 66 named MAN-CAP acceptance checks remain open. Human/runtime gates are tracked separately in `docs/refactor/open-follow-ups.md`.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

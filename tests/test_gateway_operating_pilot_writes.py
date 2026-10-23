@@ -153,6 +153,105 @@ def test_competency_draft_sets_exact_context_and_commits_private_function_result
     connection.close.assert_called_once_with()
 
 
+def test_competency_revision_uses_edit_own_context_and_replays_function_result(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"draft_id": REQUEST_ID, "status": "draft", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.revise_location_operating_pilot_competency_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        COMPETENCY_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": REQUEST_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "edit_own",
+    })]
+    assert "revise_location_operating_pilot_competency_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        "facilitation",
+        operating_pilot_writes.Decimal("2.50"),
+        operating_pilot_writes.Decimal("4"),
+        "Private synthetic self-assessment evidence",
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_invalid_competency_revision_fails_before_database_access():
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match="draft identifier"):
+        operating_pilot_writes.revise_location_operating_pilot_competency_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            "not-a-draft-id",
+            REQUEST_ID,
+            COMPETENCY_PAYLOAD,
+            connection_factory=factory,
+        )
+    factory.assert_not_called()
+
+
+def test_competency_submission_uses_submit_own_context_and_commits(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"draft_id": PROFILE_ID, "status": "submitted", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.submit_location_operating_pilot_competency_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "draft_id": PROFILE_ID,
+        "status": "submitted",
+        "replayed": False,
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "submit_own",
+    })]
+    assert "submit_location_operating_pilot_competency_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (LOCATION_ID, PROFILE_ID, REQUEST_ID)
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -547,11 +646,39 @@ def test_resource_draft_http_route_passes_request_id_and_uses_no_store(monkeypat
         f"/operator/api/operating-pilot/{LOCATION_ID}/resource-requests",
         json={**RESOURCE_PAYLOAD, "request_id": REQUEST_ID},
     )
-
     assert response.status_code == 201
     assert response.headers["cache-control"] == "no-store"
     assert response.json()["status"] == "draft"
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, RESOURCE_PAYLOAD)
+
+
+def test_competency_revision_and_submission_routes_use_exact_own_actions(monkeypatch):
+    revise = MagicMock(return_value={"draft_id": REQUEST_ID, "status": "draft"})
+    client = _route_app(monkeypatch, revise, "revise_location_operating_pilot_competency_draft")
+    revise_path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments/{PROFILE_ID}"
+    response = client.put(revise_path, json={**COMPETENCY_PAYLOAD, "request_id": REQUEST_ID})
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    revise.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
+    assert auth_route_policy("PUT", revise_path, enabled=True) == {
+        "resource": "operating_pilot", "action": "edit_own", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
+
+    submit = MagicMock(return_value={"draft_id": PROFILE_ID, "status": "submitted"})
+    client = _route_app(monkeypatch, submit, "submit_location_operating_pilot_competency_draft")
+    submit_path = revise_path + "/submit"
+    bad = client.post(submit_path, json={"request_id": REQUEST_ID, "status": "verified"})
+    assert bad.status_code == 400
+    submit.assert_not_called()
+    response = client.post(submit_path, json={"request_id": REQUEST_ID})
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    submit.assert_called_once_with(OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID)
+    assert auth_route_policy("POST", submit_path, enabled=True) == {
+        "resource": "operating_pilot", "action": "submit_own", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
 
 
 def test_resource_draft_route_policy_requires_exact_location_create_grant():
