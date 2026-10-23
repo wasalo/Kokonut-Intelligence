@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,036 checklist items complete and 25
-open (1,061 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,037 checklist items complete and 25
+open (1,062 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -56,6 +56,22 @@ acceptance remains separate; none is marked accepted.
   parity, populated data, live OIDC/browser acceptance, and MAN-CAP-002 remain
   open ([contract](yield-monitoring-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-yield-summary-kernel-read.json)).
+
+### CAP-002 active irrigation-zone status Kernel read — 23 October 2026
+
+- [x] Add a private OIDC status read under the exact location
+  `precision_irrigation:read` grant. A repeatable-read, read-only transaction
+  sets signed tenant context before the total and page queries; both repeat the
+  location filter, and the moisture-reading lateral join additionally matches
+  the zone location. Active zones are paginated at 50, moisture states follow
+  the retained domain thresholds, and device IDs, actuator details, geometry,
+  notes, reasons, and metadata remain private. Focused irrigation/Gateway,
+  legacy-domain, and operator-auth checks pass 101 tests; Ruff, compilation,
+  refreshed runtime SQL inventory, capability validation, and diff checks pass.
+  No migration, provider, candidate, or legacy database was used. Crop
+  simulation, nutrients, frozen-fixture/populated parity, live OIDC/browser,
+  RLS, and MAN-CAP-002 remain open ([contract](irrigation-status-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-irrigation-status-kernel-read.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

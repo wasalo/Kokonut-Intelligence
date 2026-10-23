@@ -523,6 +523,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    irrigation_status_match = re.fullmatch(
+        r"/operator/api/irrigation/([0-9a-fA-F-]{36})/status", path
+    )
+    if irrigation_status_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "precision_irrigation",
+            "action": "read",
+            "public": False,
+            "location_id": irrigation_status_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     ecocredit_match = re.fullmatch(
         r"/operator/api/ecocredits/([0-9a-fA-F-]{36})/batches", path
     )
@@ -4271,6 +4284,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
+    from services.gateway.irrigation_routes import register_irrigation_routes
     from services.gateway.management_work_routes import register_management_work_routes
     from services.gateway.operating_pilot_routes import (
         register_operating_pilot_routes,
@@ -4299,6 +4313,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_yield_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
+    register_irrigation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)

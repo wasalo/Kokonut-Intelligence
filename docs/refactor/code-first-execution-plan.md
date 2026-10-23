@@ -1557,12 +1557,12 @@ Work by domain family and keep each change narrow:
 4. Reporting, business model, State of Kokonut, and gRPC integration
    (CAP-064–066, plus CAP-001/007/031/039 where shared reporting is involved).
 
-CAP-002 has started with a tenant-scoped, unit-grouped, read-only Gateway
-projection for verified/published yield summaries. Continue with the remaining
-precision-agriculture outputs (irrigation, crop simulation, and nutrients) and
-frozen-fixture parity before requesting MAN-CAP-002 acceptance. The current
-endpoint and its limits are recorded in
-[the yield Kernel read contract](yield-monitoring-kernel-read-contract.md).
+CAP-002 now has tenant-scoped, read-only Gateway projections for
+verified/published yield summaries and active irrigation-zone status. Continue
+with crop simulation, nutrient outputs, and frozen-fixture parity before
+requesting MAN-CAP-002 acceptance. The current endpoints and their limits are
+recorded in the [yield read contract](yield-monitoring-kernel-read-contract.md)
+and [irrigation status contract](irrigation-status-kernel-read-contract.md).
 
 For each slice, identify the canonical data contract, optional provider
 boundary, lifecycle/human-review boundary, minimum-dependency execution path,
