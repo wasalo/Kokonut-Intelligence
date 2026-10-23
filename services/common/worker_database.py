@@ -22,6 +22,7 @@ _WORKER_LOGINS = {
     "agent_cids_source": "kokonut_agent_cids_source_login",
     "agent_delphi_source": "kokonut_agent_delphi_source_login",
     "agent_summary_deterministic_source": "kokonut_agent_summary_deterministic_source_login",
+    "agent_summary_inspection_source": "kokonut_agent_summary_inspection_login",
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",

@@ -50,8 +50,8 @@ def test_summary_inspection_profile_uses_only_its_signed_source_identity():
     _assert_no_shared_database_environment(service)
     assert set(service["environment"]) == {
         "KOKONUT_ENV",
-        "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL",
-        "KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL",
+        "KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_DATABASE_URL",
+        "KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_WORKER_CREDENTIAL",
         "PYTHONDONTWRITEBYTECODE",
     }
 

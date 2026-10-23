@@ -49,6 +49,8 @@ BEGIN
         'kokonut_worker_login',
         'kokonut_agent_summary_deterministic_reader',
         'kokonut_agent_summary_deterministic_source_login',
+        'kokonut_agent_summary_inspection_reader',
+        'kokonut_agent_summary_inspection_login',
         'kokonut_agent_summary_draft_login',
         'kokonut_agent_summary_source_login',
         'kokonut_agent_summary_source_reader',

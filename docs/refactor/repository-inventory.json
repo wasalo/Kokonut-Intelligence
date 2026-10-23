@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "d1b79d3448104ae630802322de16f6bb95396c42",
+  "baseline_commit": "9fc470a06b8ed245d8efe200e6a62ab067860634",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3047,7 +3047,8 @@
       "schemas/postgres/577_location_operating_pilot_competency_review.sql",
       "schemas/postgres/578_authenticated_agent_safety_trigger.sql",
       "schemas/postgres/579_agent_safety_insert_guard.sql",
-      "schemas/postgres/580_agent_source_worker_identity_split.sql"
+      "schemas/postgres/580_agent_source_worker_identity_split.sql",
+      "schemas/postgres/581_isolated_ai_summary_inspection_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

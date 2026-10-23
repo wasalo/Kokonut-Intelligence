@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import importlib
 import json
 import re
@@ -335,8 +334,8 @@ def _run_worker_summary_inspection(
 
     validate_task_capabilities("ai_summary_synthesis")
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
-    credential = get_worker_credential("agent_summary_deterministic_source")
-    connection = get_worker_db("agent_summary_deterministic_source")
+    credential = get_worker_credential("agent_summary_inspection_source")
+    connection = get_worker_db("agent_summary_inspection_source")
     try:
         with connection.cursor() as cursor:
             cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -347,7 +346,7 @@ def _run_worker_summary_inspection(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader"
+                "SET LOCAL ROLE kokonut_agent_summary_inspection_reader"
             )
             cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
@@ -367,8 +366,9 @@ def _run_worker_summary_inspection(
                 return [dict(row) for row in cursor.fetchall()]
             cursor.execute(
                 """
-                SELECT id, summary_type, status, model_version, content
-                  FROM kokonut_agent_source.ai_summary_inspection
+                SELECT id, summary_type, status, model_version,
+                       content_sha256, content_length
+                  FROM kokonut_agent_source.ai_summary_digest
                  WHERE id = %s AND location_id = %s
                  LIMIT 1
                 """,
@@ -377,14 +377,13 @@ def _run_worker_summary_inspection(
             row = cursor.fetchone()
             if row is None:
                 return None
-            content = row["content"]
             return {
                 "id": str(row["id"]),
                 "summary_type": row["summary_type"],
                 "status": row["status"],
                 "model_version": row["model_version"],
-                "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-                "content_length": len(content),
+                "content_sha256": row["content_sha256"],
+                "content_length": row["content_length"],
             }
     except Exception:
         connection.rollback()

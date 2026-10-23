@@ -45,10 +45,11 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/547_signed_ai_summary_inspection_source.sql",
     ROOT / "schemas/postgres/548_signed_delphi_agent_summary_source.sql",
     ROOT / "schemas/postgres/580_agent_source_worker_identity_split.sql",
+    ROOT / "schemas/postgres/581_isolated_ai_summary_inspection_worker.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
-    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-agent-source-principal-split-native-disposable.json",
+    ROOT / "docs/refactor/builds/2026-10-23-recovery/cap-038-summary-inspection-identity-native-disposable.json",
 ))
 IMAGE = os.environ.get("KOKONUT_AGENT_WORKER_TEST_IMAGE", "postgis/postgis:16-3.4")
 PLATFORM = os.environ.get("KOKONUT_AGENT_WORKER_TEST_PLATFORM", "").strip()
@@ -85,6 +86,11 @@ DETERMINISTIC_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000903"
 DETERMINISTIC_SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-deterministic-source-credential"
 DETERMINISTIC_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     DETERMINISTIC_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
+INSPECTION_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000907"
+INSPECTION_SOURCE_RAW_CREDENTIAL = "synthetic-agent-summary-inspection-source-credential"
+INSPECTION_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    INSPECTION_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
 ADDITIONAL_SOURCE_TABLES = [
     "time_liberation_observation",
@@ -1066,6 +1072,8 @@ def _summary_inspection_acceptance() -> str:
     own_summary_id = "c0000000-0000-4000-8000-000000000201"
     foreign_summary_id = "c0000000-0000-4000-8000-000000000202"
     network_summary_id = "c0000000-0000-4000-8000-000000000203"
+    expected_content = "Synthetic location summary " + "x" * 100
+    expected_digest = hashlib.sha256(expected_content.encode("utf-8")).hexdigest()
     return f"""
     INSERT INTO public.ai_summary (
         id, subject_type, subject_id, summary_type, content,
@@ -1081,11 +1089,22 @@ def _summary_inspection_acceptance() -> str:
        'Non-location summary must remain hidden.', ARRAY['harvest_event'],
        'synthetic-v1', 'draft', '2026-10-22 14:00:00+00');
 
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{INSPECTION_SOURCE_WORKER_ID}', 'agent-summary-inspection-source');
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{INSPECTION_SOURCE_WORKER_ID}', '{INSPECTION_SOURCE_CREDENTIAL_HASH}');
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{INSPECTION_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic summary-inspection fixture'
+    );
+
     ALTER TABLE public.ai_summary ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.ai_summary FORCE ROW LEVEL SECURITY;
 
     BEGIN;
-    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    SET LOCAL ROLE kokonut_agent_summary_inspection_reader;
     SET LOCAL search_path = kokonut_agent_source, public;
     DO $$
     DECLARE visible_rows BIGINT;
@@ -1094,7 +1113,7 @@ def _summary_inspection_acceptance() -> str:
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'summary list exposed rows without a signed grant';
         END IF;
-        SELECT count(*) INTO visible_rows FROM ai_summary_inspection;
+        SELECT count(*) INTO visible_rows FROM ai_summary_digest;
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'summary digest view exposed rows without a signed grant';
         END IF;
@@ -1109,16 +1128,25 @@ def _summary_inspection_acceptance() -> str:
     ROLLBACK;
 
     BEGIN;
-    SET LOCAL ROLE kokonut_agent_summary_deterministic_source_login;
+    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    DO $$ BEGIN
+        IF has_table_privilege(current_user, 'kokonut_agent_source.ai_summary_list', 'SELECT')
+           OR has_table_privilege(current_user, 'kokonut_agent_source.ai_summary_digest', 'SELECT')
+           OR has_table_privilege(current_user, 'kokonut_agent_source.ai_summary_inspection', 'SELECT') THEN
+            RAISE EXCEPTION 'deterministic source reader retains inspection projections';
+        END IF;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_summary_inspection_login;
     SELECT * FROM kokonut_security.set_worker_tenant_context(
-        '{DETERMINISTIC_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        '{INSPECTION_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
         'ai_summary', 'read'
     );
-    SET LOCAL ROLE kokonut_agent_summary_deterministic_reader;
+    SET LOCAL ROLE kokonut_agent_summary_inspection_reader;
     SET LOCAL search_path = kokonut_agent_source, public;
-    DO $$
-    DECLARE visible_rows BIGINT; preview TEXT; digest_content TEXT;
-    BEGIN
+    DO $$ DECLARE visible_rows BIGINT; preview TEXT; digest_value TEXT; digest_length INTEGER; BEGIN
         IF NOT (SELECT relrowsecurity AND relforcerowsecurity
                   FROM pg_catalog.pg_class
                  WHERE oid = 'public.ai_summary'::regclass) THEN
@@ -1139,52 +1167,66 @@ def _summary_inspection_acceptance() -> str:
                     WHERE id IN ('{foreign_summary_id}', '{network_summary_id}')) THEN
             RAISE EXCEPTION 'summary list exposed a foreign or non-location row';
         END IF;
-        SELECT content INTO digest_content FROM ai_summary_inspection
+        SELECT content_sha256, content_length INTO digest_value, digest_length
+          FROM ai_summary_digest
          WHERE id = '{own_summary_id}' AND location_id = '{LOCATION_ID}';
-        IF digest_content IS DISTINCT FROM
-           'Synthetic location summary ' || repeat('x', 100) THEN
-            RAISE EXCEPTION 'exact-location digest input was not returned';
+        IF digest_value IS DISTINCT FROM '{expected_digest}'
+           OR digest_length IS DISTINCT FROM {len(expected_content)} THEN
+            RAISE EXCEPTION 'exact-location digest metadata is incorrect';
         END IF;
-        SELECT count(*) INTO visible_rows FROM ai_summary_inspection
+        SELECT count(*) INTO visible_rows FROM ai_summary_digest
          WHERE id = '{foreign_summary_id}' AND location_id = '{LOCATION_ID}';
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'foreign summary ID was visible through digest view';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_deterministic_reader',
+            'kokonut_agent_summary_inspection_reader',
             'public.ai_summary', 'SELECT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_deterministic_source_login',
+            'kokonut_agent_summary_inspection_login',
             'public.ai_summary', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'summary inspection roles retained raw-table SELECT';
         END IF;
         IF has_schema_privilege(
-            'kokonut_agent_summary_deterministic_source_login',
+            'kokonut_agent_summary_inspection_login',
             'kokonut_agent_source', 'USAGE'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_deterministic_source_login',
-            'kokonut_agent_source.ai_summary_list', 'SELECT'
+            'kokonut_agent_summary_inspection_login',
+            'kokonut_agent_source.ai_summary_digest', 'SELECT'
         ) THEN
             RAISE EXCEPTION 'summary source login can bypass the NOLOGIN reader';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_deterministic_reader',
+            'kokonut_agent_summary_inspection_reader',
             'kokonut_agent_source.ai_summary_list', 'INSERT'
         ) OR has_table_privilege(
-            'kokonut_agent_summary_deterministic_reader',
-            'kokonut_agent_source.ai_summary_inspection', 'UPDATE'
+            'kokonut_agent_summary_inspection_reader',
+            'kokonut_agent_source.ai_summary_digest', 'UPDATE'
         ) THEN
             RAISE EXCEPTION 'summary inspection reader has write privileges';
         END IF;
         IF has_table_privilege(
-            'kokonut_agent_summary_deterministic_reader',
+            'kokonut_agent_summary_inspection_reader',
             'kokonut_agent_source.ai_summary_list', 'SELECT'
         ) IS NOT TRUE OR has_table_privilege(
-            'kokonut_agent_summary_deterministic_reader',
-            'kokonut_agent_source.ai_summary_inspection', 'SELECT'
+            'kokonut_agent_summary_inspection_reader',
+            'kokonut_agent_source.ai_summary_digest', 'SELECT'
         ) IS NOT TRUE THEN
-            RAISE EXCEPTION 'deterministic reader is missing a signed inspection view';
+            RAISE EXCEPTION 'inspection reader is missing a signed projection';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM pg_catalog.pg_attribute
+             WHERE attrelid = 'kokonut_agent_source.ai_summary_digest'::regclass
+               AND attname = 'content' AND NOT attisdropped
+        ) THEN
+            RAISE EXCEPTION 'digest projection exposes raw summary content';
+        END IF;
+        IF has_table_privilege(
+            'kokonut_agent_summary_inspection_reader',
+            'kokonut_agent_source.harvest_event', 'SELECT'
+        ) THEN
+            RAISE EXCEPTION 'inspection reader can access deterministic source data';
         END IF;
     END;
     $$;
@@ -2575,7 +2617,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, and 580 apply; migrations 530-537, 539-548, and 580 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580, and 581 apply; migrations 530-537, 539-548, 580, and 581 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -2608,10 +2650,12 @@ def main() -> int:
         "deterministic summary source login can call only the signed context setter; its reader selects 13 security-barrier wrappers filtered to exact location scope, retains only shared crop/expense catalogs, and cannot read raw/private tables or write",
         "migration 545 exposes only the required EBF evidence-gap columns under an exact ebf_scorecard/read location grant; migration 580 moves it to a dedicated reader/login pair",
         "migration 546 exposes six minimal CIDS projections only under cids_export/read and migration 580 moves them to a dedicated reader/login pair",
-        "migration 547 exposes exact-location AI-summary list previews and digest inputs only under ai_summary/read, works under forced RLS, denies raw-table access, and removes stale grants on replay",
+        "migration 547 exposes exact-location AI-summary list previews and the legacy digest input under ai_summary/read, works under forced RLS, and denies raw-table access",
         "migration 548 exposes only consented, thresholded Delphi aggregates under delphi/read; migration 580 moves it to a dedicated reader/login pair",
         "migration 580 gives EBF, CIDS, and Delphi independent SET-only logins and exact read-only projection roles; their login credentials cannot read synthesis or one another's views",
         "migration 580 replay restores the task-specific grants after replaying migration 548 and removes Delphi access from the general synthesis reader",
+        "migration 581 splits summary inspection from deterministic reads and exposes digest metadata without summary content",
+        "migration 581 replay removes stale raw-content, deterministic-reader, public-view, and schema-create grants while retaining the exact inspection projections",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -2626,7 +2670,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use database-signed ai_summary/read grants. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections; signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "shared synthesis, deterministic summary generation, and summary inspection use separate database-signed ai_summary/read identities. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections; signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "checks": checks,
     }
     if PLATFORM == "linux/arm64" and IMAGE == "sogis/postgis:16-3.4":
@@ -2659,7 +2703,7 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
@@ -2674,6 +2718,8 @@ def main() -> int:
                 stage = "migration_548_apply"
             if migration_path.name.startswith("580_"):
                 stage = "migration_580_apply"
+            if migration_path.name.startswith("581_"):
+                stage = "migration_581_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -2868,6 +2914,45 @@ def main() -> int:
         base.psql(docker, container, _deterministic_source_reader_acceptance())
         stage = "deterministic_summary_inspection_signed_source_acceptance"
         base.psql(docker, container, _summary_inspection_acceptance())
+        stage = "summary_inspection_stale_grant_replay"
+        base.psql(
+            docker,
+            container,
+            "GRANT SELECT ON public.ai_summary TO "
+            "kokonut_agent_summary_inspection_reader, kokonut_agent_summary_inspection_login; "
+            "GRANT SELECT ON kokonut_agent_source.ai_summary_inspection "
+            "TO PUBLIC, kokonut_agent_summary_deterministic_reader, "
+            "kokonut_agent_summary_inspection_reader, kokonut_agent_summary_inspection_login; "
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON kokonut_agent_source.ai_summary_digest "
+            "TO kokonut_agent_summary_inspection_reader, kokonut_agent_summary_inspection_login; "
+            "GRANT EXECUTE ON FUNCTION public.digest(bytea,text) "
+            "TO kokonut_agent_summary_inspection_reader, kokonut_agent_summary_inspection_login; "
+            "GRANT CREATE ON SCHEMA kokonut_agent_source "
+            "TO kokonut_agent_summary_inspection_reader, kokonut_agent_summary_inspection_login;",
+        )
+        migration_581 = next(path for path in MIGRATIONS if path.name.startswith("581_"))
+        base.psql(docker, container, migration_581.read_text(encoding="utf-8"))
+        base.psql(
+            docker,
+            container,
+            "DO $$ BEGIN "
+            "IF has_table_privilege('kokonut_agent_summary_inspection_reader', 'public.ai_summary', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_inspection_login', 'public.ai_summary', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_deterministic_reader', 'kokonut_agent_source.ai_summary_list', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_deterministic_reader', 'kokonut_agent_source.ai_summary_digest', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_inspection_reader', 'kokonut_agent_source.ai_summary_inspection', 'SELECT') "
+            "OR has_table_privilege('kokonut_agent_summary_inspection_login', 'kokonut_agent_source.ai_summary_digest', 'SELECT') "
+            "OR has_schema_privilege('kokonut_agent_summary_inspection_login', 'kokonut_agent_source', 'CREATE') "
+            "OR has_schema_privilege('kokonut_agent_summary_inspection_reader', 'kokonut_agent_source', 'CREATE') "
+            "THEN RAISE EXCEPTION 'migration 581 replay retained stale summary inspection access'; END IF; "
+            "IF EXISTS (SELECT 1 FROM pg_class AS relation CROSS JOIN LATERAL aclexplode(relation.relacl) AS acl "
+            "WHERE relation.oid = 'kokonut_agent_source.ai_summary_inspection'::regclass "
+            "AND acl.grantee = 0 AND acl.privilege_type = 'SELECT') THEN "
+            "RAISE EXCEPTION 'migration 581 replay retained PUBLIC raw-content access'; END IF; "
+            "IF NOT has_table_privilege('kokonut_agent_summary_inspection_reader', 'kokonut_agent_source.ai_summary_list', 'SELECT') "
+            "OR NOT has_table_privilege('kokonut_agent_summary_inspection_reader', 'kokonut_agent_source.ai_summary_digest', 'SELECT') "
+            "THEN RAISE EXCEPTION 'migration 581 replay removed the exact inspection projections'; END IF; END $$;",
+        )
         stage = "delphi_agent_signed_source_acceptance"
         base.psql(docker, container, _delphi_agent_source_acceptance())
         stage = "delphi_agent_stale_grant_replay"

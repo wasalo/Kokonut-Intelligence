@@ -399,18 +399,23 @@ databases remain untouched; migration 524 is not rolled out. See the
 
 The standalone `ai_summary` CLI validates required mode selection and UUID
 arguments before worker dispatch. Generation delegates directly to the
-validated runner. Listing and digest inspection now use migration 547's
-security-barrier source views through the dedicated deterministic source login:
-the source login sets the signed `ai_summary/read` context, then switches to the
-NOLOGIN reader role in a repeatable-read, read-only transaction. Both operations
-require one exact `--location-id`; the former global `--all-locations` inventory
-is removed. The list view returns at most twenty rows with an 80-character
-preview, while digest inspection reads one exact ID/location pair and returns
-only metadata, content length, and a computed SHA-256 digest. It does not
-compare a stored digest or change lifecycle status, so it is not the human
-review action. Disposable PostgreSQL checks exercise the views under forced RLS,
-no-context and foreign-location denial, raw-table denial, migration replay and
-stale-grant cleanup. This establishes the database read boundary and worker
+validated deterministic runner. Listing uses a dedicated inspection login and
+NOLOGIN reader role; digest inspection uses that same signed identity through
+the [migration 581](../../schemas/postgres/581_isolated_ai_summary_inspection_worker.sql)
+digest-only projection. The source login sets the
+signed `ai_summary/read` context, then switches to the reader role in a
+repeatable-read, read-only transaction. Both operations require one exact
+`--location-id`; the former global `--all-locations` inventory is removed. The
+list view returns at most twenty rows with an 80-character preview. Digest
+inspection reads one exact ID/location pair and returns only metadata, content
+length, and a database-computed SHA-256 digest; it never returns summary
+content to Python. The inspection role cannot read deterministic operational
+source views or the raw `ai_summary` table, and its login has no direct view or
+digest-function grant. The digest does not change lifecycle status or compare a
+stored digest, so it is not the human review action. Disposable PostgreSQL
+checks exercise both views under forced RLS, no-context and foreign-location
+denial, raw-table and operational-source denial, migration replay, and stale
+grant cleanup. This establishes the database read boundary and worker
 authorization contract; it does not authenticate a human operator, provision
 production credentials/grants, prove populated parity, or complete MAN-CAP-038.
 

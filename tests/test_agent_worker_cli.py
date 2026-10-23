@@ -1092,7 +1092,7 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
     statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
     assert statements[:4] == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY",
-        "SET LOCAL ROLE kokonut_agent_summary_deterministic_reader",
+        "SET LOCAL ROLE kokonut_agent_summary_inspection_reader",
         "SET LOCAL search_path = kokonut_agent_source, pg_catalog",
         "SET LOCAL statement_timeout = '15s'",
     ]
@@ -1100,7 +1100,7 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
     assert "WHERE location_id = %s" in statements[-1]
     assert "LIMIT 20" in statements[-1]
     assert cursor.execute.call_args_list[-1].args[1] == (LOCATION_ID,)
-    source_factory.assert_called_once_with("agent_summary_deterministic_source")
+    source_factory.assert_called_once_with("agent_summary_inspection_source")
     context_setter.assert_called_once_with(
         connection, credential=credential, location_id=LOCATION_ID
     )
@@ -1117,7 +1117,8 @@ def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
         "summary_type": "operations",
         "status": "draft",
         "model_version": "synthetic-v1",
-        "content": raw_content,
+        "content_sha256": hashlib.sha256(raw_content.encode()).hexdigest(),
+        "content_length": len(raw_content),
     }
     monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
     monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "i" * 40)
@@ -1131,7 +1132,10 @@ def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
     result = worker_cli.run_worker_summary_digest(LOCATION_ID, SUMMARY_ID)
 
     query_call = cursor.execute.call_args_list[-1]
-    assert "FROM kokonut_agent_source.ai_summary_inspection" in query_call.args[0]
+    assert "FROM kokonut_agent_source.ai_summary_digest" in query_call.args[0]
+    assert "content_sha256" in query_call.args[0]
+    assert "content_length" in query_call.args[0]
+    assert "summary.content" not in query_call.args[0]
     assert "WHERE id = %s AND location_id = %s" in query_call.args[0]
     assert query_call.args[1] == (SUMMARY_ID, LOCATION_ID)
     assert result == {
