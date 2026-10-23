@@ -438,6 +438,11 @@ def test_agent_summary_source_factory_requires_its_readonly_login(monkeypatch):
             "kokonut_agent_regenerator_login",
             "AGENT_REGENERATOR_SOURCE",
         ),
+        (
+            "agent_capital_efficiency_source",
+            "kokonut_agent_capital_efficiency_login",
+            "AGENT_CAPITAL_EFFICIENCY_SOURCE",
+        ),
     ],
 )
 def test_task_specific_agent_source_factories_require_their_own_login(
