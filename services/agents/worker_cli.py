@@ -292,6 +292,12 @@ def run_worker_summary(
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
         summary = generate(connection, location_id, summary_type)
+        if not isinstance(summary, dict):
+            raise ValueError("AI-summary worker output must be an object")
+        if summary.get("location_id") not in (None, location_id):
+            raise ValueError(
+                "AI-summary worker output location does not match its signed scope"
+            )
     except Exception:
         connection.rollback()
         raise

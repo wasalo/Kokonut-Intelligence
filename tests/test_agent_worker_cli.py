@@ -467,6 +467,54 @@ def test_deterministic_worker_defaults_to_its_own_source_login(monkeypatch):
     assert result["summary_id"] == "saved-id"
 
 
+def test_deterministic_worker_rejects_output_for_another_location_before_draft_write():
+    connection, _cursor = _source_connection()
+    writer = MagicMock(side_effect=AssertionError("mismatched output must not be persisted"))
+    summary_builder = MagicMock(
+        return_value={
+            "location_id": "00000000-0000-0000-0000-000000000999",
+            "content": "Synthetic summary for a different location",
+            "source_tables": ["harvest_event"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="output location does not match its signed scope"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            connection_factory=lambda: connection,
+            summary_builder=summary_builder,
+            existing_reader=lambda *_args: None,
+            draft_writer=writer,
+        )
+
+    summary_builder.assert_called_once()
+    writer.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
+def test_deterministic_worker_rejects_non_object_output_before_draft_write():
+    connection, _cursor = _source_connection()
+    writer = MagicMock(side_effect=AssertionError("invalid output must not be persisted"))
+
+    with pytest.raises(ValueError, match="worker output must be an object"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            connection_factory=lambda: connection,
+            summary_builder=lambda *_args: None,
+            existing_reader=lambda *_args: None,
+            draft_writer=writer,
+        )
+
+    writer.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or_write(
     monkeypatch,
 ):

@@ -6,6 +6,18 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**CAP-038 deterministic summary output scope — 22 October 2026:** the signed
+source worker now rejects non-object output and rejects a returned
+`location_id` that differs from the requested location before creating a draft.
+All 47 agent worker CLI tests pass, including mismatch, malformed output,
+successful draft, and read-only scope cases, with Ruff, compilation, capability
+validation, and diff checks passing. This closes output-to-scope correlation
+only; authenticated task identity, least-
+privilege roles, populated parity, and MAN-CAP-038 acceptance remain open
+([implementation](../services/agents/worker_cli.py);
+[test](../tests/test_agent_worker_cli.py);
+[evidence](builds/2026-10-22-recovery/cap-038-deterministic-summary-output-scope.json)).
+
 **CAP-037 independent competency review — 22 October 2026:** migration 577
 adds a bounded exact-location review queue and one-time verify/reject action
 for receipt-backed submitted competency drafts. It enforces self-review

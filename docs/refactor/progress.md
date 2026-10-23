@@ -1,3 +1,19 @@
+### CAP-038 deterministic summary output scope — 22 October 2026
+
+The deterministic AI-summary worker now rejects non-object results and rejects
+any returned `location_id` that differs from the location bound to its signed
+read transaction. This check runs before the draft writer, and failure rolls
+back and closes the source connection. All 47 agent worker CLI tests pass,
+including mismatch, malformed output, successful draft, and read-only scope
+cases; Ruff, Python compilation, capability matrix validation, and
+`git diff --check` pass. Only synthetic output and fake connections were used;
+no database or provider was contacted. This closes one
+output-to-scope consistency gap; authenticated agent identities, narrower
+database grants, populated parity, and MAN-CAP-038 acceptance remain open.
+Checklist: 1,003 complete / 24 open (1,027 total); matrix: 30 baseline-retained,
+7 deployed, and 29 prepared across 66 rows. Evidence:
+[checks](builds/2026-10-22-recovery/cap-038-deterministic-summary-output-scope.json).
+
 ### CAP-037 independent competency review — 22 October 2026
 
 Migration 577 adds a separate exact-location `operating_pilot:review` queue and
