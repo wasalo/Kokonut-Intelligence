@@ -1,3 +1,29 @@
+### CAP-037 private own competency-assessment history — 22 October 2026
+
+Added `GET /operator/api/operating-pilot/{location_id}/my-competency-assessments`
+under exact `operating_pilot:read_own` scope. Migration 575 checks signed
+operator/location context, the independent own-read grant, one active human
+party binding, active Adelphi mapping, and a matching immutable creation
+receipt. The bounded deterministic response includes self-assessed levels and
+the caller's own private evidence note, while excluding other operators,
+request digests, internal party/operator/scope identifiers, and receiptless
+rows. Runtime can execute only the function; Directus cannot execute it, and
+neither role can access draft or receipt tables directly. The 171-test focused Gateway-read, migration-integrity, and route-policy-inventory
+selection passes, including 10 own-history cases. The route-policy inventory now
+contains both competency write/read policies. Python compilation and Ruff pass. Network-disabled disposable PostgreSQL 16 applies and replays migration
+575 on native AMD64 and passes 184 grouped assertions, including own-only
+filtering, paging, grant and location denial, and ACL checks ([native
+evidence](builds/2026-10-22-recovery/cap-037-competency-own-read-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-competency-own-read-arm64-disposable.json)).
+The same migration and assertions pass on linux/arm64 under Docker/QEMU; this
+is software portability evidence, not Raspberry Pi hardware acceptance.
+Candidate and legacy databases are untouched; migration 575 is not
+rolled out. Disable the route and exact policy to roll back, retaining the
+additive migration and private records if applied. Competency submission,
+revision, independent review, populated parity, live OIDC/browser, broader
+ACL/RLS, production recovery, and MAN-CAP-037 owner acceptance remain open.
+The checklist snapshot remains 1,001 complete / 24 open; CAP-037 remains
+prepared (`P`).
+
 ### CAP-037 private competency self-assessment draft — 22 October 2026
 
 Migration 574 and the Gateway add `POST /operator/api/operating-pilot/{location_id}/competency-assessments` under exact location `operating_pilot:create`. The database rechecks signed tenant context, one active human-party binding, and the active Adelphi farm mapping. It validates a normalized competency key, 0–5 self-assessed and target levels, and a bounded private evidence note. The private Kernel draft has exact-request idempotency and rejects changed retries, duplicate open drafts, missing grants, invalid data, and mismatched location. The response exposes only draft ID, status, and replay state. It does not update the canonical competency profile or mark evidence verified; submission and independent review remain separate work. Runtime and Directus cannot directly read or write the draft tables, and the non-login function owner cannot read evidence notes or mutate receipts.
