@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "51be12f29509b15819b46e9a7dd7300b2fdb702f",
+  "baseline_commit": "87d953a0fb7e6e99cd46207e667af99afcf0c46d",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3056,7 +3056,8 @@
       "schemas/postgres/586_isolated_commons_liberation_worker.sql",
       "schemas/postgres/587_isolated_gnh_alignment_worker.sql",
       "schemas/postgres/588_isolated_regenerator_worker.sql",
-      "schemas/postgres/589_isolated_capital_efficiency_worker.sql"
+      "schemas/postgres/589_isolated_capital_efficiency_worker.sql",
+      "schemas/postgres/590_isolated_financial_resilience_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

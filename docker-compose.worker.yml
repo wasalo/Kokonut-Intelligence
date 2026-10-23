@@ -402,6 +402,41 @@ services:
     profiles:
       - capital-efficiency-worker
 
+  # Financial-resilience synthesis reads three location-scoped views and one
+  # network-wide public publication-status view through a dedicated identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile financial-resilience-worker run --rm agent-financial-resilience-worker \
+  #     --location-id UUID --request-id UUID
+  agent-financial-resilience-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "financial_resilience_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_WORKER_CREDENTIAL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DRAFT_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DRAFT_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - financial-resilience-worker
+
   # Exact-location AI-summary list and digest inspection; no draft identity.
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \

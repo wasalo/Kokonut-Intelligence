@@ -56,6 +56,8 @@ BEGIN
         'kokonut_agent_regenerator_login',
         'kokonut_agent_capital_efficiency_reader',
         'kokonut_agent_capital_efficiency_login',
+        'kokonut_agent_financial_resilience_reader',
+        'kokonut_agent_financial_resilience_login',
         'kokonut_agent_summary_deterministic_source_login',
         'kokonut_agent_summary_inspection_reader',
         'kokonut_agent_summary_inspection_login',

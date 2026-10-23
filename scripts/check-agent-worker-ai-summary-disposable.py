@@ -54,6 +54,7 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/587_isolated_gnh_alignment_worker.sql",
     ROOT / "schemas/postgres/588_isolated_regenerator_worker.sql",
     ROOT / "schemas/postgres/589_isolated_capital_efficiency_worker.sql",
+    ROOT / "schemas/postgres/590_isolated_financial_resilience_worker.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
@@ -140,6 +141,11 @@ CAPITAL_EFFICIENCY_SOURCE_RAW_CREDENTIAL = "synthetic-capital-efficiency-source-
 CAPITAL_EFFICIENCY_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
     CAPITAL_EFFICIENCY_SOURCE_RAW_CREDENTIAL.encode("utf-8")
 ).hexdigest()
+FINANCIAL_RESILIENCE_SOURCE_WORKER_ID = "a0000000-0000-0000-0000-000000000916"
+FINANCIAL_RESILIENCE_SOURCE_RAW_CREDENTIAL = "synthetic-financial-resilience-source-credential-2026-10-23"
+FINANCIAL_RESILIENCE_SOURCE_CREDENTIAL_HASH = hashlib.sha256(
+    FINANCIAL_RESILIENCE_SOURCE_RAW_CREDENTIAL.encode("utf-8")
+).hexdigest()
 ORGANIC_SOURCE_VIEW_NAMES = (
     "organic_readiness_assessment",
     "organic_transition_plan",
@@ -188,6 +194,13 @@ CAPITAL_EFFICIENCY_SOURCE_VIEW_NAMES = (
     "v_public_governance_throughput_summary",
     "v_public_capital_provider_utility_summary",
 )
+FINANCIAL_RESILIENCE_SOURCE_VIEW_NAMES = (
+    "v_public_financial_sustainability_summary",
+    "v_public_risk_mitigation_summary",
+    "v_public_scaling_roadmap_summary",
+    "v_public_green_paper_publication_status",
+)
+FINANCIAL_RESILIENCE_LOCATION_VIEW_NAMES = FINANCIAL_RESILIENCE_SOURCE_VIEW_NAMES[:3]
 ECOLOGICAL_SOURCE_VIEW_NAMES = (
     "ecological_interaction",
     "energy_flow_measurement",
@@ -284,14 +297,10 @@ SOURCE_READER_VIEWS = tuple(sorted({
     "v_public_commons_redistribution_policy",
     "v_public_farm_launch_unit_economics",
     "v_public_federation_protocol",
-    "v_public_financial_sustainability_summary",
-    "v_public_green_paper_publication_status",
     "v_public_network_scaling_target",
     "v_public_open_source_impact_artifact",
     "v_public_participatory_signal_experiment",
     "v_public_perpetual_value_stress_test",
-    "v_public_risk_mitigation_summary",
-    "v_public_scaling_roadmap_summary",
     # Holistic wellbeing receives these consent-filtered projections through
     # its own migration-584 task reader.
     # Feedback receives its consent-safe summary through a separate
@@ -304,6 +313,8 @@ SOURCE_READER_VIEWS = tuple(sorted({
     # migration-588 task reader.
     # Capital Efficiency receives four location-filtered views through its
     # migration-589 task reader.
+    # Financial Resilience receives three location views and one network view
+    # through its migration-590 task reader.
 }))
 DETERMINISTIC_SOURCE_TABLES = (
     "crop",
@@ -1547,6 +1558,156 @@ def _capital_efficiency_source_stale_grants() -> str:
     """
 
 
+def _financial_resilience_source_projection_fixture() -> str:
+    tables = (
+        "financial_sustainability_plan",
+        "risk_mitigation_register",
+        "scaling_roadmap_milestone",
+    )
+    return "\n".join(
+        f"INSERT INTO public.{table} (id, location_id, status) "
+        f"VALUES ('e0000000-0000-4000-8000-{index:012d}', "
+        f"'{OTHER_LOCATION_ID}', 'published');"
+        for index, table in enumerate(tables, start=960)
+    )
+
+
+def _financial_resilience_source_scope_acceptance() -> str:
+    all_views_sql = ", ".join(
+        f"'{name}'" for name in FINANCIAL_RESILIENCE_SOURCE_VIEW_NAMES
+    )
+    location_views_sql = ", ".join(
+        f"'{name}'" for name in FINANCIAL_RESILIENCE_LOCATION_VIEW_NAMES
+    )
+    return f"""
+    INSERT INTO kokonut_security.worker_principal (id, principal_key)
+    VALUES ('{FINANCIAL_RESILIENCE_SOURCE_WORKER_ID}', 'agent-financial-resilience-source')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_credential (worker_id, credential_hash)
+    VALUES ('{FINANCIAL_RESILIENCE_SOURCE_WORKER_ID}',
+            '{FINANCIAL_RESILIENCE_SOURCE_CREDENTIAL_HASH}')
+    ON CONFLICT DO NOTHING;
+    INSERT INTO kokonut_security.worker_scope_grant (
+        worker_id, tenant_id, location_id, resource, action, granted_by
+    ) VALUES (
+        '{FINANCIAL_RESILIENCE_SOURCE_WORKER_ID}', '{TENANT_ID}', '{LOCATION_ID}',
+        'ai_summary', 'read', 'synthetic financial-resilience source acceptance fixture'
+    ) ON CONFLICT DO NOTHING;
+
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+              FROM pg_catalog.unnest(ARRAY[{all_views_sql}]::TEXT[]) AS approved(view_name)
+             WHERE NOT has_table_privilege(
+                 'kokonut_agent_financial_resilience_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_reader',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             ) OR has_table_privilege(
+                 'kokonut_agent_summary_source_login',
+                 pg_catalog.format('kokonut_agent_source.%I', approved.view_name),
+                 'SELECT'
+             )
+        ) OR has_table_privilege(
+            'kokonut_agent_financial_resilience_reader',
+            'kokonut_agent_source.v_public_capital_efficiency_summary', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_financial_resilience_reader',
+            'public.financial_sustainability_plan', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_financial_resilience_login',
+            'public.green_paper_publication_review', 'SELECT'
+        ) OR has_table_privilege(
+            'kokonut_agent_financial_resilience_reader', 'public.ai_summary', 'SELECT'
+        ) OR has_schema_privilege(
+            'kokonut_agent_financial_resilience_login', 'kokonut_agent_source', 'USAGE'
+        ) OR has_function_privilege(
+            'kokonut_agent_financial_resilience_login',
+            'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'
+        ) THEN
+            RAISE EXCEPTION 'Financial Resilience roles exceed their task source contract';
+        END IF;
+    END $$;
+
+    SET ROLE kokonut_agent_financial_resilience_login;
+    BEGIN;
+    SET LOCAL ROLE kokonut_agent_financial_resilience_reader;
+    DO $$
+    DECLARE view_name TEXT; visible_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{all_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I', view_name
+            ) INTO visible_rows;
+            IF visible_rows <> 0 THEN
+                RAISE EXCEPTION 'Financial Resilience view % returned rows without signed context',
+                    view_name;
+            END IF;
+        END LOOP;
+    END $$;
+    ROLLBACK;
+
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{FINANCIAL_RESILIENCE_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        'ai_summary', 'read'
+    );
+    SET LOCAL ROLE kokonut_agent_financial_resilience_reader;
+    DO $$
+    DECLARE view_name TEXT; own_rows BIGINT; foreign_rows BIGINT; network_rows BIGINT;
+    BEGIN
+        FOREACH view_name IN ARRAY ARRAY[{location_views_sql}]::TEXT[] LOOP
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO own_rows USING '{LOCATION_ID}'::UUID;
+            EXECUTE pg_catalog.format(
+                'SELECT count(*) FROM kokonut_agent_source.%I WHERE location_id = $1',
+                view_name
+            ) INTO foreign_rows USING '{OTHER_LOCATION_ID}'::UUID;
+            IF own_rows <> 1 OR foreign_rows <> 0 THEN
+                RAISE EXCEPTION 'Financial Resilience view % violated location scope (own %, foreign %)',
+                    view_name, own_rows, foreign_rows;
+            END IF;
+        END LOOP;
+        SELECT count(*) INTO network_rows
+          FROM kokonut_agent_source.v_public_green_paper_publication_status;
+        IF network_rows <> 1 THEN
+            RAISE EXCEPTION 'network-wide Green Paper projection returned % rows, expected one',
+                network_rows;
+        END IF;
+    END $$;
+    ROLLBACK;
+    RESET ROLE;
+    """
+
+
+def _financial_resilience_source_stale_grants() -> str:
+    views = ", ".join(
+        f"kokonut_agent_source.{name}"
+        for name in FINANCIAL_RESILIENCE_SOURCE_VIEW_NAMES
+    )
+    return f"""
+    GRANT SELECT ON {views}
+        TO PUBLIC, kokonut_agent_summary_source_reader,
+           kokonut_agent_summary_source_login;
+    GRANT SELECT ON kokonut_agent_source.v_public_capital_efficiency_summary,
+        kokonut_agent_source.v_public_regenerative_outcome_summary
+        TO kokonut_agent_financial_resilience_reader;
+    GRANT SELECT ON public.ai_summary, public.financial_sustainability_plan,
+        public.green_paper_publication_review
+        TO kokonut_agent_financial_resilience_reader,
+           kokonut_agent_financial_resilience_login;
+    GRANT CREATE ON SCHEMA public, kokonut_security, kokonut_agent_source
+        TO kokonut_agent_financial_resilience_reader,
+           kokonut_agent_financial_resilience_login;
+    """
+
+
 def _source_reader_acceptance() -> str:
     approved_view_list = ", ".join(f"'{view_name}'" for view_name in SOURCE_READER_VIEWS)
     approved_metadata = "'geography_columns', 'geometry_columns', 'spatial_ref_sys'"
@@ -1662,7 +1823,7 @@ def _source_reader_acceptance() -> str:
     DECLARE visible_rows BIGINT;
     BEGIN
         SELECT count(*) INTO visible_rows
-          FROM kokonut_agent_source.v_public_financial_sustainability_summary;
+          FROM kokonut_agent_source.v_public_bio_factory_batch_summary;
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'scoped source view returned rows without signed context';
         END IF;
@@ -1698,7 +1859,7 @@ def _source_reader_scope_acceptance() -> str:
     DECLARE visible_rows BIGINT;
     BEGIN
         SELECT count(*) INTO visible_rows
-          FROM kokonut_agent_source.v_public_financial_sustainability_summary;
+          FROM kokonut_agent_source.v_public_bio_factory_batch_summary;
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'source rows were visible before context setup';
         END IF;
@@ -1719,7 +1880,7 @@ def _source_reader_scope_acceptance() -> str:
         foreign_row BOOLEAN;
     BEGIN
         SELECT count(*) INTO exact_count
-          FROM kokonut_agent_source.v_public_financial_sustainability_summary;
+          FROM kokonut_agent_source.v_public_bio_factory_batch_summary;
         IF exact_count <> 1 THEN
             RAISE EXCEPTION 'exact-location source wrapper returned % rows, expected 1', exact_count;
         END IF;
@@ -1768,7 +1929,7 @@ def _source_reader_scope_acceptance() -> str:
     DECLARE visible_rows BIGINT;
     BEGIN
         SELECT count(*) INTO visible_rows
-          FROM kokonut_agent_source.v_public_financial_sustainability_summary;
+          FROM kokonut_agent_source.v_public_bio_factory_batch_summary;
         IF visible_rows <> 0 THEN
             RAISE EXCEPTION 'location without a worker grant acquired source access';
         END IF;
@@ -3822,7 +3983,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-589 apply; migrations 530-537, 539-548, 580-589 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-590 apply; migrations 530-537, 539-548, 580-590 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -3885,6 +4046,9 @@ def main() -> int:
         "migration 589 isolates Capital Efficiency synthesis to four location-filtered public projections and removes them from the shared synthesis reader",
         "migration 589 replay removes stale PUBLIC/shared grants, unrelated feedback/Regenerator projections, raw source access, and schema CREATE privileges",
         "Capital Efficiency source returns no rows without signed context and only owned rows across its four views, excluding foreign locations",
+        "migration 590 isolates Financial Resilience to three location-filtered projections and one public network publication view",
+        "migration 590 replay removes stale PUBLIC/shared grants, unrelated Regenerator/Capital Efficiency projections, raw source access, and schema CREATE privileges",
+        "Financial Resilience location views exclude foreign rows while signed context permits the network-wide Green Paper publication projection",
         "migration 542 and 544 replay remove stale private-summary, raw-source, and write grants before reapplying the deterministic wrapper allowlist",
         "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
         "runtime and Directus cannot call worker draft functions or read private worker receipts",
@@ -3899,7 +4063,7 @@ def main() -> int:
         "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
         "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
         "source_lineage_note": "synthesis source manifests distinguish exact-location, network-wide public-catalogue, and location-plus-unassigned scopes; network references are validated through migration-owned ID-only public-view grants and are not relabeled as farm-owned",
-        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, and Capital Efficiency use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries. The remaining shared reader retains 19 registered source projections. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
+        "source_reader_note": "shared synthesis, deterministic summary generation, summary inspection, organic readiness, ecological modeling, holistic wellbeing, feedback, Commons Liberation, GNH Alignment, Regenerator, Capital Efficiency, and Financial Resilience use separate database-signed ai_summary/read identities as appropriate. Summary inspection sees only bounded previews and digest metadata, not operational sources or raw summary content. Organic readiness sees fifteen task-specific projections; ecological modeling sees twenty-seven task-specific calculation/provenance projections; holistic wellbeing sees three consent-filtered summaries; feedback sees its consent-safe stakeholder summary; Commons Liberation sees four location-filtered views; GNH Alignment sees five location-filtered public summaries; Regenerator and Capital Efficiency each see four location-filtered public summaries; Financial Resilience sees three location-filtered views and one public network-wide Green Paper status view. The remaining shared reader retains 15 registered source projections. EBF, CIDS, and Delphi use separate credentials/logins and exact reader roles for their own projections. Signed resource/location scope remains enforced by security-barrier views. Runtime credentials are not provisioned by these disposable checks.",
         "organic_projection_fixture_note": "Because this focused disposable chain does not apply the historical farm schema migrations, fifteen synthetic security-barrier projections stand in for migration 549's outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "ecological_projection_fixture_note": "Because this focused disposable chain does not apply historical farm/ecology schema migrations 550-551, twenty-seven synthetic security-barrier projections stand in for those outputs. They contain own/foreign location sentinels filtered by the real signed current_worker_scope function; the repository candidate and legacy database are untouched.",
         "holistic_wellbeing_projection_fixture_note": "Migrations 535 and 543 create the real consent-filtered and signed security-barrier source projections in this disposable chain. Synthetic own/foreign rows are added to the fixture source tables before migration 584; no live stakeholder data or candidate/legacy database is used.",
@@ -3907,6 +4071,7 @@ def main() -> int:
         "commons_liberation_projection_fixture_note": "Migrations 534 and 543 create the real location-filtered security-barrier projections. The fixture adds one synthetic published foreign-location row to each of four source tables, alongside one owned fixture row, and the real signed scope function must return only the owned rows.",
         "gnh_alignment_projection_fixture_note": "Migrations 534 and 543 create the real location-filtered security-barrier projections. The fixture adds one synthetic published foreign-location row to each of five source tables, alongside one owned fixture row, and the real signed scope function must return only the owned rows.",
         "capital_efficiency_projection_fixture_note": "Migration 543 creates the real location-filtered security-barrier projections. The fixture adds one synthetic published foreign-location row to each of four source tables, alongside one owned fixture row, and the real signed scope function must return only the owned rows.",
+        "financial_resilience_projection_fixture_note": "Migrations 534 and 543 create the three location-filtered security-barrier views and the network-wide Green Paper status projection. The fixture adds one synthetic published foreign row to each location source table; signed location context returns only the owned rows while allowing the explicitly public network view.",
         "regenerator_projection_fixture_note": "Migrations 533 and 543 create the real location-filtered security-barrier projections. The fixture adds one synthetic published foreign-location row to each of four source tables, alongside one owned fixture row, and the real signed scope function must return only the owned rows.",
         "checks": checks,
     }
@@ -3940,7 +4105,7 @@ def main() -> int:
         for migration_path in MIGRATIONS[:2]:
             sql = migration_path.read_text(encoding="utf-8")
             base.psql(docker, container, sql)
-        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581_582_583_584_585_586_587_588_589"
+        stage = "ai_summary_fixture_and_migrations_521_522_523_524_529_530_531_532_533_534_535_536_537_539_540_541_542_543_544_545_546_547_548_580_581_582_583_584_585_586_587_588_589_590"
         base.psql(docker, container, AI_SUMMARY_FIXTURE.read_text(encoding="utf-8"))
         base.psql(docker, container, EBF_SOURCE_FIXTURE)
         for migration_path in MIGRATIONS[2:]:
@@ -4005,6 +4170,14 @@ def main() -> int:
                     _capital_efficiency_source_projection_fixture(),
                 )
                 stage = "migration_589_apply"
+            if migration_path.name.startswith("590_"):
+                stage = "financial_resilience_foreign_location_fixture"
+                base.psql(
+                    docker,
+                    container,
+                    _financial_resilience_source_projection_fixture(),
+                )
+                stage = "migration_590_apply"
             if migration_path.name.startswith("546_"):
                 stage = "cids_source_fixture"
                 base.psql(docker, container, CIDS_SOURCE_FIXTURE)
@@ -4159,6 +4332,25 @@ def main() -> int:
                     docker,
                     container,
                     _capital_efficiency_source_scope_acceptance(),
+                )
+            if migration_path.name.startswith("590_"):
+                stage = "migration_590_signed_scope_acceptance"
+                base.psql(
+                    docker,
+                    container,
+                    _financial_resilience_source_scope_acceptance(),
+                )
+                stage = "migration_590_stale_grant_replay"
+                base.psql(
+                    docker,
+                    container,
+                    _financial_resilience_source_stale_grants(),
+                )
+                base.psql(docker, container, sql)
+                base.psql(
+                    docker,
+                    container,
+                    _financial_resilience_source_scope_acceptance(),
                 )
             if migration_path.name.startswith("541_"):
                 stage = "pg_stat_statements_public_grant_acceptance"
