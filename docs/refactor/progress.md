@@ -1,3 +1,40 @@
+### Progress addendum — CAP-037 private learning-plan draft revision, 24 October 2026
+
+Operators can now revise their own receipt-backed learning-plan `draft` through
+`PUT /operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}`
+when they hold the exact location `operating_pilot:edit_own` grant. The Gateway
+validates the 32 KiB bounded body before connecting, installs signed tenant
+context on the same transaction, protects the write with CSRF/no-store, and
+uses `updated_at` for optimistic concurrency. Migration 607 rechecks the grant,
+human binding, ownership, receipt, draft status, and active farm/location link;
+it updates content columns only and records an append-only digest receipt.
+Exact retries replay the current state, changed request reuse conflicts, and
+stale edits require a reload. Receiptless legacy plans and submitted plans
+cannot be edited. The console shows the form only for draft rows when both
+`read_own` and `edit_own` are granted; submit and review remain separate.
+
+The focused Gateway, route-policy, console, and migration selection passes 196
+tests; migration integrity passes 36 tests. Ruff, Python compilation,
+dependency-group alignment, provider boundaries, refreshed repository/runtime
+SQL inventories, capability-matrix validation, and diff checks pass.
+Network-disabled disposable PostgreSQL 16 applies/replays migration 607 and
+passes 224 grouped assertions on native AMD64 and linux/arm64 Docker/QEMU
+([native](builds/2026-10-24-recovery/cap-037-learning-plan-revision-disposable.json);
+[ARM64/QEMU](builds/2026-10-24-recovery/cap-037-learning-plan-revision-arm64-disposable.json)).
+QEMU is software portability evidence only, not Raspberry Pi hardware
+acceptance. The first acceptance run found that the new column writer grant
+had removed the existing draft creator's INSERT permission; migration 607 now
+retains those required insert columns. Replay also found and fixed a receipt
+row mapping defect while keeping the reader's SELECT limited to required
+columns. Candidate and legacy databases remain untouched; migration 607 is not
+rolled out. Rollback by disabling the PUT route, exact policy, and edit form
+while retaining the additive migration and immutable receipts if applied.
+CAP-037 stays prepared pending submission/review parity, populated-data
+comparison, live OIDC/browser behavior, broader ACL/RLS, recovery, privacy
+review, and MAN-CAP-037 acceptance. Checklist: 1,112 complete / 25 open
+(1,137 total); 24 baseline-retained, 7 deployed, 36 prepared across 67 rows;
+0/67 MAN-CAP checks accepted.
+
 ### Progress addendum — CAP-037 private learning-plan draft creation, 24 October 2026
 
 The location-scoped learning-plan write path now creates a canonical private `draft` under the exact `operating_pilot:create` grant. The Gateway bounds the title, date, and structured arrays before opening PostgreSQL; migration 606 repeats the bounds and checks signed context, the active human-party binding, and the current farm/location mapping in the write transaction. Its append-only receipt supports exact retries and rejects changed request reuse. No submit, activate, review, or publish transition is available through this route. The console gates the form on `create`, protects same-origin writes with CSRF/no-store, preserves a request ID across uncertain responses, and rejects raw bodies above 32 KiB before JSON parsing. The 188-test Gateway/route-policy/console selection passes with Ruff, Python compilation, dependency-group alignment, runtime SQL inventory, matrix validation, and diff checks. Network-disabled disposable PostgreSQL 16 applies/replays through migration 606 and passes 214 grouped assertions on native AMD64 and linux/arm64 Docker/QEMU ([native](builds/2026-10-24-recovery/cap-037-learning-plan-draft-disposable.json); [ARM64/QEMU](builds/2026-10-24-recovery/cap-037-learning-plan-draft-arm64-disposable.json)). QEMU is software portability evidence only, not physical Raspberry Pi acceptance. Candidate and legacy databases remain untouched; migration 606 is not rolled out. Checklist: 1,111 complete / 25 open (1,136 total); 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no MAN-CAP-037 acceptance is claimed.

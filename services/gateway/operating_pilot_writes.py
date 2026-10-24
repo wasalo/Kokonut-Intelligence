@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from functools import partial
 from typing import Any, Callable
@@ -248,6 +248,35 @@ def _normalize_learning_plan_draft_payload(
     if unexpected:
         raise OperatingPilotWriteInvalid("Learning-plan draft contains unsupported fields")
     return title, encoded_fields[0], encoded_fields[1], target_date
+
+
+def _normalize_learning_plan_revision_payload(
+    payload: Any,
+) -> tuple[datetime, str, str, str, date | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Learning-plan revision body must be an object")
+    expected_updated_at = payload.get("expected_updated_at")
+    if not isinstance(expected_updated_at, str) or len(expected_updated_at) > 64:
+        raise OperatingPilotWriteInvalid("expected_updated_at must be an ISO timestamp with a timezone")
+    try:
+        parsed_updated_at = datetime.fromisoformat(expected_updated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise OperatingPilotWriteInvalid(
+            "expected_updated_at must be an ISO timestamp with a timezone"
+        ) from exc
+    if parsed_updated_at.tzinfo is None or parsed_updated_at.utcoffset() is None:
+        raise OperatingPilotWriteInvalid("expected_updated_at must include a timezone")
+    expected_updated_at = parsed_updated_at.astimezone(timezone.utc)
+    allowed = {"expected_updated_at", "title", "competency_goals", "support_requested", "target_date"}
+    unexpected = set(payload) - allowed
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Learning-plan revision contains unsupported fields")
+    title, competency_goals, support_requested, target_date = (
+        _normalize_learning_plan_draft_payload(
+            {field: value for field, value in payload.items() if field != "expected_updated_at"}
+        )
+    )
+    return expected_updated_at, title, competency_goals, support_requested, target_date
 
 
 def _normalize_capacity_review_payload(payload: Any) -> tuple[str, str | None]:
@@ -574,6 +603,66 @@ def create_location_operating_pilot_learning_plan_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot learning-plan draft returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def revise_location_operating_pilot_learning_plan_draft(
+    operator_id: str,
+    location_id: str,
+    learning_plan_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Revise a receipt-backed own learning-plan draft with optimistic concurrency."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_plan_id = _normalize_uuid(learning_plan_id, "learning plan")
+    request_id = _normalize_uuid(request_id, "request")
+    expected_updated_at, title, competency_goals, support_requested, target_date = (
+        _normalize_learning_plan_revision_payload(payload)
+    )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="edit_own",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.revise_location_operating_pilot_learning_plan_draft(
+                           %s::uuid, %s::uuid, %s::uuid, %s::timestamptz, %s::text,
+                           %s::jsonb, %s::jsonb, %s::date)""",
+                (
+                    location_id,
+                    learning_plan_id,
+                    request_id,
+                    expected_updated_at,
+                    title,
+                    competency_goals,
+                    support_requested,
+                    target_date,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot learning-plan revision returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

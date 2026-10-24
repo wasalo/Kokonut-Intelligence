@@ -910,7 +910,7 @@ def test_own_learning_plan_history_console_is_grant_gated_read_only_and_text_onl
     row = _function(
         source,
         "function appendOperatingPilotOwnLearningPlanRow(item)",
-        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+        "function operatingPilotLearningPlanItemsFromEditor(value)",
     )
     initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
 
@@ -918,6 +918,8 @@ def test_own_learning_plan_history_console_is_grant_gated_read_only_and_text_onl
     assert 'id="operating-pilot-learning-plans-more"' in panel
     assert 'hidden aria-labelledby="operating-pilot-learning-plans-heading"' in panel
     assert "operatingPilotOwnLearningPlanLocations.has(locationId)" in load
+    assert "operatingPilotEditOwnLearningPlanLocations.has(operatingPilotLocation.value)" in row
+    assert 'item.status === "draft"' in row
     assert "/my-learning-plans?${params}" in load
     assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
     assert "requestVersion !== operatingPilotOwnLearningPlanRequestVersion" in load
@@ -952,20 +954,57 @@ def test_learning_plan_draft_console_uses_create_grant_and_stable_csrf_retry():
     assert "An exact location create grant" in panel
     assert "operatingPilotCreateLocations.has(locationId)" in initialize
     assert "operatingPilotLearningPlanCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in initialize
+    assert "&& !operatingPilotEditOwnLearningPlanLocations.has(locationId)" in initialize
     assert "competency_goals: competencyGoals" in create
     assert "support_requested: supportRequested" in create
     assert "competencyGoals.length > 50 || supportRequested.length > 50" in create
-    assert "operatingPilotPendingLearningPlanWrites.get(locationId)" in create
+    assert "operatingPilotPendingLearningPlanWrites" in create
+    assert "pendingMap.get(pendingKey)" in create
     assert "payload_text !== payloadText" in create
-    assert 'method: "POST"' in create
+    assert 'method: isEditing ? "PUT" : "POST"' in create
     assert '"X-CSRF-Token": csrf' in create
     assert 'credentials: "same-origin"' in create and 'cache: "no-store"' in create
-    assert "/learning-plans`" in create
+    assert "/learning-plans${" in create
     assert 'new Set(["draft", "submitted", "active", "completed", "paused", "cancelled"])' in create
     assert 'typeof result.replayed !== "boolean"' in create
     assert "current status: ${result.status}" in create
     assert "has not been submitted or reviewed" in create
     assert "innerHTML" not in panel + create
+
+
+def test_learning_plan_revision_is_edit_own_gated_optimistic_and_draft_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnLearningPlanRow(item)",
+        "function operatingPilotLearningPlanItemsFromEditor(value)",
+    )
+    begin = _function(
+        source,
+        "function beginOperatingPilotLearningPlanRevision(item)",
+        "function cancelOperatingPilotLearningPlanRevision()",
+    )
+    revise = _function(
+        source,
+        "async function createOperatingPilotLearningPlanDraft(event)",
+        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+
+    assert "operatingPilotEditOwnLearningPlanLocations.has(operatingPilotLocation.value)" in row
+    assert 'item.status === "draft"' in row
+    assert "operatingPilotEditOwnLearningPlanLocations.has(locationId)" in begin
+    assert "item.updated_at" in begin
+    assert "expected_updated_at: payload.expected_updated_at" in begin
+    assert "operatingPilotPendingLearningPlanRevisions.get(item.learning_plan_id)" in begin
+    assert "operatingPilotEditOwnLearningPlanLocations = new Set(operatingPilotEditOwnCapacityLocationIds)" in source
+    assert "&& !operatingPilotEditOwnLearningPlanLocations.has(locationId)" in initialize
+    assert 'method: isEditing ? "PUT" : "POST"' in revise
+    assert "expected_updated_at" in revise
+    assert "response.status === 409" in revise
+    assert "result.learning_plan_id !== edit.learning_plan_id" in revise
+    assert "Your private learning-plan draft was revised. It remains unsubmitted and unreviewed." in revise
+    assert "innerHTML" not in row + begin + revise
 
 
 def test_competency_review_console_is_grant_gated_private_and_retry_safe():

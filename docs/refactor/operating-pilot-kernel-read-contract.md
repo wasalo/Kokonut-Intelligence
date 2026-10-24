@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, suppressed resource-request category page, private resource-request draft creation/history/revision/submission, independent resource-request review queue and approve/reject decisions, competency self-assessment draft and own-history read, and private learning-plan history and draft creation
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`; `schemas/postgres/567_location_operating_pilot_resource_request_draft.sql`; `schemas/postgres/568_location_own_operating_pilot_resource_requests.sql`; `schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql`; `schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql`; `schemas/postgres/571_location_operating_pilot_resource_review_queue.sql`; `schemas/postgres/572_location_operating_pilot_resource_review_decision.sql`; `schemas/postgres/574_location_operating_pilot_competency_draft.sql`; `schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql`; `schemas/postgres/605_location_own_operating_pilot_learning_plans.sql`; `schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, suppressed resource-request category page, private resource-request draft creation/history/revision/submission, independent resource-request review queue and approve/reject decisions, competency self-assessment draft and own-history read, and private learning-plan history, draft creation, and owner-only draft revision
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`; `schemas/postgres/567_location_operating_pilot_resource_request_draft.sql`; `schemas/postgres/568_location_own_operating_pilot_resource_requests.sql`; `schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql`; `schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql`; `schemas/postgres/571_location_operating_pilot_resource_review_queue.sql`; `schemas/postgres/572_location_operating_pilot_resource_review_decision.sql`; `schemas/postgres/574_location_operating_pilot_competency_draft.sql`; `schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql`; `schemas/postgres/605_location_own_operating_pilot_learning_plans.sql`; `schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql`; `schemas/postgres/607_location_operating_pilot_learning_plan_revision.sql`
 
 ## Route and authorization
 
@@ -766,10 +766,11 @@ people, internal organization scope, and plans under other locations are
 excluded. The separate aggregate `read` grant does not authorize private
 history.
 
-This is read-only access to existing canonical plans. It adds no plan creation,
-revision, submission, activation, or review action. The runtime can execute
-only the bounded projection; Directus cannot execute it, and neither runtime
-role can query the canonical learning-plan table directly. The focused Gateway
+The history route is read-only: it cannot create, revise, submit, activate, or
+review a plan. Separate write actions have their own exact grants and bounded
+database functions below. The runtime can execute only the bounded projection;
+Directus cannot execute it, and neither runtime role can query the canonical
+learning-plan table directly. The focused Gateway
 suite passes 11 tests. Network-disabled disposable PostgreSQL 16 applies and
 replays migration 605 and passes 206 grouped assertions across the CAP-037
 suite ([evidence](builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json)).
@@ -778,12 +779,13 @@ Rollback by disabling the route and exact policy while retaining the additive
 migration. Create/edit/review parity, populated farm data, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-037 acceptance remain open.
 
-The operator console exposes this history in a hidden-by-default read-only
-panel only when the session has the exact location `read_own` grant. Requests
-are same-origin, no-store, paginated in bounded pages, and ignored when a
-location change makes the response stale. Plan fields are rendered through
+The operator console exposes this history in a hidden-by-default panel only
+when the session has the exact location `read_own` grant. Requests are
+same-origin, no-store, paginated in bounded pages, and ignored when a location
+change makes the response stale. Plan fields are rendered through
 `textContent`; structured goal/support values are length-capped before display.
-The console adds no write, submit, activation, or review controls.
+An edit action appears only for a `draft` row when the same location also has
+`edit_own`; other lifecycle actions remain separate.
 
 ## Private learning-plan draft creation
 
@@ -818,3 +820,41 @@ confirms a prior request with its current lifecycle status; submission,
 activation, review, and approval remain separate actions. Rollback
 by disabling the POST route, exact route policy, and form while retaining the
 additive migration and receipts if applied.
+
+## Private own learning-plan draft revision
+
+`PUT /operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}`
+requires the exact location `operating_pilot:edit_own` grant, an authenticated
+OIDC session, same-origin CSRF protection, and a no-store response. The bounded
+32 KiB JSON body contains a UUID `request_id`, the history row's timezone-aware
+`expected_updated_at`, title, competency-goal and requested-support arrays,
+and an optional target date. Gateway validation occurs before database access;
+the migration independently repeats structured-field bounds and authorization.
+
+Migration 607 requires the current signed location, active human-party
+binding, exact `edit_own` grant, and active Adelphi farm mapping. It can update
+only the caller's own migration-606 receipt-backed `draft`; legacy receiptless
+plans and every non-draft lifecycle state are ineligible. The expected
+`updated_at` provides optimistic concurrency: a stale write receives conflict
+and must reload history before retry. An append-only digest receipt makes an
+exact retry replay the current status/time and rejects request-ID reuse with
+changed input. Revision updates only content columns and `updated_at`; it does
+not submit, activate, verify, approve, or publish.
+
+The non-login function owner retains the draft-creation INSERT columns and is
+granted UPDATE only for title, goals, support, target date, and update time; it
+cannot update status. Runtime can execute the bounded revision function only;
+Directus cannot execute it, and neither runtime role can access the canonical
+plan or revision receipt tables directly. The focused Gateway, route-policy,
+and console selection passes 196 tests; migration integrity passes 36 tests.
+Network-disabled disposable
+PostgreSQL 16 applies/replays through migration 607 and passes 224 grouped
+assertions on native AMD64 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-24-recovery/cap-037-learning-plan-revision-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-037-learning-plan-revision-arm64-disposable.json)).
+QEMU demonstrates software portability only, not physical Raspberry Pi
+acceptance. Candidate and legacy databases remain untouched; migration 607 is
+not rolled out. Roll back by disabling the PUT route, exact policy, and edit
+control while retaining the additive migration and immutable receipts if
+applied. Submission/review parity, populated-data comparison, live OIDC/browser
+behavior, broader ACL/RLS, recovery, privacy review, and MAN-CAP-037 acceptance
+remain open.

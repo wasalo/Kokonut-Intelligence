@@ -48,6 +48,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         revise_location_operating_pilot_capacity_draft,
         revise_location_operating_pilot_competency_draft,
         revise_location_operating_pilot_demand_draft,
+        revise_location_operating_pilot_learning_plan_draft,
         revise_location_operating_pilot_resource_draft,
         submit_location_operating_pilot_capacity_draft,
         submit_location_operating_pilot_competency_draft,
@@ -56,6 +57,32 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+
+    async def bounded_learning_plan_payload(request):
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 32 * 1024:
+                return None, JSONResponse(
+                    status_code=413,
+                    content={"error": "Learning-plan request body exceeds 32 KiB"},
+                    headers=headers,
+                )
+            body.extend(chunk)
+        try:
+            payload = json.loads(body)
+        except (ValueError, RecursionError):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Learning-plan request body must be valid JSON"},
+                headers=headers,
+            )
+        if not isinstance(payload, dict):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Learning-plan request body must be an object"},
+                headers=headers,
+            )
+        return payload, None
 
     @router.post("/operator/api/operating-pilot/{location_id}/capacity-profiles")
     async def create_operating_pilot_capacity_draft(request: Request, location_id: str):
@@ -747,29 +774,9 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 content={"error": "Operator OIDC is disabled"},
                 headers=headers,
             )
-        body = bytearray()
-        async for chunk in request.stream():
-            if len(body) + len(chunk) > 32 * 1024:
-                return JSONResponse(
-                    status_code=413,
-                    content={"error": "Learning-plan draft body exceeds 32 KiB"},
-                    headers=headers,
-                )
-            body.extend(chunk)
-        try:
-            payload = json.loads(body)
-        except (ValueError, UnicodeDecodeError):
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Learning-plan draft body must be valid JSON"},
-                headers=headers,
-            )
-        if not isinstance(payload, dict):
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Learning-plan draft body must be an object"},
-                headers=headers,
-            )
+        payload, body_error = await bounded_learning_plan_payload(request)
+        if body_error:
+            return body_error
         request_id = payload.pop("request_id", None)
         try:
             result = await run_in_threadpool(
@@ -824,6 +831,77 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+
+    @router.put(
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}"
+    )
+    async def revise_operating_pilot_learning_plan_draft(
+        request: Request, location_id: str, learning_plan_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        payload, body_error = await bounded_learning_plan_payload(request)
+        if body_error:
+            return body_error
+        request_id = payload.pop("request_id", None)
+        try:
+            result = await run_in_threadpool(
+                revise_location_operating_pilot_learning_plan_draft,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                learning_plan_id,
+                request_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operating-pilot edit access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location edit-own grant and owned draft are required"},
+                    headers=headers,
+                )
+            if pgcode in {"23505", "40001"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The draft changed or the revision request conflicts; reload your history before retrying"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Learning-plan revision input is invalid or outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan revision unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan revision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post("/operator/api/operating-pilot/{location_id}/competency-assessments")
     async def create_operating_pilot_competency_draft(request: Request, location_id: str):

@@ -56,6 +56,7 @@ _PARAMETER_SAMPLES = {
     "profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddc",
     "resource_request_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddcb",
     "draft_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "learning_plan_id": "d9900000-0000-4000-8000-000000000101",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
     "summary_id": "99999999-9999-4999-8999-999999999996",
@@ -664,6 +665,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plans",
     ): _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID),
     (
+        "PUT",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plans/d9900000-0000-4000-8000-000000000101",
+    ): _expected("operating_pilot", "edit_own", scoped=True, location_id=_LOCATION_ID),
+    (
         "POST",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/demand-signals/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit",
     ): _expected("operating_pilot", "submit_own", scoped=True, location_id=_LOCATION_ID),
@@ -1127,6 +1132,10 @@ _EXPECTED_OPERATOR_POLICIES[(
     "POST",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans",
 )] = _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "PUT",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans/{_PARAMETER_SAMPLES['learning_plan_id']}",
+)] = _expected("operating_pilot", "edit_own", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
     "PUT",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-assessments/"

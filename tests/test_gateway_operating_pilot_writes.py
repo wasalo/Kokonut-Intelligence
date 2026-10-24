@@ -52,6 +52,10 @@ LEARNING_PLAN_PAYLOAD = {
     "support_requested": ["Peer mentoring"],
     "target_date": "2026-12-15",
 }
+LEARNING_PLAN_REVISION_PAYLOAD = {
+    **LEARNING_PLAN_PAYLOAD,
+    "expected_updated_at": "2026-10-24T12:00:00+00:00",
+}
 
 
 def _connection_with_result(result):
@@ -207,6 +211,59 @@ def test_learning_plan_draft_sets_exact_create_context_and_commits_function_resu
     connection.close.assert_called_once_with()
 
 
+def test_learning_plan_revision_sets_exact_edit_context_and_uses_optimistic_timestamp(monkeypatch):
+    updated_at = "2026-10-24T12:00:00+00:00"
+    connection, cursor = _connection_with_result(
+        {"learning_plan_id": PROFILE_ID, "status": "draft", "updated_at": updated_at, "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.revise_location_operating_pilot_learning_plan_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        LEARNING_PLAN_REVISION_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "updated_at": updated_at,
+        "replayed": False,
+    }
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "operating_pilot",
+            "action": "edit_own",
+        },
+    )]
+    assert "revise_location_operating_pilot_learning_plan_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        operating_pilot_writes.datetime(2026, 10, 24, 12, 0, tzinfo=operating_pilot_writes.timezone.utc),
+        "Facilitation practice plan",
+        '[{"key":"facilitation","target":4}]',
+        '["Peer mentoring"]',
+        operating_pilot_writes.date(2026, 12, 15),
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
 @pytest.mark.parametrize("payload", [
     [],
     {**LEARNING_PLAN_PAYLOAD, "title": " "},
@@ -224,6 +281,24 @@ def test_invalid_learning_plan_draft_fails_before_database_access(payload):
             REQUEST_ID,
             payload,
             connection_factory=lambda: pytest.fail("invalid learning-plan input must fail before DB access"),
+        )
+
+
+@pytest.mark.parametrize("payload", [
+    {**LEARNING_PLAN_REVISION_PAYLOAD, "expected_updated_at": "2026-10-24T12:00:00"},
+    {**LEARNING_PLAN_REVISION_PAYLOAD, "expected_updated_at": "not-a-timestamp"},
+    {**LEARNING_PLAN_REVISION_PAYLOAD, "unexpected": True},
+    {**LEARNING_PLAN_REVISION_PAYLOAD, "competency_goals": "not-an-array"},
+])
+def test_invalid_learning_plan_revision_fails_before_database_access(payload):
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid):
+        operating_pilot_writes.revise_location_operating_pilot_learning_plan_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            PROFILE_ID,
+            REQUEST_ID,
+            payload,
+            connection_factory=lambda: pytest.fail("invalid revision input must fail before DB access"),
         )
 
 
@@ -754,6 +829,52 @@ def test_learning_plan_draft_route_policy_requires_exact_location_create_grant()
     assert auth_route_policy("GET", path, enabled=True) is None
     assert auth_route_policy("POST", path + "/unexpected", enabled=True) is None
     assert auth_route_policy("POST", path, enabled=False) is None
+
+
+def test_learning_plan_revision_http_route_uses_edit_own_and_returns_no_store(monkeypatch):
+    action = MagicMock(
+        return_value={
+            "location_id": LOCATION_ID,
+            "learning_plan_id": PROFILE_ID,
+            "status": "draft",
+            "updated_at": "2026-10-24T12:01:00+00:00",
+            "replayed": False,
+        }
+    )
+    client = _route_app(
+        monkeypatch,
+        action,
+        "revise_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.put(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}",
+        json={**LEARNING_PLAN_REVISION_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == action.return_value
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        LEARNING_PLAN_REVISION_PAYLOAD,
+    )
+
+
+def test_learning_plan_revision_route_policy_requires_exact_location_edit_own_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}"
+    assert auth_route_policy("PUT", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "edit_own",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("PUT", path, enabled=False) is None
 
 
 def test_competency_draft_route_policy_requires_exact_location_create_grant():
