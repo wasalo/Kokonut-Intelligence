@@ -640,6 +640,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    geostatistics_sensor_design_match = re.fullmatch(
+        r"/operator/api/geostatistics/([0-9a-fA-F-]{36})/sensor-network-designs", path
+    )
+    if geostatistics_sensor_design_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "geostatistics",
+            "action": "read",
+            "public": False,
+            "location_id": geostatistics_sensor_design_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     energy_summary_match = re.fullmatch(
         r"/operator/api/energy/([0-9a-fA-F-]{36})/summary", path
     )

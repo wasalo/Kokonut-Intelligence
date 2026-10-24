@@ -52,9 +52,20 @@ metadata, and raw observations are not selected; non-finite numbers become
 `null`. Values are shown as stored and are not independently validated or
 treated as recommendations.
 
+## Sensor-network design route
+
+`GET /operator/api/geostatistics/{location_id}/sensor-network-designs` uses
+the same exact grant and signed, read-only transaction. Its bounded projection
+contains property, optimal spacing and coverage radius, recommended and
+current sensor counts, coverage-gap percentage, confidence, and computation
+time. Notes, variogram-model references, IDs, and metadata are omitted.
+Non-finite numeric values become `null`. The console labels the estimates
+advisory; this endpoint neither places devices nor applies a field plan.
+
 ## Remaining work
 
-Other geostatistics outputs and fold-level diagnostics, numerical/populated fixture parity, live OIDC and
+Other geostatistics outputs such as kriging predictions/points and simulations,
+plus fold-level diagnostics, numerical/populated fixture parity, live OIDC and
 browser behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008`
 remain open. The autocorrelation producer can persist a narrative
 interpretation, but this read deliberately omits it pending governed semantic

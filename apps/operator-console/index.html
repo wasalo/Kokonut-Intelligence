@@ -1832,6 +1832,17 @@
             </table>
           </div>
           <button id="geostatistics-variogram-more" class="secondary" type="button" hidden>Load more variogram fits</button>
+          <h3>Sensor-network design</h3>
+          <p class="muted">Saved spacing and coverage estimates by measured property. Notes, model references, and metadata are omitted; recommendations are advisory.</p>
+          <button id="geostatistics-sensor-design-refresh" type="button">Refresh sensor-network design</button>
+          <p id="geostatistics-sensor-design-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Property</th><th>Optimal spacing (m)</th><th>Coverage radius (m)</th><th>Recommended sensors</th><th>Current sensors</th><th>Coverage gap (%)</th><th>Confidence</th><th>Computed</th></tr></thead>
+              <tbody id="geostatistics-sensor-design-rows"></tbody>
+            </table>
+          </div>
+          <button id="geostatistics-sensor-design-more" class="secondary" type="button" hidden>Load more sensor designs</button>
         </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
@@ -3074,6 +3085,11 @@
       const geostatisticsVariogramMore = document.querySelector("#geostatistics-variogram-more");
       let geostatisticsVariogramRequestVersion = 0;
       let geostatisticsVariogramOffset = 0;
+      const geostatisticsSensorDesignStatus = document.querySelector("#geostatistics-sensor-design-status");
+      const geostatisticsSensorDesignRows = document.querySelector("#geostatistics-sensor-design-rows");
+      const geostatisticsSensorDesignMore = document.querySelector("#geostatistics-sensor-design-more");
+      let geostatisticsSensorDesignRequestVersion = 0;
+      let geostatisticsSensorDesignOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14798,6 +14814,7 @@
           loadGeostatisticsAutocorrelation(),
           loadGeostatisticsCrossValidation(),
           loadGeostatisticsVariograms(),
+          loadGeostatisticsSensorDesigns(),
         ]);
       }
 
@@ -14870,6 +14887,77 @@
           if (!loadMore) geostatisticsVariogramRows.replaceChildren();
           geostatisticsVariogramMore.hidden = true;
           geostatisticsVariogramStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGeostatisticsSensorDesigns(loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsSensorDesignRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)) return;
+        const offset = loadMore ? geostatisticsSensorDesignOffset : 0;
+        if (!loadMore) {
+          geostatisticsSensorDesignOffset = 0;
+          geostatisticsSensorDesignRows.replaceChildren();
+          geostatisticsSensorDesignMore.hidden = true;
+        }
+        geostatisticsSensorDesignStatus.textContent = loadMore
+          ? "Loading more sensor-network designs…"
+          : "Loading saved sensor-network designs…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/sensor-network-designs?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Sensor-network design reads are unavailable for this location.");
+            throw new Error("Saved sensor-network designs could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsSensorDesignRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value) return;
+          const nullableNumbers = ["optimal_spacing_m", "coverage_radius_m", "coverage_gap_pct", "confidence_level"];
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item) => typeof item.property_key !== "string"
+                || item.property_key.length > 100
+                || !Number.isInteger(item.recommended_n_sensors) || item.recommended_n_sensors < 0
+                || !Number.isInteger(item.current_n_sensors) || item.current_n_sensors < 0
+                || typeof item.computed_at !== "string"
+                || nullableNumbers.some((field) => item[field] !== null
+                  && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
+            throw new Error("The sensor-network design response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.property_key, item.optimal_spacing_m, item.coverage_radius_m,
+              item.recommended_n_sensors, item.current_n_sensors, item.coverage_gap_pct,
+              item.confidence_level, item.computed_at,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString()
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsSensorDesignRows.append(row);
+          }
+          geostatisticsSensorDesignOffset = offset + result.items.length;
+          geostatisticsSensorDesignMore.hidden = result.has_more !== true
+            || geostatisticsSensorDesignOffset > 10000;
+          geostatisticsSensorDesignStatus.textContent = geostatisticsSensorDesignOffset
+            ? `${geostatisticsSensorDesignOffset.toLocaleString()} saved sensor-network designs shown. Recommendations remain advisory.`
+            : "No saved sensor-network designs are available for this location.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsSensorDesignRequestVersion) return;
+          if (!loadMore) geostatisticsSensorDesignRows.replaceChildren();
+          geostatisticsSensorDesignMore.hidden = true;
+          geostatisticsSensorDesignStatus.textContent = error.message;
         }
       }
 
@@ -22138,6 +22226,8 @@
       geostatisticsCrossValidationMore.addEventListener("click", () => loadGeostatisticsCrossValidation(true));
       document.querySelector("#geostatistics-variogram-refresh").addEventListener("click", () => loadGeostatisticsVariograms());
       geostatisticsVariogramMore.addEventListener("click", () => loadGeostatisticsVariograms(true));
+      document.querySelector("#geostatistics-sensor-design-refresh").addEventListener("click", () => loadGeostatisticsSensorDesigns());
+      geostatisticsSensorDesignMore.addEventListener("click", () => loadGeostatisticsSensorDesigns(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

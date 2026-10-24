@@ -88,3 +88,30 @@ def test_variogram_panel_is_grant_gated_bounded_and_fixed_projection_only():
     assert "metadata" not in reader and "variogram_model_id" not in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
+
+
+def test_sensor_network_panel_is_grant_gated_bounded_and_advisory():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-sensor-design-rows"' in source
+    assert "Saved spacing and coverage estimates by measured property" in source
+    start = source.index("async function loadGeostatisticsSensorDesigns(")
+    end = source.index("function yieldMonitoringValue(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/sensor-network-designs?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "requestVersion !== geostatisticsSensorDesignRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    for field in (
+        "property_key", "optimal_spacing_m", "coverage_radius_m",
+        "recommended_n_sensors", "current_n_sensors", "coverage_gap_pct",
+        "confidence_level", "computed_at",
+    ):
+        assert field in reader
+    assert "notes" not in reader and "metadata" not in reader
+    assert "variogram_model_id" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader

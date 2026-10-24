@@ -36,6 +36,12 @@ _VARIOGRAM_NUMERIC_FIELDS = (
     "bandwidth",
     "r_squared",
 )
+_SENSOR_DESIGN_NUMERIC_FIELDS = (
+    "optimal_spacing_m",
+    "coverage_radius_m",
+    "coverage_gap_pct",
+    "confidence_level",
+)
 
 
 def _connection_factory() -> Callable:
@@ -238,6 +244,70 @@ def list_location_variogram_models(
             rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
             for row in rows:
                 for field in _VARIOGRAM_NUMERIC_FIELDS:
+                    value = row[field]
+                    if value is not None and not math.isfinite(value):
+                        row[field] = None
+        return {
+            "location_id": location_id,
+            "items": rows[:limit],
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_sensor_network_designs(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List bounded location-scoped sensor-network design summaries."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    limit, offset = _page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="geostatistics",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT property_key, optimal_spacing_m, coverage_radius_m,
+                       recommended_n_sensors, current_n_sensors,
+                       coverage_gap_pct, confidence_level, computed_at
+                  FROM sensor_network_design
+                 WHERE location_id = %s::uuid
+                 ORDER BY computed_at DESC, property_key, id DESC
+                 LIMIT %s OFFSET %s
+                """,
+                (location_id, limit + 1, offset),
+            )
+            columns = [column[0] for column in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            for row in rows:
+                for field in _SENSOR_DESIGN_NUMERIC_FIELDS:
                     value = row[field]
                     if value is not None and not math.isfinite(value):
                         row[field] = None

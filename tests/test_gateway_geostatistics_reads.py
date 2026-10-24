@@ -11,6 +11,7 @@ from starlette.testclient import TestClient  # noqa: E402
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.geostatistics_reads import (
     list_location_cross_validation,
+    list_location_sensor_network_designs,
     list_location_spatial_autocorrelation,
     list_location_variogram_models,
 )
@@ -69,6 +70,16 @@ class _Cursor:
                  10.0, 5.0, None, 240, float("inf"), "2026-03-05"),
                 ("soil_moisture", "matern", 1.2, 80.0, 0.1, 1.1,
                  8.0, 4.0, 12.0, 180, 0.82, "2026-03-04"),
+            )
+        elif "FROM sensor_network_design" in query:
+            self.description = [(name,) for name in (
+                "property_key", "optimal_spacing_m", "coverage_radius_m",
+                "recommended_n_sensors", "current_n_sensors", "coverage_gap_pct",
+                "confidence_level", "computed_at",
+            )]
+            self.rows = (
+                ("soil_moisture", 25.0, 15.0, 12, 8, 33.3, float("nan"), "2026-03-06"),
+                ("soil_carbon", 50.0, 30.0, 6, 5, 16.7, 0.85, "2026-03-05"),
             )
 
     def fetchall(self):
@@ -287,6 +298,66 @@ def test_invalid_variogram_scope_fails_before_connecting():
     assert not called
 
 
+def test_sensor_design_read_is_scoped_bounded_and_omits_notes_and_ids(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_sensor_network_designs(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=7,
+        connection_factory=lambda: connection,
+    )
+    query, params = next(
+        (query, params) for query, params in connection.queries
+        if "FROM sensor_network_design" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "ORDER BY computed_at DESC, property_key, id DESC" in query
+    assert "notes" not in query and "metadata" not in query
+    assert "variogram_model_id" not in query and "id," not in query
+    assert params == (LOCATION_ID, 2, 7)
+    assert result["items"][0]["property_key"] == "soil_moisture"
+    assert result["items"][0]["confidence_level"] is None
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_sensor_design_scope_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Invalid location identifier"):
+        list_location_sensor_network_designs(OPERATOR_ID, "bad", connection_factory=connect)
+    assert not called
+
+
 def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -322,6 +393,17 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     }
     assert auth_route_policy("POST", variograms, enabled=True) is None
 
+    sensor_designs = f"/operator/api/geostatistics/{LOCATION_ID}/sensor-network-designs"
+    assert auth_route_policy("GET", sensor_designs, enabled=True) == {
+        "resource": "geostatistics",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", sensor_designs, enabled=True) is None
+
 
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
@@ -336,6 +418,10 @@ def _app(monkeypatch, reader):
     )
     monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_variogram_models",
+        reader,
+    )
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_sensor_network_designs",
         reader,
     )
     app = FastAPI()
@@ -456,3 +542,28 @@ def test_variogram_http_route_is_no_store_and_passes_scope(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["offset"] == 5
+
+
+def test_sensor_design_http_route_is_no_store_and_passes_scope(monkeypatch):
+    def reader(operator_id, location_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert limit == 6
+        assert offset == 2
+        return {
+            "location_id": location_id,
+            "items": [],
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/sensor-network-designs?limit=6&offset=2"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["offset"] == 2

@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 saved sensor-network design Kernel read, 24 October 2026
+
+The location-scoped geostatistics panel now reads saved sensor-network
+spacing/coverage summaries: property, optimal spacing, coverage radius,
+recommended/current sensor counts, coverage gap, confidence, and computation
+time. Notes, model references, IDs, and metadata are omitted; non-finite
+values become `null`. The exact-grant Gateway/console/route-policy selection
+passes 52 tests with Ruff, compilation, JavaScript syntax, runtime SQL
+inventory, capability validation, and diff checks. No migration, provider,
+candidate, or legacy database was used. Calculation/populated parity, other
+geostatistics outputs, live OIDC/browser, ACL/RLS, audience review, and
+MAN-CAP-008 remain open. Checklist: 1,079 complete / 25 open (1,104 total);
+matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with
+0/67 named MAN-CAP checks accepted ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-sensor-network-design-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved variogram-model Kernel read, 24 October 2026
 
 The grant-gated geostatistics panel now reads bounded fitted variogram
