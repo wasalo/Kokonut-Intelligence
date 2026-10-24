@@ -28,6 +28,7 @@ def test_panel_requires_exact_read_scope_and_marks_outputs_advisory():
     assert "does not rerun a model or independently verify" in panel.group()
     assert "Show saved smoothed values" in source
     assert "Show stored change points" in source
+    assert "Show saved decomposition" in source
     assert "Saved status is shown as recorded" in source
 
 
@@ -103,6 +104,30 @@ def test_change_point_reader_preserves_stored_status_without_review_actions():
     assert "innerHTML" not in renderer
     for value in (
         "detected_at", "detection_method", "direction", "magnitude", "confidence", "status",
+    ):
+        assert value in renderer
+
+
+def test_decomposition_reader_bounds_preview_and_renders_saved_components_as_text():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source, "async function loadTrendDecomposition(", "async function loadTrendEstimates("
+    )
+    assert '`/operator/api/trends/${encodeURIComponent(locationId)}/decomposition?${params}`' in reader
+    assert 'new URLSearchParams({ metric_key: metricKey })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "trendAnalysisMetricKeys.has(metricKey)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "result.metric_key !== metricKey" in reader
+    assert "values.length <= 200" in reader
+    assert "item.truncated" in reader
+    renderer = _function(source, "function renderTrendDecomposition(", "async function loadTrendSmoothing(")
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+    for value in (
+        "trend_component", "seasonal_component", "residual_component",
+        "seasonal_strength", "trend_strength", "residual_variance",
     ):
         assert value in renderer
 

@@ -13,6 +13,7 @@ _MAX_PAGE_SIZE = 50
 _MAX_OFFSET = 10_000
 _MAX_SMOOTHING_POINTS = 100
 _MAX_CHANGE_POINTS = 100
+_MAX_DECOMPOSITION_POINTS = 200
 _NUMERIC_FIELDS = (
     "slope",
     "intercept",
@@ -174,6 +175,108 @@ def list_location_change_points(
                 if value is not None and not math.isfinite(value):
                     row["magnitude"] = None
         return {"location_id": location_id, "metric_key": metric_key, "items": rows}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def get_location_seasonal_decomposition(
+    operator_id: str,
+    location_id: str,
+    metric_key: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read the latest saved seasonal decomposition with a bounded preview."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    metric_key = _metric_key(metric_key)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="trend_analysis",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT metric_key, decomposition_method, period,
+                       CASE WHEN jsonb_typeof(trend_component) = 'array'
+                            THEN jsonb_path_query_array(trend_component, '$[0 to 199]'::jsonpath)
+                            ELSE '[]'::jsonb END AS trend_component,
+                       CASE WHEN jsonb_typeof(seasonal_component) = 'array'
+                            THEN jsonb_path_query_array(seasonal_component, '$[0 to 199]'::jsonpath)
+                            ELSE '[]'::jsonb END AS seasonal_component,
+                       CASE WHEN jsonb_typeof(residual_component) = 'array'
+                            THEN jsonb_path_query_array(residual_component, '$[0 to 199]'::jsonpath)
+                            ELSE '[]'::jsonb END AS residual_component,
+                       seasonal_strength, trend_strength, residual_variance,
+                       data_points,
+                       CASE WHEN jsonb_typeof(trend_component) = 'array'
+                            THEN jsonb_array_length(trend_component) ELSE 0 END
+                           AS trend_component_points,
+                       CASE WHEN jsonb_typeof(seasonal_component) = 'array'
+                            THEN jsonb_array_length(seasonal_component) ELSE 0 END
+                           AS seasonal_component_points,
+                       CASE WHEN jsonb_typeof(residual_component) = 'array'
+                            THEN jsonb_array_length(residual_component) ELSE 0 END
+                           AS residual_component_points,
+                       (CASE WHEN jsonb_typeof(trend_component) = 'array'
+                             THEN jsonb_array_length(trend_component) ELSE 0 END > 200
+                        OR CASE WHEN jsonb_typeof(seasonal_component) = 'array'
+                                THEN jsonb_array_length(seasonal_component) ELSE 0 END > 200
+                        OR CASE WHEN jsonb_typeof(residual_component) = 'array'
+                                THEN jsonb_array_length(residual_component) ELSE 0 END > 200)
+                           AS truncated,
+                       computed_at
+                  FROM seasonal_decomposition
+                 WHERE location_id = %s::uuid
+                   AND metric_key = %s
+                 ORDER BY computed_at DESC, id DESC
+                 LIMIT 1
+                """,
+                (location_id, metric_key),
+            )
+            rows = _grouped_rows(cursor)
+
+        item = rows[0] if rows else None
+        if item is not None:
+            for field in (
+                "trend_component",
+                "seasonal_component",
+                "residual_component",
+            ):
+                values = item[field]
+                if not isinstance(values, list):
+                    values = []
+                item[field] = [
+                    value if value is None or (
+                        isinstance(value, (int, float))
+                        and not isinstance(value, bool)
+                        and math.isfinite(value)
+                    ) else None
+                    for value in values[:_MAX_DECOMPOSITION_POINTS]
+                ]
+            for field in ("seasonal_strength", "trend_strength", "residual_variance"):
+                value = item[field]
+                if value is not None and not math.isfinite(value):
+                    item[field] = None
+        return {"location_id": location_id, "metric_key": metric_key, "item": item}
     except Exception:
         connection.rollback()
         raise

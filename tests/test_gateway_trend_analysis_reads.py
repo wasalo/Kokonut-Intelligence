@@ -11,6 +11,7 @@ from starlette.testclient import TestClient  # noqa: E402
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.operator_auth import auth_route_policy
 from services.gateway.trend_analysis_reads import (
+    get_location_seasonal_decomposition,
     list_location_change_points,
     list_location_trend_estimates,
     list_location_trend_smoothing,
@@ -65,6 +66,19 @@ class _Cursor:
                 ("soil_carbon", "cusum", 14, "2026-03-02", 0.7, "increase", float("nan"), 2, "confirmed", "2026-03-03"),
                 ("soil_carbon", "pelt", 10, "2026-03-01", 0.4, "variance_change", 0.9, 3, "detected", "2026-03-02"),
             )
+        elif "FROM seasonal_decomposition" in query:
+            self.description = [(name,) for name in (
+                "metric_key", "decomposition_method", "period", "trend_component",
+                "seasonal_component", "residual_component", "seasonal_strength",
+                "trend_strength", "residual_variance", "data_points",
+                "trend_component_points", "seasonal_component_points",
+                "residual_component_points", "truncated", "computed_at",
+            )]
+            self.rows = ((
+                "soil_carbon", "stl", 12, [1.0, 2.0, float("nan")],
+                [0.2, 0.3, 0.4], [None, -0.1, "invalid"], float("inf"),
+                0.8, 0.05, 240, 240, 240, 240, True, "2026-03-03",
+            ),)
 
     def fetchall(self):
         return self.rows
@@ -298,6 +312,73 @@ def test_invalid_change_point_key_or_limit_fails_before_connecting():
     assert not called
 
 
+def test_seasonal_decomposition_read_is_signed_scoped_and_bounded(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "trend_analysis",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.trend_analysis_reads.set_operator_tenant_context", set_context
+    )
+    result = get_location_seasonal_decomposition(
+        OPERATOR_ID,
+        LOCATION_ID,
+        "soil_carbon",
+        connection_factory=lambda: connection,
+    )
+
+    query, params = next(
+        (query, params) for query, params in connection.queries
+        if "FROM seasonal_decomposition" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "AND metric_key = %s" in query
+    assert "ORDER BY computed_at DESC, id DESC" in query
+    assert "jsonb_path_query_array" in query and "$[0 to 199]" in query
+    assert "metadata" not in query
+    assert params == (LOCATION_ID, "soil_carbon")
+    assert result["location_id"] == LOCATION_ID
+    assert result["metric_key"] == "soil_carbon"
+    assert result["item"]["decomposition_method"] == "stl"
+    assert result["item"]["trend_component"] == [1.0, 2.0, None]
+    assert result["item"]["residual_component"] == [None, -0.1, None]
+    assert result["item"]["seasonal_strength"] is None
+    assert result["item"]["truncated"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_decomposition_key_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="metric_key must be"):
+        get_location_seasonal_decomposition(
+            OPERATOR_ID, LOCATION_ID, "bad\nkey", connection_factory=connect
+        )
+    assert not called
+
+
 def test_trend_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/trends/{LOCATION_ID}/estimates"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -330,9 +411,22 @@ def test_trend_route_policy_is_exact_location_scoped_read_only():
         "operator_auth": True,
     }
     assert auth_route_policy("POST", change_points_path, enabled=True) is None
+    decomposition_path = f"/operator/api/trends/{LOCATION_ID}/decomposition"
+    assert auth_route_policy("GET", decomposition_path, enabled=True) == {
+        "resource": "trend_analysis",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", decomposition_path, enabled=True) is None
 
 
-def _register_route(monkeypatch, reader, smoothing_reader=None, change_points_reader=None):
+def _register_route(
+    monkeypatch, reader, smoothing_reader=None, change_points_reader=None,
+    decomposition_reader=None,
+):
     from services.gateway.trend_analysis_routes import register_trend_analysis_routes
 
     monkeypatch.setattr(
@@ -347,6 +441,11 @@ def _register_route(monkeypatch, reader, smoothing_reader=None, change_points_re
         monkeypatch.setattr(
             "services.gateway.trend_analysis_reads.list_location_change_points",
             change_points_reader,
+        )
+    if decomposition_reader is not None:
+        monkeypatch.setattr(
+            "services.gateway.trend_analysis_reads.get_location_seasonal_decomposition",
+            decomposition_reader,
         )
     app = FastAPI()
     router = APIRouter()
@@ -475,6 +574,46 @@ def test_change_points_http_route_denies_missing_tenant_grant(monkeypatch):
     with TestClient(app) as client:
         response = client.get(
             f"/operator/api/trends/{LOCATION_ID}/change-points?metric_key=soil_carbon"
+        )
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_decomposition_http_route_is_no_store_and_passes_metric_key(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def decomposition_reader(operator_id, location_id, metric_key):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert metric_key == "soil_carbon"
+        return {"location_id": location_id, "metric_key": metric_key, "item": None}
+
+    app = _register_route(
+        monkeypatch, estimates_reader, decomposition_reader=decomposition_reader
+    )
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/trends/{LOCATION_ID}/decomposition?metric_key=soil_carbon"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["item"] is None
+
+
+def test_decomposition_http_route_denies_missing_tenant_grant(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("missing grant")
+
+    app = _register_route(
+        monkeypatch, estimates_reader, decomposition_reader=deny
+    )
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/trends/{LOCATION_ID}/decomposition?metric_key=soil_carbon"
         )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"

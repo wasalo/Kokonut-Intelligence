@@ -14088,9 +14088,23 @@
         changePointsButton.addEventListener("click", () => loadTrendChangePoints(
           estimate.metric_key, changePointsPanel, changePointsStatus, changePointsButton
         ));
+        const decompositionButton = document.createElement("button");
+        decompositionButton.type = "button";
+        decompositionButton.className = "secondary";
+        decompositionButton.textContent = "Show saved decomposition";
+        const decompositionStatus = document.createElement("p");
+        decompositionStatus.className = "muted";
+        decompositionStatus.setAttribute("role", "status");
+        decompositionStatus.setAttribute("aria-live", "polite");
+        const decompositionPanel = document.createElement("div");
+        decompositionPanel.hidden = true;
+        decompositionButton.addEventListener("click", () => loadTrendDecomposition(
+          estimate.metric_key, decompositionPanel, decompositionStatus, decompositionButton
+        ));
         article.append(
           smoothingButton, smoothingStatus, smoothingPanel,
-          changePointsButton, changePointsStatus, changePointsPanel
+          changePointsButton, changePointsStatus, changePointsPanel,
+          decompositionButton, decompositionStatus, decompositionPanel
         );
         return article;
       }
@@ -14163,6 +14177,66 @@
         }
         table.append(header, body);
         wrapper.append(table);
+        return wrapper;
+      }
+
+      function renderTrendDecomposition(item) {
+        const wrapper = document.createElement("div");
+        const summary = document.createElement("p");
+        summary.className = "muted";
+        summary.textContent = `${item.decomposition_method} decomposition · period ${item.period} · ${item.data_points} source points · saved ${item.computed_at}`;
+        const stats = document.createElement("dl");
+        for (const [field, label] of [
+          ["seasonal_strength", "Seasonal strength"],
+          ["trend_strength", "Trend strength"],
+          ["residual_variance", "Residual variance"],
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          const value = item[field];
+          description.textContent = typeof value === "number" && Number.isFinite(value)
+            ? value.toLocaleString()
+            : value === null || value === undefined ? "—" : String(value);
+          stats.append(term, description);
+        }
+        wrapper.append(summary, stats);
+        const tableWrapper = document.createElement("div");
+        tableWrapper.className = "table-wrap";
+        const table = document.createElement("table");
+        const header = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        for (const label of ["Index", "Trend", "Seasonal", "Residual"]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          headerRow.append(cell);
+        }
+        header.append(headerRow);
+        const body = document.createElement("tbody");
+        const pointCount = Math.max(
+          item.trend_component.length,
+          item.seasonal_component.length,
+          item.residual_component.length
+        );
+        for (let index = 0; index < pointCount; index += 1) {
+          const row = document.createElement("tr");
+          for (const value of [
+            index,
+            item.trend_component[index],
+            item.seasonal_component[index],
+            item.residual_component[index],
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = typeof value === "number" && Number.isFinite(value)
+              ? value.toLocaleString()
+              : value === null || value === undefined ? "—" : String(value);
+            row.append(cell);
+          }
+          body.append(row);
+        }
+        table.append(header, body);
+        tableWrapper.append(table);
+        wrapper.append(tableWrapper);
         return wrapper;
       }
 
@@ -14265,6 +14339,67 @@
           status.textContent = result.items.length
             ? `Showing ${result.items.length} latest stored change points. Saved status is shown as recorded; no review action is available here.`
             : "No saved change points are available for this metric.";
+        } catch (error) {
+          if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
+          panel.replaceChildren();
+          status.textContent = error.message;
+        } finally {
+          if (requestVersion === trendDetailRequestVersions.get(panel)) button.disabled = false;
+        }
+      }
+
+      async function loadTrendDecomposition(metricKey, panel, status, button) {
+        const locationId = trendAnalysisLocation.value;
+        const requestVersion = (trendDetailRequestVersions.get(panel) || 0) + 1;
+        trendDetailRequestVersions.set(panel, requestVersion);
+        if (!trendAnalysisLocations.has(locationId) || !trendAnalysisMetricKeys.has(metricKey)) return;
+        button.disabled = true;
+        panel.hidden = false;
+        panel.replaceChildren();
+        status.textContent = "Loading saved decomposition…";
+        try {
+          const params = new URLSearchParams({ metric_key: metricKey });
+          const response = await fetch(
+            `/operator/api/trends/${encodeURIComponent(locationId)}/decomposition?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location trend-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Trend decomposition reads are unavailable for this location.");
+            throw new Error("Saved decomposition could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== trendDetailRequestVersions.get(panel)
+              || locationId !== trendAnalysisLocation.value
+              || !panel.isConnected) return;
+          const item = result.item;
+          const allowedMethods = new Set(["classical", "stl", "x11"]);
+          const validComponent = (values) => Array.isArray(values) && values.length <= 200
+            && values.every((value) => value === null
+              || (typeof value === "number" && Number.isFinite(value)));
+          if (result.location_id !== locationId || result.metric_key !== metricKey
+              || (item !== null && (typeof item !== "object" || Array.isArray(item)
+                || item.metric_key !== metricKey
+                || !allowedMethods.has(item.decomposition_method)
+                || !Number.isInteger(item.period) || item.period < 1
+                || !Number.isInteger(item.data_points) || item.data_points < 0
+                || typeof item.computed_at !== "string"
+                || typeof item.truncated !== "boolean"
+                || !validComponent(item.trend_component)
+                || !validComponent(item.seasonal_component)
+                || !validComponent(item.residual_component)
+                || ["seasonal_strength", "trend_strength", "residual_variance"].some((field) =>
+                  item[field] !== null && (typeof item[field] !== "number" || !Number.isFinite(item[field])))))) {
+            throw new Error("The decomposition response did not match the requested location or metric.");
+          }
+          if (item) panel.append(renderTrendDecomposition(item));
+          status.textContent = !item
+            ? "No saved decomposition is available for this metric."
+            : item.truncated
+              ? "Showing the first 200 saved component values. These outputs are partial and remain advisory."
+              : "Showing saved decomposition components. These outputs remain advisory.";
         } catch (error) {
           if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
           panel.replaceChildren();

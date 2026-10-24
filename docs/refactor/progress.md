@@ -1,3 +1,20 @@
+### Progress addendum — CAP-008 saved seasonal decomposition Kernel read, 24 October 2026
+
+The trend-analysis panel can now load the latest saved seasonal decomposition
+for a metric in the authorized location. The signed `trend_analysis:read`
+transaction returns bounded component previews (up to 200 values per array),
+summary statistics, and a truncation flag; malformed arrays and non-finite
+values are made safe before rendering. The console identifies truncated output
+as partial and all persisted results as advisory. The focused
+Gateway/console/route-policy selection passes 27 tests with Ruff, compilation,
+JavaScript syntax, runtime SQL inventory, capability validation, and diff
+checks. No migration, provider, candidate, or legacy database was used. CAP-008
+remains prepared pending forecast/geostatistics paths, numerical/populated
+parity, live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist:
+1,074 complete / 25 open (1,099 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks
+accepted ([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-seasonal-decomposition-kernel-read.json)).
+
 ### Progress addendum — CAP-008 stored change-point Kernel read, 24 October 2026
 
 The trend-analysis panel now reads up to 100 stored change-point detections

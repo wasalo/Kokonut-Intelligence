@@ -1,6 +1,6 @@
 # Trend analysis Kernel read contract
 
-**Status:** Saved estimate, smoothing, and change-point reads implemented; capability remains prepared.
+**Status:** Saved estimate, smoothing, change-point, and seasonal decomposition reads implemented; capability remains prepared.
 **Updated:** 24 October 2026
 
 ## Route and authorization
@@ -42,18 +42,30 @@ metadata, and actor details. Non-finite numeric values become `null`. The
 saved `detected`/`confirmed`/`dismissed` status is displayed as recorded; this
 route does not confirm or dismiss a finding.
 
+`GET /operator/api/trends/{location_id}/decomposition` uses the same exact
+grant and signed-context transaction and reads only the newest saved
+decomposition for the requested metric. The response includes the method,
+period, saved summary statistics, source-point count, and the first 200
+zero-based values of each trend, seasonal, and residual component. SQL bounds
+each JSON array before returning it; malformed/non-array components become
+empty arrays, and non-finite component or summary values become `null`. The
+response marks whether any component was truncated. The console labels a
+truncated result as partial and all saved decomposition output as advisory.
+This read does not calculate or verify decomposition.
+
 The console appears only for the exact location grant, checks response scope
 and page correlation, suppresses stale requests, renders fixed fields using
 text nodes, and labels stored outputs advisory. It does not run a trend model
 or certify calculations. A selected estimate can load its saved smoothed
-points and stored change-point detections; location changes and stale requests
+points, stored change-point detections, and seasonal decomposition preview;
+location changes and stale requests
 cannot render results into a different location or metric. Change-point status
 is informational only and no lifecycle actions are exposed.
 
 ## Boundaries and remaining work
 
-This slice does not implement model execution, decomposition, forecast-result
-reads, accuracy verification, geostatistics, or populated
+This slice does not implement model execution, forecast-result reads, accuracy
+verification, geostatistics, or populated
 numerical parity. Current application runtime database grants
 remain broad; signed tenant context is not least-privilege ACL/RLS. Live OIDC
 and browser behavior, scope configuration, populated fixtures, audience
