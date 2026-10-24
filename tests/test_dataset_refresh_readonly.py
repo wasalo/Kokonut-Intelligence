@@ -114,6 +114,36 @@ def test_refresh_records_sanitized_reader_failure_without_echoing_sql(monkeypatc
     assert conn.commits == 1
 
 
+@pytest.mark.parametrize("failure_phase", ["execute", "fetchone"])
+def test_refresh_definition_cursor_closes_when_lookup_fails(monkeypatch, failure_phase):
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "count_reporting_rows",
+        lambda _query: pytest.fail("reporting reader must not run after lookup failure"),
+    )
+
+    class FailingCursor(FakeCursor):
+        def execute(self, sql: str, params: Any = None) -> None:
+            if failure_phase == "execute":
+                raise RuntimeError("synthetic definition lookup failure")
+            super().execute(sql, params)
+
+        def fetchone(self):
+            if failure_phase == "fetchone":
+                raise RuntimeError("synthetic definition lookup failure")
+            return super().fetchone()
+
+    cursor = FailingCursor(conn)
+    conn.cursor = lambda *args, **kwargs: cursor
+
+    with pytest.raises(RuntimeError, match="synthetic definition lookup failure"):
+        dataset_refresh.refresh_dataset(conn, "dataset-1")
+
+    assert cursor.closed
+
+
 def test_inactive_dataset_is_never_sent_to_reader(monkeypatch):
     conn = FakeApplicationConnection(return_dataset=False)
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda name: None)

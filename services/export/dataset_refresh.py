@@ -59,23 +59,24 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
     require_feature("legacy_dataset_sql")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Fetch dataset definition
-    cur.execute(
-        "SELECT id, name, dataset_type, query_sql, refresh_interval_minutes "
-        "FROM dashboard_dataset WHERE id = %s AND status = 'active'",
-        (dataset_id,),
-    )
-    dataset = cur.fetchone()
-    if not dataset:
+    try:
+        # Fetch dataset definition
+        cur.execute(
+            "SELECT id, name, dataset_type, query_sql, refresh_interval_minutes "
+            "FROM dashboard_dataset WHERE id = %s AND status = 'active'",
+            (dataset_id,),
+        )
+        dataset = cur.fetchone()
+    finally:
         cur.close()
+
+    if not dataset:
         raise ValueError(f"Active dataset {dataset_id} not found")
 
     query_sql = dataset["query_sql"]
     if not query_sql:
-        cur.close()
         raise ValueError(f"Dataset {dataset['name']} has no query_sql defined")
 
-    cur.close()
     start_time = datetime.now(timezone.utc)
     try:
         # Query execution uses a separate, credential- and ACL-verified

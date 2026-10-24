@@ -1,3 +1,16 @@
+### Current CAP-039 implementation slice — dataset-refresh definition cursor failure cleanup, 24 October 2026
+
+The active saved-dataset definition cursor now closes after the initial query
+or row fetch fails. Two injected regressions verify both paths and prove the
+reporting reader is not invoked. The dataset-refresh suite passes 20 tests; the
+scheduler/feature selection passes five, with Ruff, compilation, six static
+inventory checks, capability validation, and diff checks passing. The legacy
+SQL feature remains off by default; no database, provider, candidate, or legacy
+stack was used. No migration is needed. Query and tenant policy, report
+selection, and populated parity remain open. Rollback reverts code, tests,
+evidence, inventory, and progress records. Checklist: 1,098 complete / 25 open
+(1,123 total) ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-definition-cursor-cleanup.json)).
+
 ### Current CAP-039 implementation slice — dataset-refresh CLI selector and cleanup, 24 October 2026
 
 The legacy dataset-refresh command rejects `--all` with `--list` or
