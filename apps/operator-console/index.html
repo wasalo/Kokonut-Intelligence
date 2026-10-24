@@ -1782,6 +1782,18 @@
           <p id="cooperative-management-status" class="muted" role="status" aria-live="polite"></p>
           <div id="cooperative-management-summary"></div>
         </section>
+        <section id="trend-analysis" hidden aria-labelledby="trend-analysis-heading">
+          <h2 id="trend-analysis-heading">Saved trend estimates</h2>
+          <p class="muted">Read-only saved estimates for the granted location. These values are advisory stored outputs; this view does not rerun a model or independently verify the calculations.</p>
+          <div class="toolbar">
+            <label for="trend-analysis-location">Granted location</label>
+            <select id="trend-analysis-location"></select>
+            <button id="trend-analysis-refresh" type="button">Refresh trends</button>
+          </div>
+          <p id="trend-analysis-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="trend-analysis-items"></div>
+          <button id="trend-analysis-more" class="secondary" type="button" hidden>Load more estimates</button>
+        </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
           <p class="muted">Read-only location-scoped batch, custody, quality, certification, food-safety, and provenance records. Actor identities, free text, GPS, evidence links, and arbitrary metadata are omitted. This view does not verify, publish, or attest a batch.</p>
@@ -2995,6 +3007,14 @@
       const cooperativeManagementSummary = document.querySelector("#cooperative-management-summary");
       let cooperativeManagementLocations = new Set();
       let cooperativeManagementRequestVersion = 0;
+      const trendAnalysis = document.querySelector("#trend-analysis");
+      const trendAnalysisLocation = document.querySelector("#trend-analysis-location");
+      const trendAnalysisStatus = document.querySelector("#trend-analysis-status");
+      const trendAnalysisItems = document.querySelector("#trend-analysis-items");
+      const trendAnalysisMore = document.querySelector("#trend-analysis-more");
+      let trendAnalysisLocations = new Set();
+      let trendAnalysisRequestVersion = 0;
+      let trendAnalysisOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14018,6 +14038,76 @@
         }
       }
 
+      function renderTrendEstimate(estimate) {
+        const article = document.createElement("article");
+        const heading = document.createElement("h3");
+        heading.textContent = String(estimate.metric_key || "Unnamed metric");
+        article.append(heading);
+        const details = document.createElement("dl");
+        for (const [field, label] of [
+          ["direction", "Direction"], ["confidence_level", "Confidence"],
+          ["slope", "Slope"], ["r_squared", "R²"], ["data_points", "Data points"],
+          ["time_unit", "Time unit"], ["period_start", "Period start"],
+          ["period_end", "Period end"], ["computed_at", "Saved at"]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          const value = estimate[field];
+          description.textContent = typeof value === "number" && Number.isFinite(value)
+            ? value.toLocaleString()
+            : value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        article.append(details);
+        return article;
+      }
+
+      async function loadTrendEstimates(loadMore = false) {
+        const locationId = trendAnalysisLocation.value;
+        const requestVersion = ++trendAnalysisRequestVersion;
+        if (!trendAnalysisLocations.has(locationId)) return;
+        const offset = loadMore ? trendAnalysisOffset : 0;
+        if (!loadMore) {
+          trendAnalysisOffset = 0;
+          trendAnalysisItems.replaceChildren();
+          trendAnalysisMore.hidden = true;
+        }
+        trendAnalysisStatus.textContent = loadMore ? "Loading more saved estimates…" : "Loading saved trend estimates…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/trends/${encodeURIComponent(locationId)}/estimates?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location trend-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Trend reads are unavailable for this location.");
+            throw new Error("Saved trend estimates could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== trendAnalysisRequestVersion
+              || locationId !== trendAnalysisLocation.value) return;
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.offset !== offset) {
+            throw new Error("The trend response did not match the requested location or page.");
+          }
+          for (const estimate of result.items) trendAnalysisItems.append(renderTrendEstimate(estimate));
+          trendAnalysisOffset = offset + result.items.length;
+          trendAnalysisMore.hidden = result.has_more !== true || trendAnalysisOffset > 10000;
+          trendAnalysisStatus.textContent = trendAnalysisOffset
+            ? `${trendAnalysisOffset.toLocaleString()} saved estimate${trendAnalysisOffset === 1 ? "" : "s"} shown. Stored outputs remain advisory.`
+            : "No saved trend estimates are available for this location.";
+        } catch (error) {
+          if (requestVersion !== trendAnalysisRequestVersion) return;
+          if (!loadMore) trendAnalysisItems.replaceChildren();
+          trendAnalysisMore.hidden = true;
+          trendAnalysisStatus.textContent = error.message;
+        }
+      }
+
       function yieldMonitoringValue(value) {
         if (value === null || value === undefined || value === "") return "—";
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -16397,6 +16487,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           cooperativeManagementLocations = new Set(cooperativeManagementLocationIds);
+          const trendAnalysisLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "trend_analysis" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          trendAnalysisLocations = new Set(trendAnalysisLocationIds);
           const yieldMonitoringLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "yield_monitoring" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -16814,6 +16910,17 @@
             }
             cooperativeManagement.hidden = false;
             await loadCooperativeManagementSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (trendAnalysisLocationIds.length) {
+            for (const locationId of trendAnalysisLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              trendAnalysisLocation.append(option);
+            }
+            trendAnalysis.hidden = false;
+            await loadTrendEstimates();
             hasAuthorizedSurface = true;
           }
           if (yieldMonitoringLocationIds.length) {
@@ -21239,6 +21346,9 @@
       extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
       document.querySelector("#cooperative-management-refresh").addEventListener("click", loadCooperativeManagementSummary);
       cooperativeManagementLocation.addEventListener("change", loadCooperativeManagementSummary);
+      document.querySelector("#trend-analysis-refresh").addEventListener("click", () => loadTrendEstimates());
+      trendAnalysisLocation.addEventListener("change", () => loadTrendEstimates());
+      trendAnalysisMore.addEventListener("click", () => loadTrendEstimates(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

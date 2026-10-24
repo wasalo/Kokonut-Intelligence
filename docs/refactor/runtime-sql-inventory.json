@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 933,
-    "execution_sites": 4727,
+    "source_files": 935,
+    "execution_sites": 4731,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4385,
+    "sites_without_worker_operation_refs": 4389,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2791,
-      "SET": 544,
+      "SELECT": 2792,
+      "SET": 547,
       "UNKNOWN": 200,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2791,
+      "read_candidate": 2792,
       "schema_change": 1,
-      "transaction_or_session": 587,
+      "transaction_or_session": 590,
       "unknown_requires_manual_review": 200,
       "with_requires_manual_review": 27,
       "write_candidate": 1121
@@ -33,10 +33,10 @@
       "composed": 19,
       "composed_or_variable": 276,
       "fstring": 290,
-      "literal": 4142
+      "literal": 4146
     },
     "relation_candidates": 1208,
-    "sites_without_relation_candidates": 1050,
+    "sites_without_relation_candidates": 1053,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,17 +365,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 120,
-      "execution_sites": 861,
+      "source_files": 122,
+      "execution_sites": 865,
       "statement_groups": {
-        "read_candidate": 328,
-        "transaction_or_session": 477,
+        "read_candidate": 329,
+        "transaction_or_session": 480,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
-      "candidate_relation_names": 228,
-      "sites_without_relation_candidates": 552,
+      "candidate_relation_names": 229,
+      "sites_without_relation_candidates": 555,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
     },
@@ -1895,7 +1895,7 @@
     "tree_record": {"execution_site_count": 11,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/multi_farm.py","services/analytics/sample_plot_generator.py","services/analytics/spatial_analytics.py","services/analytics/tree_tracking.py","services/export/spatial_export.py"]},
     "tree_token_binding": {"execution_site_count": 2,"statement_kinds": ["INSERT","UPDATE"],"statement_groups": ["write_candidate"],"source_files": ["services/analytics/token_integration.py"]},
     "trend_dashboard_metric": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/trends/dashboard.py"]},
-    "trend_estimate": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/trends/estimator.py"]},
+    "trend_estimate": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/trend_analysis_reads.py","services/trends/estimator.py"]},
     "trend_smoothing": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/trends/smoothing.py"]},
     "underplanting_event": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/gap_closures.py"]},
     "unit_totals": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/export/reports/core.py"]},
@@ -5342,6 +5342,10 @@
     {"id": "services/gateway/traceability.py:187:12","source": "services/gateway/traceability.py","line": 187,"column": 12,"scope": "get_location_traceability_batch","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["certification_type","certification_verify"],"static_sql_sha256": "1bea86f652c4a4f8ef39d315025bfee0e7214c22b3e1efe885557dd5429dc9c2","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/traceability.py:200:12","source": "services/gateway/traceability.py","line": 200,"column": 12,"scope": "get_location_traceability_batch","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["food_safety_record","produce_batch"],"static_sql_sha256": "226535159834c0b6a8a74a46946036e6dc6ef7899d7d00fbbd9085c8de624384","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/traceability.py:219:12","source": "services/gateway/traceability.py","line": 219,"column": 12,"scope": "get_location_traceability_batch","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["produce_batch","provenance_event"],"static_sql_sha256": "670bea453bc09e0e26db4028d2c357116eb19c3b4d9377883a0e0a50928b51d7","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/trend_analysis_reads.py:71:12","source": "services/gateway/trend_analysis_reads.py","line": 71,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/trend_analysis_reads.py:72:12","source": "services/gateway/trend_analysis_reads.py","line": 72,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/trend_analysis_reads.py:73:12","source": "services/gateway/trend_analysis_reads.py","line": 73,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/trend_analysis_reads.py:84:12","source": "services/gateway/trend_analysis_reads.py","line": 84,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["trend_estimate"],"static_sql_sha256": "6f63c4cac76a73168ef26fff3eff36bf909b5b33797d7f694932d9609d76924a","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/true_cost.py:49:12","source": "services/gateway/true_cost.py","line": 49,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:50:12","source": "services/gateway/true_cost.py","line": 50,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:51:12","source": "services/gateway/true_cost.py","line": 51,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

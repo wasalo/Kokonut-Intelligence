@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 saved trend estimate Kernel read, 24 October 2026
+
+The first CAP-008 Kernel surface reads the latest saved `trend_estimate` for
+up to 50 metrics at an exact granted location. It uses signed tenant context,
+read-only repeatable-read SQL, and bounded paging; non-finite values become
+`null`. The console validates scope/page correlation, renders fixed fields as
+text, and identifies the results as advisory stored outputs. Twelve focused
+Gateway/console/route-policy checks pass with Ruff, compilation, JavaScript
+syntax, runtime SQL inventory, and diff checks. No migration, provider, or
+candidate/legacy database was used. CAP-008 is prepared, not accepted; numeric
+parity, forecast/geostatistics Kernel routes, live OIDC/browser, least-privilege
+ACL/RLS, audience review, and MAN-CAP-008 remain open. Checklist: 1,071
+complete / 25 open (1,096 total); matrix: 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks accepted
+([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-trend-estimate-kernel-read.json)).
+
 ### Progress addendum — CAP-005 cooperative management Kernel summary, 24 October 2026
 
 The first CAP-005 Kernel surface is a private, exact-location aggregate read for
