@@ -1,3 +1,17 @@
+### Progress addendum — CAP-006 legacy waste-stream writer schema alignment, 24 October 2026
+
+The legacy waste writer now targets the canonical migration-153
+`waste_stream` table and `recorded` state, supplying its required date and kg
+unit. It maps supported legacy aliases to canonical categories and preserves
+unmapped original type/disposal labels plus the optional source in metadata.
+The existing 24-test waste-management module and five invalid-window
+subtests pass; Ruff, compilation, SQL inventory, capability validation, and
+diff checks pass. No migration or database was used. Recycling/incident
+workflows, tenant scope, populated parity, and MAN-CAP-006 remain open.
+Checklist: 1,104 complete / 25 open (1,129 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-stream-write-schema-alignment.json)).
+
 ### Progress addendum — CAP-006 legacy composting efficiency schema alignment, 24 October 2026
 
 The legacy compost-efficiency read now uses canonical migration-153

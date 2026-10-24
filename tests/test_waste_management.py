@@ -54,9 +54,27 @@ class TestRecordWaste(unittest.TestCase):
         self.assertEqual(result["location_id"], "loc-001")
 
     def test_record_waste_calls_execute(self):
-        record_waste(self.conn, "loc-001", "chemical", "Solvent", 5.0, "incineration")
+        record_waste(
+            self.conn, "loc-001", "chemical", "Solvent", 5.0, "incineration",
+            source="store room", notes="Empty container",
+        )
         self.mock_cursor.execute.assert_called_once()
         self.mock_cursor.close.assert_called_once()
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("INSERT INTO waste_stream", query)
+        self.assertIn("record_date", query)
+        self.assertIn("quantity_unit", query)
+        self.assertIn("'recorded'", query)
+        self.assertNotIn("waste_stream_record", query)
+        self.assertNotIn("'draft'", query)
+        self.assertEqual(params[2], "other")
+        self.assertEqual(params[6], "other")
+        self.assertEqual(params[7], "Empty container")
+        self.assertEqual(json.loads(params[8]), {
+            "source": "store room",
+            "legacy_waste_type": "chemical",
+            "legacy_disposal_method": "incineration",
+        })
 
 
 class TestRecordComposting(unittest.TestCase):

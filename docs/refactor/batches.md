@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,103 checklist items complete and 25
-open (1,128 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,104 checklist items complete and 25
+open (1,129 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -44,6 +44,21 @@ acceptance remains separate; none is marked accepted.
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-24-recovery/cap-006-legacy-composting-efficiency-schema-alignment.json)).
   Checklist: 1,103 complete / 25 open (1,128 total).
+
+### CAP-006 legacy waste-stream writer schema alignment — 24 October 2026
+
+- [x] Align `record_waste` to migration-153 `waste_stream` fields and the
+  `recorded` lifecycle state. Preserve the legacy CLI and function response,
+  map `organic` to its canonical category and retain `chemical` plus other
+  unsupported legacy types/disposal labels in metadata under `other`. The existing
+  waste-management test module passes 24 tests plus five invalid-window
+  subtests; Ruff, compilation, SQL inventory, matrix validation, and diff
+  checks pass. No migration or database was used. Recycling and incident
+  writers/reads, tenant isolation, populated parity, and MAN-CAP-006 remain
+  open. Rollback restores the previous insert and regression assertions
+  ([contract](waste-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-stream-write-schema-alignment.json)).
+  Checklist: 1,104 complete / 25 open (1,129 total).
 
 ### CAP-006 legacy waste summary schema alignment — 24 October 2026
 

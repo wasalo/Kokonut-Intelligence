@@ -48,6 +48,16 @@ non-integer, and boolean windows fail before cursor acquisition. Its cursor
 closes on both success and query failure. This remains a trusted local CLI
 path; it does not add an authenticated API or tenant authorization boundary.
 
+The legacy `record_waste` writer now inserts into `waste_stream` with the
+canonical `record_date`, `quantity_unit='kg'`, JSONB metadata, and `recorded`
+status. Its `organic` input maps to canonical `organic_waste`; `chemical` and
+other unsupported legacy type/disposal labels map to `other` and remain in
+metadata to avoid misclassification. The optional source value is also
+preserved in metadata. Function arguments, response shape, and CLI remain
+compatible. This is a trusted local CLI write path without tenant
+authorization; the database lifecycle still requires human verification
+before the summary includes a row.
+
 The legacy `get_composting_efficiency` read also uses schema-153 columns:
 `finished_volume_kg` supplies output values, per-batch yield is calculated
 from finished volume over positive feedstock, and `compost_date` supplies the

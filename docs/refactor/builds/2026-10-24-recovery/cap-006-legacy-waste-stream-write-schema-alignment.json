@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on f0dc5cb1",
+  "capability": "CAP-006",
+  "batch": "legacy waste-stream writer schema alignment",
+  "implementation": {
+    "function": "services.analytics.waste_management.record_waste",
+    "canonical_source": "schemas/postgres/153_waste_management.sql::waste_stream",
+    "fields": [
+      "id",
+      "location_id",
+      "waste_type",
+      "waste_name",
+      "quantity_kg",
+      "quantity_unit",
+      "record_date",
+      "disposal_method",
+      "notes",
+      "metadata",
+      "status"
+    ],
+    "lifecycle": "inserts as 'recorded'; summary continues to include only 'verified' rows",
+    "mapping": "organic->organic_waste; chemical and unsupported legacy type/disposal values map to other and are retained in metadata to avoid misclassification",
+    "source": "optional legacy source is retained in metadata",
+    "compatibility": "existing function arguments, return fields, and CLI remain unchanged",
+    "resource_safety": "close the cursor on success and query failure"
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_waste_management.py",
+    "result": "24 passed; five invalid-window subtests included",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "authorization_boundary": "Trusted local CLI write only; no Gateway auth, signed tenant context, or RLS was added.",
+  "remaining_acceptance": [
+    "other legacy waste/recycling/incident writer and read schema alignment",
+    "tenant isolation and least-privilege database boundary",
+    "populated waste output parity",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Restore the prior insert implementation and regression assertions. Tests used mocked connections; no persistent database data was written."
+}

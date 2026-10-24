@@ -47,21 +47,54 @@ def record_waste(
     cur = conn.cursor()
     waste_id = str(uuid.uuid4())
 
-    cur.execute(
-        """
-        INSERT INTO waste_stream_record
-            (id, location_id, waste_type, waste_name, quantity_kg,
-             disposal_method, source, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            waste_id, location_id, waste_type, waste_name, quantity_kg,
-            disposal_method, source, notes, json.dumps(metadata or {}),
-        ),
+    canonical_waste_types = {
+        "crop_residue", "processing_waste", "packaging", "chemical_container",
+        "organic_waste", "wastewater", "other",
+    }
+    source_waste_type = waste_type.strip().lower().replace(" ", "_")
+    waste_type_aliases = {"organic": "organic_waste"}
+    canonical_waste_type = waste_type_aliases.get(
+        source_waste_type, source_waste_type,
     )
-    conn.commit()
-    cur.close()
+    if canonical_waste_type not in canonical_waste_types:
+        canonical_waste_type = "other"
+
+    canonical_disposal_methods = {
+        "composting", "burning", "landfill", "recycling", "animal_feed",
+        "biogas", "mulching", "other",
+    }
+    source_disposal_method = disposal_method.strip().lower().replace(" ", "_")
+    canonical_disposal_method = (
+        source_disposal_method
+        if source_disposal_method in canonical_disposal_methods
+        else "other"
+    )
+    record_metadata = dict(metadata or {})
+    if source is not None:
+        record_metadata["source"] = source
+    if source_waste_type != canonical_waste_type:
+        record_metadata["legacy_waste_type"] = waste_type
+    if source_disposal_method != canonical_disposal_method:
+        record_metadata["legacy_disposal_method"] = disposal_method
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO waste_stream
+                (id, location_id, waste_type, waste_name, quantity_kg,
+                 quantity_unit, record_date, disposal_method, notes, metadata, status)
+            VALUES (%s, %s, %s, %s, %s, 'kg', %s, %s, %s, %s::jsonb, 'recorded')
+            RETURNING id
+            """,
+            (
+                waste_id, location_id, canonical_waste_type, waste_name,
+                quantity_kg, date.today(), canonical_disposal_method, notes,
+                json.dumps(record_metadata),
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
 
     logger.info("Recorded waste stream %s: %s %s kg via %s", waste_id, waste_type, quantity_kg, disposal_method)
 
