@@ -14297,17 +14297,23 @@
         const habitatTypes = new Set(["wildflower_strip", "hedgerow", "nesting_site", "water_source", "cover_crop", "native_planting", "other"]);
         const habitatConditions = new Set(["excellent", "good", "fair", "poor"]);
         const habitatStatuses = new Set(["active", "inactive", "degraded", "removed"]);
-        const toxicities = new Set(["low", "moderate", "high", "very_high"]);
+        const toxicities = new Set(["low", "moderate", "high", "very_high", "unknown"]);
         const strengths = new Set(["strong", "moderate", "weak", "dead"]);
         const queenStatuses = new Set(["present", "absent", "replaced", "unknown"]);
+        const trendStates = new Set(["increasing", "decreasing", "stable", "insufficient_data"]);
+        const riskStates = new Set(["low", "elevated", "critical"]);
         const optionalNumber = (value) => value === null || (typeof value === "number" && Number.isFinite(value));
         const count = (row, field = "record_count") => Number.isSafeInteger(row[field]) && row[field] >= 0;
         const dateRange = (row, first, last) => (row[first] === null || typeof row[first] === "string") && (row[last] === null || typeof row[last] === "string");
         renderEcologySections(pollinatorHealthSummary, [
           { title: "Verified or reviewed observations", rows: summary.verified_observations, columns: [["pollinator_type", "Type"], ["observation_method", "Method"], ["status", "Review status"], ["record_count", "Records"], ["total_observed", "Observed count"], ["mean_duration_minutes", "Mean minutes"], ["last_observation_date", "Latest"]], isValidRow: (row) => count(row) && pollinatorTypes.has(row.pollinator_type) && (row.observation_method === null || methods.has(row.observation_method)) && reviewedStatuses.has(row.status) && optionalNumber(row.total_observed) && optionalNumber(row.mean_duration_minutes) && dateRange(row, "first_observation_date", "last_observation_date") },
+          { title: "Recent observation trend (30 days; equal 15-day windows)", rows: summary.observation_trends, columns: [["pollinator_type", "Type"], ["observation_count", "Records"], ["avg_count", "Mean count"], ["max_count", "Maximum count"], ["trend", "Trend"], ["change_pct", "Change (%)"], ["last_observation_date", "Latest"]], isValidRow: (row) => Number.isSafeInteger(row.observation_count) && row.observation_count >= 0 && pollinatorTypes.has(row.pollinator_type) && optionalNumber(row.avg_count) && (row.max_count === null || Number.isSafeInteger(row.max_count)) && trendStates.has(row.trend) && Number.isFinite(row.change_pct) && dateRange(row, "first_observation_date", "last_observation_date") },
           { title: "Habitat inventory (descriptive)", rows: summary.habitat_inventory, columns: [["habitat_type", "Habitat"], ["condition", "Condition"], ["status", "Status"], ["record_count", "Habitats"], ["total_area_m2", "Area (m²)"]], isValidRow: (row) => count(row) && habitatTypes.has(row.habitat_type) && (row.condition === null || habitatConditions.has(row.condition)) && habitatStatuses.has(row.status) && optionalNumber(row.total_area_m2) },
           { title: "Verified or reviewed pesticide-impact reports", rows: summary.verified_pesticide_impacts, columns: [["toxicity_class", "Toxicity"], ["pollinator_mortality_observed", "Mortality observed"], ["record_count", "Reports"], ["mean_mortality_pct", "Mean reported mortality (%)"], ["last_application_date", "Latest"]], isValidRow: (row) => count(row) && (row.toxicity_class === null || toxicities.has(row.toxicity_class)) && typeof row.pollinator_mortality_observed === "boolean" && optionalNumber(row.mean_mortality_pct) && dateRange(row, "first_application_date", "last_application_date") },
-          { title: "Active managed hives (descriptive)", rows: summary.active_hives, columns: [["colony_strength", "Colony strength"], ["queen_status", "Queen status"], ["hive_count", "Hives"], ["total_honey_yield_kg", "Honey yield (kg)"], ["mean_varroa_count", "Mean varroa count"], ["last_inspection_date", "Latest inspection"]], isValidRow: (row) => count(row, "hive_count") && (row.colony_strength === null || strengths.has(row.colony_strength)) && (row.queen_status === null || queenStatuses.has(row.queen_status)) && optionalNumber(row.total_honey_yield_kg) && optionalNumber(row.mean_varroa_count) && (row.last_inspection_date === null || typeof row.last_inspection_date === "string") }
+          { title: "90-day pesticide risk distribution", rows: ["low", "moderate", "high", "very_high", "unknown"].map((toxicity_class) => ({ toxicity_class, record_count: summary.pesticide_risk_summary.risk_distribution[toxicity_class] })), columns: [["toxicity_class", "Toxicity"], ["record_count", "Reviewed applications"]], isValidRow: (row) => toxicities.has(row.toxicity_class) && count(row) },
+          { title: "90-day pesticide-risk advisory (not a safety determination)", rows: [summary.pesticide_risk_summary], columns: [["overall_risk", "Advisory level"], ["period_days", "Days"], ["total_applications", "Reviewed applications"], ["mortality_events", "Reported mortality events"]], isValidRow: (row) => riskStates.has(row.overall_risk) && row.period_days === 90 && Number.isSafeInteger(row.total_applications) && row.total_applications >= 0 && Number.isSafeInteger(row.mortality_events) && row.mortality_events >= 0 },
+          { title: "Active managed hives (descriptive)", rows: [summary.active_hive_summary], columns: [["total_hives", "Active hives"], ["avg_colony_strength_score", "Mean strength score (0–10)"]], isValidRow: (row) => Number.isSafeInteger(row.total_hives) && row.total_hives >= 0 && optionalNumber(row.avg_colony_strength_score) },
+          { title: "Active managed hives by recorded category", rows: summary.active_hives, columns: [["colony_strength", "Colony strength"], ["queen_status", "Queen status"], ["hive_count", "Hives"], ["total_honey_yield_kg", "Honey yield (kg)"], ["mean_varroa_count", "Mean varroa count"], ["last_inspection_date", "Latest inspection"]], isValidRow: (row) => count(row, "hive_count") && (row.colony_strength === null || strengths.has(row.colony_strength)) && (row.queen_status === null || queenStatuses.has(row.queen_status)) && optionalNumber(row.total_honey_yield_kg) && optionalNumber(row.mean_varroa_count) && (row.last_inspection_date === null || typeof row.last_inspection_date === "string") }
         ]);
       }
 
@@ -14328,11 +14334,14 @@
           }
           const result = await response.json();
           if (requestVersion !== pollinatorHealthRequestVersion || locationId !== pollinatorHealthLocation.value) return;
-          if (result.location_id !== locationId || !Array.isArray(result.verified_observations) || !Array.isArray(result.habitat_inventory) || !Array.isArray(result.verified_pesticide_impacts) || !Array.isArray(result.active_hives)) {
+          const riskCounts = result.pesticide_risk_summary?.risk_distribution;
+          const validRiskCounts = riskCounts && ["low", "moderate", "high", "very_high", "unknown"]
+            .every((key) => Number.isSafeInteger(riskCounts[key]) && riskCounts[key] >= 0);
+          if (result.location_id !== locationId || !Array.isArray(result.verified_observations) || !Array.isArray(result.observation_trends) || !Array.isArray(result.habitat_inventory) || !Array.isArray(result.verified_pesticide_impacts) || !result.pesticide_risk_summary || typeof result.pesticide_risk_summary !== "object" || !validRiskCounts || !result.active_hive_summary || typeof result.active_hive_summary !== "object" || !Array.isArray(result.active_hives)) {
             throw new Error("The response did not match the selected location or pollinator contract.");
           }
           renderPollinatorSummary(result);
-          pollinatorHealthStatus.textContent = "Reviewed records and descriptive inventories are separated. Aggregates do not determine ecological condition or compliance.";
+          pollinatorHealthStatus.textContent = "Reviewed records and descriptive inventories are separated. Trend and pesticide risk are advisory aggregates, not ecological or safety determinations.";
         } catch (error) {
           if (requestVersion !== pollinatorHealthRequestVersion) return;
           pollinatorHealthSummary.replaceChildren();

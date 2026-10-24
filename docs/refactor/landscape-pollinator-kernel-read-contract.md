@@ -52,6 +52,19 @@ yield and counts for varroa observations; they are not a health certification.
 The reference species catalog is network-wide and is not joined into a
 location response.
 
+The scoped pollinator response also preserves three legacy calculations using
+aggregates only. Observation trends use the last 30 days and compare equal
+15-day windows; the existing increasing/decreasing thresholds remain above
+10% and below -10%. The 90-day pesticide advisory counts only verified or
+reviewed rows: any reported mortality or at least three high/very-high toxicity
+reports is `critical`, one or more high/very-high reports is `elevated`, and
+otherwise it is `low`. Recorded rows are intentionally excluded from this
+governed read even though the legacy CLI advisory includes them. The active-hive
+summary reports the count and mean non-null numeric `colony_strength_score`
+(0–10), separately from the categorical colony-strength inventory. These are
+advisory indicators; they do not determine ecological condition, pesticide
+safety, or regulatory compliance.
+
 The legacy analytics service now uses the canonical observation, habitat,
 `pesticide_impact_log`, and `hive_record` tables. Its writes begin in the
 `recorded` review state; the summary includes only verified/reviewed
@@ -113,9 +126,18 @@ No candidate/legacy database, provider, or Raspberry Pi was used. If deployed,
 rollback should revert the application only after stopping use of the new
 fields; the additive migration and inspection history should be retained.
 
-This is a prepared read path, not proof of output parity, deployment-role
-least privilege, forced-RLS coverage, live ZITADEL behavior, browser acceptance,
-populated output parity, historical reference reconciliation, candidate rollout,
-or MAN-CAP-006 acceptance. Migrations 602 and 603 have not been applied to the
-candidate. The existing shared-identity CLI must not be treated as a
-tenant-safe writer until the worker/runtime identity gates close.
+The 23 October source-parity slice adds the three aggregate calculations above
+to the scoped pollinator Gateway and renders them with fixed category/number
+checks in the console. Its focused Gateway, console, and domain selection passes
+40 tests; Ruff, Python compilation, and the console's Node syntax check pass.
+Synthetic cases pin the trend threshold, both pesticide critical-risk branches,
+and active-hive score aggregation. No database was accessed. Evidence:
+`builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json`.
+
+This is a prepared read path, not proof of populated output parity, landscape
+dashboard-derived calculation parity, deployment-role least privilege,
+forced-RLS coverage, live ZITADEL behavior, browser acceptance, historical
+reference reconciliation, candidate rollout, or MAN-CAP-006 acceptance.
+Migrations 602 and 603 have not been applied to the candidate. The existing
+shared-identity CLI must not be treated as a tenant-safe writer until the
+worker/runtime identity gates close.

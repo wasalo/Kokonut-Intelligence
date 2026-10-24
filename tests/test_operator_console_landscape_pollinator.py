@@ -48,6 +48,11 @@ def test_ecology_panels_use_allowlists_and_fixed_text_rendering():
     assert "habitatStatuses.has(row.status)" in landscape.group()
     assert "reviewedStatuses.has(row.status)" in pollinator.group()
     assert "toxicities.has(row.toxicity_class)" in pollinator.group()
+    assert 'summary.observation_trends' in pollinator.group()
+    assert 'summary.pesticide_risk_summary.risk_distribution' in pollinator.group()
+    assert 'summary.active_hive_summary' in pollinator.group()
+    assert 'result.observation_trends' in SOURCE
+    assert 'validRiskCounts' in SOURCE
     assert "cell.textContent = value" in table_renderer.group()
     assert ".innerHTML" not in table_renderer.group()
 

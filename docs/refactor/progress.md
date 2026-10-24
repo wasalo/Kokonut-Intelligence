@@ -16246,3 +16246,23 @@ database ACL/RLS, production recovery, and MAN-CAP-003 acceptance. Checklist:
 deployed, and 33 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
 [Contract](traceability-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-003-traceability-console.json).
+
+### Progress addendum — CAP-006 pollinator calculation parity, 23 October 2026
+
+The scoped pollinator Gateway now preserves three legacy calculation surfaces
+without returning source-level records: recent pollinator trends use verified
+or reviewed observations from the last 30 days and compare equal 15-day windows
+with the existing +/-10% thresholds; the 90-day pesticide-risk advisory uses
+the legacy mortality and high-toxicity thresholds while excluding unreviewed
+`recorded` rows; and active-hive aggregates include the mean non-null numeric
+0–10 colony-strength score. The operator console renders each result through
+fixed allowlists and numeric checks, and labels the pesticide output as an
+advisory rather than a safety determination. The focused Gateway, console, and
+pollinator-domain selection passes 40 tests, including trend, risk-threshold,
+and hive-score cases. Ruff, Python compilation, Node syntax, and diff checks
+pass. No database, provider, candidate, or legacy service was accessed. This
+closes a code-defined pollinator calculation parity slice only; populated
+output parity, landscape dashboard-derived calculations, runtime role/RLS,
+live OIDC/browser behavior, historical link reconciliation, and MAN-CAP-006
+remain open ([contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json)).

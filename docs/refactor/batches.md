@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,060 checklist items complete and 25
-open (1,085 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,061 checklist items complete and 25
+open (1,086 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -132,6 +132,21 @@ acceptance remains separate; none is marked accepted.
   [checker](../../scripts/landscape-reference-preflight.py);
   [tests](../../tests/test_landscape_reference_preflight.py);
   [evidence](builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json)).
+
+### CAP-006 pollinator calculation parity — 23 October 2026
+
+- [x] Restore aggregate-only pollinator calculations on the signed,
+  location-scoped Kernel read: 30-day trends across equal 15-day windows with
+  the legacy +/-10% trend thresholds; a 90-day verified/reviewed pesticide
+  risk advisory with the legacy mortality and high-toxicity thresholds; and
+  active-hive count plus mean numeric strength score. The console validates
+  fixed categories and numeric summaries and labels risk as advisory. Forty
+  Gateway, console, and pollinator-domain tests pass; Ruff, Python compilation,
+  JavaScript syntax, and diff checks pass. No database or provider was used.
+  Populated output parity and landscape dashboard-derived calculations remain
+  open; this does not establish ecological or safety determinations. Rollback
+  is a source revert ([contract](landscape-pollinator-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

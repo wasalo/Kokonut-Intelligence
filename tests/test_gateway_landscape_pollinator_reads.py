@@ -60,6 +60,11 @@ class _Cursor:
                 ("assessment_count", "mean_species_richness", "mean_shannon_index", "mean_habitat_diversity_index", "mean_connectivity_score", "mean_overall_score", "first_assessment_date", "last_assessment_date"),
                 [(2, Decimal("18.5"), Decimal("1.2"), Decimal("1.5"), Decimal("6.5"), Decimal("7.0"), date(2026, 1, 1), date(2026, 4, 1))],
             )
+        elif "FROM pollinator_observation" in query and "AS observation_count" in query:
+            columns, rows = (
+                ("pollinator_type", "observation_count", "avg_count", "max_count", "first_observation_date", "last_observation_date", "first_half_avg", "second_half_avg", "total_count"),
+                getattr(self.connection, "trend_rows", [("wild_bee", 4, Decimal("12"), 20, date(2026, 3, 1), date(2026, 3, 20), Decimal("10"), Decimal("12"), Decimal("48"))]),
+            )
         elif "FROM pollinator_observation" in query:
             columns, rows = (
                 ("pollinator_type", "observation_method", "status", "record_count", "total_observed", "mean_duration_minutes", "first_observation_date", "last_observation_date"),
@@ -72,13 +77,13 @@ class _Cursor:
             )
         elif "FROM pesticide_impact_log" in query:
             columns, rows = (
-                ("toxicity_class", "pollinator_mortality_observed", "record_count", "mean_mortality_pct", "first_application_date", "last_application_date"),
-                [("moderate", False, 1, Decimal("0"), date(2026, 3, 2), date(2026, 3, 2))],
+                ("toxicity_class", "pollinator_mortality_observed", "record_count", "mean_mortality_pct", "recent_record_count", "recent_mortality_events", "first_application_date", "last_application_date"),
+                getattr(self.connection, "pesticide_rows", [("moderate", False, 1, Decimal("0"), 1, 0, date(2026, 3, 2), date(2026, 3, 2))]),
             )
         elif "FROM hive_record" in query:
             columns, rows = (
-                ("colony_strength", "queen_status", "hive_count", "total_honey_yield_kg", "mean_varroa_count", "last_inspection_date"),
-                [("strong", "present", 2, Decimal("12"), Decimal("3"), date(2026, 4, 1))],
+                ("colony_strength", "queen_status", "hive_count", "total_honey_yield_kg", "mean_varroa_count", "strength_score_count", "mean_strength_score", "last_inspection_date"),
+                [("strong", "present", 2, Decimal("12"), Decimal("3"), 1, Decimal("8.5"), date(2026, 4, 1))],
             )
         else:
             columns, rows = (), []
@@ -185,10 +190,14 @@ def test_pollinator_summary_uses_installed_schema_and_omits_identifying_fields()
         result = get_location_pollinator_summary(operator_id, location_id, connection_factory=lambda: conn)
 
     queries = [(query, params) for query, params in conn.queries if "FROM " in query]
-    assert len(queries) == 4
+    assert len(queries) == 5
     assert all("location_id = %s::uuid" in query and params == (location_id,) for query, params in queries)
     assert "status IN ('verified', 'reviewed')" in queries[0][0]
-    assert "status IN ('verified', 'reviewed')" in queries[2][0]
+    assert "status IN ('verified', 'reviewed')" in queries[3][0]
+    assert "CURRENT_DATE - INTERVAL '15 days'" in queries[1][0]
+    assert "CURRENT_DATE - INTERVAL '30 days'" in queries[1][0]
+    assert "CURRENT_DATE - INTERVAL '90 days'" in queries[3][0]
+    assert "AVG(colony_strength_score)" in queries[4][0]
     assert captured == {
         "operator_id": operator_id,
         "location_id": location_id,
@@ -205,10 +214,69 @@ def test_pollinator_summary_uses_installed_schema_and_omits_identifying_fields()
     assert "FROM pollinator_pesticide_impact" not in combined_sql
     assert "FROM pollinator_hive" not in combined_sql
     assert result["verified_observations"][0]["total_observed"] == 42.0
+    assert result["observation_trends"][0]["trend"] == "increasing"
+    assert result["observation_trends"][0]["change_pct"] == 20.0
+    assert result["observation_trends"][0]["last_observation_date"] == "2026-03-20"
     assert result["habitat_inventory"][0]["total_area_m2"] == 240.0
     assert result["verified_pesticide_impacts"][0]["mean_mortality_pct"] == 0.0
+    assert result["pesticide_risk_summary"] == {
+        "period_days": 90,
+        "total_applications": 1,
+        "overall_risk": "low",
+        "risk_distribution": {"low": 0, "moderate": 1, "high": 0, "very_high": 0, "unknown": 0},
+        "mortality_events": 0,
+    }
     assert result["active_hives"][0]["total_honey_yield_kg"] == 12.0
+    assert result["active_hive_summary"] == {"total_hives": 2, "avg_colony_strength_score": 8.5}
     assert conn.rolled_back and conn.closed
+
+
+@pytest.mark.parametrize(
+    "toxicity_class,record_count,mortality_events,expected_risk",
+    [("high", 3, 0, "critical"), ("high", 1, 0, "elevated"), ("moderate", 4, 0, "low"), ("low", 1, 1, "critical")],
+)
+def test_pollinator_advisory_risk_preserves_legacy_thresholds(
+    toxicity_class, record_count, mortality_events, expected_risk,
+):
+    location_id = str(uuid4())
+    conn = _Connection()
+    conn.pesticide_rows = [(
+        toxicity_class, mortality_events > 0, record_count, Decimal("1.5"),
+        record_count, mortality_events, date(2026, 3, 2), date(2026, 3, 2),
+    )]
+
+    with patch("services.gateway.pollinator_health_reads.set_operator_tenant_context"):
+        result = get_location_pollinator_summary(
+            str(uuid4()), location_id, connection_factory=lambda: conn,
+        )
+
+    assert result["pesticide_risk_summary"]["overall_risk"] == expected_risk
+    assert result["pesticide_risk_summary"]["total_applications"] == record_count
+    assert result["pesticide_risk_summary"]["mortality_events"] == mortality_events
+
+
+@pytest.mark.parametrize(
+    "first_avg,second_avg,expected_trend,expected_change",
+    [(10, 11, "stable", 10.0), (10, 9, "stable", -10.0), (10, 8, "decreasing", -20.0), (0, 5, "insufficient_data", 0)],
+)
+def test_observation_trend_preserves_legacy_thresholds_and_zero_baseline(
+    first_avg, second_avg, expected_trend, expected_change,
+):
+    location_id = str(uuid4())
+    conn = _Connection()
+    conn.trend_rows = [(
+        "wild_bee", 2, Decimal("10"), 12, date(2026, 3, 1), date(2026, 3, 20),
+        Decimal(str(first_avg)), Decimal(str(second_avg)), Decimal("20"),
+    )]
+
+    with patch("services.gateway.pollinator_health_reads.set_operator_tenant_context"):
+        result = get_location_pollinator_summary(
+            str(uuid4()), location_id, connection_factory=lambda: conn,
+        )
+
+    trend = result["observation_trends"][0]
+    assert trend["trend"] == expected_trend
+    assert trend["change_pct"] == expected_change
 
 
 @pytest.mark.parametrize(
