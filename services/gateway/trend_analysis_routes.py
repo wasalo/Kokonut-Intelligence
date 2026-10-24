@@ -9,6 +9,7 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.trend_analysis_reads import (
         get_location_seasonal_decomposition,
+        get_location_time_series_forecast,
         list_location_change_points,
         list_location_trend_estimates,
         list_location_trend_smoothing,
@@ -136,6 +137,46 @@ def register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2
             return JSONResponse(
                 status_code=503,
                 content={"error": "Trend decomposition unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/trends/{location_id}/forecast")
+    async def trend_forecast(
+        request: Request,
+        location_id: str,
+        metric_key: str,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_time_series_forecast,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                metric_key,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified trend access is required"},
+                headers=headers,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.trend_analysis").warning(
+                "Trend forecast unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Trend forecast unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

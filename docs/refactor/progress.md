@@ -1,3 +1,20 @@
+### Progress addendum — CAP-008 saved forecast Kernel read, 24 October 2026
+
+The trend-analysis panel now reads the latest saved forecast for a metric in
+an authorized location. The private `trend_analysis:read` route returns at most
+100 forecast values and interval entries, excludes model parameters, metadata,
+IDs, and accuracy rows, and sanitizes malformed/non-finite values. Status is
+shown as persisted and forecasts remain advisory. The focused Gateway/console/
+route-policy selection passes 32 tests with Ruff, compilation, JavaScript
+syntax, runtime SQL inventory, capability validation, and diff checks. No
+migration, provider, candidate, or legacy database was used. Repository tracing
+found no service writer to `time_series_forecast`; generation/persistence parity
+remains open along with geostatistics, populated parity, live OIDC/browser,
+ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,075 complete / 25 open
+(1,100 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows, with 0/67 named MAN-CAP checks accepted
+([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-saved-forecast-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved seasonal decomposition Kernel read, 24 October 2026
 
 The trend-analysis panel can now load the latest saved seasonal decomposition

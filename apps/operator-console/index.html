@@ -14101,10 +14101,24 @@
         decompositionButton.addEventListener("click", () => loadTrendDecomposition(
           estimate.metric_key, decompositionPanel, decompositionStatus, decompositionButton
         ));
+        const forecastButton = document.createElement("button");
+        forecastButton.type = "button";
+        forecastButton.className = "secondary";
+        forecastButton.textContent = "Show saved forecast";
+        const forecastStatus = document.createElement("p");
+        forecastStatus.className = "muted";
+        forecastStatus.setAttribute("role", "status");
+        forecastStatus.setAttribute("aria-live", "polite");
+        const forecastPanel = document.createElement("div");
+        forecastPanel.hidden = true;
+        forecastButton.addEventListener("click", () => loadTrendForecast(
+          estimate.metric_key, forecastPanel, forecastStatus, forecastButton
+        ));
         article.append(
           smoothingButton, smoothingStatus, smoothingPanel,
           changePointsButton, changePointsStatus, changePointsPanel,
-          decompositionButton, decompositionStatus, decompositionPanel
+          decompositionButton, decompositionStatus, decompositionPanel,
+          forecastButton, forecastStatus, forecastPanel
         );
         return article;
       }
@@ -14225,6 +14239,53 @@
             item.trend_component[index],
             item.seasonal_component[index],
             item.residual_component[index],
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = typeof value === "number" && Number.isFinite(value)
+              ? value.toLocaleString()
+              : value === null || value === undefined ? "—" : String(value);
+            row.append(cell);
+          }
+          body.append(row);
+        }
+        table.append(header, body);
+        tableWrapper.append(table);
+        wrapper.append(tableWrapper);
+        return wrapper;
+      }
+
+      function renderTrendForecast(item) {
+        const wrapper = document.createElement("div");
+        const summary = document.createElement("p");
+        summary.className = "muted";
+        summary.textContent = `${item.model_type} · ${item.forecast_horizon} ${item.time_unit} steps · ${item.training_points} training points · status ${item.status} · saved ${item.forecast_at}`;
+        wrapper.append(summary);
+        if (item.interval_confidence !== null) {
+          const confidence = document.createElement("p");
+          confidence.textContent = `Stored interval confidence: ${item.interval_confidence.toLocaleString()}`;
+          wrapper.append(confidence);
+        }
+        const tableWrapper = document.createElement("div");
+        tableWrapper.className = "table-wrap";
+        const table = document.createElement("table");
+        const header = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        for (const label of ["Step", "Forecast", "Lower bound", "Upper bound"]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          headerRow.append(cell);
+        }
+        header.append(headerRow);
+        const body = document.createElement("tbody");
+        const pointCount = Math.max(item.forecast_values.length, item.intervals.length);
+        for (let index = 0; index < pointCount; index += 1) {
+          const interval = item.intervals[index] || {};
+          const row = document.createElement("tr");
+          for (const value of [
+            interval.step || index + 1,
+            item.forecast_values[index] ?? interval.forecast,
+            interval.lower,
+            interval.upper,
           ]) {
             const cell = document.createElement("td");
             cell.textContent = typeof value === "number" && Number.isFinite(value)
@@ -14400,6 +14461,74 @@
             : item.truncated
               ? "Showing the first 200 saved component values. These outputs are partial and remain advisory."
               : "Showing saved decomposition components. These outputs remain advisory.";
+        } catch (error) {
+          if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
+          panel.replaceChildren();
+          status.textContent = error.message;
+        } finally {
+          if (requestVersion === trendDetailRequestVersions.get(panel)) button.disabled = false;
+        }
+      }
+
+      async function loadTrendForecast(metricKey, panel, status, button) {
+        const locationId = trendAnalysisLocation.value;
+        const requestVersion = (trendDetailRequestVersions.get(panel) || 0) + 1;
+        trendDetailRequestVersions.set(panel, requestVersion);
+        if (!trendAnalysisLocations.has(locationId) || !trendAnalysisMetricKeys.has(metricKey)) return;
+        button.disabled = true;
+        panel.hidden = false;
+        panel.replaceChildren();
+        status.textContent = "Loading saved forecast…";
+        try {
+          const params = new URLSearchParams({ metric_key: metricKey });
+          const response = await fetch(
+            `/operator/api/trends/${encodeURIComponent(locationId)}/forecast?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location trend-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Trend forecast reads are unavailable for this location.");
+            throw new Error("Saved forecast could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== trendDetailRequestVersions.get(panel)
+              || locationId !== trendAnalysisLocation.value
+              || !panel.isConnected) return;
+          const item = result.item;
+          const allowedModels = new Set(["arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"]);
+          const allowedStatuses = new Set(["active", "superseded", "expired"]);
+          const validValues = (values) => Array.isArray(values) && values.length <= 100
+            && values.every((value) => value === null
+              || (typeof value === "number" && Number.isFinite(value)));
+          if (result.location_id !== locationId || result.metric_key !== metricKey
+              || (item !== null && (typeof item !== "object" || Array.isArray(item)
+                || item.metric_key !== metricKey
+                || !allowedModels.has(item.model_type)
+                || !allowedStatuses.has(item.status)
+                || !Number.isInteger(item.forecast_horizon) || item.forecast_horizon < 0
+                || !Number.isInteger(item.training_points) || item.training_points < 0
+                || typeof item.time_unit !== "string"
+                || typeof item.forecast_at !== "string"
+                || typeof item.truncated !== "boolean"
+                || !validValues(item.forecast_values)
+                || !Array.isArray(item.intervals) || item.intervals.length > 100
+                || item.intervals.some((interval) => typeof interval !== "object" || interval === null
+                  || !Number.isInteger(interval.step) || interval.step < 1
+                  || ["forecast", "lower", "upper"].some((field) => interval[field] !== null
+                    && (typeof interval[field] !== "number" || !Number.isFinite(interval[field]))))
+                || (item.interval_confidence !== null
+                  && (typeof item.interval_confidence !== "number"
+                    || !Number.isFinite(item.interval_confidence)))))) {
+            throw new Error("The forecast response did not match the requested location or metric.");
+          }
+          if (item) panel.append(renderTrendForecast(item));
+          status.textContent = !item
+            ? "No saved forecast is available for this metric."
+            : item.truncated
+              ? "Showing the first 100 saved forecast steps. Status is shown as recorded; values remain advisory."
+              : "Showing saved forecast steps. Status is shown as recorded; values remain advisory.";
         } catch (error) {
           if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
           panel.replaceChildren();

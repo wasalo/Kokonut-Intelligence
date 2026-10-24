@@ -1,6 +1,6 @@
 # Trend analysis Kernel read contract
 
-**Status:** Saved estimate, smoothing, change-point, and seasonal decomposition reads implemented; capability remains prepared.
+**Status:** Saved estimate, smoothing, change-point, seasonal decomposition, and forecast reads implemented; capability remains prepared.
 **Updated:** 24 October 2026
 
 ## Route and authorization
@@ -53,18 +53,31 @@ response marks whether any component was truncated. The console labels a
 truncated result as partial and all saved decomposition output as advisory.
 This read does not calculate or verify decomposition.
 
+`GET /operator/api/trends/{location_id}/forecast` uses the same exact grant
+and signed-context transaction and selects the newest saved
+`time_series_forecast` row for the requested metric and location, regardless
+of its stored `active`/`superseded`/`expired` status. It returns at most 100
+forecast values and interval entries. Interval objects are reduced to step,
+forecast, lower, and upper fields; the only other interval field exposed is a
+finite confidence value. Non-finite or malformed numbers become `null` and
+the response marks truncation. Model parameters, metadata, identifiers, and
+accuracy rows are omitted. Status is displayed as stored; the console does not
+create, activate, supersede, expire, or verify a forecast. The current trend
+service tree has no writer to `time_series_forecast`; this route exposes any
+canonical saved rows but does not add a forecast producer or persistence path.
+
 The console appears only for the exact location grant, checks response scope
 and page correlation, suppresses stale requests, renders fixed fields using
 text nodes, and labels stored outputs advisory. It does not run a trend model
 or certify calculations. A selected estimate can load its saved smoothed
 points, stored change-point detections, and seasonal decomposition preview;
-location changes and stale requests
-cannot render results into a different location or metric. Change-point status
-is informational only and no lifecycle actions are exposed.
+saved forecast steps; location changes and stale requests cannot render results
+into a different location or metric. Stored change-point/forecast status is
+informational only and no lifecycle actions are exposed.
 
 ## Boundaries and remaining work
 
-This slice does not implement model execution, forecast-result reads, accuracy
+This slice does not implement model execution, forecast persistence, accuracy
 verification, geostatistics, or populated
 numerical parity. Current application runtime database grants
 remain broad; signed tenant context is not least-privilege ACL/RLS. Live OIDC

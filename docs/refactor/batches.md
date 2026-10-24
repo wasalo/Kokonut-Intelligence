@@ -19,10 +19,26 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,074 checklist items complete and 25
-open (1,099 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,075 checklist items complete and 25
+open (1,100 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved forecast Kernel read — 24 October 2026
+
+- [x] Add a private `GET /operator/api/trends/{location_id}/forecast` read
+  under exact `trend_analysis:read` and signed tenant context. It selects the
+  newest saved forecast for the authorized estimate metric and returns at most
+  100 numeric values and interval entries, omitting model parameters, metadata,
+  IDs, and accuracy rows. Non-finite/malformed values are nulled, status is
+  shown as stored, and the console labels the result advisory. Thirty-two
+  focused Gateway/console/route-policy tests pass with Ruff, compilation,
+  JavaScript syntax, runtime SQL inventory, matrix validation, and diff checks.
+  No migration, provider, candidate, or legacy database was used. Repository
+  tracing found no service writer to `time_series_forecast`, so forecast
+  generation and persistence parity remain open. Rollback is a source revert
+  and inventory regeneration ([contract](trend-analysis-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-saved-forecast-kernel-read.json)).
 
 ### CAP-008 saved seasonal decomposition Kernel read — 24 October 2026
 
