@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "shared geostatistics location and property source contract",
+  "classification": "prepared",
+  "implementation": {
+    "source_queries": [
+      "variogram fitting",
+      "spatial autocorrelation",
+      "kriging",
+      "simulation",
+      "cross-validation"
+    ],
+    "shared_module": "services/geostatistics/data_sources.py",
+    "supported_properties": {
+      "soil_carbon": "soil_sample.organic_carbon_pct",
+      "soil_moisture": "soil_sample.moisture_pct",
+      "soil_ph": "soil_sample.ph",
+      "ndvi": "remote_sensing_observation.ndvi"
+    },
+    "unsupported_property_behavior": "fail before opening the database connection",
+    "selected_kriging_and_simulation_model_scope": "model ID, requested location ID, and requested property key must match",
+    "mismatch_behavior": "generic not-found response",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "73 passed",
+    "coverage": "fixed soil/NDVI source mapping, unsupported-property preflight across all five database runners, and selected model scope for kriging and simulation",
+    "ruff_changed_files": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and check passed",
+    "capability_matrix": "67-row validation passed",
+    "database_execution": "not run; synthetic cursors and mocked connections only",
+    "migration_execution": "not run",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "scientific and populated fixture parity",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the shared source-query helper, its runner integrations, and focused tests; regenerate the runtime SQL inventory. No persistent data was changed."
+}

@@ -21,6 +21,7 @@ from .config import (
     DEFAULT_MIN_SAMPLES,
     PROPERTY_DEFAULTS,
 )
+from .data_sources import location_point_query, supports_database_property
 
 
 class VariogramAnalyzer:
@@ -211,9 +212,12 @@ class VariogramAnalyzer:
     ) -> Dict[str, Any]:
         """Fit a variogram from stored point data in the database.
 
-        Fetches coordinates and values from soil_sample, sensor_reading,
-        or remote_sensing_observation depending on property_key.
+        Fetches soil properties from soil_sample and NDVI from
+        remote_sensing_observation, always filtered by location_id.
         """
+        if not supports_database_property(property_key):
+            return {"error": f"Unsupported property_key: {property_key}"}
+
         defaults = PROPERTY_DEFAULTS.get(property_key, {})
         if lag_distance is None:
             lag_distance = defaults.get("lag_distance", DEFAULT_LAG_DISTANCE)
@@ -225,35 +229,8 @@ class VariogramAnalyzer:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Build query based on property_key
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key for DB query: {property_key}"}
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()

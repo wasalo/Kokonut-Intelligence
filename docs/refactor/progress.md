@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 shared geostatistics source queries, 24 October 2026
+
+Variogram fitting, spatial autocorrelation, kriging, simulation, and
+cross-validation now share one fixed location/property source-query contract.
+It permits only `soil_carbon`, `soil_moisture`, `soil_ph`, and `ndvi`, maps each
+soil key to its explicit column, and rejects unsupported values before opening
+PostgreSQL. Explicit kriging and simulation variogram IDs must match the
+requested location and property; mismatches use a generic not-found response.
+The full geostatistics module passes 73 tests; changed-file Ruff, compilation,
+the refreshed SQL inventory and its check, and capability validation pass. No
+database or migration was used. Checklist: 1,087 complete / 25 open (1,112
+total). CAP-008 remains prepared pending scientific/populated parity, live
+OIDC/browser, database ACL/RLS, audience review, and MAN-CAP-008
+([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-geostat-source-scope.json)).
+
 ### Progress addendum — CAP-008 cross-validation property mapping, 24 October 2026
 
 Cross-validation now recognizes only `soil_carbon`, `soil_moisture`,

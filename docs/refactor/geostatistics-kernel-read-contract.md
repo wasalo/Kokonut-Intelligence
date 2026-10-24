@@ -63,7 +63,11 @@ compared to an earlier observation by array position.
 The database runner accepts only `soil_carbon`, `soil_moisture`, `soil_ph`,
 and `ndvi`. Each soil property maps to an explicit source column; unsupported
 keys fail before the database is opened. This avoids silently treating an
-unknown soil property as organic carbon.
+unknown soil property as organic carbon. Variogram fitting, spatial
+autocorrelation, kriging, simulation, and cross-validation use the same fixed
+query helper and location predicate. Explicit variogram IDs used by kriging
+and simulation must also match the requested location and property, with a
+generic mismatch response.
 
 ## Fitted variogram route
 
@@ -116,7 +120,9 @@ drive a lifecycle transition.
 Other geostatistics outputs such as per-point kriging predictions/points and
 simulations, numerical/populated fixture parity, live OIDC and browser
 behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008` remain
-open. Fold aggregates are a bounded presentation of saved values, not a
+open. Source property selection and explicit model scope now share one contract
+across all five legacy database runners; this source-level validation is not a
+replacement for database privileges or RLS. Fold aggregates are a bounded presentation of saved values, not a
 recomputation or scientific validation. The autocorrelation producer can persist a narrative
 interpretation, but this read deliberately omits it pending governed semantic
 review.
@@ -127,4 +133,6 @@ Focused Gateway, route-policy, and console checks use fake connections and
 synthetic rows. No migration, seed, candidate/legacy database, provider, or
 external service is used. Rollback reverts the reader, route/policy, and console
 panel, then regenerates `runtime-sql-inventory.json`; no persistent data was
-written.
+written. The 73-test source-pipeline selection additionally checks the shared
+property map, rejection before connection, and kriging/simulation model scope;
+rollback for that source work is a code revert and SQL-inventory regeneration.

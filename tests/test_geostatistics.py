@@ -4,6 +4,7 @@ autocorrelation, cross-validation, sensor optimization, CLI, and SOC integration
 
 from __future__ import annotations
 
+import importlib
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -26,6 +27,91 @@ def _make_spatial_data(n=30, seed=42):
     dists = np.sqrt(np.sum((coords - center) ** 2, axis=1))
     values = 10.0 * np.exp(-dists / 500.0) + rng.normal(0, 0.5, n)
     return coords.tolist(), values.tolist()
+
+
+@pytest.mark.parametrize(
+    ("property_key", "column"),
+    [
+        ("soil_carbon", "organic_carbon_pct"),
+        ("soil_moisture", "moisture_pct"),
+        ("soil_ph", "ph"),
+    ],
+)
+def test_shared_geostat_source_query_uses_fixed_soil_columns(property_key, column):
+    from services.geostatistics.data_sources import location_point_query
+
+    query, params = location_point_query("location-a", property_key)
+
+    assert f"ss.{column} AS value" in query
+    assert "ss.location_id = %s" in query
+    assert params == ("location-a",)
+
+
+def test_shared_geostat_source_query_uses_location_scoped_ndvi():
+    from services.geostatistics.data_sources import location_point_query
+
+    query, params = location_point_query("location-a", "ndvi")
+
+    assert "remote_sensing_observation rso" in query
+    assert "rso.location_id = %s" in query
+    assert "rso.ndvi AS value" in query
+    assert params == ("location-a",)
+
+
+@pytest.mark.parametrize(
+    ("module_name", "class_name", "method_name"),
+    [
+        ("services.geostatistics.variogram", "VariogramAnalyzer", "fit_from_db"),
+        ("services.geostatistics.autocorrelation", "SpatialAutocorrelation", "autocorrelation_from_db"),
+        ("services.geostatistics.kriging", "KrigingEngine", "kriging_from_db"),
+        ("services.geostatistics.simulation", "GeostatSimulator", "simulation_from_db"),
+        ("services.geostatistics.cross_validation", "SpatialCrossValidator", "cross_validate_from_db"),
+    ],
+)
+def test_geostat_database_pipelines_reject_unknown_property_before_connecting(
+    module_name, class_name, method_name
+):
+    module = importlib.import_module(module_name)
+    connection = MagicMock()
+    service = getattr(module, class_name)(conn=connection)
+
+    result = getattr(service, method_name)("location-a", "soil_nitrogen")
+
+    assert result == {"error": "Unsupported property_key: soil_nitrogen"}
+    connection.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("module_name", "class_name", "method_name"),
+    [
+        ("services.geostatistics.kriging", "KrigingEngine", "kriging_from_db"),
+        ("services.geostatistics.simulation", "GeostatSimulator", "simulation_from_db"),
+    ],
+)
+def test_explicit_variogram_selection_is_location_and_property_scoped(
+    module_name, class_name, method_name
+):
+    module = importlib.import_module(module_name)
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = None
+    service = getattr(module, class_name)(conn=connection)
+
+    result = getattr(service, method_name)(
+        "location-a", "soil_carbon", variogram_model_id="model-from-other-scope"
+    )
+
+    query, params = cursor.execute.call_args.args
+    assert "FROM variogram_model" in query
+    assert "WHERE id = %s" in query
+    assert "AND location_id = %s" in query
+    assert "AND property_key = %s" in query
+    assert params == ("model-from-other-scope", "location-a", "soil_carbon")
+    assert result == {
+        "error": "Variogram model not found for requested location and property"
+    }
+    assert cursor.execute.call_count == 1
+    cursor.close.assert_called_once()
 
 
 class TestVariogramAnalyzer:

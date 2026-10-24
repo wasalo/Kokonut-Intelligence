@@ -7,7 +7,6 @@ quantification, enabling probabilistic forecasting of environmental outcomes.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -18,11 +17,8 @@ from .config import (
     DEFAULT_SGS_GRID_SIZE_M,
     DEFAULT_SGS_REALIZATIONS,
     DEFAULT_SGS_SEED,
-    DEFAULT_MAX_NEIGHBORS,
-    DEFAULT_SEARCH_RADIUS_M,
-    SIMULATION_METHODS,
-    PROPERTY_DEFAULTS,
 )
+from .data_sources import location_point_query, supports_database_property
 
 
 class GeostatSimulator:
@@ -45,7 +41,7 @@ class GeostatSimulator:
         nugget: float,
     ):
         """Build a gstools variogram model from parameters."""
-        from gstools import Spherical, Exponential, Gaussian, Matern
+        from gstools import Exponential, Gaussian, Matern, Spherical
 
         model_map = {
             "spherical": Spherical,
@@ -96,13 +92,6 @@ class GeostatSimulator:
         """
         pos = np.array(coordinates).T
         field = np.array(values, dtype=float)
-
-        model = self._build_gstools_variogram(
-            variogram_model["model_type"],
-            variogram_model["sill"],
-            variogram_model["range"],
-            variogram_model["nugget"],
-        )
 
         grid = self._build_grid(coordinates, grid_resolution_m)
 
@@ -200,19 +189,28 @@ class GeostatSimulator:
         variogram_model_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Run SGS pipeline from database queries."""
+        if not supports_database_property(property_key):
+            return {"error": f"Unsupported property_key: {property_key}"}
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         # Fetch or fit variogram
         if variogram_model_id:
             cur.execute(
-                "SELECT * FROM variogram_model WHERE id = %s",
-                (variogram_model_id,),
+                """
+                SELECT model_type, sill, range, nugget
+                  FROM variogram_model
+                 WHERE id = %s
+                   AND location_id = %s
+                   AND property_key = %s
+                """,
+                (variogram_model_id, location_id, property_key),
             )
             vm_row = cur.fetchone()
             if vm_row is None:
                 cur.close()
-                return {"error": f"Variogram model {variogram_model_id} not found"}
+                return {"error": "Variogram model not found for requested location and property"}
             variogram_model = {
                 "model_type": vm_row["model_type"],
                 "sill": float(vm_row["sill"]),
@@ -228,35 +226,8 @@ class GeostatSimulator:
                 return vm_result
             variogram_model = vm_result
 
-        # Fetch point data
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key: {property_key}"}
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()
@@ -309,7 +280,6 @@ class GeostatSimulator:
 
         grid_pts = np.array(result["grid_points"])
         realizations = result["realizations"][:max_realizations]
-        n_real = len(realizations)
 
         # Subsample points if needed
         if len(grid_pts) > max_points:

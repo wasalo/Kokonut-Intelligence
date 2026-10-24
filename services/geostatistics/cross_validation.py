@@ -16,12 +16,7 @@ import psycopg2.extras
 from .config import (
     CV_STRATEGIES,
 )
-
-_SOIL_PROPERTY_COLUMNS = {
-    "soil_carbon": "organic_carbon_pct",
-    "soil_moisture": "moisture_pct",
-    "soil_ph": "ph",
-}
+from .data_sources import location_point_query, supports_database_property
 
 
 class SpatialCrossValidator:
@@ -265,7 +260,7 @@ class SpatialCrossValidator:
         """Run spatial cross-validation from database point data."""
         if cv_strategy not in CV_STRATEGIES:
             return {"error": f"Unknown cv_strategy: {cv_strategy}. Use one of {CV_STRATEGIES}"}
-        if property_key not in _SOIL_PROPERTY_COLUMNS and property_key != "ndvi":
+        if not supports_database_property(property_key):
             return {"error": f"Unsupported property_key: {property_key}"}
 
         conn = self._get_conn()
@@ -302,30 +297,9 @@ class SpatialCrossValidator:
                 return vm_result
             variogram_model = vm_result
 
-        # Fetch point data
-        if property_key in _SOIL_PROPERTY_COLUMNS:
-            val_col = _SOIL_PROPERTY_COLUMNS[property_key]
-            cur.execute(f"""
-                SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
-                       ss.{val_col} AS value
-                FROM soil_sample ss
-                WHERE ss.location_id = %s
-                  AND ss.gps_latitude IS NOT NULL
-                  AND ss.gps_longitude IS NOT NULL
-                  AND ss.{val_col} IS NOT NULL
-            """, (location_id,))
-        elif property_key == "ndvi":
-            cur.execute("""
-                SELECT ST_Y(rso.centroid) AS lat, ST_X(rso.centroid) AS lon,
-                       rso.ndvi AS value
-                FROM remote_sensing_observation rso
-                WHERE rso.location_id = %s
-                  AND rso.centroid IS NOT NULL
-                  AND rso.ndvi IS NOT NULL
-            """, (location_id,))
-        else:
-            cur.close()
-            return {"error": f"Unsupported property_key: {property_key}"}
+        # Fetch point data using a fixed property-to-column mapping.
+        point_query, point_params = location_point_query(location_id, property_key)
+        cur.execute(point_query, point_params)
 
         rows = cur.fetchall()
         cur.close()

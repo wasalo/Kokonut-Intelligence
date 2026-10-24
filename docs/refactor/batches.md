@@ -19,10 +19,23 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,086 checklist items complete and 25
-open (1,111 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,087 checklist items complete and 25
+open (1,112 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 shared geostatistics source queries — 24 October 2026
+
+- [x] Centralize location-scoped source queries for variogram fitting,
+  autocorrelation, kriging, simulation, and cross-validation behind an explicit
+  property allowlist. Reject unsupported keys before opening PostgreSQL, map
+  the three soil properties to fixed columns, and require selected kriging or
+  simulation variograms to match both location and property. The full
+  geostatistics module passes 73 tests; changed-file Ruff, Python compilation,
+  runtime SQL inventory/check, and capability-matrix validation pass. No
+  migration or database was used. Rollback is a source revert plus runtime SQL
+  inventory regeneration
+  ([evidence](builds/2026-10-24-recovery/cap-008-geostat-source-scope.json)).
 
 ### CAP-008 cross-validation property mapping — 24 October 2026
 
