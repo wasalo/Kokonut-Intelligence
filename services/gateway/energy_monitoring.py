@@ -192,6 +192,24 @@ def get_location_energy_summary(
                 dict(zip(efficiency_columns, row)) for row in cur.fetchall()
             ]
 
+            cur.execute(
+                """
+                SELECT es.source_type,
+                       COUNT(*)::bigint AS source_count,
+                       SUM(es.capacity_kw)::numeric AS capacity_kw
+                  FROM energy_source AS es
+                 WHERE es.location_id = %s::uuid
+                   AND es.status = 'active'
+                 GROUP BY es.source_type
+                 ORDER BY es.source_type
+                """,
+                (location_id,),
+            )
+            source_columns = [column[0] for column in cur.description]
+            active_source_rows = [
+                dict(zip(source_columns, row)) for row in cur.fetchall()
+            ]
+
         groups = [
             {
                 "reading_type": row["reading_type"],
@@ -337,6 +355,14 @@ def get_location_energy_summary(
                     ),
                 }
                 for row in efficiency_rows
+            ],
+            "active_sources_by_type": [
+                {
+                    "source_type": row["source_type"],
+                    "source_count": int(row["source_count"] or 0),
+                    "capacity_kw": round(float(row["capacity_kw"] or 0), 2),
+                }
+                for row in active_source_rows
             ],
         }
         return {

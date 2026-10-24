@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-006",
+  "batch": "active energy source breakdown",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/energy/{location_id}/summary",
+    "authorization": "exact energy_monitoring:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "projection": {
+      "source": "energy_source",
+      "scope": "exact location and active status",
+      "grouping": "fixed schema source_type enum",
+      "fields": ["source_type", "source_count", "capacity_kw"],
+      "omitted": ["source_name", "source ID", "metadata"]
+    },
+    "renewable_registration": "Reported separately from active renewable_energy_source asset declarations.",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py tests/test_energy_monitoring.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "59 passed in 3.48s",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 26 baseline-retained, 7 deployed, 34 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "populated source-register parity",
+    "runtime database ACL/RLS",
+    "live ZITADEL and browser acceptance",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Revert the active energy-source aggregate query, response projection, and console table, then regenerate the runtime SQL inventory. No persistent data was written."
+}

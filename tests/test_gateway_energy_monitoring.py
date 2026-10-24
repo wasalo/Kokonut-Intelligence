@@ -40,6 +40,14 @@ class _Cursor:
                 ("consumption", "solar", "irrigation", 2, Decimal("10.50"), date(2026, 1, 2), date(2026, 1, 3)),
                 ("production", "solar", "unspecified", 1, Decimal("8"), date(2026, 1, 4), date(2026, 1, 4)),
             ])
+        elif "FROM energy_source AS es" in query:
+            self.description = [(name,) for name in (
+                "source_type", "source_count", "capacity_kw",
+            )]
+            self.rows = getattr(self.conn, "active_source_rows", [
+                ("grid", 2, Decimal("80")),
+                ("solar", 1, Decimal("15.5")),
+            ])
         elif "GROUP BY es.source_type" in query:
             self.description = [(name,) for name in ("source_type", "consumption_kwh", "production_kwh")]
             self.rows = getattr(self.conn, "energy_calculation_rows", [
@@ -167,7 +175,16 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
     assert "SELECT res.renewable_type," in renewable_query
     assert "source_name" not in renewable_query and "metadata" not in renewable_query
     assert "res.source_id," not in renewable_query
-    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query", "query"]
+    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query", "query", "query"]
+    source_query, source_params = next(
+        (query, params) for query, params in conn.queries
+        if "FROM energy_source AS es" in query
+    )
+    assert "es.location_id = %s::uuid" in source_query
+    assert "es.status = 'active'" in source_query
+    assert "GROUP BY es.source_type" in source_query
+    assert "source_name" not in source_query and "metadata" not in source_query
+    assert source_params == (location_id,)
     efficiency_query, efficiency_params = next(
         (query, params) for query, params in conn.queries
         if "FROM energy_efficiency_log AS eel" in query
@@ -251,6 +268,10 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                     "carbon_intensity_kg_kwh": 0.0312,
                 },
             ],
+            "active_sources_by_type": [
+                {"source_type": "grid", "source_count": 2, "capacity_kw": 80.0},
+                {"source_type": "solar", "source_count": 1, "capacity_kw": 15.5},
+            ],
         },
     }
     assert conn.rolled_back and conn.closed
@@ -279,6 +300,7 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
     conn.renewable_asset_rows = []
     conn.annual_energy_row = (Decimal("0"),)
     conn.daily_efficiency_rows = []
+    conn.active_source_rows = []
 
     with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
         result = get_location_energy_summary(
@@ -312,6 +334,7 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
         },
         "trend_7d": [],
         "reviewed_efficiency_history": [],
+        "active_sources_by_type": [],
     }
     assert conn.rolled_back and conn.closed
 
@@ -386,6 +409,8 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
                 "by_type": [],
             },
             "trend_7d": [],
+            "reviewed_efficiency_history": [],
+            "active_sources_by_type": [],
         },
     }
     monkeypatch.setattr(

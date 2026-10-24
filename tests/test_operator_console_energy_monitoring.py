@@ -21,6 +21,8 @@ def test_energy_panel_is_hidden_and_describes_excluded_reading_fields():
     assert 'id="energy-monitoring-renewable-rows"' in panel.group()
     assert 'id="energy-monitoring-trend-rows"' in panel.group()
     assert 'id="energy-monitoring-efficiency-rows"' in panel.group()
+    assert 'id="energy-monitoring-source-rows"' in panel.group()
+    assert "Active energy sources" in panel.group()
     assert 'id="energy-monitoring-rows"' in panel.group()
 
 
@@ -53,6 +55,9 @@ def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
     assert "registered_carbon_offset_kg" in renderer.group()
     assert "legacy_generation_coverage_pct" in renderer.group()
     assert "calculations.reviewed_efficiency_history" in renderer.group()
+    assert "calculations.active_sources_by_type" in renderer.group()
+    assert "activeSourceRows.length > sourceTypes.size" in renderer.group()
+    assert "energyMonitoringSourceRows.append(row)" in renderer.group()
     assert "efficiencyHistory.length > 12" in renderer.group()
     assert "energyMonitoringEfficiencyRows.append(row)" in renderer.group()
     assert "new Set(sourceEmissions.map" in renderer.group()

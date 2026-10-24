@@ -1,3 +1,19 @@
+### Progress addendum — CAP-006 active energy source breakdown, 24 October 2026
+
+The scoped energy summary now restores the legacy dashboard's active energy
+source breakdown: fixed-type counts and summed capacity, filtered to the exact
+location and active status. This inventory is distinct from registered
+renewable assets. The response omits source names, IDs, and metadata, and the
+console validates the fixed enum and renders fields as text. The focused
+59-test Gateway/console/energy-domain/route-policy selection passes; Ruff,
+Python compilation, inline JavaScript syntax, runtime SQL inventory, matrix
+validation, and diff checks pass. No migration or database/provider access was
+needed. Populated source parity, ACL/RLS, live OIDC/browser, and MAN-CAP-006
+remain open. Checklist: 1,066 complete / 25 open (1,091 total); matrix: 26
+baseline-retained, 7 deployed, and 34 prepared across 67 rows, with 0/67 MAN-CAP
+checks accepted. [Contract](energy-monitoring-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-active-energy-source-breakdown.json).
+
 ### Progress addendum — CAP-006 reviewed daily efficiency history, 24 October 2026
 
 The signed energy summary now restores up to 12 recent daily efficiency-log

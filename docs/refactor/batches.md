@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,065 checklist items complete and 25
-open (1,090 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,066 checklist items complete and 25
+open (1,091 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -181,6 +181,21 @@ acceptance remains separate; none is marked accepted.
   output parity, database ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006
   remain open. Rollback is a source revert ([contract](energy-monitoring-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-energy-calculation-parity.json)).
+
+### CAP-006 active energy source breakdown — 24 October 2026
+
+- [x] Restore the legacy dashboard's active energy-source breakdown as a
+  location-scoped count and capacity aggregate grouped by the fixed source-type
+  enum. Keep this inventory distinct from renewable registrations and omit
+  names, identifiers, and metadata. The console validates the bounded enum
+  projection and renders fixed fields as text. The focused Gateway/console/
+  energy-domain/route-policy selection passes 59 tests; Ruff, Python
+  compilation, inline JavaScript syntax, runtime SQL inventory, capability
+  validation, and diff checks pass. No migration, database, provider, or
+  Raspberry Pi was used. Populated source parity, ACL/RLS, live OIDC/browser
+  acceptance, and MAN-CAP-006 remain open. Rollback is a source revert
+  ([contract](energy-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-active-energy-source-breakdown.json)).
 
 ### CAP-006 reviewed daily efficiency history — 24 October 2026
 

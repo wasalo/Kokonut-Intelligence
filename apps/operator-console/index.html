@@ -1838,6 +1838,13 @@
           <p id="energy-monitoring-status" class="muted" role="status" aria-live="polite"></p>
           <dl id="energy-monitoring-overview"></dl>
           <div class="table-wrap">
+            <h3>Active energy sources</h3>
+            <table>
+              <thead><tr><th>Source type</th><th>Active sources</th><th>Capacity (kW)</th></tr></thead>
+              <tbody id="energy-monitoring-source-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
             <table>
               <thead><tr><th>Reading</th><th>Source type</th><th>Activity</th><th>Readings</th><th>Total (kWh)</th><th>First</th><th>Latest</th></tr></thead>
               <tbody id="energy-monitoring-rows"></tbody>
@@ -2976,6 +2983,7 @@
       const energyMonitoringStatus = document.querySelector("#energy-monitoring-status");
       const energyMonitoringOverview = document.querySelector("#energy-monitoring-overview");
       const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
+      const energyMonitoringSourceRows = document.querySelector("#energy-monitoring-source-rows");
       const energyMonitoringRenewableRows = document.querySelector("#energy-monitoring-renewable-rows");
       const energyMonitoringTrendRows = document.querySelector("#energy-monitoring-trend-rows");
       const energyMonitoringEfficiencyRows = document.querySelector("#energy-monitoring-efficiency-rows");
@@ -14030,6 +14038,7 @@
         const finiteNumber = (value) => typeof value === "number" && Number.isFinite(value);
         const trend = calculations.trend_7d;
         const sourceEmissions = carbon.by_source_type;
+        const activeSourceRows = calculations.active_sources_by_type;
         const renewableTypes = new Set(["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]);
         const renewableRows = renewables.by_type;
         const efficiencyHistory = calculations.reviewed_efficiency_history;
@@ -14067,6 +14076,11 @@
               || !nullableFiniteNumber(row.net_energy_kwh)
               || !nullableFiniteNumber(row.renewable_pct)
               || !nullableFiniteNumber(row.carbon_intensity_kg_kwh))
+            || !Array.isArray(activeSourceRows) || activeSourceRows.length > sourceTypes.size
+            || activeSourceRows.some((row) => !sourceTypes.has(row?.source_type)
+              || !Number.isSafeInteger(row.source_count) || row.source_count < 0
+              || !finiteNumber(row.capacity_kw))
+            || new Set(activeSourceRows.map((row) => row.source_type)).size !== activeSourceRows.length
             || sourceEmissions.some((row) => !sourceTypes.has(row?.source_type)
               || !finiteNumber(row?.consumption_kwh)
               || !finiteNumber(row?.emission_factor_kg_co2e_per_kwh)
@@ -14101,6 +14115,7 @@
           energyMonitoringOverview.append(term, description);
         }
         energyMonitoringRows.replaceChildren();
+        energyMonitoringSourceRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
         energyMonitoringEfficiencyRows.replaceChildren();
@@ -14125,6 +14140,23 @@
             }
             energyMonitoringRows.append(row);
           }
+        }
+        for (const item of activeSourceRows) {
+          const row = document.createElement("tr");
+          for (const value of [item.source_type, item.source_count, item.capacity_kw]) {
+            const cell = document.createElement("td");
+            cell.textContent = energyMonitoringValue(value);
+            row.append(cell);
+          }
+          energyMonitoringSourceRows.append(row);
+        }
+        if (!activeSourceRows.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 3;
+          cell.textContent = "No active energy sources are available.";
+          row.append(cell);
+          energyMonitoringSourceRows.append(row);
         }
         for (const item of renewableRows) {
           const row = document.createElement("tr");
@@ -14192,6 +14224,7 @@
         if (!energyMonitoringLocations.has(locationId)) return;
         energyMonitoringOverview.replaceChildren();
         energyMonitoringRows.replaceChildren();
+        energyMonitoringSourceRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
         energyMonitoringEfficiencyRows.replaceChildren();
@@ -14221,7 +14254,8 @@
               || typeof result.dashboard_calculations.registered_renewables !== "object"
               || !Array.isArray(result.dashboard_calculations.registered_renewables.by_type)
               || !Array.isArray(result.dashboard_calculations.trend_7d)
-              || !Array.isArray(result.dashboard_calculations.reviewed_efficiency_history)) {
+              || !Array.isArray(result.dashboard_calculations.reviewed_efficiency_history)
+              || !Array.isArray(result.dashboard_calculations.active_sources_by_type)) {
             throw new Error("The response did not match the selected location or energy contract.");
           }
           renderEnergyMonitoringSummary(result);
@@ -14230,6 +14264,7 @@
           if (requestVersion !== energyMonitoringRequestVersion) return;
           energyMonitoringOverview.replaceChildren();
           energyMonitoringRows.replaceChildren();
+          energyMonitoringSourceRows.replaceChildren();
           energyMonitoringRenewableRows.replaceChildren();
           energyMonitoringTrendRows.replaceChildren();
           energyMonitoringEfficiencyRows.replaceChildren();

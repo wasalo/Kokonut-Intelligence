@@ -40,6 +40,11 @@ join:
   type enum. Both registration and related energy-source rows must match the
   requested location. These are stored asset declarations, not independently
   verified production or offsets.
+- Active `energy_source` counts and summed rated capacity, grouped by the fixed
+  source-type enum. This retains the legacy dashboard's source breakdown,
+  includes only rows with `status = 'active'`, and omits source names, IDs, and
+  arbitrary metadata. This asset inventory is separate from the renewable
+  registration summary above.
 - Indicative generation coverage, using the legacy formula
   `min(annual_generation / annual_consumption * 100, 100)`. Its denominator is
   consumption from verified/approved readings during the same 365-day window;
