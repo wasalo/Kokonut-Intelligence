@@ -166,6 +166,56 @@ class TestVariogramAnalyzer:
         result = analyzer.fit_variogram_model(empirical, model_type="gaussian")
         assert result["model_type"] == "gaussian"
 
+    @pytest.mark.parametrize("model_type", ["spherical", "exponential", "gaussian", "matern"])
+    def test_fit_variogram_model_recovers_synthetic_parameters(self, model_type):
+        import gstools
+
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        model_classes = {
+            "spherical": gstools.Spherical,
+            "exponential": gstools.Exponential,
+            "gaussian": gstools.Gaussian,
+            "matern": gstools.Matern,
+        }
+        expected = {"sill": 4.3, "range": 250.0, "nugget": 0.3}
+        truth = model_classes[model_type](
+            dim=2,
+            var=expected["sill"] - expected["nugget"],
+            len_scale=expected["range"],
+            nugget=expected["nugget"],
+        )
+        lags = np.linspace(20.0, 1000.0, 40)
+        empirical = {"lags": lags, "semivariances": truth.variogram(lags)}
+
+        result = VariogramAnalyzer(conn=MagicMock()).fit_variogram_model(
+            empirical, model_type=model_type
+        )
+
+        assert result["model_type"] == model_type
+        assert result["sill"] == pytest.approx(expected["sill"], rel=1e-4)
+        assert result["range"] == pytest.approx(expected["range"], rel=1e-4)
+        assert result["nugget"] == pytest.approx(expected["nugget"], rel=1e-4)
+        assert result["r_squared"] == pytest.approx(1.0)
+
+    def test_fit_variogram_model_discards_nonfinite_bins(self):
+        import gstools
+
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        lags = np.linspace(20.0, 1000.0, 10)
+        semivariances = gstools.Exponential(
+            dim=2, var=4.0, len_scale=250.0, nugget=0.3
+        ).variogram(lags)
+        semivariances[4] = np.nan
+        result = VariogramAnalyzer(conn=MagicMock()).fit_variogram_model(
+            {"lags": lags, "semivariances": semivariances},
+            model_type="exponential",
+        )
+
+        assert result["n_lags"] == 9
+        assert np.isfinite(result["r_squared"])
+
     def test_fit_variogram_model_unknown_type(self):
         from services.geostatistics.variogram import VariogramAnalyzer
         analyzer = VariogramAnalyzer(conn=MagicMock())

@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 variogram fitting, 24 October 2026
+
+The legacy variogram producer now runs GSTools' nonlinear robust fit instead
+of reporting its initial parameter estimate as a fit. It discards non-finite
+or invalid lag bins and returns only finite fitted parameters and R-squared.
+Deterministic synthetic variograms confirm parameter recovery across spherical,
+exponential, Gaussian, and Matérn families. Matérn smoothness remains fixed at
+GSTools' default because the current database schema does not store it. The
+full geostatistics module passes 78 tests; Ruff, compilation, runtime SQL
+inventory check, and capability validation pass. No migration or database was
+used. Checklist: 1,088 complete / 25 open (1,113 total). CAP-008 remains
+prepared pending scientific/populated parity, live OIDC/browser, ACL/RLS,
+audience review, and MAN-CAP-008
+([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-variogram-fit-optimization.json)).
+
 ### Progress addendum — CAP-008 shared geostatistics source queries, 24 October 2026
 
 Variogram fitting, spatial autocorrelation, kriging, simulation, and

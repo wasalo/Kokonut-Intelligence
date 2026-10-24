@@ -19,10 +19,23 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,087 checklist items complete and 25
-open (1,112 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,088 checklist items complete and 25
+open (1,113 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 variogram fitting optimization — 24 October 2026
+
+- [x] Fit the empirical variogram with GSTools' bounded nonlinear optimizer
+  instead of returning the initial parameter estimates. Non-finite or invalid
+  bins are excluded; fitted parameters and R-squared are checked for finiteness.
+  Synthetic fixtures recover known sill/range/nugget values for spherical,
+  exponential, Gaussian, and Matérn models. Matérn smoothness stays at the
+  GSTools default because the current schema does not persist it. The full
+  geostatistics module passes 78 tests; Ruff, compilation, runtime SQL inventory
+  check, and capability-matrix validation pass. No migration or database was
+  used. Rollback is a source revert; no SQL inventory changes are needed
+  ([evidence](builds/2026-10-24-recovery/cap-008-variogram-fit-optimization.json)).
 
 ### CAP-008 shared geostatistics source queries — 24 October 2026
 

@@ -69,6 +69,14 @@ query helper and location predicate. Explicit variogram IDs used by kriging
 and simulation must also match the requested location and property, with a
 generic mismatch response.
 
+The legacy variogram producer now calls GSTools' nonlinear robust
+`fit_variogram` optimizer for valid empirical bins; returned sill, range,
+nugget, partial sill, and R-squared are fitted values rather than starting
+estimates. Invalid or non-finite bins are excluded. Synthetic known-model
+fixtures cover spherical, exponential, Gaussian, and Matérn fits. Matérn
+smoothness is held at GSTools' default because the current schema does not
+persist that parameter, so smoothness is not yet configurable.
+
 ## Fitted variogram route
 
 `GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same
@@ -136,3 +144,5 @@ panel, then regenerates `runtime-sql-inventory.json`; no persistent data was
 written. The 73-test source-pipeline selection additionally checks the shared
 property map, rejection before connection, and kriging/simulation model scope;
 rollback for that source work is a code revert and SQL-inventory regeneration.
+The 78-test geostatistics selection also checks optimizer recovery against
+deterministic synthetic model curves and uses no database connection.

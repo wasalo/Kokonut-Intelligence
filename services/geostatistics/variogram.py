@@ -135,9 +135,17 @@ class VariogramAnalyzer:
         if ModelClass is None:
             return {"error": f"Unknown model_type: {model_type}"}
 
-        lags = np.array(empirical["lags"])
-        gamma = np.array(empirical["semivariances"])
+        try:
+            lags = np.asarray(empirical["lags"], dtype=float)
+            gamma = np.asarray(empirical["semivariances"], dtype=float)
+        except (KeyError, TypeError, ValueError):
+            return {"error": "Invalid empirical variogram data"}
 
+        if lags.ndim != 1 or gamma.ndim != 1 or lags.shape != gamma.shape:
+            return {"error": "Invalid empirical variogram data"}
+        valid = np.isfinite(lags) & np.isfinite(gamma) & (lags >= 0) & (gamma >= 0)
+        lags = lags[valid]
+        gamma = gamma[valid]
         if len(lags) < 3:
             return {"error": "Need >= 3 lag bins to fit a variogram model"}
 
@@ -155,11 +163,21 @@ class VariogramAnalyzer:
                 nugget=nugget_est,
             )
 
-            # Goodness-of-fit: r-squared between model and empirical
-            model_values = model.variogram(lags)
-            ss_res = float(np.sum((gamma - model_values) ** 2))
-            ss_tot = float(np.sum((gamma - np.mean(gamma)) ** 2))
-            r_squared = 1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+            # Fit the model parameters instead of reporting the initial guess.
+            # The database schema does not store Matérn smoothness, so retain
+            # GSTools' default value instead of fitting an unpersisted field.
+            fit_options = {"nu": False} if model_type == "matern" else {}
+            _, _, r_squared = model.fit_variogram(
+                lags,
+                gamma,
+                method="trf",
+                loss="soft_l1",
+                return_r2=True,
+                **fit_options,
+            )
+            parameters = (model.var, model.len_scale, model.nugget, r_squared)
+            if not all(np.isfinite(value) for value in parameters):
+                return {"error": "Model fitting produced non-finite parameters"}
 
             return {
                 "model_type": model_type,
@@ -167,7 +185,7 @@ class VariogramAnalyzer:
                 "range": float(model.len_scale),
                 "nugget": float(model.nugget),
                 "partial_sill": float(model.var),
-                "r_squared": round(r_squared, 4),
+                "r_squared": round(float(r_squared), 4),
                 "n_lags": len(lags),
             }
         except Exception as exc:

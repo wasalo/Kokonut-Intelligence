@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "variogram optimizer and finite-bin contract",
+  "classification": "prepared",
+  "implementation": {
+    "source": "services/geostatistics/variogram.py:VariogramAnalyzer.fit_variogram_model",
+    "optimizer": "GSTools CovModel.fit_variogram using trust-region reflective method and soft_l1 loss",
+    "initial_estimates": "used only as optimizer starting values",
+    "input_bins": "exclude non-finite, negative-lag, and negative-semivariance bins",
+    "output_validation": "reject non-finite fitted variance, range, nugget, or R-squared",
+    "matern_smoothness": "fixed at GSTools default because current schema does not persist nu",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "78 passed",
+    "coverage": "synthetic known-parameter recovery for spherical, exponential, Gaussian, and Matérn models; non-finite empirical-bin filtering",
+    "gstools_tested_version": "1.7.0",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated for updated source line references; freshness check passed and SQL semantics are unchanged",
+    "capability_matrix": "67-row validation passed",
+    "database_execution": "not run; synthetic in-memory curves only",
+    "migration_execution": "not run",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "empirical lag bin distance/tolerance/bandwidth semantics",
+    "scientific and populated fixture parity",
+    "schema support for persisted Matérn smoothness if product needs it",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the nonlinear fitting and finite-bin handling changes plus their focused tests. No persistent data was changed."
+}
