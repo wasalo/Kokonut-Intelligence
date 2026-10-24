@@ -1,3 +1,21 @@
+### Progress addendum — CAP-006 location-bound landscape references, 23 October 2026
+
+Migration 603 binds corridor source/target habitats and buffer-check habitats to
+the same location as their parent record. The new composite FKs are `NOT VALID`
+so new writes are checked without rewriting or blocking historical mismatches.
+The legacy habitat-summary, corridor-status, and buffer-compliance views now
+match both location and habitat ID when counting or resolving habitat names.
+The 71-test migration/landscape/Gateway selection passes, with Ruff and Python
+compilation clean. Disposable PostgreSQL 16 applies/replays migrations 154/603
+and passes six grouped checks for historical mismatch retention, hidden foreign
+names/counts, cross-location write denial, and same-location relationship
+preservation. Candidate and legacy databases remain untouched. Historical link
+review and constraint validation remain open, as do broader ACL/RLS, live
+OIDC/browser acceptance, and MAN-CAP-006. Checklist: 1,059 complete / 25 open
+(1,084 total); matrix: 26 baseline-retained, 7 deployed, and 34 prepared across
+67 rows; 0/67 MAN-CAP checks accepted. [Contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json).
+
 ### Progress addendum — CAP-006 pollinator legacy-service alignment, 23 October 2026
 
 The older pollinator analytics service now matches the installed source tables

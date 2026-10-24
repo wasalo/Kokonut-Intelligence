@@ -28,6 +28,16 @@ strength scores, and introduces location-bound inspection history. Observations
 may link to a hive only within the same location. No existing records are
 rewritten by this migration.
 
+Migration 603 applies the same location boundary to landscape habitat
+references. Composite foreign keys bind corridor source/target and buffer-check
+habitats to their parent location. They remain `NOT VALID` to preserve
+historical rows, while rejecting cross-location writes going forward. The
+legacy habitat-summary, corridor-status, and buffer-compliance views now use
+location-qualified joins/counts so historical mismatches do not expose a
+foreign habitat name or inflate its local inventory. Those historical links
+remain for an operator-reviewed reconciliation before the constraints can be
+validated.
+
 Landscape inventories group habitat zones, wildlife corridors, and hedgerows
 by their fixed type/condition/status dimensions and retain the source units
 (hectares and metres). These records are descriptive and their lifecycle state
@@ -72,12 +82,15 @@ discard stale responses, and render values through `textContent`.
 
 ## Verification and rollback
 
-The focused Gateway, route-policy, console-contract, JavaScript syntax, and
-pollinator service selection passes 35 tests; Ruff and Python compilation pass.
-The disposable PostgreSQL 16 check applies migrations 155 and 602, replays 602,
-and passes six grouped service/schema/location-link assertions. Evidence is in
+The focused migration, landscape-domain, Gateway, route-policy, console,
+JavaScript syntax, and pollinator service selection passes 71 tests; Ruff and
+Python compilation pass. A disposable PostgreSQL 16 check applies migrations
+154/603 and passes six grouped checks for historical link privacy and new-write
+scope; a separate check applies 155/602 and passes six service/schema assertions.
+Evidence is in
 `builds/2026-10-23-recovery/cap-006-pollinator-health-disposable.json` and the
-earlier Gateway/console evidence remains in
+`builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json`;
+the earlier Gateway/console evidence remains in
 `builds/2026-10-23-recovery/cap-006-landscape-pollinator-kernel-read.json`.
 No candidate/legacy database, provider, or Raspberry Pi was used. If deployed,
 rollback should revert the application only after stopping use of the new
@@ -85,6 +98,7 @@ fields; the additive migration and inspection history should be retained.
 
 This is a prepared read path, not proof of output parity, deployment-role
 least privilege, forced-RLS coverage, live ZITADEL behavior, browser acceptance,
-populated output parity, or MAN-CAP-006 acceptance. Migration 602 has not been
-applied to the candidate. The existing shared-identity CLI must not be treated
-as a tenant-safe writer until the worker/runtime identity gates close.
+populated output parity, historical reference reconciliation, candidate rollout,
+or MAN-CAP-006 acceptance. Migrations 602 and 603 have not been applied to the
+candidate. The existing shared-identity CLI must not be treated as a
+tenant-safe writer until the worker/runtime identity gates close.

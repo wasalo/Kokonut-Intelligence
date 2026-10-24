@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-24T02:40:42.209985+00:00",
+  "database": "PostgreSQL 16 disposable container with a geometry domain stub",
+  "migrations": [
+    "154_landscape_conservation.sql",
+    "603_location_bound_landscape_references.sql"
+  ],
+  "migration_603_replayed": true,
+  "assertion_groups_passed": 6,
+  "checks": [
+    "migration 603 adds location-composite references without rejecting historic rows",
+    "legacy corridor/buffer views hide mismatched foreign habitat names and counts",
+    "new cross-location source-habitat and buffer links fail database constraints",
+    "same-location corridor and buffer relationships remain available",
+    "migration replay preserves the location-safe view behavior"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "historical_mismatches_rewritten": false
+}
