@@ -561,7 +561,8 @@ class TestGeostatSimulator:
         )
         assert r1["realizations"][0] == r2["realizations"][0]
 
-    def test_sgs_synthetic_conditional_moments_match_ordinary_kriging_reference(self):
+    @pytest.mark.parametrize("nugget", [0.0, 0.2])
+    def test_sgs_synthetic_conditional_moments_match_ordinary_kriging_reference(self, nugget):
         import gstools as gs
 
         simulator, _ = self._make_simulator()
@@ -573,7 +574,7 @@ class TestGeostatSimulator:
             "model_type": "exponential",
             "sill": 2.5,
             "range": 100.0,
-            "nugget": 0.0,
+            "nugget": nugget,
         }
         n_realizations = 512
         result = simulator.sequential_gaussian_simulation(
@@ -582,7 +583,7 @@ class TestGeostatSimulator:
             variogram,
             n_realizations=n_realizations,
             grid_resolution_m=100.0,
-            seed=20261024,
+            seed=20261024 if nugget == 0.0 else 20261027,
         )
 
         assert "error" not in result
@@ -614,9 +615,13 @@ class TestGeostatSimulator:
         for coordinate, observed_value in zip(coordinates, values):
             matching = np.flatnonzero(np.all(np.isclose(grid, coordinate), axis=1))
             assert len(matching) == 1
-            np.testing.assert_allclose(
-                simulated[:, matching[0]], observed_value, rtol=0, atol=2e-7
-            )
+            if nugget == 0.0:
+                np.testing.assert_allclose(
+                    simulated[:, matching[0]], observed_value, rtol=0, atol=2e-7
+                )
+            else:
+                assert expected_variance[matching[0]] > 0
+                assert sample_variance[matching[0]] > 0
         np.testing.assert_allclose(result["e_type"], sample_mean, rtol=0, atol=1e-12)
         np.testing.assert_allclose(
             result["p10"], np.percentile(simulated, 10, axis=0), rtol=0, atol=1e-12
@@ -627,6 +632,33 @@ class TestGeostatSimulator:
         np.testing.assert_allclose(
             result["p90"], np.percentile(simulated, 90, axis=0), rtol=0, atol=1e-12
         )
+
+    @pytest.mark.parametrize("model_type", ["spherical", "gaussian", "matern"])
+    def test_sgs_generates_finite_conditioned_draws_for_supported_models(self, model_type):
+        simulator, _ = self._make_simulator()
+        coordinates = [[0.0, 0.0], [100.0, 0.0], [0.0, 100.0], [100.0, 100.0]]
+        values = [1.0, 2.0, 3.0, 4.0]
+        variogram = {
+            "model_type": model_type,
+            "sill": 2.5,
+            "range": 100.0,
+            "nugget": 0.2,
+        }
+
+        result = simulator.sequential_gaussian_simulation(
+            coordinates,
+            values,
+            variogram,
+            n_realizations=2,
+            grid_resolution_m=100.0,
+            seed=20261028,
+        )
+
+        assert "error" not in result
+        simulated = np.asarray(result["realizations"])
+        assert simulated.shape == (2, result["n_points"])
+        assert np.isfinite(simulated).all()
+        assert result["simulation_engine"] == "gstools_conditional_random_field"
 
     def test_sgs_uses_conditional_random_fields_without_dense_grid_cholesky(self, monkeypatch):
         simulator, _ = self._make_simulator()
