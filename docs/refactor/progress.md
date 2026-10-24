@@ -1,3 +1,21 @@
+### Progress addendum — CAP-006 energy dashboard calculations, 23 October 2026
+
+The signed energy summary now includes 30-day verified/approved consumption,
+production, and net totals; renewable-use share using the legacy source-type
+set; a seven-day trend; and a fixed-factor carbon estimate labeled as
+advisory. The carbon factors match the legacy source-type factors, while
+unreviewed readings remain excluded under the Kernel evidence boundary. Cost
+totals stay withheld because the schema has no currency field; registered
+renewable capacity/generation/offset calculations are not included. The 59-test
+Gateway/console/energy-domain/route-policy selection passes, along with Ruff,
+Python compilation, JavaScript syntax, runtime SQL inventory, capability
+validation, and diff checks. No migration, database, provider, or Raspberry Pi
+was used. This closes code-defined energy calculations only; populated output
+parity, ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006 remain open.
+Checklist: 1,063 complete / 25 open (1,088 total); matrix: 26 baseline-retained,
+7 deployed, and 34 prepared across 67 rows, with 0/67 MAN-CAP checks accepted.
+[Contract](energy-monitoring-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-006-energy-calculation-parity.json).
+
 ### Progress addendum — CAP-006 landscape dashboard calculations, 23 October 2026
 
 The signed landscape summary now includes source-defined dashboard aggregates

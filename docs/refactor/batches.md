@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,062 checklist items complete and 25
-open (1,087 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,063 checklist items complete and 25
+open (1,088 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -164,6 +164,23 @@ acceptance remains separate; none is marked accepted.
   ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006 remain open. Rollback
   is a source revert ([contract](landscape-pollinator-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-landscape-calculation-parity.json)).
+
+### CAP-006 energy dashboard calculation parity — 23 October 2026
+
+- [x] Restore the 30-day verified/approved energy totals (consumption,
+  production, and net), renewable-use share using the legacy source-type set,
+  a seven-day daily trend, and the legacy fixed-factor carbon estimate under
+  an explicitly advisory model name. Every query retains the signed
+  location-scoped read-only transaction and location-qualified source join.
+  Costs remain withheld because the schema has no currency field; registered
+  renewable capacity, annual generation, and offsets remain outside this
+  calculation slice. The combined Gateway, console, energy-domain, and route
+  policy selection passes 59 tests. Ruff, compilation, JavaScript syntax,
+  refreshed runtime SQL inventory, capability validation, and diff checks pass.
+  No migration, provider, candidate, or legacy database was used. Populated
+  output parity, database ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006
+  remain open. Rollback is a source revert ([contract](energy-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-energy-calculation-parity.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

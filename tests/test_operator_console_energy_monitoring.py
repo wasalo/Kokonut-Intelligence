@@ -14,7 +14,9 @@ def test_energy_panel_is_hidden_and_describes_excluded_reading_fields():
     assert panel
     assert 'id="energy-monitoring" hidden' in panel.group()
     assert "verified and approved meter readings" in panel.group()
-    assert "costs, source names, device IDs, notes" in panel.group()
+    assert "Costs, source names, device IDs, notes" in panel.group()
+    assert "legacy fixed-factor estimate" in panel.group()
+    assert 'id="energy-monitoring-trend-rows"' in panel.group()
     assert 'id="energy-monitoring-rows"' in panel.group()
 
 
@@ -30,6 +32,7 @@ def test_energy_reader_is_exact_grant_gated_no_store_and_checks_response_scope()
     assert "result.location_id !== locationId" in reader.group()
     assert "requestVersion !== energyMonitoringRequestVersion" in reader.group()
     assert "result.unit !== \"kWh\"" in reader.group()
+    assert "result.dashboard_calculations" in reader.group()
 
 
 def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
@@ -39,6 +42,10 @@ def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
     assert renderer
     assert "sourceTypes.has(row?.source_type)" in renderer.group()
     assert "activities.has(row?.activity_type)" in renderer.group()
+    assert "calculations.legacy_carbon_estimate" in renderer.group()
+    assert "calculations.trend_7d" in renderer.group()
+    assert "legacy_source_type_factors_v1" in renderer.group()
+    assert "new Set(sourceEmissions.map" in renderer.group()
     assert "cell.textContent = energyMonitoringValue(value)" in renderer.group()
     assert ".innerHTML" not in renderer.group()
     assert "cost_per_kwh" not in renderer.group()

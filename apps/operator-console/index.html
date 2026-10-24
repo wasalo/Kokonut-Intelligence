@@ -1829,7 +1829,7 @@
         </section>
         <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
           <h2 id="energy-monitoring-heading">Farm energy</h2>
-          <p class="muted">Read-only aggregate of verified and approved meter readings for a granted location. Values are kWh; costs, source names, device IDs, notes, and unreviewed readings are excluded.</p>
+          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon values use the legacy fixed-factor estimate and are advisory, not verified emissions.</p>
           <div class="toolbar">
             <label for="energy-monitoring-location">Granted location</label>
             <select id="energy-monitoring-location"></select>
@@ -1841,6 +1841,13 @@
             <table>
               <thead><tr><th>Reading</th><th>Source type</th><th>Activity</th><th>Readings</th><th>Total (kWh)</th><th>First</th><th>Latest</th></tr></thead>
               <tbody id="energy-monitoring-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
+            <h3>Seven-day verified energy trend</h3>
+            <table>
+              <thead><tr><th>Day</th><th>Consumption (kWh)</th><th>Production (kWh)</th></tr></thead>
+              <tbody id="energy-monitoring-trend-rows"></tbody>
             </table>
           </div>
         </section>
@@ -2955,6 +2962,7 @@
       const energyMonitoringStatus = document.querySelector("#energy-monitoring-status");
       const energyMonitoringOverview = document.querySelector("#energy-monitoring-overview");
       const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
+      const energyMonitoringTrendRows = document.querySelector("#energy-monitoring-trend-rows");
       let energyMonitoringLocations = new Set();
       let energyMonitoringRequestVersion = 0;
       const wasteManagement = document.querySelector("#waste-management");
@@ -13991,22 +13999,59 @@
 
       function renderEnergyMonitoringSummary(summary) {
         energyMonitoringOverview.replaceChildren();
-        const term = document.createElement("dt");
-        const description = document.createElement("dd");
-        term.textContent = "Verified/approved readings";
-        description.textContent = energyMonitoringValue(summary.verified_reading_count);
-        energyMonitoringOverview.append(term, description);
-
         const sourceTypes = new Set(["grid", "diesel_generator", "solar", "wind", "biogas", "biomass", "battery"]);
         const activities = new Set(["irrigation", "processing", "storage", "lighting", "pump", "other", "unspecified"]);
         const rows = Array.isArray(summary.groups) ? summary.groups : [];
+        const calculations = summary.dashboard_calculations;
+        const carbon = calculations.legacy_carbon_estimate;
         if (rows.some((row) => !["consumption", "production"].includes(row?.reading_type)
             || !sourceTypes.has(row?.source_type) || !activities.has(row?.activity_type)
             || !Number.isSafeInteger(row?.reading_count) || row.reading_count < 0
             || typeof row?.total_kwh !== "number" || !Number.isFinite(row.total_kwh))) {
           throw new Error("The energy response did not match the supported summary format.");
         }
+        const finiteNumber = (value) => typeof value === "number" && Number.isFinite(value);
+        const trend = calculations.trend_7d;
+        const sourceEmissions = carbon.by_source_type;
+        if (calculations.period_days !== 30
+            || !finiteNumber(calculations.total_consumption_kwh)
+            || !finiteNumber(calculations.total_production_kwh)
+            || !finiteNumber(calculations.net_energy_kwh)
+            || !finiteNumber(calculations.renewable_consumption_kwh)
+            || !finiteNumber(calculations.renewable_share_pct)
+            || carbon.model !== "legacy_source_type_factors_v1"
+            || !finiteNumber(carbon.total_emissions_kg_co2e)
+            || !finiteNumber(carbon.intensity_kg_co2e_per_kwh)
+            || !Array.isArray(sourceEmissions) || !Array.isArray(trend)
+            || sourceEmissions.some((row) => !sourceTypes.has(row?.source_type)
+              || !finiteNumber(row?.consumption_kwh)
+              || !finiteNumber(row?.emission_factor_kg_co2e_per_kwh)
+              || !finiteNumber(row?.estimated_emissions_kg_co2e))
+            || new Set(sourceEmissions.map((row) => row.source_type)).size !== sourceEmissions.length
+            || trend.some((row) => typeof row?.reading_date !== "string"
+              || !/^\d{4}-\d{2}-\d{2}$/.test(row.reading_date)
+              || !finiteNumber(row?.consumption_kwh) || !finiteNumber(row?.production_kwh))) {
+          throw new Error("The energy calculations did not match the supported summary format.");
+        }
+        const overview = [
+          ["Verified/approved readings", summary.verified_reading_count],
+          ["30-day consumption (kWh)", calculations.total_consumption_kwh],
+          ["30-day production (kWh)", calculations.total_production_kwh],
+          ["30-day net energy (kWh)", calculations.net_energy_kwh],
+          ["Renewable-source consumption (kWh)", calculations.renewable_consumption_kwh],
+          ["Renewable-source share (%)", calculations.renewable_share_pct],
+          ["Legacy estimated emissions (kg CO₂e)", carbon.total_emissions_kg_co2e],
+          ["Legacy estimated carbon intensity (kg CO₂e/kWh)", carbon.intensity_kg_co2e_per_kwh]
+        ];
+        for (const [label, value] of overview) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = energyMonitoringValue(value);
+          energyMonitoringOverview.append(term, description);
+        }
         energyMonitoringRows.replaceChildren();
+        energyMonitoringTrendRows.replaceChildren();
         if (!rows.length) {
           const row = document.createElement("tr");
           const cell = document.createElement("td");
@@ -14014,20 +14059,37 @@
           cell.textContent = "No verified or approved energy readings are available.";
           row.append(cell);
           energyMonitoringRows.append(row);
-          return;
+        } else {
+          for (const item of rows) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.reading_type, item.source_type, item.activity_type,
+              item.reading_count, item.total_kwh, item.first_reading_date,
+              item.last_reading_date
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = energyMonitoringValue(value);
+              row.append(cell);
+            }
+            energyMonitoringRows.append(row);
+          }
         }
-        for (const item of rows) {
+        for (const item of trend) {
           const row = document.createElement("tr");
-          for (const value of [
-            item.reading_type, item.source_type, item.activity_type,
-            item.reading_count, item.total_kwh, item.first_reading_date,
-            item.last_reading_date
-          ]) {
+          for (const value of [item.reading_date, item.consumption_kwh, item.production_kwh]) {
             const cell = document.createElement("td");
             cell.textContent = energyMonitoringValue(value);
             row.append(cell);
           }
-          energyMonitoringRows.append(row);
+          energyMonitoringTrendRows.append(row);
+        }
+        if (!trend.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 3;
+          cell.textContent = "No verified or approved readings in the seven-day window.";
+          row.append(cell);
+          energyMonitoringTrendRows.append(row);
         }
       }
 
@@ -14037,6 +14099,7 @@
         if (!energyMonitoringLocations.has(locationId)) return;
         energyMonitoringOverview.replaceChildren();
         energyMonitoringRows.replaceChildren();
+        energyMonitoringTrendRows.replaceChildren();
         energyMonitoringStatus.textContent = "Loading verified and approved meter aggregates…";
         try {
           const response = await fetch(
@@ -14055,15 +14118,20 @@
               || locationId !== energyMonitoringLocation.value) return;
           if (result.location_id !== locationId || result.unit !== "kWh"
               || !Number.isSafeInteger(result.verified_reading_count)
-              || result.verified_reading_count < 0 || !Array.isArray(result.groups)) {
+              || result.verified_reading_count < 0 || !Array.isArray(result.groups)
+              || !result.dashboard_calculations || typeof result.dashboard_calculations !== "object"
+              || !result.dashboard_calculations.legacy_carbon_estimate
+              || typeof result.dashboard_calculations.legacy_carbon_estimate !== "object"
+              || !Array.isArray(result.dashboard_calculations.trend_7d)) {
             throw new Error("The response did not match the selected location or energy contract.");
           }
           renderEnergyMonitoringSummary(result);
-          energyMonitoringStatus.textContent = "Read-only kWh aggregates include verified and approved readings only. Costs and source identities are withheld.";
+          energyMonitoringStatus.textContent = "All meter-derived values use verified/approved readings. The carbon estimate uses fixed legacy factors and is advisory; cost totals stay withheld because the source schema does not classify currency.";
         } catch (error) {
           if (requestVersion !== energyMonitoringRequestVersion) return;
           energyMonitoringOverview.replaceChildren();
           energyMonitoringRows.replaceChildren();
+          energyMonitoringTrendRows.replaceChildren();
           energyMonitoringStatus.textContent = error.message;
         }
       }

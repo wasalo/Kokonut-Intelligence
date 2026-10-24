@@ -30,15 +30,29 @@ class _Cursor:
 
     def execute(self, query, params=None):
         self.conn.queries.append((query, params))
-        if "FROM energy_reading AS er" in query:
+        if "GROUP BY er.reading_type" in query:
             self.description = [(name,) for name in (
                 "reading_type", "source_type", "activity_type", "reading_count",
                 "total_kwh", "first_reading_date", "last_reading_date",
             )]
-            self.rows = [
+            self.rows = getattr(self.conn, "energy_group_rows", [
                 ("consumption", "solar", "irrigation", 2, Decimal("10.50"), date(2026, 1, 2), date(2026, 1, 3)),
                 ("production", "solar", "unspecified", 1, Decimal("8"), date(2026, 1, 4), date(2026, 1, 4)),
-            ]
+            ])
+        elif "GROUP BY es.source_type" in query:
+            self.description = [(name,) for name in ("source_type", "consumption_kwh", "production_kwh")]
+            self.rows = getattr(self.conn, "energy_calculation_rows", [
+                ("biogas", Decimal("10"), Decimal("0")),
+                ("diesel_generator", Decimal("10"), Decimal("0")),
+                ("grid", Decimal("100"), Decimal("0")),
+                ("solar", Decimal("20"), Decimal("40")),
+            ])
+        elif "GROUP BY er.reading_date" in query:
+            self.description = [(name,) for name in ("reading_date", "consumption_kwh", "production_kwh")]
+            self.rows = getattr(self.conn, "energy_trend_rows", [
+                (date(2026, 10, 17), Decimal("10"), Decimal("0")),
+                (date(2026, 10, 18), Decimal("0"), Decimal("2")),
+            ])
 
     def fetchall(self):
         return self.rows
@@ -102,14 +116,20 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
             operator_id, location_id, connection_factory=lambda: conn
         )
 
-    query, params = next((query, params) for query, params in conn.queries if "FROM energy_reading AS er" in query)
+    queries = [(query, params) for query, params in conn.queries if "FROM energy_reading AS er" in query]
+    assert len(queries) == 3
+    query, params = queries[0]
     assert "er.location_id = %s::uuid" in query
     assert "er.status IN ('verified', 'approved')" in query
     assert "es.location_id = er.location_id" in query
     for private_field in ("cost_per_kwh", "total_cost", "source_name", "equipment_id", "notes", "metadata"):
         assert private_field not in query
     assert params == (location_id,)
-    assert conn.events == ["query", "query", "query", "tenant_context", "query"]
+    assert all("er.location_id = %s::uuid" in item and item_params == (location_id,) for item, item_params in queries)
+    assert all("er.status IN ('verified', 'approved')" in item for item, _ in queries)
+    assert "CURRENT_DATE - INTERVAL '30 days'" in queries[1][0]
+    assert "CURRENT_DATE - INTERVAL '7 days'" in queries[2][0]
+    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query"]
     assert result == {
         "location_id": location_id,
         "unit": "kWh",
@@ -128,6 +148,29 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                 "last_reading_date": "2026-01-04",
             },
         ],
+        "dashboard_calculations": {
+            "period_days": 30,
+            "total_consumption_kwh": 140.0,
+            "total_production_kwh": 40.0,
+            "net_energy_kwh": -100.0,
+            "renewable_consumption_kwh": 30.0,
+            "renewable_share_pct": 21.43,
+            "legacy_carbon_estimate": {
+                "model": "legacy_source_type_factors_v1",
+                "total_emissions_kg_co2e": 52.5,
+                "intensity_kg_co2e_per_kwh": 0.375,
+                "by_source_type": [
+                    {"source_type": "biogas", "consumption_kwh": 10.0, "emission_factor_kg_co2e_per_kwh": 0.05, "estimated_emissions_kg_co2e": 0.5},
+                    {"source_type": "diesel_generator", "consumption_kwh": 10.0, "emission_factor_kg_co2e_per_kwh": 0.7, "estimated_emissions_kg_co2e": 7.0},
+                    {"source_type": "grid", "consumption_kwh": 100.0, "emission_factor_kg_co2e_per_kwh": 0.45, "estimated_emissions_kg_co2e": 45.0},
+                    {"source_type": "solar", "consumption_kwh": 20.0, "emission_factor_kg_co2e_per_kwh": 0.0, "estimated_emissions_kg_co2e": 0.0},
+                ],
+            },
+            "trend_7d": [
+                {"reading_date": "2026-10-17", "consumption_kwh": 10.0, "production_kwh": 0.0},
+                {"reading_date": "2026-10-18", "consumption_kwh": 0.0, "production_kwh": 2.0},
+            ],
+        },
     }
     assert conn.rolled_back and conn.closed
 
@@ -144,6 +187,38 @@ def test_invalid_energy_scope_fails_before_database_connection(bad_operator, bad
     with pytest.raises(ValueError, match="Invalid operator or location"):
         get_location_energy_summary(bad_operator, bad_location, connection_factory=connection_factory)
     assert not opened
+
+
+def test_energy_dashboard_calculations_handle_empty_verified_readings():
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    conn.energy_group_rows = []
+    conn.energy_calculation_rows = []
+    conn.energy_trend_rows = []
+
+    with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
+        result = get_location_energy_summary(
+            operator_id, location_id, connection_factory=lambda: conn
+        )
+
+    assert result["verified_reading_count"] == 0
+    assert result["groups"] == []
+    assert result["dashboard_calculations"] == {
+        "period_days": 30,
+        "total_consumption_kwh": 0,
+        "total_production_kwh": 0,
+        "net_energy_kwh": 0,
+        "renewable_consumption_kwh": 0,
+        "renewable_share_pct": 0,
+        "legacy_carbon_estimate": {
+            "model": "legacy_source_type_factors_v1",
+            "total_emissions_kg_co2e": 0,
+            "intensity_kg_co2e_per_kwh": 0,
+            "by_source_type": [],
+        },
+        "trend_7d": [],
+    }
+    assert conn.rolled_back and conn.closed
 
 
 @pytest.fixture
@@ -187,7 +262,27 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
             )
 
     monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: Provider())
-    expected = {"location_id": location_id, "unit": "kWh", "verified_reading_count": 0, "groups": []}
+    expected = {
+        "location_id": location_id,
+        "unit": "kWh",
+        "verified_reading_count": 0,
+        "groups": [],
+        "dashboard_calculations": {
+            "period_days": 30,
+            "total_consumption_kwh": 0,
+            "total_production_kwh": 0,
+            "net_energy_kwh": 0,
+            "renewable_consumption_kwh": 0,
+            "renewable_share_pct": 0,
+            "legacy_carbon_estimate": {
+                "model": "legacy_source_type_factors_v1",
+                "total_emissions_kg_co2e": 0,
+                "intensity_kg_co2e_per_kwh": 0,
+                "by_source_type": [],
+            },
+            "trend_7d": [],
+        },
+    }
     monkeypatch.setattr(
         "services.gateway.energy_monitoring.get_location_energy_summary",
         lambda op, loc: expected if (op, loc) == (operator_id, location_id) else None,
