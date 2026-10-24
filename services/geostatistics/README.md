@@ -22,3 +22,12 @@ python3 -m services.geostatistics.cli --help
 ## Files
 
 8 Python modules
+
+For the `simulate` command, `--mode-no` accepts 1–1,000 GSTools random modes
+and defaults to 1,000 to preserve the existing generator setting. Lower values
+can reduce runtime on constrained hosts, with a corresponding loss of spectral
+fidelity. The selected mode count, generator, sampling mode, and GSTools version
+are recorded in each persisted realization's JSONB metadata. Synthetic moment
+checks cover the 100-mode setting for spherical and Gaussian models; choose
+settings for production only after scientific review against representative
+data.

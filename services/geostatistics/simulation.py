@@ -16,9 +16,11 @@ import psycopg2.extras
 
 from .config import (
     DEFAULT_SGS_GRID_SIZE_M,
+    DEFAULT_SGS_MODE_NO,
     DEFAULT_SGS_REALIZATIONS,
     DEFAULT_SGS_SEED,
     MAX_SGS_GRID_POINTS,
+    MAX_SGS_MODE_NO,
     MAX_SGS_OUTPUT_VALUES,
     MAX_SGS_REALIZATIONS,
 )
@@ -89,6 +91,7 @@ class GeostatSimulator:
         n_realizations: int,
         grid_resolution_m: float,
         seed: int,
+        mode_no: int,
     ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, str]]]:
         try:
             coords = np.asarray(coordinates, dtype=float)
@@ -113,7 +116,7 @@ class GeostatSimulator:
                 "error": "Coordinates and values must be finite"
             }
         settings, error = GeostatSimulator._validate_run_settings(
-            n_realizations, grid_resolution_m, seed
+            n_realizations, grid_resolution_m, seed, mode_no
         )
         if error:
             return None, error
@@ -127,7 +130,7 @@ class GeostatSimulator:
             or nugget >= sill
         ):
             return None, {"error": "Invalid variogram model"}
-        n_realizations, grid_resolution_m, seed = settings
+        n_realizations, grid_resolution_m, seed, mode_no = settings
         return {
             "coordinates": coords,
             "values": field,
@@ -138,10 +141,11 @@ class GeostatSimulator:
             "n_realizations": n_realizations,
             "grid_resolution_m": grid_resolution_m,
             "seed": seed,
+            "mode_no": mode_no,
         }, None
 
     @staticmethod
-    def _validate_run_settings(n_realizations, grid_resolution_m, seed):
+    def _validate_run_settings(n_realizations, grid_resolution_m, seed, mode_no):
         try:
             resolution = float(grid_resolution_m)
         except (OverflowError, TypeError, ValueError):
@@ -162,7 +166,15 @@ class GeostatSimulator:
             or not 0 <= seed <= 2**32 - 1
         ):
             return None, {"error": "seed must be an integer between 0 and 4294967295"}
-        return (int(n_realizations), resolution, int(seed)), None
+        if (
+            isinstance(mode_no, bool)
+            or not isinstance(mode_no, (int, np.integer))
+            or not 1 <= mode_no <= MAX_SGS_MODE_NO
+        ):
+            return None, {
+                "error": f"mode_no must be an integer from 1 to {MAX_SGS_MODE_NO}"
+            }
+        return (int(n_realizations), resolution, int(seed), int(mode_no)), None
 
     def sequential_gaussian_simulation(
         self,
@@ -172,6 +184,7 @@ class GeostatSimulator:
         n_realizations: int = DEFAULT_SGS_REALIZATIONS,
         grid_resolution_m: float = DEFAULT_SGS_GRID_SIZE_M,
         seed: int = DEFAULT_SGS_SEED,
+        mode_no: int = DEFAULT_SGS_MODE_NO,
     ) -> Dict[str, Any]:
         """Generate seeded conditional Gaussian field realizations.
 
@@ -182,12 +195,15 @@ class GeostatSimulator:
             n_realizations: Number of realizations to generate.
             grid_resolution_m: Grid cell size in meters.
             seed: Random seed for reproducibility.
+            mode_no: GSTools random modes; lower values trade spectral fidelity
+                for runtime and are recorded with persisted realizations.
 
         Returns:
             Dict with realizations (list of arrays), grid, metadata.
         """
         inputs, error = self._validate_inputs(
-            coordinates, values, variogram_model, n_realizations, grid_resolution_m, seed
+            coordinates, values, variogram_model, n_realizations,
+            grid_resolution_m, seed, mode_no
         )
         if error:
             return error
@@ -200,6 +216,7 @@ class GeostatSimulator:
         n_realizations = inputs["n_realizations"]
         grid_resolution_m = inputs["grid_resolution_m"]
         seed = inputs["seed"]
+        mode_no = inputs["mode_no"]
         try:
             grid = self._build_grid(coords, grid_resolution_m)
         except ValueError as exc:
@@ -224,7 +241,9 @@ class GeostatSimulator:
         kriging = gs.krige.Ordinary(
             sk_model, [coords[:, 0], coords[:, 1]], field
         )
-        conditional_srf = gs.CondSRF(kriging)
+        conditional_srf = gs.CondSRF(
+            kriging, mode_no=mode_no, sampling="auto"
+        )
         conditional_srf.set_pos([grid[:, 0], grid[:, 1]])
         seed_stream = gs.random.MasterRNG(seed)
         real_arr = np.empty((n_realizations, len(grid)), dtype=float)
@@ -256,7 +275,11 @@ class GeostatSimulator:
             "p90": p90.tolist(),
             "grid_resolution_m": grid_resolution_m,
             "seed": seed,
+            "mode_no": mode_no,
             "simulation_engine": "gstools_conditional_random_field",
+            "simulation_generator": "RandMeth",
+            "simulation_sampling": "auto",
+            "gstools_version": getattr(gs, "__version__", "unknown"),
             "variogram_model": variogram_model,
         }
 
@@ -284,16 +307,17 @@ class GeostatSimulator:
         grid_resolution_m: float = DEFAULT_SGS_GRID_SIZE_M,
         seed: int = DEFAULT_SGS_SEED,
         variogram_model_id: Optional[str] = None,
+        mode_no: int = DEFAULT_SGS_MODE_NO,
     ) -> Dict[str, Any]:
         """Run conditional Gaussian field simulation from database sources."""
         if not supports_database_property(property_key):
             return {"error": f"Unsupported property_key: {property_key}"}
         settings, error = self._validate_run_settings(
-            n_realizations, grid_resolution_m, seed
+            n_realizations, grid_resolution_m, seed, mode_no
         )
         if error:
             return error
-        n_realizations, grid_resolution_m, seed = settings
+        n_realizations, grid_resolution_m, seed, mode_no = settings
 
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -367,6 +391,7 @@ class GeostatSimulator:
             n_realizations=n_realizations,
             grid_resolution_m=grid_resolution_m,
             seed=seed,
+            mode_no=mode_no,
         )
         if "error" in result:
             return result
@@ -403,6 +428,15 @@ class GeostatSimulator:
             realizations = np.asarray(result["realizations"], dtype=float)
         except (KeyError, OverflowError, TypeError, ValueError):
             return None
+        mode_no = result.get("mode_no")
+        if mode_no is not None:
+            if (
+                isinstance(mode_no, bool)
+                or not isinstance(mode_no, (int, np.integer))
+                or not 1 <= mode_no <= MAX_SGS_MODE_NO
+            ):
+                return None
+            mode_no = int(mode_no)
         if (
             not np.isfinite([origin_lat, origin_lon]).all()
             or not -89.9 < origin_lat < 89.9
@@ -457,8 +491,8 @@ class GeostatSimulator:
                 INSERT INTO geostat_realization (
                     id, location_id, variogram_model_id, property_key,
                     realization_number, grid_resolution_m, n_points,
-                    method, seed
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    method, seed, metadata
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 real_id,
                 location_id,
@@ -469,6 +503,19 @@ class GeostatSimulator:
                 len(point_indices),
                 "sgs",
                 result.get("seed"),
+                psycopg2.extras.Json(
+                    {
+                        key: value
+                        for key, value in {
+                            "simulation_engine": result.get("simulation_engine"),
+                            "simulation_generator": result.get("simulation_generator"),
+                            "simulation_sampling": result.get("simulation_sampling"),
+                            "gstools_version": result.get("gstools_version"),
+                            "mode_no": mode_no,
+                        }.items()
+                        if value is not None
+                    }
+                ),
             ))
 
             for idx in point_indices:

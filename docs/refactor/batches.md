@@ -19,10 +19,29 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,095 checklist items complete and 25
-open (1,120 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,096 checklist items complete and 25
+open (1,121 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 configurable conditional-simulation mode count — 24 October 2026
+
+- [x] Expose GSTools RandMeth `--mode-no` from 1 to 1,000, keeping the
+  existing 1,000-mode default. Lower values trade spectral fidelity for runtime;
+  the database runner and CLI reject invalid counts before database access.
+  Persisted realization metadata now records the selected mode count, generator,
+  sampling policy, and GSTools version using the existing JSONB column. Add
+  128-draw conditional-moment comparisons for spherical and Gaussian variograms
+  at 100 modes; Matérn retains finite-draw smoke coverage. The full geostatistics
+  module passes 145 tests; focused checks, Ruff, compilation, and diff checks
+  pass. No migration, database, provider, candidate, or legacy stack was used.
+  Rollback is a source/docs revert; no schema change is needed. Lower mode counts
+  remain experimental until representative-data scientific review. CAP-008
+  remains prepared pending populated parity, independent scientific review,
+  live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008
+  ([contract](geostatistics-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-mode-count-and-family-moments.json)).
+  Checklist: 1,096 complete / 25 open (1,121 total).
 
 ### CAP-008 variogram-family and nugget simulation coverage — 24 October 2026
 

@@ -29,8 +29,10 @@ from .config import (
     DEFAULT_MAX_NEIGHBORS,
     DEFAULT_SEARCH_RADIUS_M,
     DEFAULT_SGS_GRID_SIZE_M,
+    DEFAULT_SGS_MODE_NO,
     DEFAULT_SGS_REALIZATIONS,
     DEFAULT_SGS_SEED,
+    MAX_SGS_MODE_NO,
     MAX_SGS_REALIZATIONS,
     PROPERTY_DEFAULTS,
 )
@@ -131,6 +133,13 @@ def main():
     sim.add_argument("--realizations", type=_positive_integer, default=DEFAULT_SGS_REALIZATIONS, help="Number of realizations")
     sim.add_argument("--resolution", type=_positive_finite_float, default=DEFAULT_SGS_GRID_SIZE_M, help="Grid resolution in meters")
     sim.add_argument("--seed", type=_nonnegative_integer, default=DEFAULT_SGS_SEED, help="Random seed")
+    sim.add_argument(
+        "--mode-no", type=_positive_integer, default=DEFAULT_SGS_MODE_NO,
+        help=(
+            "GSTools random modes (1-1000); lower values trade spectral "
+            "fidelity for runtime"
+        ),
+    )
     sim.add_argument("--variogram-id", default=None, help="Variogram model UUID")
     sim.add_argument("--persist", action="store_true", help="Persist to database")
 
@@ -208,6 +217,8 @@ def main():
             parser.error(
                 f"--realizations cannot exceed {MAX_SGS_REALIZATIONS}"
             )
+        if args.mode_no > MAX_SGS_MODE_NO:
+            parser.error(f"--mode-no cannot exceed {MAX_SGS_MODE_NO}")
 
     from services.common.database import get_db
 
@@ -262,6 +273,7 @@ def main():
                 n_realizations=args.realizations,
                 grid_resolution_m=args.resolution,
                 seed=args.seed,
+                mode_no=args.mode_no,
                 variogram_model_id=args.variogram_id,
             )
             if args.persist and "error" not in result:

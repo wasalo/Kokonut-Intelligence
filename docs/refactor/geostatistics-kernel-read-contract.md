@@ -249,7 +249,7 @@ before opening PostgreSQL, drops non-finite/out-of-range cells, and samples
 the point cap deterministically. The projection remains a local equirectangular
 approximation; geographic parity remains part of scientific review.
 
-The 134-test geostatistics module now covers seeded reproducibility, the
+The 145-test geostatistics module now covers seeded reproducibility, the
 GSTools conditional-field path without dense Cholesky, resource bounds,
 invalid/degenerate models, DB source preflight, CLI settings, and WGS84
 persistence. These checks use synthetic data and mocks; no migration or
@@ -261,13 +261,23 @@ moments. It verifies zero-nugget conditioning at observed grid nodes, positive
 conditional variance at those nodes when nugget is 0.2, and that E-type and
 percentile summaries are calculated from the returned realizations. Tolerances
 use four standard errors for the sample moments. Separate finite-draw smoke
-checks cover spherical, Gaussian, and Matérn models with nugget 0.2; they do
-not claim the same moment comparison for those families. This is
-model-consistency evidence, not a populated-data or scientific acceptance.
+checks cover spherical, Gaussian, and Matérn models with nugget 0.2. Additional
+128-draw tests at 100 RandMeth modes compare spherical and Gaussian ensemble
+moments to the same kriging reference; Matérn remains a finite-draw smoke case
+because its spectrum setup is substantially slower. These are
+model-consistency checks, not a populated-data or scientific acceptance.
 The prior implementation combined a Simple-Kriging mean with globally
 standardized unconditional residuals, so byte-for-byte or realization-level
 legacy output is not a valid parity oracle for the corrected conditional
 random-field method.
+
+The simulator and `simulate --mode-no` CLI setting accept 1–1,000 GSTools
+RandMeth modes. The default remains 1,000, matching GSTools' previous default;
+smaller values trade spectral fidelity for runtime and require domain review
+before production use. The CLI and database runner reject out-of-range values
+before opening PostgreSQL. Successful results include the mode count, generator,
+sampling policy, and GSTools version; persisted realization rows store these in
+their existing JSONB `metadata`, with no migration required.
 
 ## Remaining work
 

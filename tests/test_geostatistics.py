@@ -525,6 +525,7 @@ class TestGeostatSimulator:
         assert "realizations" in result
         assert result["n_realizations"] == 2
         assert len(result["realizations"]) == 2
+        assert result["mode_no"] == 1000
 
     def test_sgs_returns_e_type(self):
         simulator, _ = self._make_simulator()
@@ -633,6 +634,63 @@ class TestGeostatSimulator:
             result["p90"], np.percentile(simulated, 90, axis=0), rtol=0, atol=1e-12
         )
 
+    @pytest.mark.parametrize("model_type", ["spherical", "gaussian"])
+    def test_sgs_synthetic_moments_for_bounded_mode_count(self, model_type):
+        import gstools as gs
+
+        simulator, _ = self._make_simulator()
+        coordinates = np.asarray(
+            [[0.0, 0.0], [100.0, 0.0], [0.0, 100.0], [100.0, 100.0]]
+        )
+        values = np.asarray([1.0, 2.0, 3.0, 4.0])
+        variogram = {
+            "model_type": model_type,
+            "sill": 2.5,
+            "range": 100.0,
+            "nugget": 0.2,
+        }
+        n_realizations = 128
+        mode_no = 100
+        result = simulator.sequential_gaussian_simulation(
+            coordinates.tolist(),
+            values.tolist(),
+            variogram,
+            n_realizations=n_realizations,
+            grid_resolution_m=100.0,
+            seed=20261029,
+            mode_no=mode_no,
+        )
+
+        assert "error" not in result
+        assert result["mode_no"] == mode_no
+        assert result["simulation_generator"] == "RandMeth"
+        assert result["simulation_sampling"] == "auto"
+        grid = np.asarray(result["grid_points"])
+        simulated = np.asarray(result["realizations"])
+        model = simulator._build_gstools_variogram(
+            variogram["model_type"], variogram["sill"],
+            variogram["range"], variogram["nugget"],
+        )
+        kriging = gs.krige.Ordinary(
+            model, [coordinates[:, 0], coordinates[:, 1]], values
+        )
+        expected_mean, expected_variance = kriging([grid[:, 0], grid[:, 1]])
+        sample_mean = simulated.mean(axis=0)
+        sample_variance = simulated.var(axis=0, ddof=1)
+
+        assert simulated.shape == (n_realizations, len(grid))
+        assert np.all(np.isfinite(simulated))
+        mean_tolerance = 4 * np.sqrt(expected_variance / n_realizations) + 1e-8
+        np.testing.assert_array_less(
+            np.abs(sample_mean - expected_mean), mean_tolerance
+        )
+        variance_tolerance = (
+            4 * np.sqrt(2 / (n_realizations - 1)) * expected_variance + 1e-8
+        )
+        np.testing.assert_array_less(
+            np.abs(sample_variance - expected_variance), variance_tolerance
+        )
+
     @pytest.mark.parametrize("model_type", ["spherical", "gaussian", "matern"])
     def test_sgs_generates_finite_conditioned_draws_for_supported_models(self, model_type):
         simulator, _ = self._make_simulator()
@@ -684,6 +742,8 @@ class TestGeostatSimulator:
             ({"n_realizations": 1001}, "n_realizations must be an integer from 1 to 1000"),
             ({"grid_resolution_m": 0}, "grid_resolution_m must be finite and greater than zero"),
             ({"seed": -1}, "seed must be an integer between 0 and 4294967295"),
+            ({"mode_no": 0}, "mode_no must be an integer from 1 to 1000"),
+            ({"mode_no": 1001}, "mode_no must be an integer from 1 to 1000"),
         ],
     )
     def test_sgs_rejects_invalid_settings(self, kwargs, message):
@@ -764,6 +824,11 @@ class TestGeostatSimulator:
             "n_realizations": 2,
             "grid_resolution_m": 100.0,
             "seed": 42,
+            "mode_no": 1000,
+            "simulation_engine": "gstools_conditional_random_field",
+            "simulation_generator": "RandMeth",
+            "simulation_sampling": "auto",
+            "gstools_version": "test-version",
             "coordinate_origin": {"latitude": 18.5, "longitude": -69.9},
         }
         real_id = simulator.persist_simulations(
@@ -781,6 +846,13 @@ class TestGeostatSimulator:
         ]
         assert len(run_inserts) == 1
         assert len(point_inserts) == 2
+        assert run_inserts[0].args[1][9].adapted == {
+            "mode_no": 1000,
+            "simulation_engine": "gstools_conditional_random_field",
+            "simulation_generator": "RandMeth",
+            "simulation_sampling": "auto",
+            "gstools_version": "test-version",
+        }
         assert point_inserts[0].args[1][2:4] == pytest.approx((-69.9, 18.5))
         assert point_inserts[1].args[1][2:4] == pytest.approx(
             (-69.9 + 200.0 / (111320.0 * np.cos(np.radians(18.5))), 18.5 + 200.0 / 111320.0)
@@ -791,6 +863,21 @@ class TestGeostatSimulator:
         result = {
             "realizations": [[1.0]],
             "grid_points": [[0.0, 0.0]],
+        }
+
+        assert simulator.persist_simulations("loc1", "soil_carbon", "vm1", result) is None
+        simulator._conn.cursor.assert_not_called()
+
+    @pytest.mark.parametrize("mode_no", [0, 1001, True])
+    def test_persist_simulations_rejects_invalid_mode_count_before_database_access(
+        self, mode_no
+    ):
+        simulator, _ = self._make_simulator()
+        result = {
+            "realizations": [[1.0]],
+            "grid_points": [[0.0, 0.0]],
+            "coordinate_origin": {"latitude": 18.5, "longitude": -69.9},
+            "mode_no": mode_no,
         }
 
         assert simulator.persist_simulations("loc1", "soil_carbon", "vm1", result) is None
@@ -1140,6 +1227,8 @@ def test_kriging_database_pipeline_forwards_neighborhood_settings():
         {"n_realizations": 1001},
         {"grid_resolution_m": 0},
         {"seed": -1},
+        {"mode_no": 0},
+        {"mode_no": 1001},
     ],
 )
 def test_simulation_database_pipeline_rejects_invalid_settings_before_connecting(kwargs):
@@ -1172,12 +1261,13 @@ def test_simulation_database_pipeline_forwards_settings_and_geographic_origin():
 
     result = simulator.simulation_from_db(
         "location-a", "soil_carbon", variogram_model_id="model-a",
-        n_realizations=7, grid_resolution_m=125.5, seed=44,
+        n_realizations=7, grid_resolution_m=125.5, seed=44, mode_no=128,
     )
 
     simulator.sequential_gaussian_simulation.assert_called_once()
     assert simulator.sequential_gaussian_simulation.call_args.kwargs == {
         "n_realizations": 7, "grid_resolution_m": 125.5, "seed": 44,
+        "mode_no": 128,
     }
     assert result["coordinate_origin"] == pytest.approx(
         {"latitude": 18.501, "longitude": -69.901}
@@ -1426,7 +1516,7 @@ class TestCLI:
         argv = [
             "geostatistics", "--json", "simulate", "--location-id", "test-loc",
             "--property", "soil_carbon", "--realizations", "7",
-            "--resolution", "125.5", "--seed", "44",
+            "--resolution", "125.5", "--seed", "44", "--mode-no", "128",
         ]
         with patch("sys.argv", argv), patch(
             "services.common.database.get_db", return_value=MagicMock()
@@ -1437,7 +1527,8 @@ class TestCLI:
 
         run_simulation.assert_called_once_with(
             "test-loc", "soil_carbon", n_realizations=7,
-            grid_resolution_m=125.5, seed=44, variogram_model_id=None,
+            grid_resolution_m=125.5, seed=44, mode_no=128,
+            variogram_model_id=None,
         )
 
     @pytest.mark.parametrize(
@@ -1447,6 +1538,8 @@ class TestCLI:
             ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "1001"],
             ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--resolution", "0"],
             ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--seed", "-1"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--mode-no", "0"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--mode-no", "1001"],
             ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_nitrogen"],
         ],
     )
