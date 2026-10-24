@@ -693,6 +693,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/my-learning-plans",
+    ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/my-resource-requests",
     ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
     (
@@ -1128,6 +1132,10 @@ _EXPECTED_OPERATOR_POLICIES[(
 _EXPECTED_OPERATOR_POLICIES[(
     "GET",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/my-competency-assessments",
+)] = _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "GET",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/my-learning-plans",
 )] = _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
     "GET",

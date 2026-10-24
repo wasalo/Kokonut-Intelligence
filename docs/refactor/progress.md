@@ -1,3 +1,18 @@
+### Progress addendum — CAP-037 private own learning-plan history, 24 October 2026
+
+A bounded `GET /operator/api/operating-pilot/{location_id}/my-learning-plans`
+route now gives an operator access to only their own learning plans at the exact
+active Adelphi location. Migration 605 checks signed `read_own` scope, one active
+human-party binding, and the farm/location mapping. It returns private plan
+content to that bound person only, with bounded deterministic pagination; it
+adds no plan write or review action. Eleven focused Gateway checks pass, and
+network-disabled disposable PostgreSQL 16 apply/replay passes 206 grouped
+CAP-037 assertions. Candidate and legacy databases remain untouched and
+migration 605 is not rolled out. Checklist: 1,109 complete / 25 open (1,134
+total) ([contract](operating-pilot-kernel-read-contract.md);
+[migration](../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql);
+[evidence](builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json)).
+
 ### Progress addendum — CAP-006 migration-153 disposable waste-management acceptance, 24 October 2026
 
 Applied and replayed migration 153 against a disposable PostgreSQL 16

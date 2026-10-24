@@ -44,6 +44,7 @@ COMPETENCY_DRAFT_MIGRATION = ROOT / "schemas/postgres/574_location_operating_pil
 COMPETENCY_OWN_READ_MIGRATION = ROOT / "schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql"
 COMPETENCY_LIFECYCLE_MIGRATION = ROOT / "schemas/postgres/576_location_operating_pilot_competency_draft_lifecycle.sql"
 COMPETENCY_REVIEW_MIGRATION = ROOT / "schemas/postgres/577_location_operating_pilot_competency_review.sql"
+LEARNING_PLAN_OWN_READ_MIGRATION = ROOT / "schemas/postgres/605_location_own_operating_pilot_learning_plans.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -73,6 +74,7 @@ COMPETENCY_LIFECYCLE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/c
 COMPETENCY_LIFECYCLE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-draft-lifecycle-arm64-disposable.json"
 COMPETENCY_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-disposable.json"
 COMPETENCY_REVIEW_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-arm64-disposable.json"
+LEARNING_PLAN_OWN_READ_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -230,7 +232,12 @@ CREATE TABLE public.operating_competency_profile (
     current_level numeric NOT NULL, target_level numeric NOT NULL, evidence jsonb
 );
 CREATE TABLE public.operating_learning_plan (
-    id uuid PRIMARY KEY, party_id uuid NOT NULL, scope_type text NOT NULL, scope_id uuid NOT NULL, status text NOT NULL
+    id uuid PRIMARY KEY, party_id uuid NOT NULL, scope_type text NOT NULL, scope_id uuid NOT NULL,
+    status text NOT NULL, title text NOT NULL DEFAULT 'Synthetic learning plan',
+    competency_goals jsonb NOT NULL DEFAULT '[]'::jsonb,
+    support_requested jsonb NOT NULL DEFAULT '[]'::jsonb,
+    target_date date, created_by_party_id uuid,
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.operating_resource_request (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(), requested_by_party_id uuid NOT NULL, scope_type text NOT NULL,
@@ -368,7 +375,7 @@ VALUES
  ('f0000000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', 'submitted', 2, 3),
  ('f0000000-0000-4000-8000-000000000002', 'f1000000-0000-4000-8000-000000000002', 'c1000000-0000-4000-8000-000000000001', 'verified', 3, 3),
  ('f0000000-0000-4000-8000-000000000003', 'f1000000-0000-4000-8000-000000000003', 'c1000000-0000-4000-8000-000000000001', 'verified', 1, 4);
-INSERT INTO public.operating_learning_plan VALUES
+INSERT INTO public.operating_learning_plan (id, party_id, scope_type, scope_id, status) VALUES
  ('f1100000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000011', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'active'),
  ('f1100000-0000-4000-8000-000000000002', 'f1000000-0000-4000-8000-000000000012', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'active'),
  ('f1100000-0000-4000-8000-000000000003', 'f1000000-0000-4000-8000-000000000013', 'adelphi', 'e9000000-0000-4000-8000-000000000001', 'active'),
@@ -4936,6 +4943,106 @@ END $$;
 ROLLBACK;
 """
 
+LEARNING_PLAN_OWN_READ_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operating_learning_plan (
+    id, party_id, scope_type, scope_id, status, title, competency_goals,
+    support_requested, target_date, created_by_party_id, created_at
+) VALUES
+ ('f9750000-0000-4000-8000-000000000021',
+  'd8000000-0000-4000-8000-000000000001', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'active', 'PRIVATE plan newest',
+  '[{"key":"facilitation","target":4}]', '["PRIVATE support request"]',
+  '2026-12-01', 'd8000000-0000-4000-8000-000000000001', '2026-10-24 00:00:00+00'),
+ ('f9750000-0000-4000-8000-000000000022',
+  'd8000000-0000-4000-8000-000000000001', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'draft', 'PRIVATE plan older',
+  '[]', '[]', NULL, 'd8000000-0000-4000-8000-000000000001', '2026-10-23 00:00:00+00'),
+ ('f9750000-0000-4000-8000-000000000023',
+  'f9750000-0000-4000-8000-000000000003', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'active', 'PRIVATE other person plan',
+  '[]', '[]', NULL, 'f9750000-0000-4000-8000-000000000003', '2026-10-25 00:00:00+00'),
+ ('f9750000-0000-4000-8000-000000000024',
+  'd8000000-0000-4000-8000-000000000001', 'adelphi',
+  'e9000000-0000-4000-8000-000000000002', 'active', 'PRIVATE other location plan',
+  '[]', '[]', NULL, 'd8000000-0000-4000-8000-000000000001', '2026-10-26 00:00:00+00'),
+ ('f9750000-0000-4000-8000-000000000025',
+  'd8000000-0000-4000-8000-000000000001', 'internal',
+  'f0000000-0000-4000-8000-000000000001', 'active', 'PRIVATE internal plan',
+  '[]', '[]', NULL, 'd8000000-0000-4000-8000-000000000001', '2026-10-27 00:00:00+00');
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE page jsonb; next_page jsonb; missing_grant_denied boolean := false;
+        location_denied boolean := false; bounds_denied boolean := false;
+BEGIN
+    page := kokonut_security.location_operating_pilot_own_learning_plans(
+        'b0000000-0000-4000-8000-000000000001', 1, 0);
+    IF page->>'limit' <> '1' OR page->>'offset' <> '0'
+       OR page->>'has_more' <> 'true' OR page->>'next_offset' <> '1'
+       OR jsonb_array_length(page->'items') <> 1
+       OR page->'items'->0->>'learning_plan_id' <> 'f9750000-0000-4000-8000-000000000021'
+       OR page->'items'->0->>'title' <> 'PRIVATE plan newest'
+       OR page::text !~ 'PRIVATE support request'
+       OR page::text ~* '(party_id|scope_id|created_by_party_id|other person plan|other location plan|internal plan)' THEN
+        RAISE EXCEPTION 'own learning-plan page leaked private scope or returned invalid page: %', page;
+    END IF;
+    next_page := kokonut_security.location_operating_pilot_own_learning_plans(
+        'b0000000-0000-4000-8000-000000000001', 1, 1);
+    IF jsonb_array_length(next_page->'items') <> 1
+       OR next_page->>'has_more' <> 'false'
+       OR next_page->'items'->0->>'learning_plan_id' <> 'f9750000-0000-4000-8000-000000000022' THEN
+        RAISE EXCEPTION 'own learning-plan pagination was invalid: %', next_page;
+    END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_learning_plans(
+            'b0000000-0000-4000-8000-000000000001', 25, 0);
+    EXCEPTION WHEN insufficient_privilege THEN missing_grant_denied := true;
+    END;
+    IF NOT missing_grant_denied THEN RAISE EXCEPTION 'aggregate read grant incorrectly implied own learning history'; END IF;
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_learning_plans(
+            'b0000000-0000-4000-8000-000000000001', 25, 0);
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'mismatched signed location was accepted'; END IF;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_learning_plans(
+            'b0000000-0000-4000-8000-000000000001', 51, 0);
+    EXCEPTION WHEN invalid_parameter_value THEN bounds_denied := true;
+    END;
+    IF NOT bounds_denied THEN RAISE EXCEPTION 'unbounded learning-plan page was accepted'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.location_operating_pilot_own_learning_plans(uuid,integer,integer)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.location_operating_pilot_own_learning_plans(uuid,integer,integer)',
+            'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_learning_plan', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_learning_plan', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader',
+            'public.operating_learning_plan', 'support_requested', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader',
+            'public.operating_learning_plan', 'UPDATE') THEN
+        RAISE EXCEPTION 'own learning-plan function or canonical-table privilege boundary is incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 COMPETENCY_LIFECYCLE_ACCEPTANCE = r"""
 BEGIN;
 SET LOCAL ROLE kokonut_runtime;
@@ -5371,7 +5478,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 577 and test independent competency decisions",
     )
+    parser.add_argument(
+        "--learning-plan-own-read",
+        action="store_true",
+        help="Also apply/replay migration 605 and test private, location-linked learning-plan history",
+    )
     args = parser.parse_args(argv)
+    if args.learning_plan_own_read:
+        args.competency_review = True
     if args.competency_review:
         args.competency_lifecycle = True
     if args.competency_lifecycle:
@@ -5397,6 +5511,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        LEARNING_PLAN_OWN_READ_OUTPUT
+        if args.learning_plan_own_read
+        else
         (COMPETENCY_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else COMPETENCY_REVIEW_OUTPUT)
         if args.competency_review
         else
@@ -5465,7 +5582,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"migrations 461, 479, 480, 526, 538, and 552–{577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"operating-pilot migrations through {605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -5713,6 +5830,18 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 577 applies and replays while preserving prior drafts, submissions, and decisions",
             ]
         )
+    if args.learning_plan_own_read:
+        evidence["migrations"].append(LEARNING_PLAN_OWN_READ_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "own learning-plan history requires exact signed read_own scope, one active human binding, and the active Adelphi location mapping",
+                "history returns only the signed operator party's plans linked to the exact active location and omits party, scope, and creator identifiers",
+                "private goals and support details remain visible only in the authenticated operator's own history",
+                "history uses deterministic bounded pagination and rejects oversized pages, missing grants, and mismatched signed locations",
+                "runtime can execute the bounded own-history function; Directus cannot execute it and neither runtime role can query the canonical learning-plan table directly",
+                "migration 605 applies and replays without rewriting canonical learning plans",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -5874,11 +6003,17 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, competency_review_migration)
             psql(docker, container, competency_review_migration)
             psql(docker, container, COMPETENCY_REVIEW_ACCEPTANCE)
+        if args.learning_plan_own_read:
+            learning_plan_own_read_migration = LEARNING_PLAN_OWN_READ_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, learning_plan_own_read_migration)
+            psql(docker, container, learning_plan_own_read_migration)
+            psql(docker, container, LEARNING_PLAN_OWN_READ_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            199 if args.competency_review
+            206 if args.learning_plan_own_read
+            else 199 if args.competency_review
             else 198 if args.competency_lifecycle
             else
             184 if args.competency_own_read
@@ -5899,7 +6034,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            577 if args.competency_review
+            605 if args.learning_plan_own_read
+            else 577 if args.competency_review
             else 576 if args.competency_lifecycle
             else
             575 if args.competency_own_read
