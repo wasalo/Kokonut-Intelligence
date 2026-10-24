@@ -1,3 +1,23 @@
+### Progress addendum — CAP-008 empirical lag search contract, 24 October 2026
+
+Empirical variograms now use fixed-width bins based on `lag_distance`; the
+half-width `lag_tolerance` selects pairs around each bin center, and
+`bandwidth` caps pair separation. The previous half-of-maximum-observed
+distance search cap remains in force. Pair counts, mean lag distance, and
+Matheron semivariance use the same selected pairs, and empty bins are omitted.
+The CLI exposes all three settings and rejects invalid parameter combinations
+before opening PostgreSQL. Hand-calculated synthetic data verify bin widths,
+tolerance filtering, bandwidth, pair counts, and semivariance. The full
+geostatistics module passes 84 tests; Ruff, compilation, dependency-group
+alignment, refreshed SQL inventory, capability validation, and diff checks
+pass. SciPy is explicit in the analytics group for the direct distance import;
+GSTools already requires it transitively. No database or
+migration was used. Checklist: 1,089 complete / 25 open (1,114 total).
+CAP-008 remains prepared pending scientific/populated parity, live OIDC/browser,
+ACL/RLS, audience review, and MAN-CAP-008
+([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-empirical-lag-contract.json)).
+
 ### Progress addendum — CAP-008 variogram fitting, 24 October 2026
 
 The legacy variogram producer now runs GSTools' nonlinear robust fit instead

@@ -130,6 +130,55 @@ class TestVariogramAnalyzer:
         assert "n_pairs" in result
         assert len(result["lags"]) == len(result["semivariances"])
 
+    def test_empirical_variogram_uses_lag_distance_bins_and_pair_counts(self):
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        coordinates = [(float(x), 0.0) for x in range(0, 100, 10)]
+        values = [float(x // 10) for x in range(0, 100, 10)]
+        result = VariogramAnalyzer(conn=MagicMock()).compute_empirical_variogram(
+            values, coordinates, lag_distance=20, lag_tolerance=10, bandwidth=1000
+        )
+
+        assert result["lags"] == pytest.approx([10.0, 24.6666667, 40.0])
+        assert result["semivariances"] == pytest.approx([0.5, 3.1666667, 8.0])
+        assert result["n_pairs"] == [9, 15, 6]
+
+    def test_empirical_variogram_tolerance_filters_pairs_around_bin_center(self):
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        coordinates = [(float(x), 0.0) for x in range(0, 100, 10)]
+        values = [float(x // 10) for x in range(0, 100, 10)]
+        result = VariogramAnalyzer(conn=MagicMock()).compute_empirical_variogram(
+            values, coordinates, lag_distance=20, lag_tolerance=2.0, bandwidth=1000
+        )
+
+        assert result["lags"] == pytest.approx([10.0, 30.0])
+        assert result["n_pairs"] == [9, 7]
+
+    def test_empirical_variogram_bandwidth_caps_pair_distance(self):
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        coordinates = [(float(x), 0.0) for x in range(0, 100, 10)]
+        values = [float(x // 10) for x in range(0, 100, 10)]
+        result = VariogramAnalyzer(conn=MagicMock()).compute_empirical_variogram(
+            values, coordinates, lag_distance=20, lag_tolerance=10, bandwidth=25
+        )
+
+        assert result["lags"] == pytest.approx([10.0, 20.0])
+        assert result["n_pairs"] == [9, 8]
+
+    def test_empirical_variogram_rejects_overlapping_tolerance(self):
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        result = VariogramAnalyzer(conn=MagicMock()).compute_empirical_variogram(
+            [float(i) for i in range(10)],
+            [(float(i), 0.0) for i in range(10)],
+            lag_distance=20,
+            lag_tolerance=10.1,
+        )
+
+        assert result == {"error": "Invalid lag distance, tolerance, or bandwidth"}
+
     def test_compute_empirical_variogram_insufficient_samples(self):
         analyzer, _ = self._make_analyzer()
         coords, values = _make_spatial_data(n=5)
@@ -791,6 +840,44 @@ class TestCLI:
                         main()
                     except Exception:
                         pass  # Expected when DB returns empty
+
+    def test_cli_variogram_forwards_lag_settings(self):
+        from services.geostatistics.cli import main
+        from services.geostatistics.variogram import VariogramAnalyzer
+
+        argv = [
+            "geostatistics", "variogram", "--location-id", "test-loc",
+            "--property", "soil_carbon", "--lag-distance", "20",
+            "--lag-tolerance", "5", "--bandwidth", "200",
+        ]
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db", return_value=MagicMock()
+        ), patch.object(
+            VariogramAnalyzer, "fit_from_db", return_value={"error": "synthetic"}
+        ) as fit_from_db, patch("services.geostatistics.cli.print_json"):
+            main()
+
+        fit_from_db.assert_called_once_with(
+            "test-loc", "soil_carbon", model_type=None,
+            lag_distance=20.0, lag_tolerance=5.0, bandwidth=200.0,
+        )
+
+    def test_cli_variogram_rejects_invalid_tolerance_before_database(self):
+        from services.geostatistics.cli import main
+
+        argv = [
+            "geostatistics", "variogram", "--location-id", "test-loc",
+            "--property", "soil_carbon", "--lag-distance", "20",
+            "--lag-tolerance", "10.1",
+        ]
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db"
+        ) as get_db:
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 2
+        get_db.assert_not_called()
 
     def test_cli_kriging_parser(self):
         """Kriging subcommand should parse arguments."""

@@ -17,8 +17,39 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
+
 from services.common.cli import print_json
+
+from .config import (
+    DEFAULT_BANDWIDTH,
+    DEFAULT_LAG_DISTANCE,
+    DEFAULT_LAG_TOLERANCE,
+    PROPERTY_DEFAULTS,
+)
+
+
+def _positive_finite_float(value: str) -> float:
+    """Parse a finite positive CLI distance."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a finite number greater than zero")
+    return parsed
+
+
+def _nonnegative_finite_float(value: str) -> float:
+    """Parse a finite non-negative CLI tolerance."""
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("must be a finite non-negative number")
+    return parsed
 
 def main():
     parser = argparse.ArgumentParser(
@@ -37,7 +68,9 @@ def main():
                     help="Property key (soil_carbon, soil_moisture, soil_ph, ndvi)")
     vg.add_argument("--model", default=None,
                     help="Variogram model type (spherical, exponential, gaussian, matern)")
-    vg.add_argument("--lag-distance", type=float, default=None, help="Lag distance in meters")
+    vg.add_argument("--lag-distance", type=_positive_finite_float, default=None, help="Lag-bin width in meters")
+    vg.add_argument("--lag-tolerance", type=_nonnegative_finite_float, default=None, help="Half-width around each lag-bin center in meters")
+    vg.add_argument("--bandwidth", type=_positive_finite_float, default=DEFAULT_BANDWIDTH, help="Maximum pair distance searched in meters")
     vg.add_argument("--persist", action="store_true", help="Persist to database")
 
     # kriging
@@ -103,6 +136,21 @@ def main():
         parser.print_help()
         return
 
+    if args.command == "variogram":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        defaults = PROPERTY_DEFAULTS.get(args.property_key, {})
+        lag_distance = args.lag_distance or defaults.get(
+            "lag_distance", DEFAULT_LAG_DISTANCE
+        )
+        lag_tolerance = args.lag_tolerance
+        if lag_tolerance is None:
+            lag_tolerance = defaults.get("lag_tolerance", DEFAULT_LAG_TOLERANCE)
+        if lag_tolerance > lag_distance / 2:
+            parser.error("--lag-tolerance cannot exceed half of --lag-distance")
+
     from services.common.database import get_db
 
     conn = get_db()
@@ -116,6 +164,8 @@ def main():
                 args.property_key,
                 model_type=args.model,
                 lag_distance=args.lag_distance,
+                lag_tolerance=args.lag_tolerance,
+                bandwidth=args.bandwidth,
             )
             if args.persist and "error" not in result:
                 model_id = va.persist_variogram(
@@ -238,7 +288,7 @@ def _print_result(command: str, result: dict):
         return
 
     if command == "variogram":
-        print(f"Variogram Model Fitted")
+        print("Variogram Model Fitted")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Model type:  {result.get('model_type', 'N/A')}")
         print(f"  Sill:        {result.get('sill', 'N/A'):.4f}")
@@ -250,7 +300,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_id']}")
 
     elif command == "kriging":
-        print(f"Kriging Interpolation")
+        print("Kriging Interpolation")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Method:      {result.get('method', 'N/A')}")
         print(f"  Points:      {result.get('n_points', 'N/A')}")
@@ -259,7 +309,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_prediction_id']}")
 
     elif command == "simulate":
-        print(f"Sequential Gaussian Simulation")
+        print("Sequential Gaussian Simulation")
         print(f"  Property:       {result.get('property_key', 'N/A')}")
         print(f"  Realizations:   {result.get('n_realizations', 'N/A')}")
         print(f"  Grid points:    {result.get('n_points', 'N/A')}")
@@ -271,7 +321,7 @@ def _print_result(command: str, result: dict):
     elif command == "autocorrelation":
         mi = result.get("morans_i", {})
         gc = result.get("gearys_c", {})
-        print(f"Spatial Autocorrelation")
+        print("Spatial Autocorrelation")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Samples:     {result.get('n_samples', 'N/A')}")
         print(f"  Moran's I:   {mi.get('statistic_value', 'N/A')} (p={mi.get('p_value', 'N/A')}, {mi.get('interpretation', 'N/A')})")
@@ -280,7 +330,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_ids']}")
 
     elif command == "cross-validate":
-        print(f"Spatial Cross-Validation")
+        print("Spatial Cross-Validation")
         print(f"  Strategy:    {result.get('cv_strategy', 'N/A')}")
         print(f"  Folds:       {result.get('n_folds', 'N/A')} ({result.get('n_successful_folds', 'N/A')} successful)")
         print(f"  RMSE:        {result.get('root_mean_squared_error', 'N/A')}")
@@ -291,7 +341,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_cv_id']}")
 
     elif command == "sensor-design":
-        print(f"Sensor Network Design")
+        print("Sensor Network Design")
         print(f"  Property:    {result.get('property_key', 'N/A')}")
         print(f"  Range:       {result.get('variogram_range_m', 'N/A')} m")
         print(f"  Optimal:     {result.get('optimal_spacing_m', 'N/A')} m spacing")

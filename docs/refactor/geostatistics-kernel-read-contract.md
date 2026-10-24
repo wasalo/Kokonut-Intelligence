@@ -77,6 +77,17 @@ fixtures cover spherical, exponential, Gaussian, and Matérn fits. Matérn
 smoothness is held at GSTools' default because the current schema does not
 persist that parameter, so smoothness is not yet configurable.
 
+Empirical bins use the configured fixed `lag_distance` width. A pair must fall
+within `lag_tolerance` of its bin center; tolerance cannot exceed half the bin
+width. `bandwidth` caps the maximum pair separation, while the existing
+half-of-maximum-observed-distance cap is retained. Pair counts, mean lag, and
+Matheron semivariance use the same selected pairs; empty bins are omitted. This
+path is omnidirectional, so the application applies its documented distance
+cap directly rather than relying on GSTools' directional-only bandwidth
+filter. The pairwise distance calculation uses SciPy's condensed vectors;
+SciPy is declared explicitly in the analytics requirement group and was
+already a transitive GSTools dependency.
+
 ## Fitted variogram route
 
 `GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same

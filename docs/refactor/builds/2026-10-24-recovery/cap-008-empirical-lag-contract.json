@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "empirical variogram lag-distance, tolerance, and bandwidth contract",
+  "classification": "prepared",
+  "implementation": {
+    "source": [
+      "services/geostatistics/variogram.py:VariogramAnalyzer.compute_empirical_variogram",
+      "services/geostatistics/cli.py:variogram options"
+    ],
+    "lag_distance": "fixed-width distance bins",
+    "lag_tolerance": "inclusive half-width around each bin center, limited to half the configured bin width",
+    "bandwidth": "maximum pair separation under the application omnidirectional contract",
+    "existing_search_cap": "maximum search distance remains half the largest observed pair distance",
+    "pair_statistics": "mean pair distance, Matheron semivariance, and pair count use the same selected pairs; empty bins are omitted",
+    "input_validation": "finite N-by-2 coordinates, matching finite values, positive finite lag distance/bandwidth, valid tolerance range",
+    "cli_preflight": "reject unsupported properties and invalid lag combinations before database connection",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "84 passed",
+    "coverage": "hand-calculated fixed-width bins, tolerance filtering, bandwidth cutoff, paired counts/semivariances, invalid tolerance, and CLI forwarding/preflight",
+    "ruff_changed_files": "passed",
+    "python_compilation": "passed",
+    "dependency_group_alignment": "passed; SciPy is explicit in the analytics group for the direct import and was already a GSTools dependency",
+    "runtime_sql_inventory": "regenerated for shifted source lines; freshness check passed",
+    "capability_matrix": "67-row validation passed",
+    "database_execution": "not run; synthetic coordinates and values only",
+    "migration_execution": "not run",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "scientific and populated fixture parity",
+    "semantics review against archived reference output if available",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the empirical-pair selection, CLI options/preflight, and focused tests. No persistent data was changed."
+}

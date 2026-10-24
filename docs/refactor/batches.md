@@ -19,10 +19,26 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,088 checklist items complete and 25
-open (1,113 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,089 checklist items complete and 25
+open (1,114 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 empirical lag search contract — 24 October 2026
+
+- [x] Apply the configured lag width, centered half-width tolerance, and
+  maximum pair-distance bandwidth to empirical variograms. The search keeps
+  the existing half-of-maximum-observed-distance cap, uses non-overlapping
+  fixed-width bins, omits empty bins, and reports means/counts from the same
+  selected pairs. Validate finite 2D points and parameter ranges; the CLI now
+  exposes tolerance and bandwidth and rejects invalid combinations before
+  opening the database. The full geostatistics module passes 84 tests; Ruff,
+  compilation, dependency-group alignment, SQL inventory, capability-matrix,
+  and diff checks pass. SciPy is explicit in the analytics group; GSTools
+  already depends on it, so the direct import adds no runtime library. No
+  migration or database was used. Rollback is a source/dependency-manifest
+  revert, with SQL inventory regeneration for source-line changes
+  ([evidence](builds/2026-10-24-recovery/cap-008-empirical-lag-contract.json)).
 
 ### CAP-008 variogram fitting optimization — 24 October 2026
 
