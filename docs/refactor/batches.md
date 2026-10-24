@@ -19,10 +19,42 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,049 checklist items complete and 25
-open (1,074 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,051 checklist items complete and 25
+open (1,076 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-002 harvest-yield operator-console read surface — 23 October 2026
+
+- [x] Add a hidden-by-default operator-console summary gated by an exact,
+  syntactically valid location `yield_monitoring:read` grant. The same-origin
+  request uses `no-store`, checks the response location against the selected
+  grant, and discards stale responses after location changes. Fixed aggregate,
+  crop, and recent-harvest fields render as text; totals remain grouped by
+  recorded yield unit, and draft/submitted records and evidence are excluded.
+  The focused console/Gateway/route-policy selection passes 13 tests, including
+  inline JavaScript syntax; Ruff, capability validation, and diff checks pass.
+  No migration, provider, candidate, or legacy database was used. CAP-002
+  remains prepared pending populated/frozen-fixture parity, live OIDC/browser
+  acceptance, database ACL/RLS, and MAN-CAP-002 acceptance
+  ([contract](yield-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-yield-monitoring-console.json)).
+
+### CAP-002 irrigation-zone operator-console status — 23 October 2026
+
+- [x] Add a hidden-by-default status table gated by the separate exact
+  `precision_irrigation:read` location grant. The same-origin/no-store API pages
+  are limited to 25 zones, verify the response location and offset, and discard
+  stale results after location changes. Fixed zone, soil, area, moisture,
+  target, and schedule fields render as text; no device identifiers or controls
+  are exposed, and the panel is explicitly advisory. The combined CAP-002
+  console/Gateway/domain/route-policy selection passes 53 tests, including
+  inline JavaScript syntax; Ruff, capability validation, and diff checks pass.
+  No migration, provider, candidate, or legacy database was used. CAP-002
+  remains prepared pending populated/frozen-fixture parity, live OIDC/browser
+  acceptance, database ACL/RLS, and MAN-CAP-002 acceptance
+  ([contract](irrigation-status-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-irrigation-console.json)).
 
 ### CAP-004 aggregate extension-learning Kernel read — 23 October 2026
 

@@ -44,6 +44,18 @@ privilege database grants, device actuation, or MAN-CAP-002 acceptance.
 CAP-002 still needs crop simulation and nutrient outputs, plus frozen-fixture
 and populated-data parity across yield, irrigation, simulation, and nutrients.
 
+## Operator console
+
+The operator console displays this projection only when the signed session has
+the exact `precision_irrigation:read` grant for a syntactically valid location.
+Requests use same-origin credentials and `no-store`; pages are capped at 25 in
+the UI, location and offset are checked against the response, and stale pages
+are ignored after a location switch. Zone names and a fixed set of status,
+moisture, target, area, and schedule fields render through text nodes. The panel
+has no device-control action and omits device identifiers, geometry, reasons,
+and arbitrary metadata. Source contracts do not establish live browser,
+populated-data, or physical-device acceptance ([evidence](builds/2026-10-23-recovery/cap-002-irrigation-console.json)).
+
 ## Rollback
 
 This is an additive read-only route. Remove its route registration and exact

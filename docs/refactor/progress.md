@@ -1,3 +1,37 @@
+### Progress addendum — CAP-002 irrigation-zone console status, 23 October 2026
+
+The operator console now exposes the active-zone status projection under a
+separate exact `precision_irrigation:read` grant. The same-origin/no-store API
+pages 25 zones, validates location and offset in each response, and discards
+stale pages after location changes. It renders fixed zone, soil, area, moisture,
+target, and schedule fields as text; device identifiers and controls remain
+absent. The combined CAP-002 console/Gateway/domain/route-policy selection
+passes 53 tests, including inline JavaScript syntax; Ruff, capability
+validation, and diff checks pass. No migration, candidate/legacy database,
+provider, or chain was used. CAP-002 remains prepared pending populated and
+frozen-fixture parity, live OIDC/browser acceptance, database ACL/RLS, and
+MAN-CAP-002 acceptance. Checklist: 1,051 complete / 25 open (1,076 total);
+matrix: 27 baseline-retained, 7 deployed, and 33 prepared across 67 rows;
+0/67 MAN-CAP checks accepted. [Contract](irrigation-status-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-002-irrigation-console.json).
+
+### Progress addendum — CAP-002 harvest-yield operator-console surface, 23 October 2026
+
+The operator console now exposes a hidden-by-default harvest-yield summary
+when the signed OIDC session has the exact `yield_monitoring:read` grant for a
+valid location. Its same-origin/no-store request verifies the response location
+and ignores stale responses after a location switch. Fixed aggregate, crop, and
+recent-harvest fields render as text; totals remain grouped by their stored
+unit, and draft/submitted observations and evidence are excluded. The focused
+console/Gateway/route-policy selection passes 13 tests, including inline
+JavaScript syntax. Ruff, capability-matrix validation, and diff checks pass.
+No migration, candidate/legacy database, provider, or chain was used. CAP-002
+remains prepared pending populated/frozen-fixture parity, live OIDC/browser
+acceptance, database ACL/RLS, and MAN-CAP-002 acceptance. Checklist: 1,050
+complete / 25 open (1,075 total); matrix: 27 baseline-retained, 7 deployed,
+and 33 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+[Contract](yield-monitoring-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-yield-monitoring-console.json).
+
 ### Progress addendum — CAP-002 nutrient input cost currencies, 23 October 2026
 
 Migration 601 adds an optional per-event currency code without guessing the

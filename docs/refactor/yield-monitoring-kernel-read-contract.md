@@ -42,6 +42,19 @@ The CAP-002 named acceptance still requires frozen fixtures for yield,
 irrigation, crop simulation, and nutrient outputs. This endpoint only starts
 the tenant-aware Kernel path for the yield-summary surface.
 
+## Operator console
+
+The operator console exposes the summary only when the signed session carries
+the exact `yield_monitoring:read` grant for a syntactically valid location.
+Requests are same-origin, use `Cache-Control`-compatible `no-store` fetches,
+and discard stale responses after a location change. The console also verifies
+that the response `location_id` matches the currently selected grant. Fixed
+aggregate, crop, and ten most recent harvest fields render through text nodes;
+numeric yield totals remain separated by their recorded unit. The panel is
+read-only and does not expose source identifiers, actor fields, evidence, or
+metadata. These source/DOM contracts are not live browser or populated-data
+acceptance ([evidence](builds/2026-10-23-recovery/cap-002-yield-monitoring-console.json)).
+
 ## Rollback
 
 This slice is additive and read-only. Roll back by removing the route
