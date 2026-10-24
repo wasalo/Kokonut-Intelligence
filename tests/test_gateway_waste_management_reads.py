@@ -34,8 +34,18 @@ class _Cursor:
             columns = ("waste_type", "disposal_method", "quantity_unit", "record_count", "total_quantity", "first_date", "last_date")
             rows = [("crop_residue", "composting", "kg", 3, Decimal("12.5"), date(2026, 1, 2), date(2026, 1, 4))]
         elif "FROM composting_record" in query:
-            columns = ("feedstock_type", "compost_method", "record_count", "total_quantity", "first_date", "last_date")
-            rows = [("manure", "vermiculture", 2, Decimal("8"), date(2026, 1, 5), date(2026, 1, 6))]
+            columns = (
+                "feedstock_type", "compost_method", "record_count", "total_quantity",
+                "total_output_kg", "weighted_yield_pct", "mean_batch_yield_pct",
+                "mean_duration_days", "mean_temperature_c", "mean_moisture_pct",
+                "graded_batches", "first_date", "last_date",
+            )
+            rows = [(
+                "manure", "vermiculture", 2, Decimal("8"), Decimal("3.2"),
+                Decimal("40.0"), Decimal("42.5"), Decimal("25.0"),
+                Decimal("54.5"), Decimal("58.0"), 1,
+                date(2026, 1, 5), date(2026, 1, 6),
+            )]
         elif "FROM recycling_log" in query:
             columns = ("material_type", "record_count", "total_quantity", "first_date", "last_date")
             rows = [("plastic", 1, Decimal("1.5"), date(2026, 1, 7), date(2026, 1, 7))]
@@ -124,6 +134,12 @@ def test_waste_summary_sets_signed_context_before_four_location_queries():
             "destination", "notes", "metadata", "created_by", "updated_by", "revenue",
         ):
             assert private_field not in query
+    composting_sql = queries[1][0]
+    assert "finished_volume_kg" in composting_sql
+    assert "weighted_yield_pct" in composting_sql
+    assert "mean_batch_yield_pct" in composting_sql
+    assert "quality_grade IS NOT NULL" in composting_sql
+    assert "quality_grade," not in composting_sql
     assert order == ["query", "query", "query", "context", "query", "query", "query", "query"]
     assert result == {
         "location_id": location_id,
@@ -135,6 +151,10 @@ def test_waste_summary_sets_signed_context_before_four_location_queries():
         "composting": [{
             "feedstock_type": "manure", "compost_method": "vermiculture",
             "record_count": 2, "feedstock_kg": 8.0,
+            "total_output_kg": 3.2, "weighted_yield_pct": 40.0,
+            "mean_batch_yield_pct": 42.5, "mean_duration_days": 25.0,
+            "mean_temperature_c": 54.5, "mean_moisture_pct": 58.0,
+            "graded_batches": 1,
             "first_date": "2026-01-05", "last_date": "2026-01-06",
         }],
         "recycling": [{

@@ -24,6 +24,10 @@ def _number(value) -> float:
     return float(value or 0)
 
 
+def _optional_number(value):
+    return float(value) if value is not None else None
+
+
 def _iso(value):
     return value.isoformat() if value is not None else None
 
@@ -49,11 +53,13 @@ def get_location_waste_summary(
     *,
     connection_factory: Callable | None = None,
 ) -> dict:
-    """Return bounded, verified waste/compost/recycling and incident counts.
+    """Return bounded verified waste, composting, recycling, and incident data.
 
     The response contains no incident narratives, affected-area descriptions,
     reporter/destination identities, costs, notes, IDs, or arbitrary metadata.
     Quantity groups retain their recorded unit; no cross-unit total is derived.
+    Compost output/yield and process measures are aggregate descriptions, not
+    quality certification or compliance determinations.
     """
     try:
         operator_id = str(UUID(str(operator_id)))
@@ -98,6 +104,27 @@ def get_location_waste_summary(
                 SELECT feedstock_type, compost_method,
                        COUNT(*)::bigint AS record_count,
                        SUM(feedstock_kg)::numeric AS total_quantity,
+                       SUM(finished_volume_kg)::numeric AS total_output_kg,
+                       CASE
+                           WHEN SUM(feedstock_kg) > 0
+                           THEN ROUND((
+                               SUM(finished_volume_kg) / SUM(feedstock_kg) * 100
+                           )::numeric, 1)
+                           ELSE NULL
+                       END AS weighted_yield_pct,
+                       ROUND(AVG(
+                           finished_volume_kg / NULLIF(feedstock_kg, 0) * 100
+                       ) FILTER (
+                           WHERE finished_volume_kg IS NOT NULL AND feedstock_kg > 0
+                       )::numeric, 1)
+                           AS mean_batch_yield_pct,
+                       ROUND(AVG(duration_days) FILTER (
+                           WHERE finished_volume_kg IS NOT NULL
+                       )::numeric, 1) AS mean_duration_days,
+                       ROUND(AVG(temperature_c)::numeric, 1) AS mean_temperature_c,
+                       ROUND(AVG(moisture_pct)::numeric, 1) AS mean_moisture_pct,
+                       COUNT(*) FILTER (WHERE quality_grade IS NOT NULL)::bigint
+                           AS graded_batches,
                        MIN(compost_date) AS first_date,
                        MAX(compost_date) AS last_date
                   FROM composting_record
@@ -108,6 +135,17 @@ def get_location_waste_summary(
                 (location_id,),
             )
             composting = _date_groups(_rows(cur), "record_count", "feedstock_kg")
+            for row in composting:
+                row["total_output_kg"] = _number(row.pop("total_output_kg"))
+                for key in (
+                    "weighted_yield_pct",
+                    "mean_batch_yield_pct",
+                    "mean_duration_days",
+                    "mean_temperature_c",
+                    "mean_moisture_pct",
+                ):
+                    row[key] = _optional_number(row[key])
+                row["graded_batches"] = int(row["graded_batches"] or 0)
 
             cur.execute(
                 """

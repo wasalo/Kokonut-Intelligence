@@ -14,6 +14,7 @@ def test_waste_management_panel_is_hidden_and_omits_sensitive_details():
     panel = re.search(r'<section id="waste-management".*?</section>', SOURCE, re.DOTALL)
     assert panel
     assert 'id="waste-management" hidden' in panel.group()
+    assert "Compost yield and process measurements are descriptive and advisory, not a compost-quality certification." in panel.group()
     assert "Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded." in panel.group()
     assert "Counts are not compliance determinations." in panel.group()
     for element_id in (
@@ -40,6 +41,9 @@ def test_waste_console_validates_categories_and_renders_only_fixed_text_fields()
     assert renderer
     assert "wasteTypes.has(row?.waste_type)" in renderer.group()
     assert "compostMethods.has(row?.compost_method)" in renderer.group()
+    assert '"weighted_yield_pct"' in renderer.group()
+    assert '"mean_batch_yield_pct"' in renderer.group()
+    assert "row.graded_batches <= row.record_count" in renderer.group()
     assert "incidentStatuses.has(row?.status)" in renderer.group()
     table_renderer = re.search(r"function renderWasteAggregateTable\(.*?\n      }", SOURCE, re.DOTALL)
     assert table_renderer

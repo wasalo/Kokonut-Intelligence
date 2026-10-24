@@ -1,3 +1,20 @@
+### Progress addendum — CAP-006 verified composting efficiency summary, 24 October 2026
+
+The location-scoped waste summary now includes verified compost output and
+efficiency measures grouped by feedstock and method, plus mean duration,
+temperature, moisture, and a count of rows with a recorded quality grade.
+Weighted yield uses total output over all verified feedstock; mean batch yield
+uses only completed rows with positive feedstock. The console validates and
+labels the figures as descriptive/advisory. It does not expose grade labels,
+pH, notes, IDs, or raw rows, and it does not claim compost-quality
+certification. Eleven focused Gateway/console checks pass with Ruff,
+compilation, JavaScript syntax, runtime SQL inventory, capability validation,
+and diff checks. No migration or database was used. Populated parity, quality
+scoring, ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006 remain open.
+Checklist: 1,100 complete / 25 open (1,125 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-composting-efficiency.json)).
+
 ### Progress addendum — CAP-039 dataset inventory failure redaction, 24 October 2026
 
 The `--list` and `--all` inventory-discovery failure paths now redact database

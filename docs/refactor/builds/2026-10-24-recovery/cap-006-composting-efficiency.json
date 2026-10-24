@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on a355bef8",
+  "capability": "CAP-006",
+  "batch": "verified composting efficiency summary",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/waste/{location_id}/summary",
+    "authorization": "exact waste_management:read location grant with signed tenant context",
+    "query_boundary": "read-only repeatable-read transaction; verified rows and exact location filter",
+    "canonical_source": "schemas/postgres/153_waste_management.sql::composting_record",
+    "grouping": [
+      "feedstock_type",
+      "compost_method"
+    ],
+    "aggregates": [
+      "verified feedstock kilograms",
+      "recorded finished output kilograms",
+      "weighted yield percentage",
+      "mean yield percentage for completed batches with positive feedstock",
+      "mean duration for completed batches",
+      "mean temperature and moisture",
+      "count of batches with a stored quality grade"
+    ],
+    "privacy_and_semantics": [
+      "Quality-grade labels, notes, IDs, metadata, and source rows are not returned.",
+      "pH is not projected because it is absent from the canonical schema.",
+      "Yield and process measures are descriptive/advisory, not compost-quality certification or compliance results."
+    ]
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_gateway_waste_management_reads.py tests/test_operator_console_waste_management.py",
+    "result": "11 passed in 3.29s",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in focused console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "remaining_acceptance": [
+    "compost quality scoring/certification",
+    "populated farm-output parity",
+    "runtime database ACL/RLS",
+    "live ZITADEL and browser acceptance",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Revert the composting projection and console fields, then regenerate the runtime SQL inventory. No persistent data was written."
+}

@@ -2002,7 +2002,7 @@
         </section>
         <section id="waste-management" hidden aria-labelledby="waste-management-heading">
           <h2 id="waste-management-heading">Waste and pollution records</h2>
-          <p class="muted">Read-only verified waste-stream, composting, and recycling aggregates plus pollution incident counts for a granted location. Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded. Counts are not compliance determinations.</p>
+          <p class="muted">Read-only verified waste-stream, composting, and recycling aggregates plus pollution incident counts for a granted location. Compost yield and process measurements are descriptive and advisory, not a compost-quality certification. Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded. Counts are not compliance determinations.</p>
           <div class="toolbar">
             <label for="waste-management-location">Granted location</label>
             <select id="waste-management-location"></select>
@@ -15969,6 +15969,7 @@
         const materials = new Set(["plastic", "metal", "glass", "paper", "organic", "other"]);
         const severities = new Set(["low", "medium", "high", "critical"]);
         const incidentStatuses = new Set(["open", "investigating", "remediation", "resolved", "closed"]);
+        const optionalFinite = (value) => value === null || (typeof value === "number" && Number.isFinite(value));
         renderWasteAggregateTable(wasteManagementStreams, summary.waste_streams, [
           ["waste_type", "Waste type"], ["disposal_method", "Disposal method"],
           ["quantity_unit", "Recorded unit"], ["record_count", "Records"],
@@ -15980,10 +15981,19 @@
         renderWasteAggregateTable(wasteManagementCompost, summary.composting, [
           ["feedstock_type", "Feedstock"], ["compost_method", "Method"],
           ["record_count", "Records"], ["feedstock_kg", "Feedstock (kg)"],
+          ["total_output_kg", "Recorded output (kg)"], ["weighted_yield_pct", "Weighted yield (%)"],
+          ["mean_batch_yield_pct", "Mean batch yield (%)"], ["mean_duration_days", "Mean duration (days)"],
+          ["mean_temperature_c", "Mean temperature (°C)"], ["mean_moisture_pct", "Mean moisture (%)"],
+          ["graded_batches", "Graded batches"],
           ["first_date", "First"], ["last_date", "Latest"]
         ], (row) => validCountAndDates(row) && feedstocks.has(row?.feedstock_type)
           && compostMethods.has(row?.compost_method)
-          && typeof row.feedstock_kg === "number" && Number.isFinite(row.feedstock_kg));
+          && typeof row.feedstock_kg === "number" && Number.isFinite(row.feedstock_kg)
+          && typeof row.total_output_kg === "number" && Number.isFinite(row.total_output_kg)
+          && [row.weighted_yield_pct, row.mean_batch_yield_pct, row.mean_duration_days,
+            row.mean_temperature_c, row.mean_moisture_pct].every(optionalFinite)
+          && Number.isSafeInteger(row.graded_batches) && row.graded_batches >= 0
+          && row.graded_batches <= row.record_count);
         renderWasteAggregateTable(wasteManagementRecycling, summary.recycling, [
           ["material_type", "Material"], ["record_count", "Records"],
           ["quantity_kg", "Quantity (kg)"], ["first_date", "First"], ["last_date", "Latest"]
@@ -16027,7 +16037,7 @@
             throw new Error("The response did not match the selected location or waste contract.");
           }
           renderWasteManagementSummary(result);
-          wasteManagementStatus.textContent = "Read-only aggregates include verified waste records and incident counts only. Counts do not determine compliance.";
+          wasteManagementStatus.textContent = "Read-only aggregates include verified waste records and incident counts only. Compost measurements and yields are descriptive and advisory; counts do not determine compliance.";
         } catch (error) {
           if (requestVersion !== wasteManagementRequestVersion) return;
           for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {

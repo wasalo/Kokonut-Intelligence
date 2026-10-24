@@ -20,6 +20,16 @@ grouping preserves waste type/disposal method/recorded unit, compost feedstock
 and method, and recycling material respectively. Quantity values remain in
 their source units and are never combined across groups.
 
+Verified composting also returns bounded efficiency and process aggregates by
+feedstock and method from the canonical `composting_record` columns. Recorded
+output uses `finished_volume_kg`; weighted yield is total recorded output
+divided by all verified feedstock in the group, while mean batch yield and
+duration use only batches with output and positive feedstock. Mean temperature
+and moisture include all verified batches. `graded_batches` is only a count;
+grade labels, notes, and source rows are not returned. The schema has no pH
+column, so pH is not inferred. These summaries are descriptive and advisory,
+not a compost-quality score, certification, or compliance result.
+
 Pollution incident aggregation reports count and first/last date by the
 schema-controlled severity and lifecycle status. It exposes no incident type,
 narrative, affected area, remedial action, reporter/recipient, notes, IDs, or
@@ -35,16 +45,19 @@ schema categories, discards stale responses, and renders fixed fields with
 
 Focused fake-connection and Gateway tests cover route policy, missing-grant
 denial, invalid identifiers before connection, signed context ordering,
-location filters on each source query, lifecycle filters, output omission, and
-connection cleanup. Console contracts cover grant gating, field allowlists,
-stale-response checks, no-store requests, and inline JavaScript syntax. No
-schema migration is required. Rollback is a source rollback: remove the route,
-service, console panel, and route inventory row, then regenerate the runtime
-SQL inventory. No data rollback is necessary.
+location filters on each source query, lifecycle filters, output omission,
+compost yield/process calculations, and connection cleanup. Console contracts
+cover grant gating, compost numeric/count bounds, field allowlists,
+stale-response checks, no-store requests, and inline JavaScript syntax. The
+focused Gateway/console selection passes 11 tests with Ruff, Python
+compilation, SQL inventory, capability validation, and diff checks. No schema
+migration or database was used. Rollback is a source rollback: remove the
+projection and console fields, then regenerate the runtime SQL inventory. No
+data rollback is necessary.
 
 ## Remaining acceptance
 
 This is an initial CAP-006 read path, not full energy/waste/landscape parity.
-Waste calculation parity, composting quality/scoring, landscape habitat and
-pollinator workflows, populated legacy output parity, runtime ACL/RLS, live
-ZITADEL/browser behavior, and MAN-CAP-006 remain open.
+Compost quality scoring and certification, waste calculation parity,
+landscape habitat and pollinator workflows, populated legacy output parity,
+runtime ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open.

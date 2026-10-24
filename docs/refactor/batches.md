@@ -19,10 +19,29 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,099 checklist items complete and 25
-open (1,124 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,100 checklist items complete and 25
+open (1,125 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 verified composting efficiency summary — 24 October 2026
+
+- [x] Extend the exact-location waste summary with verified composting
+  efficiency and process aggregates from canonical schema-153 columns. The
+  response now includes recorded output, total-feedstock-weighted yield,
+  mean completed-batch yield/duration, mean temperature/moisture, and graded
+  batch counts by feedstock and method. Grade labels, pH (not present in the
+  schema), notes, IDs, and source rows stay private. The console validates
+  fixed categories, finite nullable measures, and count bounds and labels the
+  metrics descriptive/advisory. Eleven focused Gateway/console tests pass;
+  Ruff, Python compilation, JavaScript syntax, runtime SQL inventory,
+  capability validation, and diff checks pass. No migration or database was
+  used. Compost quality scoring/certification, populated parity, broader
+  ACL/RLS, live OIDC/browser behavior, and MAN-CAP-006 remain open. Rollback
+  removes the added projection/console fields and regenerates the SQL
+  inventory ([contract](waste-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-composting-efficiency.json)).
+  Checklist: 1,100 complete / 25 open (1,125 total).
 
 ### CAP-039 dataset-refresh CLI selector and cleanup contract — 24 October 2026
 
