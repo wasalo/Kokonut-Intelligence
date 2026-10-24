@@ -1,3 +1,21 @@
+### Progress addendum — CAP-008 stored change-point Kernel read, 24 October 2026
+
+The trend-analysis panel now reads up to 100 stored change-point detections
+for a metric already visible in the granted location's estimate list. The
+`trend_analysis:read` route sets signed tenant context before a bounded,
+read-only query and omits IDs, classification text, metadata, and actor
+details; non-finite magnitude/confidence values become `null`. Existing
+`detected`/`confirmed`/`dismissed` states are displayed as recorded, and no
+confirm/dismiss action is available. The focused Gateway/console/route-policy
+selection passes 22 tests with Ruff, compilation, JavaScript syntax, runtime
+SQL inventory, capability validation, and diff checks. No migration, provider,
+candidate, or legacy database was used. CAP-008 remains prepared pending
+decomposition, forecast/geostatistics paths, numerical/populated parity, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,073
+complete / 25 open (1,098 total); matrix: 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks accepted
+([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-change-points-kernel-read.json)).
+
 ### Progress addendum — CAP-008 stored trend smoothing Kernel read, 24 October 2026
 
 The trend-analysis surface now reads up to 100 saved smoothing points for a

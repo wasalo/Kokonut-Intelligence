@@ -1,6 +1,6 @@
 # Trend analysis Kernel read contract
 
-**Status:** Saved trend-estimate and smoothing reads implemented; capability remains prepared.
+**Status:** Saved estimate, smoothing, and change-point reads implemented; capability remains prepared.
 **Updated:** 24 October 2026
 
 ## Route and authorization
@@ -32,17 +32,28 @@ smoothing method, original value, smoothed value, and save time; estimator
 parameters and metadata are omitted. Non-finite values become `null` and the
 points are ordered newest first.
 
+`GET /operator/api/trends/{location_id}/change-points` uses the same exact
+grant and signed-context transaction. It requires a metric key from the
+authorized estimate list and returns up to 100 stored detections for that
+location and metric. The projection includes the detector method, point index
+and optional timestamp, magnitude, direction, confidence, segment count,
+stored status, and detection time. It omits internal IDs, classification text,
+metadata, and actor details. Non-finite numeric values become `null`. The
+saved `detected`/`confirmed`/`dismissed` status is displayed as recorded; this
+route does not confirm or dismiss a finding.
+
 The console appears only for the exact location grant, checks response scope
 and page correlation, suppresses stale requests, renders fixed fields using
 text nodes, and labels stored outputs advisory. It does not run a trend model
 or certify calculations. A selected estimate can load its saved smoothed
-points; location changes and stale requests cannot render results into a
-different location or metric.
+points and stored change-point detections; location changes and stale requests
+cannot render results into a different location or metric. Change-point status
+is informational only and no lifecycle actions are exposed.
 
 ## Boundaries and remaining work
 
-This slice does not implement model execution, decomposition, change-point or
-forecast-result reads, accuracy verification, geostatistics, or populated
+This slice does not implement model execution, decomposition, forecast-result
+reads, accuracy verification, geostatistics, or populated
 numerical parity. Current application runtime database grants
 remain broad; signed tenant context is not least-privilege ACL/RLS. Live OIDC
 and browser behavior, scope configuration, populated fixtures, audience

@@ -12,6 +12,7 @@ from services.common.tenant_context import set_operator_tenant_context
 _MAX_PAGE_SIZE = 50
 _MAX_OFFSET = 10_000
 _MAX_SMOOTHING_POINTS = 100
+_MAX_CHANGE_POINTS = 100
 _NUMERIC_FIELDS = (
     "slope",
     "intercept",
@@ -110,6 +111,69 @@ def list_location_trend_smoothing(
             "metric_key": metric_key,
             "items": rows,
         }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_change_points(
+    operator_id: str,
+    location_id: str,
+    metric_key: str,
+    *,
+    limit: int = _MAX_CHANGE_POINTS,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List saved change-point detections for one metric and location."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    metric_key = _metric_key(metric_key)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= _MAX_CHANGE_POINTS:
+        raise ValueError(f"limit must be between 1 and {_MAX_CHANGE_POINTS}")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="trend_analysis",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT metric_key, detection_method, change_point_index,
+                       change_point_timestamp, magnitude, direction, confidence,
+                       segment_count, status, detected_at
+                  FROM change_point
+                 WHERE location_id = %s::uuid
+                   AND metric_key = %s
+                 ORDER BY detected_at DESC, id DESC
+                 LIMIT %s
+                """,
+                (location_id, metric_key, limit),
+            )
+            rows = _grouped_rows(cursor)
+            for row in rows:
+                value = row["confidence"]
+                if value is not None and not math.isfinite(value):
+                    row["confidence"] = None
+                value = row["magnitude"]
+                if value is not None and not math.isfinite(value):
+                    row["magnitude"] = None
+        return {"location_id": location_id, "metric_key": metric_key, "items": rows}
     except Exception:
         connection.rollback()
         raise

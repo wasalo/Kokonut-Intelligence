@@ -3014,7 +3014,7 @@
       const trendAnalysisMore = document.querySelector("#trend-analysis-more");
       let trendAnalysisLocations = new Set();
       let trendAnalysisRequestVersion = 0;
-      const trendSmoothingRequestVersions = new WeakMap();
+      const trendDetailRequestVersions = new WeakMap();
       let trendAnalysisOffset = 0;
       let trendAnalysisMetricKeys = new Set();
       const yieldMonitoring = document.querySelector("#yield-monitoring");
@@ -14075,7 +14075,23 @@
         smoothingButton.addEventListener("click", () => loadTrendSmoothing(
           estimate.metric_key, smoothingPanel, smoothingStatus, smoothingButton
         ));
-        article.append(smoothingButton, smoothingStatus, smoothingPanel);
+        const changePointsButton = document.createElement("button");
+        changePointsButton.type = "button";
+        changePointsButton.className = "secondary";
+        changePointsButton.textContent = "Show stored change points";
+        const changePointsStatus = document.createElement("p");
+        changePointsStatus.className = "muted";
+        changePointsStatus.setAttribute("role", "status");
+        changePointsStatus.setAttribute("aria-live", "polite");
+        const changePointsPanel = document.createElement("div");
+        changePointsPanel.hidden = true;
+        changePointsButton.addEventListener("click", () => loadTrendChangePoints(
+          estimate.metric_key, changePointsPanel, changePointsStatus, changePointsButton
+        ));
+        article.append(
+          smoothingButton, smoothingStatus, smoothingPanel,
+          changePointsButton, changePointsStatus, changePointsPanel
+        );
         return article;
       }
 
@@ -14113,10 +14129,47 @@
         return wrapper;
       }
 
+      function renderTrendChangePoints(items) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-wrap";
+        const table = document.createElement("table");
+        const header = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        for (const label of ["Detected at", "Method", "Direction", "Magnitude", "Confidence", "Status", "Change-point time"]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          headerRow.append(cell);
+        }
+        header.append(headerRow);
+        const body = document.createElement("tbody");
+        for (const point of items) {
+          const row = document.createElement("tr");
+          for (const value of [
+            point.detected_at,
+            point.detection_method,
+            point.direction,
+            point.magnitude,
+            point.confidence,
+            point.status,
+            point.change_point_timestamp,
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = typeof value === "number" && Number.isFinite(value)
+              ? value.toLocaleString()
+              : value === null || value === undefined ? "—" : String(value);
+            row.append(cell);
+          }
+          body.append(row);
+        }
+        table.append(header, body);
+        wrapper.append(table);
+        return wrapper;
+      }
+
       async function loadTrendSmoothing(metricKey, panel, status, button) {
         const locationId = trendAnalysisLocation.value;
-        const requestVersion = (trendSmoothingRequestVersions.get(panel) || 0) + 1;
-        trendSmoothingRequestVersions.set(panel, requestVersion);
+        const requestVersion = (trendDetailRequestVersions.get(panel) || 0) + 1;
+        trendDetailRequestVersions.set(panel, requestVersion);
         if (!trendAnalysisLocations.has(locationId) || !trendAnalysisMetricKeys.has(metricKey)) return;
         button.disabled = true;
         panel.hidden = false;
@@ -14136,7 +14189,7 @@
             throw new Error("Saved smoothed values could not be loaded. Retry when the service is available.");
           }
           const result = await response.json();
-          if (requestVersion !== trendSmoothingRequestVersions.get(panel)
+          if (requestVersion !== trendDetailRequestVersions.get(panel)
               || locationId !== trendAnalysisLocation.value
               || !panel.isConnected) return;
           const allowedTypes = new Set([
@@ -14157,11 +14210,67 @@
             ? `Showing ${result.items.length} latest saved smoothing points. These outputs remain advisory.`
             : "No saved smoothing points are available for this metric.";
         } catch (error) {
-          if (requestVersion !== trendSmoothingRequestVersions.get(panel)) return;
+          if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
           panel.replaceChildren();
           status.textContent = error.message;
         } finally {
-          if (requestVersion === trendSmoothingRequestVersions.get(panel)) button.disabled = false;
+          if (requestVersion === trendDetailRequestVersions.get(panel)) button.disabled = false;
+        }
+      }
+
+      async function loadTrendChangePoints(metricKey, panel, status, button) {
+        const locationId = trendAnalysisLocation.value;
+        const requestVersion = (trendDetailRequestVersions.get(panel) || 0) + 1;
+        trendDetailRequestVersions.set(panel, requestVersion);
+        if (!trendAnalysisLocations.has(locationId) || !trendAnalysisMetricKeys.has(metricKey)) return;
+        button.disabled = true;
+        panel.hidden = false;
+        panel.replaceChildren();
+        status.textContent = "Loading stored change points…";
+        try {
+          const params = new URLSearchParams({ metric_key: metricKey, limit: "100" });
+          const response = await fetch(
+            `/operator/api/trends/${encodeURIComponent(locationId)}/change-points?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location trend-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Change-point reads are unavailable for this location.");
+            throw new Error("Stored change points could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== trendDetailRequestVersions.get(panel)
+              || locationId !== trendAnalysisLocation.value
+              || !panel.isConnected) return;
+          const allowedMethods = new Set(["cusum", "pelt", "binary_segmentation", "window_slider"]);
+          const allowedDirections = new Set(["increase", "decrease", "variance_change"]);
+          const allowedStatuses = new Set(["detected", "confirmed", "dismissed"]);
+          if (result.location_id !== locationId || result.metric_key !== metricKey
+              || !Array.isArray(result.items) || result.items.length > 100
+              || result.items.some((point) => point.metric_key !== metricKey
+                || !allowedMethods.has(point.detection_method)
+                || !allowedDirections.has(point.direction)
+                || !allowedStatuses.has(point.status)
+                || !Number.isInteger(point.change_point_index) || point.change_point_index < 0
+                || !Number.isInteger(point.segment_count) || point.segment_count < 1
+                || typeof point.detected_at !== "string"
+                || (point.change_point_timestamp !== null && typeof point.change_point_timestamp !== "string")
+                || (point.magnitude !== null && (typeof point.magnitude !== "number" || !Number.isFinite(point.magnitude)))
+                || (point.confidence !== null && (typeof point.confidence !== "number" || !Number.isFinite(point.confidence))))) {
+            throw new Error("The change-point response did not match the requested location or metric.");
+          }
+          if (result.items.length) panel.append(renderTrendChangePoints(result.items));
+          status.textContent = result.items.length
+            ? `Showing ${result.items.length} latest stored change points. Saved status is shown as recorded; no review action is available here.`
+            : "No saved change points are available for this metric.";
+        } catch (error) {
+          if (requestVersion !== trendDetailRequestVersions.get(panel)) return;
+          panel.replaceChildren();
+          status.textContent = error.message;
+        } finally {
+          if (requestVersion === trendDetailRequestVersions.get(panel)) button.disabled = false;
         }
       }
 

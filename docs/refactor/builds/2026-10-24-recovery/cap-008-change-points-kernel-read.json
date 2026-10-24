@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "location-scoped saved change-point read",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/trends/{location_id}/change-points",
+    "authorization": "exact trend_analysis:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "source": "change_point rows for the requested metric and exact location",
+    "maximum_points": 100,
+    "projection": ["metric key", "detector method", "point index and optional timestamp", "magnitude", "direction", "confidence", "segment count", "stored status", "detection timestamp"],
+    "non_finite_values": "magnitude and confidence converted to null",
+    "omitted": ["database IDs", "classification text", "metadata", "actor details"],
+    "lifecycle": "stored status displayed as recorded; no confirm/dismiss action",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "22 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "trend estimate calculation and populated numeric parity",
+    "seasonal decomposition, forecast, and geostatistics Kernel paths",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the change-point reader/route/policy and console panel, then regenerate the runtime SQL inventory. No persistent data was written."
+}

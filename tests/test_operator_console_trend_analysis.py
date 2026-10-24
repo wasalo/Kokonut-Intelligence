@@ -27,6 +27,8 @@ def test_panel_requires_exact_read_scope_and_marks_outputs_advisory():
     assert "trendAnalysis.hidden = false" in source
     assert "does not rerun a model or independently verify" in panel.group()
     assert "Show saved smoothed values" in source
+    assert "Show stored change points" in source
+    assert "Saved status is shown as recorded" in source
 
 
 def test_estimate_reader_is_bounded_scoped_and_text_only():
@@ -80,6 +82,28 @@ def test_smoothing_reader_uses_selected_metric_and_renders_fixed_values_as_text(
     assert "textContent" in renderer
     assert "innerHTML" not in renderer
     for value in ("timestamp", "smoothing_type", "original_value", "smoothed_value"):
+        assert value in renderer
+
+
+def test_change_point_reader_preserves_stored_status_without_review_actions():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(source, "async function loadTrendChangePoints(", "async function loadTrendEstimates(")
+    assert '`/operator/api/trends/${encodeURIComponent(locationId)}/change-points?${params}`' in reader
+    assert 'new URLSearchParams({ metric_key: metricKey, limit: "100" })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "trendAnalysisMetricKeys.has(metricKey)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "result.metric_key !== metricKey" in reader
+    assert "allowedStatuses" in reader
+    assert "result.items.length > 100" in reader
+    assert "no review action is available here" in reader
+    renderer = _function(source, "function renderTrendChangePoints(", "async function loadTrendSmoothing(")
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+    for value in (
+        "detected_at", "detection_method", "direction", "magnitude", "confidence", "status",
+    ):
         assert value in renderer
 
 
