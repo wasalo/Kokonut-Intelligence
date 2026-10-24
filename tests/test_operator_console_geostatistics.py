@@ -63,3 +63,28 @@ def test_spatial_cross_validation_is_grant_gated_bounded_and_advisory():
     assert "fold_results" not in reader and "metadata" not in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
+
+
+def test_variogram_panel_is_grant_gated_bounded_and_fixed_projection_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-variogram-rows"' in source
+    assert "Stored spherical, exponential, Gaussian, and Matérn fit parameters" in source
+    start = source.index("async function loadGeostatisticsVariograms(")
+    end = source.index("function yieldMonitoringValue(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/variogram-models?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "requestVersion !== geostatisticsVariogramRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    for field in (
+        "property_key", "model_type", "sill", "range", "nugget", "partial_sill",
+        "lag_distance", "lag_tolerance", "bandwidth", "n_pairs", "r_squared", "fitted_at",
+    ):
+        assert field in reader
+    assert "metadata" not in reader and "variogram_model_id" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader

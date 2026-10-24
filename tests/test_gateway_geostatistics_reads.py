@@ -12,6 +12,7 @@ from services.common.tenant_context import TenantContextDenied
 from services.gateway.geostatistics_reads import (
     list_location_cross_validation,
     list_location_spatial_autocorrelation,
+    list_location_variogram_models,
 )
 from services.gateway.operator_auth import auth_route_policy
 
@@ -56,6 +57,18 @@ class _Cursor:
                  1.4, 0.9, float("nan"), "2026-03-04"),
                 ("soil_carbon", "k_fold", 5, None, 0.0, 1.0,
                  1.0, 0.8, 0.7, "2026-03-03"),
+            )
+        elif "FROM variogram_model" in query:
+            self.description = [(name,) for name in (
+                "property_key", "model_type", "sill", "range", "nugget",
+                "partial_sill", "lag_distance", "lag_tolerance", "bandwidth",
+                "n_pairs", "r_squared", "fitted_at",
+            )]
+            self.rows = (
+                ("soil_carbon", "spherical", 0.8, 120.0, 0.02, 0.78,
+                 10.0, 5.0, None, 240, float("inf"), "2026-03-05"),
+                ("soil_moisture", "matern", 1.2, 80.0, 0.1, 1.1,
+                 8.0, 4.0, 12.0, 180, 0.82, "2026-03-04"),
             )
 
     def fetchall(self):
@@ -215,6 +228,65 @@ def test_invalid_cross_validation_scope_or_page_fails_before_connecting():
     assert not called
 
 
+def test_variogram_read_is_scoped_bounded_and_omits_model_identity(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_variogram_models(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=2,
+        connection_factory=lambda: connection,
+    )
+    query, params = next(
+        (query, params) for query, params in connection.queries
+        if "FROM variogram_model" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "ORDER BY fitted_at DESC, property_key, model_type, id DESC" in query
+    assert "metadata" not in query and "id," not in query
+    assert params == (LOCATION_ID, 2, 2)
+    assert result["items"][0]["model_type"] == "spherical"
+    assert result["items"][0]["r_squared"] is None
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_variogram_scope_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Invalid location identifier"):
+        list_location_variogram_models(OPERATOR_ID, "bad", connection_factory=connect)
+    assert not called
+
+
 def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -239,6 +311,17 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     }
     assert auth_route_policy("POST", cross_validation, enabled=True) is None
 
+    variograms = f"/operator/api/geostatistics/{LOCATION_ID}/variogram-models"
+    assert auth_route_policy("GET", variograms, enabled=True) == {
+        "resource": "geostatistics",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", variograms, enabled=True) is None
+
 
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
@@ -249,6 +332,10 @@ def _app(monkeypatch, reader):
     )
     monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_cross_validation",
+        reader,
+    )
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_variogram_models",
         reader,
     )
     app = FastAPI()
@@ -344,3 +431,28 @@ def test_cross_validation_http_route_denies_missing_tenant_grant(monkeypatch):
         )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_variogram_http_route_is_no_store_and_passes_scope(monkeypatch):
+    def reader(operator_id, location_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert limit == 4
+        assert offset == 5
+        return {
+            "location_id": location_id,
+            "items": [],
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/variogram-models?limit=4&offset=5"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["offset"] == 5

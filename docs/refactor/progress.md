@@ -1,3 +1,20 @@
+### Progress addendum — CAP-008 saved variogram-model Kernel read, 24 October 2026
+
+The grant-gated geostatistics panel now reads bounded fitted variogram
+parameters for the selected location. The signed `geostatistics:read`
+transaction returns fixed fit fields and pair count while omitting model IDs
+and metadata; non-finite values become `null`. The console validates the model
+enum and location/page correlation, discards stale responses, and renders text
+only. The combined CAP-008 Gateway/console/route-policy selection passes 48
+tests with Ruff, Python compilation, JavaScript syntax, runtime SQL inventory,
+capability validation, and diff checks. No migration, provider, candidate, or
+legacy database was used. Calculation/fixture parity, remaining geostatistics
+outputs, live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 remain
+open. Checklist: 1,078 complete / 25 open (1,103 total); matrix:
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with 0/67
+named MAN-CAP checks accepted ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-variogram-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved spatial cross-validation Kernel read, 24 October 2026
 
 The geostatistics panel now also reads bounded spatial cross-validation error

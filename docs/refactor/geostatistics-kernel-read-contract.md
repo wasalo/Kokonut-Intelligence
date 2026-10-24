@@ -40,6 +40,18 @@ Fold-level JSON, model identifiers, SOC model references, metadata, and
 free-text notes are not selected. Non-finite numeric fields become `null`.
 The console renders the fixed projection as text and labels it advisory.
 
+## Fitted variogram route
+
+`GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same
+exact grant and signed, read-only transaction. It returns a bounded page of
+stored fit summaries: property, one of the schema-defined spherical,
+exponential, Gaussian, or Matérn model types, sill/range/nugget/partial sill,
+lag distance/tolerance, bandwidth, pair count, R-squared, and fit time. A
+private row-ID tie-breaker stabilizes page ordering. Model identifiers,
+metadata, and raw observations are not selected; non-finite numbers become
+`null`. Values are shown as stored and are not independently validated or
+treated as recommendations.
+
 ## Remaining work
 
 Other geostatistics outputs and fold-level diagnostics, numerical/populated fixture parity, live OIDC and

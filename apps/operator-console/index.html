@@ -1821,6 +1821,17 @@
             </table>
           </div>
           <button id="geostatistics-cross-validation-more" class="secondary" type="button" hidden>Load more validation summaries</button>
+          <h3>Fitted variogram models</h3>
+          <p class="muted">Stored spherical, exponential, Gaussian, and Matérn fit parameters for the granted location. These are model outputs, not independently validated recommendations.</p>
+          <button id="geostatistics-variogram-refresh" type="button">Refresh variogram fits</button>
+          <p id="geostatistics-variogram-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Property</th><th>Model</th><th>Sill</th><th>Range (m)</th><th>Nugget</th><th>Partial sill</th><th>Lag distance</th><th>Lag tolerance</th><th>Bandwidth</th><th>Pairs</th><th>R²</th><th>Fitted</th></tr></thead>
+              <tbody id="geostatistics-variogram-rows"></tbody>
+            </table>
+          </div>
+          <button id="geostatistics-variogram-more" class="secondary" type="button" hidden>Load more variogram fits</button>
         </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
@@ -3058,6 +3069,11 @@
       const geostatisticsCrossValidationMore = document.querySelector("#geostatistics-cross-validation-more");
       let geostatisticsCrossValidationRequestVersion = 0;
       let geostatisticsCrossValidationOffset = 0;
+      const geostatisticsVariogramStatus = document.querySelector("#geostatistics-variogram-status");
+      const geostatisticsVariogramRows = document.querySelector("#geostatistics-variogram-rows");
+      const geostatisticsVariogramMore = document.querySelector("#geostatistics-variogram-more");
+      let geostatisticsVariogramRequestVersion = 0;
+      let geostatisticsVariogramOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14781,7 +14797,80 @@
         await Promise.all([
           loadGeostatisticsAutocorrelation(),
           loadGeostatisticsCrossValidation(),
+          loadGeostatisticsVariograms(),
         ]);
+      }
+
+      async function loadGeostatisticsVariograms(loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsVariogramRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)) return;
+        const offset = loadMore ? geostatisticsVariogramOffset : 0;
+        if (!loadMore) {
+          geostatisticsVariogramOffset = 0;
+          geostatisticsVariogramRows.replaceChildren();
+          geostatisticsVariogramMore.hidden = true;
+        }
+        geostatisticsVariogramStatus.textContent = loadMore
+          ? "Loading more variogram fits…"
+          : "Loading saved variogram fits…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/variogram-models?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Variogram reads are unavailable for this location.");
+            throw new Error("Saved variogram fits could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsVariogramRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value) return;
+          const modelTypes = new Set(["spherical", "exponential", "gaussian", "matern"]);
+          const nullableNumbers = ["sill", "range", "nugget", "partial_sill", "lag_distance", "lag_tolerance", "bandwidth", "r_squared"];
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item) => typeof item.property_key !== "string"
+                || item.property_key.length > 100
+                || !modelTypes.has(item.model_type)
+                || !Number.isInteger(item.n_pairs) || item.n_pairs < 0
+                || typeof item.fitted_at !== "string"
+                || nullableNumbers.some((field) => item[field] !== null
+                  && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
+            throw new Error("The variogram response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.property_key, item.model_type, item.sill, item.range, item.nugget,
+              item.partial_sill, item.lag_distance, item.lag_tolerance, item.bandwidth,
+              item.n_pairs, item.r_squared, item.fitted_at,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString()
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsVariogramRows.append(row);
+          }
+          geostatisticsVariogramOffset = offset + result.items.length;
+          geostatisticsVariogramMore.hidden = result.has_more !== true
+            || geostatisticsVariogramOffset > 10000;
+          geostatisticsVariogramStatus.textContent = geostatisticsVariogramOffset
+            ? `${geostatisticsVariogramOffset.toLocaleString()} saved variogram fits shown. Fit results remain advisory.`
+            : "No saved variogram fits are available for this location.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsVariogramRequestVersion) return;
+          if (!loadMore) geostatisticsVariogramRows.replaceChildren();
+          geostatisticsVariogramMore.hidden = true;
+          geostatisticsVariogramStatus.textContent = error.message;
+        }
       }
 
       function yieldMonitoringValue(value) {
@@ -22047,6 +22136,8 @@
       geostatisticsAutocorrelationMore.addEventListener("click", () => loadGeostatisticsAutocorrelation(true));
       document.querySelector("#geostatistics-cross-validation-refresh").addEventListener("click", () => loadGeostatisticsCrossValidation());
       geostatisticsCrossValidationMore.addEventListener("click", () => loadGeostatisticsCrossValidation(true));
+      document.querySelector("#geostatistics-variogram-refresh").addEventListener("click", () => loadGeostatisticsVariograms());
+      geostatisticsVariogramMore.addEventListener("click", () => loadGeostatisticsVariograms(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

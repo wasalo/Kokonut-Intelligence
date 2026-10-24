@@ -627,6 +627,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    geostatistics_variogram_match = re.fullmatch(
+        r"/operator/api/geostatistics/([0-9a-fA-F-]{36})/variogram-models", path
+    )
+    if geostatistics_variogram_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "geostatistics",
+            "action": "read",
+            "public": False,
+            "location_id": geostatistics_variogram_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     energy_summary_match = re.fullmatch(
         r"/operator/api/energy/([0-9a-fA-F-]{36})/summary", path
     )
