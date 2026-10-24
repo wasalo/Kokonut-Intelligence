@@ -536,6 +536,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    waste_summary_match = re.fullmatch(
+        r"/operator/api/waste/([0-9a-fA-F-]{36})/summary", path
+    )
+    if waste_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "waste_management",
+            "action": "read",
+            "public": False,
+            "location_id": waste_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     yield_summary_match = re.fullmatch(
         r"/operator/api/yield-monitoring/([0-9a-fA-F-]{36})/summary", path
     )
@@ -4403,6 +4416,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.threatcasting_routes import register_threatcasting_routes
     from services.gateway.traceability_routes import register_traceability_routes
     from services.gateway.true_cost_routes import register_true_cost_routes
+    from services.gateway.waste_management_routes import register_waste_management_routes
     from services.gateway.yield_monitoring_routes import register_yield_monitoring_routes
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
@@ -4412,6 +4426,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
+    register_waste_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_yield_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_irrigation_routes(router, provider, run_in_threadpool, psycopg2)
     register_crop_simulation_routes(router, provider, run_in_threadpool, psycopg2)

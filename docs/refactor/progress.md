@@ -1,3 +1,22 @@
+### Progress addendum — CAP-006 waste and pollution summary, 23 October 2026
+
+CAP-006 now also has an exact-location `waste_management:read` path for
+verified waste-stream, composting, and recycling summaries, plus descriptive
+pollution incident counts. Quantities remain separated by their source units;
+incident descriptions, affected areas, remedial actions, destinations, costs,
+notes, and reporter identities are withheld. The hidden-by-default console
+uses no-store same-origin requests, exact scope, fixed category checks, stale
+response suppression, and text rendering. The combined energy/waste
+Gateway/console/route-policy selection passes 25 tests; Ruff, compilation,
+JavaScript syntax, runtime SQL inventory, matrix validation, and diff checks
+pass. No migration, provider, candidate, or legacy database was accessed.
+CAP-006 remains prepared, pending calculation and populated parity, landscape
+and pollinator coverage, RLS, live OIDC/browser, and MAN-CAP-006. Checklist:
+1,055 complete / 25 open (1,080 total); matrix: 26 baseline-retained, 7
+deployed, and 34 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+[Contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-waste-kernel-read.json).
+
 ### Progress addendum — CAP-006 farm-energy Kernel read path, 23 October 2026
 
 CAP-006 now has an initial private Kernel read: exact `energy_monitoring:read`

@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-006",
+  "slice": "location-scoped verified waste, composting, recycling, and incident-count reads",
+  "scope": {
+    "gateway_route": "GET /operator/api/waste/{location_id}/summary",
+    "grant": "waste_management:read",
+    "verified_record_sources": ["waste_stream", "composting_record", "recycling_log"],
+    "incident_source": "pollution_incident",
+    "quantity_policy": "group by stored unit; never combine units"
+  },
+  "response_excludes": [
+    "incident narratives and type",
+    "affected areas and remedial action",
+    "reporter/recipient identities",
+    "recycling destination and revenue",
+    "notes",
+    "IDs and arbitrary metadata"
+  ],
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_gateway_waste_management_reads.py tests/test_operator_console_energy_monitoring.py tests/test_operator_console_waste_management.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "passed",
+      "passed": 25
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_node_syntax": "passed",
+    "runtime_sql_inventory": "generated and current",
+    "capability_matrix": "valid after record update",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "fake connections only; no database accessed",
+    "provider": "none",
+    "migration": "none",
+    "candidate_or_legacy_mutation": false,
+    "physical_raspberry_pi": "not tested"
+  },
+  "acceptance_status": "prepared",
+  "remaining": [
+    "waste calculation and populated-output parity",
+    "landscape habitat and pollinator capability paths",
+    "runtime database ACL/RLS",
+    "live ZITADEL/browser acceptance",
+    "MAN-CAP-006 owner acceptance"
+  ]
+}

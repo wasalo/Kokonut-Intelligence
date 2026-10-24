@@ -19,7 +19,7 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,054 checklist items complete and 25
+**Current snapshot (23 October 2026):** 1,055 checklist items complete and 25
 open (1,079 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -41,6 +41,25 @@ acceptance remains separate; none is marked accepted.
   waste/habitat/pollinator routes, populated output parity, ACL/RLS, live
   OIDC/browser behavior, and MAN-CAP-006 remain open ([contract](energy-monitoring-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-energy-kernel-read.json)).
+
+### CAP-006 verified waste and incident-count Kernel reads — 23 October 2026
+
+- [x] Add a private `GET /operator/api/waste/{location_id}/summary` read under
+  exact `waste_management:read`. Its read-only repeatable-read transaction
+  installs signed tenant context before four queries, all bound to the selected
+  location. Waste-stream, composting, and recycling aggregates include verified
+  rows only and preserve stored units; pollution incidents expose counts and
+  date ranges by severity/status without narratives or identities. The hidden-
+  by-default console panel uses no-store same-origin requests, exact scope,
+  response-location checks, fixed category validation, stale-response
+  suppression, and text-only rendering. The combined energy/waste Gateway,
+  console, and route-policy selection passes 25 tests; Ruff, Python compilation,
+  inline JavaScript syntax, runtime SQL inventory, capability validation, and
+  diff checks pass. No migration, provider, candidate, or legacy database was
+  used. CAP-006 remains prepared pending populated parity, calculation review,
+  landscape/pollinator routes, RLS, live OIDC/browser behavior, and MAN-CAP-006
+  ([contract](waste-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-waste-kernel-read.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 
