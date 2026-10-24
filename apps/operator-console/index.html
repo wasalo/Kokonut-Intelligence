@@ -1843,6 +1843,17 @@
             </table>
           </div>
           <button id="geostatistics-sensor-design-more" class="secondary" type="button" hidden>Load more sensor designs</button>
+          <h3>Kriging run summaries</h3>
+          <p class="muted">Saved aggregate surface summaries for the granted location. Individual predictions, uncertainty point records, coordinates, and model identifiers are omitted; values remain advisory.</p>
+          <button id="geostatistics-kriging-refresh" type="button">Refresh kriging summaries</button>
+          <p id="geostatistics-kriging-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Property</th><th>Method</th><th>Grid resolution (m)</th><th>Stored points</th><th>Result points</th><th>Mean prediction</th><th>Mean variance</th><th>Mean standard deviation</th><th>Minimum</th><th>Maximum</th><th>Run time</th></tr></thead>
+              <tbody id="geostatistics-kriging-rows"></tbody>
+            </table>
+          </div>
+          <button id="geostatistics-kriging-more" class="secondary" type="button" hidden>Load more kriging summaries</button>
         </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
@@ -3090,6 +3101,11 @@
       const geostatisticsSensorDesignMore = document.querySelector("#geostatistics-sensor-design-more");
       let geostatisticsSensorDesignRequestVersion = 0;
       let geostatisticsSensorDesignOffset = 0;
+      const geostatisticsKrigingStatus = document.querySelector("#geostatistics-kriging-status");
+      const geostatisticsKrigingRows = document.querySelector("#geostatistics-kriging-rows");
+      const geostatisticsKrigingMore = document.querySelector("#geostatistics-kriging-more");
+      let geostatisticsKrigingRequestVersion = 0;
+      let geostatisticsKrigingOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14815,6 +14831,7 @@
           loadGeostatisticsCrossValidation(),
           loadGeostatisticsVariograms(),
           loadGeostatisticsSensorDesigns(),
+          loadGeostatisticsKrigingSummaries(),
         ]);
       }
 
@@ -14958,6 +14975,79 @@
           if (!loadMore) geostatisticsSensorDesignRows.replaceChildren();
           geostatisticsSensorDesignMore.hidden = true;
           geostatisticsSensorDesignStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGeostatisticsKrigingSummaries(loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsKrigingRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)) return;
+        const offset = loadMore ? geostatisticsKrigingOffset : 0;
+        if (!loadMore) {
+          geostatisticsKrigingOffset = 0;
+          geostatisticsKrigingRows.replaceChildren();
+          geostatisticsKrigingMore.hidden = true;
+        }
+        geostatisticsKrigingStatus.textContent = loadMore
+          ? "Loading more kriging summaries…"
+          : "Loading saved kriging summaries…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/kriging-summaries?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Kriging summary reads are unavailable for this location.");
+            throw new Error("Saved kriging summaries could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsKrigingRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value) return;
+          const methods = new Set(["ordinary", "simple", "indicator"]);
+          const nullableNumbers = ["grid_resolution_m", "mean_predicted", "mean_variance", "mean_std", "min_predicted", "max_predicted"];
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item) => typeof item.property_key !== "string"
+                || item.property_key.length > 100
+                || !methods.has(item.method)
+                || !Number.isInteger(item.n_points) || item.n_points < 0
+                || !Number.isInteger(item.result_point_count) || item.result_point_count < 0
+                || typeof item.created_at !== "string"
+                || nullableNumbers.some((field) => item[field] !== null
+                  && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
+            throw new Error("The kriging response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.property_key, item.method, item.grid_resolution_m, item.n_points,
+              item.result_point_count, item.mean_predicted, item.mean_variance, item.mean_std,
+              item.min_predicted, item.max_predicted, item.created_at,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString()
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsKrigingRows.append(row);
+          }
+          geostatisticsKrigingOffset = offset + result.items.length;
+          geostatisticsKrigingMore.hidden = result.has_more !== true
+            || geostatisticsKrigingOffset > 10000;
+          geostatisticsKrigingStatus.textContent = geostatisticsKrigingOffset
+            ? `${geostatisticsKrigingOffset.toLocaleString()} saved kriging summaries shown. Values remain advisory.`
+            : "No saved kriging summaries are available for this location.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsKrigingRequestVersion) return;
+          if (!loadMore) geostatisticsKrigingRows.replaceChildren();
+          geostatisticsKrigingMore.hidden = true;
+          geostatisticsKrigingStatus.textContent = error.message;
         }
       }
 
@@ -22228,6 +22318,8 @@
       geostatisticsVariogramMore.addEventListener("click", () => loadGeostatisticsVariograms(true));
       document.querySelector("#geostatistics-sensor-design-refresh").addEventListener("click", () => loadGeostatisticsSensorDesigns());
       geostatisticsSensorDesignMore.addEventListener("click", () => loadGeostatisticsSensorDesigns(true));
+      document.querySelector("#geostatistics-kriging-refresh").addEventListener("click", () => loadGeostatisticsKrigingSummaries());
+      geostatisticsKrigingMore.addEventListener("click", () => loadGeostatisticsKrigingSummaries(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

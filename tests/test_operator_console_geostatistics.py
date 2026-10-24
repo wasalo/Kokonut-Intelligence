@@ -115,3 +115,29 @@ def test_sensor_network_panel_is_grant_gated_bounded_and_advisory():
     assert "variogram_model_id" not in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
+
+
+def test_kriging_panel_is_grant_gated_bounded_and_aggregate_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-kriging-rows"' in source
+    assert "Individual predictions, uncertainty point records, coordinates, and model identifiers are omitted" in source
+    start = source.index("async function loadGeostatisticsKrigingSummaries(")
+    end = source.index("function yieldMonitoringValue(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/kriging-summaries?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "requestVersion !== geostatisticsKrigingRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    for field in (
+        "property_key", "method", "grid_resolution_m", "n_points",
+        "result_point_count", "mean_predicted", "mean_variance", "mean_std",
+        "min_predicted", "max_predicted", "created_at",
+    ):
+        assert field in reader
+    assert "point_geometry" not in reader and "metadata" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader

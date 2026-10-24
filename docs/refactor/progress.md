@@ -1,3 +1,20 @@
+### Progress addendum — CAP-008 saved kriging Kernel summaries, 24 October 2026
+
+The exact-location geostatistics panel now shows saved kriging run summaries.
+The read bounds the selected runs before aggregating predicted values and
+uncertainty, returns counts and fixed numeric summaries only, and omits point
+records/coordinates, model IDs, metadata, and thresholds. Non-finite values
+become `null`; the console renders text and labels results advisory. The
+combined CAP-008 Gateway/console/route-policy selection passes 56 tests with
+Ruff, compilation, JavaScript syntax, runtime SQL inventory, capability
+validation, and diff checks. No migration, provider, candidate, or legacy
+database was used. Per-point output, numerical/populated parity, other
+geostatistics outputs, live OIDC/browser, ACL/RLS, audience review, and
+MAN-CAP-008 remain open. Checklist: 1,080 complete / 25 open (1,105 total);
+matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with
+0/67 named MAN-CAP checks accepted ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-kriging-kernel-summaries.json)).
+
 ### Progress addendum — CAP-008 saved sensor-network design Kernel read, 24 October 2026
 
 The location-scoped geostatistics panel now reads saved sensor-network

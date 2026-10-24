@@ -19,10 +19,25 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,079 checklist items complete and 25
-open (1,104 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,080 checklist items complete and 25
+open (1,105 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved kriging Kernel summaries — 24 October 2026
+
+- [x] Add the private `GET /operator/api/geostatistics/{location_id}/kriging-summaries`
+  read under exact `geostatistics:read` and signed tenant context. A bounded
+  run page is selected before aggregating prediction values, returning only
+  per-run counts and fixed statistical summaries; point rows, coordinates,
+  model IDs, metadata, and thresholds are omitted. Non-finite numbers become
+  `null`. The shared console validates scope, method, page, and numeric fields,
+  suppresses stale results, and renders text only. The combined CAP-008 Gateway,
+  console, and route-policy selection passes 56 tests with Ruff, compilation,
+  JavaScript syntax, runtime SQL inventory, matrix validation, and diff checks.
+  No migration, provider, candidate, or legacy database was used. Rollback is
+  a source revert and inventory regeneration ([contract](geostatistics-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-kriging-kernel-summaries.json)).
 
 ### CAP-008 saved sensor-network design Kernel read — 24 October 2026
 

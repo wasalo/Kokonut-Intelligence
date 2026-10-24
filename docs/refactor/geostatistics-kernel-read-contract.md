@@ -62,6 +62,18 @@ time. Notes, variogram-model references, IDs, and metadata are omitted.
 Non-finite numeric values become `null`. The console labels the estimates
 advisory; this endpoint neither places devices nor applies a field plan.
 
+## Kriging summary route
+
+`GET /operator/api/geostatistics/{location_id}/kriging-summaries` applies the
+same grant and signed, read-only transaction. It selects a bounded page of
+location-owned prediction runs first, then aggregates only those runs' point
+rows. The response contains property, method, grid resolution, stored and
+actual result-point counts, mean prediction/variance/standard deviation, min,
+max, and run time. It does not return per-point predictions, geometries,
+model IDs, thresholds, or metadata; non-finite numbers become `null`. The
+aggregation is bounded by the run page, with the transaction statement
+timeout retained. The console labels the saved output advisory.
+
 ## Remaining work
 
 Other geostatistics outputs such as kriging predictions/points and simulations,
