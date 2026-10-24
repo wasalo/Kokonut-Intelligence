@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript SDK Location, Farm, and Plot schema parity",
+  "source_of_truth": "schemas/postgres/001_locations.sql: location, farm, and plot",
+  "issue": "The SDK models omitted canonical PostGIS center/boundary values, metadata, coordinates, or audit fields, with the JavaScript models missing additional location and plot columns.",
+  "change": "Aligned the Python and JavaScript model fields with the canonical tables while keeping existing optional farm metadata fields. TypeScript geometry values are extensible records for Directus GeoJSON projections.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "12 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "21 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed for sdk/python/kokonut/types.py and tests/test_sdk.py",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only",
+  "capability_matrix": "classifications unchanged"
+}

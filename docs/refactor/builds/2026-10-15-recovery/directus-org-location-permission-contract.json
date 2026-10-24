@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-15",
+  "scope": "Directus organization/location authorization source contract",
+  "result": "source_and_sql_checks_passed_directus_api_parity_failed",
+  "changes": [
+    "The permission seed no longer writes $CURRENT_USER.location_id filters or validations.",
+    "An idempotent repair removes only the exact obsolete location clause from prior Directus permission rows and preserves unrelated predicates such as draft-only updates.",
+    "Unexpected legacy filter shapes abort the permission seed instead of silently broadening access.",
+    "The Directus grant hook now covers all 11 collections named by the prior staff location-scope repair, including revenue_event.",
+    "The isolated API fixture now creates a synthetic mapped operator, org membership, and one-location farm_activity read/create/update plus Field Note read grants; it does not assign a directus_users location field.",
+    "The API fixture also creates synthetic Field Note rows to prove the tenant hook can constrain a permission-compatible collection in the pinned runtime.",
+    "The isolated Directus runtime profile mounts the hook package and uses a synthetic issuer by default."
+  ],
+  "checks": {
+    "python_source_contract": {
+      "command": "python3 -m pytest tests/test_directus_tenant_permissions.py -q",
+      "result": "passed",
+      "passed": 5
+    },
+    "fixture_lint_and_compile": {
+      "commands": [
+        "ruff check scripts/fixtures/directus-api-parity-check.py",
+        "python3 -m py_compile scripts/fixtures/directus-api-parity-check.py"
+      ],
+      "result": "passed"
+    },
+    "hook_extension": {
+      "commands": ["npm test", "npm run build"],
+      "result": "passed",
+      "passed": 61
+    },
+    "permission_seed_sql": {
+      "runtime": "PostgreSQL 16 Alpine disposable container; network disabled; no host ports or volumes",
+      "result": "passed",
+      "verified": [
+        "Legacy tenant clause removed while the draft-only update predicate remains.",
+        "Empty legacy tenant wrapper becomes an empty filter for the grant hook.",
+        "Legacy create validation is removed.",
+        "Unrelated verified-status filter remains unchanged.",
+        "A second application is idempotent.",
+        "Unexpected nested legacy filter shape raises and fails closed."
+      ],
+      "container_removed": true
+    }
+  },
+  "runtime_acceptance": {
+    "result": "failed_for_farm_activity; field_note_read_scope_passed",
+    "runtime": "Directus 12.1.1 pinned image with kokonut_directus_runtime against the isolated populated clone",
+    "observed": {
+      "health_status": 200,
+      "admin_login_status": 200,
+      "farm_activity_collection_registered": true,
+      "synthetic_operator_mapping_and_field_worker_role_match": true,
+      "database_owner_grant_allows_read_and_create": true,
+      "runtime_role_has_four_synthetic_grants": true,
+      "field_worker_farm_activity_policy_rows_have_custom_rules": true,
+      "farm_activity_effective_permission_present": false,
+      "farm_activity_own_read_status": 403,
+      "farm_activity_cross_read_status": 403,
+      "farm_activity_own_create_status": 403,
+      "farm_activity_cross_create_status": 403,
+      "farm_activity_cross_update_status": 403,
+      "field_note_own_location_read": true,
+      "field_note_cross_location_read_hidden": true,
+      "tenant_hook_read_runtime_pass": true,
+      "synthetic_rows_and_identities_cleaned": true
+    },
+    "diagnosis": "The Field Worker policy has a custom source_system item filter for farm_activity read, custom create field restrictions, and a draft-only update filter plus field restrictions. The pinned Directus API returns no effective farm_activity permission and denies own and cross-scope requests. Directus 12.1.1 source filters stored custom permission rows when the custom-permission entitlement is unavailable; official documentation also states that unlicensed APIs hide stored permissions using filters, field restrictions, validation, or presets. The permission-compatible field_note read confirms the mounted tenant hook enforces own-location access and hides a cross-location row. Do not broaden permissions to make the farm_activity API probe green.",
+    "directus_license_boundary": "No Directus license was configured in the isolated runtime. This acceptance does not establish that a licensed Directus runtime will enforce these rules.",
+    "cleanup_complete": true,
+    "candidate_or_legacy_modified": false,
+    "still_required": [
+      "Choose whether Directus operational users will have a valid custom-permission license or whether all operational CRUD stays behind the Kokonut Gateway with Directus retained as an optional admin surface.",
+      "If Directus remains an operational API, provide its license through the approved secret channel and rerun own/cross-location and field-level acceptance.",
+      "Verify create/update behavior, field allowlists, expanded relations, lifecycle hooks, and scheduled jobs under the selected Directus profile."
+    ]
+  },
+  "safety": {
+    "candidate_database_touched": false,
+    "legacy_database_touched": false,
+    "provider_credentials_used": false,
+    "synthetic_runtime_users_or_rows_created": false,
+    "synthetic_runtime_cleanup_complete": true
+  },
+  "limitations": [
+    "The Field Worker farm_activity permission was denied before the tenant hook could prove own-scope behavior. A separate field_note read test confirms the hook is loaded and provides own/cross-location row scoping for that compatible read policy.",
+    "Directus custom permission licensing, role/field/expanded-relation parity, create/update behavior, schedules, and production provider mapping remain open.",
+    "This evidence does not establish field privacy, expanded-relation isolation, RLS, provider login, schedule parity, or any MAN-CAP acceptance."
+  ]
+}

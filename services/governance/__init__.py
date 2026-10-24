@@ -16,7 +16,6 @@ human-approved Agent/Governor flow per services/agents/safety.py.
 from __future__ import annotations
 
 from . import adapters  # noqa: F401 - registers concrete adapters on import
-from .baal import BaalReadClient
 from .base import (
     GovernanceConfig,
     GovernanceFramework,
@@ -39,3 +38,12 @@ __all__ = [
     "FRAMEWORK_REGISTRY",
     "BaalReadClient",
 ]
+
+
+def __getattr__(name: str):
+    """Load the optional Web3 client only when callers request it."""
+    if name == "BaalReadClient":
+        from .baal import BaalReadClient
+
+        return BaalReadClient
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,0 +1,39 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped governed nutrient balance summaries",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "aee70ee1",
+  "tested_source": "CAP-002 nutrient-balance working-tree changes on top of base_revision",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_nutrient_balances.py tests/test_nutrient_budget.py tests/test_operator_auth.py -q",
+    "passed": 116,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "validated: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact location-scoped nutrient_budget:read policy; other methods and suffixes do not match",
+    "Invalid location UUID and page parameters fail before opening PostgreSQL",
+    "Repeatable-read, read-only transaction installs signed tenant context before both queries",
+    "Both count and page queries filter the requested location through v_nutrient_balance",
+    "The canonical view limits the source to the latest verified/published budget per plot and season",
+    "Response is bounded and aggregates N/P/K inputs, removals, surpluses, and area by season/crop",
+    "Projection omits plot/budget IDs, product-level inputs, soil-test notes, and costs",
+    "Authenticated route returns no-store response and missing location grant denies before handler"
+  ],
+  "remaining": [
+    "Detailed nutrient input and soil-test projections",
+    "Simulation detail/state and model validation",
+    "Frozen-fixture and populated-data parity",
+    "Live ZITADEL/browser acceptance and direct-database least-privilege/RLS",
+    "MAN-CAP-002 owner acceptance"
+  ],
+  "diff_check": "passed"
+}

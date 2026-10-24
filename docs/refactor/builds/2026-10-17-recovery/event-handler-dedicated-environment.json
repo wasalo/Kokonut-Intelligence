@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "slice": "worker subprocess identity and secret isolation",
+  "implementation": [
+    "Exact source-mapped EventBus handlers now receive their named worker DSN and credential without inheriting shared PostgreSQL connection settings or global geospatial provider credentials.",
+    "Unmapped legacy handlers retain their existing environment until they receive a dedicated worker identity.",
+    "The Kernel supervisor derives its scheduler child allowlist from the canonical scheduled-module worker map, including climate, market-data, sensor-ingestion, and remote-sensing workers.",
+    "The EventBus process receives only the exact worker identities used by its source-mapped handlers, then filters each handler child down to its own identity.",
+    "The separate notification worker receives only the notification-enqueue identity needed by its mapped alert handlers."
+  ],
+  "checks": {
+    "command": "python3 -m pytest tests/test_kernel_runtime_supervisor.py tests/test_worker_environment.py tests/test_event_bus_durability.py tests/test_worker_database.py tests/test_worker_operation_map.py tests/test_scheduler_durability.py tests/test_scheduled_command_contracts.py -q",
+    "result": "224 passed",
+    "ruff": "passed for changed Python files",
+    "py_compile": "passed for changed Python files",
+    "dependency_groups": "passed",
+    "provider_boundaries": "passed",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "database": "no database contacted; environment filtering and subprocess invocation are mocked",
+    "providers": "no provider calls; only synthetic environment values used",
+    "candidate_or_legacy": "not accessed"
+  },
+  "limitations": [
+    "This closes environment inheritance for the currently mapped EventBus handlers only; unmapped handlers retain legacy settings pending their own identity migrations.",
+    "It does not establish live worker credential provisioning, provider delivery, tenant isolation, or RLS and changes no MAN-CAP acceptance status."
+  ]
+}

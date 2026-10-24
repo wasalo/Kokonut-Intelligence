@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript SDK convenience-method inventory parity",
+  "python_classes": 17,
+  "python_direct_public_method_definitions": 104,
+  "typescript_interfaces": 17,
+  "contract": "Python snake_case methods are normalized to TypeScript camelCase; GenericMethods inherited surface is included before comparison.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q \u2014 67 passed",
+    "javascript": "npm test \u2014 29 passed",
+    "typescript": "npm run build \u2014 passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py \u2014 60 models, 1,282 columns; passed",
+    "ruff": "ruff check tests/test_sdk_method_parity.py \u2014 passed",
+    "python_compile": "python3 -m compileall -q tests/test_sdk_method_parity.py \u2014 passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py \u2014 66 rows valid",
+    "diff_check": "git diff --check \u2014 passed"
+  },
+  "boundaries": [
+    "This compares public method names and inherited generic method surfaces; it does not compare parameter/return types, resource selectors, request behavior, or REST/gRPC authorization parity.",
+    "No database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

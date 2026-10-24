@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "463_location_scoped_business_canvas_create.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 463 applies and replays after migration 457",
+    "signed owner tenant and exact create grant produce one draft canvas",
+    "identical request retry returns the original canvas",
+    "changed-content idempotency reuse and invalid blocks fail closed",
+    "cross-location context and missing exact grant are denied",
+    "existing runtime location insert/edit and Directus insert remain available",
+    "Directus cannot execute the new Kernel function",
+    "idempotency ledger is append-only and inaccessible to runtime roles"
+  ],
+  "assertions_passed": 8
+}

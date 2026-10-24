@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -165,6 +164,28 @@ class TestPolicyEngine:
             "action": "send_alert_notification",
         }
         adapter.assert_called_once_with(mock_cursor, decision)
+
+    def test_execute_redacts_adapter_exception_and_preserves_rollback(self):
+        engine, mock_conn, mock_cursor = self._make_engine()
+        decision = self._approved_decision("send_alert_notification")
+        mock_cursor.fetchone.return_value = decision
+        engine._action_adapters = {"send_alert_notification": MagicMock()}
+        engine._authorized_action_types = {"send_alert_notification"}
+        engine._execute_action = MagicMock(
+            side_effect=RuntimeError("synthetic action diagnostic marker")
+        )
+
+        result = engine.execute(decision_id=decision["id"])
+
+        assert result == {
+            "success": False,
+            "status": "failed",
+            "error": "Decision execution failed (RuntimeError)",
+        }
+        assert "synthetic action diagnostic marker" not in result["error"]
+        mock_conn.rollback.assert_called_once()
+        mock_conn.commit.assert_not_called()
+        mock_cursor.close.assert_called_once()
 
     def test_list_pending_returns_empty_when_no_pending(self):
         """list_pending() returns empty list when no pending decisions."""

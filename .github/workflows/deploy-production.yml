@@ -1,0 +1,83 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type yes to promote the current main commit to production
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: deploy-production
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'yes'
+    environment:
+      name: production
+    timeout-minutes: 30
+    env:
+      DEPLOY_CONFIRM: ${{ inputs.confirm }}
+      DEPLOY_PROD_HOST: ki-prod
+      DEPLOY_BRANCH: main
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Configure pinned production SSH access
+        shell: bash
+        env:
+          PRODUCTION_SSH_HOST: ${{ vars.DEPLOY_PROD_HOST }}
+          PRODUCTION_SSH_KEY: ${{ secrets.DEPLOY_PROD_SSH_KEY }}
+          PRODUCTION_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_PROD_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "Production promotion must be dispatched from main." >&2
+            exit 1
+          fi
+          if [[ "$DEPLOY_CONFIRM" != yes ]]; then
+            echo "Production promotion requires the explicit yes input." >&2
+            exit 1
+          fi
+          if [[ ! "$PRODUCTION_SSH_HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
+            echo "DEPLOY_PROD_HOST must be a DNS name or IPv4 address." >&2
+            exit 1
+          fi
+          test -n "$PRODUCTION_SSH_KEY" || {
+            echo "The production environment is missing DEPLOY_PROD_SSH_KEY." >&2
+            exit 1
+          }
+          test -n "$PRODUCTION_SSH_KNOWN_HOSTS" || {
+            echo "The production environment is missing DEPLOY_PROD_KNOWN_HOSTS." >&2
+            exit 1
+          }
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$PRODUCTION_SSH_KEY" > "$HOME/.ssh/ki-deploy-ed25519"
+          printf '%s\n' "$PRODUCTION_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/ki-deploy-ed25519" "$HOME/.ssh/known_hosts"
+          cat > "$HOME/.ssh/config" <<EOF
+          Host ki-prod
+            HostName $PRODUCTION_SSH_HOST
+            User kokonut-deploy
+            IdentityFile ~/.ssh/ki-deploy-ed25519
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 "$HOME/.ssh/config"
+          ssh -T ki-prod true
+
+      - name: Promote with backup and health gates
+        run: ./deploy/scripts/deploy-production.sh

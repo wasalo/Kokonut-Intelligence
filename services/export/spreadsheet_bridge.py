@@ -241,6 +241,9 @@ def export_farm_activity_csv(conn, path: str, location_id: str) -> dict[str, Any
                source_system, source_id
         FROM farm_activity
         WHERE location_id = %s AND status IN ('verified', 'published')
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
         ORDER BY activity_date DESC, created_at DESC
         """,
         (location_id,),

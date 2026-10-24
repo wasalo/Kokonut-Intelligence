@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import psycopg2
 import psycopg2.extras
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 
 logger = get_logger("ingestion.ml_anomaly_detector")
@@ -310,7 +311,7 @@ def fit_prophet(
         model.fit(prophet_df)
         return model
     except Exception as e:
-        logger.error("Prophet fit failed for %s: %s", sensor_type, e)
+        logger.error("Prophet fit failed (%s)", safe_exception_class(e))
         return None
 
 
@@ -575,7 +576,7 @@ def save_models(conn, location_id: str) -> Dict[str, Any]:
                     _save_model_artifact(model_dir_fd, filename, model)
                     saved.append(f"prophet_{sensor_type}")
                 except Exception as e:
-                    logger.error("Failed to save Prophet model for %s: %s", sensor_type, e)
+                    logger.error("Failed to save Prophet model (%s)", safe_exception_class(e))
 
         # Isolation Forest model
         iforest_tuple = fit_isolation_forest(conn, location_id, lookback_days=30)
@@ -585,7 +586,7 @@ def save_models(conn, location_id: str) -> Dict[str, Any]:
                 _save_model_artifact(model_dir_fd, filename, iforest_tuple)
                 saved.append("isolation_forest")
             except Exception as e:
-                logger.error("Failed to save Isolation Forest model: %s", e)
+                logger.error("Failed to save Isolation Forest model (%s)", safe_exception_class(e))
 
         return {"status": "success", "models_saved": saved, "model_dir": str(MODEL_DIR)}
     finally:
@@ -641,7 +642,7 @@ def load_models(
                 with stream:
                     result["prophet"][sensor_type] = pickle.load(stream)  # noqa: S301 - opened and validated by descriptor
             except Exception as e:
-                logger.warning("Failed to load Prophet model %s: %s", filename, e)
+                logger.warning("Failed to load Prophet model (%s)", safe_exception_class(e))
             finally:
                 if file_fd >= 0:
                     os.close(file_fd)
@@ -671,7 +672,7 @@ def load_models(
                         with stream:
                             result["iforest"] = pickle.load(stream)  # noqa: S301 - opened and validated by descriptor
                 except Exception as e:
-                    logger.warning("Failed to load Isolation Forest model: %s", e)
+                    logger.warning("Failed to load Isolation Forest model (%s)", safe_exception_class(e))
                 finally:
                     if file_fd >= 0:
                         os.close(file_fd)

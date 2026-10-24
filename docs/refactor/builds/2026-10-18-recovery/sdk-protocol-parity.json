@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript Protocol schema parity",
+  "table": "public.protocol",
+  "schema_sources": [
+    "schemas/postgres/006_web3.sql"
+  ],
+  "contract": "Stored Web3 protocol catalog entry with chain and contract references, descriptive fields, and JSON metadata.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 74 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — 69 models, 1,428 canonical columns, 1,335 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, 43 CHECK-literal fields — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q scripts/check-sdk-schema-parity.py sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The model preserves the stored catalog contract and exposes no provider, signing, or transaction-submission behavior.",
+    "No database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

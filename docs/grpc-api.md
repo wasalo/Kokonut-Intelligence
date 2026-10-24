@@ -236,6 +236,26 @@ Do not assume every list RPC is paginated. For example, `ClassIssuers`,
 operations use their declared repeated response fields without a pagination
 message.
 
+The EcocreditService paging contract applies to `Classes`, `ClassesByAdmin`,
+`Projects`, `ProjectsByClass`, `Batches`, `BatchesByClass`, `BatchesByProject`,
+`Baskets`, and `SellOrders`. A zero `limit` selects the default of 100; requests
+above 500 fail with `INVALID_ARGUMENT`. `offset` is an opaque cursor to clients;
+the current implementation encodes a decimal row offset as ASCII bytes.
+`PageResponse.total` is the matching result count before slicing, and an empty
+`next_key` means there is no next page. Pass a non-empty `next_key` unchanged
+into the next request's `offset`.
+
+The source queries use deterministic ordering for page sequences. Paginated
+class, batch, basket, and sell-order reads apply `LIMIT` and `OFFSET` in SQL;
+project reads select only the requested location IDs before hydrating their
+metadata. This bounds page-row materialization, though the matching `COUNT(*)`
+and skipped rows for large offsets can still require substantial database work.
+The count and page are separate statements, and each request reads a new result
+set, so concurrent writes can change the reported total or shift later offset
+pages; pagination does not provide a multi-request snapshot. Calls without a
+`pagination` message retain their existing unpaged behavior (the `Projects`
+legacy call remains capped at 100 results).
+
 ### Data Types
 
 The complete domain message and field definitions are in:
@@ -293,10 +313,11 @@ The interceptor:
 6. Rejects expired keys with `PERMISSION_DENIED`.
 7. Propagates API-key ID, role name, and scopes through a context variable.
 
-The current interceptor does not compare the loaded scopes against the RPC
-being called. The guide must therefore not promise per-RPC scope enforcement.
-That is a security gap to address separately before treating scopes as an
-authorization guarantee.
+Each protected service handler checks its required resource/action scope before
+acquiring the service database connection. The source inventory and focused
+tests pin those checks for the registered RPCs. This is API-key method-scope
+authorization only; it does not establish organization/location tenant scope,
+database RLS, or parity with the native Gateway's full policy.
 
 ### Exempt RPCs
 
@@ -322,6 +343,14 @@ python3 -m services.grpc.cli health --target localhost:50051
 
 Successful output reports the protobuf health status, normally `SERVING`.
 Health failures print the gRPC error and exit with status `1`.
+
+For a TLS listener, provide a trusted CA bundle with the `--tls-ca` option
+(for example, `/etc/ssl/certs/grpc-ca.pem`) or the `GRPC_TLS_CA` environment
+variable. When the health process sees `GRPC_TLS_CERT` or `GRPC_TLS_KEY`, it
+fails closed if no CA path is configured. Without a CA path, plaintext is
+allowed automatically only for loopback targets. A non-loopback target fails
+closed unless the operator explicitly supplies `--insecure`, which is intended
+only for a trusted private network. Compose health checks target loopback.
 
 `Health/Check` returns `SERVING`. `Health/Watch` currently yields a single
 `SERVING` response and does not continuously monitor service state.
@@ -441,6 +470,10 @@ the gRPC service.
 |---|---:|---|
 | `GRPC_PORT` | `50051` | Server listen port |
 | `GRPC_MAX_WORKERS` | `10` | gRPC thread-pool worker count |
+| `GRPC_MAX_MESSAGE_BYTES` | `4194304` | Maximum inbound request and outbound response message size; valid range is 1 KiB–64 MiB |
+| `GRPC_TLS_CERT` | unset | Server certificate path inside the container; paired with `GRPC_TLS_KEY` |
+| `GRPC_TLS_KEY` | unset | Server private-key path inside the container |
+| `GRPC_TLS_CA` | unset | Trusted CA bundle path used by the health client |
 | `GRPC_DB_MIN_CONN` | `2` | Minimum PostgreSQL pool connections |
 | `GRPC_DB_MAX_CONN` | `20` | Maximum PostgreSQL pool connections |
 | `PG_HOST` | service configuration | PostgreSQL host |
@@ -452,6 +485,21 @@ the gRPC service.
 The server creates a `ThreadedConnectionPool` using the configured minimum and
 maximum. Each unary handler returns its connection after the operation. Each
 stream retains a connection until cancellation or stream termination.
+
+The server applies `GRPC_MAX_MESSAGE_BYTES` to both gRPC receive and send
+limits. Invalid or out-of-range values fail during configuration before the
+PostgreSQL pool is opened. Compose defaults the setting to 4 MiB; raise it only
+for workloads that need larger protobuf messages, up to 64 MiB.
+
+To enable server TLS, provide both `GRPC_TLS_CERT` and `GRPC_TLS_KEY` as paths
+available inside the container and mount those files read-only through a
+deployment-specific Compose override or secret mechanism. Configure
+`GRPC_TLS_CA` to a trusted CA bundle available to the health command. Compose
+passes these path settings but does not ship or mount certificate material.
+The server validates the certificate/key pair, reads both files, and constructs
+gRPC credentials before opening its PostgreSQL pool. Missing files and invalid
+credential configuration fail startup with redacted errors that do not echo
+filesystem paths or parser details.
 
 The server handles `SIGTERM` and `SIGINT` by stopping with a 30-second grace
 period before exiting.

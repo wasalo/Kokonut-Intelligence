@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Refresh generated worker-effect and whole-service SQL inventories after making declarative CLI database loading lazy; source checks only, no database/provider access",
+  "files": [
+    "services/common/commands.py",
+    "docs/refactor/worker-effect-inventory.json",
+    "docs/refactor/runtime-sql-inventory.json"
+  ],
+  "result": "passed",
+  "refreshed_counts": {
+    "worker_operation_roots": 31,
+    "worker_source_files": 93,
+    "function_memberships": 639,
+    "direct_call_edges": 875,
+    "worker_sql_execution_sites": 322,
+    "static_worker_sql_paths": 249,
+    "worker_sql_sites_without_static_function_match": 73,
+    "service_sql_execution_sites": 4006,
+    "service_source_files": 826,
+    "worker_candidate_effect_sites": 36,
+    "worker_effect_operation_memberships": 46
+  },
+  "check_modes": [
+    "worker source closure",
+    "worker function reachability",
+    "worker SQL reachability",
+    "worker boundary preflight",
+    "worker job contract inventory",
+    "worker effect inventory",
+    "worker SQL inventory",
+    "runtime SQL inventory",
+    "dependency group alignment",
+    "provider import boundaries",
+    "capability matrix validation"
+  ],
+  "check_result": "all passed",
+  "limitations": [
+    "Static counts are review aids, not database ACLs or proof of tenant isolation",
+    "Worker boundary preflight remains review_required; the 73 unmatched SQL sites remain open",
+    "No persisted task, provider state, live worker, database, candidate, or legacy service was accessed"
+  ]
+}

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("stream.buffer")
@@ -40,9 +41,9 @@ class StreamBuffer:
             conn.commit()
             logger.info("Cleaned up %d old buffer entries", count)
             return count
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Buffer cleanup failed")
+            logger.error("Buffer cleanup failed (%s)", safe_exception_class(exc))
             return 0
 
     def pending_count(self) -> int:
@@ -52,8 +53,8 @@ class StreamBuffer:
             with conn.cursor() as cur:
                 cur.execute("SELECT COUNT(*) FROM stream_buffer WHERE NOT ingested")
                 return cur.fetchone()[0]
-        except Exception:
-            logger.exception("Failed to get pending count")
+        except Exception as exc:
+            logger.error("Failed to get pending count (%s)", safe_exception_class(exc))
             return 0
 
     def oldest_pending(self) -> Optional[datetime]:
@@ -66,8 +67,8 @@ class StreamBuffer:
                 )
                 row = cur.fetchone()
                 return row[0] if row and row[0] else None
-        except Exception:
-            logger.exception("Failed to get oldest pending")
+        except Exception as exc:
+            logger.error("Failed to get oldest pending (%s)", safe_exception_class(exc))
             return None
 
     def pressure_ratio(self) -> float:
@@ -87,6 +88,6 @@ class StreamBuffer:
                 if not row or row[1] == 0:
                     return 0.0
                 return min(row[0] / max(row[1], 1), 1.0)
-        except Exception:
-            logger.exception("Failed to calculate pressure ratio")
+        except Exception as exc:
+            logger.error("Failed to calculate pressure ratio (%s)", safe_exception_class(exc))
             return 0.0

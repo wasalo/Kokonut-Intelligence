@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "base_commit": "defff49e",
+  "operation_count": 12,
+  "source_contract": "All sensor anomaly _one/_many call sites pass literal operation names present in an immutable mapping to fixed SQL statements. Unsupported names fail before cursor access.",
+  "tests": {
+    "command": "python3 -m pytest tests/test_anomaly_detector.py tests/test_worker_sql_inventory.py tests/test_worker_function_reachability.py tests/test_worker_boundary_preflight.py tests/test_worker_operation_map.py -q",
+    "passed": 62
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "worker_source_closure": "current",
+    "worker_function_reachability": "current",
+    "worker_sql_inventory": "current; execute(statement) remains UNKNOWN to the static scanner",
+    "worker_sql_reachability": "current",
+    "worker_boundary_preflight": "current",
+    "git_diff_check": "passed"
+  },
+  "database_target": "none",
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "limitations": [
+    "The SQL scanner does not resolve the local operation map and continues to label the two helper execute arguments UNKNOWN.",
+    "This change does not establish a database role boundary or accept MAN-CAP-040/047."
+  ]
+}

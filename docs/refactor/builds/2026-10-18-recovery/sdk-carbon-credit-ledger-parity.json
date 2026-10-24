@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python and TypeScript SDK read-model parity for carbon credits and their adjustment, retirement, and transfer ledger tables.",
+  "canonical_source": "schemas/postgres/078_carbon_credits.sql plus ordered additive migrations",
+  "models": [
+    "CarbonCredit",
+    "CreditAdjustment",
+    "CreditRetirement",
+    "CreditTransfer"
+  ],
+  "verification": {
+    "schema_guard": "74 models, 1555 canonical columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, and 50 CHECK-literal fields per SDK",
+    "python": "95 passed: tests/test_sdk_schema_parity.py, tests/test_sdk_method_parity.py, and tests/test_sdk.py",
+    "javascript": "45 passed",
+    "typescript_build": "passed",
+    "ruff": "passed for changed Python SDK and tests"
+  },
+  "boundary": "These are stored-record types only. They do not issue, adjust, reserve, confirm, cancel, transfer, attest, or verify credit state; SDK types do not establish authorization or MAN-CAP-020 acceptance.",
+  "external_access": "No database, provider, API, credentials, seed data, candidate, or legacy service was used."
+}

@@ -26,6 +26,12 @@ services:
       KOKONUT_FEATURE_PREFECT: "false"
       GRPC_PORT: "50051"
       GRPC_MAX_WORKERS: "4"
+      GRPC_MAX_MESSAGE_BYTES: "${GRPC_MAX_MESSAGE_BYTES:-4194304}"
+      GRPC_TLS_CERT: "${GRPC_TLS_CERT:-}"
+      GRPC_TLS_KEY: "${GRPC_TLS_KEY:-}"
+      GRPC_TLS_CA: "${GRPC_TLS_CA:-}"
+      # This opt-in profile has no host port and stays on the private kernel network.
+      GRPC_ALLOW_INSECURE: "true"
       GRPC_DB_MIN_CONN: "1"
       GRPC_DB_MAX_CONN: "5"
     networks:

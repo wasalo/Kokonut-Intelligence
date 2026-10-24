@@ -24,7 +24,6 @@
 
 import {
   Client,
-  credentials,
   type ChannelCredentials,
 } from "@grpc/grpc-js";
 
@@ -47,6 +46,7 @@ import {
   EcocreditServiceClient,
   type EcocreditServiceClientOptions,
 } from "./services/ecocredit-service";
+import { resolveChannelCredentials } from "./transport";
 
 /** Top-level options for KokonutGrpcClient. */
 export interface KokonutClientOptions {
@@ -67,7 +67,7 @@ export class KokonutGrpcClient {
   constructor(address: string, options: KokonutClientOptions = {}) {
     this.transport = new Client(
       address,
-      options.credentials ?? credentials.createInsecure(),
+      resolveChannelCredentials(address, options.credentials),
     );
 
     const svcOpts: DataServiceClientOptions & EcocreditServiceClientOptions =
@@ -92,7 +92,11 @@ export class KokonutGrpcClient {
 export { DataServiceClient } from "./services/data-service";
 export { EcocreditServiceClient } from "./services/ecocredit-service";
 export type { DataServiceClientOptions } from "./services/data-service";
-export type { EcocreditServiceClientOptions } from "./services/ecocredit-service";
+export type {
+  EcocreditServiceClientOptions,
+  GrpcPageRequest,
+  GrpcPageResponse,
+} from "./services/ecocredit-service";
 
 export {
   KokonutGrpcError,

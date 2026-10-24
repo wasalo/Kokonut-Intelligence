@@ -7,12 +7,13 @@ parametric models (spherical, exponential, Gaussian, Matérn) using gstools.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import psycopg2
 import psycopg2.extras
+
+from services.common.errors import safe_exception_class
 
 from .config import (
     DEFAULT_LAG_DISTANCE,
@@ -117,7 +118,7 @@ class VariogramAnalyzer:
         Returns:
             Dict with sill, range, nugget, partial_sill, r_squared, model_type.
         """
-        from gstools import Spherical, Exponential, Gaussian, Matern
+        from gstools import Exponential, Gaussian, Matern, Spherical
 
         if "error" in empirical:
             return empirical
@@ -168,8 +169,10 @@ class VariogramAnalyzer:
                 "r_squared": round(r_squared, 4),
                 "n_lags": len(lags),
             }
-        except Exception as e:
-            return {"error": f"Model fitting failed: {e}"}
+        except Exception as exc:
+            return {
+                "error": f"Model fitting failed ({safe_exception_class(exc)})"
+            }
 
     def fit_variogram(
         self,

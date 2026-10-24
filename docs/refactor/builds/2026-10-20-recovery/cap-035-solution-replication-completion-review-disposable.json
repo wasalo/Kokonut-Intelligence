@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "498_location_solution_replication_completion_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 498 applies and replays after migration 497",
+    "queue, private detail, and decision require exact review scope and active human binding",
+    "completion reviewer is independent from report author, starter, initial approver, and source reviewers",
+    "rejection preserves active replication state and permits a replacement report",
+    "acceptance atomically records outcome/evidence, completion attribution, and immutable receipt",
+    "exact retries replay; changed inputs and stale lineage fail closed",
+    "runtime has bounded-function access only and Directus cannot execute review functions"
+  ],
+  "acceptance_groups_passed": 12
+}

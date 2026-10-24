@@ -1,0 +1,137 @@
+{
+  "title": "Candidate migrations 438–444 rollout",
+  "status": "passed",
+  "verified_at_utc": "2026-10-19T13:49:08Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "source_commit": "7ad161efaf9c80e5142eb9b24fd903eab3900fbd",
+  "scope": "Apply only the seven pending governance schema migrations to the isolated local Kernel candidate, then rebuild only its app service from the current branch.",
+  "checkpoint": {
+    "path": "/Users/gilbertoadon/Downloads/Kokonut-Kernel-Backups/kernel-candidate-pre-438-444-20261019T1342Z",
+    "archive": "postgres.dump.age",
+    "encrypted": true,
+    "encryption": "age",
+    "sha256": "98676259f7d487d42fb04d75e601035663b5ca4c4c54bda128ac7b6ae91118f4",
+    "bytes": 6442342,
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope_limit": "Single PostgreSQL database only; roles/grants, other databases, volumes, provider state, and external media are excluded.",
+    "retained_outside_repository": true
+  },
+  "restore_rehearsal": {
+    "status": "passed",
+    "target": "fresh kokonut_intelligence database created from template0",
+    "network": "none",
+    "storage": "ephemeral tmpfs; no persistent volume",
+    "restore_method": "age-decrypt streamed into pg_restore with --exit-on-error --single-transaction --no-owner --no-privileges",
+    "readiness": "waited for PostgreSQL TCP readiness after the image's temporary socket-only initialization server",
+    "role_prerequisites": "scripts/kernel-restore-role-prerequisites.sql applied before restore",
+    "ledger_rows": 434,
+    "applied_ledger_rows": 434,
+    "ledger_fingerprint": "d1eb33c0ea949d1774c1dc5fe05037a5",
+    "public_relations": 1397,
+    "extensions": "btree_gist:1.7,fuzzystrmatch:1.2,pg_stat_statements:1.10,pg_trgm:1.6,pgcrypto:1.3,plpgsql:1.0,postgis:3.4.3,postgis_tiger_geocoder:3.4.3,postgis_topology:3.4.3,uuid-ossp:1.1",
+    "candidate_restore_parity": "ledger fingerprint/count, public relation count, and extension versions matched",
+    "scratch_container_removed": true
+  },
+  "disposable_acceptance": {
+    "status": "passed",
+    "evidence": "governance-tactical-session-creation-disposable.json",
+    "checks": "PostgreSQL 16 applied and replayed migrations 438–444 after 437; verified signed scope, role ACLs, nomination creation/readback/review, tactical lifecycle, definition lifecycle/mutation, tactical session creation, exact idempotent retries, immutable audit history, and direct-write denial.",
+    "candidate_or_legacy_accessed": false
+  },
+  "migrations": [
+    {
+      "id": "schema:438_governance_role_assignment_proposals.sql",
+      "checksum": "13eacadabf03f9a2c26485b0da582e20408c0f2a10f76c1eb73c6b7181c5c761",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:439_governance_role_assignment_proposal_readback.sql",
+      "checksum": "9cda06e713747eadc5525e6bf9a08dbf721b46bcf296accf530274dddd72675d",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:440_governance_role_assignment_review.sql",
+      "checksum": "234a25b1893c44cb665beafc19d5ca1cc53470255454657f5175b55c4fd404b3",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:441_governance_tactical_actions.sql",
+      "checksum": "9e8c8205c2060d94e53db0f85456d9d11b23032336f5e85269f11dd51cabd131",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:442_governance_definition_lifecycle.sql",
+      "checksum": "e5f8232139c610002ba2ed6b154e2d947eaf04f3f5c1e3ea0346b3293a5721e5",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:443_governance_definition_mutations.sql",
+      "checksum": "1ee7a1e6af30223fc3d35740ee62399f485fad7dd22b862148cad4847770401e",
+      "candidate_status": "applied"
+    },
+    {
+      "id": "schema:444_governance_tactical_session_creation.sql",
+      "checksum": "ea928ad0772195c60b9cb261c8d75981e72ea8ce7738a8253fc96d4b7c781d37",
+      "candidate_status": "applied"
+    }
+  ],
+  "ordered_runner": {
+    "mode": "schemas-only",
+    "selected_migrations": [
+      "schema:438_governance_role_assignment_proposals.sql",
+      "schema:439_governance_role_assignment_proposal_readback.sql",
+      "schema:440_governance_role_assignment_review.sql",
+      "schema:441_governance_tactical_actions.sql",
+      "schema:442_governance_definition_lifecycle.sql",
+      "schema:443_governance_definition_mutations.sql",
+      "schema:444_governance_tactical_session_creation.sql"
+    ],
+    "applied": 7,
+    "failed": 0,
+    "seed_sql_executed": 0,
+    "candidate_before": {
+      "applied_schema_entries": 428,
+      "applied_seed_entries": 6,
+      "total_applied_entries": 434,
+      "pending_schema_migrations": 7,
+      "failed_ledger_rows": 0
+    },
+    "candidate_after": {
+      "applied_schema_entries": 435,
+      "applied_seed_entries": 6,
+      "total_applied_entries": 441,
+      "pending_schema_migrations": 0,
+      "failed_ledger_rows": 0,
+      "public_relations": 1403
+    }
+  },
+  "candidate_app": {
+    "action": "rebuilt and force-recreated only the app service from the source_commit",
+    "previous_image": "sha256:bef241c1a1989562be541007bba03f40ef806d97d7d5a623c6f2fa6011c99718",
+    "rollback_tag": "kokonut-kernel-candidate-app:pre-438-444-20261019",
+    "image": "sha256:4c76b210debf88d588bfa4a85e850dc7e78029f4e95def49005314c8f8dc146f",
+    "container_id": "69ffb5d65bb30ed69aa190e75196522b72d2249675da2894b17ee4c3e9b93387",
+    "health": "healthy",
+    "health_endpoint_http_status": 200,
+    "governance_assignment_proposal_route_http_status_without_credentials": 401,
+    "health_git_sha_field": "unknown"
+  },
+  "other_services": {
+    "candidate_database": "running and healthy; not recreated",
+    "candidate_metabase": "running; not recreated",
+    "candidate_proxy": "running; not recreated",
+    "legacy_stack_touched": false
+  },
+  "rollback": {
+    "application": "Rebuild/recreate only the candidate app with kokonut-kernel-candidate-app:pre-438-444-20261019 if needed.",
+    "database": "Keep this encrypted checkpoint. For data recovery, restore it to a fresh isolated database and verify it before a separately reviewed candidate replacement; do not overwrite the live database with pg_restore.",
+    "migration_policy": "Migrations are transactional and additive. Do not edit or reverse applied migration files; prefer a reviewed forward migration if post-rollout data is accepted."
+  },
+  "limitations": [
+    "No seed migrations were applied.",
+    "The candidate still connects as administrative role kokonut, so the rollout does not establish least-privilege runtime behavior.",
+    "The 401 route probe verifies authentication enforcement only; live OIDC login and browser workflow acceptance remain open.",
+    "The health response reports git_sha=unknown; the built image digest and source_commit above identify this local build."
+  ]
+}

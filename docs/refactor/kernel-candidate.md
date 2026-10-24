@@ -7,14 +7,42 @@ Services, schemas, configuration, and package metadata are included. Legacy
 images remain unchanged.
 
 `docker-compose.kernel-candidate.yml` is a standalone preparation manifest.
-It contains PostgreSQL/PostGIS plus the candidate app. The database is private,
-the API binds localhost port 8098 by default, and its named volume differs from
-the legacy volume. Always use a separate project name:
+It contains PostgreSQL/PostGIS plus the candidate app. The database stays
+private in the base manifest; the API binds localhost port 8098 by default, and
+its named volume differs from the legacy volume. Always use a separate project
+name:
 
     docker compose -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml build
 
+For local host tools that need a PostgreSQL connection, opt in to the
+loopback-only [`docker-compose.kernel-local-db.yml`](../../docker-compose.kernel-local-db.yml)
+override. It publishes the candidate database at `127.0.0.1:5433`; the active
+local candidate currently uses this mapping and passed a host authentication
+check and app health check on 16 October 2026 ([evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)). Set
+`KOKONUT_KERNEL_PG_PORT` to another free host port if needed. The application
+continues to connect through Compose at `database:5432`. Keep the base
+candidate database private and do not use this development override in
+production. Start the local database access profile with:
+
+```sh
+docker compose -p kokonut-kernel-candidate \
+  -f docker-compose.kernel-candidate.yml \
+  -f docker-compose.kernel-local-db.yml up -d database
+```
+
+Host-side commands can then use `PG_HOST=127.0.0.1` and `PG_PORT=5433` (or the
+selected override port). Production Compose explicitly removes database host
+ports.
+
 Do not combine this manifest with legacy Compose or use the legacy project name.
-No automatic seeding, migration, restore, or worker execution is configured.
+No automatic seeding, migration, or restore is configured. The image supervisor
+starts enabled workers alongside the API only after schema readiness passes.
+The image supervisor requires the complete bundled schema ledger and read
+contracts before spawning the API or workers. On a fresh volume, the app
+container stays in Compose's restart loop until the separate host-side
+checksummed migration runner finishes; that runner connects to the database
+independently and is not blocked by this guard. For an orderly first start,
+start the database, apply migrations, then start the app.
 The database uses `POSTGRES_PASSWORD` for its owner credential. Application
 connections use `PG_PASSWORD` (falling back to `POSTGRES_PASSWORD` for legacy
 compatibility). The default candidate still uses the owner role until the
@@ -33,7 +61,10 @@ is explicitly disabled; enabled-provider secret validation is preserved.
   runner away from the legacy project. Its default path must not be used here.
 - Validate gateway authentication, lifecycle, mobile sync, public queries, and
   the missing-library behavior of every enabled domain route.
-- Replace Directus-backed location routes before claiming route parity.
+- [x] Replace the public Directus-backed location routes with the native
+  governed projection. The legacy response wrapper remains, and three focused
+  HTTP checks cover provider-independent dispatch and 400/404 behavior
+  ([evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)).
 - Add durable scheduler/event worker supervision before claiming a functioning
   two-service Kernel deployment. Feature flags do not start workers.
 - Preserve/configure private media storage and evidence retention.

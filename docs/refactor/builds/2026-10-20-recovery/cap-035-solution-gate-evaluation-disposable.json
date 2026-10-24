@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "483_location_solution_gate_evaluation.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 483 applies and replays after the location-scoped gate read",
+    "signed exact location context, create grant, active human attribution, and exact-origin gate lineage are enforced",
+    "bounded pass/fail observations and evidence are appended under a non-login evaluator owner",
+    "same request retries return the original result while changed input collisions fail closed",
+    "runtime cannot read idempotency receipts directly and Directus cannot execute the function",
+    "evaluation receipts are append-only and the action does not approve the gate"
+  ],
+  "acceptance_groups_passed": 8
+}

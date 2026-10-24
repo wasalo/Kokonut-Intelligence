@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-14",
+  "scope": "Offline regression tests for the native public API Python and TypeScript SDK clients",
+  "network_calls": 0,
+  "operations": [
+    "listPublicLocationsV1",
+    "getPublicLocationV1",
+    "getPublicMetricSummaryV1",
+    "getPublicCrispAssessmentV1",
+    "getPublicLocationSummaryV1"
+  ],
+  "assertions": [
+    "operation paths match the generated OpenAPI contract",
+    "path parameters use strict URL-component escaping",
+    "Accept and configured API-key headers are sent consistently",
+    "representative response payloads retain the documented fields and types",
+    "HTTP errors, invalid JSON, and invalid response envelopes are normalized",
+    "list reads require array data and detail reads require object data in both clients"
+  ],
+  "results": {
+    "python": {
+      "command": ".venv/bin/python -m pytest tests/test_public_api_sdk.py -q",
+      "passed": 6
+    },
+    "typescript": {
+      "command": "npm test -- --run src/__tests__/public-api.test.ts",
+      "passed": 6
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "ruff": {
+      "command": ".venv/bin/ruff check tests/test_public_api_sdk.py",
+      "result": "passed"
+    }
+  },
+  "response_shape_follow_up": {
+    "date": "2026-10-16",
+    "python_tests": 2,
+    "full_python_public_api_tests": 8,
+    "javascript_tests": 2,
+    "full_javascript_sdk_tests": 11,
+    "javascript_build": "passed",
+    "python_ruff_and_compileall": "passed",
+    "invalid_list_object_and_detail_array_payloads": "normalized to Invalid public API response envelope",
+    "network_calls": 0
+  },
+  "limitations": [
+    "does not exercise live Gateway routes or route authorization",
+    "does not certify tenant-scope or Directus parity",
+    "does not certify broader SDK release parity or publication"
+  ],
+  "candidate_or_legacy_database_touched": false
+}

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy and isolated EAS indexer failure reporting",
+  "behavior": {
+    "recipient_failures": "Provider response/exception details are not placed in chain status, ingestion audit, or scheduler output. Failed recipients retain only the public address prefix and exception class.",
+    "outbox_failures": "The legacy indexer preserves OutboxEnqueueError type and rollback behavior while replacing its message with a fixed summary.",
+    "persistence_failures": "The isolated worker uses fixed persistence summaries and suppresses chained database exception text."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_eas_provider.py tests/test_eas_worker.py tests/test_eas_indexer_recovery.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py -q",
+    "result": "184 passed",
+    "coverage": [
+      "provider exception redaction from isolated chain status and scheduler error",
+      "provider exception redaction from legacy status, ingestion audit, and logs",
+      "fixed outbox failure message with rollback preserved",
+      "persistence wrapper suppresses raw exception context",
+      "EAS pagination, cursor, worker, scheduled-command, and operation-map contracts"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none"
+  },
+  "limitations": [
+    "No live EAS endpoint or database was used.",
+    "Historical provider reorg, late-arrival, and offset-pagination behavior remain open.",
+    "The isolated worker remains default-off pending owner schedule reconciliation and credential provisioning."
+  ]
+}

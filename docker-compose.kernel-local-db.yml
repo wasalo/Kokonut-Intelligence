@@ -1,0 +1,6 @@
+# Explicit local-development override for host-side PostgreSQL tools.
+# PostgreSQL stays on loopback; do not use this overlay in production.
+services:
+  database:
+    ports:
+      - "127.0.0.1:${KOKONUT_KERNEL_PG_PORT:-5433}:5432"

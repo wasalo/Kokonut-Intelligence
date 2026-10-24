@@ -1,6 +1,5 @@
 """Tree tracking tests: schema, seeds, analytics, views, metrics."""
 
-import math
 from datetime import date
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from services.analytics.tree_tracking import (
 )
 
 SCHEMA = Path("schemas/postgres/057_tree_tracking.sql")
+AREA_UNIT_MIGRATION = Path("schemas/postgres/462_tree_density_area_units.sql")
 SEED = Path("schemas/seeds/057_tree_tracking.sql")
 
 
@@ -28,6 +28,16 @@ def test_schema_defines_views() -> None:
     text = SCHEMA.read_text()
     assert "CREATE OR REPLACE VIEW v_public_tree_records" in text
     assert "CREATE OR REPLACE VIEW v_public_tree_density_map" in text
+
+
+def test_density_view_migration_normalizes_supported_area_units() -> None:
+    text = AREA_UNIT_MIGRATION.read_text()
+    for unit in ["hectare", "hectares", "ha", "square_meter", "square_meters", "m2", "sqm", "acre", "acres"]:
+        assert f"WHEN '{unit}'" in text
+    assert "p.area / 10000.0" in text
+    assert "p.area * 0.40468564224" in text
+    assert "p.area <= 0" in text
+    assert "ELSE NULL" in text
 
 
 def test_schema_has_gis_trigger() -> None:
@@ -134,8 +144,8 @@ class _MockConn:
 
 def test_tree_density_analytics() -> None:
     plot_rows = [
-        ("plot1", "Syntropic Beds", 0.78, 10, 9, 1, 2),
-        ("plot2", "Agroforestry Corridor", 0.45, 8, 7, 1, 2),
+        ("plot1", "Syntropic Beds", 0.78, "hectares", 10, 9, 1, 2),
+        ("plot2", "Agroforestry Corridor", 0.45, "hectares", 8, 7, 1, 2),
     ]
     species_rows = [
         ("Cocos nucifera", "Coconut Palm", 12, 11, 10.5, 6.5, 85.0),
@@ -151,6 +161,8 @@ def test_tree_density_analytics() -> None:
             def execute(query, params=None):
                 self._calls += 1
                 if self._calls == 1:
+                    assert "p.area, p.area_unit" in query
+                    assert "p.area_ha" not in query
                     c._rows = plot_rows
                 elif self._calls == 2:
                     c._rows = species_rows
@@ -163,6 +175,42 @@ def test_tree_density_analytics() -> None:
     assert result["total_species"] == 3
     assert len(result["plots"]) == 2
     assert len(result["species"]) == 3
+
+
+def test_tree_density_converts_known_units_and_fails_closed_for_unknown_units() -> None:
+    plot_rows = [
+        ("acre-plot", "Acres", 1, "acre", 4, 3, 1, 1),
+        ("sqm-plot", "Square meters", 10000, "square_meters", 5, 4, 1, 1),
+        ("unknown-plot", "Unknown unit", 1, "furlong", 2, 2, 0, 1),
+        ("zero-plot", "Zero area", 0, "hectares", 1, 1, 0, 1),
+    ]
+
+    class _DensityConn:
+        def __init__(self):
+            self._calls = 0
+
+        def cursor(self, cursor_factory=None):
+            cursor = _MockCursor()
+
+            def execute(query, params=None):
+                self._calls += 1
+                cursor._rows = plot_rows if self._calls == 1 else []
+
+            cursor.execute = execute
+            return cursor
+
+    result = compute_tree_density(_DensityConn(), "test-location")
+
+    assert result["plots"][0]["area_ha"] == 0.40468564224
+    assert result["plots"][0]["trees_per_ha"] == 7.41
+    assert result["plots"][1]["area_ha"] == 1.0
+    assert result["plots"][1]["trees_per_ha"] == 4.0
+    assert result["plots"][2]["area_ha"] is None
+    assert result["plots"][2]["trees_per_ha"] is None
+    assert result["plots"][3]["area_ha"] is None
+    assert result["plots"][3]["trees_per_ha"] is None
+    assert result["total_area_ha"] is None
+    assert result["overall_density_per_ha"] is None
 
 
 def test_growth_rate_analytics() -> None:
@@ -199,6 +247,51 @@ def test_growth_rate_analytics() -> None:
     assert result["trees_with_measurements"] == 1
     assert result["avg_height_growth_m_per_year"] is not None
     assert result["avg_height_growth_m_per_year"] > 0
+
+
+def test_growth_rates_preserve_zero_values_and_average_canopy_independently() -> None:
+    trees = [
+        ("tree1", "AC-001", "Cocos nucifera", "Coconut", None, "seedling", "alive"),
+        ("tree2", "AC-002", "Inga edulis", "Ice Cream Bean", None, "juvenile", "alive"),
+    ]
+    zero_measurements = [
+        (date(2025, 1, 1), 0.0, 0.0, 0.0, 0.0),
+        (date(2026, 1, 1), 0.0, 0.0, 0.0, 0.0),
+    ]
+    canopy_only_measurements = [
+        (date(2025, 1, 1), None, None, 2.0, None),
+        (date(2026, 1, 1), None, None, 2.0, None),
+    ]
+
+    class _GrowthConn:
+        def __init__(self):
+            self._calls = 0
+
+        def cursor(self, cursor_factory=None):
+            cursor = _MockCursor()
+
+            def execute(query, params=None):
+                self._calls += 1
+                if self._calls == 1:
+                    cursor._rows = trees
+                elif self._calls == 2:
+                    cursor._rows = zero_measurements
+                elif self._calls == 3:
+                    cursor._rows = canopy_only_measurements
+
+            cursor.execute = execute
+            return cursor
+
+    result = compute_growth_rate(_GrowthConn(), "test-location")
+
+    assert result["trees_with_measurements"] == 1
+    assert result["trees"][0]["height_growth_m_per_year"] == 0.0
+    assert result["trees"][0]["dbh_growth_cm_per_year"] == 0.0
+    assert result["trees"][0]["canopy_growth_m_per_year"] == 0.0
+    assert result["trees"][0]["health_trend"] == "stable"
+    assert result["trees"][1]["height_growth_m_per_year"] is None
+    assert result["avg_height_growth_m_per_year"] == 0.0
+    assert result["avg_canopy_growth_m_per_year"] == 0.0
 
 
 def test_species_richness_analytics() -> None:

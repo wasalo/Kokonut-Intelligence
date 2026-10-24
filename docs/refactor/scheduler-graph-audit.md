@@ -10,15 +10,16 @@ configuration errors are present. It performs no schedule writes or execution.
 python3 -m services.scheduler.cli --check-graph
 ```
 
-This command requires migration 371. It has not been run against the candidate,
-where that migration remains unapplied.
+This command requires scheduler schema migration 371. It has not been run
+against the local candidate in this slice.
 
 ## Checks
 
 - Duplicate task identifiers, missing prerequisites, and self-dependencies.
 - Cycles and tasks downstream from cycles, using an iterative graph traversal.
-- Existing module allowlist, string-array command arguments, and cron fields
-  that parse to nonempty sets using the scheduler's current parser.
+- Existing module allowlist, module-specific operation/value/combination
+  contracts, and cron fields that parse to nonempty sets using the scheduler's
+  current parser. Runtime dispatch repeats command validation.
 - Unknown dependency modes and warnings for legacy completion semantics.
 - Disabled same-window definitions need timezone-aware initial timestamps on
   exact UTC cron boundaries, including zero seconds/microseconds.
@@ -35,23 +36,26 @@ against durable task_run history before modifying ownership or definitions.
 
 `valid=true` means no configuration errors were found in this snapshot. It is
 not activation approval or capability certification. Warnings remain visible.
-An empty graph can be valid without configured work. Command argument validation
-checks types, not each module's semantic input contract or credentials. Cron
-checking inherits the existing parser's permissive range handling; equal cron
-strings are deliberately conservative and do not recognize equivalent spellings.
-No backlog repair, domain idempotency, or scheduler ownership validation is
-performed. Dependency order is useful only when configuration errors are absent.
+An empty graph can be valid without configured work. Argument contracts check
+operation syntax, values, and required combinations, but they do not verify
+credentials, tenant ownership, domain idempotency, or narrow database access.
+Cron checking inherits the existing parser's permissive range handling; equal
+cron strings are deliberately conservative and do not recognize equivalent
+spellings. No backlog repair or external scheduler ownership validation is
+performed. Dependency order is useful only when configuration errors are
+absent.
 
 The standalone audit snapshot can become stale after concurrent edits. The new
 [transactional activation path](scheduler-activation.md) runs this audit under
 definition locking before enabling tasks. Runtime validation and dispatcher
 ownership reconciliation remain required before pipeline cutover.
 
-Pending acceptance: missing/duplicate identifiers, cycles and their dependents,
-valid aligned chains, timestamp normalization, off-cadence windows, mixed modes,
-enabled prerequisites, unresolved retries, malformed arguments/cron, and clean
-CLI nonzero exits. Runtime tests and live database audit were not performed.
-Static lint, provider boundaries, requirement grouping, and diff checks passed.
+Focused source tests cover invalid operations/values, malformed arrays, module
+contract parity, graph-preflight errors, run-now denial before spawn, terminal
+runtime rejection without retry, and generated job plans. The candidate graph
+and current persisted rows have not been audited here; run `--check-graph`
+before activation and reconcile rejected enabled rows with their operator.
+Runtime database acceptance remains separate.
 
-Rollback removes the new audit command and pure audit module. No migrations,
-task definitions, durable runs, or enabled states changed in this slice.
+No migration, task definition, durable run, or enabled state was changed in this
+code-only slice.

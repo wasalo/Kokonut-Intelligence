@@ -10,6 +10,7 @@
  * (migration 353) so Python and TypeScript share one implementation;
  * this module reads the view rather than re-implementing the SQL.
  */
+import { errorClass } from './error-safety.js';
 
 // Database client set by the hook initialization
 let db: any;
@@ -33,6 +34,11 @@ interface NoiCalculation {
   operatingMarginPct: number;
   lossRatePct: number;
   inputs: Record<string, unknown>;
+}
+
+export interface NoiBatchResult {
+  succeeded: number;
+  failed: number;
 }
 
 /**
@@ -137,7 +143,7 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
 /**
  * Batch calculate NOI for all active crop cycles
  */
-export async function batchCalculateNoi(locationId?: string): Promise<NoiCalculation[]> {
+export async function batchCalculateNoi(locationId?: string): Promise<NoiBatchResult> {
   let query = db('crop_cycle').whereIn('status', [
     'active', 'flowering', 'harvesting', 'harvested', 'completed',
   ]);
@@ -147,19 +153,21 @@ export async function batchCalculateNoi(locationId?: string): Promise<NoiCalcula
   }
 
   const cropCycles = await query.select('id');
-  const results: NoiCalculation[] = [];
+  let succeeded = 0;
+  let failed = 0;
 
   for (const cc of cropCycles) {
     try {
       const result = await calculateNoi(cc.id);
       await storeNoiSnapshot(result);
-      results.push(result);
+      succeeded += 1;
     } catch (error) {
-      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}:`, error);
+      failed += 1;
+      console.error(`[Kokonut] Failed to calculate NOI for crop cycle ${cc.id}: ${errorClass(error)}`);
     }
   }
 
-  return results;
+  return { succeeded, failed };
 }
 
 /**

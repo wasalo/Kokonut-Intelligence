@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "475_location_solution_retirement_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "ordered solution lifecycle migrations through 474 apply; migration 475 applies and replays",
+    "signed location, exact solution origin, review grant, active OIDC-to-person binding, and independent reviewer are enforced",
+    "evidence, migration plan, and superseded replacement prerequisites fail closed",
+    "approval and append-only receipt commit atomically with idempotent retry and request collision denial",
+    "runtime cannot access source or receipt tables directly; Directus cannot call the write function"
+  ],
+  "acceptance_groups_passed": 5
+}

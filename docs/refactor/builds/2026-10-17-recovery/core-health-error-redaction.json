@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Core PostgreSQL, ClickHouse, and Directus health-probe failures",
+  "behavior": {
+    "health_result": "Each probe preserves its existing generic unhealthy result and message.",
+    "server_log": "Each caught failure logs only the bounded exception class, without exception text or traceback."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_core_health_error_redaction.py tests/test_driver_registry.py -q",
+    "result": "33 passed",
+    "coverage": [
+      "PostgreSQL failure is class-only in logs and remains unhealthy",
+      "ClickHouse failure is class-only in logs and remains unhealthy",
+      "Directus failure is class-only in logs and remains unhealthy",
+      "existing driver-registry health behavior remains covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "gitleaks_changed_source_and_test": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_access": "none; synthetic exceptions only",
+  "limitations": [
+    "No live service endpoint or database was contacted.",
+    "No health status or readiness policy changed."
+  ]
+}

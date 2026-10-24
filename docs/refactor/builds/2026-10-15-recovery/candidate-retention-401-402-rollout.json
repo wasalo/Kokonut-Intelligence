@@ -1,0 +1,137 @@
+{
+  "record_type": "candidate_retention_schema_rollout",
+  "recorded_at_utc": "2026-10-15T21:53:05Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "source_head_before_rollout": "c8f60b5e5497696a7f0777b5e7ae70428dfd04a6",
+  "authorization": "The owner authorized required refactor migrations on 15 October 2026.",
+  "target": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_service": "database",
+    "database": "kokonut_intelligence",
+    "legacy_stack_touched": false,
+    "r2_contacted": false,
+    "candidate_app_recreated": false
+  },
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-retention-401-402-20261015T2145Z/postgres.dump.age",
+    "age_encrypted": true,
+    "bytes": 5735932,
+    "sha256": "7f26918a1e5dc9a56baf01e4b5c44ce9e72576e0b730a58dfaa5d07da6817be4",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope": "Single kokonut_intelligence database; excludes global roles/grants, other databases, volumes, external media, and provider state.",
+    "restore_rehearsal": {
+      "compose_project": "kokonut-retention-restore-20261015t2145z",
+      "target_database": "kokonut_restore",
+      "target_created_from": "template0",
+      "network": "internal-only; no host ports",
+      "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "method": "Age decryption streamed directly to pg_restore with --exit-on-error --single-transaction --no-owner --no-privileges; no plaintext archive written.",
+      "pre_migration_parity": {
+        "applied_migrations": 397,
+        "ledger_fingerprint": "a656d96acec29ed21b824a729fd124b9",
+        "public_relations_reported_by_information_schema": 1389,
+        "extensions": "All extension names and versions matched the candidate.",
+        "catalog_counts": {
+          "expense_category": 19,
+          "metric_definition": 20,
+          "ghg_emission_factor": 19,
+          "carbon_benchmark": 8,
+          "operations_protocol": 5
+        },
+        "existing_counts": {
+          "mobile_form": 5,
+          "mobile_form_version": 10,
+          "service_registry": 63
+        }
+      },
+      "ordered_replay": [
+        "schema:401_dynamic_retention_and_legal_holds.sql",
+        "schema:402_retention_policy_scope_codes.sql"
+      ],
+      "ordered_replay_result": "Applied: 2, Failed: 0; zero pending schema migrations.",
+      "post_replay_policy_rows": {
+        "data_retention_policy": 0,
+        "data_retention_policy_event": 0,
+        "data_retention_legal_hold": 0,
+        "data_retention_legal_hold_event": 0
+      },
+      "recovery_container_network": "removed after success",
+      "recovery_volume": "retained"
+    }
+  },
+  "candidate_preflight": {
+    "schema_migrations_applied": 391,
+    "latest_schema_migration": "schema:400_operator_auth_security_schema_usage.sql",
+    "seed_migrations_applied": 6,
+    "pending_schema_migrations": [
+      "schema:401_dynamic_retention_and_legal_holds.sql",
+      "schema:402_retention_policy_scope_codes.sql"
+    ],
+    "all_seed_catalog_counts_match_approved_rollout": true
+  },
+  "migrations_applied": [
+    {
+      "id": "schema:401_dynamic_retention_and_legal_holds.sql",
+      "sha256": "45cc2bdf4286a0f5568829f513705c573fc3d0906bb5db769ca03a9e4ed5be3a",
+      "status": "applied"
+    },
+    {
+      "id": "schema:402_retention_policy_scope_codes.sql",
+      "sha256": "649df3902fdd603e40dbd536c8f16b6a36a7bb41deddbd25aa646409bdb08cbf",
+      "status": "applied"
+    }
+  ],
+  "candidate_after": {
+    "applied_schema_migrations": 393,
+    "latest_schema_migration": "schema:402_retention_policy_scope_codes.sql",
+    "applied_seed_migrations": 6,
+    "migration_sources_total": 514,
+    "applied_migration_sources": 399,
+    "pending_sources": 115,
+    "pending_schema_migrations": 0,
+    "failed_or_non_applied_ledger_rows": 0,
+    "public_application_tables_with_rls_enabled": 0,
+    "retention_state": {
+      "policy_rows": 0,
+      "policy_event_rows": 0,
+      "legal_hold_rows": 0,
+      "hold_event_rows": 0,
+      "active_policy_rows": 0,
+      "retention_days_nullable_without_default": true,
+      "category_default_retention_values": 0,
+      "consent_default_retention_values": 0,
+      "status_column_default": "draft",
+      "auto_enforce_column_default": "false"
+    },
+    "reference_catalog_counts": {
+      "expense_category": 19,
+      "metric_definition": 20,
+      "ghg_emission_factor": 19,
+      "carbon_benchmark": 8,
+      "operations_protocol": 5
+    },
+    "services": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    }
+  },
+  "rollback": {
+    "performed": false,
+    "checkpoint": "backups/kernel-candidate-pre-retention-401-402-20261015T2145Z/postgres.dump.age",
+    "checkpoint_sha256": "7f26918a1e5dc9a56baf01e4b5c44ce9e72576e0b730a58dfaa5d07da6817be4",
+    "strategy": "If rollback is required, restore the pre-migration database into a separately reviewed replacement target, rebuild/validate roles and grants separately, and cut over only after review. Do not overwrite the candidate in place or attempt a down migration."
+  },
+  "limitations": [
+    "No retention periods, scoped policies, approvals, or legal holds were configured. The candidate cleanup feature gates remain separate; no destructive cleanup was executed.",
+    "The candidate app was not rebuilt or recreated, so this records schema rollout only and does not deploy the current local application image.",
+    "The encrypted checkpoint is on the same local disk as the repository and is not an independent off-device or production backup.",
+    "This does not establish operator authentication/authorization for policy administration, jurisdiction-specific legal approval, archive/erasure process acceptance, or any MAN-CAP pass."
+  ]
+}

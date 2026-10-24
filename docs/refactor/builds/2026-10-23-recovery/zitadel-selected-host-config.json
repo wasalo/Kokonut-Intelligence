@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "result": "passed",
+  "component": "owner-selected ZITADEL production host and Gateway callback configuration",
+  "configuration": {
+    "identity_domain": "auth.kokonut.network",
+    "issuer": "https://auth.kokonut.network",
+    "https_port": 443,
+    "callback": "https://hub.kokonut.network/operator/auth/callback"
+  },
+  "focused_suite": {
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/test_compose_zitadel_profile.py",
+    "passed": 8,
+    "duration_seconds": 46.01
+  },
+  "static_checks": {
+    "ruff": "passed for tests/test_compose_zitadel_profile.py",
+    "capability_matrix": "66 rows valid; 30 baseline-retained, 7 deployed, 29 prepared",
+    "runtime_sql_inventory": "current",
+    "git_diff_check": "passed"
+  },
+  "compose_config_rendered": true,
+  "containers_started": false,
+  "provider_calls": false,
+  "credentials_used": false,
+  "limitations": [
+    "The expected issuer and callback are source configuration only; verify the issuer against live ZITADEL discovery before client registration.",
+    "No OIDC client, operator account, session, or browser login was configured or exercised."
+  ]
+}

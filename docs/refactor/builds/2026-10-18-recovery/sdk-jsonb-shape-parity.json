@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript SDK JSONB value-shape parity",
+  "source_of_truth": "Current SDK field semantics for JSONB columns in the 20-model schema inventory",
+  "change": "Added recursive JSON scalar/value/object aliases and an explicit object or object-array shape entry for every mapped JSONB model field. The schema guard now compares both SDK annotations to the field-level contract.",
+  "shape_inventory": {
+    "jsonb_fields": 24,
+    "json_objects": 23,
+    "json_object_arrays": 1,
+    "array_field": "ReportSnapshot.negative_findings"
+  },
+  "focused_checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "27 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --run",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "schema_guard": "passed: 20 models, 473 columns, 442 scalar types, 7 PostGIS subtypes, and 24 JSONB shapes checked per SDK",
+    "ruff": "passed",
+    "capability_matrix": "passed: 66 rows; classifications unchanged",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local source and SDK tests only",
+  "limitations": [
+    "PostgreSQL JSONB accepts arbitrary JSON; the declared SDK object/array shapes are not enforced in SQL.",
+    "No runtime payload validator or Directus projection acceptance was added.",
+    "No capability or MAN-CAP acceptance classification changed."
+  ]
+}

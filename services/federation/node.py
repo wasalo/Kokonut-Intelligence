@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("federation.node")
@@ -63,9 +62,9 @@ class FederationNode:
             conn.commit()
             logger.info("Registered federation node: %s (id=%s, trust=%s)", node_name, result_id, trust_level)
             return result_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to register federation node")
+            logger.error("Failed to register federation node (%s)", safe_exception_class(exc))
             raise
 
     def update_heartbeat(self, node_name: str) -> bool:
@@ -85,9 +84,9 @@ class FederationNode:
                 result = cur.fetchone()
             conn.commit()
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to update heartbeat for %s", node_name)
+            logger.error("Failed to update heartbeat for %s (%s)", node_name, safe_exception_class(exc))
             return False
 
     def set_trust_level(self, node_name: str, trust_level: str) -> bool:
@@ -109,9 +108,9 @@ class FederationNode:
             if result:
                 logger.info("Updated trust level for %s to %s", node_name, trust_level)
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to update trust level")
+            logger.error("Failed to update federation trust level (%s)", safe_exception_class(exc))
             return False
 
     def list_nodes(self, status: str | None = None) -> list[dict]:
@@ -152,8 +151,8 @@ class FederationNode:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list federation nodes")
+        except Exception as exc:
+            logger.error("Failed to list federation nodes (%s)", safe_exception_class(exc))
             return []
 
     def get_node(self, node_name: str) -> dict | None:
@@ -183,6 +182,6 @@ class FederationNode:
                     "status": row[6],
                     "created_at": row[7].isoformat(),
                 }
-        except Exception:
-            logger.exception("Failed to get federation node")
+        except Exception as exc:
+            logger.error("Failed to get federation node (%s)", safe_exception_class(exc))
             return None

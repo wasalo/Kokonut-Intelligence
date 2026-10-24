@@ -1,0 +1,55 @@
+{
+  "record_type": "sdk_systems_thinking_read_methods",
+  "recorded_at": "2026-10-18",
+  "scope": "Add schema-aligned Python and JavaScript read models and read-only access to persisted systems-thinking configuration and outputs.",
+  "source_contract": {
+    "schema": "schemas/postgres/129_systems_thinking.sql",
+    "shared_catalogs": ["causal_loop", "stock_flow_model", "time_delay"],
+    "parent_scoped_collections": {
+      "causal_link": "loop_id"
+    },
+    "location_scoped_collections": [
+      "system_variable",
+      "stock_flow_run",
+      "system_archetype",
+      "leverage_assessment",
+      "structural_assumption"
+    ],
+    "mental_model_excluded_because_location_scope_is_absent": true,
+    "checked_models": 91,
+    "checked_canonical_columns": 1754,
+    "checked_scalar_types": 1635,
+    "checked_postgis_types": 12,
+    "checked_jsonb_shapes": 104,
+    "checked_enum_fields": 23,
+    "checked_check_literal_fields": 63
+  },
+  "contract": {
+    "shared_catalog_methods": ["list", "get"],
+    "location_methods": ["list", "get", "list_by_location/listByLocation"],
+    "causal_link_methods": ["list", "get", "list_by_loop/listByLoop"],
+    "required_location_or_parent_filter_overrides_conflicting_caller_filter": true,
+    "other_list_options_preserved": true,
+    "create_update_delete_exposed": false,
+    "loop_evaluation_simulation_detection_or_intervention_performed": false,
+    "authorization_enforced_by_sdk": false
+  },
+  "verification": {
+    "python_sdk_schema_and_method_tests": "102 passed",
+    "javascript_sdk_tests": "52 passed",
+    "typescript_build": "passed",
+    "ruff": "passed on touched Python files",
+    "python_compilation": "passed",
+    "sdk_schema_parity_guard": "passed: 91 models, 1754 canonical columns, 1635 scalar types, 12 PostGIS types, 104 JSONB shapes, 23 enum fields, 63 CHECK-literal fields per SDK",
+    "capability_matrix_validator": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "network": "not used",
+    "database": "not used",
+    "provider": "not used",
+    "credentials": "not used",
+    "candidate_or_legacy_services": "not accessed"
+  },
+  "capability_status": "CAP-009 remains partial; no MAN-CAP classification or acceptance status changed."
+}

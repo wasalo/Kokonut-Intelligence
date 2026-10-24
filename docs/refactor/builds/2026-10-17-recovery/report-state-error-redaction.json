@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Composite state, graph, comprehensive-status, and strategic-reserve reports",
+  "behavior": {
+    "section_failures": "Report sections expose only a bounded operation and exception-class summary.",
+    "graph_failures": "Graph report output and console warning omit raw descriptor exceptions.",
+    "resilience": "Per-section continuation and partial-report output are preserved."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_report_state_error_redaction.py -q",
+    "result": "4 passed",
+    "coverage": [
+      "state-of-Kokonut section exception redaction and cursor cleanup",
+      "graph descriptor exception redaction from report and console output",
+      "comprehensive-status wellbeing and capital-accounting redaction",
+      "strategic-reserve seed-vault failure redaction"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and generator functions"
+  },
+  "limitations": [
+    "No report calculation or database service was run.",
+    "This does not establish report parity against populated legacy fixtures."
+  ]
+}

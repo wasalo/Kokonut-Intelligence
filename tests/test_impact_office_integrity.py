@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from services.office import UnsupportedOperationError, run_cycle, run_full_cycle
+from services.office import UnsupportedOperationError, get_run_status, run_cycle, run_full_cycle
 
 
 def test_full_cycle_commits_one_atomic_workflow():
@@ -41,3 +41,25 @@ def test_unsupported_cycle_fails_before_persistence():
     conn.cursor.assert_not_called()
     conn.commit.assert_not_called()
     conn.rollback.assert_not_called()
+
+
+def test_run_status_redacts_persisted_errors_from_run_and_steps():
+    conn = MagicMock()
+    cur = conn.cursor.return_value
+    cur.fetchone.return_value = (
+        "run-1", "full-cycle-1", "Full Cycle", "full_cycle", "failed",
+        "started", "completed", "synthetic database diagnostic",
+    )
+    cur.fetchall.return_value = [
+        ("Compute metrics", "compute_metric", "failed", "started", "completed", "synthetic step diagnostic")
+    ]
+
+    result = get_run_status(conn, "run-1")
+
+    assert result["status"] == "failed"
+    assert result["error_message"] == "[details redacted]"
+    assert result["steps"][0]["status"] == "failed"
+    assert result["steps"][0]["error"] == "[details redacted]"
+    assert "synthetic database diagnostic" not in str(result)
+    assert "synthetic step diagnostic" not in str(result)
+    cur.close.assert_called_once_with()

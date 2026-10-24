@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-003",
+  "surface": "operator-console",
+  "routes": [
+    "GET /operator/api/traceability/{location_id}/batches",
+    "GET /operator/api/traceability/{location_id}/batches/{batch_id}"
+  ],
+  "authorization": "Panel is exposed only for exact OIDC traceability:read location grants; Gateway repeats authorization with signed tenant context.",
+  "privacy": "Fixed batch and bounded custody, quality, certification, food-safety, and provenance fields render as text. Batch IDs are internal request inputs. Actor identities, GPS, free text, evidence links, and arbitrary metadata are not rendered.",
+  "verification": {
+    "pytest": "18 passed: 5 console contracts, Gateway traceability reads, and complete registered-route policy inventory",
+    "ruff": "passed",
+    "inline_javascript_syntax": "passed with Node.js --check",
+    "capability_matrix": "passed: 67 rows; 27 baseline-retained, 7 deployed, 33 prepared; 0 MAN-CAP accepted",
+    "git_diff_check": "passed"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "populated legacy-output parity",
+    "audience review",
+    "live OIDC and browser acceptance",
+    "direct-database ACL/RLS review",
+    "production recovery acceptance",
+    "MAN-CAP-003 acceptance"
+  ]
+}

@@ -23,13 +23,18 @@ the owned scheduler also needs a native refresh command.
 - Migration [379](../../schemas/postgres/379_noi_snapshot_crop_cycle_key.sql)
   adds a unique index on `noi_snapshot.crop_cycle_id`. It fails transactionally
   if a target contains duplicate snapshots; it does not delete or merge them.
-- `python3 -m services.metrics --reconcile-noi-snapshots` upserts eligible
-  (`active`, `flowering`, `harvesting`, `harvested`, `completed`) crop cycles
-  from `v_crop_cycle_noi` in one transaction. It refreshes the entire snapshot
-  contract, including `returns_and_discounts`, dates, location, calculation
-  version, and source-view metadata.
+- `python3 -m services.metrics --reconcile-noi-snapshots --location-id UUID`
+  upserts eligible (`active`, `flowering`, `harvesting`, `harvested`,
+  `completed`) crop cycles for the requested location from `v_crop_cycle_noi`
+  in one transaction. Both the view and crop-cycle location are constrained.
+  The explicit manual `--all-locations` option preserves aggregate maintenance
+  when an operator deliberately requests it. Both modes refresh the full
+  snapshot contract, including `returns_and_discounts`, dates, location,
+  calculation version, and source-view metadata.
 - `services.core.jobs` now exposes the `noi_snapshots` daily JobSpec. It remains
-  disabled until the schedule owner approves activation.
+  disabled until the schedule owner approves activation and requires one
+  location per task. The dispatcher, disabled plan builder, and database-driven
+  command contract reject missing location scope before process creation.
 - The Directus hook now writes and merges the same fields and source-view
   metadata. Migration 379 supplies the unique conflict key required by Knex.
 

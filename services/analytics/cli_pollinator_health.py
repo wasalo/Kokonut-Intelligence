@@ -38,6 +38,9 @@ def _cmd_record_observation(db, a):
         weather_conditions=a.weather,
         temperature_c=a.temperature,
         notes=a.notes,
+        observation_date=date.fromisoformat(a.observation_date) if a.observation_date else None,
+        species_name=a.species_name,
+        hive_record_id=a.hive_record_id,
     )
 
 
@@ -63,6 +66,9 @@ def _cmd_record_pesticide(db, a):
         area_treated_m2=a.area_treated_m2,
         bloom_stage_at_application=a.bloom_stage_at_application,
         pollinator_distance_m=a.pollinator_distance_m,
+        pollinator_safe_period_days=a.pollinator_safe_period_days,
+        pollinator_mortality_observed=a.pollinator_mortality_observed,
+        mortality_pct=a.mortality_pct,
         notes=a.notes,
     )
 
@@ -81,7 +87,7 @@ def _cmd_add_hive(db, a):
 
 def _cmd_record_inspection(db, a):
     return record_hive_inspection(
-        db, a.hive_id,
+        db, a.location_id, a.hive_id,
         colony_strength=a.colony_strength,
         queen_status=a.queen_status,
         queen_seen=a.queen_seen,
@@ -99,13 +105,17 @@ def _cmd_record_inspection(db, a):
 cli.subcommand("record-observation", "Record pollinator observation") \
     .add("--location-id", required=True) \
     .add("--type", required=True, dest="pollinator_type",
-         help="Pollinator type (honeybee, bumblebee, butterfly, etc.)") \
+         help="Pollinator type (honeybee, wild_bee, butterfly, moth, etc.)") \
     .add("--count", type=int, required=True) \
-    .add("--method", default="visual", dest="observation_method") \
+    .add("--method", default="visual_count", dest="observation_method") \
     .add("--duration", type=int, default=15, dest="duration_minutes") \
-    .add("--habitat-area-id") \
+    .add("--plot-id", "--habitat-area-id", dest="habitat_area_id",
+         help="Plot UUID (the legacy habitat-area-id spelling remains accepted)") \
     .add("--weather") \
     .add("--temperature", type=float) \
+    .add("--date", dest="observation_date", help="Observation date (YYYY-MM-DD); defaults to today") \
+    .add("--species-name") \
+    .add("--hive-record-id", help="Optional UUID linking this observation to a managed hive") \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_observation)
@@ -135,6 +145,9 @@ cli.subcommand("record-pesticide", "Record pesticide impact") \
     .add("--area", type=float, dest="area_treated_m2") \
     .add("--bloom-stage", dest="bloom_stage_at_application") \
     .add("--distance", type=float, dest="pollinator_distance_m") \
+    .add("--safe-period-days", type=int, dest="pollinator_safe_period_days") \
+    .add("--mortality-observed", action="store_true", dest="pollinator_mortality_observed") \
+    .add("--mortality-pct", type=float) \
     .add("--notes") \
     .add("--json", action="store_true") \
     .run(_cmd_record_pesticide)
@@ -142,7 +155,7 @@ cli.subcommand("record-pesticide", "Record pesticide impact") \
 cli.subcommand("add-hive", "Add managed hive") \
     .add("--location-id", required=True) \
     .add("--hive-id", required=True) \
-    .add("--colony-strength", type=int, default=5) \
+    .add("--colony-strength", default="5", help="Category or legacy score from 0 to 10") \
     .add("--queen-status", default="present") \
     .add("--hive-type", default="langstroth") \
     .add("--frames", type=int, default=10, dest="frame_count") \
@@ -152,10 +165,12 @@ cli.subcommand("add-hive", "Add managed hive") \
     .run(_cmd_add_hive)
 
 cli.subcommand("record-inspection", "Record hive inspection") \
+    .add("--location-id", required=True) \
     .add("--hive-id", required=True) \
-    .add("--colony-strength", type=int) \
+    .add("--colony-strength", help="Category or legacy score from 0 to 10") \
     .add("--queen-status") \
-    .add("--queen-seen", type=bool) \
+    .add("--queen-seen", action="store_true", dest="queen_seen", default=None) \
+    .add("--queen-not-seen", action="store_false", dest="queen_seen", default=None) \
     .add("--varroa-count", type=int) \
     .add("--brood-pattern") \
     .add("--honey-stores") \

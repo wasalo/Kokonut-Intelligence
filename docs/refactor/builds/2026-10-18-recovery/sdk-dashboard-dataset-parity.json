@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript dashboard dataset model parity with canonical PostgreSQL schema",
+  "model": "DashboardDataset",
+  "source_table": "schemas/postgres/007_modeled_outputs.sql:dashboard_dataset",
+  "lifecycle_constraint": "schemas/postgres/015_constraints.sql:dashboard_dataset.status::lifecycle_status",
+  "schema_guard": {
+    "models": 35,
+    "canonical_columns": 700,
+    "scalar_types": 654,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 37,
+    "enum_fields": 20,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 47 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The SDK exposes the stored query definition and refresh state; it does not execute query_sql or trigger refresh jobs.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

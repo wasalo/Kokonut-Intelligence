@@ -20,14 +20,14 @@ echo "=== Starting local test databases ==="
 "${COMPOSE[@]}" up -d database clickhouse
 
 for _ in $(seq 1 30); do
-    if "${COMPOSE[@]}" exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null 2>&1 \
+    if "${COMPOSE[@]}" exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence >/dev/null 2>&1 \
         && "${COMPOSE[@]}" exec -T clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1"' >/dev/null 2>&1; then
         break
     fi
     sleep 2
 done
 
-if ! "${COMPOSE[@]}" exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null 2>&1; then
+if ! "${COMPOSE[@]}" exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence >/dev/null 2>&1; then
     echo "ERROR: PostgreSQL did not become ready on localhost:5432" >&2
     exit 1
 fi

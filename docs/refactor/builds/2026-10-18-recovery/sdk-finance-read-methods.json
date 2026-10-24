@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-18",
+  "scope": "Typed read-only Python and TypeScript SDK accessors for stored finance collections.",
+  "collections": [
+    "financial_transaction",
+    "cash_flow_snapshot"
+  ],
+  "contract": {
+    "methods": ["list", "get", "list_by_location/listByLocation"],
+    "location_filter": "The explicit location_id filter overrides a conflicting caller-supplied filter while preserving other list options.",
+    "writes_or_calculation": "The accessors expose no create, update, delete, calculation, or reconciliation operation."
+  },
+  "verification": {
+    "python": "96 passed: tests/test_sdk.py, tests/test_sdk_method_parity.py, tests/test_sdk_schema_parity.py",
+    "javascript": "46 passed",
+    "typescript_build": "passed",
+    "ruff": "passed for changed Python SDK and tests",
+    "python_compilation": "passed",
+    "schema_guard": "passed: 74 models, 1555 columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, and 50 CHECK-literal fields per SDK",
+    "capability_matrix": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "diff_check": "passed"
+  },
+  "boundary": "The accessors read stored facts and snapshots. They do not initiate payments, compute summaries, reconcile balances, independently authorize users, or change CAP-031/MAN-CAP acceptance.",
+  "external_access": "All checks were offline and used mocked client calls. No database, provider, API, credentials, candidate, legacy service, or seed data was used."
+}

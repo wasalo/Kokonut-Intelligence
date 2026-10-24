@@ -8,12 +8,12 @@ the system toward principle satisfaction.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -657,7 +657,7 @@ class PrincipleManager:
             return round(direction_mult * normalized, 4)
 
         except Exception as e:
-            logger.warning("Trend analysis failed for %s: %s", metric_key, e)
+            logger.warning("Trend analysis failed (%s)", safe_exception_class(e))
             return None
 
     # ------------------------------------------------------------------

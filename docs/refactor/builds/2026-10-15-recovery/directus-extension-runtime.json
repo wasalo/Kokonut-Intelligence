@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-15",
+  "scope": "Fresh isolated Directus extension discovery and one hook dispatch",
+  "directus_image": "directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d",
+  "extensions_loaded": [
+    "directus-extension-endpoint-kokonut-field-collector",
+    "directus-extension-kokonut-hooks"
+  ],
+  "checks": {
+    "extension_build": {
+      "command": "make hooks-build",
+      "result": "passed",
+      "build": "locked npm ci when missing/stale, directus-extension build plus tsc --noEmit"
+    },
+    "extension_tests": {
+      "command": "npm test",
+      "result": "passed",
+      "test_files_passed": 4,
+      "tests_passed": 54
+    },
+    "compose_discovery_contract": {
+      "command": "python3 -m pytest tests/test_directus_extension_compatibility.py -q",
+      "result": "passed",
+      "tests_passed": 2
+    },
+    "runtime_health": {
+      "result": "HTTP 200; Docker health recovered after fresh schema bootstrap"
+    },
+    "field_collector_endpoint": {
+      "result": "HTTP 302",
+      "location": "/field/field-collector.html"
+    },
+    "synthetic_admin_login": {
+      "result": "HTTP 200"
+    },
+    "malformed_scope_create": {
+      "collection": "farm_activity",
+      "result": "rejected",
+      "http_status": 400,
+      "directus_error_code": "INVALID_PAYLOAD",
+      "message_contains": "Invalid location_id",
+      "rows_after_attempt": 0
+    }
+  },
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "disposable_containers_volumes_and_network_removed": true,
+  "tenant_identity_or_grant_parity_claimed": false,
+  "typed_validation_error": {
+    "package": "@directus/errors",
+    "version": "2.3.1",
+    "result": "passed in unit and isolated runtime checks"
+  },
+  "remaining": [
+    "Map authenticated Directus users to Kokonut operator_identity",
+    "Apply current organization/location/resource/action grants",
+    "Review other hook validation paths and assign appropriate client-error classes",
+    "Verify row/field permissions and hook effects across retained collections"
+  ],
+  "dependency_note": "@directus/errors 2.3.1 is pinned as a direct dependency."
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "static_inventory_check",
+  "scope": "Direct Python SQL execution sites under services/**/*.py; no SQL bodies, parameter values, database connections, or providers",
+  "inventory": "docs/refactor/runtime-sql-inventory.json",
+  "counts": {
+    "service_python_files": 806,
+    "execution_sites": 3795,
+    "relation_name_candidates": 1033,
+    "service_packages": 67,
+    "unknown_statement_kinds": 111,
+    "with_statement_kinds": 23,
+    "sites_without_relation_candidates": 333,
+    "non_literal_query_expression_sites": 456
+  },
+  "check": {
+    "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+    "result": "passed",
+    "output": "Runtime SQL inventory is current"
+  },
+  "comparison": {
+    "previous_committed_execution_sites": 3776,
+    "previous_committed_service_python_files": 805,
+    "added_source_file": "services/migration/directus_role.py",
+    "new_execution_sites_in_added_file": 19
+  },
+  "database_accessed": false,
+  "provider_accessed": false,
+  "scope_limit": "Static source inventory only; it does not establish reachability, ACLs, read/write intent for unknown statements, tenant scope, or runtime behavior. The increase is the separately reviewed Directus role provisioner, not evidence of runtime access or a grant allowlist."
+}

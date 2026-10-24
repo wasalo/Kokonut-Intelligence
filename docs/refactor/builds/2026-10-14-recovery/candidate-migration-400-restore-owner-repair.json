@@ -1,0 +1,82 @@
+{
+  "record_type": "candidate_schema_rollout_and_db_only_restore_owner_repair",
+  "recorded_at": "2026-10-15T00:12:30Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-400-20261015T000725Z/postgres.dump.age",
+    "age_encrypted": true,
+    "sha256": "dbb55a8eff79b4c9f10d5c10f866f872c0d528b8b2b9ddb28ec26a22d926b735",
+    "bytes": 5642916,
+    "restore_rehearsed": false,
+    "scope": "Single PostgreSQL database; ownership, grants, roles, other databases, volumes, and external media excluded",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+  },
+  "migration": {
+    "id": "schema:400_operator_auth_security_schema_usage.sql",
+    "status": "applied",
+    "ordered_planner_pending_schemas": 0,
+    "source_checksum_drift": 0
+  },
+  "restore_replay": {
+    "source_checkpoint": "backups/kernel-candidate-pre-398-399-20261014T232159Z/postgres.dump.age",
+    "restore_method": "stream_age_decrypt_to_pg_restore_without_plaintext_dump_file",
+    "target": "isolated PostgreSQL 16 template0 clone",
+    "migrations_replayed": [398, 399, 400],
+    "role_bootstrap_on_populated_clone": "not completed; host Docker-port access failed during the attempt",
+    "separate_owner_acl_loss_fixture": "passed in a private Compose network",
+    "note": "The exact pre-398 clone replayed migration 400. End-to-end role bootstrap and forced-RLS acceptance were completed separately against synthetic owner/ACL-loss fixtures; this is not represented as a complete populated-clone restore acceptance."
+  },
+  "owner_acl_repair_acceptance": {
+    "owner_roles": [
+      "kokonut_mobile_credential_owner",
+      "kokonut_mobile_context_owner",
+      "kokonut_operator_context_owner",
+      "kokonut_operator_auth_owner",
+      "kokonut_gateway_context_owner",
+      "kokonut_mobile_device_revoke_owner"
+    ],
+    "all_are_nologin_noinherit_nosuperuser_nobypassrls": true,
+    "security_definer_ownership_repaired": true,
+    "public_execute_revoked_for_privileged_functions": true,
+    "runtime_and_operator_auth_schema_usage_restored": true,
+    "forced_rls_bounded_device_revocation": "passed",
+    "operator_authentication_without_direct_session_or_identity_table_read": "passed",
+    "token_cleared_after_revocation": true,
+    "candidate_or_legacy_fixture_rows_touched": false
+  },
+  "focused_checks": {
+    "pytest": "153 passed",
+    "migration_sources_validated": 512,
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "candidate": {
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "schema_migration_range": [391, 400],
+    "applied_schema_count": 391,
+    "latest_schema": "400_operator_auth_security_schema_usage",
+    "applied_seed_sources": 1,
+    "pending_seed_sources": 120,
+    "non_applied_schema_rows": 0,
+    "application_tables_with_rls_enabled": 0,
+    "only_candidate_app_recreated_for_migration_400": false,
+    "health_endpoint_http": 200,
+    "anonymous_device_revocation_http": 401,
+    "candidate_database_user": "kokonut",
+    "candidate_database_user_is_superuser": true,
+    "kokonut_runtime_role_present": false,
+    "legacy_stack_touched": false,
+    "metabase_healthy": true
+  },
+  "rollback": {
+    "performed": false,
+    "strategy": "Retain the age-encrypted pre-400 checkpoint. Restore to a replacement database and validate before switching; recreate roles and grants separately because database-only archives exclude them. No down migration was run."
+  },
+  "limitations": [
+    "The pre-400 checkpoint is retained for rollback and has not itself been restore-rehearsed.",
+    "The populated-clone role bootstrap did not complete; role/ACL recovery passed on a separate synthetic forced-RLS acceptance fixture.",
+    "The candidate app still uses the kokonut superuser; runtime credentials are not provisioned and authenticated HTTP under the dedicated runtime login remains open.",
+    "Application-table RLS remains disabled pending worker, Directus/view, and other database-role boundaries.",
+    "This is local candidate evidence. Raspberry Pi assessment remains code-only; no physical hardware acceptance is claimed."
+  ]
+}

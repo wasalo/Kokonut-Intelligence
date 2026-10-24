@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-14",
+  "scope": "EventBus cleanup retention safety",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_head": "f8d90ea0b6af817e91db6758ff293d3c309f29de",
+  "change": {
+    "cleanup_window": "Rejects booleans, non-integers, zero, and negative days before database access.",
+    "dead_letter_parent": "An aged platform_event is excluded while a matching event_dead_letter disposition is pending.",
+    "terminal_retention": "No product or jurisdiction retention period was selected; notification-outbox and audit pruning remains unimplemented."
+  },
+  "verification": {
+    "command": ".venv/bin/python -m pytest tests/test_event_bus_durability.py -q",
+    "result": "15 passed",
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Focused fake-connection/source tests; no disposable PostgreSQL execution was performed.",
+    "No candidate or legacy database was accessed.",
+    "The selected retention periods for terminal notification, attempt, and operator-audit records remain owner decisions."
+  ]
+}

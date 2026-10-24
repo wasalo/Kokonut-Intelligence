@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "TLS-aware gRPC health client configuration",
+  "result": "PASS",
+  "configuration": {
+    "health_ca": "--tls-ca or GRPC_TLS_CA",
+    "server_tls_environment": [
+      "GRPC_TLS_CERT",
+      "GRPC_TLS_KEY"
+    ],
+    "behavior": "Use a secure channel when a CA path is configured; fail closed if server TLS is configured without a CA path; retain insecure private-development behavior only when neither TLS nor CA is configured.",
+    "secret_material": "Compose passes paths only and does not mount or ship certificate material."
+  },
+  "verification": {
+    "focused_grpc_tests": "44 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "compose_base_config": "passed",
+    "compose_kernel_grpc_config": "passed",
+    "git_diff_check": "passed"
+  },
+  "transport_behavior": {
+    "explicit_ca": "Reads the CA bundle and uses grpc.secure_channel.",
+    "environment_ca": "GRPC_TLS_CA selects grpc.secure_channel when server TLS is configured.",
+    "missing_ca": "Configured server TLS without a CA path fails before opening any channel.",
+    "missing_trust_file": "Returns a fixed redacted error without exposing the configured path or opening a channel.",
+    "cleanup": "The health channel is closed after the mocked RPC completes."
+  },
+  "data_access": {
+    "live_endpoint": false,
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "Transport and certificate handling were verified with mocks; no live TLS handshake or hostname validation was performed.",
+    "Production certificate mounting/rotation, public ingress, authenticated tenant scope, and REST parity remain open."
+  ]
+}

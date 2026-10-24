@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Governed file-export errors and export audit logging",
+  "behavior": {
+    "export_failure": "Export API/CLI failures expose only the bounded exception class, omit raw details, attempt failure audit logging, and remove a partial temporary file.",
+    "audit_failure": "Export-log database and cursor/connection cleanup warnings contain only bounded exception classes; the best-effort audit behavior remains non-fatal."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_export_error_redaction.py tests/test_export_reliability.py -q",
+    "result": "6 passed",
+    "coverage": [
+      "export writer failure omits exception details from the raised error",
+      "partial temporary export is removed and failed status is audit-attempted",
+      "audit database failure warning contains no raw connection details",
+      "audit cursor and connection close failures are class-only",
+      "existing export filter and ClickHouse ordering behavior remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake export and logging boundaries"
+  },
+  "limitations": [
+    "No collection data, live export, PostgreSQL service, or ClickHouse service was used.",
+    "This does not establish export content parity or tenant authorization for downstream consumers."
+  ]
+}

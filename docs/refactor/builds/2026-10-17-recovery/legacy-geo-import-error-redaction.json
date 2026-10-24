@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy KML and Shapefile ingestion parser, feature, and source-read failures",
+  "behavior": {
+    "kml": "Malformed XML and per-Placemark failures return bounded parser/exception-class summaries; source names and coordinate payloads are not copied into error results.",
+    "shapefile": "Per-feature failures and source-open/iteration failures are bounded, class-only summaries and are logged without raw provider/file details.",
+    "counts": "Existing successful-record counting and per-feature success/error collection remain in place; a source-read error returns partial when records already succeeded and error otherwise."
+  },
+  "focused_checks": {
+    "commands": [
+      ".venv/bin/python -s -m pytest tests/test_legacy_geo_import_error_redaction.py -q",
+      ".venv/bin/python -s -m pytest tests/test_linked_data.py -k 'shapefile_import_module or kml_import_module' -q"
+    ],
+    "results": ["3 passed", "2 passed, 133 deselected"],
+    "new_regressions": 3,
+    "coverage": [
+      "KML parser and feature failures omit private source text and contributor names",
+      "Shapefile feature and open failures omit provider/coordinate details from results and logs",
+      "legacy import module contracts remain available"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; temporary KML files and mocked Fiona readers"
+  },
+  "limitations": [
+    "No live Fiona driver, database, or geospatial file was used.",
+    "The legacy adapters count/import records but do not persist farm geometry in this code path."
+  ]
+}

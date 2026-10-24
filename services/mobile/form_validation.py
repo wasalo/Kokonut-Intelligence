@@ -29,6 +29,33 @@ def _reject_remote_refs(value: Any) -> None:
             _reject_remote_refs(nested)
 
 
+def _validator_for_schema(schema: Any):
+    """Return a locally constrained validator for a stored form schema."""
+    if not isinstance(schema, Mapping):
+        raise FormSchemaUnavailable("Stored form schema must be an object")
+
+    _reject_remote_refs(schema)
+    try:
+        validator_type = validator_for(schema)
+        validator_type.check_schema(schema)
+        return validator_type
+    except FormSchemaUnavailable:
+        raise
+    except Exception as exc:
+        raise FormSchemaUnavailable("Stored form schema could not be evaluated") from exc
+
+
+def validate_form_schema(schema: Any) -> None:
+    """Validate a form schema without evaluating or exposing collection data.
+
+    A form revision's ``properties`` define its accepted fields. The built-in
+    schemas set ``additionalProperties`` to false, so unknown keys fail closed.
+    Local references are supported; remote schema retrieval is deliberately
+    disabled so collection requests never cause network access.
+    """
+    _validator_for_schema(schema)
+
+
 def validate_form_payload(schema: Any, payload: Any) -> None:
     """Validate data without echoing submitted values in errors or logs.
 
@@ -42,10 +69,8 @@ def validate_form_payload(schema: Any, payload: Any) -> None:
     if not isinstance(payload, Mapping):
         raise FormPayloadInvalid("Collection payload must be an object")
 
-    _reject_remote_refs(schema)
+    validator_type = _validator_for_schema(schema)
     try:
-        validator_type = validator_for(schema)
-        validator_type.check_schema(schema)
         validator = validator_type(schema, format_checker=FormatChecker())
         invalid = next(validator.iter_errors(payload), None)
     except FormSchemaUnavailable:

@@ -1,0 +1,67 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "slice": "EBF evidence-gap signed source reader",
+  "implementation": {
+    "migration": "schemas/postgres/545_signed_ebf_evidence_gap_source.sql",
+    "worker": "services/agents/worker_cli.py:run_worker_ebf_evidence_gap",
+    "scope": "exact location with database-signed ebf_scorecard/read grant",
+    "transaction": "repeatable-read and read-only; rollback on failure",
+    "compose_profile": "ebf-evidence-gap-worker; receives only the source DSN and credential",
+    "source_columns": [
+      "scorecard_id",
+      "location_id",
+      "pillar_key",
+      "pillar_name",
+      "normalized_score",
+      "confidence_level",
+      "evidence_maturity_level",
+      "evidence_maturity_label",
+      "evidence_count",
+      "public_safe_evidence_count",
+      "gap_status"
+    ]
+  },
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_migration.py tests/test_ebf_agents.py tests/test_agent_worker_cli.py tests/test_agent_tasks.py tests/test_agent_summary_worker_profile.py -q",
+      "passed": 106
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "disposable_postgresql": {
+      "evidence": "cap-038-ebf-evidence-gap-source-worker-disposable.json",
+      "version": 16,
+      "network": "disabled",
+      "migrations_applied_and_replayed": "405, 419, 521-524, 529-537, 539-545",
+      "assertions_passed": 32,
+      "covers": [
+        "no-context denial",
+        "exact-location filtering",
+        "ungranted-location denial",
+        "ebf_scorecard/read does not authorize ai_summary views",
+        "raw public view denial",
+        "11-column wrapper allowlist",
+        "stale raw-view, wrapper read/write, and schema-usage grants removed on replay"
+      ]
+    },
+    "static_inventories": {
+      "runtime_sql": "refreshed and current",
+      "worker_source_closure": "current",
+      "worker_function_reachability": "refreshed and current",
+      "worker_sql_reachability": "refreshed and current",
+      "worker_boundary_preflight": "refreshed and current",
+      "requirement_groups": "passed",
+      "compose_profile_contract": "passed",
+      "capability_matrix": "passed: 66 rows"
+    }
+  },
+  "candidate_or_legacy_database_modified": false,
+  "provider_or_production_credential_used": false,
+  "limitations": [
+    "No authenticated operator grant interface was added to the standalone EBF CLI.",
+    "This scoped worker does not establish universal row-level security or physical Raspberry Pi acceptance.",
+    "No production worker credential or location grant was provisioned."
+  ]
+}

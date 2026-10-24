@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-20",
+  "scope": "Fresh clean-bootstrap replay of all current PostgreSQL schema migrations through 524",
+  "source_revision": "c6aab4ea",
+  "source_execution_note": "The successful run used scripts/verify-clean-bootstrap.sh and the updated optional-role SQL. The migration CLI's automatic role preflight was added while the run was already executing and is covered separately by focused unit tests.",
+  "database": {
+    "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "architecture": "linux/amd64",
+    "postgres_major": 16,
+    "network_mode": "none",
+    "resource_limits": {
+      "memory_bytes": 1610612736,
+      "cpus": 2.0
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-amd64-schema-524-a0c77d7f",
+    "host_ports_published": false,
+    "external_network_or_provider_calls": false,
+    "synthetic_credentials_only": true,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "candidate_or_legacy_targeted": false,
+    "candidate_services_after_run": "app/database/proxy/Metabase remained healthy"
+  },
+  "schema_replay": {
+    "runner": "scripts/verify-clean-bootstrap.sh and services.migration migrate --schemas-only",
+    "schema_files_discovered": 515,
+    "schema_migrations_applied": 515,
+    "schema_migrations_failed": 0,
+    "latest_migration": "schema:524_ai_summary_global_source_references.sql",
+    "migration_475_applied": true,
+    "migration_475_optional_directus_role_prerequisite": "satisfied by locked NOLOGIN kokonut_directus_runtime placeholder"
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_volume_removed": true,
+    "temporary_network_created": false,
+    "candidate_stack_unchanged": true,
+    "legacy_stack_targeted": false
+  },
+  "companion_checks": {
+    "tests": "56 passed: tests/test_migration.py, tests/test_upgrade.py, tests/test_directus_runtime_role.py",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "migration_cli_role_preflight": "unit-verified before schema apply; dry-run has no role mutation"
+  },
+  "result": "PASS: all 515 schema migrations applied on a fresh isolated PostgreSQL 16 database with no seed or farm data.",
+  "limitations": [
+    "This full-schema run used native linux/amd64 PostgreSQL; ARM64 PostGIS schema replay remains unverified beyond the earlier migration-434 QEMU run.",
+    "QEMU app acceptance is tracked separately and does not certify physical Raspberry Pi hardware."
+  ]
+}

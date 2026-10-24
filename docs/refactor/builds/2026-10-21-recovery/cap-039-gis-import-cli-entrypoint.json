@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 GIS import CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable GIS import parser and callable main(argv=None).",
+    "Standalone and unified argument forwarding and help output match.",
+    "Missing-file and invalid-target inputs fail before import dispatch."
+  ],
+  "checks": {
+    "gis_pytest": {
+      "command": "python3 -m pytest tests/test_gis_import_cli.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_clickhouse_fallback_error_redaction.py -q",
+      "result": "passed",
+      "passed": 40
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "source_file_read": false,
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "The GIS run function was stubbed for CLI dispatch checks.",
+    "Does not establish populated spatial-data parity or live import behavior."
+  ]
+}

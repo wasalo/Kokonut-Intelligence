@@ -22,6 +22,7 @@ contract KokonutResolver is SchemaResolver, Ownable {
         require(address(eas) != address(0), "Zero EAS address");
         require(owner != address(0), "Zero owner address");
         for (uint256 i = 0; i < initialAttesters.length; i++) {
+            require(initialAttesters[i] != address(0), "Zero address");
             allowedAttesters[initialAttesters[i]] = true;
             emit AttesterAdded(initialAttesters[i]);
         }

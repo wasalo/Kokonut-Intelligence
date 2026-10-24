@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-17",
+  "source_commit": "a0f0f14b834ff610a5eba7ef87b672bd89554ce7",
+  "scope": "Generated source inventories only. No database, provider, credential, schedule, or application data was accessed.",
+  "results": {
+    "runtime_sql": {
+      "source_files": 823,
+      "execution_sites": 3978,
+      "worker_operation_roots": 30,
+      "worker_linked_sites": 315,
+      "regex_relation_candidates": 1046,
+      "unknown_statement_sites": 174,
+      "with_review_sites": 24,
+      "sites_without_relation_candidates": 451
+    },
+    "worker_source_closure": {
+      "operation_roots": 30,
+      "source_files": 90,
+      "unresolved_local_modules": 0,
+      "known_dynamic_import_sites": 3
+    },
+    "worker_function_graph": {
+      "operation_roots": 30,
+      "source_files": 90,
+      "function_memberships": 611,
+      "direct_call_edges": 836,
+      "dynamic_dispatch_edges": 20,
+      "unresolved_operation_roots": 0
+    },
+    "worker_sql": {
+      "execution_sites": 315,
+      "statically_reachable_memberships": 313,
+      "unique_sites_with_static_operation_path": 242,
+      "sites_without_static_function_match": 73,
+      "literal_sites": 272,
+      "composed_or_variable_sites": 43
+    },
+    "worker_effects": {
+      "operation_roots": 30,
+      "candidate_effect_sites": 36,
+      "operation_site_memberships": 45,
+      "effect_categories": ["dynamic_import", "email_delivery", "evm_client_setup", "evm_rpc", "filesystem", "http", "process"]
+    },
+    "worker_boundary_preflight": {
+      "status": "review_required",
+      "worker_identity_status": "not_tenant_bound",
+      "static_effects_complete": false,
+      "database_checks": "not_assessed",
+      "rls_readiness": "not_ready"
+    }
+  },
+  "checks": {
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_boundary_preflight": "passed; report remains review_required by design",
+    "worker_sql_inventory": "passed",
+    "worker_effect_inventory": "passed",
+    "runtime_sql_inventory": "passed",
+    "capability_matrix": "passed; 66 rows, 54 baseline-retained, 7 deployed, 5 prepared; MAN-CAP checks remain separately gated",
+    "focused_pytest": "45 passed across seven worker source/function/SQL, boundary-preflight, JobSpec, and operation-map test files; includes the GEE climate literal-template/bound-parameter regression"
+  },
+  "limitations": [
+    "The worker graphs are conservative static aids and can miss dynamic callbacks, runtime dispatch, extension behavior, provider behavior, and database-side effects.",
+    "Unmatched SQL sites remain for review; regex-derived relation candidates are not ACLs or proof of tenant scope.",
+    "The static report does not prove provisioned worker identities, credentials, enabled schedules, direct-database privilege boundaries, or application-table RLS readiness."
+  ]
+}

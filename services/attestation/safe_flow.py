@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 
+from services.common.errors import safe_exception_class
 from services.treasury.propose import SafeProposeClient, SafeTxData
 
 # Core Team SAFE (Celo deployment, verified 2026-08-30: nonce 65, active).
@@ -207,15 +208,22 @@ def process_pending_requests_via_safe(
             results.append(result)
         except Exception as exc:  # noqa: BLE001 - per-row isolation
             failed += 1
+            safe_error = f"attestation proposal failed ({safe_exception_class(exc)})"
             conn.execute(
                 conn.text(
                     "UPDATE attestation_request "
                     "SET proposal_status = 'failed', error_message = :e, updated_at = NOW() "
                     "WHERE id = :rid"
                 ),
-                {"e": str(exc)[:500], "rid": row["id"]},
+                {"e": safe_error, "rid": row["id"]},
             )
             conn.commit()
-            results.append({"request_id": row["id"], "status": "failed", "error": str(exc)[:200]})
+            results.append(
+                {
+                    "request_id": row["id"],
+                    "status": "failed",
+                    "error": safe_error,
+                }
+            )
 
     return {"proposed": proposed, "failed": failed, "results": results}

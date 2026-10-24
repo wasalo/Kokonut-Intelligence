@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "change": "Reject deterministic AI-summary output whose declared location differs from the signed source scope, and reject non-object output before persistence.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py -q",
+      "result": "47 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 66 rows; 30 baseline-retained, 7 deployed, 29 prepared",
+    "git_diff_check": "passed"
+  },
+  "scope": "Synthetic worker output and fake PostgreSQL connection only; no database, provider, candidate, or legacy service accessed.",
+  "remaining": [
+    "authenticated agent runtime identities",
+    "least-privilege database roles",
+    "populated task parity",
+    "MAN-CAP-038 owner acceptance"
+  ]
+}

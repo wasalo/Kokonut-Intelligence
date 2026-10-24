@@ -1,0 +1,122 @@
+{
+  "verified_at": "2026-10-23T18:27:36Z",
+  "environment": "local Kokonut Kernel candidate",
+  "source_revision": "ac1a84cd16499e9c644f0a1de6d16e8b3d1948bf",
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-552-598-20261023",
+    "archive": "postgres.dump.age",
+    "format": "age-encrypted PostgreSQL custom-format archive",
+    "sha256": "9775485bfa2ccfd651faa4fc7c59e62fbed090c8eb2e5858c4f9f76b43f2a1c9",
+    "bytes": 8507750,
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope": "Single PostgreSQL database only; excludes ownership/grants, cluster roles, other databases, volumes, and external media.",
+    "archive_decryption_and_pg_restore_list": "passed; 10623 archive TOC entries"
+  },
+  "restore_rehearsal": {
+    "project": "kokonut-kernel-recovery-552-20261023",
+    "container": "kokonut-kernel-recovery-552-20261023-database-1",
+    "database": "kokonut_restore",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "network": "internal-only; no published ports or application services",
+    "target_created_from": "template0; zero public relations before restore",
+    "pre_migration_schema_count": 542,
+    "pre_migration_seed_rows": 6,
+    "pre_migration_ledger_fingerprint": "6b4b28fdb9d00b8e69a0f4d1023fc8df",
+    "pre_migration_public_relations": 1464,
+    "pre_migration_extensions": [
+      "btree_gist=1.7",
+      "fuzzystrmatch=1.2",
+      "pg_stat_statements=1.10",
+      "pg_trgm=1.6",
+      "pgcrypto=1.3",
+      "postgis=3.4.3",
+      "postgis_tiger_geocoder=3.4.3",
+      "postgis_topology=3.4.3",
+      "uuid-ossp=1.1"
+    ],
+    "pre_migration_candidate_match": true,
+    "migration_replay": {
+      "runner": "python3 -m services.migration.cli migrate --schemas-only",
+      "from": 552,
+      "through": 598,
+      "applied": 47,
+      "failed": 0,
+      "seed_sql_applied": false,
+      "pending_after_replay": 0,
+      "schema_count_after": 589,
+      "seed_rows_after": 6,
+      "ledger_fingerprint_after": "401959937f1fbe433338fab0bd18f854",
+      "public_relations_after": 1486
+    },
+    "restore_archive_flags": ["--no-owner", "--no-privileges"],
+    "acl_reconciliation_on_scratch_only": [
+      "REVOKE SELECT from PUBLIC on public.pg_stat_statements and public.pg_stat_statements_info; candidate already had these migration-541 revocations.",
+      "REVOKE EXECUTE from PUBLIC on kokonut_security.current_worker_scope(text,text); candidate already had this revocation.",
+      "Restore the expected SET-only membership from kokonut_agent_summary_deterministic_source_login to kokonut_agent_summary_deterministic_reader; database-only restore omits role memberships.",
+      "REVOKE EXECUTE from PUBLIC on kokonut_security.get_location_ai_summary_worker_draft_request(uuid,text,uuid); candidate already had this revocation."
+    ],
+    "container_status_after": "stopped",
+    "recovery_volume_retained": "kokonut-kernel-recovery-552-20261023_recovery-postgres-data"
+  },
+  "candidate_migrations": {
+    "runner": "python3 -m services.migration.cli migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml",
+    "from": 552,
+    "through": 598,
+    "applied": 47,
+    "failed": 0,
+    "seed_sql_applied": false,
+    "schema_count_after": 589,
+    "pending_after": 0,
+    "failed_ledger_rows_after": 0,
+    "seed_rows_after": 6,
+    "ledger_fingerprint_after": "401959937f1fbe433338fab0bd18f854",
+    "public_relations_after": 1486
+  },
+  "candidate_app": {
+    "rebuilt": true,
+    "recreated_service": "app only",
+    "image_id": "sha256:4f5094ed9f5f246c6b6368d08935b287541db1e9a21eb97b0678837b2171b279",
+    "container_id": "9323e3b1cefc80ec6135825472ef86309fd80a402a1c117751aa4f7b86155613",
+    "previous_image_id": "sha256:f37bae383aa81f29d9ae760345f985d76fbab3974e6223304e7bb4b185d9faf9",
+    "previous_image_rollback_tag": "kokonut-kernel-candidate-app:rollback-pre-552-598-20261023",
+    "health": "healthy",
+    "host_health_route": {"path": "/health", "status": 200},
+    "anonymous_protected_route": {
+      "path": "/operator/api/farm-activity-records",
+      "status": 401,
+      "reason": "credentials_required",
+      "cache_control": "no-store"
+    }
+  },
+  "not_recreated_or_modified": [
+    "candidate PostgreSQL container and persistent volume identity",
+    "candidate Metabase",
+    "candidate proxy",
+    "legacy kokonut-intelligence stack"
+  ],
+  "data_actions": [
+    "No seed SQL was run; the existing six seed ledger rows were unchanged.",
+    "No farm records were added.",
+    "Only additive schema migrations 552–598 were applied to candidate PostgreSQL."
+  ],
+  "verification": {
+    "candidate_schema_plan_pending": 0,
+    "restored_clone_schema_plan_pending": 0,
+    "candidate_and_restore_ledger_fingerprint_match": true,
+    "candidate_and_restore_public_relation_count_match": true,
+    "candidate_app_health": "passed",
+    "protected_route_authorization": "passed; anonymous request denied",
+    "protected_response_cache_policy": "passed; no-store"
+  },
+  "limitations": [
+    "The encrypted checkpoint is on the same host disk as the repository; this is not an off-host or production backup.",
+    "The checkpoint covers one PostgreSQL database and excludes global roles/grants, other databases, volumes, media, and providers.",
+    "No live OIDC, worker credential provisioning, external provider, Raspberry Pi hardware, or production acceptance was exercised.",
+    "The restore clone’s no-privileges restore did not preserve candidate ACL state; only the four explicit candidate-verified privilege/membership differences listed above were reconciled on the isolated clone."
+  ],
+  "rollback": {
+    "app": "Recreate only candidate app from kokonut-kernel-candidate-app:rollback-pre-552-598-20261023.",
+    "database": "Keep additive migrations; the encrypted pre-migration checkpoint and stopped restore volume are retained. A full restore can discard candidate writes made after the checkpoint and needs a reviewed recovery window."
+  }
+}

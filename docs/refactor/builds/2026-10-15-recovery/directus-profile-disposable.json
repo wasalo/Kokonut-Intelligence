@@ -1,0 +1,21 @@
+{
+  "candidate_or_legacy_database_used": false,
+  "checked_at": "2026-10-16T19:00:53.111008+00:00",
+  "cleanup": "passed",
+  "database": "fresh isolated Kernel PostgreSQL volume",
+  "directus_health": 200,
+  "loopback_only": true,
+  "owner_backed_bootstrap": "passed",
+  "owner_login": 200,
+  "permission_seed": {
+    "first_application": "passed",
+    "other_curated_permissions": 14,
+    "replay": "passed",
+    "repository_managed_farm_activity_permissions": 0
+  },
+  "profile": "optional Directus overlay",
+  "project": "kokonut-directus-profile-check-8175495735",
+  "runtime_database_identity": "kokonut_directus_runtime",
+  "secrets_logged": false,
+  "status": "passed"
+}

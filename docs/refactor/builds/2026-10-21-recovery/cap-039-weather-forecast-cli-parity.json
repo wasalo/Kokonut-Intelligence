@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "58c12369",
+  "scope": "Standalone/unified weather forecast CLI parity for scoped and explicit aggregate reads",
+  "verification": {
+    "focused_tests": "4 forecast parity/preflight cases pass; 45 tests across weather and forecast CLI, atomicity, and ingestion suites",
+    "coverage": [
+      "single-location forecast mode canonicalizes and binds the selected UUID with matching standalone/unified logs and output",
+      "all-locations forecast mode is an explicit aggregate operation with matching query scope across entrypoints",
+      "malformed forecast locations fail before DB setup in both standalone and unified invocation",
+      "synthetic empty results prevent provider calls and both paths close cursor and connection"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; query result and connection are synthetic",
+    "provider": "not contacted"
+  },
+  "result": "PASS: weather-forecast standalone/unified commands preserve location and explicit aggregate scope with identical offline behavior.",
+  "limitations": [
+    "Synthetic empty query results do not establish populated-data parity.",
+    "Live database, provider, alert delivery, and authorization acceptance remain open."
+  ]
+}

@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload, post_clickhouse_rows
+from .base import hash_payload, log_ingestion, post_clickhouse_rows
 from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.gee_remote_sensing")
@@ -49,7 +49,9 @@ def _get_gee_client():
         logger.error("earthengine-api not installed. Run: pip install earthengine-api")
         return None
 
-    key_path = os.environ.get("GEE_SERVICE_ACCOUNT_KEY")
+    key_path = os.environ.get("KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY") or os.environ.get(
+        "GEE_SERVICE_ACCOUNT_KEY"
+    )
     if key_path:
         try:
             credentials = ee.ServiceAccountCredentials(None, key_path)
@@ -57,7 +59,7 @@ def _get_gee_client():
             logger.info("GEE initialized with service account")
             return ee
         except Exception as e:
-            logger.error("GEE service account init failed: %s", e)
+            logger.error("GEE service account init failed (%s)", type(e).__name__)
             return None
 
     # Try default credentials (for development)
@@ -66,7 +68,7 @@ def _get_gee_client():
         logger.info("GEE initialized with default credentials")
         return ee
     except Exception as e:
-        logger.error("GEE default init failed: %s", e)
+        logger.error("GEE default init failed (%s)", type(e).__name__)
         return None
 
 
@@ -157,23 +159,26 @@ def _compute_indices(bands: Dict[str, float]) -> Dict[str, float]:
     return indices
 
 
-def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
-    """Fetch Sentinel-2 data via Google Earth Engine.
+def fetch_gee_records(job: Dict[str, Any]) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Fetch and normalize Earth Engine data without opening a database.
 
-    Args:
-        conn: PostgreSQL connection.
-        job: Remote sensing job record.
-
-    Returns:
-        Dict with status, observations count, and details.
+    Keeping provider I/O separate from persistence lets the signed scheduled
+    worker use bounded database functions while the legacy interactive adapter
+    continues to persist through its existing connection.
     """
     ee = _get_gee_client()
     if ee is None:
-        return {"status": "error", "message": "GEE client not available", "observations": 0, "retryable": True}
+        return (
+            {"status": "error", "message": "GEE client not available", "observations": 0, "retryable": True},
+            [],
+        )
 
     bbox = _resolve_bbox(job)
     if not bbox:
-        return {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False}
+        return (
+            {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False},
+            [],
+        )
 
     location_id = str(job["location_id"])
     cloud_max = float(job.get("cloud_max_pct", 20))
@@ -198,7 +203,7 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     image_count = collection.size().getInfo()
     if image_count == 0:
         logger.info("No cloud-free Sentinel-2 images for location %s", location_id[:8])
-        return {"status": "success", "observations": 0, "message": "No cloud-free images"}
+        return ({"status": "success", "observations": 0, "message": "No cloud-free images"}, [])
 
     # Compute median composite
     composite = collection.median()
@@ -212,7 +217,7 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     ).getInfo()
 
     if not sample.get("features"):
-        return {"status": "success", "observations": 0, "message": "No sample data"}
+        return ({"status": "success", "observations": 0, "message": "No sample data"}, [])
 
     properties = sample["features"][0]["properties"]
 
@@ -245,27 +250,36 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
         }),
     }
 
-    # Insert into PostgreSQL
-    pg_id = _insert_pg(conn, record)
-
-    # Insert into ClickHouse
-    record["id"] = pg_id
-    if not record.get("_duplicate"):
-        _insert_ch(record, conn)
-
-    log_ingestion(
-        source_system="gee_api",
-        source_table="sentinel2",
-        source_id=record["source_id"],
-        target_table="remote_sensing_observation",
-        target_id=pg_id,
-        operation="insert",
-        payload_hash=hash_payload(record),
-        status="success",
-        rows_affected=0 if record.get("_duplicate") else 1,
+    return (
+        {"status": "success", "observations": 1, "bands": len(bands), "indices": len(indices)},
+        [record],
     )
 
-    return {"status": "success", "observations": 1, "pg_id": pg_id, "bands": len(bands), "indices": len(indices)}
+
+def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
+    """Fetch and persist Sentinel-2 data via Google Earth Engine."""
+    result, records = fetch_gee_records(job)
+    persisted = []
+    for record in records:
+        pg_id = _insert_pg(conn, record)
+        record["id"] = pg_id
+        if not record.get("_duplicate"):
+            _insert_ch(record, conn)
+        log_ingestion(
+            source_system="gee_api",
+            source_table="sentinel2",
+            source_id=record["source_id"],
+            target_table="remote_sensing_observation",
+            target_id=pg_id,
+            operation="insert",
+            payload_hash=hash_payload(record),
+            status="success",
+            rows_affected=0 if record.get("_duplicate") else 1,
+        )
+        persisted.append(pg_id)
+    if persisted:
+        result["pg_id"] = persisted[0]
+    return result
 
 
 def _resolve_bbox(job: Dict[str, Any]) -> Optional[Dict[str, float]]:
@@ -351,7 +365,9 @@ def _insert_ch(record: dict, conn=None) -> None:
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows("remote_sensing_events", columns, [values])
     except Exception as e:
-        logger.warning("ClickHouse insert failed: %s", e)
+        if conn is not None:
+            raise
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def _ch_num(value) -> str:

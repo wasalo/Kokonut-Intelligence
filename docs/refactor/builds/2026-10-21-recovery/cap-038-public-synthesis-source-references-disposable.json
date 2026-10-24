@@ -1,0 +1,41 @@
+{
+  "result": "passed",
+  "migrations": [
+    "405_signed_worker_tenant_context.sql",
+    "419_private_worker_context_functions.sql",
+    "521_location_scoped_ai_summary_review.sql",
+    "522_authenticated_ai_summary_drafts.sql",
+    "523_ai_summary_source_references.sql",
+    "524_ai_summary_global_source_references.sql",
+    "529_signed_agent_ai_summary_drafts.sql",
+    "530_signed_agent_ai_summary_source_references.sql",
+    "531_capital_efficiency_synthesis_source_references.sql",
+    "532_registered_agent_source_reference_views.sql",
+    "533_regenerator_synthesis_source_references.sql",
+    "534_public_synthesis_source_reference_views.sql"
+  ],
+  "database_target": "new disposable PostgreSQL 16 container with network disabled",
+  "candidate_or_legacy_modified": false,
+  "credential_note": "only a synthetic high-entropy credential is hashed in the disposable fixture",
+  "review_context_note": "operator review uses a synthetic context stub in the disposable SQL fixture; production worker code uses the database-signed context helper",
+  "source_lineage_note": "capital-efficiency, bio-factory, regenerative, commons, GNH, financial resilience, and open-source-capitalist synthesis attach bounded IDs for twenty-seven location-scoped published views; other generic synthesis agents retain table-name hints",
+  "checks": [
+    "migrations 405, 419, 521-524, 529-534 apply; migrations 530-534 replay",
+    "signed worker credential grants only ai_summary:draft for the exact owned location",
+    "worker draft is attributed to a database worker principal and exact request retries replay once",
+    "worker references include location-owned, shared-catalog, and four capital-efficiency rows validated through published public views",
+    "the registered view map validates four location-scoped bio-factory views without exposing the regional network catalogue",
+    "migration 533 validates four regenerative source views and rejects cross-location rows without changing attached manifests",
+    "migration 534 validates fifteen location-scoped views across commons, GNH, financial resilience, and open-source-capitalist agents",
+    "the four additional agent manifests round-trip through signed worker scope; global source catalogues stay excluded",
+    "the drafter receives only ID/location view columns and worker execution receives no direct source table access",
+    "cross-location, unpublished, and inexact-count view references fail closed without partial manifests; workers lack direct source-table access",
+    "conflicting request intent, mismatched location, and duplicate source metadata fail closed",
+    "worker login/execution cannot write summaries directly; runtime and Directus cannot bypass review with direct UPDATE",
+    "independent operator review sees the worker attribution and can verify only to verified",
+    "review queue exposes attached worker source references and the operator setter remains compatible",
+    "legacy unattributed drafts remain blocked from approval; lifecycle review is operator-attributed",
+    "runtime and Directus cannot call worker draft functions or read private worker receipts"
+  ],
+  "assertions_passed": 16
+}

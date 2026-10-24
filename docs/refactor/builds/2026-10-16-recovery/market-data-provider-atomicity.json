@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-16",
+  "scope": "mocked market-data provider and transaction checks",
+  "commands": [
+    "python3 -m pytest tests/test_market_data.py tests/test_market_data_recovery.py -q",
+    "ruff check services/ingestion/market_data.py tests/test_market_data_recovery.py",
+    "python3 -m compileall -q services/ingestion/market_data.py tests/test_market_data_recovery.py"
+  ],
+  "result": {
+    "pytest": "16 passed",
+    "ruff": "passed",
+    "compileall": "passed"
+  },
+  "verified": [
+    "World Bank download failure propagates and does not invoke seed mode",
+    "empty or unmatched provider response fails before opening PostgreSQL",
+    "live observations retain a source namespace distinct from explicit seed data",
+    "price writes and ingestion audit share one transaction",
+    "the audit records actual inserted-row count when natural-key conflicts are ignored",
+    "a failed price insert rolls back the complete batch and creates no success audit",
+    "explicit seed writes are separately namespaced and roll back as one batch"
+  ],
+  "boundaries": [
+    "provider and database calls were mocked",
+    "no candidate or legacy database was accessed",
+    "no World Bank request, schedule, or external provider state was accessed",
+    "historical price correction semantics and live provider parity remain open"
+  ]
+}

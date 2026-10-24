@@ -1,0 +1,26 @@
+{
+  "capability": "CAP-045",
+  "title": "Selective disclosure proof shape validation",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair verified; capability not accepted",
+  "changes": [
+    "verifyProof returns false when proof and direction-flag arrays have different lengths.",
+    "verifyProof returns false for direction flags other than 0 or 1.",
+    "Valid proof ordering, boolean return semantics, and root-only on-chain storage remain unchanged."
+  ],
+  "verification": {
+    "focused_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test --match-contract KokonutSelectiveDisclosureTest -vv",
+    "focused_result": "10 passed; 0 failed; 0 skipped",
+    "fuzz": "Unsupported direction flag test passed 256 runs.",
+    "full_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test",
+    "full_result": "77 passed; 0 failed; 0 skipped across 7 suites",
+    "formatter": "forge fmt completed successfully"
+  },
+  "scope_limits": [
+    "Leaf construction and consumer application parity remain unassessed.",
+    "The change does not establish full disclosure capability parity or MAN-CAP-045 acceptance.",
+    "No deployed contract or chain was touched."
+  ],
+  "environment_note": "Foundry emitted a non-fatal warning because the restricted process could not flush /Users/gilbertoadon/.foundry/cache/signatures; the test suites completed successfully."
+}

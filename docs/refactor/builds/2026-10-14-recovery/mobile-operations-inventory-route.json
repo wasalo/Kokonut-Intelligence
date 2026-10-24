@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-14",
+  "scope": "location-scoped Field Collector operator inventory and queue summary",
+  "branch": "feat/mobile-offline-acceptance",
+  "route": "GET /operator/api/mobile/locations/{location_id}/inventory?device_limit=50",
+  "authorization": {
+    "primary": "mobile_device:read",
+    "additional": "mobile_collection_review:read",
+    "location_scope": "Both grants must be active for the same requested location.",
+    "tenant_context": "The read-only query establishes signed transaction-bound operator context before protected reads and repeats both grant/location checks in SQL."
+  },
+  "response_boundary": {
+    "included": [
+      "bounded device_id, status, last_seen_at, last_sync_at",
+      "device and active-device counts",
+      "pending-sync, synced, form-review-required, and ineligible-synced counts"
+    ],
+    "excluded": [
+      "device token hashes",
+      "push tokens",
+      "participant or collector identities",
+      "collection payloads",
+      "media references or object keys"
+    ],
+    "console": "The panel appears only when both location grants exist; values render through textContent."
+  },
+  "verification": {
+    "command": ".venv/bin/python -m pytest tests/test_operator_mobile_review.py tests/test_operator_route_policy_inventory.py tests/test_operator_auth.py tests/test_operator_console_mobile_disposition.py -q",
+    "result": "83 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "inline_javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "Source/fake-connection and in-process ASGI acceptance only; no PostgreSQL execution was performed.",
+    "No candidate or legacy database was accessed.",
+    "No real OIDC provider, live identity, browser navigation, or external ingress was exercised.",
+    "The summary is scoped per location and does not expose cross-tenant/global totals."
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T14:03:06Z",
+  "subject": "Local regressions from GitHub CI run 304",
+  "base_commit": "1c0084513b157bb99468d4c650e269c57e243c96",
+  "working_tree_changes_included": true,
+  "remote_ci": {
+    "run": 304,
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581",
+    "result": "failure",
+    "passed_tests": 4632,
+    "passed_subtests": 75,
+    "failed_tests": 5,
+    "security_run_28": "passed"
+  },
+  "focused_regressions": {
+    "command": "pytest tests/test_compose_metabase_profile.py::test_oidc_compose_overlay_is_opt_in_and_requires_provider_settings tests/test_impact_network.py::test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent tests/test_operator_auth.py::test_mobile_review_event_route_denies_cross_tenant_context tests/test_operator_auth.py::test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf tests/test_operator_auth.py::test_operator_mobile_mutations_deny_unverified_tenant_context -q",
+    "result": "passed",
+    "passed": 10,
+    "duration_seconds": 4.04
+  },
+  "full_auth_and_compose": {
+    "command": "pytest tests/test_operator_auth.py tests/test_compose_metabase_profile.py -q",
+    "result": "passed",
+    "passed": 72,
+    "duration_seconds": 40.41
+  },
+  "mobile_api_and_form_validation": {
+    "command": "pytest tests/test_mobile_api.py tests/test_mobile_form_validation.py -q",
+    "result": "passed",
+    "passed": 50,
+    "duration_seconds": 38.93
+  },
+  "mobile_offline_registration_and_queue": {
+    "command": "pytest tests/test_mobile_offline.py -q",
+    "result": "passed",
+    "passed": 16,
+    "duration_seconds": 5.75
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "remaining_gate": "Commit 7b155cb705cb03895bba9a16b3ab07937502bb68 was pushed to PR #68. CI #305 (run 38577274192) is in progress; Security #29 (run 38577274372) passed. Wait for CI #305 to complete successfully."
+}

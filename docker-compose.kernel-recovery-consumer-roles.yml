@@ -16,7 +16,7 @@ services:
       - consumer-role-postgres-data:/var/lib/postgresql/data
     networks: [consumer-role-recovery]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
     environment:
       PG_HOST: database
       PG_PORT: "5432"
-      PG_DB: kokonut_intelligence
+      PG_DB: ${APP_DATABASE:-kokonut_intelligence}
       KOKONUT_DB_ADMIN_USER: kokonut
       KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
       DIRECTUS_ROLE_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply a synthetic Directus-role password}
@@ -98,10 +98,12 @@ services:
     command: ["cli.js", "bootstrap"]
     environment:
       SECRET: ${DIRECTUS_SECRET:?Supply a synthetic Directus secret}
+      ADMIN_EMAIL: ${DIRECTUS_PARITY_ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${DIRECTUS_PARITY_ADMIN_PASSWORD:-}
       DB_CLIENT: pg
       DB_HOST: database
       DB_PORT: "5432"
-      DB_DATABASE: kokonut_intelligence
+      DB_DATABASE: ${APP_DATABASE:-kokonut_intelligence}
       DB_USER: kokonut
       DB_PASSWORD: ${POSTGRES_PASSWORD:?Supply the fixture admin password}
       DB_SEARCH_PATH: public,kokonut
@@ -123,12 +125,16 @@ services:
       DB_CLIENT: pg
       DB_HOST: database
       DB_PORT: "5432"
-      DB_DATABASE: kokonut_intelligence
+      DB_DATABASE: ${APP_DATABASE:-kokonut_intelligence}
       DB_USER: kokonut_directus_runtime
       DB_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply the Directus runtime password}
       DB_SEARCH_PATH: public,kokonut
       CACHE_ENABLED: "false"
+      RATE_LIMITER_ENABLED: "false"
       LOG_LEVEL: error
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-https://directus-parity.invalid/issuer}
+    volumes:
+      - ./extensions/kokonut-hooks:/directus/extensions/directus-extension-kokonut-hooks:ro
     depends_on:
       database:
         condition: service_healthy
@@ -138,6 +144,35 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    networks: [consumer-role-recovery]
+
+  directus-api-check:
+    profiles: [product-check]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/directus-api-parity-check.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+      directus-runtime:
+        condition: service_healthy
+    environment:
+      DIRECTUS_BASE_URL: http://directus-runtime:8055
+      DIRECTUS_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      DIRECTUS_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${APP_DATABASE:-kokonut_intelligence}
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply the fixture admin password}
+      DIRECTUS_ROLE_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply the Directus runtime password}
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-https://directus-parity.invalid/issuer}
+    volumes:
+      - ./scripts/fixtures/directus-api-parity-check.py:/workspace/scripts/fixtures/directus-api-parity-check.py:ro
     networks: [consumer-role-recovery]
 
   metabase-runtime:

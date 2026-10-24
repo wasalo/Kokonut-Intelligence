@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "JavaScript SDK SensorReading schema parity",
+  "source_of_truth": "schemas/postgres/005_environmental.sql: sensor_reading",
+  "issue": "The JavaScript SDK made location_id optional, required nullable quality/created_at values, and excluded the schema's bad quality value.",
+  "change": "Required location_id, represented nullable database columns as optional nullable properties, and removed the stale quality union in favor of the canonical database string value.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "13 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "22 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed for sdk/python/kokonut/types.py and tests/test_sdk.py",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only",
+  "capability_matrix": "classifications unchanged"
+}

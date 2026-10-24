@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_http_contract",
+  "routes": [
+    "GET /api/locations",
+    "GET /api/locations/{location_id}"
+  ],
+  "checks": [
+    "uses v_public_farm_summary-backed native reader even when Directus is enabled",
+    "preserves historical serialized response wrapper",
+    "limits the projection to id, name, country, region, and status",
+    "invalid UUID returns 400 before the read",
+    "missing or ineligible location returns 404"
+  ],
+  "focused_http_tests": 3,
+  "combined_route_policy_tests": 8,
+  "ruff": "passed",
+  "database_accessed": false,
+  "directus_accessed": false,
+  "runtime_or_populated_parity": "not_established"
+}

@@ -1,5 +1,7 @@
-# Worker container overlay — runs Python ingestion services on cron
+# Worker overlay — legacy ingestion, event dispatch, and notification delivery
 # Usage: docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
+# To run only event dispatch or notification delivery, target `event-worker` or
+# `notification-worker` explicitly with `--profile worker`.
 #
 # The worker container connects to the databases network to reach PostgreSQL and ClickHouse.
 # It does not expose any ports — all communication is internal.
@@ -22,14 +24,16 @@ services:
         condition: service_healthy
     networks:
       - databases
+    volumes:
+      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
-      PG_USER: ${PG_USER:-kokonut}
-      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       CH_HOST: clickhouse
       CH_PORT: "8123"
@@ -42,6 +46,18 @@ services:
       MEM_THRESHOLD: ${MEM_THRESHOLD:-90}
       HEALTH_CHECK_DOCKER: "false"
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_SENSOR_CSV_ROOT: /var/lib/kokonut/sensor-inputs
+      KOKONUT_SENSOR_INGESTION_DATABASE_URL: ${KOKONUT_SENSOR_INGESTION_DATABASE_URL:-}
+      KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL:-}
+      KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER: ${KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER:-false}
+      KOKONUT_REMOTE_SENSING_DATABASE_URL: ${KOKONUT_REMOTE_SENSING_DATABASE_URL:-}
+      KOKONUT_REMOTE_SENSING_WORKER_CREDENTIAL: ${KOKONUT_REMOTE_SENSING_WORKER_CREDENTIAL:-}
+      KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY: ${KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL: ${KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_PASSWORD: ${KOKONUT_REMOTE_SENSING_COPERNICUS_PASSWORD:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID: ${KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET: ${KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET:-}
+      KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER: ${KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER:-false}
       # Ingestion
       INGESTION_MAX_RETRIES: ${INGESTION_MAX_RETRIES:-3}
       INGESTION_BACKOFF: ${INGESTION_BACKOFF:-2}
@@ -61,6 +77,7 @@ services:
       # Alerts
       ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
       ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
       ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
       ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
       ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
@@ -75,11 +92,554 @@ services:
     profiles:
       - worker
 
+  # Deterministic AI-summary reads use a signed, 13-view location-scoped login.
+  # Shared synthesis reads use a separate public-view-only database login below.
+  # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
+  #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID \
+  #     --summary-type combined --request-id UUID
+  agent-summary-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.worker_cli", "--deterministic-only"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_DETERMINISTIC_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - agent-summary-worker
+
+  # Organic readiness runs only its 15 location-scoped source projections.
+  # It cannot use the broader shared synthesis source identity.
+  # After sourcing secrets:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile organic-readiness-worker run --rm agent-organic-readiness-worker \
+  #     --location-id UUID --request-id UUID
+  agent-organic-readiness-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "organic_readiness_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_ORGANIC_READINESS_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - organic-readiness-worker
+
+  # Ecological modeling uses fourteen scoped calculation projections and
+  # thirteen location-qualified provenance views under its own reader.
+  # After sourcing secrets:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ecological-modeling-worker run --rm agent-ecological-modeling-worker \
+  #     --location-id UUID --request-id UUID
+  agent-ecological-modeling-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "ecological_modeling_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_ECOLOGICAL_MODELING_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ecological-modeling-worker
+
+  # Holistic wellbeing synthesis receives only consent-filtered public
+  # cultural, wellbeing, and participatory summaries under its own reader.
+  # After sourcing secrets:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile holistic-wellbeing-worker run --rm agent-holistic-wellbeing-worker \
+  #     --location-id UUID --request-id UUID
+  agent-holistic-wellbeing-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "holistic_wellbeing_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_HOLISTIC_WELLBEING_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - holistic-wellbeing-worker
+
+  # Stakeholder feedback synthesis sees one consent-safe, location-filtered
+  # projection through a dedicated source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile feedback-worker run --rm agent-feedback-worker \
+  #     --location-id UUID --request-id UUID
+  agent-feedback-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "feedback_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_FEEDBACK_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_FEEDBACK_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - feedback-worker
+
+  # Commons Liberation synthesis has four location-filtered views and its own
+  # signed source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile commons-liberation-worker run --rm agent-commons-liberation-worker \
+  #     --location-id UUID --request-id UUID
+  agent-commons-liberation-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "commons_liberation_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_COMMONS_LIBERATION_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - commons-liberation-worker
+
+  # GNH Alignment synthesis reads five public, location-filtered projections
+  # through its own signed source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile gnh-alignment-worker run --rm agent-gnh-alignment-worker \
+  #     --location-id UUID --request-id UUID
+  agent-gnh-alignment-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "gnh_alignment_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_GNH_ALIGNMENT_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - gnh-alignment-worker
+
+  # Regenerator synthesis reads four public, location-filtered projections
+  # through its own signed source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile regenerator-worker run --rm agent-regenerator-worker \
+  #     --location-id UUID --request-id UUID
+  agent-regenerator-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "regenerator_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_REGENERATOR_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_REGENERATOR_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_REGENERATOR_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_REGENERATOR_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - regenerator-worker
+
+  # Capital efficiency synthesis reads four public, location-filtered
+  # projections through its own signed source identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile capital-efficiency-worker run --rm agent-capital-efficiency-worker \
+  #     --location-id UUID --request-id UUID
+  agent-capital-efficiency-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "capital_efficiency_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_CAPITAL_EFFICIENCY_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - capital-efficiency-worker
+
+  # Financial-resilience synthesis reads three location-scoped views and one
+  # network-wide public publication-status view through a dedicated identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile financial-resilience-worker run --rm agent-financial-resilience-worker \
+  #     --location-id UUID --request-id UUID
+  agent-financial-resilience-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "financial_resilience_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_FINANCIAL_RESILIENCE_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - financial-resilience-worker
+
+  # Bio-factory synthesis reads four location-scoped views and one
+  # network-wide public regional-input catalogue view through a dedicated identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile bio-factory-worker run --rm agent-bio-factory-worker \
+  #     --location-id UUID --request-id UUID
+  agent-bio-factory-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "bio_factory_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_BIO_FACTORY_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_BIO_FACTORY_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_BIO_FACTORY_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_BIO_FACTORY_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - bio-factory-worker
+
+  # Open Source Capitalist synthesis reads three location-or-network views
+  # and two explicitly network-wide catalogs through its task identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile open-source-capitalist-worker run --rm agent-open-source-capitalist-worker \
+  #     --location-id UUID --request-id UUID
+  agent-open-source-capitalist-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3", "-m", "services.agents.worker_cli",
+        "--source-only", "--task-key", "open_source_capitalist_synthesis"
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_OPEN_SOURCE_CAPITALIST_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - open-source-capitalist-worker
+
+  # Exact-location AI-summary list and digest inspection; no draft identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ai-summary-inspection-worker run --rm ai-summary-inspection-worker \
+  #     --list --location-id UUID
+  ai-summary-inspection-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.ai_summary"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_SUMMARY_INSPECTION_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ai-summary-inspection-worker
+
+  # Kokonut Commons reads use a task-specific signed identity; draft writing
+  # remains on the separate agent_summary_draft identity.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile kokonut-commons-worker run --rm agent-kokonut-commons-worker \
+  #     --location-id UUID --request-id UUID
+  agent-kokonut-commons-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      [
+        "python3",
+        "-m",
+        "services.agents.worker_cli",
+        "--source-only",
+        "--task-key",
+        "kokonut_commons_synthesis",
+      ]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_KOKONUT_COMMONS_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - kokonut-commons-worker
+
+  # EBF evidence-gap reads use a task-specific login and one narrow projection.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile ebf-evidence-gap-worker run --rm ebf-evidence-gap-worker \
+  #     --scorecard-id UUID --location-id UUID
+  ebf-evidence-gap-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.ebf_evidence_gap_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_EBF_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_EBF_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_EBF_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_EBF_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - ebf-evidence-gap-worker
+
+  # CIDS export uses a task-specific login and the six minimal projection views.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile cids-export-worker run --rm cids-export-worker --location-id UUID
+  cids-export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint:
+      ["python3", "-m", "services.agents.cids_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_CIDS_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_CIDS_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_CIDS_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_CIDS_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - cids-export-worker
+
+  # Delphi agent reads use a task-specific login and consent-aware projection.
+  # Example:
+  #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
+  #     --profile delphi-agent-worker run --rm delphi-agent-worker \
+  #     --study-id UUID --location-id UUID
+  delphi-agent-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    entrypoint: ["python3", "-m", "services.agents.delphi_facilitator_agent"]
+    restart: "no"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_AGENT_DELPHI_SOURCE_DATABASE_URL: ${KOKONUT_AGENT_DELPHI_SOURCE_DATABASE_URL:-}
+      KOKONUT_AGENT_DELPHI_SOURCE_WORKER_CREDENTIAL: ${KOKONUT_AGENT_DELPHI_SOURCE_WORKER_CREDENTIAL:-}
+      PYTHONDONTWRITEBYTECODE: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - delphi-agent-worker
+
   event-worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    command: ["python3", "-m", "services.events", "--worker", "--worker-id", "event-worker"]
+    command: ["python3", "-m", "services.events", "--event-worker", "--worker-id", "event-worker"]
     user: appuser
     restart: unless-stopped
     depends_on:
@@ -96,13 +656,61 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
+      KOKONUT_FEATURE_EVENT_BUS: ${KOKONUT_FEATURE_EVENT_BUS:-true}
+      # Event handlers use configured destinations to decide which durable
+      # notification intents to enqueue; only notification-worker sends them.
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
     deploy:
       resources:
         limits:
           memory: 512M
+    profiles:
+      - worker
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--notification-worker", "--worker-id", "notification-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-${KOKONUT_FEATURE_EVENT_BUS:-true}}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_TLS_MODE: ${ALERT_SMTP_TLS_MODE:-starttls}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     profiles:
       - worker
 

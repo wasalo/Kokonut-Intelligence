@@ -9,13 +9,13 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from pathlib import Path
 
 import psycopg2
 from psycopg2 import sql
 
 from services.gateway.locations import public_locations
 from services.migration.runtime_role import provision_runtime_role
-
 
 DATABASE = os.environ.get("PG_DB", "kokonut_intelligence_restore")
 HOST = os.environ.get("PG_HOST", "database")
@@ -24,6 +24,16 @@ ADMIN_USER = os.environ.get("KOKONUT_DB_ADMIN_USER", "kokonut")
 ADMIN_PASSWORD = os.environ.get("KOKONUT_DB_ADMIN_PASSWORD", "")
 RUNTIME_USER = os.environ.get("KOKONUT_RUNTIME_USER", "kokonut_runtime")
 RUNTIME_PASSWORD = os.environ.get("KOKONUT_RUNTIME_PASSWORD", "")
+OPERATOR_AUTH_USER = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
+OPERATOR_AUTH_PASSWORD = os.environ.get("KOKONUT_OPERATOR_AUTH_PASSWORD", "")
+OPERATOR_SESSION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/395_operator_session_auth_boundary.sql"
+)
+GATEWAY_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql"
+)
 
 
 def connect(user: str, password: str, database: str = DATABASE):
@@ -61,8 +71,8 @@ def expect_denied(conn, statement: str, parameters=None) -> None:
 
 
 def main() -> int:
-    if not ADMIN_PASSWORD or not RUNTIME_PASSWORD:
-        raise SystemExit("synthetic admin and runtime credentials must be provided through the environment")
+    if not ADMIN_PASSWORD or not RUNTIME_PASSWORD or not OPERATOR_AUTH_PASSWORD:
+        raise SystemExit("synthetic admin, runtime, and operator-auth credentials are required")
 
     admin = connect(ADMIN_USER, ADMIN_PASSWORD)
     runtime = None
@@ -73,7 +83,15 @@ def main() -> int:
             cur.execute("SELECT current_database()")
             if cur.fetchone()[0] != DATABASE:
                 raise AssertionError("connected database does not match the isolated restore target")
+            cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
+            cur.execute(GATEWAY_CONTEXT_MIGRATION.read_text())
+            cur.execute(
+                sql.SQL(
+                    "CREATE TABLE public.{} (id BIGSERIAL PRIMARY KEY, payload TEXT NOT NULL)"
+                ).format(sql.Identifier(probe_table))
+            )
         admin.commit()
+        probe_created = True
 
         first = provision_runtime_role(
             admin,
@@ -82,6 +100,8 @@ def main() -> int:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
         second = provision_runtime_role(
             admin,
@@ -90,6 +110,8 @@ def main() -> int:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
         if first["status"] != "provisioned" or second["status"] != "provisioned":
             raise AssertionError("role provisioning was not repeatable")
@@ -101,21 +123,6 @@ def main() -> int:
             postgis_version, srid = cur.fetchone()
             cur.execute("SELECT count(*) FROM schema_migration")
             migration_count = cur.fetchone()[0]
-            cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relname = %s)",
-                (probe_table,),
-            )
-            if cur.fetchone()[0]:
-                raise AssertionError("synthetic probe table name unexpectedly exists")
-
-        with admin.cursor() as cur:
-            cur.execute(
-                sql.SQL(
-                    "CREATE TABLE public.{} (id BIGSERIAL PRIMARY KEY, payload TEXT NOT NULL)"
-                ).format(sql.Identifier(probe_table))
-            )
-        admin.commit()
-        probe_created = True
 
         with runtime.cursor() as cur:
             cur.execute(
@@ -153,6 +160,13 @@ def main() -> int:
         expect_denied(runtime, "CREATE ROLE kernel_role_create_denied")
         expect_denied(runtime, "CREATE DATABASE kernel_role_create_denied")
         expect_denied(runtime, sql.SQL("SET ROLE {}").format(sql.Identifier(ADMIN_USER)).as_string(runtime))
+        mobile_credential_denials = (
+            "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
+            "SELECT push_token FROM public.mobile_device LIMIT 1",
+            "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
+        )
+        for statement in mobile_credential_denials:
+            expect_denied(runtime, statement)
 
         denied_databases = []
         for other_database in ("postgres", "kokonut_intelligence"):
@@ -196,6 +210,11 @@ def main() -> int:
                         "CREATE ROLE",
                         "CREATE DATABASE",
                         "SET ROLE admin",
+                    ],
+                    "denied_mobile_credential_reads": [
+                        "device_token_hash",
+                        "push_token",
+                        "code_hash",
                     ],
                     "denied_unrelated_databases": denied_databases,
                     "role_attributes": {

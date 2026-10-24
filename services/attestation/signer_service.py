@@ -57,9 +57,10 @@ def process_pending_requests(
             results.append({"request_id": request_id, "status": "confirmed", **result})
         except Exception as e:
             failed += 1
-            _handle_failure(conn, request_id, str(e))
-            results.append({"request_id": request_id, "status": "failed", "error": str(e)})
-            logger.error("Failed to submit attestation request %s: %s", request_id, e)
+            safe_error = f"attestation submission failed ({type(e).__name__})"
+            _handle_failure(conn, request_id, safe_error)
+            results.append({"request_id": request_id, "status": "failed", "error": safe_error})
+            logger.error("Failed to submit attestation request %s (%s)", request_id, type(e).__name__)
 
     logger.info(
         "Processed %d requests for chain %s: %d confirmed, %d failed",

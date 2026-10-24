@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Feedback automation evaluation and full-cycle failures",
+  "behavior": {
+    "failure_response": "Raw exception details are replaced with bounded operation and exception-class summaries.",
+    "failure_record": "The same safe summary is stored in feedback_automation_log.errors.",
+    "lifecycle": "Rollback, failed log status, commit, and cursor cleanup remain intact."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_feedback_automation_error_redaction.py tests/test_feedback_automation.py -q",
+    "result": "14 passed",
+    "coverage": [
+      "evaluation query failures do not expose database details",
+      "full-cycle application failures do not expose decision payload details",
+      "persisted error values match the bounded responses",
+      "failure rollback, failed status persistence, and cursor cleanup are retained"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection and signal application"
+  },
+  "limitations": [
+    "No feedback automation or PostgreSQL service was started."
+  ]
+}

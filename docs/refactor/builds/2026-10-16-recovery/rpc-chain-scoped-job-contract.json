@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-16",
+  "scope": "Source-only RPC scheduler chain contract, Prefect fan-out, and connection cleanup",
+  "implementation": {
+    "native_job_required_input": "chain",
+    "supported_chains": [
+      "ethereum",
+      "optimism",
+      "base",
+      "arbitrum",
+      "celo",
+      "celo-alfajores",
+      "gnosis"
+    ],
+    "native_command_contract": "Exactly one explicit supported --chain is required; an optional --wallet further filters inside that chain.",
+    "schedule_plan": "One disabled schedule plan per explicit chain; names include the chain.",
+    "prefect_adapter": "Runs each of the seven CLI-supported networks as a separately scoped command.",
+    "interactive_indexer": "The existing direct CLI all-wallet mode remains available; explicit chain and wallet filters remain available.",
+    "connection_lifecycle": "The database connection closes when a chain has no active wallets and rolls back/closes when wallet lookup fails."
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_rpc_indexer_contract.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_prefect_workflow.py -q",
+    "result": "passed",
+    "passed_tests": 156,
+    "ruff": "passed for all changed Python files",
+    "python_compilation": "passed",
+    "capability_matrix_structure": "passed; 66 rows, existing status totals unchanged",
+    "job_contract_inventory": "regenerated and current; 16 jobs, six no-input defaults, ten jobs with validated runtime inputs"
+  },
+  "runtime_probe": {
+    "command": "python3 -m services.scheduler.cli --job-plan rpc --cadence every-6h --chain celo-alfajores",
+    "result": "returned a disabled plan named kernel-rpc-every-6h-celo-alfajores with command_args [--chain, celo-alfajores]",
+    "activation_ready": false,
+    "schedule_enabled": false
+  },
+  "isolation": {
+    "subprocesses_mocked_in_tests": true,
+    "rpc_endpoints_contacted": false,
+    "database_contacted": false,
+    "persisted_tasks_changed": false,
+    "prefect_deployment_changed": false,
+    "candidate_or_legacy_stack_changed": false
+  },
+  "remaining_gates": [
+    "Verify RPC cursor, confirmation depth, duplicate, and reorg recovery against an isolated fixture.",
+    "Reconcile persisted task rows and external Prefect schedules before any cutover.",
+    "Confirm provider credentials and source ownership before schedule activation.",
+    "Complete named MAN-CAP-047 acceptance separately."
+  ]
+}

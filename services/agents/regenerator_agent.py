@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe regenerative outcomes, governance, replication, and stewardship evidence."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -28,7 +33,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                trees_planted_count, tree_survival_rate_pct, regenerative_score,
                jobs_or_roles_supported_count, training_hours, beneficiary_count,
                evidence_confidence, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_regenerative_outcome_summary
+        FROM kokonut_agent_source.v_public_regenerative_outcome_summary
         {where}
         ORDER BY period_end DESC, summary_name
         """,
@@ -43,7 +48,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                decision_method, quorum_rule, voting_or_consensus_rights,
                community_veto_rights, escalation_path, power_distribution_summary,
                participation_cadence, public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_community_governance_mechanism
+        FROM kokonut_agent_source.v_public_community_governance_mechanism
         {where}
         ORDER BY governance_level, mechanism_name
         """,
@@ -59,7 +64,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                infrastructure_prerequisites, barriers, enablers, support_structures,
                minimum_evidence_maturity, replication_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_replication_readiness_summary
+        FROM kokonut_agent_source.v_public_replication_readiness_summary
         {where}
         ORDER BY assessment_date DESC, target_region
         """,
@@ -75,7 +80,7 @@ def synthesize_regenerator(conn, location_id: str | None = None) -> dict[str, An
                corrective_actions, action_completion_pct, responsible_role,
                funding_continuity_plan, next_review_date, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_adaptive_stewardship_summary
+        FROM kokonut_agent_source.v_public_adaptive_stewardship_summary
         {where}
         ORDER BY review_date DESC, stewardship_scope
         """,
@@ -120,6 +125,42 @@ class RegeneratorSynthesisAgent(SynthesisAgent):
     read_collection = "regenerative_outcome_summary"
     model_version = "regenerator-agent-v1"
     source_tables = ["regenerative_outcome_summary", "community_governance_mechanism", "replication_readiness_assessment", "adaptive_stewardship_review"]
+    source_reference_views = {
+        "regenerative_outcome_summary": "v_public_regenerative_outcome_summary",
+        "community_governance_mechanism": "v_public_community_governance_mechanism",
+        "replication_readiness_assessment": "v_public_replication_readiness_summary",
+        "adaptive_stewardship_review": "v_public_adaptive_stewardship_summary",
+    }
+    source_reference_query = """
+        WITH sources AS MATERIALIZED (
+            SELECT 'regenerative_outcome_summary'::text AS source_table, id
+            FROM kokonut_agent_source.v_public_regenerative_outcome_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'community_governance_mechanism'::text, id
+            FROM kokonut_agent_source.v_public_community_governance_mechanism WHERE location_id = %s
+            UNION ALL
+            SELECT 'replication_readiness_assessment'::text, id
+            FROM kokonut_agent_source.v_public_replication_readiness_summary WHERE location_id = %s
+            UNION ALL
+            SELECT 'adaptive_stewardship_review'::text, id
+            FROM kokonut_agent_source.v_public_adaptive_stewardship_summary WHERE location_id = %s
+        ), counts AS (
+            SELECT source_table, count(*) AS row_count
+            FROM sources
+            GROUP BY source_table
+        ), numbered AS (
+            SELECT source_table, id,
+                   row_number() OVER (PARTITION BY source_table ORDER BY id) AS ordinal
+            FROM sources
+        )
+        SELECT counts.source_table, counts.row_count,
+               array_agg(numbered.id ORDER BY numbered.ordinal)
+                   FILTER (WHERE numbered.ordinal <= 50) AS record_ids
+        FROM counts
+        JOIN numbered USING (source_table)
+        GROUP BY counts.source_table, counts.row_count
+        ORDER BY counts.source_table
+    """
 
     def synthesize(self, conn, location_id=None):
         return synthesize_regenerator(conn, location_id)
@@ -134,7 +175,7 @@ def run_regenerator_synthesis(location_id: str | None = None, store: bool = Fals
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut regenerator synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut regenerator synthesis agent")
 
 
 if __name__ == "__main__":

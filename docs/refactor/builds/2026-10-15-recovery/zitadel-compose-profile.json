@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-15",
+  "scope": "Opt-in Compose and profile-planner source acceptance for self-hosted ZITADEL.",
+  "base_head": "4ad4b06ed19629f1ec71c25c47ef78597fdf2322",
+  "results": {
+    "pytest": {
+      "command": "./.venv/bin/python -m pytest tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py tests/test_compose_metabase_profile.py -q",
+      "passed": 26
+    },
+    "ruff": {
+      "command": "./.venv/bin/ruff check scripts/kernel-profile.py tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py",
+      "passed": true
+    },
+    "shell_syntax": {
+      "command": "sh -n scripts/zitadel/init-db.sh",
+      "passed": true
+    },
+    "disposable_postgres": {
+      "image": "postgres:17-alpine (already present locally)",
+      "network": "none",
+      "credential_type": "synthetic only",
+      "verified": [
+        "bootstrap creates a non-superuser role without CREATEDB or CREATEROLE",
+        "database owner is the dedicated zitadel role",
+        "dedicated role connects over TCP and can create a table"
+      ],
+      "container_removed": true
+    },
+    "caddyfile_validation": {
+      "image": "caddy:2-alpine (already present locally)",
+      "network": "none",
+      "command": "caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile",
+      "passed": true,
+      "container_removed": true
+    },
+    "whitespace": {
+      "command": "git diff --check",
+      "passed": true
+    }
+  },
+  "verified_contracts": [
+    "Minimal and edge do not include ZITADEL.",
+    "--zitadel selects proxy, Gateway OIDC, and ZITADEL overlays once.",
+    "ZITADEL API and Login V2 publish no host ports.",
+    "ZITADEL PostgreSQL has a dedicated internal network and data volume.",
+    "Database bootstrap creates a non-superuser role that owns the ZITADEL database.",
+    "Caddy routes Login V2 and proxies the API over h2c with TE removed.",
+    "Versioned API and Login image tags are used instead of latest."
+  ],
+  "not_performed": [
+    "No ZITADEL images were pulled or started; registry DNS lookup failed for ghcr.io and registry-1.docker.io. Temporary PostgreSQL and Caddy checks used images already cached locally.",
+    "OCI digest and multi-architecture manifest verification remain open.",
+    "No ZITADEL credentials were created, no SOPS file was changed, and no provider identity or browser session was configured."
+  ]
+}

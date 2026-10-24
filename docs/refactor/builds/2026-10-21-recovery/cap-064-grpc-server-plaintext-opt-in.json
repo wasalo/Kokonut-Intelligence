@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064",
+  "change": "gRPC server TLS is required by default; plaintext requires explicit GRPC_ALLOW_INSECURE=true",
+  "files": [
+    "services/grpc/server.py",
+    "docker-compose.yml",
+    "docker-compose.prod.yml",
+    "docker-compose.kernel-grpc.yml",
+    "docker-compose.kernel-standard.yml",
+    "docker-compose.kernel-runtime-role.yml",
+    "docs/refactor/grpc-overlay.md",
+    "tests/test_grpc_server_tls_preflight.py",
+    "tests/test_grpc.py",
+    "tests/test_compose_metabase_profile.py"
+  ],
+  "acceptance": {
+    "no_tls_or_missing_opt_in": "server startup fails before database pool creation",
+    "explicit_private_network_opt_in": "plaintext server credentials are permitted only when GRPC_ALLOW_INSECURE=true",
+    "invalid_opt_in": "values other than true or false fail before database pool creation",
+    "configured_tls": "server uses TLS credentials when a certificate/key pair is configured",
+    "compose_policy": {
+      "local_legacy_stack": "explicitly configurable, defaults to enabled; host publication defaults to loopback",
+      "kernel_grpc_profile": "explicitly enabled on the private kernel network with no host port",
+      "production_override": "forces plaintext disabled"
+    },
+    "kernel_profiles": "removed incomplete agent-summary-worker service overrides from standard and runtime-role manifests; that service is not part of these Kernel profiles"
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_grpc*.py tests/test_kernel_profile.py tests/test_compose_metabase_profile.py -q",
+    "result": "128 passed",
+    "loopback_transport": "ephemeral local listener tests were run with host access; no external endpoint was contacted",
+    "compose_only": "Compose contract tests render configuration with synthetic values; 37 Compose/profile checks passed and no container was started",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "yaml_parse": "passed for docker-compose.yml, docker-compose.prod.yml, and docker-compose.kernel-grpc.yml",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live remote gRPC endpoint or production certificate was tested.",
+    "The private-network opt-in remains a deployment trust decision; it does not provide encryption.",
+    "Tenant authorization, real runtime database roles, and REST policy parity remain open."
+  ],
+  "database_or_provider_used": false,
+  "candidate_or_legacy_changed": false
+}

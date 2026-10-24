@@ -275,6 +275,37 @@ python3 -m services.metadata_api.cli generate \
 The Metadata Graph API and RDF services use the same IRI registry as their
 canonical off-chain source.
 
+## Native Gateway Public Location Resolution
+
+The native Gateway route `GET /api/iri/resolve?iri=...` resolves only canonical
+`kokonut:location:{uuid}:v{version}` identifiers. A version is publicly
+resolvable only when it has an explicit `iri_registry.public_projection`
+snapshot and the location is still present in `v_public_farm_summary` (active,
+with a verified or published farm registry record). Generate a snapshot through
+the IRI CLI's explicit `--publish-public-location` option; generation copies
+only `name`, `country`, `region`, and `status` from that governed view. It never
+copies the caller's `metadata_json` into the public snapshot.
+
+The Gateway returns JSON-LD with the stored version snapshot, a SHA-256
+`kokonut:publicProjectionHash`, and a previous-version link only when the
+predecessor belongs to the same location/version chain and also has an explicit
+public snapshot. The projection hash is computed over the canonical JSON-LD
+document before the hash fields are added. It is distinct from
+`iri_registry.content_hash`, which may cover private input and is never returned
+by this route. Unknown, private, unmarked, malformed, and no-longer-public
+locations resolve to the same 404 response. Responses use `no-store` so a
+withdrawn location does not remain available through a Gateway cache.
+
+Migration 420 adds the nullable, object-only snapshot column. Existing IRI
+history is intentionally not backfilled; older versions become publicly
+resolvable only if a new, explicitly published IRI version is created. This
+route does not expose arbitrary `metadata_json`, credit-class or other entity
+IRIs, stored registry hashes, RDF graph queries, or private evidence. The
+optional Metadata Graph API retains its broader internal resolver and is not a
+substitute for the Gateway's public contract. Rollback is additive: restore the
+previous application image and leave the unused nullable column in place; do
+not drop the snapshot column or remove existing IRI rows.
+
 ## Anchoring
 
 `anchor_iri()` and the Metadata API anchor helper do not submit an EAS

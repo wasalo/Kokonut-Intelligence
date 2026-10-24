@@ -1,0 +1,2031 @@
+{
+  "version": 1,
+  "generated_by": "scripts/report_generator_inventory.py",
+  "scope": "Static inventory of the registered report callable, source location, and Python signature. Parameter names do not prove that SQL applies a tenant filter or that a report has semantic parity. No report is executed and no database, provider, or saved query is accessed.",
+  "summary": {
+    "registered_report_types": 94,
+    "source_modules": 15,
+    "with_location_id_parameter": 94,
+    "with_period_start_or_end_parameter": 93
+  },
+  "reports": [
+    {
+      "report_type": "adaptive_stewardship",
+      "callable": "generate_adaptive_stewardship",
+      "source_module": "services.export.reports.commons.stewardship",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 137,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "adoption_barriers",
+      "callable": "generate_adoption_barriers",
+      "source_module": "services.export.reports.commons.scaling",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 77,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "algorithmic_redistribution",
+      "callable": "generate_algorithmic_redistribution",
+      "source_module": "services.export.reports.commons.kokonut",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 107,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "anti_capture_governance",
+      "callable": "generate_anti_capture_governance",
+      "source_module": "services.export.reports.commons.kokonut",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 38,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "bio_factory_batch",
+      "callable": "generate_bio_factory_batch",
+      "source_module": "services.export.reports.commons.bio_factory",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 14,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "bio_input_provenance",
+      "callable": "generate_bio_input_provenance",
+      "source_module": "services.export.reports.commons.bio_factory",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 54,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "bio_quality_test",
+      "callable": "generate_bio_quality_test",
+      "source_module": "services.export.reports.commons.bio_factory",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 157,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "bio_recipe_library",
+      "callable": "generate_bio_recipe_library",
+      "source_module": "services.export.reports.commons.bio_factory",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 109,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "bio_regional_input",
+      "callable": "generate_bio_regional_input",
+      "source_module": "services.export.reports.commons.bio_factory",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 198,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "business_model_canvas",
+      "callable": "generate_business_model_canvas",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 68,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "business_plan",
+      "callable": "generate_business_plan_report",
+      "source_module": "services.export.reports.business_plan",
+      "source_file": "services/export/reports/business_plan.py",
+      "source_line": 6,
+      "parameters": [
+        "conn",
+        "location_id",
+        "_period_start",
+        "_period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id"
+      ]
+    },
+    {
+      "report_type": "capability_assessment",
+      "callable": "generate_capability_assessment",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 176,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "capability_dashboard",
+      "callable": "generate_capability_dashboard",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 129,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "capital_accounting",
+      "callable": "generate_capital_accounting",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 838,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "capital_alignment",
+      "callable": "generate_capital_alignment",
+      "source_module": "services.export.reports.commons.liberation",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 48,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "capital_efficiency",
+      "callable": "generate_capital_efficiency",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 274,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "capital_provider_utility",
+      "callable": "generate_capital_provider_utility",
+      "source_module": "services.export.reports.state",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 548,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "climate_impact",
+      "callable": "generate_climate_impact",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 469,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "community_governance",
+      "callable": "generate_community_governance",
+      "source_module": "services.export.reports.commons.stewardship",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 48,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "comprehensive_status",
+      "callable": "generate_comprehensive_status",
+      "source_module": "services.export.reports.state",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 369,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "coordination_cockpit",
+      "callable": "generate_coordination_cockpit",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 534,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "crop_noi",
+      "callable": "generate_crop_noi",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 193,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "cultural_preservation",
+      "callable": "generate_cultural_preservation",
+      "source_module": "services.export.reports.commons.wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 49,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "dao_proposal_history",
+      "callable": "generate_dao_proposal_history",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 370,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "data_stream_summary",
+      "callable": "generate_data_stream_summary",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 14,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "ebf_scorecard",
+      "callable": "generate_ebf_scorecard",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 14,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "ecological_modeling",
+      "callable": "generate_ecological_modeling",
+      "source_module": "services.export.reports.commons.ecological",
+      "source_file": "services/export/reports/commons/ecological.py",
+      "source_line": 11,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "env_scan_report",
+      "callable": "generate_env_scan_report",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 673,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "environmental",
+      "callable": "generate_environmental",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 301,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "farm_summary",
+      "callable": "generate_farm_summary",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 15,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "federation_mutual_aid",
+      "callable": "generate_federation_mutual_aid",
+      "source_module": "services.export.reports.commons.kokonut",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 84,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "financial_sustainability",
+      "callable": "generate_financial_sustainability",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 134,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "forecast",
+      "callable": "generate_forecast_summary",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 390,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "fork_opportunities",
+      "callable": "generate_fork_opportunities",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 703,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "foundational_wellbeing",
+      "callable": "generate_foundational_wellbeing",
+      "source_module": "services.export.reports.commons.wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 159,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "gnh_alignment",
+      "callable": "generate_gnh_alignment",
+      "source_module": "services.export.reports.commons.wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 11,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "governance_coordination_health",
+      "callable": "generate_governance_coordination_health",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 556,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "governance_inclusion",
+      "callable": "generate_governance_inclusion",
+      "source_module": "services.export.reports.commons.liberation",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 86,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "governance_throughput",
+      "callable": "generate_governance_throughput",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 321,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "green_paper_publication_status",
+      "callable": "generate_green_paper_publication_status",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 245,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "holistic_wellbeing",
+      "callable": "generate_holistic_wellbeing",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 63,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "land_stewardship",
+      "callable": "generate_land_stewardship",
+      "source_module": "services.export.reports.commons.liberation",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 136,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "livestock_feed",
+      "callable": "generate_livestock_feed",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 232,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "model_validation",
+      "callable": "generate_model_validation",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 181,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "open_source_impact",
+      "callable": "generate_open_source_impact",
+      "source_module": "services.export.reports.commons.scaling",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 177,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "organic_certification_readiness",
+      "callable": "generate_organic_certification_readiness",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 400,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "organic_input_audit",
+      "callable": "generate_organic_input_audit",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 520,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "organic_transition_progress",
+      "callable": "generate_organic_transition_progress",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 468,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "participatory_signal",
+      "callable": "generate_participatory_signal",
+      "source_module": "services.export.reports.commons.kokonut",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 134,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "perpetual_value_stress",
+      "callable": "generate_perpetual_value_stress",
+      "source_module": "services.export.reports.commons.scaling",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 124,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "pest_management",
+      "callable": "generate_pest_management",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 15,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "pestel_assessment",
+      "callable": "generate_pestel_assessment",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 592,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "pin_dependency",
+      "callable": "generate_pin_dependency",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 722,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "pitch_deck",
+      "callable": "generate_pitch_deck",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 104,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "process_health",
+      "callable": "generate_process_health",
+      "source_module": "services.analytics.process_health",
+      "source_file": "services/analytics/process_health.py",
+      "source_line": 118,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "promotion_ladder",
+      "callable": "generate_promotion_ladder",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 740,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "publics_market_landscape",
+      "callable": "generate_publics_market_landscape",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 644,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "redistribution_policy",
+      "callable": "generate_redistribution_policy",
+      "source_module": "services.export.reports.commons.kokonut",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 61,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "regenerative_outcomes",
+      "callable": "generate_regenerative_outcomes",
+      "source_module": "services.export.reports.commons.stewardship",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 11,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "regional_readiness",
+      "callable": "generate_regional_readiness",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 618,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "renewable_energy",
+      "callable": "generate_renewable_energy",
+      "source_module": "services.export.reports.commons.wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 85,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "replication_readiness",
+      "callable": "generate_replication_readiness",
+      "source_module": "services.export.reports.commons.stewardship",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 90,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "resource_efficiency",
+      "callable": "generate_resource_efficiency",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 31,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "revenue_multiplier",
+      "callable": "generate_revenue_multiplier",
+      "source_module": "services.export.reports.core",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 372,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "revenue_streams",
+      "callable": "generate_revenue_streams",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 141,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "reward_calibration",
+      "callable": "generate_reward_calibration",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 336,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "risk_mitigation",
+      "callable": "generate_risk_mitigation",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 168,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "scaling_economics",
+      "callable": "generate_scaling_economics",
+      "source_module": "services.export.reports.commons.scaling",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 14,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "scaling_roadmap",
+      "callable": "generate_scaling_roadmap",
+      "source_module": "services.export.reports.wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 202,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "simulation_wargame",
+      "callable": "generate_simulation_wargame",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 795,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_cockpit",
+      "callable": "generate_stakeholder_cockpit",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 513,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_decision_lineage",
+      "callable": "generate_stakeholder_decision_lineage",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 357,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_ecosystem",
+      "callable": "generate_stakeholder_ecosystem",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 382,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_engagement",
+      "callable": "generate_stakeholder_engagement",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 277,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_grievance",
+      "callable": "generate_stakeholder_grievance",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 309,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_landscape",
+      "callable": "generate_stakeholder_landscape",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 244,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_outcomes",
+      "callable": "generate_stakeholder_outcomes",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 410,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_representation",
+      "callable": "generate_stakeholder_representation",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 334,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_trust",
+      "callable": "generate_stakeholder_trust",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 452,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "stakeholder_value_streams",
+      "callable": "generate_stakeholder_value_streams",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 482,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "state_of_kokonut",
+      "callable": "generate_state_of_kokonut",
+      "source_module": "services.export.reports.state",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 255,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "state_of_kokonut_graphs",
+      "callable": "generate_state_of_kokonut_graphs",
+      "source_module": "services.export.reports.state",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 316,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "statement_of_work",
+      "callable": "generate_statement_of_work",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 575,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "strategic_reserve",
+      "callable": "generate_strategic_reserve",
+      "source_module": "services.export.reports.state",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 453,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "strategy_execution",
+      "callable": "generate_strategy_execution",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 150,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "tactical_layer",
+      "callable": "generate_tactical_layer",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 757,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "technology_roadmap",
+      "callable": "generate_technology_roadmap",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 213,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "time_liberation",
+      "callable": "generate_time_liberation",
+      "source_module": "services.export.reports.commons.liberation",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 11,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "token_rewards",
+      "callable": "generate_token_rewards",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 283,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "training_impact",
+      "callable": "generate_training_impact",
+      "source_module": "services.export.reports.operations",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 99,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "trophic_pyramid",
+      "callable": "generate_trophic_pyramid",
+      "source_module": "services.export.reports.commons.ecological",
+      "source_file": "services/export/reports/commons/ecological.py",
+      "source_line": 103,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "value_stream_formal",
+      "callable": "generate_value_stream_formal",
+      "source_module": "services.export.reports.strategy",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 198,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "value_stream_map",
+      "callable": "generate_value_stream_map",
+      "source_module": "services.analytics.value_stream",
+      "source_file": "services/analytics/value_stream.py",
+      "source_line": 274,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    },
+    {
+      "report_type": "vulnerable_access",
+      "callable": "generate_vulnerable_access",
+      "source_module": "services.export.reports.commons.wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 123,
+      "parameters": [
+        "conn",
+        "location_id",
+        "period_start",
+        "period_end"
+      ],
+      "required_parameters": [
+        "conn",
+        "location_id"
+      ],
+      "scope_parameters": [
+        "location_id",
+        "period_start",
+        "period_end"
+      ]
+    }
+  ]
+}

@@ -4,7 +4,24 @@ Defines the orchestration DAG for all Kokonut Intelligence workflows.
 """
 
 from services.core.adapters.prefect import flow, task
-from services.core.jobs import JOBS, run_job
+from services.core.jobs import (
+    JOBS,
+    run_job,
+    run_job_for_eas_chains,
+    run_job_for_kokonut_network_locations,
+    run_job_for_rpc_chains,
+)
+
+
+def _dispatch_catalog_job(job_id):
+    """Fan out scoped jobs only through their explicit catalog adapters."""
+    if "location_id" in JOBS[job_id].required_inputs:
+        return run_job_for_kokonut_network_locations(job_id)
+    if job_id == "eas":
+        return run_job_for_eas_chains()
+    if job_id == "rpc":
+        return run_job_for_rpc_chains()
+    return run_job(job_id)
 
 
 def _submit_job(job_id):
@@ -13,7 +30,7 @@ def _submit_job(job_id):
     operation = task(
         name=job_id, retries=spec.retries,
         retry_delay_seconds=spec.retry_delay_seconds,
-    )(run_job)
+    )(_dispatch_catalog_job)
     return operation.submit(job_id)
 
 
@@ -23,7 +40,6 @@ def ingestion_pipeline():
 
     # Ingestion tasks run in parallel (no dependencies)
     weather_future = _submit_job("weather")
-    sensor_future = _submit_job("sensors")
     market_future = _submit_job("market_data")
     eas_future = _submit_job("eas")
     rpc_future = _submit_job("rpc")
@@ -31,7 +47,6 @@ def ingestion_pipeline():
 
     # Wait for all ingestion
     weather_future.result()
-    sensor_future.result()
     market_future.result()
     eas_future.result()
     rpc_future.result()
@@ -92,12 +107,14 @@ def full_pipeline():
 
 @flow(name="scheduled-hourly", retries=1)
 def scheduled_hourly():
-    """Hourly tasks: sensor ingestion, anomaly detection, freshness check."""
+    """Hourly tasks: anomaly detection and freshness check.
+
+    Sensor data is push/manual input. The sensor CLI has no recurring source
+    adapter, so it must not gate scheduled ingestion or monitoring workflows.
+    """
     from .anomaly_detection import anomaly_detection_flow
     from .freshness import freshness_check_flow
-    from .sensors import sensor_ingestion_flow
 
-    sensor_ingestion_flow()
     anomaly_detection_flow()
     freshness_check_flow()
 

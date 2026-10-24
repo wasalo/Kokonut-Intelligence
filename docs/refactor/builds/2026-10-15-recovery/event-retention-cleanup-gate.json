@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit",
+  "feature": "event_retention_cleanup",
+  "default_enabled": false,
+  "cleanup_days_default": null,
+  "requirements": [
+    "retention feature must be explicitly enabled",
+    "operator must supply a positive --days value",
+    "service method enforces the feature gate before database access",
+    "existing undisposed dead-letter source events remain protected",
+    "event-level legal-hold enforcement is not implemented; keep cleanup disabled"
+  ],
+  "focused_tests": 34,
+  "test_command": "python -m pytest tests/test_event_bus_durability.py tests/test_event_retention_cleanup_gate.py tests/test_core_features.py tests/test_os_architecture.py::TestEventBus::test_cleanup_old_events -q",
+  "ruff": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "retention_schedule_approved": false,
+  "event_level_legal_hold_enforcement": "not_implemented",
+  "pruning_authorized": false,
+  "notification_attempt_audit_pruning": "not provided"
+}

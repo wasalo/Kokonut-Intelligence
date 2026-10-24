@@ -6,14 +6,15 @@ Fetches current weather data for all active locations and inserts into
 weather_observation (PostgreSQL) and weather_events (ClickHouse).
 
 Usage:
-    python -m services.ingestion.weather
     python -m services.ingestion.weather --location-id <uuid>
+    python -m services.ingestion.weather --all-locations
 """
 
 import argparse
 import json
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 
 from services.common.http import http
@@ -26,6 +27,11 @@ from .config import OPENWEATHERMAP_API_KEY
 logger = get_logger("ingestion.weather")
 
 API_BASE = "https://api.openweathermap.org/data/2.5/weather"
+WEATHER_CLICKHOUSE_COLUMNS = [
+    "timestamp", "location_id", "source", "temperature_c",
+    "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+    "solar_radiation_wm2", "cloud_cover_pct", "metadata",
+]
 
 
 
@@ -107,8 +113,8 @@ def insert_weather(db, record: dict, source_raw: dict = None) -> str:
         return str(cur.fetchone()[0])
 
 
-def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
-    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+def build_weather_clickhouse_projection(records: list[dict]) -> dict:
+    """Build the canonical ClickHouse rows for current weather observations."""
     rows = []
     for rec in records:
         meta = rec.get("metadata", {})
@@ -118,8 +124,12 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
         obs_date = rec.get("observation_date", "")
         obs_time = rec.get("observation_time") or "00:00:00"
         try:
-            ts = datetime.fromisoformat(f"{obs_date}T{obs_time}+00:00")
-        except Exception:
+            ts = datetime.fromisoformat(f"{obs_date}T{obs_time}")
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
+        except (TypeError, ValueError):
             ts = datetime.now(timezone.utc)
 
         rows.append([
@@ -135,55 +145,80 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
             {str(k): str(v) for k, v in meta.items()},
         ])
 
+    return {
+        "columns": list(WEATHER_CLICKHOUSE_COLUMNS),
+        "rows": rows,
+        "payload_hash": hash_payload(records) if rows else "",
+    }
+
+
+def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+    projection = build_weather_clickhouse_projection(records)
+    rows = projection["rows"]
     if not rows:
         return
 
     try:
         if conn is not None:
-            payload_hash = hash_payload(records)
+            payload_hash = projection["payload_hash"]
             enqueue(conn, event_key=f"weather:weather_events:{payload_hash}",
                     source_table="weather_observation", source_id=payload_hash,
                     target_table="weather_events",
-                    columns=["timestamp", "location_id", "source", "temperature_c",
-                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
+                    columns=projection["columns"],
                     rows=rows, payload_hash=payload_hash)
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "weather_events",
-            [
-                "timestamp", "location_id", "source", "temperature_c",
-                "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                "solar_radiation_wm2", "cloud_cover_pct", "metadata",
-            ],
+            projection["columns"],
             rows,
         )
     except Exception as e:
-        logger.warning("ClickHouse insert failed: %s", e)
+        if conn is not None:
+            raise
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
-def run(location_id: str = None):
+def run(location_id: str = None, *, all_locations: bool = False):
     """Main ingestion entry point."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, AttributeError, TypeError):
+            raise ValueError("location_id must be a UUID") from None
+
     if not OPENWEATHERMAP_API_KEY:
         logger.error("OpenWeatherMap_API_KEY not set in .env")
         sys.exit(1)
 
     db = get_db()
-    with db.cursor() as cur:
-        if location_id:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active'",
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE status = 'active' AND center IS NOT NULL"
-            )
-        locations = cur.fetchall()
+    try:
+        with db.cursor() as cur:
+            if location_id:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
+                    (location_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE status = 'active' AND center IS NOT NULL"
+                )
+            locations = cur.fetchall()
+    except Exception:
+        try:
+            db.close()
+        except Exception as close_error:
+            logger.warning("Database close failed (%s)", type(close_error).__name__)
+        raise
 
     if not locations:
         logger.info("No active locations with coordinates found.")
+        db.close()
         return
 
     logger.info("Fetching weather for %d locations...", len(locations))
@@ -192,15 +227,20 @@ def run(location_id: str = None):
     errors = 0
 
     for loc_id, name, lat, lng in locations:
+        location_id_text = str(loc_id)
+        savepoint_created = False
         try:
             start = time.time()
             raw = fetch_weather(lat, lng)
             elapsed_ms = int((time.time() - start) * 1000)
 
             record = parse_weather(raw, loc_id)
+            # Keep each location's observation and audit atomic while allowing
+            # the rest of an aggregate run to continue after one bad location.
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT weather_location")
+            savepoint_created = True
             pg_id = insert_weather(db, record, source_raw=raw)
-            records.append(record)
-
             log_ingestion(
                 source_system="openweathermap",
                 source_table="weather_api",
@@ -212,36 +252,88 @@ def run(location_id: str = None):
                 status="success",
                 rows_affected=1,
                 processing_time_ms=elapsed_ms,
+                db=db,
+                location_id=location_id_text,
             )
-            success += 1
             logger.info("  ✓ %s: %.1f°C, %d%% humidity", name, record['temperature_c'], record['humidity_pct'])
             time.sleep(0.5)  # Rate limiting
-
+            with db.cursor() as cur:
+                cur.execute("RELEASE SAVEPOINT weather_location")
+            savepoint_created = False
         except Exception as e:
+            try:
+                if savepoint_created:
+                    with db.cursor() as cur:
+                        cur.execute("ROLLBACK TO SAVEPOINT weather_location")
+                        cur.execute("RELEASE SAVEPOINT weather_location")
+                safe_error = f"weather location processing failed ({type(e).__name__})"
+                log_ingestion(
+                    source_system="openweathermap",
+                    source_table="weather_api",
+                    source_id="",
+                    target_table="weather_observation",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash="",
+                    status="failed",
+                    error_message=safe_error,
+                    db=db,
+                    location_id=location_id_text,
+                )
+            except Exception:
+                try:
+                    db.rollback()
+                except Exception as rollback_error:
+                    logger.warning(
+                        "Database rollback failed (%s)", type(rollback_error).__name__
+                    )
+                try:
+                    db.close()
+                except Exception as close_error:
+                    logger.warning(
+                        "Database close failed (%s)", type(close_error).__name__
+                    )
+                raise
             errors += 1
-            log_ingestion(
-                source_system="openweathermap",
-                source_table="weather_api",
-                source_id="",
-                target_table="weather_observation",
-                target_id=None,
-                operation="insert",
-                payload_hash="",
-                status="failed",
-                error_message=str(e),
-            )
-            logger.error("  ✗ %s: %s", name, e)
+            logger.error("  ✗ %s failed (%s)", name, type(e).__name__)
+            continue
 
-    if records:
-        insert_weather_clickhouse(records, db)
-    db.commit()
-    db.close()
+        records.append(record)
+        success += 1
+
+    try:
+        if records:
+            insert_weather_clickhouse(records, db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
     logger.info("Done: %d success, %d errors", success, errors)
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Weather data ingestion")
-    parser.add_argument("--location-id", help="Specific location UUID to fetch")
-    args = parser.parse_args()
-    run(location_id=args.location_id)
+    location = parser.add_mutually_exclusive_group()
+    location.add_argument("--location-id", help="Specific location UUID to fetch")
+    location.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Fetch weather for every active location (explicit aggregate operation)",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is None and not args.all_locations:
+        parser.print_help()
+        return
+
+    try:
+        run(location_id=args.location_id, all_locations=args.all_locations)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    main()

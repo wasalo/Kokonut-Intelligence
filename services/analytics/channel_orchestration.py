@@ -15,8 +15,29 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
+_SECRET_CONFIG_SUFFIXES = (
+    "apikey", "accesskey", "secretkey", "privatekey", "clientkey",
+    "signingkey", "encryptionkey", "token", "secret", "password",
+    "passwd", "credential", "authorization",
+)
+
+
+def _redact_channel_config(value: Any) -> Any:
+    """Redact credential-like fields before channel config leaves this module."""
+    if isinstance(value, dict):
+        redacted = {}
+        for key, child in value.items():
+            normalized_key = "".join(character for character in str(key).lower() if character.isalnum())
+            is_secret = normalized_key == "key" or normalized_key.endswith(_SECRET_CONFIG_SUFFIXES)
+            redacted[key] = "[REDACTED]" if is_secret else _redact_channel_config(child)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_channel_config(item) for item in value]
+    return value
+
 
 # ──────────────────────────────────────────────
 # Channel Configuration
@@ -52,7 +73,10 @@ def list_channel_configs(conn, location_id: str) -> List[Dict[str, Any]]:
             """,
             (location_id,),
         )
-        return [dict(r) for r in cur.fetchall()]
+        configs = [dict(r) for r in cur.fetchall()]
+        for config in configs:
+            config["config"] = _redact_channel_config(config.get("config"))
+        return configs
 
 
 # ──────────────────────────────────────────────
@@ -92,9 +116,10 @@ def get_delivery_plan(
             FROM channel_preference cp
             WHERE cp.location_id = %s
               AND cp.segment_type IN (%s, 'all')
+              AND (cp.segment_id IS NULL OR cp.segment_id = %s)
             ORDER BY cp.priority DESC, cp.is_primary DESC
             """,
-            (location_id, segment_type),
+            (location_id, segment_type, segment_id),
         )
         prefs = [dict(r) for r in cur.fetchall()]
 
@@ -122,25 +147,28 @@ def get_delivery_plan(
 
     # Build delivery plan
     plan = []
-    for pref in prefs:
-        ch = pref["channel_type"]
-        entry = {
-            "channel": ch,
-            "priority": pref["priority"],
-            "is_primary": pref["is_primary"],
-            "config": configs.get(ch, {}).get("config", {}),
-            "fallback": fallbacks.get(ch),
-        }
-        plan.append(entry)
+    if prefs:
+        for pref in prefs:
+            ch = pref["channel_type"]
+            config = configs.get(ch)
+            if config is None:
+                continue
+            plan.append({
+                "channel": ch,
+                "priority": pref["priority"],
+                "is_primary": pref["is_primary"],
+                "config": _redact_channel_config(config.get("config", {})),
+                "fallback": fallbacks.get(ch),
+            })
 
-    # If no preferences set, return all active channels as defaults
-    if not plan:
+    # If no preferences exist, return all active channels as defaults.
+    if not prefs:
         for ch_type, cfg in configs.items():
             plan.append({
                 "channel": ch_type,
                 "priority": 0,
                 "is_primary": False,
-                "config": cfg.get("config", {}),
+                "config": _redact_channel_config(cfg.get("config", {})),
                 "fallback": fallbacks.get(ch_type),
             })
 
@@ -306,7 +334,6 @@ def compute_health_score(
 
     # Recency score (0-100): 0 days = 100, 90+ days = 0
     if last:
-        from datetime import timedelta
         now = datetime.now(timezone.utc)
         if last.tzinfo is None:
             last = last.replace(tzinfo=timezone.utc)

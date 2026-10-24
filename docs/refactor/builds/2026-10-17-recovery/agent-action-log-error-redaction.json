@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Agent action audit error persistence, historical reads, and database-write failure logs",
+  "behavior": {
+    "persistence": "A non-empty action error is stored as [details redacted], preserving that the action failed without retaining diagnostic text.",
+    "history_reads": "Historical error_message values returned by get_agent_actions are redacted before leaving the service boundary.",
+    "write_failure_logs": "Agent-audit database write failures log only the exception class."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_agent_action_log_redaction.py tests/test_agent_safety.py -q",
+    "result": "11 passed, 9 skipped",
+    "coverage": [
+      "synthetic failure diagnostics are not persisted",
+      "historical diagnostics are not returned",
+      "database-write failure logs omit exception text",
+      "agent safety unit checks pass; database-dependent cases skip without a configured disposable target"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_access": "none; fake database connections only",
+  "limitations": [
+    "Existing database rows are not rewritten; they are redacted when read.",
+    "No live agent action or database-dependent safety integration was exercised."
+  ]
+}

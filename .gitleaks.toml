@@ -1,0 +1,127 @@
+title = "Kokonut Intelligence secret scanning"
+
+[extend]
+useDefault = true
+
+# Generic API-key detections are retained. These narrowly scoped exceptions
+# cover reviewed public identifiers and synthetic upstream/test material only.
+[[allowlists]]
+description = "Public EVM addresses are identifiers, not credentials."
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^0x[0-9a-fA-F]{40}$''']
+
+[[allowlists]]
+description = "Reviewed public OpenZeppelin vendored test fixtures and keyed-nonce identifiers."
+targetRules = ["generic-api-key"]
+paths = [
+  '''^contracts/lib/openzeppelin-contracts/test/.*''',
+  '''^contracts/lib/openzeppelin-contracts-upgradeable/test/.*''',
+  '''^contracts/lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/test/.*''',
+  '''^contracts/lib/openzeppelin-contracts-upgradeable/contracts/governance/extensions/GovernorTimelockAccessUpgradeable\.sol$''',
+  '''^contracts/lib/openzeppelin-contracts-upgradeable/contracts/utils/NoncesKeyedUpgradeable\.sol$''',
+]
+
+[[allowlists]]
+description = "SHA-256 source inventory entries are reproducibility digests, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*"[^"]+": "[a-fA-F0-9]{64}",?$''']
+paths = [
+  '''^docs/refactor/builds/2026-10-10-batch1/(amd64|arm64)-source\.json$''',
+  '''^docs/refactor/builds/2026-10-14-recovery/clickhouse-outbox-cli-disposable\.json$''',
+  '''^docs/refactor/builds/2026-10-14-recovery/notification-outbox-failure-injection\.json$''',
+  '''^docs/refactor/builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable\.json$''',
+  '''^docs/refactor/builds/2026-10-14-recovery/directus-schema-preflight-guard\.json$''',
+]
+
+[[allowlists]]
+description = "Generated Kernel locks record public package-artifact SHA-256 checksums, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*--hash=sha256:[a-fA-F0-9]{64}(\s+\\)?$''']
+paths = ['''^requirements/kernel-(runtime|clickhouse)\.lock$''']
+
+[[allowlists]]
+description = "The recovery inventory records only one-way hashes of ephemeral Redis key names."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*"key_sha256": "[a-fA-F0-9]{64}",?$''']
+paths = ['''^docs/refactor/builds/2026-10-10-recovery/redis-ownership\.json$''']
+
+[[allowlists]]
+description = "Migration identifiers in the domain ownership index are not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*Key migrations:.*$''']
+paths = ['''^docs/data-model/domain-ownership\.md$''']
+
+[[allowlists]]
+description = "The deployment examples use this explicit replacement placeholder."
+targetRules = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''(?i)^replace-with-strong-directus-secret-min-24-chars$''']
+
+[[allowlists]]
+description = "Deterministic stakeholder decision keys are test fixtures."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  '''^\s*DECISION_KEY\s*=.*$''',
+  '''^\s*decision_key\s*=.*$''',
+]
+paths = [
+  '''^tests/test_stakeholder_end_to_end\.py$''',
+  '''^tests/test_stakeholder_decisions\.py$''',
+]
+
+[[allowlists]]
+description = "Synthetic solution canonical keys in disposable PostgreSQL checks are domain identifiers, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  "canonical_key = 'synthetic\\.water\\.harvesting\\.v1'",
+  '''"canonical_key": "water\.harvesting\.v1",''',
+]
+paths = [
+  '''^scripts/check-solution-create-disposable\.py$''',
+  '''^tests/test_gateway_solution_lifecycle_create\.py$''',
+]
+
+[[allowlists]]
+description = "Historical synthetic marker in the attestation CLI regression is not a credential."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*SECRET = "private-key=secret rpc=https://private\.example"$''']
+paths = ['''^tests/test_attestation_cli_error_redaction\.py$''']
+
+[[allowlists]]
+description = "The capability map uses a process key as a domain identifier, not an API credential."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*data = map_process\(args\.id, args\.process_key, is_primary=not args\.secondary\)$''']
+paths = ['''^services/analytics/cli_capability_map\.py$''']
+
+[[allowlists]]
+description = "The API reference uses the literal replacement token in its curl example."
+targetRules = ["curl-auth-header"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''YOUR_TOKEN''']
+paths = ['''^docs/api-reference\.md$''']
+
+[[allowlists]]
+description = "The API reference uses the literal replacement password in its curl examples."
+targetRules = ["curl-auth-user"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''YOUR_PASSWORD''']
+paths = ['''^docs/api-reference\.md$''']

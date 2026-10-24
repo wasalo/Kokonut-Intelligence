@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy current-weather and forecast failure redaction",
+  "behavior": {
+    "location_failures": "Current-weather and forecast runners persist bounded exception-class summaries in ingestion audit rows and logs.",
+    "clickhouse_fallback": "Direct demo/maintenance ClickHouse fallback logs omit provider/database exception details.",
+    "transaction_behavior": "Existing per-location failure auditing, final commit, and connection cleanup remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_weather_legacy_error_redaction.py tests/test_weather_cli_scope.py tests/test_weather_forecast_cli_scope.py tests/test_weather_forecast_atomicity.py -q",
+    "result": "26 passed",
+    "new_regressions": 4,
+    "coverage": [
+      "secret-bearing current-weather and forecast failures are redacted from audit rows and logs",
+      "secret-bearing ClickHouse fallback failures are redacted from logs",
+      "existing manual scope and forecast transaction contracts remain intact"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "provider_or_database_access": "none; mocked failures and fake connections only"
+  },
+  "limitations": [
+    "No OpenWeatherMap endpoint, ClickHouse endpoint, or database was contacted.",
+    "This does not prove live provider recovery, runtime credentials, or schedule parity."
+  ]
+}

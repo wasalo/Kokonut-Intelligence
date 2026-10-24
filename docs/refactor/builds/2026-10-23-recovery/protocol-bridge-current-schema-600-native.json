@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "date": "2026-10-23",
+  "source_revision": "7679b3ea",
+  "working_tree_dirty": false,
+  "runtime_architecture": "linux/amd64",
+  "execution": "native Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-amd64:local",
+    "platform": "linux/amd64",
+    "image_id": "sha256:10d2101d4d0abee25a6b5217ae5fa43f5c912eb75d3b34f17f206e1fcfcff789"
+  },
+  "isolated_compose_project": "kokonut-protocol-bridge-native-20261023",
+  "schema_files_expected": 591,
+  "schema_files_applied": 591,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "600_protocol_execution_bridge",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:600_protocol_execution_bridge.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "600_protocol_execution_bridge",
+    "applied": 591,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "x86_64",
+  "elapsed_seconds": 963.9
+}

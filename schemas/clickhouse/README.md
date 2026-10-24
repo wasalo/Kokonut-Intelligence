@@ -65,7 +65,15 @@ Pre-aggregated rollups for dashboard queries:
 | `gee_remote_sensing` | `remote_sensing_events` |
 | `copernicus_remote_sensing` | `remote_sensing_events` |
 
-`events_raw` and `financial_events` are defined but have no Python writers yet.
+`events_raw` remains a defined sink without a native writer. `financial_events`
+is enqueued atomically from PostgreSQL `sales_event` and `expense_event`
+inserts by migration 434, then delivered by the optional ClickHouse outbox
+worker. This preserves the legacy create-time projection while making outages
+durable and keeping ClickHouse optional. Roll out the rebuilt Directus hook
+with migration 434 before reopening financial writes to avoid duplicate
+delivery from an older installed hook. The projection intentionally does not
+pretend non-USD amounts are USD. Source updates/deletes, historical backfill,
+and populated report-output parity remain separate gates.
 
 ## Security
 

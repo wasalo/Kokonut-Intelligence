@@ -5,11 +5,16 @@ package common;
 option go_package = "github.com/kokonut-intelligence/proto/common";
 
 message PageRequest {
+  // Requested page size. Zero selects the service default.
   uint64 limit = 1;
+  // Opaque next_key bytes from PageResponse. The current gRPC implementation
+  // encodes a deterministic decimal row offset as ASCII in this field.
   bytes offset = 2;
 }
 
 message PageResponse {
+  // Empty when there is no next page; otherwise pass back as PageRequest.offset.
   bytes next_key = 1;
+  // Total rows matching the list filter before pagination.
   uint64 total = 2;
 }

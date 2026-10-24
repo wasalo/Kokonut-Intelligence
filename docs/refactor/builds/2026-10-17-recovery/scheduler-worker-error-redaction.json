@@ -1,0 +1,19 @@
+{
+  "scope": "scheduler worker tick and connection-close logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_scheduler_worker.py tests/test_scheduler_durability.py -q",
+    "focused_test_result": "13 passed",
+    "combined_failure_containment_test_result": "131 passed, 3 subtests passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "failed ticks still return None and the next tick can reconnect",
+    "failed tick connections are closed without rollback",
+    "connection-close failures remain contained"
+  ],
+  "redaction": "tick and connection-close failures log only bounded exception classes; exception messages and tracebacks are omitted"
+}

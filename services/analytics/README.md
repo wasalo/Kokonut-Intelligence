@@ -11,6 +11,18 @@ python3 -m services.analytics
 python3 -m services.analytics.cli --help
 ```
 
+## Retention enforcement
+
+The generic `enforce-retention` command is destructive and is disabled by
+default. Set `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true` only after the
+jurisdiction-specific schedule is approved and legal-hold eligibility is
+enforced for the target records. `--dry-run` remains available while the
+destructive gate is off. This switch does not supply or approve a retention
+period.
+New policies also default to `auto_enforce=false`; retention windows must be
+positive integers and actions must be supported before policy creation writes
+to the database.
+
 ## Modules
 
 - `advantage_assessment` — VRIO-style defensible advantage assessments.
@@ -90,7 +102,7 @@ python3 -m services.analytics.cli --help
 - `marketplace` — Digital Marketplace for Agricultural Produce
 - `measurement_schedule` — Measurement schedule: tracking cadence and due dates for forest monitoring.
 - `mitigation` — Mitigation approach management.
-- `mobile_offline` — Mobile / Offline Data Collection
+- `mobile_offline` — Retired legacy CLI; historic commands fail closed. Use `services.mobile.api` through the Gateway.
 - `model_validation` — Validation framework: geographic cross-validation, field-level metrics, MEC computation.
 - `multi_farm` — Multi-farm onboarding — template instantiation, cross-farm portfolio.
 - `nutrient_budget` — Nutrient Budget Tracking

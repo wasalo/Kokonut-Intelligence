@@ -1,5 +1,56 @@
 # ARM64 Kernel application build evidence
 
+## Current-source software refresh — 20 October 2026
+
+The pushed source revision `1e5bf08a5f777276340a71752f611b8dd5eb18cc` built
+the default Kernel target for `linux/arm64`. Docker reported the image as
+`linux/arm64` with configured user `appuser`. A network-disabled QEMU container
+with a read-only root imported `services.gateway.app` and the mounted Python
+SDK, loaded all 18 `JobSpec` records, and constructed a synthetic RPC balance
+snapshot. The container used only a read-only SDK bind mount and disposable
+`/tmp`; it had no database, provider, credential, or host-port access. The
+temporary container and image were removed, and candidate services remained
+healthy. This is current-source software evidence, not physical Pi, migration,
+resource-endurance, power-loss, or 24-hour recovery acceptance
+([evidence](builds/2026-10-20-recovery/arm64-kernel-current-source-smoke.json)).
+
+## Current source smokes — 16 October 2026
+
+On `04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9`, Docker Buildx built the
+default Kernel target for `linux/arm64` and exported manifest
+`sha256:6b99f76d7190cc2078d15468974f7f89e0038652921f004711e85388e640bde5`.
+The loaded image reports `linux/arm64` and user `appuser`. Under QEMU, with
+networking disabled, the runtime CLI help and Kernel image-manifest command
+both completed successfully. The temporary image and archives were removed;
+no Compose service was started or replaced. This refreshes the code-only ARM64
+build/import smoke, not physical Pi, database, ingress, or provider acceptance
+([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
+The optional OIDC application target also built for `linux/arm64`. The loaded
+image reported the same non-root user; runtime CLI help and its image-manifest
+command passed under QEMU with networking disabled. Authlib, cryptography, and
+itsdangerous resolved ARM64 packages. This verifies the Kokonut application
+image only; the ZITADEL service images and full profile remain unverified
+([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
+
+## Build and runtime status — 15 October 2026
+
+GitHub Actions run 287 built the default and ClickHouse-enabled application
+images plus the custom PostGIS image for AMD64 and ARM64, and passed the locked
+package inventory comparison on commit `6549043`. The current branch moved
+forward afterward, so it still needs a fresh CI run. A local attempt on commit
+`c2a5354` built the AMD64 application, then failed ARM64 dependency resolution
+after the package host timed out; the final ARM64 image was not exported and
+the paired PostGIS target was not attempted ([attempt record](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+
+The older CI build is build evidence only. A separate current-source local
+Buildx/QEMU run now builds the profile-selected app and PostGIS images as
+linux/arm64, applies all 391 ordered schemas through migration 400, restores a
+logical backup with matching migration fingerprints, and recovers after a
+database restart and simulated app loss. This does not certify physical Pi
+operation; see the [runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)
+and [profile status](arm64-database.md).
+
 The [later public-read refresh](arm64-public-reads.md) records the current ARM64
 local tag with the newer public API contracts. The build below is historical
 installation evidence, not the latest source artifact.
@@ -28,28 +79,40 @@ driver and encryption packages resolved ARM64 wheels. Key installed versions:
 | boto3 / openpyxl | 1.43.111 / 3.1.5 |
 | pycryptodome | 3.24.0 |
 
-This fresh resolution uses version ranges and can differ from cached AMD64
-dependencies. Build/install success is not runtime compatibility evidence.
-Before release, capture complete dependency inventories, select a reviewed lock
-strategy, and rebuild both architectures from the same source/dependency policy.
+This historical resolution uses version ranges and can differ from cached AMD64
+dependencies. Later work added hash-locked Python dependency closures for the
+default and ClickHouse images, and CI run 287 verified package parity for its
+tested commit. Build/install success is not runtime compatibility evidence.
 The artifact includes uncommitted source, including migrations 371–373 and the
 latest gateway rate-limit changes; none of those migrations were applied here.
 
 The default target excludes MQTT/gRPC SDKs, ClickHouse driver, and heavy ML/GIS
-requirements. It can supply API, workers, and HTTP receiver commands, but their
-imports/startup and capability parity remain unverified on ARM64. Optional
-transport and analytics builds need separate evidence. No providers, wallets,
-requests, jobs, ingestion operations, database services, or data volumes ran.
+requirements. Optional transport and analytics builds need separate evidence.
+The initial package-resolution attempt did not run providers, wallets, requests,
+jobs, ingestion operations, or attach existing database services/data volumes.
+Current app startup and a fresh disposable database are covered by the QEMU
+acceptance below; optional worker/provider parity remains open.
 
-Together with the paired PostGIS build, this establishes ARM64 build artifacts,
-not a complete deployment or Raspberry Pi certification. Current Compose still
-uses the original AMD64-only PostGIS image, and the command planner guard remains.
-Prepare an explicitly isolated application/database path before any cutover.
-Pending gates: schema/extension readiness, startup, governed API/mobile flows,
-worker recovery, encrypted media, shared limiter behavior, backup/restore,
-24-hour operation, and measured 4 GB Pi CPU/memory/storage budgets.
+The current Compose profile is isolated from the AMD64 candidate. Under QEMU,
+the current schema, application startup, health, protected-route denial, logical
+restore, PostGIS spatial/raster functions, and short restart recovery passed.
+Raster was enabled manually for the test because the ordered schema does not
+currently create `postgis_raster`. Governed API/mobile flows, optional workers,
+encrypted media, shared limiter behavior, 24-hour operation, and measured 4 GB
+Pi CPU/memory/storage budgets remain separate gates.
 
 Static provider boundaries (17 vendor sites), dependency groups (11/28), and
-diff checks passed. No runtime tests were added or run. Existing containers and
-volumes remain unchanged. Rollback preserves earlier candidate/legacy images
+diff checks passed. This documentation update added no repository test suite.
+The existing candidate and legacy containers and volumes remain unchanged.
+Rollback preserves earlier candidate/legacy images
 and data; these separately named build artifacts require no data rollback.
+
+**Current-source code-only smoke (18 October 2026):** the default Kernel app
+target built as `linux/arm64` from source commit `31c6520e`. A network-disabled,
+read-only QEMU container reported `aarch64`, imported the Gateway module and
+Python SDK, found all 18 catalog JobSpecs, constructed a synthetic RPC balance
+snapshot, and verified the six newly exposed location-read groups. The
+temporary image and container were removed; no database, provider, credential,
+or persistent Compose resource was accessed ([evidence](builds/2026-10-18-recovery/arm64-kernel-current-source-smoke.json)).
+This does not replace physical Raspberry Pi, power-loss, resource-budget, or
+long-duration acceptance.

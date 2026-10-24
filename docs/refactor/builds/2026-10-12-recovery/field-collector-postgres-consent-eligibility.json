@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector PostgreSQL consent eligibility view",
+  "target": {
+    "compose_project": "kokonut-kernel-candidate",
+    "container": "kokonut-kernel-candidate-database-1",
+    "database": "kokonut_intelligence",
+    "view": "v_mobile_collection_use_eligibility"
+  },
+  "method": "Synthetic location, party, reviewed required-consent form revision, participant link, grant, withdrawal, regrant, and collection inserted inside one explicit PostgreSQL transaction; assertions ran against the real view and the transaction ended with ROLLBACK.",
+  "assertions": [
+    {
+      "scenario": "Collection synchronized under a valid active grant",
+      "expected": {
+        "eligible_for_use": true,
+        "eligibility_reason": "eligible"
+      },
+      "result": "passed"
+    },
+    {
+      "scenario": "Consent withdrawn after collection, then granted again",
+      "expected": {
+        "eligible_for_use": false,
+        "eligibility_reason": "withdrawn_after_collection"
+      },
+      "result": "passed"
+    }
+  ],
+  "cleanup": {
+    "transaction": "ROLLBACK",
+    "post_check_counts": {
+      "locations": 0,
+      "parties": 0,
+      "participant_links": 0,
+      "consent_events": 0,
+      "collections": 0
+    },
+    "result": "No synthetic fixture rows remain."
+  },
+  "limitations": [
+    "This verifies the PostgreSQL view only; it does not exercise the API route or browser consent UI.",
+    "Human retention/erasure disposition, tenant/RLS, real OIDC, and OS airplane-mode/Gateway recovery remain open."
+  ],
+  "rollback": "The database transaction was explicitly rolled back; no runtime or migration rollback is required."
+}

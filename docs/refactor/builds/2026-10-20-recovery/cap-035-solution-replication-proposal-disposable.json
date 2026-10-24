@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "494_location_solution_replication_proposal.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "solution lifecycle migrations through 477 apply before migration 494, which replays",
+    "active solutions visible by exact location origin or explicit location link can be proposed from a validated, independently reviewed experiment",
+    "a distinct deployment context can be proposed within the source location",
+    "signed operator location context, exact create grant, and active OIDC-to-person attribution are enforced",
+    "proposal receipt is immutable and request-idempotent; changed-input retries fail closed",
+    "proposal remains proposed without review, result, evidence, maturity, or lifecycle-stage mutation",
+    "runtime can invoke only the bounded function and cannot read source or receipt rows; Directus cannot execute the function"
+  ],
+  "acceptance_groups_passed": 9
+}

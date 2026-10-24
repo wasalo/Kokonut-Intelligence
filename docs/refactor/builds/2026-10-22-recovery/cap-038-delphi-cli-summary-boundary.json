@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "test_command": "python3 -m pytest tests/test_delphi.py tests/test_agent_worker_cli.py tests/test_agent_input_preflight.py tests/test_agent_summary_worker_profile.py -q",
+  "tests_passed": 112,
+  "database_target": "none; mocked worker adapter",
+  "migration_applied": false,
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "legacy live-summary and consensus commands use the facilitator summary adapter",
+    "both commands require explicit study and location identifiers",
+    "the commands do not open the shared runtime database",
+    "consensus output contains only consent-aware thresholded aggregate items",
+    "migration and live provider access are not part of this slice"
+  ]
+}

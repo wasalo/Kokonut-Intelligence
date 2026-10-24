@@ -7,20 +7,26 @@ import json
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from services.agents.logging import log_agent_action
-
 
 def set_agent_context(conn, agent_id: str) -> None:
-    """Set the agent ID for the current transaction, enabling DB-level safety checks.
+    """Reject the legacy, caller-controlled database agent marker.
 
-    Must be called within an active transaction. Uses SET LOCAL so the setting
-    is scoped to the current transaction and automatically cleared on commit/rollback.
-    When this setting is present, DB-level triggers on governed tables will block
-    status escalation to 'verified' or 'published'.
+    ``SET LOCAL app.agent_id`` is a transaction setting supplied by the caller,
+    not an authenticated principal. It must not be used as an agent identity or
+    as an authorization boundary. Agent persistence needs a signed worker
+    context or an authenticated operator flow instead.
+
+    The arguments remain in the signature so legacy imports fail with a clear
+    error instead of silently accepting an unauthenticated identity.
     """
-    conn.execute(conn.text("SET LOCAL app.agent_id = :agent_id"), {"agent_id": agent_id})
+    del conn, agent_id
+    raise RuntimeError(
+        "set_agent_context() is disabled: app.agent_id is caller-controlled, "
+        "not an authenticated identity; use signed worker or operator context"
+    )
 
 HIGH_RISK_ACTIONS = {
+    "verify",
     "publish",
     "attest",
     "onchain_submit",
@@ -201,6 +207,10 @@ GOVERNED_COLLECTIONS = {
     "capital_diversion_observation",
     "capital_capture_risk",
     "regenerative_credit_ledger",
+    "protocol_project_location",
+    "protocol_execution_intent",
+    "protocol_execution_outbox",
+    "protocol_execution_reconciliation",
 }
 
 STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
@@ -247,6 +257,10 @@ STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
     "governance_proposal_review",
     "governance_tactical_session",
     "governance_circle_link",
+    "protocol_project_location",
+    "protocol_execution_intent",
+    "protocol_execution_outbox",
+    "protocol_execution_reconciliation",
 }
 
 
@@ -268,8 +282,25 @@ def payload_hash(payload: Optional[dict[str, Any]]) -> Optional[str]:
 
 def assess_agent_action(action: str, collection: str, payload: Optional[dict[str, Any]] = None) -> SafetyDecision:
     """Assess whether an agent action is allowed before writing."""
-    payload = payload or {}
+    if not isinstance(action, str) or not action.strip():
+        return SafetyDecision(False, True, True, "agent action must be a non-empty string")
+    if not isinstance(collection, str) or not collection.strip():
+        return SafetyDecision(False, True, True, "agent collection must be a non-empty string")
+    if payload is None:
+        payload = {}
+    elif not isinstance(payload, dict):
+        return SafetyDecision(False, True, True, "agent action payload must be an object")
+
+    action = action.strip().lower()
+    collection = collection.strip().lower()
     high_risk = action in HIGH_RISK_ACTIONS
+    if high_risk:
+        return SafetyDecision(
+            False,
+            True,
+            True,
+            f"agents cannot execute {action}; create or submit a draft for independent human review",
+        )
 
     if collection == "coordination_alliance" and action == "create" and payload.get("status", "draft") == "draft":
         return SafetyDecision(True, False, False, "agents may create draft coordination alliance options only")
@@ -318,9 +349,6 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
         if status and status not in AGENT_ALLOWED_REVIEW_STATUSES:
             return SafetyDecision(False, True, True, f"agents cannot verify or publish {collection} records")
 
-    if action == "status_change_to_published":
-        return SafetyDecision(False, True, True, "agents cannot publish records directly")
-
     return SafetyDecision(True, high_risk, high_risk, "allowed")
 
 
@@ -343,6 +371,8 @@ def audit_agent_action(
     error_message: Optional[str] = None,
 ) -> str:
     """Assess and write an agent_action_log entry."""
+    from services.agents.logging import log_agent_action
+
     decision = assess_agent_action(action, collection, payload)
     return log_agent_action(
         agent_id=agent_id,

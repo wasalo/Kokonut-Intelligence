@@ -11,10 +11,13 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `kernel-portability.py` | Print isolated AMD64/ARM64 evaluation build/readiness commands; see docs/refactor/portability-database.md | Manual |
 | `check-provider-boundaries.py` | Reject optional vendor imports outside declared adapters | CI, manual |
 | `check-requirement-groups.py` | Keep candidate groups aligned with legacy dependency constraints | CI, manual |
+| `check-sdk-schema-parity.py` | Verify Python and TypeScript models include canonical columns for selected operational tables | CI, manual |
 | `setup.sh` | First-run bootstrap: prerequisites check, `.env` creation, data directories, infrastructure startup | Manual |
 | `load-secrets.sh` | Decrypt `.env.sops` via SOPS/age and export into current shell. **Must be sourced**, not executed. | Manual |
-| `seed.sh` | Apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
+| `seed.sh` | Bootstrap locked placeholders for optional worker/runtime role names, wait for the final PostgreSQL TCP listener, then apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
+| `check-agent-safety-superuser-disposable.py` | Exercise migration 598 worker/admin lifecycle guards on network-disabled temporary PostgreSQL | CI, manual |
+| `check-credit-adjustment-worker-disposable.py` | Exercise migration 599 signed, location-scoped, read-only credit-adjustment checks on temporary PostgreSQL; a 180-second startup bound is the default; optional `--platform linux/arm64 --startup-timeout 360` runs the focused contract under QEMU | CI, manual |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
 ## Metric Computation
@@ -23,13 +26,30 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `compute-metrics.sh` | Compute all metrics for all locations via host Python or one-shot `kokonut-worker` container | Manual, CI |
 
+By default, the helper uses the one-shot container when the local Compose
+database is running. Set `KOKONUT_METRICS_EXECUTION=host` to use the configured
+host-side PostgreSQL/ClickHouse endpoints instead; GitHub CI does this for its
+published loopback ports and does not require the production worker credential.
+
 ## Verification & Testing
 
 | Script | Purpose | Context |
 |--------|---------|---------|
 | `verify-platform.sh` | Validate platform definition of done via `tests/test_platform_done.py` | Manual |
 | `verify-ci-toolchain.sh` | Verify all required CI tools are installed (python3, node, npm, forge, slither, aderyn, semgrep, ruff, pip-audit) | CI |
-| `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Validates clean bootstrap. | CI (via `ci-check.sh`) |
+| `bootstrap-optional-roles.sql` | Idempotently create locked `NOLOGIN` placeholders for runtime, worker, the legacy `directus` role, and the optional Kernel Directus role referenced by migration revocations; preserve existing roles | Migration CLI, `seed.sh`, `verify-clean-bootstrap.sh` |
+| `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Uses the same locked optional-role bootstrap as `seed.sh`, preserving already-provisioned roles. Optional `KOKONUT_BOOTSTRAP_COMPOSE_PROJECT` and `KOKONUT_BOOTSTRAP_COMPOSE_FILE` select an isolated Compose target; set `KOKONUT_BOOTSTRAP_START_DATABASE=true` and `KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true` to start and remove a disposable project. Explicit Compose-only migration runs provide database routing directly and skip workstation dotenv loading in the development CLI; this flag is rejected in production. | CI (via `ci-check.sh`), isolated acceptance |
+| `check-directus-role-disposable.py` | Provision and replay the Directus DML-only role on a temporary internal-only PostgreSQL instance; check existing/future DML, DDL denial, stale ACL removal, and database isolation; always removes its Compose project and volume. | Isolated acceptance |
+| `check-directus-profile-disposable.py` | Build the Directus hook, provision its dedicated role, bootstrap a fresh Kernel database, start the actual optional Directus overlay on loopback, verify health/admin login/runtime DB identity, and remove the complete disposable project and volume. | Isolated acceptance |
+| `check-scheduler-engine-reconnect-disposable.py` | Exercise real SchedulerEngine PostgreSQL outage/reconnect, pre-dispatch lease recovery, and post-effect crash/reclaim idempotency with synthetic events on a disposable PostgreSQL 16 container; no provider requests, candidate/legacy access, or retained container. | Isolated acceptance |
+| `check-operator-session-role-disposable.py` | Exercise runtime-role bootstrap and migrations 391–396, 398–400, 405, and 417–419, plus migration 432 on disposable PostgreSQL 16/PostGIS; verify mobile/worker ACLs, notification enqueue, and remote-sensing SET ROLE isolation under forced RLS. Synthetic credentials only; removes the container and never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-governance-tension-actions-disposable.py` | Apply migration 437 on temporary PostgreSQL 16; verify explicit operator/person bindings, admin-only binding management, exact signed-context scope, idempotent draft intake/submission, reporter ownership, and denial of direct binding/lifecycle writes. Removes its container; never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-retention-policy-disposable.py` | Apply migration 401 through the ordered runner to a synthetic pre-migration schema in an internal-only temporary PostgreSQL project; verify policy transitions, audited holds, and hold-aware cleanup. Removes its container, network, and volume; never uses candidate or legacy databases. | Isolated acceptance |
+| `check-sensor-anomaly-worker-reads-disposable.py` | Replay migrations 405–412 on isolated PostgreSQL 16; verify signed event/source/location scope, device-rule filtering, metric/history and cooldown results, forced-RLS access, and worker/runtime/auth privilege boundaries. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-sensor-anomaly-alert-write-disposable.py` | Replay migrations 405–413 on isolated PostgreSQL 16; verify signed source/location/rule validation, reserved-receipt transition and duplicate suppression, atomic alert/audit rollback, forced-RLS execution, and worker/runtime/auth privilege boundaries. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-cache-invalidation-worker-disposable.py` | Apply and replay migration 415 on network-isolated PostgreSQL 16; verify signed event/type/location matching, cache-type and location scoping, retry idempotency, forced-RLS policy behavior, and worker direct-table denial. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-ai-summary-review-disposable.py` | Apply/replay migration 521 on disposable PostgreSQL 16; verify exact-location review scope, approval blockers, verified-versus-published lifecycle separation, append-only decisions, request retries, and runtime/Directus privilege boundaries. Uses synthetic rows and removes its temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
+| `check-ai-summary-draft-disposable.py` | Apply/replay migrations 521–524 on disposable PostgreSQL 16; verify authenticated requester attribution, bounded exact-location source references, location-linked crop and top-five expense-category references, retry/review manifest access, self-review denial, legacy creator blockers, independent verification lifecycle, append-only source records, and runtime/Directus privilege boundaries. Uses synthetic rows and a network-disabled temporary container; never connects to candidate or legacy databases. | Isolated acceptance |
 | `verify-full-test-suite.sh` | Run full pytest suite with unexpected-skip detection | CI |
 | `verify-local-test-suite.sh` | Start local Compose databases, wait for readiness, run full test suite | Manual |
 

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-064 gRPC API",
+  "scope": "Certificate-verified local gRPC health handshake",
+  "result": "PASS",
+  "test": "tests/test_grpc_enabled_transport.py::test_tls_health_client_completes_verified_loopback_handshake",
+  "verification": {
+    "tls_handshake": "The gRPC health client connected to the in-process TLS server using the supplied self-signed certificate as its trust root.",
+    "server_identity": "The certificate includes IP SAN 127.0.0.1 and the client target uses that IP.",
+    "transport_suite": "7 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "listener": "Ephemeral 127.0.0.1 loopback only",
+    "certificate": "Generated temporarily for the test and removed with the pytest temporary directory",
+    "external_network": false,
+    "database": false,
+    "candidate_database": false,
+    "legacy_database": false,
+    "provider": false
+  },
+  "limitations": [
+    "This validates a local self-signed trust chain and IP SAN only; it does not exercise a production certificate authority or the hub.kokonut.network DNS name.",
+    "Certificate mounting/rotation, public ingress, authenticated tenant scope, and REST parity remain open."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "date": "2026-10-23",
+  "migration": "598_agent_safety_superuser_session_guard.sql",
+  "database": "PostgreSQL 16.4 (Debian 16.4-1.pgdg110+2)",
+  "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "migration_replays": 2,
+  "assertions": {
+    "superuser_can_publish": true,
+    "ordinary_operator_can_publish": true,
+    "worker_can_create_draft": true,
+    "worker_cannot_insert_terminal_status": true,
+    "worker_cannot_promote_to_terminal_status": true,
+    "superuser_set_role_worker_is_blocked": true,
+    "compatibility_marker_remains_restrictive": true,
+    "denied_operations_left_no_rows": true
+  },
+  "cleanup_completed": true,
+  "candidate_or_legacy_touched": false
+}

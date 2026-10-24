@@ -10,7 +10,9 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import json
+import math
 from datetime import datetime, timezone
 from typing import Any, Dict
 
@@ -49,9 +51,16 @@ def attest_price(
 
     Creates an on-chain audit trail of the price data origin.
     """
+    _validate_attestation_inputs(
+        commodity=commodity,
+        price=price,
+        source=source,
+        source_count=source_count,
+        confidence=confidence,
+        currency=currency,
+        chain=chain,
+    )
     now = datetime.now(timezone.utc)
-    price_timestamp = int(now.timestamp())
-    price_scaled = int(price * 1000000)  # Scale to 6 decimals
 
     # Log to oracle_price_log
     cur = conn.cursor()
@@ -81,7 +90,7 @@ def attest_price(
             # In production, would call EAS contract to attest
             # attestation_uid = eas_client.attest(schema_uid, data, recipient)
     except Exception as e:
-        logger.warning("On-chain attestation unavailable: %s", e)
+        logger.warning("On-chain attestation unavailable (%s)", type(e).__name__)
 
     return {
         "status": "success",
@@ -92,6 +101,49 @@ def attest_price(
         "attestation_uid": attestation_uid,
         "chain": chain,
     }
+
+
+def _validate_attestation_inputs(
+    *,
+    commodity: str,
+    price: float,
+    source: str,
+    source_count: int,
+    confidence: float,
+    currency: str,
+    chain: str,
+) -> None:
+    """Reject malformed price records before they reach persistence or EAS."""
+    if not isinstance(commodity, str) or not commodity.strip():
+        raise ValueError("commodity must be a non-empty string")
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("source must be a non-empty string")
+    if not isinstance(currency, str) or not currency.strip():
+        raise ValueError("currency must be a non-empty string")
+    if not isinstance(chain, str) or not chain.strip():
+        raise ValueError("chain must be a non-empty string")
+    try:
+        valid_price = (
+            not isinstance(price, bool)
+            and math.isfinite(float(price))
+            and float(price) > 0
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid_price = False
+    if not valid_price:
+        raise ValueError("price must be a finite number greater than zero")
+    if isinstance(source_count, bool) or not isinstance(source_count, int) or source_count < 1:
+        raise ValueError("source_count must be a positive integer")
+    try:
+        valid_confidence = (
+            not isinstance(confidence, bool)
+            and math.isfinite(float(confidence))
+            and 0 <= float(confidence) <= 1
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid_confidence = False
+    if not valid_confidence:
+        raise ValueError("confidence must be a finite number between zero and one")
 
 
 def attest_daily_prices(conn) -> Dict[str, Any]:
@@ -116,7 +168,9 @@ def attest_daily_prices(conn) -> Dict[str, Any]:
             price=float(price["price_usd_per_tonne"]),
             source=price.get("source", "unknown"),
             source_count=price.get("source_count", 1),
-            confidence=float(price.get("confidence", 1.0) or 1.0),
+            confidence=(
+                1.0 if price.get("confidence") is None else float(price["confidence"])
+            ),
         )
         results.append(result)
 
@@ -127,15 +181,44 @@ def attest_daily_prices(conn) -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Price feed attestation")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="price_attestation.py",
+        description="Price feed attestation",
+    )
     parser.add_argument("--commodity", help="Commodity to attest")
     parser.add_argument("--price", type=float, help="Price to attest")
     parser.add_argument("--source", default="manual", help="Price source")
     parser.add_argument("--run-daily", action="store_true", help="Attest all daily prices")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run a manual or daily price attestation command."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.run_daily and (args.commodity is not None or args.price is not None):
+        parser.error("--run-daily cannot be combined with --commodity or --price")
+
+    if not args.run_daily and (args.commodity is None or args.price is None):
+        parser.print_help()
+        return
+
+    if not args.run_daily:
+        try:
+            _validate_attestation_inputs(
+                commodity=args.commodity,
+                price=args.price,
+                source=args.source,
+                source_count=1,
+                confidence=1.0,
+                currency="USD",
+                chain="celo",
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
 
     conn = get_db()
     try:
@@ -145,7 +228,9 @@ if __name__ == "__main__":
         elif args.commodity and args.price:
             result = attest_price(conn, args.commodity, args.price, args.source)
             print_json(result)
-        else:
-            parser.print_help()
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    main()

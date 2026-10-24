@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "453_location_scoped_competitive_landscape_read.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 453 applies and replays on disposable PostgreSQL 16",
+    "only same-location competitive landscapes and same-location strategy lineage are returned",
+    "actor, Five Forces, signal, verified advantage, and verified outcome aggregates match synthetic fixture",
+    "response excludes identity, evidence, narrative, and individual outcome values",
+    "exact location grant, signed context, and bounded pagination are enforced",
+    "runtime and Directus cannot read competitive tables directly or execute the projection through Directus",
+    "dedicated reader role has only the function's declared read surface and no mutation privilege"
+  ],
+  "assertions_passed": 7
+}

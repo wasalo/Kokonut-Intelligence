@@ -1,0 +1,33 @@
+{
+  "acceptance": "isolated-local-private-media-checkpoint-restore",
+  "date": "2026-10-12",
+  "scripts": [
+    "scripts/kernel-media-checkpoint.py",
+    "scripts/kernel-media-restore.py"
+  ],
+  "fixture": {
+    "source": "one synthetic KKM1 AES-256-GCM local media object",
+    "database_checkpoint": "synthetic ciphertext and manifest used only to exercise checkpoint binding",
+    "media_key": "random 32-byte synthetic key held in process memory only",
+    "outer_archive_key": "one-run age identity stored in the temporary fixture directory",
+    "key_reference": "sops:MOBILE_MEDIA_LOCAL_KEY (label only; no SOPS secret was read)"
+  },
+  "checks": {
+    "age_encrypted_checkpoint_created": true,
+    "checkpoint_manifest_bound_database_archive_sha256": true,
+    "media_key_excluded_from_archive_and_manifest": true,
+    "restore_to_new_private_directory": true,
+    "restored_ciphertext_checksum_verified": true,
+    "restored_media_aes_gcm_authentication": true,
+    "restored_plaintext_sha256": "88d910d7339d8b7c718d0b1dbf95cc3a5186682b78a9b2d91b496720ed0bd342",
+    "wrong_media_key_rejected": true
+  },
+  "result": "passed for one synthetic object",
+  "limitations": [
+    "The database archive was synthetic and was not restored; no mobile_media_upload row or database-record hash/size parity was checked.",
+    "The media key was generated in memory. SOPS retrieval and recovery of a real separately-custodied key were not exercised.",
+    "No persistent Compose volume or container replacement was tested, and no candidate media provider setting changed.",
+    "Expiry/orphan reconciliation, concurrent writer quiescence, and production backup retention remain open."
+  ],
+  "rollback": "Temporary source/restored directories, synthetic database binding fixture, age identity, checkpoint, and keys were removed automatically; candidate database and media configuration were untouched."
+}

@@ -1,0 +1,40 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "source_revision": "a2d149f2",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261022-518ea1f7",
+  "schema_files_expected": 539,
+  "schema_files_applied": 539,
+  "schema_files_pending": 0,
+  "schema_files_failed": 0,
+  "latest_migration": "548_signed_delphi_agent_summary_source",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:548_signed_delphi_agent_summary_source.sql",
+  "schema_status": {
+    "seeds": 0,
+    "failed": 0,
+    "latest": "548_signed_delphi_agent_summary_source",
+    "applied": 539,
+    "pending": 0,
+    "pg_stat_public_select": false
+  },
+  "pg_stat_statements_public_select": false,
+  "container_architecture": "aarch64",
+  "elapsed_seconds": 1374.3
+}

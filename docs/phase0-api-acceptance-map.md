@@ -13,7 +13,11 @@ See the broader [Phase 0 capability baseline](phase0-capability-baseline.md) and
 - A route marked `public` bypasses Gateway API-key/capability authorization. It does **not** automatically make downstream access safe: the mobile sync and status handlers perform their own device-token check, while public registration does not.
 - The rate limiter is an in-process token bucket (default 100-token burst, refill 10/second); it is not shared across Gateway replicas and resets with process state.
 - Audit events are sent to the security audit layer. If durable audit writing fails, the exception is logged and the request continues; durable persistence is therefore a required integration-test gate, not guaranteed by the handler call alone.
-- `CORS_ORIGIN` defaults to `*`. Set and verify an explicit origin policy before external browser exposure.
+- Earlier deployments allowed Gateway CORS to inherit `CORS_ORIGIN`, whose
+  default was permissive. Current configuration separates Directus's
+  `CORS_ORIGIN` from Gateway's `KOKONUT_GATEWAY_CORS_ORIGINS`, which defaults
+  to empty and ignores wildcard entries. Verify explicit origins, successful
+  credentialed requests, and public ingress before external browser exposure.
 - The Field Collector stores its queued records, forms, settings, and device token in browser `localStorage`; the application does not encrypt these values at rest. Same-origin script execution can read the stored token and offline data.
 - FastAPI also registers `/`, `/docs`, and `/openapi.json`, but these paths have no explicit public route policy and therefore use the protected fallback. Decide and test the intended public contract.
 

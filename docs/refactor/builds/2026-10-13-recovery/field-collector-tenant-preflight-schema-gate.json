@@ -1,0 +1,79 @@
+{
+  "run_id": "field-collector-tenant-preflight-schema-gate-20261013",
+  "date": "2026-10-13",
+  "result": "passed",
+  "scope": "read-only tenant inventory schema gate against a populated archived snapshot",
+  "source_restore": {
+    "archive": "backups/legacy-logical-batch2-20261010/kokonut_intelligence.dump.age",
+    "archive_sha256": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "manifest_checksum_verified": true,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_method": "age streamed directly to pg_restore with --single-transaction --no-owner --no-privileges; no plaintext dump file",
+    "target_database": "kokonut_restore",
+    "selected_aggregate_counts": {
+      "location": 2,
+      "schema_migration": 376
+    }
+  },
+  "source": {
+    "commit": "41c481fac6fc7d6286eee771071fd43894bbf100",
+    "source_sha256": {
+      "services/mobile/tenant_preflight.py": "2ea6f819d72c875d62ea7c552807b058942f0b46d80e14700002749455f61673"
+    }
+  },
+  "fixture": {
+    "compose_project": "kokonut-kernel-tenant-preflight-20261013",
+    "runner_image": "sha256:92e883c1153e703dc82ae5f099d236b3b4a9992a52d0f35052d515469450254f",
+    "network_internal": true,
+    "published_ports": [],
+    "long_running_services": ["database"],
+    "status_after_check": "stopped and removed",
+    "volume": "kokonut-kernel-tenant-preflight-20261013_recovery-postgres-data",
+    "volume_retained": true,
+    "credentials": "synthetic; values intentionally omitted"
+  },
+  "verification": {
+    "command": "python3 -m services.cli mobile-tenant-preflight",
+    "exit_code": 0,
+    "transaction": {
+      "isolation_level": "repeatable read",
+      "read_only": true,
+      "statement_timeout": "15 seconds"
+    },
+    "inventory_status": "schema_incomplete",
+    "schema_coverage": {
+      "required_column_count": 27,
+      "available_column_count": 16,
+      "missing_column_count": 11,
+      "missing_columns": [
+        "farm_activity_workflow_event.location_id",
+        "mobile_collection_review_event.location_id",
+        "mobile_device.revoked_at",
+        "mobile_device_enrollment.expires_at",
+        "mobile_device_enrollment.location_id",
+        "mobile_device_enrollment.revoked_at",
+        "mobile_device_enrollment.used_at",
+        "mobile_media_upload.location_id",
+        "mobile_media_upload.status",
+        "v_mobile_collection_use_eligibility.collection_id",
+        "v_mobile_collection_use_eligibility.eligible_for_use"
+      ]
+    },
+    "schema_state": {
+      "migration_history_available": true,
+      "latest_applied_migration": "schema:352_attestation_request_anchor_fields.sql",
+      "migration_ordering_basis": "schema_migration_id"
+    },
+    "inventory_queries_skipped": true,
+    "raw_identifiers_or_payloads_emitted": false,
+    "records_changed": false,
+    "test_suite_run": false,
+    "syntax_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The snapshot predates required Field Collector and farm-activity inventory columns; ownership and lineage counts were intentionally not queried.",
+    "The two-location aggregate confirms a populated restore but does not resolve which organization owns any location.",
+    "No ownership backfill, tenant grant, RLS migration, candidate operation, or legacy-stack operation occurred."
+  ]
+}

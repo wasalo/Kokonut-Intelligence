@@ -25,6 +25,12 @@ verified encrypted checkpoint, builds images, applies migrations, applies
 idempotent reference setup, restarts Compose services, runs health checks, and
 executes `verify-platform.sh`.
 
+Before applying any pending PostgreSQL schema migrations, the migration runner
+creates locked `NOLOGIN` placeholders for optional runtime, worker, and
+Directus roles referenced by migration ACL statements. Existing roles are
+preserved, and the Directus provisioning command can promote its placeholder to
+the configured least-privilege login after schema replay.
+
 Pilot data is not loaded by default. Metric recomputation remains a separate,
 operator-controlled action.
 
@@ -32,7 +38,16 @@ operator-controlled action.
 
 Every normal upgrade creates a checkpoint under `backups/`. The checkpoint has
 a manifest and SHA-256 checksums. PostgreSQL uses custom-format archives and
-ClickHouse uses encrypted schema and table exports.
+ClickHouse uses encrypted schema and table exports when the ClickHouse provider
+is enabled. The manifest records which providers and databases are included.
+
+For a PostgreSQL-only Kernel profile, set `KOKONUT_FEATURE_CLICKHOUSE=false`;
+backup and restore then require only PostgreSQL and its credentials. When
+ClickHouse is enabled, backup refuses to create a checkpoint unless its service
+is running, and restore checks for the required services before applying any
+database archive. Rollback performs this read-only restore preflight before it
+stops application services. These checkpoints do not include private media,
+external object stores, or provider-managed state.
 
 Rollback is never automatic. First preserve logs and inspect the failure, then
 run the explicit operator-confirmed command:

@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "446_location_scoped_stakeholder_identity_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration application",
+    "direct table denial",
+    "scope-qualified functions under synthetic tenant context",
+    "independent reviewer enforcement",
+    "decision retry and collision handling",
+    "legacy-link conflict and approved-source guards",
+    "withdrawn-consent source concealment and approval denial",
+    "append-only decision history"
+  ],
+  "assertions_passed": 8
+}

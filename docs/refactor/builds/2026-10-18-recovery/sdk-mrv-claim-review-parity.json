@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript MRV claim and verification review SDK schema parity",
+  "models": ["MrvClaim", "VerificationReview"],
+  "source_tables": [
+    "schemas/postgres/005_environmental.sql:mrv_claim",
+    "schemas/postgres/005_environmental.sql:verification_review"
+  ],
+  "mrv_claim_additive_columns": {
+    "schemas/postgres/011_sensor_registry.sql": [
+      "sensor_device_id", "sensor_alert_id", "source_readings"
+    ],
+    "schemas/postgres/013_prd_completion.sql": [
+      "source_system", "source_id", "source_raw"
+    ],
+    "schemas/postgres/029_impact_accountability_foundation.sql": [
+      "evidence_maturity", "external_verifier", "methodology_ref", "public_claim"
+    ]
+  },
+  "schema_guard": {
+    "models": 56,
+    "canonical_columns": 1209,
+    "scalar_types": 1133,
+    "postgis_shapes": 10,
+    "jsonb_shapes": 66,
+    "enum_fields": 21,
+    "check_literal_fields": 36
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 62 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The SDK records claim and review data but does not verify claims, advance lifecycle, or submit EAS attestations.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

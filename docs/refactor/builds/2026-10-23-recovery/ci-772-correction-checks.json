@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-23",
+  "hosted_ci": {
+    "run_number": 772,
+    "run_id": 39977632962,
+    "head_sha": "7f4acf7348bd9c772bf07cff6d02c70cb942bc6f",
+    "result": "failed",
+    "failed_tests": 7,
+    "failure_classes": [
+      "agent lifecycle SQLSTATE/message assertion reflected the prior trigger contract",
+      "agent write-boundary generated inventory and test retained stale source line numbers",
+      "EBF worker assertion used the summary worker identity instead of the dedicated EBF identity",
+      "weather outbox test fixture omitted parsed weather fields and failed before exercising the outbox",
+      "restore-role prerequisites omitted kokonut_agent_task_summary_writer from migration 595",
+      "report helper test pinned source line numbers instead of query count and contract"
+    ]
+  },
+  "local_fixes": [
+    "updated lifecycle error assertion to SQLSTATE 42501 and current message",
+    "regenerated agent write-boundary inventory and made semantic test independent of source line offsets",
+    "aligned EBF test credential and reader role with task-specific database identity",
+    "provided complete synthetic weather payload so outbox failure is reached",
+    "added migration-owned task writer role to isolated restore prerequisites",
+    "removed brittle helper source line assertions"
+  ],
+  "verification": {
+    "focused_tests": {
+      "result": "passed",
+      "passed": 67,
+      "skipped_database_only": 9,
+      "candidate_database_reachable": false
+    },
+    "migration_598_disposable_postgresql_16_4": {
+      "result": "passed",
+      "replay_count": 2,
+      "assertions": 9,
+      "network_mode": "none",
+      "host_ports_published": false,
+      "host_mounts": false,
+      "cleanup_completed": true
+    },
+    "ruff": "passed",
+    "agent_write_boundary_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "git_diff_check": "passed"
+  },
+  "candidate_or_legacy_touched": false
+}

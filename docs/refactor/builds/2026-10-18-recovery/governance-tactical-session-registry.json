@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "capability": "MAN-CAP-024",
+  "slice": "location-scoped tactical session registry",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tactical-sessions",
+      "policy": "governance_tactical:read"
+    }
+  ],
+  "behavior": [
+    "Signed operator tenant context is set before query execution.",
+    "Query filters circles by location scope and bounds page size to 100.",
+    "Keyset cursor is validated against a session in the requested location.",
+    "Projection includes session/circle labels and item counts only.",
+    "Session notes, agenda, outcome summary, actor identities, and item party identities are excluded.",
+    "Console renders the summary with textContent and uses same-origin no-store fetches."
+  ],
+  "verification": {
+    "pytest_command": "python3 -m pytest tests/test_gateway_governance_operations.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_governance_assignment_proposals.py -q",
+    "pytest_passed": 38,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "javascript_syntax": "passed via console contract test",
+    "capability_matrix": "passed: 66 rows; 45 baseline-retained, 7 deployed, 14 prepared",
+    "runtime_sql_inventory": "passed: 850 service source files, 4113 execution sites",
+    "diff_check": "passed"
+  },
+  "database_or_provider_access": "none",
+  "migration": "none",
+  "candidate_or_legacy_changed": false,
+  "classification": "prepared; MAN-CAP-024 not accepted",
+  "remaining_gates": [
+    "tactical session and item creation/edit parity",
+    "populated reference-data parity",
+    "least-privilege runtime rollout",
+    "domain-table RLS",
+    "live OIDC and browser acceptance",
+    "named MAN-CAP-024 acceptance"
+  ]
+}

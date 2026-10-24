@@ -1,13 +1,13 @@
 """Unit tests for Data Stream feature."""
 
 import hashlib
-import json
+import re
 import uuid
-from unittest.mock import MagicMock, patch
+from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -104,13 +104,36 @@ class TestCreatePost:
         )
         assert result["id"] == POST_ID
 
+    def test_create_post_normalizes_explicit_expiry_to_utc(self):
+        from services.data_stream.post import create_post
+
+        conn = _fake_conn(rows={"id": POST_ID, "created_at": "2026-07-01"})
+        create_post(
+            conn,
+            location_id=LOCATION_ID,
+            title="Expiring post",
+            expires_at="2026-10-19T12:00:00-04:00",
+        )
+
+        params = conn.execute.call_args.args[1]
+        assert params["expires_at"] == datetime(2026, 10, 19, 16, tzinfo=timezone.utc)
+        assert "expires_at" in conn.execute.call_args.args[0]
+
+    @pytest.mark.parametrize("expires_at", ["2026-10-19T12:00:00", datetime(2026, 10, 19, 12)])
+    def test_create_post_rejects_timezone_naive_expiry_before_database(self, expires_at):
+        from services.data_stream.post import create_post
+
+        conn = _fake_conn()
+        with pytest.raises(ValueError, match="timezone"):
+            create_post(conn, location_id=LOCATION_ID, title="Naive expiry", expires_at=expires_at)
+        conn.execute.assert_not_called()
+
     def test_create_post_markdown_content(self):
-        from services.data_stream.post import create_post, _compute_content_hash
+        from services.data_stream.post import create_post
         conn = _fake_conn(rows={"id": POST_ID, "created_at": "2026-07-01"})
         content = "# Heading\n\n**Bold text** and [link](https://example.com)"
         result = create_post(conn, location_id=LOCATION_ID, title="MD Post", content=content)
         assert result["id"] == POST_ID
-        expected_hash = hashlib.sha256(content.encode()).hexdigest()
         call_kwargs = conn.execute.call_args
         assert call_kwargs is not None
 
@@ -140,6 +163,19 @@ class TestUpdatePost:
         result = update_post(conn, POST_ID, title="Updated Title")
         assert result["id"] == POST_ID
         assert "title" in result["updated_fields"]
+
+    def test_update_post_can_set_or_clear_expiry(self):
+        from services.data_stream.post import update_post
+
+        conn = _fake_conn()
+        result = update_post(conn, POST_ID, expires_at="2026-10-19T12:00:00Z")
+        assert "expires_at" in result["updated_fields"]
+        assert conn.execute.call_args.args[1]["expires_at"] == datetime(
+            2026, 10, 19, 12, tzinfo=timezone.utc
+        )
+
+        update_post(conn, POST_ID, expires_at=None)
+        assert conn.execute.call_args.args[1]["expires_at"] is None
 
     def test_update_post_invalid_type(self):
         from services.data_stream.post import update_post
@@ -226,6 +262,32 @@ class TestStream:
 # ---------------------------------------------------------------------------
 
 class TestAnchor:
+    def test_anchor_batch_redacts_failure_and_keeps_partial_success(self, monkeypatch):
+        from services.data_stream import anchor
+
+        secret = "postgres://operator:password@db.example.invalid/private"
+        monkeypatch.setattr(
+            anchor,
+            "anchor_post",
+            MagicMock(side_effect=[
+                {"post_id": "post-ok", "attestation_request_id": "request-1", "chain": "celo"},
+                RuntimeError(secret),
+            ]),
+        )
+
+        result = anchor.anchor_batch(MagicMock(), ["post-ok", "post-failed"])
+
+        assert result["total"] == 2
+        assert result["pending"] == 1
+        assert result["errors"] == 1
+        assert result["results"][0]["status"] == "pending"
+        assert result["results"][1] == {
+            "post_id": "post-failed",
+            "status": "error",
+            "error": "anchor request failed (RuntimeError)",
+        }
+        assert secret not in repr(result)
+
     def test_anchor_post(self):
         from services.data_stream.anchor import anchor_post
         conn = _fake_conn_sequential([
@@ -366,6 +428,42 @@ class TestReportGenerator:
         assert report["total_posts"] == 2
         assert report["anchored_posts"] == 1
         assert report["by_type"]["photo"] == 1
+
+    @pytest.mark.parametrize(
+        ("period_start", "period_end", "expected_params"),
+        [
+            (None, None, {"location_id": LOCATION_ID}),
+            ("2026-01-01", None, {"location_id": LOCATION_ID, "period_start": "2026-01-01"}),
+            (None, "2026-01-31", {"location_id": LOCATION_ID, "period_end": "2026-01-31"}),
+            (
+                "2026-01-01",
+                "2026-01-31",
+                {
+                    "location_id": LOCATION_ID,
+                    "period_start": "2026-01-01",
+                    "period_end": "2026-01-31",
+                },
+            ),
+        ],
+    )
+    def test_data_stream_summary_named_binds_match_optional_period_filters(
+        self, period_start, period_end, expected_params
+    ):
+        from services.export.report_generator import generate_data_stream_summary
+
+        conn = _fake_conn()
+        generate_data_stream_summary(
+            conn,
+            LOCATION_ID,
+            period_start=period_start,
+            period_end=period_end,
+        )
+
+        sql, params = conn.execute.call_args.args
+        sql_bind_names = set(re.findall(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)", sql))
+        assert sql_bind_names == set(expected_params)
+        assert params == expected_params
+        assert "dsp.location_id = :location_id" in sql
 
 
 # ---------------------------------------------------------------------------

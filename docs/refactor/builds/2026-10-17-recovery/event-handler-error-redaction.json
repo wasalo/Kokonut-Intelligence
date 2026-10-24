@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "EventBus child-process handler failure protocol",
+  "behavior": {
+    "child_protocol": "Handler exceptions return a fixed message and a validated exception-class field; malformed JSON returns a bounded request error.",
+    "parent_persistence": "The EventBus ignores arbitrary child error text and persists only a bounded class summary or fixed fallback.",
+    "retry_behavior": "Handler failure status, retry flow, and dead-letter state are unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_event_handler_runner.py tests/test_event_bus_durability.py -q",
+    "result": "34 passed",
+    "coverage": [
+      "handler exceptions do not leak credential or row payload text",
+      "malformed child JSON does not echo request contents",
+      "parent does not trust raw error strings returned by the worker child",
+      "valid exception class remains available to operators",
+      "existing EventBus retry, timeout, and dead-letter contracts remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; child process and EventBus are mocked"
+  },
+  "limitations": [
+    "No worker process or database was started.",
+    "This validates protocol/source behavior; durable live delivery recovery remains open."
+  ]
+}

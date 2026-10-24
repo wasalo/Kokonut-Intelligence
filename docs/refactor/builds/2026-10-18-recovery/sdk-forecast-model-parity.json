@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript forecast scenario/output schema parity",
+  "models": [
+    "ForecastScenario",
+    "ForecastOutput"
+  ],
+  "source_tables": [
+    "schemas/postgres/007_modeled_outputs.sql:forecast_scenario",
+    "schemas/postgres/007_modeled_outputs.sql:forecast_output"
+  ],
+  "constraints": [
+    "schemas/postgres/015_constraints.sql:forecast_scenario.status::lifecycle_status"
+  ],
+  "schema_guard": {
+    "models": 33,
+    "canonical_columns": 673,
+    "scalar_types": 629,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 36,
+    "enum_fields": 18,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 45 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The types expose scenario data and stored forecast results; they do not run forecast calculations or verify outputs.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Demo-only ClickHouse projection fallback logging for EAS, Gnosis, and remote sensing",
+  "behavior": {
+    "fallback_logs": "Raw ClickHouse exception details are replaced with the exception class across attestation, governance activity, dLEGO, and remote-sensing fallbacks.",
+    "transactional_path": "Connection-backed outbox failures continue to propagate to the transaction owner unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_clickhouse_fallback_error_redaction.py tests/test_ingestion_outbox_producers.py tests/test_eas_indexer_recovery.py tests/test_gnosis_indexer_recovery.py tests/test_remote_sensing_worker.py -q",
+    "result": "63 passed",
+    "new_regressions": 4,
+    "coverage": [
+      "EAS ClickHouse fallback redacts endpoint details",
+      "Gnosis dLEGO fallback redacts endpoint details",
+      "Gnosis activity fallback redacts endpoint details",
+      "remote-sensing fallback redacts endpoint details",
+      "existing outbox propagation and worker recovery behavior remains covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; provider and sink failures are mocked"
+  },
+  "limitations": [
+    "No database, ClickHouse service, or provider was contacted.",
+    "Live delivery and service recovery remain open."
+  ]
+}

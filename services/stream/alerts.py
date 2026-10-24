@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("stream.alerts")
@@ -185,9 +184,9 @@ class StreamAlertEvaluator:
             conn.commit()
             logger.info("Stream alert created: %s [%s] %s", alert_type, severity, message[:100])
             return alert_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to create stream alert")
+            logger.error("Failed to create stream alert (%s)", safe_exception_class(exc))
             raise
 
     def acknowledge(self, alert_id: str, acknowledged_by: str) -> bool:
@@ -207,9 +206,9 @@ class StreamAlertEvaluator:
                 result = cur.fetchone()
             conn.commit()
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to acknowledge alert")
+            logger.error("Failed to acknowledge stream alert (%s)", safe_exception_class(exc))
             return False
 
     def list_unacknowledged(self, severity: str | None = None, limit: int = 50) -> list[dict]:
@@ -250,6 +249,6 @@ class StreamAlertEvaluator:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list unacknowledged alerts")
+        except Exception as exc:
+            logger.error("Failed to list unacknowledged alerts (%s)", safe_exception_class(exc))
             return []

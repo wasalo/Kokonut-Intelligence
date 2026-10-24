@@ -1,7 +1,6 @@
 import copy
 import hashlib
 import json
-import os
 import tempfile
 import unittest
 from datetime import date
@@ -493,8 +492,7 @@ class ApplyPlanTests(unittest.TestCase):
         )
 
     def test_prepare_apply_projection_rejects_manifest_hash_mismatch(self):
-        scratch_dir = Path(os.environ.get("TMPDIR", "/home/ubuntu/.hermes/cache/scratch"))
-        with tempfile.TemporaryDirectory(prefix="ki21-apply-test-", dir=scratch_dir) as temporary_dir:
+        with tempfile.TemporaryDirectory(prefix="ki21-apply-test-") as temporary_dir:
             paths = {name: Path(temporary_dir) / name for name in ("export.json", "manifest.json", "crosswalk.md", "allowlist.json")}
             export_bytes = json.dumps({"id": "115056", "tables": []}).encode("utf-8")
             actual_digest = hashlib.sha256(export_bytes).hexdigest()

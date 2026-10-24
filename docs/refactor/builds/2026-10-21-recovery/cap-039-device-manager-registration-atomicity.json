@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-21",
+  "source_revision": "b3d0e2dfc5105d8e1047b797c8be4ea25adab913",
+  "scope": "Atomic location-scoped sensor device registration and CLI forwarding",
+  "invocation": "device_manager --register --device-id <synthetic-slug> --sensor-type <synthetic-type> --location-id <synthetic-location-uuid>",
+  "verification": {
+    "focused_tests": "29 passed across device-manager service and CLI contract tests",
+    "coverage": [
+      "standalone and unified registration commands forward the same device, sensor type, location, name, and protocol",
+      "device and initial health records share one commit",
+      "health-row insertion failure rolls back device creation",
+      "unknown sensor types and cross-location slug conflicts roll back and close the cursor",
+      "device read/list CLI scope, output parity, and preflight checks remain passing"
+    ],
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted; all database interactions used mocks",
+    "provider": "not contacted"
+  },
+  "result": "PASS: registration and initial health setup now form one transaction; failure rolls back instead of leaving a device without its health row.",
+  "limitations": [
+    "This is mocked transaction and CLI coverage; it does not verify a live PostgreSQL transaction or authorization.",
+    "The legacy CLI still is not a tenant-authenticated operator surface."
+  ]
+}

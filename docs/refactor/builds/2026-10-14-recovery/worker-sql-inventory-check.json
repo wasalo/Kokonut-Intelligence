@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Retain a source-only inventory of direct SQL execution calls found in the allowlisted worker import closure.",
+  "command": "python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json",
+  "inventory": "docs/refactor/worker-sql-inventory.json",
+  "operation_roots": 17,
+  "source_files": 69,
+  "execution_sites": 196,
+  "static_literal_sites": 166,
+  "composed_or_variable_sites": 30,
+  "statement_kind_counts": {
+    "DELETE": 2,
+    "INSERT": 40,
+    "RELEASE": 1,
+    "ROLLBACK": 1,
+    "SAVEPOINT": 1,
+    "SELECT": 109,
+    "SET": 3,
+    "UNKNOWN": 3,
+    "UPDATE": 28,
+    "WITH": 8
+  },
+  "unknown_statement_kind_sites": 3,
+  "stored_query_text": false,
+  "stored_runtime_values": false,
+  "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_sql_inventory.py tests/test_worker_source_closure.py tests/test_worker_operation_map.py -q",
+  "focused_tests": {
+    "passed": 21,
+    "failed": 0
+  },
+  "limits": [
+    "Candidate relation names are regex-derived hints and are not authoritative SQL parsing.",
+    "The source inventory is not a function-level call graph, complete effect map, authorization policy, or least-privilege grant list.",
+    "Database functions/views, provider effects, populated-data replay safety, and worker tenant identity remain open.",
+    "No candidate or legacy database was accessed and no migration was required."
+  ]
+}

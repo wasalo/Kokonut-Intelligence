@@ -12,6 +12,7 @@ later, mirroring Keynes's external-deficit / allied-financing idea.
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from services.agents.safety import assert_agent_action_allowed
@@ -36,6 +37,40 @@ def _clean(row: Any) -> Dict[str, Any]:
     return dict(row) if isinstance(row, dict) else dict(row)
 
 
+def _same_credit_request(existing: Any, requested: tuple) -> bool:
+    """Compare the immutable request fields for an idempotency-key retry."""
+    if isinstance(existing, dict):
+        fields = (
+            "location_id", "contributor_party_id", "source_type", "source_ref_id",
+            "withheld_amount", "unit", "redeemable_against", "created_by",
+        )
+        values = tuple(existing.get(field) for field in fields)
+    else:
+        values = tuple(existing)
+
+    if len(values) != len(requested):
+        return False
+
+    # Database UUID values arrive as UUID objects while callers usually pass
+    # strings. Compare their canonical text without changing SQL parameters.
+    id_indexes = {0, 1, 3, 7}
+    for index, (actual, expected) in enumerate(zip(values, requested)):
+        if index in id_indexes:
+            if (str(actual) if actual is not None else None) != (
+                str(expected) if expected is not None else None
+            ):
+                return False
+        elif index == 4:
+            try:
+                if Decimal(str(actual)) != Decimal(str(expected)):
+                    return False
+            except (InvalidOperation, ValueError):
+                return False
+        elif actual != expected:
+            return False
+    return True
+
+
 def propose_credit(
     conn,
     location_id: str,
@@ -56,7 +91,11 @@ def propose_credit(
         raise ValueError(f"invalid source_type: {source_type}")
     if redeemable_against not in _ALLOWED_REDEEM:
         raise ValueError(f"invalid redeemable_against: {redeemable_against}")
-    if withheld_amount <= 0:
+    try:
+        amount = Decimal(str(withheld_amount))
+    except (InvalidOperation, TypeError, ValueError):
+        amount = Decimal("NaN")
+    if not amount.is_finite() or amount <= 0:
         raise ValueError("withheld_amount must be positive")
 
     idem = idempotency_key or f"regen-credit-{uuid.uuid4().hex}"
@@ -85,12 +124,45 @@ def propose_credit(
             ),
         )
         row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                """
+                SELECT id, credit_status, location_id, contributor_party_id, source_type,
+                       source_ref_id, withheld_amount, unit, redeemable_against, created_by
+                FROM regenerative_credit_ledger
+                WHERE idempotency_key = %s
+                """,
+                (idem,),
+            )
+            existing = cur.fetchone()
     finally:
         cur.close()
 
     if row is None:
-        return {"status": "skipped", "idempotency_key": idem,
-                "reason": "idempotency_key already present"}
+        if not existing:
+            return {
+                "status": "skipped",
+                "idempotency_key": idem,
+                "reason": "idempotency key conflict row no longer exists",
+            }
+        existing_values = (
+            existing[2], existing[3], existing[4], existing[5],
+            existing[6], existing[7], existing[8], existing[9],
+        ) if not isinstance(existing, dict) else existing
+        requested_values = (
+            location_id, contributor_party_id, source_type, source_ref_id,
+            withheld_amount, unit, redeemable_against, created_by,
+        )
+        if not _same_credit_request(existing_values, requested_values):
+            raise ValueError("idempotency_key was reused with a different credit request")
+        existing_id = existing.get("id") if isinstance(existing, dict) else existing[0]
+        existing_status = existing.get("credit_status") if isinstance(existing, dict) else existing[1]
+        return {
+            "id": str(existing_id),
+            "credit_status": existing_status,
+            "idempotency_key": idem,
+            "status": "duplicate",
+        }
     rid = row[0] if isinstance(row, (list, tuple)) else list(row.values())[0]
     return {
         "id": str(rid),

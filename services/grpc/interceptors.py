@@ -6,6 +6,7 @@ import time
 
 import grpc
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("grpc.interceptor")
@@ -25,5 +26,10 @@ class LoggingInterceptor(grpc.ServerInterceptor):
             return response
         except Exception as e:
             elapsed = time.time() - start
-            logger.error("gRPC %s failed after %.3fs: %s", method, elapsed, e)
+            logger.error(
+                "gRPC %s failed after %.3fs (%s)",
+                method,
+                elapsed,
+                safe_exception_class(e),
+            )
             raise

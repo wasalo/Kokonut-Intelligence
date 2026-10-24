@@ -110,7 +110,18 @@ Supported flags are `--type`, repeatable `--location-id`, `--all`, `--period-sta
 
 `--auto` attempts all registered report generators independently. Successful reports may persist when other generators fail, the command exits nonzero if any generator fails, and there is no all-or-nothing transaction across the report set.
 
-`--all` passes the literal scope `all`; only network-aware generators interpret it as a network scope. Many location-specific generators require a UUID and may fail for `all` or multiple location IDs. Period arguments are forwarded to generators, but there is no universal report-level date-filtering contract.
+`--all` passes the literal scope `all`; the CLI rejects it for single-report
+types without an implemented aggregate scope. Repeatable location IDs are
+limited to Business Plan, Comprehensive Status, State of Kokonut, State of
+Kokonut Graphs, and Strategic Reserve; other single-report types reject more
+than one ID before opening PostgreSQL. Location IDs are parsed as UUIDs and
+normalized; date arguments must be valid `YYYY-MM-DD` values with the start no
+later than the end. `--list` accepts at most one location, and `--auto` accepts
+one location or `--all` because the registered generators
+do not share one multi-location contract. For `--auto --all`, generators that
+do not implement the literal `all` scope can still fail independently while
+successful reports are retained. Period arguments are forwarded to generators,
+but there is no universal report-level date-filtering contract.
 
 ## Report-Specific Limitations
 

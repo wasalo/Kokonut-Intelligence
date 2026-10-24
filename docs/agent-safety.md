@@ -1,13 +1,13 @@
 # Agent Safety
 
-Kokonut agents assist with drafts, exports, synthesis, and review preparation. They do not replace human governance. Every agent write is guarded by four enforcement layers that prevent agents from verifying, publishing, or modifying human-governed records.
+Kokonut agents assist with drafts, exports, synthesis, and review preparation. They do not replace human governance. Python policy, optional Directus hooks, database constraints, and audit records have different coverage; database least privilege for agent identities remains unimplemented.
 
 ## Rules
 
-1. **Agents can create draft outputs.** Agents may write records with status `draft`, `submitted`, or `rejected` on governed collections.
-2. **Agents can submit or reject their own outputs** where hooks allow it. Agents may transition their own `agent_task` and `ai_summary` records between draft, submitted, and rejected.
+1. **Agents can create draft outputs and submit them for review** where a task explicitly declares that capability. The task catalogue accepts only `draft` and `submitted` write targets.
+2. **Agents cannot perform human review actions.** Verification, publication, attestation, on-chain submission, deletion, bulk update, and financial writes are denied before execution.
 3. **Agents cannot verify or publish their own outputs.** The statuses `verified` and `published` are reserved for human actors.
-4. **High-risk actions require human approval and audit logging.** Any action in `HIGH_RISK_ACTIONS` is automatically flagged for human review.
+4. **High-risk intent is not execution approval.** The Python policy denies every action in `HIGH_RISK_ACTIONS`; the `requires_human_approval` flag is audit metadata, not an authorization token or approval workflow.
 
 ## Governed Collections
 
@@ -56,10 +56,11 @@ Beyond draft creation, agents cannot modify these records.
 
 ## High-Risk Actions
 
-The constant `HIGH_RISK_ACTIONS` in `services/agents/safety.py:12-20` defines seven actions:
+The constant `HIGH_RISK_ACTIONS` in `services/agents/safety.py` defines eight denied actions:
 
 | Action | What it means |
 |---|---|
+| `verify` | Verify or review a governed output |
 | `publish` | Make a record publicly visible |
 | `attest` | Create an on-chain or off-chain attestation |
 | `onchain_submit` | Submit a transaction to a blockchain |
@@ -68,10 +69,12 @@ The constant `HIGH_RISK_ACTIONS` in `services/agents/safety.py:12-20` defines se
 | `financial_write` | Write to financial records (expenses, sales, revenue) |
 | `status_change_to_published` | Transition any record to `published` status |
 
-When a high-risk action is detected:
-- The `agent_action_log` entry is auto-tagged with `high_risk = true` and `requires_human_approval = true`
-- The action is logged with a `payload_hash` (SHA-256) for tamper-evident audit trails
-- Human approval is required before execution
+When a high-risk action is detected, Python returns a denied decision and
+`assert_agent_action_allowed()` raises before the operation proceeds. Directus
+action-log hooks mark recognized high-risk log entries for review; that marker
+does not authorize an action. A separate human-controlled workflow must perform
+any later verification, publication, or attestation. The current agent task
+catalogue does not provide a human-approval token or an execution endpoint.
 
 ## EBF-Specific Rules
 
@@ -110,40 +113,60 @@ PostgreSQL Write
     v
 Audit Log
     |
-    | 4. agent_action_log entry
+    | 4. Explicit audit_agent_action() call
     |    high_risk, requires_human_approval,
-    |    payload_hash, metadata JSONB
+    |    payload_hash, metadata JSONB (not automatic)
 ```
 
 ### Layer 1: Python Preflight Guards
 
 **File:** `services/agents/safety.py`
 
-Every agent module calls `assert_agent_action_allowed(action, collection, payload)` before any write. This function calls `assess_agent_action()` which runs a 10-step decision cascade:
+The Python policy calls `assess_agent_action()` before guarded writes. High-risk
+actions and malformed inputs are denied before collection-specific draft
+exceptions are considered.
+The task catalogue separately validates every declared write target and is
+checked before shared and standalone task execution paths open a database
+connection. This function then evaluates collection and status rules:
 
-1. Check `coordination_alliance` draft exception
-2. Check draftable collection exceptions (`governance_tension`, `governance_proposal`, `governance_tactical_item`, `regenerative_credit_ledger`)
-3. Block non-read actions on governance collections beyond draft creation
-4. Block non-read actions on `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS`
-5. Check `agent_task.review_status` against allowed statuses
-6. Check `ai_summary.status` against allowed statuses
-7. Check EBF collection statuses against allowed statuses
-8. Check EBF evidence maturity level cap (≤ 3)
-9. Check all other governed collection statuses against allowed statuses
-10. Block `status_change_to_published` unconditionally
+1. Deny every `HIGH_RISK_ACTIONS` execution
+2. Check `coordination_alliance` draft exception
+3. Check draftable collection exceptions (`governance_tension`, `governance_proposal`, `governance_tactical_item`, `regenerative_credit_ledger`)
+4. Block non-read actions on governance collections beyond draft creation
+5. Block non-read actions on `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS`
+6. Check `agent_task.review_status` against allowed statuses
+7. Check `ai_summary.status` against allowed statuses
+8. Check EBF collection statuses against allowed statuses
+9. Check EBF evidence maturity level cap (≤ 3)
+10. Check all other governed collection statuses against allowed statuses
 
-Returns a `SafetyDecision` dataclass:
+Returns a `SafetyDecision` dataclass. `allowed=False` is authoritative; a
+`requires_human_approval=True` result never makes an action executable.
+
+The repository migration 350 trigger is defense in depth for status updates
+only. It reads `app.agent_id`, which is a transaction setting rather than a
+database-authenticated principal, and it does not block inserts. It therefore
+does not establish a least-privilege database boundary for agents. That remains
+an open Kernel acceptance gate.
+
+The Python `set_agent_context()` compatibility helper is disabled and raises
+before executing SQL. A caller-controlled `SET LOCAL app.agent_id` value cannot
+establish agent identity. Use an authenticated operator path or a signed worker
+context; neither pattern currently authenticates the legacy/background agent
+writers, so their runtime identity and database privileges remain open work.
 
 ```python
 @dataclass(frozen=True)
 class SafetyDecision:
-    allowed: bool          # Whether the action is permitted
+    allowed: bool          # Whether the operation may proceed
     high_risk: bool        # Whether the action is in HIGH_RISK_ACTIONS
-    requires_human_approval: bool  # Whether human approval is needed
+    requires_human_approval: bool  # Review metadata; not an execution grant
     reason: str            # Human-readable explanation
 ```
 
-Agents should call `audit_agent_action()` after execution to log the result to `agent_action_log`.
+`audit_agent_action()` can write a classification to `agent_action_log` when a
+caller explicitly invokes it. The safety guard does not automatically create
+an audit row, and an audit row is not an approval grant.
 
 ### Layer 2: Directus Hook Filters
 
@@ -264,8 +287,8 @@ python3 -m services.agents.regenerator_agent --location-id <uuid>
 python3 -m services.agents.open_source_capitalist_agent --location-id <uuid>
 python3 -m services.agents.kokonut_commons_agent --location-id <uuid>
 python3 -m services.agents.bio_factory_agent --location-id <uuid>
-python3 -m services.agents.ecological_modeling_agent --location-id <uuid>
-python3 -m services.agents.organic_readiness_agent --location-id <uuid>
+python3 -m services.agents.worker_cli --task-key organic_readiness_synthesis --location-id <uuid> --request-id <uuid>
+python3 -m services.agents.worker_cli --task-key ecological_modeling_synthesis --location-id <uuid> --request-id <uuid>
 python3 -m services.agents.ebf_scorecard_agent --help
 python3 -m services.agents.ebf_evidence_gap_agent --help
 python3 -m services.agents.ebf_calibration_agent --help

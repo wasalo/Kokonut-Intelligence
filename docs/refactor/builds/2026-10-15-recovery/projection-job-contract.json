@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_contract_and_static_inventory",
+  "projection_job": {
+    "job": "projections",
+    "module": "services.ingestion.clickhouse_outbox",
+    "default_arguments": ["--run-once", "--limit", "100"],
+    "status": "accepted",
+    "manual_list_replay_disposal_reconcile": "rejected_by_scheduled_contract",
+    "scheduled": false
+  },
+  "inventory_counts": {
+    "scheduled_allowlisted_modules": 14,
+    "event_handlers": 5,
+    "worker_operation_roots": 19,
+    "job_specs": 15,
+    "default_arguments_accepted": 12,
+    "default_arguments_rejected": 2,
+    "modules_not_allowlisted": 1,
+    "worker_sql_sites": 244,
+    "worker_sql_sites_without_static_function_match": 34
+  },
+  "focused_tests": {
+    "result": "passed",
+    "count": 116,
+    "suites": [
+      "scheduled command contracts",
+      "worker operation map",
+      "worker function reachability",
+      "worker SQL reachability",
+      "worker source closure",
+      "worker boundary preflight",
+      "ClickHouse outbox",
+      "core job contracts"
+    ]
+  },
+  "ruff": "passed",
+  "generated_inventory_checks": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "schedule_registered_or_activated": false,
+  "scope_limit": "This makes the existing bounded ClickHouse outbox JobSpec an optional supported scheduler capability. It does not configure ClickHouse, activate any task, reconcile persisted schedules, prove delivery parity, or establish a worker database identity/tenant boundary."
+}

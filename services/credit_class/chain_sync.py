@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
 
 from services.common.logging import get_logger
 
@@ -100,8 +99,8 @@ def _get_web3_and_contract(
     contract_address: str | None = None,
 ):
     """Return (w3, account, contract) for on-chain credit operations."""
-    from web3 import Web3
     from eth_account import Account
+    from web3 import Web3
 
     from services.ingestion.config import CHAIN_RPC_MAP
 
@@ -109,15 +108,22 @@ def _get_web3_and_contract(
     if not rpc_url:
         raise ValueError(f"No RPC URL configured for chain: {chain}")
 
-    w3 = Web3(Web3.HTTPProvider(rpc_url))
-    if not w3.is_connected():
-        raise ConnectionError(f"Cannot connect to {chain} RPC at {rpc_url}")
+    try:
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        connected = w3.is_connected()
+    except Exception as exc:
+        raise ConnectionError(f"Could not initialize {chain} RPC client ({type(exc).__name__})") from None
+    if not connected:
+        raise ConnectionError(f"Cannot connect to {chain} RPC")
 
     pk = private_key or os.environ.get("CREDIT_ISSUER_PRIVATE_KEY", "")
     if not pk:
         raise ValueError("No private key. Set CREDIT_ISSUER_PRIVATE_KEY env var or pass private_key.")
 
-    account = Account.from_key(pk)
+    try:
+        account = Account.from_key(pk)
+    except Exception as exc:
+        raise ValueError(f"Invalid CREDIT_ISSUER_PRIVATE_KEY ({type(exc).__name__})") from None
     abi = _load_abi()
     addr = w3.to_checksum_address(contract_address) if contract_address else None
     contract = w3.eth.contract(address=addr, abi=abi) if addr else None
@@ -136,8 +142,8 @@ def _compute_token_id(
 
     tokenId = uint256(keccak256(abi.encode(batchId, vintageYear, recipient, serialNumber)))
     """
-    from web3 import Web3
     from eth_abi import encode
+    from web3 import Web3
 
     encoded = encode(
         ["bytes32", "uint256", "address", "uint256"],
@@ -281,8 +287,13 @@ def sync_credits_to_chain(
                 amount, token_id, recipient, receipt.transactionHash.hex(),
             )
         except Exception as e:
-            logger.error("Failed to mint %d credits for %s: %s", amount, recipient, e)
-            raise
+            logger.error(
+                "Failed to mint %d credits for %s (%s)",
+                amount,
+                recipient,
+                type(e).__name__,
+            )
+            raise RuntimeError(f"on-chain mint failed ({type(e).__name__})") from None
 
     return {
         "batch_id": credit_batch_id,
@@ -356,10 +367,6 @@ def retire_onchain(
     retired_tonnes = float(retirement["retired_tonnes"])
     amount = int(retired_tonnes * 1000)  # convert tonnes to token units (3 decimals)
 
-    # Use credit's vintage year and a serial from chain_mint history
-    vintage_year = credit["vintage_year"]
-    batch_id_bytes = bytes(32)  # placeholder; actual tokenId lookup below
-
     # Look up the tokenId from the mint history
     mint_record = conn.execute(
         conn.text(
@@ -414,8 +421,12 @@ def retire_onchain(
             "chain": chain,
         }
     except Exception as e:
-        logger.error("Failed to retire on-chain for retirement %s: %s", retirement_id, e)
-        raise
+        logger.error(
+            "Failed to retire on-chain for retirement %s (%s)",
+            retirement_id,
+            type(e).__name__,
+        )
+        raise RuntimeError(f"on-chain retirement failed ({type(e).__name__})") from None
 
 
 def verify_chain_balance(
@@ -446,6 +457,7 @@ def verify_chain_balance(
     pg_total = pg_tradable + pg_retired
 
     chain_balance = 0.0
+    query_error = None
     if not ENABLED:
         logger.debug("CREDIT_ONCHAIN_SYNC_ENABLED is false; chain balance check skipped")
         return {
@@ -459,8 +471,6 @@ def verify_chain_balance(
         }
 
     try:
-        from web3 import Web3
-
         contract_rec = conn.execute(
             conn.text(
                 "SELECT contract_address FROM credit_batch_contract "
@@ -490,12 +500,13 @@ def verify_chain_balance(
         checksum_account = w3.to_checksum_address(account)
         chain_balance = float(contract.functions.balanceOf(checksum_account, token_id).call())
     except Exception as e:
-        logger.warning("Could not query on-chain balance: %s", e)
+        query_error = f"chain balance query failed ({type(e).__name__})"
+        logger.warning("Could not query on-chain balance (%s)", type(e).__name__)
 
-    match = abs(pg_total - chain_balance) < 0.01
+    match = query_error is None and abs(pg_total - chain_balance) < 0.01
     discrepancy = pg_total - chain_balance
 
-    return {
+    result = {
         "token_id": token_id,
         "account": account,
         "pg_balance": pg_total,
@@ -503,6 +514,10 @@ def verify_chain_balance(
         "match": match,
         "discrepancy": discrepancy,
     }
+    if query_error is not None:
+        result["chain_query_failed"] = True
+        result["chain_query_error"] = query_error
+    return result
 
 
 def reconcile_all(conn, chain: str = "celo") -> dict:
@@ -549,8 +564,12 @@ def reconcile_all(conn, chain: str = "celo") -> dict:
                     if not result["match"]:
                         discrepancies.append(result)
                 except Exception as e:
-                    logger.warning("Reconciliation error for batch %s account %s: %s",
-                                   batch_id, bal["account_address"], e)
+                    logger.warning(
+                        "Reconciliation error for batch %s account %s (%s)",
+                        batch_id,
+                        bal["account_address"],
+                        type(e).__name__,
+                    )
         else:
             for mint in mint_records:
                 try:
@@ -564,8 +583,12 @@ def reconcile_all(conn, chain: str = "celo") -> dict:
                     if not result["match"]:
                         discrepancies.append(result)
                 except Exception as e:
-                    logger.warning("Reconciliation error for batch %s token %s: %s",
-                                   batch_id, mint["token_id"], e)
+                    logger.warning(
+                        "Reconciliation error for batch %s token %s (%s)",
+                        batch_id,
+                        mint["token_id"],
+                        type(e).__name__,
+                    )
 
     return {
         "chain": chain,

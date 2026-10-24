@@ -66,3 +66,35 @@ def test_award_event_decoder_preserves_indexed_identity():
     assert decoded["guild_id"] == guild_id
     assert decoded["contributor_wallet"].lower() == contributor.lower()
     assert decoded["amount"] == 25
+
+
+def test_governance_target_policy_events_decode_indexed_state():
+    target = "0x7777777777777777777777777777777777777777"
+    target_topic = bytes.fromhex("00" * 12 + target[2:])
+    selector = "0x1234abcd"
+    selector_topic = bytes.fromhex(selector[2:] + "00" * 28)
+    topics_by_name = {name: topic for topic, name in EVENT_TOPICS.items()}
+    cases = [
+        (
+            "TargetPermissionUpdated",
+            [topics_by_name["TargetPermissionUpdated"], target_topic],
+            {"allowed": True},
+        ),
+        (
+            "TargetSelectorPermissionUpdated",
+            [topics_by_name["TargetSelectorPermissionUpdated"], target_topic, selector_topic],
+            {"allowed": True, "selector": selector},
+        ),
+        (
+            "GuildScopedTargetUpdated",
+            [topics_by_name["GuildScopedTargetUpdated"], target_topic],
+            {"guild_scoped": True},
+        ),
+    ]
+
+    for event_name, topics, expected in cases:
+        decoded = decode_log({"topics": topics, "data": encode(["bool"], [True])})
+        assert decoded["event_name"] == event_name
+        assert decoded["target"].lower() == target.lower()
+        for key, value in expected.items():
+            assert decoded[key] == value

@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T14:23:53Z",
+  "subject": "Gateway-authorized Field Collector device mutations carry current-owner transaction context",
+  "source_state": "local working tree; not pushed",
+  "checks": {
+    "pytest": {
+      "command": ".venv/bin/python -m pytest tests/test_tenant_context.py tests/test_mobile_api.py tests/test_operator_auth.py -q",
+      "result": "passed",
+      "passed": 126,
+      "failed": 0
+    },
+    "ruff": {
+      "command": ".venv/bin/ruff check services/common/tenant_context.py services/mobile/api.py services/gateway/app.py tests/test_tenant_context.py tests/test_mobile_api.py",
+      "result": "passed",
+      "version": "0.15.22"
+    },
+    "python_compile": {
+      "result": "passed",
+      "files": [
+        "services/common/tenant_context.py",
+        "services/mobile/api.py",
+        "services/gateway/app.py",
+        "tests/test_tenant_context.py",
+        "tests/test_mobile_api.py"
+      ]
+    }
+  },
+  "coverage": [
+    "The Gateway marker binds the authenticated mobile_device resource, action, and normalized location to the mutation request.",
+    "Enrollment creation, enrollment revocation, and device revocation set current-owner context before their writes in the same transaction.",
+    "The current active owner is share-locked during each mutation context lookup.",
+    "Missing owner context is denied and the transaction rolls back before a write.",
+    "OIDC mutations continue to use tenant-qualified operator grants."
+  ],
+  "runtime_changes": {
+    "candidate_database_accessed": false,
+    "legacy_database_accessed": false,
+    "docker_container_changed": false,
+    "rls_enabled": false
+  },
+  "limitations": [
+    "Gateway route authorization remains application-verified; the helper does not independently verify API-key or capability grants in PostgreSQL.",
+    "Transaction-local custom settings are not credentials when an application role can issue arbitrary SQL.",
+    "Pre-context device-token and one-time enrollment-code lookups, legacy CLI reads/writes, worker roles, and Directus/views remain open before RLS."
+  ]
+}

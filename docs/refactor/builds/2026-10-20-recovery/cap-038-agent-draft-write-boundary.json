@@ -1,0 +1,34 @@
+{
+  "recorded_at": "2026-10-20",
+  "capability": "CAP-038",
+  "scope": "Enforce agent draft validation at both low-level persistence boundaries.",
+  "behavior": {
+    "shared_synthesis_writer": [
+      "Validates the registered task output before cursor creation.",
+      "Requires non-empty synthesis text.",
+      "Validates task scope from the persisted summary location.",
+      "Requires a non-empty model-version label."
+    ],
+    "standalone_ai_summary_writer": [
+      "Validates location UUID and declared task input shape.",
+      "Accepts only a registered summary type.",
+      "Requires non-empty content, a list of non-empty source-table names, and a non-empty model-version label."
+    ],
+    "lifecycle": "Both writers create draft records only; no review, verification, or publication is performed."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_agents_base.py tests/test_ai_summary_safety.py -q",
+    "test_files": 2,
+    "passed": 15,
+    "database_or_provider_contacted": false,
+    "invalid_write_calls_open_cursor": false,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "Top-level task schemas do not recursively validate arbitrary nested summary data.",
+    "Persistence validation does not authenticate the caller or authorize tenant/location access.",
+    "The database-backed human review lifecycle and runtime least-privilege boundary remain separate CAP-038 gates."
+  ]
+}

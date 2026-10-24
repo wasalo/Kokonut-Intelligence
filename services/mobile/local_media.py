@@ -4,13 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import stat
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
-from services.mobile.media_storage import ALLOWED_CONTENT_TYPES, MAX_MEDIA_BYTES, MediaStorageNotConfigured
+from services.mobile.media_storage import (
+    ALLOWED_CONTENT_TYPES,
+    MAX_MEDIA_BYTES,
+    MediaStorageNotConfigured,
+    PrivateMediaObject,
+    _private_object_id,
+    _utc_datetime,
+)
 
 MAGIC = b"KKM1"
+_OBJECT_FILE = re.compile(r"^[0-9a-f]{64}\.bin$")
 
 
 class LocalMediaStore:
@@ -81,3 +91,66 @@ class LocalMediaStore:
     def delete_private(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)
         self._sync_directory()
+
+    def object_id_for_key(self, key: str) -> str:
+        return _private_object_id(key)
+
+    def list_private_objects(self) -> list[PrivateMediaObject]:
+        """Inventory immutable objects and stale in-flight temp files fail-closed."""
+        objects: list[PrivateMediaObject] = []
+        try:
+            entries = list(self._root.iterdir())
+            for path in entries:
+                info = path.lstat()
+                if not stat.S_ISREG(info.st_mode):
+                    raise MediaStorageNotConfigured("Private media inventory found an unsafe entry")
+                modified = datetime.fromtimestamp(info.st_mtime, tz=timezone.utc)
+                if _OBJECT_FILE.fullmatch(path.name):
+                    objects.append(
+                        PrivateMediaObject(
+                            object_id=path.name[:-4],
+                            last_modified=_utc_datetime(modified),
+                            kind="object",
+                            _delete_handle=path.name,
+                        )
+                    )
+                elif path.name.startswith(".upload-"):
+                    temporary_id = hashlib.sha256(path.name.encode("utf-8")).hexdigest()
+                    objects.append(
+                        PrivateMediaObject(
+                            object_id=f"temporary:{temporary_id}",
+                            last_modified=_utc_datetime(modified),
+                            kind="temporary",
+                            _delete_handle=path.name,
+                        )
+                    )
+                else:
+                    raise MediaStorageNotConfigured("Private media inventory found an unknown entry")
+        except OSError as exc:
+            raise MediaStorageNotConfigured("Private media inventory is unavailable") from exc
+        return objects
+
+    def delete_orphan(self, item: PrivateMediaObject) -> None:
+        """Delete a validated local inventory entry without following symlinks."""
+        name = item._delete_handle
+        if Path(name).name != name:
+            raise ValueError("Invalid private media inventory handle")
+        if item.kind == "object":
+            if not _OBJECT_FILE.fullmatch(name) or name[:-4] != item.object_id:
+                raise ValueError("Invalid private media inventory handle")
+        elif item.kind == "temporary":
+            expected = hashlib.sha256(name.encode("utf-8")).hexdigest()
+            if not name.startswith(".upload-") or item.object_id != f"temporary:{expected}":
+                raise ValueError("Invalid private media inventory handle")
+        else:
+            raise ValueError("Invalid private media inventory handle")
+
+        path = self._root / name
+        try:
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError("Invalid private media inventory entry")
+            path.unlink()
+            self._sync_directory()
+        except FileNotFoundError:
+            return

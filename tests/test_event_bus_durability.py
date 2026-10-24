@@ -1,9 +1,11 @@
 """Focused unit tests for durable event delivery semantics."""
 
+import json
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
-from services.events.bus import EventBus, resolve_handler
-
+from services.events.bus import EventBus, _handler_child_environment, resolve_handler
 
 REGISTERED_HANDLERS = (
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
@@ -17,6 +19,18 @@ REGISTERED_HANDLERS = (
 def test_every_registered_handler_resolves_to_a_callable():
     for module_path, function_name in REGISTERED_HANDLERS:
         assert callable(resolve_handler(module_path, function_name))
+
+
+def test_lazy_event_bus_connection_uses_configured_timeout():
+    connection = MagicMock()
+    with patch("services.common.database.get_db", return_value=connection) as get_db:
+        bus = EventBus(connect_timeout=5)
+
+        assert bus._get_conn() is connection
+
+    get_db.assert_called_once_with(connect_timeout=5)
+    bus.close()
+    connection.close.assert_called_once()
 
 
 def test_unregistered_event_handler_is_rejected_before_import():
@@ -49,6 +63,26 @@ def test_claim_commits_before_event_processing():
     assert order.index("commit") < order.index("handler")
 
 
+def test_process_pending_redacts_database_exception_and_rolls_back(caplog):
+    conn, _ = _connection()
+    conn.rollback.side_effect = lambda: None
+    bus = EventBus(conn=conn)
+    conn = bus._get_conn()
+    failure = RuntimeError("postgresql://operator:secret@db.internal/kokonut")
+
+    with patch.object(bus, "_claim", side_effect=failure):
+        try:
+            bus.process_pending(worker_id="worker")
+            assert False, "database failure should be re-raised"
+        except RuntimeError as exc:
+            assert str(exc) == "postgresql://operator:secret@db.internal/kokonut"
+
+    assert conn.rollback.call_count == 1
+    assert "postgresql://operator:secret" not in caplog.text
+    assert "RuntimeError" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
 def test_successful_delivery_is_not_invoked_again():
     handler_id = "handler"
     conn, _ = _connection(fetchall=[
@@ -62,19 +96,257 @@ def test_successful_delivery_is_not_invoked_again():
     invoke.assert_not_called()
 
 
-def test_handler_timeout_terminates_child():
+def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
+    env = _handler_child_environment(
+        "services.ingestion.anomaly_detector",
+        "handle_sensor_reading",
+        {
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "KOKONUT_OTHER_WORKER_DATABASE_URL": "postgresql://other",
+            "KOKONUT_OTHER_WORKER_WORKER_CREDENTIAL": "other-secret",
+            "PG_PASSWORD": "legacy-runtime-secret",
+            "PG_USER": "kokonut_runtime",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
+            "GEE_SERVICE_ACCOUNT_KEY": "global-gee-secret",
+            "COPERNICUS_CLIENT_SECRET": "global-copernicus-secret",
+            "DATABASE_URL": "application-config",
+        }
+    )
+
+    assert env == {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+        "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
+    }
+
+
+def test_cache_handlers_receive_only_their_exact_worker_identity():
+    source = {
+        "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+        "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly-worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
+        "KOKONUT_SCHEDULER_WORKER_CREDENTIAL": "scheduler-secret",
+        "PG_PASSWORD": "legacy-runtime-secret",
+        "PG_USER": "kokonut_runtime",
+        "DATABASE_URL": "application-config",
+    }
+
+    for function_name in (
+        "handle_metric_computed",
+        "handle_crisp_scored",
+        "handle_sensor_reading",
+        "handle_harvest_recorded",
+    ):
+        env = _handler_child_environment(
+            "services.cache.events",
+            function_name,
+            {**source, "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION": "true"},
+        )
+        assert env == {
+            "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+            "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
+            "KOKONUT_ISOLATED_WORKER_KEY": "cache_invalidation",
+            "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION": "true",
+        }
+
+
+def test_notification_handlers_receive_only_their_enqueue_identity():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_alert_notification",
+        {
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "KOKONUT_EVENT_BUS_DATABASE_URL": "postgresql://events",
+            "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL": "event-secret",
+            "DATABASE_URL": "application-config",
+            "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "true",
+        },
+    )
+
+    assert env == {
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+        "KOKONUT_ISOLATED_WORKER_KEY": "notification_enqueue",
+        "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "true",
+    }
+
+
+def test_feature_off_notification_handler_keeps_shared_database_and_strips_worker_secrets():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_alert_notification",
+        {
+            "DATABASE_URL": "application-config",
+            "PG_PASSWORD": "shared-secret",
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+            "KOKONUT_NOTIFICATION_ENQUEUE_WORKER_CREDENTIAL": "worker-secret",
+        },
+    )
+
+    assert env == {
+        "DATABASE_URL": "application-config",
+        "PG_PASSWORD": "shared-secret",
+    }
+
+
+def test_feature_off_cache_handler_keeps_shared_database_and_strips_worker_secrets():
+    env = _handler_child_environment(
+        "services.cache.events",
+        "handle_metric_computed",
+        {
+            "PG_PASSWORD": "shared-secret",
+            "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+            "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "worker-secret",
+        },
+    )
+
+    assert env == {"PG_PASSWORD": "shared-secret"}
+
+
+def test_unmapped_event_handler_receives_no_worker_identity():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_unregistered_handler",
+        {
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "DATABASE_URL": "application-config",
+            "PG_PASSWORD": "legacy-runtime-secret",
+        },
+    )
+
+    assert env == {
+        "DATABASE_URL": "application-config",
+        "PG_PASSWORD": "legacy-runtime-secret",
+    }
+
+
+def test_handler_success_uses_filtered_environment_and_stdin_request():
     bus = EventBus(conn=MagicMock())
     process = MagicMock()
-    process.is_alive.return_value = True
-    context = MagicMock()
-    context.Process.return_value = process
+    process.communicate.return_value = ('{"succeeded":true}', "")
+    process.returncode = 0
 
-    with patch("services.events.bus.multiprocessing.get_context", return_value=context):
+    with patch.dict(
+        "os.environ",
+        {
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "PG_PASSWORD": "runtime-secret",
+        },
+        clear=True,
+    ), patch("services.events.bus.subprocess.Popen", return_value=process) as popen:
+        status, error = bus._invoke_handler(
+            "services.ingestion.anomaly_detector",
+            "handle_sensor_reading",
+            "sensor_reading",
+            {"sensor_id": "sensor-1", "location_id": "location-1"},
+            5,
+            event_id="event-1",
+        )
+
+    assert (status, error) == ("success", None)
+    args, kwargs = popen.call_args
+    assert args[0] == [sys.executable, "-m", "services.events.handler_runner"]
+    assert kwargs["env"] == {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+        "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
+    }
+    assert "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL" not in kwargs["env"]
+    assert kwargs["stdin"] == subprocess.PIPE
+    assert kwargs["stdout"] == subprocess.PIPE
+    assert kwargs["text"] is True
+    request = json.loads(process.communicate.call_args.args[0])
+    assert request == {
+        "module_path": "services.ingestion.anomaly_detector",
+        "function_name": "handle_sensor_reading",
+        "event_type": "sensor_reading",
+        "payload": {"sensor_id": "sensor-1", "location_id": "location-1"},
+        "event_id": "event-1",
+    }
+    assert "worker-secret" not in repr(args)
+
+
+def test_handler_error_result_is_bounded():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = (
+        json.dumps({
+            "succeeded": False,
+            "error": "handler execution failed",
+            "error_class": "RuntimeError",
+        }),
+        "",
+    )
+    process.returncode = 0
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "Handler failed (RuntimeError)")
+
+
+def test_handler_error_result_does_not_trust_child_error_text():
+    secret = "database URL password=secret-row-data"
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = (
+        json.dumps({"succeeded": False, "error": secret}),
+        "",
+    )
+    process.returncode = 0
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "Handler failed")
+    assert secret not in error
+
+
+def test_handler_timeout_kills_and_reaps_child():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.side_effect = [
+        subprocess.TimeoutExpired("handler", 1),
+        ("", ""),
+    ]
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
         status, error = bus._invoke_handler("module", "function", "kind", {}, 1)
 
     assert status == "timeout"
     assert "exceeded" in error
-    process.terminate.assert_called_once()
+    process.kill.assert_called_once()
+    assert process.communicate.call_count == 2
+
+
+def test_handler_nonzero_exit_does_not_expose_stderr_or_environment():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = ("", "worker-secret")
+    process.returncode = 7
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "Handler process exited with code 7")
+    assert "worker-secret" not in error
+
+
+def test_unserializable_handler_request_fails_before_process_start():
+    bus = EventBus(conn=MagicMock())
+
+    with patch("services.events.bus.subprocess.Popen") as popen:
+        status, error = bus._invoke_handler("module", "function", "kind", {"value": object()}, 5)
+
+    assert (status, error) == ("error", "Handler request could not be encoded")
+    popen.assert_not_called()
 
 
 def test_replay_preserves_successful_handler_delivery_state():
@@ -87,13 +359,61 @@ def test_replay_preserves_successful_handler_delivery_state():
     assert "status = 'pending'" in sql
 
 
-def test_injected_connection_is_never_closed():
-    conn, _ = _connection()
+def test_injected_connection_is_never_closed(monkeypatch):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    conn, _ = _connection(fetchall=[("policy", 30)], fetchone=(0,))
     bus = EventBus(conn=conn)
     bus.get_stats()
-    bus.cleanup_old_events()
+    bus.cleanup_old_events(actor="operator")
     bus.close()
     conn.close.assert_not_called()
+
+
+def test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery(monkeypatch):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    conn, cursor = _connection(fetchall=[("policy", 30)], fetchone=(2,))
+
+    EventBus(conn=conn).cleanup_old_events(actor="operator")
+
+    policy_sql = " ".join(cursor.execute.call_args_list[1].args[0].split())
+    assert "jurisdiction_code IS NULL" in policy_sql
+    assert "purpose_code IS NULL" in policy_sql
+    assert "FROM data_retention_policy overlap" in policy_sql
+    sql = " ".join(cursor.execute.call_args_list[2].args[0].split())
+    assert "dead.disposition = 'pending'" in sql
+    assert "dead.original_event_id = platform_event.id" in sql
+    assert "AND NOT EXISTS ( SELECT 1 FROM event_dead_letter dead" in sql
+    assert "AND NOT EXISTS ( SELECT 1 FROM event_handler_delivery delivery" in sql
+    assert "delivery.status <> 'success'" in sql
+    assert "data_retention_legal_hold hold" in sql
+    assert "hold.released_at IS NULL" in sql
+    assert "status IN ('completed', 'dead_letter')" in sql
+    assert cursor.execute.call_args_list[2].args[1] == (30,)
+
+
+def test_cleanup_fails_closed_without_one_approved_policy(monkeypatch):
+    import pytest
+
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    conn, _ = _connection()
+    bus = EventBus(conn=conn)
+
+    with pytest.raises(RuntimeError, match="exactly one approved"):
+        bus.cleanup_old_events(actor="operator")
+
+    conn.rollback.assert_called_once()
+
+
+def test_cleanup_fails_closed_without_approved_retention_feature(monkeypatch):
+    import pytest
+
+    monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
+    bus = EventBus(conn=MagicMock())
+
+    with pytest.raises(RuntimeError, match="KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true"):
+        bus.cleanup_old_events(actor="operator")
+
+    bus._conn.cursor.assert_not_called()
 
 
 def test_claim_query_recovers_expired_processing_lease():

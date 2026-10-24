@@ -46,9 +46,15 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from services.common.cli import print_json, run
-from services.common.database import get_db
 
 __all__ = ["Argument", "Subcommand", "CommandLine"]
+
+
+def _default_connection_factory() -> Any:
+    """Load the canonical DB factory only when a database command runs."""
+    from services.common.database import get_db
+
+    return get_db()
 
 
 def _default_render(result: Any, args: argparse.Namespace) -> None:
@@ -120,7 +126,7 @@ class CommandLine:
         self.prog = prog or (sys.argv[0] if sys.argv else "kokonut")
         self.description = description
         self._commands: list[Subcommand] = []
-        self._connection_factory = connection_factory or get_db
+        self._connection_factory = connection_factory or _default_connection_factory
 
     def subcommand(self, name: str, help: str = "") -> Subcommand:
         """Declare a subcommand; chain ``.add(...)`` then ``.run(handler)``."""

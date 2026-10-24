@@ -1,0 +1,20 @@
+{
+  "scope": "Prophet fit, model save, Prophet/Isolation Forest artifact load, and scheduled retraining failures",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_ml_anomaly_error_redaction.py tests/test_ml_model_loading_security.py tests/test_ml_anomaly.py tests/test_ml_retraining.py tests/test_runtime_import_regressions.py -q",
+    "focused_test_result": "57 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "worker_source_closure": "regenerated and check passed"
+  },
+  "behavior_preserved": [
+    "failed Prophet fits still return no model",
+    "individual model save failures do not stop other model saves",
+    "unreadable model artifacts remain omitted while descriptors are closed",
+    "training and automatic-retraining failures retain their existing result fallbacks"
+  ],
+  "redaction": "ML model and retraining failures log bounded exception classes without exception messages, model names, sensor identifiers, or local artifact paths"
+}

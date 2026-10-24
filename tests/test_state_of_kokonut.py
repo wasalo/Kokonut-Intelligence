@@ -8,11 +8,20 @@ stubbed to validate the aggregation logic.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from services.export import report_generator as rg
 from services.export.reports import common as reports_common
 from services.export.reports import state as state_module
+
+
+def _actor_view_connection(result_sets):
+    connection = MagicMock()
+    cursor = MagicMock()
+    cursor.fetchall.side_effect = result_sets
+    connection.cursor.return_value = cursor
+    return connection, cursor
 
 
 def test_registered():
@@ -35,7 +44,11 @@ def _fake_section(financial_total_revenue=0.0, financial_total_expenses=0.0, har
                 "total_revenue": financial_total_revenue,
                 "total_expenses": financial_total_expenses,
             },
-            "harvest_summary": {"total_quantity": harvest_qty},
+            "harvest_summary": {
+                "total_quantity": harvest_qty,
+                "quantity_unit": "kg",
+                "total_quantity_by_unit": {"kg": harvest_qty},
+            },
         }
     }
 
@@ -67,9 +80,37 @@ def test_composes_all_locations_and_rolls_up():
     assert ov["total_expenses_usd"] == 60.0
     assert ov["net_income_usd"] == 90.0
     assert ov["total_harvest_quantity"] == 8.0
+    assert ov["total_harvest_quantity_unit"] == "kg"
+    assert ov["total_harvest_quantity_by_unit"] == {"kg": 8.0}
     assert report["actor_view"]["total_raised"] == 815000.0
     assert len(report["locations"]) == 2
     assert "limitations" in report
+
+
+def test_network_harvest_rollup_does_not_mix_units():
+    loc_rows = [
+        {"id": "a0000000-0000-0000-0000-000000000001", "name": "Adelphi"},
+        {"id": "b0000000-0000-0000-0000-000000000002", "name": "Other"},
+    ]
+    composed = [
+        {
+            "location_id": loc_rows[0]["id"],
+            "sections": {"farm_summary": {"harvest_summary": {"total_quantity": None, "total_quantity_by_unit": {"kg": 120}}}},
+        },
+        {
+            "location_id": loc_rows[1]["id"],
+            "sections": {"farm_summary": {"harvest_summary": {"total_quantity": None, "total_quantity_by_unit": {"tonnes": 1.5}}}},
+        },
+    ]
+    conn = MagicMock()
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}):
+        report = rg.generate_state_of_kokonut(conn, "all")
+
+    overview = report["ecosystem_overview"]
+    assert overview["total_harvest_quantity"] is None
+    assert overview["total_harvest_quantity_unit"] is None
+    assert overview["total_harvest_quantity_by_unit"] == {"kg": 120.0, "tonnes": 1.5}
 
 
 def test_composes_selected_locations_from_comma_list():
@@ -124,3 +165,67 @@ def test_isolates_failing_section():
     assert "error" in entry["sections"]["crop_noi"]
     # A working section is still present.
     assert "farm_summary" in entry["sections"]
+
+
+def test_actor_rollups_preserve_currency_dimensions():
+    connection, cursor = _actor_view_connection(
+        [
+            [
+                {"actor_type": "network", "actor_name": "Kokonut", "currency": "USD", "total_raised": Decimal("100.25")},
+                {"actor_type": "network", "actor_name": "Kokonut", "currency": "USDC", "total_raised": Decimal("80.50")},
+            ],
+            [
+                {"source_type": "grant", "currency": "USD", "total_raised": Decimal("100.25")},
+                {"source_type": "grant", "currency": "USDC", "total_raised": Decimal("80.50")},
+            ],
+            [
+                {
+                    "actor_type": "dao",
+                    "decision_status": "executed",
+                    "token": "USD",
+                    "count": 2,
+                    "amount": Decimal("100.25"),
+                },
+                {
+                    "actor_type": "dao",
+                    "decision_status": "executed",
+                    "token": "USDC",
+                    "count": 1,
+                    "amount": Decimal("80.50"),
+                }
+            ],
+            [],
+        ]
+    )
+
+    result = state_module._state_of_kokonut_actors(connection, None, None)
+
+    assert result["total_raised"] is None
+    assert result["total_raised_currency"] is None
+    assert result["total_raised_by_currency"] == {
+        "USD": Decimal("100.25"),
+        "USDC": Decimal("80.50"),
+    }
+    assert [row["currency"] for row in result["by_actor"]] == ["USD", "USDC"]
+    assert result["by_source"][0]["currency"] == "USD"
+    assert result["by_source"][1]["currency"] == "USDC"
+    assert [(row["token"], row["amount"]) for row in result["participation"]] == [
+        ("USD", Decimal("100.25")),
+        ("USDC", Decimal("80.50")),
+    ]
+    source_query = cursor.execute.call_args_list[1].args[0]
+    participation_query = cursor.execute.call_args_list[2].args[0]
+    assert "GROUP BY fr.source_type, fr.currency" in source_query
+    assert "GROUP BY pf.actor_type, pf.decision_status, pf.token" in participation_query
+
+
+def test_actor_total_keeps_legacy_scalar_for_one_currency():
+    connection, _cursor = _actor_view_connection(
+        [[{"currency": "USD", "total_raised": Decimal("12.345") }], [], [], []]
+    )
+
+    result = state_module._state_of_kokonut_actors(connection, None, None)
+
+    assert result["total_raised"] == 12.35
+    assert result["total_raised_currency"] == "USD"
+    assert result["total_raised_by_currency"] == {"USD": Decimal("12.345")}

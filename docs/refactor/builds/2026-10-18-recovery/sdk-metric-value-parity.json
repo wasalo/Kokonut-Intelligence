@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript metric_value SDK schema parity",
+  "model": "MetricValue",
+  "source_table": "schemas/postgres/007_modeled_outputs.sql:metric_value",
+  "additive_columns": [
+    "schemas/postgres/162_platform_integrity.sql:verified_by",
+    "schemas/postgres/162_platform_integrity.sql:verified_at",
+    "schemas/postgres/162_platform_integrity.sql:verification_notes"
+  ],
+  "schema_guard_correction": "Duplicate ADD COLUMN IF NOT EXISTS statements no longer override existing base-column type or nullability contracts.",
+  "schema_guard": {
+    "models": 31,
+    "canonical_columns": 640,
+    "scalar_types": 602,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 30,
+    "enum_fields": 17,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 43 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The SDK distinguishes computed results from stored human-verification state and attribution.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

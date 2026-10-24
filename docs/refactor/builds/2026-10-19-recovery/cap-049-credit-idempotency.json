@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-049",
+  "title": "Regenerative credit draft validation and idempotency",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and focused checks pass; capability not accepted",
+  "changes": [
+    "Rejects non-finite and non-positive withheld amounts before opening a database cursor.",
+    "Exact idempotency-key retries return the existing credit record without another insert.",
+    "Conflicting key reuse is rejected when immutable request fields differ, including location, contributor, source, amount, unit, redemption purpose, or creator.",
+    "Credit proposals remain draft-only and transaction commit/rollback remains caller-owned."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_capital_accounting.py -q",
+    "result": "12 passed",
+    "ruff": "python3 -m ruff check services/capital/credit.py tests/test_capital_accounting.py: passed",
+    "compilation": "python3 -m compileall -q services/capital/credit.py: passed"
+  },
+  "scope_limits": [
+    "Tests use mocked database connections; no candidate, legacy, or disposable database was contacted.",
+    "The change does not verify credit balance parity, custody, settlement, or redemption workflows.",
+    "MAN-CAP-049 owner acceptance remains open."
+  ]
+}

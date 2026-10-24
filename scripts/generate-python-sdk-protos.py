@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +26,7 @@ IMPORT_PREFIXES = {
     "data.v1": "kokonut.grpc.data.v1",
     "ecocredit.v1": "kokonut.grpc.ecocredit.v1",
 }
+CODEGEN_VERSIONS = {"grpcio-tools": "1.68.1", "protobuf": "5.29.1"}
 
 
 def generate() -> dict[Path, str]:
@@ -32,8 +34,31 @@ def generate() -> dict[Path, str]:
         import grpc_tools  # noqa: F401
     except ImportError as exc:
         raise RuntimeError(
-            "grpcio-tools==1.68.1 is required; install the SDK grpc-codegen extra"
+            "SDK protobuf code generation requires grpcio-tools==1.68.1 and "
+            "protobuf==5.29.1; install the SDK grpc-codegen extra"
         ) from exc
+
+    installed_versions = {}
+    for package, expected in CODEGEN_VERSIONS.items():
+        try:
+            installed = version(package)
+        except PackageNotFoundError as exc:
+            raise RuntimeError(
+                f"{package}=={expected} is required; install the SDK grpc-codegen extra"
+            ) from exc
+        if installed != expected:
+            installed_versions[package] = installed
+    if installed_versions:
+        actual = ", ".join(
+            f"{package}=={installed}" for package, installed in installed_versions.items()
+        )
+        expected = ", ".join(
+            f"{package}=={pinned}" for package, pinned in CODEGEN_VERSIONS.items()
+        )
+        raise RuntimeError(
+            f"SDK protobuf generation requires {expected}; found {actual}. "
+            "Install the SDK grpc-codegen extra in an isolated environment."
+        )
 
     with tempfile.TemporaryDirectory(prefix="kokonut-sdk-protos-") as temp_dir:
         output_root = Path(temp_dir)

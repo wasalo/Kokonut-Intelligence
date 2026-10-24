@@ -41,8 +41,9 @@ def sync_prices_to_ethereum(conn, private_key: str | None = None) -> dict:
             results.append({"observation_id": str(obs["id"]), "status": "synced", **result})
         except Exception as e:
             failed += 1
-            results.append({"observation_id": str(obs["id"]), "status": "failed", "error": str(e)})
-            logger.error("Failed to sync price observation %s: %s", obs["id"], e)
+            safe_error = f"price sync failed ({type(e).__name__})"
+            results.append({"observation_id": str(obs["id"]), "status": "failed", "error": safe_error})
+            logger.error("Failed to sync price observation %s (%s)", obs["id"], type(e).__name__)
 
     logger.info("Synced %d prices, %d failed", synced, failed)
     return {"synced": synced, "failed": failed, "results": results}
@@ -51,7 +52,6 @@ def sync_prices_to_ethereum(conn, private_key: str | None = None) -> dict:
 def _update_onchain_price(conn, observation, private_key: str | None) -> dict:
     """Update a single price on the onchain Oracle contract."""
     import hashlib
-    from datetime import datetime, timezone
 
     feed_key = hashlib.sha256(
         f"{observation['commodity']}".encode()
@@ -60,7 +60,6 @@ def _update_onchain_price(conn, observation, private_key: str | None) -> dict:
     price = int(float(observation["price"]) * 100)
     source = observation.get("source", "postgresql")
     confidence = int(observation.get("confidence", 100))
-    timestamp = int(observation["observed_at"].timestamp()) if observation.get("observed_at") else 0
 
     logger.info(
         "Would update onchain price for %s: %d (confidence=%d, source=%s)",

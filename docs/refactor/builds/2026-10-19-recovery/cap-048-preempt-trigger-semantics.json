@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-048",
+  "title": "Strategic reserve preempt trigger semantics",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source behavior corrected and focused tests pass; capability not accepted",
+  "changes": [
+    "Preempt thresholds for falling lt/lte metrics are unavailable until a normal baseline is represented in the reserve schema.",
+    "The evaluator returns preempt_status=baseline_required and does not propose preemptive release for those operators.",
+    "Rising gt/gte thresholds retain zero-baseline behavior only for positive hard thresholds and percentages in (0, 1).",
+    "Invalid percentages and unsupported triggers produce no preempt proposal; hard breach behavior is unchanged."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_good_offense.py tests/test_strategic_reserve.py -q",
+    "result": "22 passed",
+    "ruff": "python3 -m ruff check services/strategic_reserve/health.py tests/test_good_offense.py tests/test_strategic_reserve.py: passed",
+    "compilation": "python3 -m compileall -q services/strategic_reserve/health.py: passed"
+  },
+  "scope_limits": [
+    "No database reads or writes occurred during verification.",
+    "No reserve drawdown or proposal was executed.",
+    "Populated report parity, tenant scope, service integration, and MAN-CAP-048 acceptance remain open."
+  ]
+}

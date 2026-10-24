@@ -653,13 +653,19 @@ def record_data_sharing_consent(
     recipient_name: str = None,
     purpose: str = None,
     legal_basis: str = "consent",
-    retention_days: int = 365,
+    retention_days: int = None,
     is_reciprocal: bool = False,
     consent_given: bool = True,
     data_scope: str = None,
     metadata: dict = None,
 ) -> dict:
     """Record data sharing consent from a farmer."""
+    if retention_days is not None and (
+        isinstance(retention_days, bool)
+        or not isinstance(retention_days, int)
+        or retention_days <= 0
+    ):
+        raise ValueError("retention_days must be a positive integer when supplied")
     cur = conn.cursor()
     consent_id = str(uuid.uuid4())
 

@@ -1,0 +1,25 @@
+{
+  "capability": "CAP-059",
+  "title": "Abundance validator scope and issuance guards",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source guards and mocked/schema checks pass; capability not accepted",
+  "changes": [
+    "Validator selection checks tier, slot count, and finite non-negative expertise threshold before SQL; it matches case-insensitive evaluator domain expertise to estimate categories, applies the requested weighted threshold, records expertise separately from trust, and samples with system randomness.",
+    "A validator review requires a selected, revealed evaluator in a committed/revealing/revealed/reviewing round, locking the selection row before inserting the review.",
+    "Quadratic votes reject invalid finite/range weights and unsupported vote types before SQL.",
+    "Coin issuance requires a finite positive impact score and locks a periodic-validation row whose status is validated or finalized before inserting an issued event."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_abundance_protocol.py -q",
+    "result": "66 passed",
+    "ruff": "python3 -m ruff check services/abundance/validation.py services/abundance/economics.py tests/test_abundance_protocol.py: passed",
+    "compilation": "python3 -m compileall -q services/abundance/validation.py services/abundance/economics.py: passed"
+  },
+  "scope_limits": [
+    "Tests use mocked connections and schema files; no database or chain was used.",
+    "The existing commit/reveal path does not verify revealed payloads against a durable per-validator commitment. This remains open.",
+    "Exact category-name matching has no synonym mapping or owner-selected reference fixtures; funding/distribution rules, chain custody, populated parity, and tenant authorization remain unassessed.",
+    "MAN-CAP-059 owner acceptance remains open."
+  ]
+}

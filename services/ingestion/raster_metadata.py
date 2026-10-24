@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("ingestion.raster_metadata")
+
+_RASTER_FORMATS = {
+    ".geotiff": "geotiff",
+    ".tif": "tiff",
+    ".tiff": "tiff",
+    ".jp2": "jp2",
+    ".png": "png",
+}
+
+
+def _schema_file_format(filepath: str) -> str:
+    return _RASTER_FORMATS.get(os.path.splitext(filepath)[1].lower(), "other")
 
 
 def import_raster_metadata(filepath: str, location_id: str = None,
@@ -31,8 +43,8 @@ def import_raster_metadata(filepath: str, location_id: str = None,
             data = {
                 "file_url": filepath,
                 "file_name": os.path.basename(filepath),
-                "file_format": filepath.rsplit(".", 1)[-1].lower(),
-                "crs": str(src.crs) if src.crs else "EPSG:4326",
+                "file_format": _schema_file_format(filepath),
+                "crs": str(src.crs) if src.crs else None,
                 "pixel_width": pixel_width,
                 "pixel_height": pixel_height,
                 "bbox_west": bounds.left,
@@ -48,8 +60,8 @@ def import_raster_metadata(filepath: str, location_id: str = None,
                 "source_system": source_system,
             }
             return {"status": "success", "metadata": data}
-    except Exception:
-        logger.exception("Failed to import raster metadata")
+    except Exception as exc:
+        logger.error("Failed to import raster metadata (%s)", safe_exception_class(exc))
         return {"status": "error", "message": "Failed to read raster metadata"}
 
 
@@ -78,6 +90,6 @@ def get_raster_info(filepath: str) -> dict:
                 "data_type": str(src.dtypes[0]) if src.dtypes else None,
                 "file_size": os.path.getsize(filepath),
             }
-    except Exception:
-        logger.exception("Failed to read raster info")
+    except Exception as exc:
+        logger.error("Failed to read raster info (%s)", safe_exception_class(exc))
         return {"status": "error", "message": "Failed to read raster info"}

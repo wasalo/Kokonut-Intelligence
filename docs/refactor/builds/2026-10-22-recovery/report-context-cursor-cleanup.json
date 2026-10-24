@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "date": "2026-10-22",
+  "change": "Close public-interest report context cursor on query failure",
+  "behavior": "Cursor closes in finally; the original query exception propagates unchanged.",
+  "verification": {
+    "pytest": "tests/test_report_governance.py: 5 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "report_query_scope_inventory": "current",
+    "report_helper_scope_inventory": "current",
+    "git_diff_check": "passed"
+  },
+  "database_contacted": false,
+  "provider_contacted": false,
+  "candidate_or_legacy_touched": false
+}

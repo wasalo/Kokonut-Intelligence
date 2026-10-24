@@ -1,0 +1,27 @@
+{
+  "capability": "CAP-046",
+  "title": "KokonutResolver attester configuration and EAS callback gates",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and synthetic callback checks verified; capability not accepted",
+  "changes": [
+    "Constructor rejects zero-address entries in initialAttesters, matching addAttester validation.",
+    "Synthetic callback tests verify the configured EAS caller boundary and active allowlist behavior for attest and revoke.",
+    "Tests preserve current semantics: removing an attester disables both new attestations and revocations by that attester."
+  ],
+  "verification": {
+    "focused_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test --match-contract KokonutResolverTest -vv",
+    "focused_result": "12 passed; 0 failed; 0 skipped",
+    "fuzz": "Existing add/remove allowlist fuzz test passed 256 runs.",
+    "full_command": "FOUNDRY_CACHE_PATH=/private/tmp/kokonut-foundry-cache forge test",
+    "full_result": "81 passed; 0 failed; 0 skipped across 7 suites",
+    "formatter": "forge fmt completed successfully"
+  },
+  "scope_limits": [
+    "The EAS caller is synthetic; no live EAS contract or schema registry was called.",
+    "Deployment state and schema compatibility remain unassessed.",
+    "The policy for whether removed attesters retain revocation rights remains a product/governance decision.",
+    "No chain was contacted."
+  ],
+  "environment_note": "Foundry emitted a non-fatal warning because the restricted process could not flush /Users/gilbertoadon/.foundry/cache/signatures; the test suites completed successfully."
+}

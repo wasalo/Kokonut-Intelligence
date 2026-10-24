@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-17",
+  "run": {
+    "workflow": "CI",
+    "run_number": 430,
+    "run_id": 39075202048,
+    "job_id": 117521068760,
+    "pushed_commit": "974290541b1f3b78c18bbfb73386261eba11a2df",
+    "conclusion": "failure"
+  },
+  "failure": {
+    "step": "Run the complete CI gate",
+    "checks": [
+      "Report generator source inventory",
+      "Report generator query-scope inventory",
+      "Report generator helper-scope inventory"
+    ],
+    "reason": "Saved AST inventories referenced stale source lines/reachability and failed their freshness checks. The fast-fail gate reported 68 checks passed and these three failed before the broader CI suite ran."
+  },
+  "resolution": {
+    "action": "Regenerated all three JSON inventories from current source without changing report runtime code or report-scope conclusions.",
+    "checks": [
+      "python3 scripts/report_generator_inventory.py --check docs/refactor/report-generator-source-inventory.json",
+      "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "python3 scripts/report_generator_helper_scope_inventory.py --check docs/refactor/report-generator-helper-scope-inventory.json"
+    ],
+    "result": "all three checks passed locally"
+  },
+  "capability_impact": "Inventory freshness only; report selection, authorization, output parity, and MAN-CAP statuses are unchanged.",
+  "database_or_provider_access": "none"
+}

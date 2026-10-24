@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T01:01:24Z",
+  "subject": "Kernel candidate tenant ownership and audited transfer schema rollout",
+  "source_commit": "3fcd839d1c9ca015e671f1be2b213738d2143d38",
+  "working_tree_dirty_at_build": true,
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_files": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-metabase.yml"
+    ],
+    "candidate_app_before": "healthy",
+    "candidate_database_before": "healthy",
+    "candidate_metabase_before": "healthy",
+    "candidate_proxy_before": "running",
+    "applied_schema_migrations_before": 377,
+    "pending_schema_migrations": [
+      "schema:387_kokonut_network_tenant_ownership.sql",
+      "schema:388_tenant_aware_operator_grants.sql",
+      "schema:389_tenant_aware_field_collector_write_guards.sql",
+      "schema:390_audited_location_tenant_transfers.sql"
+    ],
+    "checksum_drift": false,
+    "location_rows": 0,
+    "tenant_transfer_rows": 0
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-tenant-transfer-20261014T005051Z",
+    "format": "age-encrypted PostgreSQL custom archive",
+    "database": "kokonut_intelligence",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "sha256": "bed1c49ad7b8fd4d263a6813b69ad545282cf0d50e0c2443a46acb28950b2220",
+    "bytes": 5442509,
+    "age_authentication": "passed; plaintext streamed to pg_restore, not written to disk",
+    "pg_restore_list": "passed",
+    "restore_rehearsed": false,
+    "scope": "Single PostgreSQL database; excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+  },
+  "migration": {
+    "command": "python -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 4, Failed: 0",
+    "migrations": [
+      {
+        "id": "schema:387_kokonut_network_tenant_ownership.sql",
+        "sha256": "dfbef3ea1ee409f679e4e2db79c54c4f868e1ae0c5efb7db4830a54df31c1f33"
+      },
+      {
+        "id": "schema:388_tenant_aware_operator_grants.sql",
+        "sha256": "2ec8982282ce20e2bd5a8f116200138b5623ad20424c883535ac3a9d7e258eb7"
+      },
+      {
+        "id": "schema:389_tenant_aware_field_collector_write_guards.sql",
+        "sha256": "d202fa35930e89d134e7b03408c7dc36751f5511d6bc8850f45d5c167d8dbeae"
+      },
+      {
+        "id": "schema:390_audited_location_tenant_transfers.sql",
+        "sha256": "83fcd1b522bb2862f128010e2f1790dbd9232f9744d0260eb3576010bbfc8c6b"
+      }
+    ],
+    "applied_schema_migrations_after": 381,
+    "pending_schema_migrations_after": 0,
+    "pending_seed_migrations_after": 120,
+    "applied_seed_migrations_recorded": 0,
+    "mobile_form_rows_after": 5,
+    "mobile_form_version_rows_after": 10,
+    "seed_reconciliation_required": "The current ledger shows 120 pending seed files and zero recorded applied seed files, while five mobile_form rows and ten mobile_form_version rows exist; reconcile this pre-existing data before any seed rollout.",
+    "canonical_kokonut_network_organization_rows": 1,
+    "location_rows_after": 0,
+    "tenant_transfer_rows_after": 0,
+    "rls_enabled_by_rollout": false
+  },
+  "application": {
+    "image_id": "sha256:11f87f7d69f5a64a98cfef3584c8ec3024b6daa7db851928e048fa20f15d6af2",
+    "image_source_manifest_sha256": "eb997cdbc395bab7df3ad119a373d387b96f9af07e52f3867fb651f10f882706",
+    "image_source_manifest_file_count": 1314,
+    "tenant_context_helper_sha256_matches_checkout": true,
+    "rollback_image_tags": [
+      "kokonut-kernel-candidate-app:rollback-pre-tenant-transfer-20261014T005051Z",
+      "kokonut-kernel-candidate-app:rollback-pre-context-hardening-20261014T005051Z"
+    ],
+    "only_candidate_app_recreated": true,
+    "candidate_app_container_id": "15e5b6c42c2d4def431bc3000e69b485a04e54d4342004d1a29794f337c14513",
+    "candidate_database_container_id_preserved": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "candidate_metabase_container_id_preserved": "6bf987cd9fb82a7bb726383cb9265b176dd63b7999e0232ce59d6292ef840a7d",
+    "candidate_proxy_container_id_preserved": "4ced55867e8bf92c88b4953bbcbe5163936ca48fdef42fcc34c16c157b9641cf",
+    "health": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    }
+  },
+  "rollback": {
+    "app_only_tag": "kokonut-kernel-candidate-app:rollback-pre-context-hardening-20261014T005051Z",
+    "database_checkpoint": "backups/kernel-candidate-pre-tenant-transfer-20261014T005051Z",
+    "policy": "For an app-only fault, return to the preserved post-migration app image. For database recovery, restore the encrypted checkpoint into a fresh isolated PostgreSQL target, verify it, then perform a separately reviewed candidate cutover; restore was not rehearsed during this rollout."
+  },
+  "cleanup": {
+    "candidate_app_database_metabase_proxy_running": true,
+    "legacy_stack_touched": false,
+    "pilot_or_reference_seeds_applied": false,
+    "encrypted_checkpoint_retained": true,
+    "rollback_images_retained": true
+  },
+  "limitations": [
+    "The candidate contained no location or tenant-transfer rows; rollout validates ordered schema deployment and service protection, not populated ownership or transfer behavior.",
+    "All 120 reference and pilot seed migrations remain pending.",
+    "Transaction-local context helper source is bundled but is not integrated into every Gateway or worker transaction; RLS remains disabled.",
+    "The checkpoint is a single-database recovery artifact; its isolated restore has not been rehearsed."
+  ]
+}

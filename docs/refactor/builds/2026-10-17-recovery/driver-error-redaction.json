@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Driver registry and base-driver exception reporting",
+  "behavior": {
+    "registry_result": "Driver health-check/load failures return the exception class without provider, import, or database message text.",
+    "registry_logs": "Driver registry lifecycle and dynamic-import failures log bounded exception classes without traceback or exception messages.",
+    "base_driver": "BaseDriver.run logs only the exception class and still re-raises the original exception for existing caller handling."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_driver_registry.py -q",
+    "result": "30 passed",
+    "coverage": [
+      "driver test results omit exception details",
+      "dynamic-import error logs omit exception details",
+      "BaseDriver.run logs omit exception details while preserving the original raised exception"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "full_history_gitleaks": "passed; the historical synthetic attestation fixture finding is covered by an exact path-and-line allowlist, and the current test uses a non-secret-shaped diagnostic marker",
+    "database_or_provider_access": "none; mocked exceptions and registry connections only"
+  },
+  "limitations": [
+    "No configured driver, live provider, or database was used.",
+    "This does not establish driver provider availability or live ingestion parity."
+  ]
+}

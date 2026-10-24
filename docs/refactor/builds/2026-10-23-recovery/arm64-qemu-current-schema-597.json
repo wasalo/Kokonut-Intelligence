@@ -1,0 +1,34 @@
+{
+  "result": "failed",
+  "date": "2026-10-23",
+  "source_revision": "ba11ae3b",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261023-b2b27069",
+  "schema_files_expected": 588,
+  "schema_files_applied": 585,
+  "schema_files_pending": 2,
+  "schema_files_failed": 1,
+  "latest_migration": "schema:597_ai_summary_operator_run_review_attribution.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "latest_applied_migration": "schema:594_retire_shared_agent_source_identity.sql",
+  "failed_stage": "migration_595_agent_task_draft_attribution.sql",
+  "failure": "RuntimeError",
+  "failed_migration": "schema:595_agent_task_draft_attribution.sql",
+  "migration_diagnostic": "ERROR:  42704: role \"directus\" does not exist",
+  "elapsed_seconds": 2357.0
+}

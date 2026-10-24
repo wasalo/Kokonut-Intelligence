@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-19",
+  "result": "passed",
+  "schema_migrations_applied": 452,
+  "schema_migrations_expected": 452,
+  "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "database_network": "dedicated bridge subnet 10.250.255.0/24; test makes no external calls",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "candidate_or_legacy_modified": false,
+  "external_provider_calls": 0,
+  "event_projection": {
+    "synthetic_events": [
+      "GuildCreated",
+      "GuildMetadataUpdated",
+      "GuildStewardUpdated",
+      "GuildStatusUpdated",
+      "DomainCreated",
+      "TaskCreated",
+      "TargetPermissionUpdated",
+      "TargetSelectorPermissionUpdated",
+      "GuildScopedTargetUpdated",
+      "TargetPermissionUpdated"
+    ],
+    "processed_event_count": 10,
+    "all_event_rows_processed": true,
+    "projection_source_event_links_match": true,
+    "canonical_log_replay_idempotent": true,
+    "event_rows_after_replay": 10,
+    "guild_projection_rows_after_replay": 1,
+    "domain_projection_rows_after_replay": 1,
+    "task_projection_rows_after_replay": 1,
+    "governance_policy_rows_after_replay": 3,
+    "synthetic_reorg_detected": true,
+    "orphaned_events_after_reorg": 10,
+    "replacement_branch_replay_count": 10,
+    "replacement_branch_projections_rebuilt": true,
+    "governance_policy_rebuilt_after_reorg": true
+  },
+  "worker_recovery": {
+    "worker_alive_during_outage": true,
+    "database_restart_reconnected": true,
+    "worker_killed_and_lease_reclaimed": true,
+    "lease_owner_before_reclaim": "kgp-reconnect-probe",
+    "lease_owner_after_reclaim": "kgp-crash-recovery"
+  },
+  "limitations": [
+    "Deployment, cursor, contract, and guild fixtures were synthetic; no seed data or candidate/legacy database was used.",
+    "Live Web3/RPC was not used. Block height and replacement tip hash were stubbed.",
+    "The database had no volume and published only a loopback port. The dedicated bridge permits egress, but no external provider or chain calls were made.",
+    "This does not establish live-chain parity, production-duration recovery, or MAN-CAP-042 acceptance."
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-006",
+  "slice": "location-scoped verified energy summary and operator-console read",
+  "scope": {
+    "gateway_route": "GET /operator/api/energy/{location_id}/summary",
+    "grant": "energy_monitoring:read",
+    "included_statuses": ["verified", "approved"],
+    "unit": "kWh",
+    "grouping": ["reading_type", "source_type", "activity_type"]
+  },
+  "response_excludes": [
+    "costs",
+    "source names",
+    "equipment/device identifiers",
+    "notes",
+    "arbitrary metadata"
+  ],
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "passed",
+      "passed": 14
+    },
+    "ruff": "passed",
+    "operator_console_node_syntax": "passed",
+    "runtime_sql_inventory": "current",
+    "capability_matrix": "valid: 67 rows",
+    "git_diff_check": "passed"
+  },
+  "environment": {
+    "database": "fake connections only; no database accessed",
+    "provider": "none",
+    "migration": "none",
+    "candidate_or_legacy_mutation": false,
+    "physical_raspberry_pi": "not tested"
+  },
+  "acceptance_status": "prepared",
+  "remaining": [
+    "energy calculation and populated-output parity",
+    "waste, habitat, and pollinator capability paths",
+    "runtime database ACL/RLS",
+    "live ZITADEL/browser acceptance",
+    "MAN-CAP-006 owner acceptance"
+  ]
+}

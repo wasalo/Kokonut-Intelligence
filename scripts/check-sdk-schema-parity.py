@@ -1,0 +1,888 @@
+#!/usr/bin/env python3
+"""Check selected Python/TypeScript SDK models against canonical SQL columns and types."""
+
+from __future__ import annotations
+
+import ast
+import re
+from functools import lru_cache
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_TABLES = {
+    "Location": ("001_locations.sql", "location"),
+    "FarmActivity": ("003_operations.sql", "farm_activity"),
+    "FarmTask": ("061_impact_value_chain.sql", "farm_task"),
+    "FarmTaskDependency": ("361_farm_task_relationships.sql", "farm_task_dependency"),
+    "FarmTaskFrameworkStep": ("361_farm_task_relationships.sql", "farm_task_framework_step"),
+    "FarmTaskWeeklyPlan": ("361_farm_task_relationships.sql", "farm_task_weekly_plan"),
+    "Crop": ("002_crops.sql", "crop"),
+    "CashFlowSnapshot": ("004_finance.sql", "cash_flow_snapshot"),
+    "InfrastructureAsset": ("001_locations.sql", "infrastructure_asset"),
+    "Organization": ("064_organization.sql", "organization"),
+    "OrganizationMember": ("064_organization.sql", "organization_member"),
+    "Farm": ("001_locations.sql", "farm"),
+    "Plot": ("001_locations.sql", "plot"),
+    "CropCycle": ("002_crops.sql", "crop_cycle"),
+    "HarvestEvent": ("003_operations.sql", "harvest_event"),
+    "SalesEvent": ("003_operations.sql", "sales_event"),
+    "ExpenseEvent": ("003_operations.sql", "expense_event"),
+    "ExpenseCategory": ("004_finance.sql", "expense_category"),
+    "CapitalSource": ("004_finance.sql", "capital_source"),
+    "FinancialTransaction": ("004_finance.sql", "financial_transaction"),
+    "ValueFlowEvent": ("004_finance.sql", "value_flow_event"),
+    "ExcludedValueEvent": ("004_finance.sql", "excluded_value_event"),
+    "CropCostAllocation": ("004_finance.sql", "crop_cost_allocation"),
+    "MetricDefinition": ("007_modeled_outputs.sql", "metric_definition"),
+    "MetricVersion": ("007_modeled_outputs.sql", "metric_version"),
+    "MetricValue": ("007_modeled_outputs.sql", "metric_value"),
+    "ForecastScenario": ("007_modeled_outputs.sql", "forecast_scenario"),
+    "ForecastOutput": ("007_modeled_outputs.sql", "forecast_output"),
+    "DashboardDataset": ("007_modeled_outputs.sql", "dashboard_dataset"),
+    "TimeSeriesForecast": ("131_trend_analysis.sql", "time_series_forecast"),
+    "ForecastAccuracy": ("131_trend_analysis.sql", "forecast_accuracy"),
+    "VariogramModel": ("133_geostatistics.sql", "variogram_model"),
+    "KrigingPrediction": ("133_geostatistics.sql", "kriging_prediction"),
+    "KrigingPoint": ("133_geostatistics.sql", "kriging_point"),
+    "GeostatRealization": ("133_geostatistics.sql", "geostat_realization"),
+    "GeostatRealizationPoint": ("133_geostatistics.sql", "geostat_realization_point"),
+    "SpatialAutocorrelation": ("133_geostatistics.sql", "spatial_autocorrelation"),
+    "GeostatCVResult": ("133_geostatistics.sql", "geostat_cv_result"),
+    "SensorNetworkDesign": ("133_geostatistics.sql", "sensor_network_design"),
+    "CausalLoop": ("129_systems_thinking.sql", "causal_loop"),
+    "CausalLink": ("129_systems_thinking.sql", "causal_link"),
+    "SystemVariable": ("129_systems_thinking.sql", "system_variable"),
+    "StockFlowModel": ("129_systems_thinking.sql", "stock_flow_model"),
+    "StockFlowRun": ("129_systems_thinking.sql", "stock_flow_run"),
+    "SystemArchetype": ("129_systems_thinking.sql", "system_archetype"),
+    "LeverageAssessment": ("129_systems_thinking.sql", "leverage_assessment"),
+    "TimeDelay": ("129_systems_thinking.sql", "time_delay"),
+    "StructuralAssumption": ("129_systems_thinking.sql", "structural_assumption"),
+    "CrispRiskAssessment": ("076_crisp_risk_scoring.sql", "crisp_risk_assessment"),
+    "CrispCarbonYieldRisk": ("076_crisp_risk_scoring.sql", "crisp_carbon_yield_risk"),
+    "CrispClimateRisk": ("076_crisp_risk_scoring.sql", "crisp_climate_risk"),
+    "CrispPolicyRisk": ("076_crisp_risk_scoring.sql", "crisp_policy_risk"),
+    "CrispFinancialRisk": ("076_crisp_risk_scoring.sql", "crisp_financial_risk"),
+    "CrispImplementationRisk": ("076_crisp_risk_scoring.sql", "crisp_implementation_risk"),
+    "OrganicCertificationRecord": ("055_organic_certification.sql", "organic_certification_record"),
+    "OrganicTransitionPlan": ("055_organic_certification.sql", "organic_transition_plan"),
+    "ProhibitedSubstanceRecord": ("055_organic_certification.sql", "prohibited_substance_record"),
+    "BufferZone": ("055_organic_certification.sql", "buffer_zone"),
+    "OrganicInputAudit": ("055_organic_certification.sql", "organic_input_audit"),
+    "HarvestHandlingRecord": ("055_organic_certification.sql", "harvest_handling_record"),
+    "OrganicComplianceChecklist": ("055_organic_certification.sql", "organic_compliance_checklist"),
+    "OrganicReadinessAssessment": ("055_organic_certification.sql", "organic_readiness_assessment"),
+    "SituationAssessment": ("124_orientation.sql", "situation_assessment"),
+    "AssessmentSignal": ("124_orientation.sql", "assessment_signal"),
+    "AssessmentDimension": ("124_orientation.sql", "assessment_dimension"),
+    "OodaCycleLog": ("127_ooda_cycles.sql", "ooda_cycle_log"),
+    "DemandForecast": ("069_demand_analysis.sql", "demand_forecast"),
+    "MarketSizeEstimate": ("069_demand_analysis.sql", "market_size_estimate"),
+    "PriceObservation": ("010_market_data.sql", "price_observation"),
+    "OraclePriceLog": ("081_oracle_infrastructure.sql", "oracle_price_log"),
+    "ActuationLog": ("081_oracle_infrastructure.sql", "actuation_log"),
+    "SensorAnomalyEffect": ("376_sensor_anomaly_delivery.sql", "sensor_anomaly_effect"),
+    "DemandTrend": ("069_demand_analysis.sql", "demand_trend"),
+    "BuyerDemandSignal": ("069_demand_analysis.sql", "buyer_demand_signal"),
+    "ProductionMarketMatch": ("069_demand_analysis.sql", "production_market_match"),
+    "BuyerSegment": ("069_demand_analysis.sql", "buyer_segment"),
+    "TrendEstimate": ("131_trend_analysis.sql", "trend_estimate"),
+    "TrendSmoothing": ("131_trend_analysis.sql", "trend_smoothing"),
+    "ChangePoint": ("131_trend_analysis.sql", "change_point"),
+    "SeasonalDecomposition": ("131_trend_analysis.sql", "seasonal_decomposition"),
+    "TrendDashboardMetric": ("131_trend_analysis.sql", "trend_dashboard_metric"),
+    "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
+    "LossEvent": ("003_operations.sql", "loss_event"),
+    "LaborEvent": ("003_operations.sql", "labor_event"),
+    "FieldNote": ("003_operations.sql", "field_note"),
+    "SensorReading": ("005_environmental.sql", "sensor_reading"),
+    "WeatherObservation": ("005_environmental.sql", "weather_observation"),
+    "SoilSample": ("005_environmental.sql", "soil_sample"),
+    "SoilCarbonMeasurement": ("005_environmental.sql", "soil_carbon_measurement"),
+    "EnvironmentalBaseline": ("005_environmental.sql", "environmental_baseline"),
+    "SpeciesObservation": ("005_environmental.sql", "species_observation"),
+    "RemoteSensingObservation": ("005_environmental.sql", "remote_sensing_observation"),
+    "MrvClaim": ("005_environmental.sql", "mrv_claim"),
+    "VerificationReview": ("005_environmental.sql", "verification_review"),
+    "SensorType": ("011_sensor_registry.sql", "sensor_type"),
+    "SensorDevice": ("011_sensor_registry.sql", "sensor_device"),
+    "AlertRule": ("011_sensor_registry.sql", "alert_rule"),
+    "SensorAlert": ("011_sensor_registry.sql", "sensor_alert"),
+    "WalletProfile": ("006_web3.sql", "wallet_profile"),
+    "Protocol": ("006_web3.sql", "protocol"),
+    "AttestationRecord": ("006_web3.sql", "attestation_record"),
+    "AttestationSchema": ("006_web3.sql", "attestation_schema"),
+    "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
+    "AiSummary": ("007_modeled_outputs.sql", "ai_summary"),
+    "ExportLog": ("008_governance.sql", "export_log"),
+    "CarbonCredit": ("078_carbon_credits.sql", "carbon_credit"),
+    "CreditAdjustment": ("078_carbon_credits.sql", "credit_adjustment"),
+    "CreditRetirement": ("078_carbon_credits.sql", "credit_retirement"),
+    "CreditTransfer": ("078_carbon_credits.sql", "credit_transfer"),
+}
+JSONB_MODEL_SHAPES = {
+    ("Location", "baseline_assumptions"): "json_object",
+    ("Location", "metadata"): "json_object",
+    ("Farm", "metadata"): "json_object",
+    ("Farm", "data_privacy_criteria"): "json_object",
+    ("Plot", "metadata"): "json_object",
+    ("CropCycle", "metadata"): "json_object",
+    ("HarvestEvent", "source_raw"): "json_object",
+    ("SalesEvent", "source_raw"): "json_object",
+    ("ExpenseEvent", "source_raw"): "json_object",
+    ("NoiSnapshot", "inputs"): "json_object",
+    ("LossEvent", "source_raw"): "json_object",
+    ("LaborEvent", "source_raw"): "json_object",
+    ("FieldNote", "source_raw"): "json_object",
+    ("SensorReading", "metadata"): "json_object",
+    ("WeatherObservation", "metadata"): "json_object",
+    ("WeatherObservation", "source_raw"): "json_object",
+    ("SoilSample", "source_raw"): "json_object",
+    ("SoilCarbonMeasurement", "source_raw"): "json_object",
+    ("EnvironmentalBaseline", "source_raw"): "json_object",
+    ("SpeciesObservation", "source_raw"): "json_object",
+    ("RemoteSensingObservation", "metadata"): "json_object",
+    ("RemoteSensingObservation", "source_raw"): "json_object",
+    ("MrvClaim", "claim_data"): "json_object",
+    ("MrvClaim", "source_raw"): "json_object",
+    ("PriceObservation", "metadata"): "json_object",
+    ("PriceObservation", "source_metadata"): "json_object",
+    ("OraclePriceLog", "metadata"): "json_object",
+    ("ActuationLog", "command_payload"): "json_object",
+    ("ActuationLog", "response_payload"): "json_object",
+    ("ActuationLog", "metadata"): "json_object",
+    ("FarmActivity", "materials_used"): "json_value",
+    ("FarmActivity", "source_raw"): "json_object",
+    ("FarmActivity", "activity_type_source_options"): "json_object_array",
+    ("FarmTask", "metadata"): "json_object",
+    ("Crop", "metadata"): "json_object",
+    ("CashFlowSnapshot", "inputs"): "json_object",
+    ("InfrastructureAsset", "metadata"): "json_object",
+    ("Protocol", "metadata"): "json_object",
+    ("SensorReading", "source_raw"): "json_object",
+    ("SensorDevice", "metadata"): "json_object",
+    ("AlertRule", "metadata"): "json_object",
+    ("SensorAlert", "metadata"): "json_object",
+    ("SensorAlert", "actuation_response"): "json_object",
+    ("VariogramModel", "metadata"): "json_object",
+    ("KrigingPrediction", "metadata"): "json_object",
+    ("GeostatRealization", "metadata"): "json_object",
+    ("SpatialAutocorrelation", "metadata"): "json_object",
+    ("GeostatCVResult", "fold_results"): "json_object_array",
+    ("GeostatCVResult", "metadata"): "json_object",
+    ("SensorNetworkDesign", "metadata"): "json_object",
+    ("StockFlowModel", "equations"): "json_object",
+    ("StockFlowModel", "initial_conditions"): "json_object",
+    ("StockFlowModel", "parameters"): "json_object",
+    ("StockFlowRun", "parameters"): "json_object",
+    ("StockFlowRun", "results"): "json_object",
+    ("StockFlowRun", "trajectory"): "json_value_array",
+    ("SystemArchetype", "evidence"): "json_object",
+    ("SystemArchetype", "active_variables"): "json_value_array",
+    ("SystemArchetype", "metadata"): "json_object",
+    ("LeverageAssessment", "data_sources"): "json_value_array",
+    ("LeverageAssessment", "metadata"): "json_object",
+    ("SituationAssessment", "metric_trend_summary"): "json_object",
+    ("SituationAssessment", "dimension_summaries"): "json_object",
+    ("SituationAssessment", "recommendations"): "json_value_array",
+    ("SituationAssessment", "metadata"): "json_object",
+    ("OodaCycleLog", "observe_sources"): "json_value_array",
+    ("OodaCycleLog", "orient_frameworks_used"): "json_value_array",
+    ("OodaCycleLog", "metadata"): "json_object",
+    ("CrispRiskAssessment", "metadata"): "json_object",
+    ("CrispRiskAssessment", "source_raw"): "json_object",
+    ("CrispCarbonYieldRisk", "tree_inventory_snapshot"): "json_object",
+    ("CrispCarbonYieldRisk", "soil_carbon_snapshot"): "json_object",
+    ("CrispCarbonYieldRisk", "harvest_snapshot"): "json_object",
+    ("CrispCarbonYieldRisk", "carbon_pool_breakdown"): "json_object",
+    ("CrispCarbonYieldRisk", "metadata"): "json_object",
+    ("CrispClimateRisk", "historical_events"): "json_value_array",
+    ("CrispClimateRisk", "metadata"): "json_object",
+    ("CrispPolicyRisk", "policy_indicators"): "json_object",
+    ("CrispPolicyRisk", "metadata"): "json_object",
+    ("CrispFinancialRisk", "financial_snapshot"): "json_object",
+    ("CrispFinancialRisk", "metadata"): "json_object",
+    ("CrispImplementationRisk", "implementation_evidence"): "json_object",
+    ("CrispImplementationRisk", "metadata"): "json_object",
+    ("OrganicCertificationRecord", "scope_areas"): "json_value_array",
+    ("OrganicCertificationRecord", "evidence_urls"): "json_value_array",
+    ("OrganicCertificationRecord", "metadata"): "json_object",
+    ("OrganicTransitionPlan", "barriers"): "json_value_array",
+    ("OrganicTransitionPlan", "metadata"): "json_object",
+    ("ProhibitedSubstanceRecord", "evidence_urls"): "json_value_array",
+    ("ProhibitedSubstanceRecord", "metadata"): "json_object",
+    ("BufferZone", "photos_urls"): "json_value_array",
+    ("BufferZone", "metadata"): "json_object",
+    ("OrganicInputAudit", "evidence_urls"): "json_value_array",
+    ("OrganicInputAudit", "metadata"): "json_object",
+    ("HarvestHandlingRecord", "evidence_urls"): "json_value_array",
+    ("HarvestHandlingRecord", "metadata"): "json_object",
+    ("OrganicComplianceChecklist", "checklist_items"): "json_value_array",
+    ("OrganicComplianceChecklist", "non_conformances"): "json_value_array",
+    ("OrganicComplianceChecklist", "corrective_actions_required"): "json_value_array",
+    ("OrganicComplianceChecklist", "evidence_urls"): "json_value_array",
+    ("OrganicComplianceChecklist", "metadata"): "json_object",
+    ("OrganicReadinessAssessment", "barriers"): "json_value_array",
+    ("OrganicReadinessAssessment", "recommendations"): "json_value_array",
+    ("OrganicReadinessAssessment", "metadata"): "json_object",
+    ("WalletProfile", "metadata"): "json_object",
+    ("AttestationRecord", "claim_data"): "json_object",
+    ("ReportSnapshot", "report_data"): "json_object",
+    ("ReportSnapshot", "negative_findings"): "json_object_array",
+    ("ExportLog", "filters"): "json_object",
+    ("Organization", "metadata"): "json_object",
+    ("OrganizationMember", "metadata"): "json_object",
+    ("CapitalSource", "metadata"): "json_object",
+    ("FinancialTransaction", "source_raw"): "json_object",
+    ("MetricDefinition", "validation_tests"): "json_object_array",
+    ("MetricValue", "metadata"): "json_object",
+    ("ForecastScenario", "assumptions"): "json_object",
+    ("ForecastScenario", "price_assumptions"): "json_object",
+    ("ForecastScenario", "yield_assumptions"): "json_object",
+    ("ForecastScenario", "cost_assumptions"): "json_object",
+    ("ForecastScenario", "growth_assumptions"): "json_object",
+    ("ForecastOutput", "inputs"): "json_object",
+    ("DashboardDataset", "metadata"): "json_object",
+    ("TimeSeriesForecast", "model_params"): "json_object",
+    ("TimeSeriesForecast", "forecast_values"): "json_value_array",
+    ("TimeSeriesForecast", "prediction_intervals"): "json_object",
+    ("TimeSeriesForecast", "metadata"): "json_object",
+    ("DemandForecast", "inputs"): "json_object",
+    ("DemandForecast", "source_raw"): "json_object",
+    ("MarketSizeEstimate", "source_raw"): "json_object",
+    ("MarketSizeEstimate", "metadata"): "json_object",
+    ("DemandTrend", "inputs"): "json_object",
+    ("BuyerDemandSignal", "source_raw"): "json_object",
+    ("BuyerDemandSignal", "metadata"): "json_object",
+    ("ProductionMarketMatch", "inputs"): "json_object",
+    ("BuyerSegment", "criteria"): "json_object",
+    ("TrendEstimate", "metadata"): "json_object",
+    ("ChangePoint", "metadata"): "json_object",
+    ("SeasonalDecomposition", "trend_component"): "json_value_array",
+    ("SeasonalDecomposition", "seasonal_component"): "json_value_array",
+    ("SeasonalDecomposition", "residual_component"): "json_value_array",
+    ("SeasonalDecomposition", "metadata"): "json_object",
+    ("CarbonCredit", "metadata"): "json_object",
+    ("CarbonCredit", "source_raw"): "json_object",
+    ("CreditAdjustment", "trigger_snapshot"): "json_object",
+    ("CreditAdjustment", "metadata"): "json_object",
+    ("CreditRetirement", "metadata"): "json_object",
+    ("CreditTransfer", "metadata"): "json_object",
+}
+
+
+def table_columns(path: Path, table: str) -> set[str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+
+    columns = set()
+    for line in match.group(1).splitlines():
+        declaration = line.split("--", maxsplit=1)[0].strip().rstrip(",")
+        if not declaration:
+            continue
+        name = declaration.split(maxsplit=1)[0].strip('"')
+        if re.fullmatch(r"[a-z][a-z0-9_]*", name):
+            columns.add(name)
+    # Include additive column migrations so the guard follows the evolved
+    # schema, not just the initial CREATE TABLE declaration.
+    for migration_source in _postgres_migration_sources(ROOT):
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            columns.update(
+                name.lower()
+                for name in re.findall(
+                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    statement.group(1),
+                    flags=re.IGNORECASE,
+                )
+            )
+    return columns
+
+
+def table_nullable_columns(path: Path, table: str) -> set[str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+
+    nullability = {}
+    for line in match.group(1).splitlines():
+        declaration = line.split("--", maxsplit=1)[0].strip().rstrip(",")
+        if not declaration:
+            continue
+        name = declaration.split(maxsplit=1)[0].strip('"').lower()
+        if name in {"constraint", "primary", "unique", "check", "foreign"}:
+            continue
+        if re.fullmatch(r"[a-z][a-z0-9_]*", name):
+            nullability[name] = not bool(
+                re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", declaration, re.IGNORECASE)
+            )
+
+    for migration_source in _postgres_migration_sources(ROOT):
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            body = statement.group(1)
+            additions = list(
+                re.finditer(
+                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    body,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for index, addition in enumerate(additions):
+                column_name = addition.group(2).lower()
+                if addition.group("if_not_exists") and column_name in nullability:
+                    continue
+                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+                definition = body[addition.end() : end]
+                nullability[column_name] = not bool(
+                    re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", definition, re.IGNORECASE)
+                )
+
+            for alteration in re.finditer(
+                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+(SET|DROP)\s+NOT\s+NULL",
+                body,
+                flags=re.IGNORECASE,
+            ):
+                nullability[alteration.group(1).lower()] = (
+                    alteration.group(2).upper() == "DROP"
+                )
+
+    return {name for name, nullable in nullability.items() if nullable}
+
+
+def parse_sql_type(declaration: str) -> str | None:
+    match = re.match(
+        r"\s*((?:DOUBLE\s+PRECISION|TIMESTAMP\s+WITH(?:OUT)?\s+TIME\s+ZONE|"
+        r"CHARACTER\s+VARYING|[A-Z][A-Z0-9_]*)(?:\s*\([^)]*\))?(?:\[\])?)",
+        declaration,
+        flags=re.IGNORECASE,
+    )
+    return match.group(1).upper() if match else None
+
+
+def table_column_types(path: Path, table: str) -> dict[str, str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+
+    column_types = {}
+    for line in match.group(1).splitlines():
+        declaration = line.split("--", maxsplit=1)[0].strip().rstrip(",")
+        column = re.match(r"([a-z][a-z0-9_]*)\s+(.+)", declaration, re.IGNORECASE)
+        if column is None or column.group(1).lower() in {
+            "constraint",
+            "primary",
+            "unique",
+            "check",
+            "foreign",
+        }:
+            continue
+        sql_type = parse_sql_type(column.group(2))
+        if sql_type:
+            column_types[column.group(1).lower()] = sql_type
+
+    for migration_source in _postgres_migration_sources(ROOT):
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            body = statement.group(1)
+            additions = list(
+                re.finditer(
+                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    body,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for index, addition in enumerate(additions):
+                column_name = addition.group(2).lower()
+                if addition.group("if_not_exists") and column_name in column_types:
+                    continue
+                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+                sql_type = parse_sql_type(body[addition.end() : end])
+                if sql_type:
+                    column_types[column_name] = sql_type
+
+            for alteration in re.finditer(
+                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+TYPE\s+(.+?)(?=,\s*ALTER COLUMN|$)",
+                body,
+                flags=re.IGNORECASE,
+            ):
+                sql_type = parse_sql_type(alteration.group(2))
+                if sql_type:
+                    column_types[alteration.group(1).lower()] = sql_type
+
+    return column_types
+
+
+def postgres_enum_types() -> dict[str, tuple[str, ...]]:
+    enum_types: dict[str, tuple[str, ...]] = {}
+    for source in _postgres_migration_sources(ROOT):
+        for definition in re.finditer(
+            r"CREATE TYPE\s+([a-z_][a-z0-9_]*)\s+AS\s+ENUM\s*\((.*?)\)",
+            source,
+            flags=re.IGNORECASE | re.DOTALL,
+        ):
+            enum_types.setdefault(
+                definition.group(1).lower(),
+                tuple(re.findall(r"'((?:''|[^'])*)'", definition.group(2))),
+            )
+        for addition in re.finditer(
+            r"ALTER TYPE\s+([a-z_][a-z0-9_]*)\s+ADD VALUE"
+            r"(?:\s+IF NOT EXISTS)?\s+'((?:''|[^'])*)'",
+            source,
+            flags=re.IGNORECASE,
+        ):
+            type_name = addition.group(1).lower()
+            if type_name in enum_types and addition.group(2) not in enum_types[type_name]:
+                enum_types[type_name] += (addition.group(2),)
+    return enum_types
+
+
+def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
+    """Read standalone ``CHECK (column IN ('value', ...))`` contracts."""
+    source = re.sub(r"--[^\n]*", "", path.read_text(encoding="utf-8"))
+    table_match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if table_match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+    fragments = [table_match.group(1)]
+    for migration_source in _postgres_migration_sources(ROOT):
+        fragments.extend(
+            statement.group(1)
+            for statement in re.finditer(
+                rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+                migration_source,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+        )
+    values: dict[str, tuple[str, ...]] = {}
+    for fragment in fragments:
+        for check in re.finditer(
+            r"\bCHECK\s*\(\s*(?:([a-z_][a-z0-9_]*)\s+IS\s+NULL\s+OR\s+)?"
+            r"([a-z_][a-z0-9_]*)\s+IN\s*\(([^()]*)\)\s*\)",
+            fragment,
+            flags=re.IGNORECASE | re.DOTALL,
+        ):
+            if check.group(1) and check.group(1).lower() != check.group(2).lower():
+                continue
+            literals = tuple(
+                value.replace("''", "'")
+                for value in re.findall(r"'((?:''|[^'])*)'", check.group(3))
+            )
+            if literals:
+                values[check.group(2).lower()] = literals
+    return values
+
+
+@lru_cache(maxsize=4)
+def _postgres_migration_sources(root: Path) -> tuple[str, ...]:
+    """Read ordered migration SQL once per source root for static inventories."""
+    return tuple(
+        re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        for migration in sorted((root / "schemas" / "postgres").glob("*.sql"))
+    )
+
+
+def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, ...]]) -> dict[str, str]:
+    enum_columns = {
+        column: sql_type.lower()
+        for column, sql_type in table_column_types(path, table).items()
+        if sql_type.lower() in enum_types
+    }
+    for source in _postgres_migration_sources(ROOT):
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
+            source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            for constraint in re.finditer(
+                r"([a-z_][a-z0-9_]*)\s*::\s*([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL",
+                statement.group(1),
+                flags=re.IGNORECASE,
+            ):
+                column, type_name = constraint.group(1).lower(), constraint.group(2).lower()
+                if type_name in enum_types:
+                    enum_columns[column] = type_name
+    return enum_columns
+
+
+def sql_type_family(sql_type: str) -> str | None:
+    normalized = sql_type.upper()
+    if normalized == "JSONB":
+        return "jsonb"
+    if normalized == "UUID" or normalized in {
+        "TEXT",
+        "DATE",
+        "TIME",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "TIMESTAMP WITH TIME ZONE",
+        "TIMESTAMP WITHOUT TIME ZONE",
+    } or normalized.startswith(("VARCHAR", "CHARACTER VARYING", "CHAR(")):
+        return "string"
+    if normalized in {"SMALLINT", "INTEGER", "INT", "BIGINT", "SERIAL", "BIGSERIAL"}:
+        return "integer"
+    if normalized.startswith(("NUMERIC", "DECIMAL", "REAL", "DOUBLE PRECISION", "FLOAT")):
+        return "number"
+    if normalized in {"BOOLEAN", "BOOL"}:
+        return "boolean"
+    if normalized in {"TEXT[]", "VARCHAR[]", "UUID[]"}:
+        return "string_array"
+    spatial_type = re.fullmatch(
+        r"(?:GEOMETRY|GEOGRAPHY)\s*\(\s*(POINT|POLYGON)\s*,\s*\d+\s*\)",
+        normalized,
+    )
+    if spatial_type:
+        return f"geojson_{spatial_type.group(1).lower()}"
+    return None
+
+
+def python_type_matches_family(
+    annotation: str,
+    family: str,
+    literal_aliases: dict[str, tuple[str, ...]] | None = None,
+) -> bool:
+    normalized = annotation.strip()
+    if normalized.startswith("Optional[") and normalized.endswith("]"):
+        normalized = normalized[len("Optional[") : -1].strip()
+    normalized = re.sub(r"\s*\|\s*None\b", "", normalized).strip()
+    if family == "string" and literal_aliases and normalized in literal_aliases:
+        return all(isinstance(value, str) for value in literal_aliases[normalized])
+    compatible = {
+        "string": {"str"},
+        "integer": {"int"},
+        "number": {"float", "int", "Decimal"},
+        "boolean": {"bool"},
+        "string_array": {"List[str]", "list[str]"},
+        "geojson_point": {"GeoJSONPoint"},
+        "geojson_polygon": {"GeoJSONPolygon"},
+        "json_object": {"JSONObject"},
+        "json_object_array": {
+            "List[JSONObject]", "list[JSONObject]",
+            "List[ActivityTypeSourceOption]", "list[ActivityTypeSourceOption]",
+        },
+        "json_value": {"JSONValue"},
+        "json_value_array": {"List[JSONValue]", "list[JSONValue]"},
+    }
+    return normalized in compatible.get(family, set())
+
+
+def typescript_type_matches_family(
+    field_type: str,
+    family: str,
+    literal_aliases: dict[str, tuple[str, ...]] | None = None,
+) -> bool:
+    normalized = re.sub(r"\s*\|\s*null\b", "", field_type).strip()
+    if family == "string":
+        if literal_aliases and normalized in literal_aliases:
+            return bool(literal_aliases[normalized])
+        parts = [part.strip() for part in normalized.split("|")]
+        return bool(parts) and all(
+            part == "string" or re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part)
+            for part in parts
+        )
+    expected = {
+        "integer": "number",
+        "number": "number",
+        "boolean": "boolean",
+        "string_array": "string[]",
+        "geojson_point": "GeoJSONPoint",
+        "geojson_polygon": "GeoJSONPolygon",
+        "json_object": "JSONObject",
+        "json_object_array": {"JSONObject[]", "ActivityTypeSourceOption[]"},
+        "json_value": "JSONValue",
+        "json_value_array": "JSONValue[]",
+    }.get(family)
+    return normalized in expected if isinstance(expected, set) else normalized == expected
+
+
+def python_model_field_types(path: Path) -> dict[str, dict[str, str]]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name: {
+            field.target.id: ast.unparse(field.annotation)
+            for field in node.body
+            if isinstance(field, ast.AnnAssign)
+            and isinstance(field.target, ast.Name)
+            and field.annotation is not None
+        }
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+    }
+
+
+def typescript_model_fields(path: Path) -> dict[str, set[str]]:
+    source = path.read_text(encoding="utf-8")
+    interfaces = re.finditer(
+        r"export interface\s+(\w+)\s*\{(.*?)\n\}", source, flags=re.DOTALL
+    )
+    return {
+        match.group(1): set(
+            re.findall(r"^\s{2}([A-Za-z_][A-Za-z0-9_]*)\??\s*:", match.group(2), re.MULTILINE)
+        )
+        for match in interfaces
+    }
+
+
+def typescript_model_field_types(path: Path) -> dict[str, dict[str, str]]:
+    source = path.read_text(encoding="utf-8")
+    interfaces = re.finditer(
+        r"export interface\s+(\w+)\s*\{(.*?)\n\}", source, flags=re.DOTALL
+    )
+    return {
+        match.group(1): {
+            name: field_type.strip()
+            for name, field_type in re.findall(
+                r"^\s{2}([A-Za-z_][A-Za-z0-9_]*)\??\s*:\s*([^;\n]+)",
+                match.group(2),
+                flags=re.MULTILINE,
+            )
+        }
+        for match in interfaces
+    }
+
+
+def python_literal_aliases(path: Path) -> dict[str, tuple[str, ...]]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    aliases = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        value = node.value
+        if (
+            not isinstance(target, ast.Name)
+            or not isinstance(value, ast.Subscript)
+            or not isinstance(value.value, ast.Name)
+            or value.value.id != "Literal"
+        ):
+            continue
+        literal_nodes = value.slice.elts if isinstance(value.slice, ast.Tuple) else [value.slice]
+        literals = [
+            item.value for item in literal_nodes
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        ]
+        if len(literals) == len(literal_nodes):
+            aliases[target.id] = tuple(literals)
+    return aliases
+
+
+def typescript_literal_aliases(path: Path) -> dict[str, tuple[str, ...]]:
+    source = path.read_text(encoding="utf-8")
+    aliases = {}
+    for declaration in re.finditer(
+        r"export type\s+(\w+)\s*=\s*([^;]+);", source, flags=re.DOTALL
+    ):
+        parts = [
+            part.strip() for part in declaration.group(2).split("|") if part.strip()
+        ]
+        if parts and all(re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part) for part in parts):
+            aliases[declaration.group(1)] = tuple(
+                part[1:-1] for part in parts
+            )
+    return aliases
+
+
+def python_type_matches_enum(
+    annotation: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    normalized = annotation.strip()
+    if normalized.startswith("Optional[") and normalized.endswith("]"):
+        normalized = normalized[len("Optional[") : -1].strip()
+    normalized = re.sub(r"\s*\|\s*None\b", "", normalized).strip()
+    return normalized in aliases and set(aliases[normalized]) == set(expected)
+
+
+def typescript_type_matches_enum(
+    field_type: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    normalized = re.sub(r"\s*\|\s*null\b", "", field_type).strip()
+    return normalized in aliases and set(aliases[normalized]) == set(expected)
+
+
+def python_type_matches_literals(
+    annotation: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    return python_type_matches_enum(annotation, aliases, expected)
+
+
+def typescript_type_matches_literals(
+    field_type: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    return typescript_type_matches_enum(field_type, aliases, expected)
+
+
+def main() -> int:
+    schema_dir = ROOT / "schemas" / "postgres"
+    python_field_types = python_model_field_types(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    )
+    python_models = {model: set(fields) for model, fields in python_field_types.items()}
+    typescript_models = typescript_model_fields(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    typescript_field_types = typescript_model_field_types(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    python_enums = python_literal_aliases(ROOT / "sdk" / "python" / "kokonut" / "types.py")
+    typescript_enums = typescript_literal_aliases(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    sql_enums = postgres_enum_types()
+    failures = []
+    checked_columns = 0
+    checked_scalar_types = 0
+    checked_spatial_types = 0
+    checked_json_shapes = 0
+    checked_enum_fields = 0
+    checked_check_literal_fields = 0
+
+    for model, (schema_file, table) in MODEL_TABLES.items():
+        columns = table_columns(schema_dir / schema_file, table)
+        nullable_columns = table_nullable_columns(schema_dir / schema_file, table)
+        column_types = table_column_types(schema_dir / schema_file, table)
+        enum_columns = table_enum_columns(schema_dir / schema_file, table, sql_enums)
+        checked_literals = table_check_literals(schema_dir / schema_file, table)
+        checked_columns += len(columns)
+        for language, models in (("Python", python_models), ("TypeScript", typescript_models)):
+            fields = models.get(model)
+            if fields is None:
+                failures.append(f"{language} model {model} is missing")
+                continue
+            missing = sorted(columns - fields)
+            if missing:
+                failures.append(f"{language} {model} is missing SQL columns: {', '.join(missing)}")
+        nullable_without_null = sorted(
+            column
+            for column in nullable_columns
+            if column in typescript_field_types.get(model, {})
+            and not re.search(r"\bnull\b", typescript_field_types[model][column])
+        )
+        if nullable_without_null:
+            failures.append(
+                f"TypeScript {model} omits null from nullable SQL columns: "
+                f"{', '.join(nullable_without_null)}"
+            )
+        nullable_without_optional = sorted(
+            column
+            for column in nullable_columns
+            if column in python_field_types.get(model, {})
+            and not re.search(
+                r"\b(?:Optional|None)\b", python_field_types[model][column]
+            )
+        )
+        if nullable_without_optional:
+            failures.append(
+                f"Python {model} omits Optional from nullable SQL columns: "
+                f"{', '.join(nullable_without_optional)}"
+            )
+        for column, sql_type in column_types.items():
+            family = sql_type_family(sql_type)
+            if family is None:
+                continue
+            if family == "jsonb":
+                family = JSONB_MODEL_SHAPES.get((model, column))
+                if family is None:
+                    failures.append(f"No JSONB SDK shape contract registered for {model}.{column}")
+                    continue
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            if family.startswith("geojson_"):
+                checked_spatial_types += 1
+            elif family.startswith("json_"):
+                checked_json_shapes += 1
+            else:
+                checked_scalar_types += 1
+            if not python_type_matches_family(python_type, family, python_enums):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL {sql_type}: {python_type}"
+                )
+            if not typescript_type_matches_family(typescript_type, family, typescript_enums):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL {sql_type}: "
+                    f"{typescript_type}"
+                )
+        for column, enum_type in enum_columns.items():
+            expected_values = sql_enums[enum_type]
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            checked_enum_fields += 1
+            if not python_type_matches_enum(python_type, python_enums, expected_values):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL enum {enum_type}: {python_type}"
+                )
+            if not typescript_type_matches_enum(typescript_type, typescript_enums, expected_values):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL enum "
+                    f"{enum_type}: {typescript_type}"
+                )
+        for column, expected_values in checked_literals.items():
+            if sql_type_family(column_types.get(column, "")) != "string":
+                continue
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            checked_check_literal_fields += 1
+            if not python_type_matches_literals(python_type, python_enums, expected_values):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL CHECK values: {python_type}"
+                )
+            if not typescript_type_matches_literals(typescript_type, typescript_enums, expected_values):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL CHECK values: {typescript_type}"
+                )
+
+    if failures:
+        print("SDK schema parity failed:")
+        for failure in failures:
+            print(f"- {failure}")
+        return 1
+
+    print(
+        f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
+        f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, "
+        f"{checked_spatial_types} PostGIS types, and {checked_json_shapes} JSONB shapes "
+        f"plus {checked_enum_fields} enum fields and {checked_check_literal_fields} "
+        f"CHECK-literal fields checked per SDK)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -353,6 +353,13 @@ def evaluate_not_null_rule(
             "error": f"table '{table_name}' not found",
         }
 
+    eligibility_filter = ""
+    if table_name == "farm_activity":
+        eligibility_filter = """
+            WHERE farm_activity_source_eligible_for_use(
+                source_system, source_id, source_raw, location_id
+            )
+        """
     sql = f"""
         SELECT
             COUNT(*) AS total_rows,
@@ -360,6 +367,7 @@ def evaluate_not_null_rule(
         FROM (
             SELECT {field_name}
             FROM {table_name}
+            {eligibility_filter}
             ORDER BY created_at DESC NULLS LAST
             LIMIT %s
         ) sub

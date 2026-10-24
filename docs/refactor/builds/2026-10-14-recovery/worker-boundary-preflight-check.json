@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Retain a static-only worker tenant-boundary preflight without connecting to a database or reading secrets.",
+  "command": "python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json",
+  "report": "docs/refactor/worker-boundary-preflight.json",
+  "status": "review_required",
+  "operation_roots": 17,
+  "allowlisted_roots_missing_from_source_or_function_inventory": 0,
+  "unresolved_local_imports": 0,
+  "known_allowlisted_dynamic_import_sites": 1,
+  "unbound_tenant_context_roots": 17,
+  "sql_execution_sites": 196,
+  "sql_sites_with_static_worker_path": 175,
+  "sql_sites_without_static_function_match": 21,
+  "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_boundary_preflight.py -q",
+  "focused_tests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "report_freshness": "passed",
+    "diff_check": "passed"
+  },
+  "database_checks": {
+    "runtime_role_attributes_and_grants": "not_assessed",
+    "migration_prerequisites_and_drift": "not_assessed",
+    "pending_tenant_ownership_mappings": "not_assessed",
+    "active_persisted_schedule_contracts": "not_assessed",
+    "rls_readiness": "not_ready"
+  },
+  "limits": [
+    "The preflight reads source inventories only and is not a database ACL or authorization policy.",
+    "Unmatched SQL sites are review items, not proof of dead code.",
+    "No database, migration, secret, or candidate/legacy service was accessed."
+  ]
+}

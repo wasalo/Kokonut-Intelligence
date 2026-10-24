@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-17",
+  "scope": "Gateway unknown-route policy warning",
+  "change": "The catch-all warning no longer includes the request method or arbitrary path supplied by the caller.",
+  "behavior": "Unknown routes remain private and fail closed with the existing gateway resource/action policy.",
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_gateway_route_policy_inventory.py tests/test_operator_auth.py -q",
+    "result": "75 passed",
+    "regression": "A synthetic path containing participant-like and token-like segments is excluded from log arguments."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "capability_matrix": "valid; 66 rows"
+  },
+  "limitations": [
+    "This does not change route matching, authorization, or application access logs emitted by an upstream proxy."
+  ]
+}

@@ -1,6 +1,8 @@
 """State-of-Kokonut and network-level report generators."""
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 
 import psycopg2
 import psycopg2.extras
@@ -30,18 +32,95 @@ from .wellbeing import (
 )
 
 
+def _report_error_summary(operation: str, exc: Exception) -> str:
+    """Return a bounded report failure without exposing source or database data."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"{operation} failed ({name})"
+
+
+@contextmanager
+def _composite_section_savepoint(conn):
+    """Isolate one read-only report section from PostgreSQL statement failures."""
+    savepoint = "kokonut_comprehensive_status_section"
+    with conn.cursor() as cur:
+        cur.execute(f"SAVEPOINT {savepoint}")
+    try:
+        yield
+        with conn.cursor() as cur:
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+    except Exception:
+        with conn.cursor() as cur:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        raise
+
+
+def _run_composite_section(conn, fn, *args, operation="report section"):
+    """Run a dynamic report section and return a bounded failure summary."""
+    try:
+        with _composite_section_savepoint(conn):
+            return fn(*args)
+    except Exception as exc:  # noqa: BLE001 - isolate individual report sections
+        return {"error": _report_error_summary(operation, exc)}
+
+
+def _harvest_quantity_overview(entries):
+    """Aggregate harvest quantities without combining unlike units."""
+    totals = {}
+    for entry in entries:
+        summary = entry.get("sections", {}).get("farm_summary", {})
+        harvest = summary.get("harvest_summary", {}) if isinstance(summary, dict) else {}
+        by_unit = harvest.get("total_quantity_by_unit")
+        if isinstance(by_unit, dict):
+            quantities = by_unit.items()
+        else:
+            unit = harvest.get("quantity_unit")
+            quantity = harvest.get("total_quantity")
+            quantities = [(unit, quantity)] if isinstance(unit, str) and quantity is not None else []
+        for unit, quantity in quantities:
+            if not isinstance(unit, str) or not unit.strip() or quantity is None:
+                continue
+            try:
+                amount = Decimal(str(quantity))
+            except (InvalidOperation, TypeError, ValueError):
+                continue
+            if amount.is_finite():
+                totals[unit] = totals.get(unit, Decimal(0)) + amount
+
+    by_unit = {unit: round(float(amount), 2) for unit, amount in sorted(totals.items())}
+    if len(totals) == 1:
+        unit, amount = next(iter(totals.items()))
+        total_quantity = round(float(amount), 2)
+        quantity_unit = unit
+    elif not totals:
+        total_quantity = 0.0
+        quantity_unit = None
+    else:
+        total_quantity = None
+        quantity_unit = None
+    return {
+        "total_harvest_quantity": total_quantity,
+        "total_harvest_quantity_unit": quantity_unit,
+        "total_harvest_quantity_by_unit": by_unit,
+    }
+
+
 def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
     """Compose per-location reports across one, many, or all locations."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_ids:
-        cur.execute(
-            "SELECT id, name, slug, country, region, status FROM location WHERE id = ANY(%s) ORDER BY name",
-            (list(location_ids),),
-        )
-    else:
-        cur.execute("SELECT id, name, slug, country, region, status FROM location ORDER BY name")
-    locations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_ids:
+            cur.execute(
+                "SELECT id, name, slug, country, region, status FROM location WHERE id = ANY(%s) ORDER BY name",
+                (list(location_ids),),
+            )
+        else:
+            cur.execute("SELECT id, name, slug, country, region, status FROM location ORDER BY name")
+        locations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     composed = []
     for loc in locations:
@@ -54,7 +133,8 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
             "region": loc.get("region"),
             "sections": {},
         }
-        # Compose existing per-location generators; one failure must not break the composite.
+        # Compose existing per-location generators; a failed SQL statement must
+        # be rolled back to its savepoint before the next section runs.
         for section, fn in (
             ("farm_summary", generate_farm_summary),
             ("crop_noi", generate_crop_noi),
@@ -68,10 +148,9 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
             ("training_impact", generate_training_impact),
             ("regenerative_outcomes", generate_regenerative_outcomes),
         ):
-            try:
-                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
-            except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+            entry["sections"][section] = _run_composite_section(
+                conn, fn, conn, loc_id, period_start, period_end
+            )
         composed.append(entry)
     return locations, composed
 
@@ -85,68 +164,91 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
     """
     params = [period_start, period_start, period_end, period_end]
 
-    cur.execute(
-        f"""
-        SELECT fr.actor_type, fr.actor_name,
-               COUNT(*) AS rounds,
-               COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
-               fr.currency
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        GROUP BY fr.actor_type, fr.actor_name, fr.currency
-        ORDER BY fr.actor_type
-        """,
-        params,
-    )
-    by_actor = [dict(r) for r in cur.fetchall()]
+    try:
+        cur.execute(
+            f"""
+            SELECT fr.actor_type, fr.actor_name,
+                   COUNT(*) AS rounds,
+                   COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
+                   fr.currency
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            GROUP BY fr.actor_type, fr.actor_name, fr.currency
+            ORDER BY fr.actor_type
+            """,
+            params,
+        )
+        by_actor = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT fr.source_type, COALESCE(SUM(fr.raised_amount), 0) AS total_raised
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        GROUP BY fr.source_type
-        ORDER BY total_raised DESC
-        """,
-        params,
-    )
-    by_source = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT fr.source_type, fr.currency,
+                   COALESCE(SUM(fr.raised_amount), 0) AS total_raised
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            GROUP BY fr.source_type, fr.currency
+            ORDER BY total_raised DESC, fr.source_type, fr.currency
+            """,
+            params,
+        )
+        by_source = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT pf.actor_type, pf.decision_status,
-               COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
-        FROM project_funding pf
-        JOIN funding_round fr ON fr.id = pf.funding_round_id
-        WHERE 1=1 {period_filter}
-        GROUP BY pf.actor_type, pf.decision_status
-        ORDER BY pf.actor_type, pf.decision_status
-        """,
-        params,
-    )
-    participation = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT pf.actor_type, pf.decision_status, pf.token,
+                   COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
+            FROM project_funding pf
+            JOIN funding_round fr ON fr.id = pf.funding_round_id
+            WHERE 1=1 {period_filter}
+            GROUP BY pf.actor_type, pf.decision_status, pf.token
+            ORDER BY pf.actor_type, pf.decision_status, pf.token
+            """,
+            params,
+        )
+        participation = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        f"""
-        SELECT fr.round_code, fr.actor_type, fr.actor_name, fr.round_name,
-               fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
-               fr.location_id
-        FROM funding_round fr
-        WHERE 1=1 {period_filter}
-        ORDER BY fr.period_start, fr.actor_type
-        """,
-        params,
-    )
-    rounds = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            f"""
+            SELECT fr.round_code, fr.actor_type, fr.actor_name, fr.round_name,
+                   fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
+                   fr.location_id
+            FROM funding_round fr
+            WHERE 1=1 {period_filter}
+            ORDER BY fr.period_start, fr.actor_type
+            """,
+            params,
+        )
+        rounds = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
-    total_raised = sum(float(r.get("total_raised") or 0) for r in by_actor)
-    cur.close()
+    total_raised_by_currency = {}
+    for row in by_actor:
+        currency = str(row.get("currency") or "UNSPECIFIED")
+        amount = Decimal(str(row.get("total_raised") or 0))
+        total_raised_by_currency[currency] = (
+            total_raised_by_currency.get(currency, Decimal(0)) + amount
+        )
+
+    if len(total_raised_by_currency) == 1:
+        total_raised_currency, amount = next(iter(total_raised_by_currency.items()))
+        total_raised = round(float(amount), 2)
+    elif not total_raised_by_currency:
+        total_raised_currency = None
+        total_raised = 0.0
+    else:
+        total_raised_currency = None
+        total_raised = None
+
+    totals_by_currency = dict(sorted(total_raised_by_currency.items()))
     return {
         "by_actor": _serialize_rows(by_actor),
         "by_source": _serialize_rows(by_source),
         "participation": _serialize_rows(participation),
         "rounds": _serialize_rows(rounds),
-        "total_raised": round(total_raised, 2),
+        "total_raised": total_raised,
+        "total_raised_currency": total_raised_currency,
+        "total_raised_by_currency": totals_by_currency,
     }
 
 
@@ -172,7 +274,6 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
     # Lightweight ecosystem rollups from composed sections.
     total_revenue = 0.0
     total_expenses = 0.0
-    total_harvest = 0.0
     locations_with_data = 0
     for entry in composed:
         fs = entry.get("sections", {}).get("farm_summary")
@@ -183,12 +284,7 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
                 total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
             except (TypeError, ValueError):
                 pass
-        hs = entry.get("sections", {}).get("farm_summary")
-        if isinstance(hs, dict) and "harvest_summary" in hs:
-            try:
-                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
-            except (TypeError, ValueError):
-                pass
+    harvest_overview = _harvest_quantity_overview(composed)
 
     return {
         "report_type": "state_of_kokonut",
@@ -202,7 +298,7 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
             "total_revenue_usd": round(total_revenue, 2),
             "total_expenses_usd": round(total_expenses, 2),
             "net_income_usd": round(total_revenue - total_expenses, 2),
-            "total_harvest_quantity": round(total_harvest, 2),
+            **harvest_overview,
         },
         "actor_view": actors,
         "locations": composed,
@@ -244,13 +340,13 @@ def generate_state_of_kokonut_graphs(
                 }
             )
         except Exception as exc:  # isolate a failing graph, mirror state_of_kokonut
-            print(f"  ⚠ graph {desc.name} failed: {exc}")
+            print(f"  ⚠ graph generation failed ({type(exc).__name__})")
             graphs.append(
                 {
                     "name": desc.name,
                     "layout": desc.layout,
                     "title": desc.title,
-                    "error": str(exc),
+                    "error": _report_error_summary("graph generation", exc),
                 }
             )
 
@@ -278,8 +374,8 @@ def generate_comprehensive_status(
     Composes the canonical per-location sections (farm, crop NOI, environmental,
     climate impact, financial sustainability, capital efficiency, holistic and
     foundational wellbeing, community governance, GNH alignment, training
-    impact, regenerative outcomes, stakeholder outcomes) into one document for
-    one, many, or all locations. When no location is selected (or ``--all``),
+    impact, regenerative outcomes, stakeholder outcomes, and capital accounting)
+    into one document for one, many, or all locations. When no location is selected (or ``--all``),
     the report is network-wide: it nests per-location bundles and adds an
     ecosystem rollup. Each section is called defensively; one failure is
     isolated and reported as an error rather than breaking the composite.
@@ -301,22 +397,23 @@ def generate_comprehensive_status(
             ("foundational_wellbeing", generate_foundational_wellbeing),
             ("stakeholder_outcomes", generate_stakeholder_outcomes),
         ):
-            try:
-                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
-            except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
-        try:
-            entry["sections"]["capital_accounting"] = generate_capital_accounting(
-                conn, loc_id, period_start, period_end
+            entry["sections"][section] = _run_composite_section(
+                conn, fn, conn, loc_id, period_start, period_end
             )
+        try:
+            with _composite_section_savepoint(conn):
+                entry["sections"]["capital_accounting"] = generate_capital_accounting(
+                    conn, loc_id, period_start, period_end
+                )
         except Exception as exc:  # noqa: BLE001 - keep composite resilient
-            entry["sections"]["capital_accounting"] = {"error": f"{type(exc).__name__}: {exc}"}
+            entry["sections"]["capital_accounting"] = {
+                "error": _report_error_summary("capital accounting", exc)
+            }
         extended.append(entry)
 
     # Network-wide rollup from composed financial/environmental summaries.
     total_revenue = 0.0
     total_expenses = 0.0
-    total_harvest = 0.0
     locations_with_data = 0
     for entry in extended:
         fs = entry.get("sections", {}).get("farm_summary")
@@ -327,12 +424,7 @@ def generate_comprehensive_status(
                 total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
             except (TypeError, ValueError):
                 pass
-        hs = entry.get("sections", {}).get("farm_summary")
-        if isinstance(hs, dict) and "harvest_summary" in hs:
-            try:
-                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
-            except (TypeError, ValueError):
-                pass
+    harvest_overview = _harvest_quantity_overview(extended)
 
     return {
         "report_type": "comprehensive_status",
@@ -346,7 +438,7 @@ def generate_comprehensive_status(
             "total_revenue_usd": round(total_revenue, 2),
             "total_expenses_usd": round(total_expenses, 2),
             "net_income_usd": round(total_revenue - total_expenses, 2),
-            "total_harvest_quantity": round(total_harvest, 2),
+            **harvest_overview,
         },
         "locations": extended,
         "limitations": [
@@ -382,19 +474,22 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_ids:
-        cur.execute(
-            "SELECT id, name FROM location WHERE id = ANY(%s) ORDER BY name",
-            (list(location_ids),),
-        )
-    else:
-        cur.execute("SELECT id, name FROM location ORDER BY name")
-    locations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_ids:
+            cur.execute(
+                "SELECT id, name FROM location WHERE id = ANY(%s) ORDER BY name",
+                (list(location_ids),),
+            )
+        else:
+            cur.execute("SELECT id, name FROM location ORDER BY name")
+        locations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
-    # Network-level reserve health.
-    net_health = srh.reserve_health(conn)
-    reserves = net_health["reserves"]
+    # Network reserve health can contain records across farms, so only attach
+    # it to an unassigned network snapshot.
+    net_health = srh.reserve_health(conn) if location_ids is None else None
+    reserves = net_health["reserves"] if net_health else []
 
     per_location = []
     for loc in locations:
@@ -402,7 +497,7 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         try:
             seed = srh.seed_vault_health(conn, loc_id)
         except Exception as exc:  # noqa: BLE001 - isolate per-location failure
-            seed = {"error": f"{type(exc).__name__}: {exc}"}
+            seed = {"error": _report_error_summary("seed-vault health", exc)}
         per_location.append(
             {
                 "location_id": loc_id,
@@ -418,6 +513,13 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         if isinstance(r.get("adequacy", {}).get("adequacy_pct"), (int, float)) and r["adequacy"]["adequacy_pct"] >= 100
     ]
     fundability_pct = round((len(adequate) / len(reserves)) * 100, 2) if reserves else None
+    limitations = [
+        "Reserve health is monitor + propose only; release decisions require human approval via decision_policy.requires_approval / agents/safety.py. No automatic on-chain drawdown.",
+        "Seed-vault biodiversity proxy uses distinct tree species + crop lines held; it is a resilience indicator, not a physical logistics system.",
+        "Pilot reserves are seeded targets; held_quantity for derived reserves is computed from existing pilot tables and may be zero where source rows are absent.",
+    ]
+    if net_health is None:
+        limitations.append("Network-wide reserve balances and fundability are omitted from selected-location snapshots.")
 
     return {
         "report_type": "strategic_reserve",
@@ -425,20 +527,20 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         "selected_location_ids": location_ids,
         "period_start": period_start,
         "period_end": period_end,
-        "reserve_count": net_health["reserve_count"],
+        "reserve_count": net_health["reserve_count"] if net_health else None,
         "reserves": reserves,
-        "fundability_signal": {
-            "adequately_funded_reserves": len(adequate),
-            "total_reserves": len(reserves),
-            "fundability_pct": fundability_pct,
-            "note": "Reserve adequacy reduces perceived risk and supports funding-round due diligence (strategic-reserve investment-incentive parallel).",
-        },
+        "fundability_signal": (
+            {
+                "adequately_funded_reserves": len(adequate),
+                "total_reserves": len(reserves),
+                "fundability_pct": fundability_pct,
+                "note": "Reserve adequacy reduces perceived risk and supports funding-round due diligence (strategic-reserve investment-incentive parallel).",
+            }
+            if net_health
+            else None
+        ),
         "locations": per_location,
-        "limitations": [
-            "Reserve health is monitor + propose only; release decisions require human approval via decision_policy.requires_approval / agents/safety.py. No automatic on-chain drawdown.",
-            "Seed-vault biodiversity proxy uses distinct tree species + crop lines held; it is a resilience indicator, not a physical logistics system.",
-            "Pilot reserves are seeded targets; held_quantity for derived reserves is computed from existing pilot tables and may be zero where source rows are absent.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -446,19 +548,21 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_capital_provider_utility_summary
-        WHERE location_id = %s
-        ORDER BY utility_score DESC NULLS LAST, scenario_name
-        """,
-        (location_id,),
-    )
-    scenarios = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_capital_provider_utility_summary
+            WHERE location_id = %s
+            ORDER BY utility_score DESC NULLS LAST, scenario_name
+            """,
+            (location_id,),
+        )
+        scenarios = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "capital_provider_utility",
         "location_id": location_id,

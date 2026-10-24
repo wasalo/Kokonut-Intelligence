@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("sandbox.environment")
@@ -81,9 +80,9 @@ class AnalysisEnvironment:
             conn.commit()
             logger.info("Created analysis environment: %s (type=%s, location=%s)", env_id[:8], env_type, location_id[:8])
             return env_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to create analysis environment")
+            logger.error("Failed to create analysis environment (%s)", safe_exception_class(exc))
             raise
 
     def destroy(self, env_id: str) -> bool:
@@ -105,9 +104,9 @@ class AnalysisEnvironment:
             if result:
                 logger.info("Destroyed analysis environment: %s", env_id[:8])
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to destroy analysis environment")
+            logger.error("Failed to destroy analysis environment (%s)", safe_exception_class(exc))
             return False
 
     def run(
@@ -123,15 +122,15 @@ class AnalysisEnvironment:
         sandbox whitelist.  Arbitrary filesystem paths and imports outside the
         allowlist are rejected.
         """
-        if not _MODULE_PATH_RE.match(module_path):
-            logger.warning("Rejected invalid module path: %s", module_path)
+        if not isinstance(module_path, str) or not _MODULE_PATH_RE.fullmatch(module_path):
+            logger.warning("Rejected invalid sandbox module path")
             return {"error": "Invalid module path format"}
 
         if module_path not in _ALLOWED_MODULES:
-            logger.warning("Rejected unregistered module: %s", module_path)
-            return {"error": f"Module not allowed: {module_path}"}
+            logger.warning("Rejected unregistered sandbox module")
+            return {"error": "Module not allowed"}
 
-        logger.error("Sandbox execution requested without a restricted worker: %s", module_path)
+        logger.error("Sandbox execution requested without a restricted worker")
         return {
             "error": (
                 "Sandbox executor is not configured. Configure a restricted "
@@ -154,9 +153,9 @@ class AnalysisEnvironment:
                     (status, duration_ms, output, error, run_id),
                 )
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to complete analysis run")
+            logger.error("Failed to complete analysis run (%s)", safe_exception_class(exc))
 
     def list_environments(self, location_id: str | None = None, status: str | None = None) -> list[dict]:
         """List analysis environments."""
@@ -194,8 +193,8 @@ class AnalysisEnvironment:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list environments")
+        except Exception as exc:
+            logger.error("Failed to list environments (%s)", safe_exception_class(exc))
             return []
 
     def list_runs(self, env_id: str | None = None, limit: int = 20) -> list[dict]:
@@ -237,10 +236,10 @@ class AnalysisEnvironment:
                         "started_at": r[4].isoformat(),
                         "completed_at": r[5].isoformat() if r[5] else None,
                         "duration_ms": r[6],
-                        "error_message": r[7],
+                        "error_message": "[details redacted]" if r[7] else None,
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list runs")
+        except Exception as exc:
+            logger.error("Failed to list analysis runs (%s)", safe_exception_class(exc))
             return []

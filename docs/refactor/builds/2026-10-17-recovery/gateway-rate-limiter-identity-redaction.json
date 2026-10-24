@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-17",
+  "scope": "Gateway in-memory rate-limiter warning logs",
+  "change": "Rate-limit warnings no longer include the limiter key, which may contain a client IP address.",
+  "behavior": "The limiter still denies over-budget calls and computes Retry-After identically; request audit records are unchanged.",
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_gateway_audit.py tests/test_gateway_auth.py -q",
+    "result": "35 passed",
+    "regression": "A synthetic IP-based caller key is absent from the warning log arguments."
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_network": "none; limiter and audit behavior were tested locally with mocks"
+  },
+  "limitations": [
+    "This does not change the separately access-controlled Gateway audit record, which retains request IP metadata."
+  ]
+}

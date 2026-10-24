@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import time
-from datetime import datetime, timezone
-from typing import Any
-
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("sandbox.monitor")
@@ -38,9 +35,9 @@ class ResourceMonitor:
                     (json.dumps(resource_usage), run_id),
                 )
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to record resource usage")
+            logger.error("Failed to record sandbox resource usage (%s)", safe_exception_class(exc))
 
     def get_usage_summary(self, env_id: str | None = None) -> dict:
         """Get resource usage summary across runs."""
@@ -85,8 +82,8 @@ class ResourceMonitor:
                 "avg_duration_ms": round(float(row[4]), 1),
                 "max_duration_ms": row[5],
             }
-        except Exception:
-            logger.exception("Failed to get usage summary")
+        except Exception as exc:
+            logger.error("Failed to get sandbox usage summary (%s)", safe_exception_class(exc))
             return {}
 
     def check_limits(self, env_id: str) -> dict:

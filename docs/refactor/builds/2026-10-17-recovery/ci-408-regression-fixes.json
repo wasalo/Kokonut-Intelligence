@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-17",
+  "workflow": "CI",
+  "run_number": 408,
+  "run_id": "39059045362",
+  "head_sha": "4f5be68d42070e8cb9cd8be465d11d5b008832da",
+  "job": "ci",
+  "job_id": "117473172956",
+  "conclusion": "failure",
+  "pytest_summary": {
+    "passed": 5715,
+    "failed": 2,
+    "subtests_passed": 132
+  },
+  "failures": [
+    {
+      "test": "tests/test_climate_worker.py::test_climate_worker_secrets_are_forwarded_only_to_exact_module",
+      "cause": "The test requested isolated database credentials with an empty worker identity allowlist. The helper correctly rejects isolated children without exactly one identity.",
+      "correction": "Compare the explicit climate and weather identities and assert that only each identity's worker secrets reach its child."
+    },
+    {
+      "test": "tests/test_oracle_infrastructure.py::test_gee_climate_has_smap_dataset",
+      "cause": "The test asserted the retired SMAP collection v005 and band name sm_pm; the implementation uses collection v006 and band soil_moisture_pm.",
+      "correction": "Align the source contract assertions with the current v006 collection and soil_moisture_pm band."
+    }
+  ],
+  "local_validation": {
+    "command": ".venv/bin/python -s -m pytest tests/test_climate_worker.py tests/test_oracle_infrastructure.py -q",
+    "result": "43 passed",
+    "hosted_rerun_required": true
+  },
+  "scope": "The failed hosted job used the pushed head above. The corrections are test-only; no application or database behavior changed."
+}

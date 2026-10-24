@@ -1,0 +1,44 @@
+{
+  "check": "gateway_credit_custody_summary",
+  "date": "2026-10-18",
+  "result": "passed",
+  "scope": {
+    "route": "GET /operator/api/credit-custody/{location_id}/summary",
+    "required_scopes": [
+      "carbon_credit:read",
+      "credit_retirement:read"
+    ],
+    "read_only_transaction": true,
+    "signed_tenant_context_before_queries": true,
+    "location_filters": [
+      "carbon_credit.location_id",
+      "credit_retirement.location_id"
+    ],
+    "reservation_and_retirement_ledger_totals_returned_separately": true,
+    "beneficiary_wallet_statement_evidence_request_key_and_review_fields_exposed": false,
+    "retirement_write_or_chain_action_exposed": false,
+    "candidate_or_legacy_database_touched": false,
+    "wallet_or_chain_accessed": false
+  },
+  "pytest": {
+    "command": "python3 -m pytest tests/test_gateway_credit_custody.py tests/test_gateway_ecocredits.py tests/test_operator_route_policy_inventory.py tests/test_credit_balance.py tests/test_credit_batch_manager.py tests/test_carbon_credits.py tests/test_operator_auth.py tests/test_gateway_auth.py tests/test_gateway_audit.py -q",
+    "passed": 165,
+    "failed": 0
+  },
+  "operator_route_policy_inventory": {
+    "concrete_method_path_entries": 48,
+    "all_registered_routes_have_exact_policy": true,
+    "primary_and_secondary_scopes_are_required": true
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Synthetic rows and mocked database identity only; populated output parity was not established.",
+    "This read does not implement or exercise retirement reservation, independent confirmation, rejection, cancellation, or on-chain settlement.",
+    "Domain-table RLS and MAN-CAP-020 acceptance remain open."
+  ]
+}

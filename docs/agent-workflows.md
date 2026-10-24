@@ -65,7 +65,7 @@ python3 -m services.agents.tasks --describe ebf_scorecard_draft
 
 | Command | Required | Optional | Description |
 |---------|----------|----------|-------------|
-| `python3 -m services.agents.ai_summary` | `--location-id UUID` | `--summary-type {operations,financial,environmental,combined}`, `--store`, `--list`, `--verify ID` | Generate structured text summary from governed data. Requires verified/published `farm_registry_record`. |
+| `python3 -m services.agents.ai_summary` | `--location-id UUID` | `--summary-type {operations,financial,environmental,combined}`, `--store`, `--list`, `--verify SUMMARY_ID` | Generate structured text summary from governed data. Requires verified/published `farm_registry_record`. List and digest inspection require the exact `--location-id`; they use the signed `ai_summary/read` source identity. `--verify` computes a digest only and does not approve or change lifecycle state. |
 
 ### CIDS Export
 
@@ -95,7 +95,7 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 | Command | Required | Description |
 |---------|----------|-------------|
 | `python3 -m services.agents.ebf_scorecard_agent` | `--location-id UUID`, `--period-start YYYY-MM-DD`, `--period-end YYYY-MM-DD` | Draft EBF scorecard workspace |
-| `python3 -m services.agents.ebf_evidence_gap_agent` | `--scorecard-id UUID` | Analyze evidence gaps for a scorecard |
+| `python3 -m services.agents.ebf_evidence_gap_agent` | `--scorecard-id UUID`, `--location-id UUID` | Analyze evidence gaps for a scorecard within an explicit location |
 | `python3 -m services.agents.ebf_calibration_agent` | `--session-id UUID` | Draft calibration memo |
 
 ### Delphi Facilitator
@@ -104,16 +104,13 @@ All synthesis agents share the same pattern: `--location-id UUID` (required or o
 |---------|----------|----------|-------------|
 | `python3 -m services.agents.delphi_facilitator_agent` | `--study-id UUID` | `--draft`, `--recommendation-text "..."` | Facilitate Delphi study; `--draft` also creates a recommendation draft |
 
-## Library-Only Agents
+## Signed Synthesis Workers
 
-Two agent modules expose programmatic `synthesize_*()` functions but have no CLI entry point. They are not registered in the task catalogue and must be called from Python code:
-
-| Module | Function | Signature |
-|--------|----------|-----------|
-| `services.agents.ecological_modeling_agent` | `synthesize_ecological_modeling` | `(conn, location_id: str) -> dict[str, Any]` |
-| `services.agents.organic_readiness_agent` | `synthesize_organic_readiness` | `(conn, location_id: str) -> dict[str, Any]` |
-
-Both are advisory-only — outputs are not deterministic predictions or certification guarantees.
+Ecological modeling and organic readiness run through the signed worker. They
+remain advisory drafts and do not replace ecological field validation or
+certification by an accredited body. Ecological modeling is not a deterministic
+prediction. The ecological task keeps its legacy calculations while resolving
+their relation names only through signed, exact-location source projections.
 
 ## Common Patterns
 

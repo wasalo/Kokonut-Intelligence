@@ -1,0 +1,44 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked EAS worker pages, CLI arguments, and in-process persistence fakes only; no provider or database access",
+  "files": [
+    "services/ingestion/eas_worker.py",
+    "tests/test_eas_worker.py"
+  ],
+  "focused_tests": 6,
+  "result": "passed",
+  "checks": [
+    "Explicit lookback reprocesses records older than the saved cursor but not older than the requested floor",
+    "Replayed records use the existing idempotent bounded page write",
+    "The saved cursor remains monotonic after replay",
+    "Negative CLI lookback and negative, boolean, or fractional direct-call values fail before database access",
+    "The isolated worker help exposes the manual recovery option without shared database configuration",
+    "The successful worker result reports the selected replay interval"
+  ],
+  "combined_suite": {
+    "files": [
+      "tests/test_eas_worker.py",
+      "tests/test_eas_provider.py",
+      "tests/test_eas_indexer_recovery.py"
+    ],
+    "tests": 36,
+    "result": "passed"
+  },
+  "scheduled_command_contract": {
+    "file": "tests/test_scheduled_command_contracts.py",
+    "tests": 130,
+    "result": "passed",
+    "check": "Scheduled EAS commands still require exactly one chain and reject the manual replay option"
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The replay is opt-in and its requested interval is chosen by the operator; the zero-second default preserves current scheduled behavior",
+    "Records later discovered outside the requested interval are not automatically recovered",
+    "Concurrent offset-page stability, live provider behavior, and MAN-CAP acceptance remain open"
+  ]
+}

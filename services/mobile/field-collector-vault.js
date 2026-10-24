@@ -42,8 +42,24 @@
         apiBase: typeof settings.apiBase === "string" ? settings.apiBase : "",
         deviceName: typeof settings.deviceName === "string" ? settings.deviceName : "",
         ...(typeof settings.lastSyncAt === "string" ? { lastSyncAt: settings.lastSyncAt } : {}),
+        ...(settings.ownerReenrollmentRequired === true
+          ? { ownerReenrollmentRequired: true }
+          : {}),
       },
     };
+  }
+
+  function quarantineQueueForOwnerReview(queue, previousDeviceId) {
+    return (Array.isArray(queue) ? queue : []).map(item => ({
+      ...item,
+      origin_device_id: item.origin_device_id || previousDeviceId || null,
+      tenant_review_required: true,
+    }));
+  }
+
+  function requiresOwnerReview(item, currentDeviceId) {
+    return item?.tenant_review_required === true
+      || Boolean(item?.origin_device_id && item.origin_device_id !== currentDeviceId);
   }
 
   function clone(value) {
@@ -245,7 +261,7 @@
     return write;
   }
 
-  function createIndexedDbAdapter(indexedDb = globalThis.indexedDB) {
+  function createIndexedDbAdapter(indexedDb = globalThis.indexedDB, onVersionChange = () => {}) {
     if (!indexedDb) throw new Error("IndexedDB is unavailable in this browser");
     let databasePromise;
     const open = () => {
@@ -257,7 +273,11 @@
             if (!database.objectStoreNames.contains(OBJECT_STORE)) database.createObjectStore(OBJECT_STORE);
           };
           request.onsuccess = () => {
-            request.result.onversionchange = () => request.result.close();
+            request.result.onversionchange = () => {
+              request.result.close();
+              databasePromise = undefined;
+              onVersionChange();
+            };
             resolve(request.result);
           };
           request.onerror = () => reject(request.error || new Error("Could not open encrypted offline storage"));
@@ -291,6 +311,19 @@
    transaction.objectStore(OBJECT_STORE).put(value, RECORD_KEY);
    await completion;
  },
+ async deleteDatabase(onBlocked = () => {}) {
+   const database = await open();
+   database.close();
+   databasePromise = undefined;
+   await new Promise((resolve, reject) => {
+     const request = indexedDb.deleteDatabase(DATABASE_NAME);
+     request.onsuccess = () => resolve();
+     request.onerror = () => reject(request.error || new Error("Could not delete encrypted offline storage"));
+     request.onblocked = () => {
+       try { onBlocked(); } catch (_) {}
+     };
+   });
+ },
     };
   }
 
@@ -299,6 +332,8 @@
     createIndexedDbAdapter,
     createStateWriter,
     defaultVaultState,
+    quarantineQueueForOwnerReview,
+    requiresOwnerReview,
     LEGACY_STORAGE_KEYS,
   };
 });

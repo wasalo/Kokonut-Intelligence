@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-20",
+  "source_revision": "ea0570146e33b4fa00ba079a56bfd41cb75d4eff",
+  "scope": "Credential-free parser help for mounted ingestion modules",
+  "module_count": 19,
+  "execution": {
+    "command_pattern": "python3 -m <module> --help",
+    "environment": "KOKONUT_ENV=production, no PostgreSQL identity, unavailable SOPS age identity, secret-loader marker unset",
+    "timeout_seconds_per_module": 15
+  },
+  "verification": {
+    "focused_tests": "1 passed; all 19 mounted ingestion module help paths returned zero and non-empty help output",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "database": "not contacted",
+    "provider": "not contacted"
+  },
+  "result": "PASS: help for every mounted ingestion module succeeds without database credentials or a decryptable SOPS identity.",
+  "limitations": [
+    "This validates parser help/import behavior only; it does not exercise non-help command outputs or database/provider operations.",
+    "It does not close MAN-CAP-039 or the remaining operator-principal review."
+  ]
+}

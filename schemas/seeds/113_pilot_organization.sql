@@ -1,5 +1,13 @@
 -- Canonical organization required for organization-grain reporting.
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM organization WHERE org_key = 'kokonut-network') THEN
+        RAISE EXCEPTION 'Apply migration 387 before loading the pilot organization seed';
+    END IF;
+END;
+$$;
+
 INSERT INTO organization (
     id, org_key, name, org_type, description, governance_model, status,
     source_system, source_id, source_raw
@@ -27,5 +35,7 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = NOW();
 
 UPDATE location
-SET organization_id = 'a0000000-0000-0000-0000-000000000700'::uuid
+SET organization_id = (
+    SELECT id FROM organization WHERE org_key = 'kokonut-network'
+)
 WHERE id = 'a0000000-0000-0000-0000-000000000001'::uuid;

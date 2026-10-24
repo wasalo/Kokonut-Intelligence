@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
 
 from services.common.logging import get_logger
 
@@ -69,9 +68,9 @@ class AuditLogger:
             log_fn = logger.warning if status == "denied" else logger.debug
             log_fn("Access: %s %s %s on %s=%s [%s]", caller, action, status, resource_type, resource_id, log_id[:8])
             return log_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to log access")
+            logger.error("Failed to log access (%s)", type(exc).__name__)
             raise
 
     def query_logs(
@@ -129,8 +128,8 @@ class AuditLogger:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to query audit logs")
+        except Exception as exc:
+            logger.error("Failed to query audit logs (%s)", type(exc).__name__)
             return []
 
     def stats(self) -> dict:
@@ -164,6 +163,6 @@ class AuditLogger:
                 top_callers = [{"caller": r[0], "count": r[1]} for r in cur.fetchall()]
 
             return {"by_status": by_status, "top_callers": top_callers}
-        except Exception:
-            logger.exception("Failed to get audit stats")
+        except Exception as exc:
+            logger.error("Failed to get audit stats (%s)", type(exc).__name__)
             return {}

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Baal/Gnosis governance-event provider failure and cursor recovery",
+  "behavior": {
+    "provider_failures": "Provider initialization and event-fetch failures expose only safe summaries with exception classes.",
+    "cursor_recovery": "An event-fetch failure aborts the current block batch instead of skipping the event type; the failed status update retains the last committed block rather than clearing or advancing the cursor.",
+    "persistence_failures": "Database errors are class-only in status and logs; the failed batch is rolled back and the connection is closed."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_baal_indexer_recovery.py -q",
+    "result": "4 passed",
+    "coverage": [
+      "secret-bearing provider initialization error is sanitized before database open",
+      "secret-bearing event query error aborts without cursor advance and preserves the last committed block",
+      "event persistence error rolls back and preserves the prior block cursor",
+      "protocol lookup errors are sanitized and connection cleanup runs"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none; fake connections and mocked RPC objects only"
+  },
+  "limitations": [
+    "No Gnosis RPC provider or database was contacted.",
+    "This does not establish historical receipt completeness, removed-log/deep-reorg rollback, or live provider behavior."
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and TypeScript NoiSnapshot schema parity",
+  "source_of_truth": "schemas/postgres/004_finance.sql noi_snapshot table",
+  "change": "Added NoiSnapshot to the SDK schema guard and aligned TypeScript nullable metric, calculation metadata, input, and creator fields with the SQL schema.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "21 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "schema_guard": "passed: 20 models, 473 base/additive columns checked per SDK",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only",
+  "capability_matrix": "classifications unchanged"
+}

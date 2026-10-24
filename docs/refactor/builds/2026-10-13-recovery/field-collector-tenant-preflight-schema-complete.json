@@ -1,0 +1,68 @@
+{
+  "run_id": "field-collector-tenant-preflight-schema-complete-20261013",
+  "date": "2026-10-13",
+  "result": "passed",
+  "scope": "read-only complete-schema control run against the local candidate",
+  "source": {
+    "commit": "41c481fac6fc7d6286eee771071fd43894bbf100",
+    "source_sha256": {
+      "services/mobile/tenant_preflight.py": "2ea6f819d72c875d62ea7c552807b058942f0b46d80e14700002749455f61673"
+    }
+  },
+  "fixture": {
+    "compose_project": "kokonut-kernel-candidate",
+    "runner_image": "sha256:92e883c1153e703dc82ae5f099d236b3b4a9992a52d0f35052d515469450254f",
+    "network": "kokonut-kernel-candidate_kernel",
+    "source_mount": "read-only",
+    "temporary_credentials_file": "mode 0600; removed after execution"
+  },
+  "verification": {
+    "command": "python3 -m services.cli mobile-tenant-preflight",
+    "exit_code": 0,
+    "transaction": {
+      "isolation_level": "repeatable read",
+      "read_only": true,
+      "statement_timeout": "15 seconds"
+    },
+    "inventory_status": "complete",
+    "schema_coverage": {
+      "required_column_count": 27,
+      "available_column_count": 27,
+      "missing_columns": []
+    },
+    "schema_state": {
+      "migration_history_available": true,
+      "latest_applied_migration": "schema:385_farm_activity_draft_edit_events.sql",
+      "migration_ordering_basis": "schema_migration_id"
+    },
+    "location_count": 0,
+    "record_totals_by_known_relation": {
+      "mobile_device": 0,
+      "active_mobile_device": 0,
+      "enrollment": 0,
+      "pending_enrollment": 0,
+      "mobile_collection": 0,
+      "ineligible_mobile_collection": 0,
+      "private_media_upload": 0,
+      "attached_private_media": 0,
+      "canonical_field_activity": 0,
+      "workflow_event": 0,
+      "review_event": 0,
+      "report_snapshot": 0,
+      "dashboard_dataset": 0
+    },
+    "records_without_location": {
+      "mobile_device": 0,
+      "mobile_collection": 0,
+      "report_snapshot": 0,
+      "dashboard_dataset": 0
+    },
+    "records_changed": false,
+    "legacy_stack_accessed": false
+  },
+  "limitations": [
+    "The candidate is empty; this confirms complete-schema behavior and does not establish ownership for a populated deployment.",
+    "Counts cover only the direct lineage relations listed by the command and do not prove complete export, backup, or downstream lineage.",
+    "No test suite, owner reconciliation, backfill, or RLS migration was performed."
+  ]
+}

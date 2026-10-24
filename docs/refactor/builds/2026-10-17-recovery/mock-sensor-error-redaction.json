@@ -1,0 +1,18 @@
+{
+  "scope": "demo sensor-reading insert failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_mock_sensor_error_redaction.py -q",
+    "focused_test_result": "1 passed",
+    "ruff": "test lint and source import/syntax checks passed; full-file lint remains limited by pre-existing unused imports and locals",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "targeted_gitleaks": "passed on all changed source and test files"
+  },
+  "behavior_preserved": [
+    "a failed synthetic reading does not stop later readings",
+    "database commit and connection cleanup remain on the existing path"
+  ],
+  "redaction": "sensor names, timestamps, and raw database exception details are excluded from failure logs"
+}

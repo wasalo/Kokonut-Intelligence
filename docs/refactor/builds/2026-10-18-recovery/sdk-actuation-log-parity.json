@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript actuation log SDK parity and schema-qualified migration coverage",
+  "models": [
+    "ActuationLog"
+  ],
+  "source_tables": [
+    "schemas/postgres/081_oracle_infrastructure.sql:actuation_log"
+  ],
+  "additive_contracts": {
+    "schemas/postgres/376_sensor_anomaly_delivery.sql": {
+      "actuation_log.status": [
+        "pending",
+        "requires_approval",
+        "approved",
+        "sent",
+        "acknowledged",
+        "executed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "schemas/postgres/410_sensor_alert_actuation_intent.sql": [
+      "actuation_log.source_alert_event_id"
+    ],
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql": [
+      "sensor_alert.location_id"
+    ],
+    "schemas/postgres/411_sensor_alert_draft_claim_intent.sql": [
+      "mrv_claim.source_sensor_reading_event_id"
+    ]
+  },
+  "schema_guard": {
+    "models": 59,
+    "canonical_columns": 1274,
+    "scalar_types": 1192,
+    "postgis_shapes": 10,
+    "jsonb_shapes": 72,
+    "enum_fields": 21,
+    "check_literal_fields": 39
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q \u2014 65 passed",
+    "javascript": "npm test \u2014 29 passed",
+    "typescript": "npm run build \u2014 passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py \u2014 passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py \u2014 passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py \u2014 passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py \u2014 66 rows valid",
+    "diff_check": "git diff --check \u2014 passed"
+  },
+  "boundaries": [
+    "The SDK represents actuation intent, human approval, and result fields as stored data; it does not approve, send, or execute commands.",
+    "The schema guard now recognizes public-qualified ALTER TABLE statements and covers the source-event/location fields added by migrations 406, 410, and 411.",
+    "Checks used local schema source and synthetic fixtures; no database, actuator, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

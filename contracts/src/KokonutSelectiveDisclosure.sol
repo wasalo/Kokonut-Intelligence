@@ -61,13 +61,17 @@ contract KokonutSelectiveDisclosure is Initializable, AccessControlUpgradeable, 
     {
         bytes32 root = disclosureRoots[attestationUid];
         if (root == bytes32(0)) return false;
+        if (proof.length != proofFlags.length) return false;
 
         bytes32 computed = leaf;
         for (uint256 i = 0; i < proof.length; i++) {
-            if (proofFlags[i] == 0) {
+            uint8 flag = proofFlags[i];
+            if (flag == 0) {
                 computed = _hashPair(computed, proof[i]);
-            } else {
+            } else if (flag == 1) {
                 computed = _hashPair(proof[i], computed);
+            } else {
+                return false;
             }
         }
 

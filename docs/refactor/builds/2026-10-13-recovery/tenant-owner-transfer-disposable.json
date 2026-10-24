@@ -1,0 +1,34 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T00:40:19.450555+00:00",
+  "database": "PostgreSQL 16 on a disposable Docker bridge; host port bound to loopback only",
+  "migrations": [
+    "387_kokonut_network_tenant_ownership.sql",
+    "388_tenant_aware_operator_grants.sql",
+    "389_tenant_aware_field_collector_write_guards.sql",
+    "390_audited_location_tenant_transfers.sql"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_access": "Docker bridge egress was available; the check made no external requests",
+  "repository_secrets_read": false,
+  "checks": [
+    "operator CLI lists tenant-transfer history",
+    "pending transfer preserves owner, shares, and all existing grants",
+    "self-approval and non-admin target approval are denied",
+    "changed owner-relationship snapshot blocks acceptance and can be cancelled",
+    "conflicting and unverified locations cannot enter a transfer",
+    "injected post-mutation failure rolls back owner, verification, grants, and shares",
+    "acceptance atomically transfers owner links and revokes owner, partner, and legacy access",
+    "new owner receives access only after a separate tenant-qualified grant",
+    "transfer request evidence cannot be updated, deleted, or truncated",
+    "migration 390 idempotent replay preserves accepted transfer and grants"
+  ],
+  "cleanup": {
+    "container_removed": true,
+    "named_network_removed": true,
+    "temporary_source_copy_removed": true,
+    "volume_retained": false
+  },
+  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database and local CLI behavior, not legal land title or RLS."
+}

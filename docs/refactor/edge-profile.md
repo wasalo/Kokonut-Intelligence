@@ -28,9 +28,13 @@ selected Python wheels support ARM64, build on that platform, and measure
 normal/peak resources, sustained writes, restart behavior, and restore on actual
 hardware. AMD64 candidate startup does not certify a Pi deployment.
 
-Subsequent [registry inspection](arm64-database.md) confirms the pinned database
-manifest is AMD64-only. Native ARM64 deployment is currently blocked; the
-command planner rejects that target until a replacement is prepared.
+The base database digest is AMD64-only. The profile planner now selects a
+custom ARM64 PostGIS image and separate Compose project for edge ARM64; see the
+[current profile record](arm64-database.md). Current-source QEMU acceptance
+now covers the minimal app/database through migration 400, matching logical
+restore, protected-route denial, and short restart recovery
+([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+Physical Pi behavior remains unverified.
 
 Public PostgreSQL reads, API auth, offline sync, durable workers, and optional
 Web3 libraries remain present. Remote blockchain/RPC connectivity is still

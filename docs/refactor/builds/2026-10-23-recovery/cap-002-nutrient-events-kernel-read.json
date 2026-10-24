@@ -1,0 +1,33 @@
+{
+  "capability": "CAP-002",
+  "slice": "tenant-scoped nutrient input and harvest-removal event reads",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "a8a99050",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_nutrient_events.py tests/test_gateway_nutrient_soil_tests.py tests/test_gateway_nutrient_balances.py tests/test_nutrient_budget.py tests/test_operator_auth.py -q",
+    "passed": 141,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "capability_matrix": "validated: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact private nutrient_budget:read location policies for inputs and removals; other methods, event types, and suffixes do not match",
+    "Invalid event type, location UUID, and page values fail before opening PostgreSQL",
+    "One repeatable-read, read-only transaction installs signed tenant context before count and page reads",
+    "Both event types join through nutrient_budget and filter the requested parent location and recorded/verified event statuses",
+    "Event and parent budget lifecycle statuses remain separate in output",
+    "Inputs return product/type, application rate, and N/P/K; removals return harvest/crop/yield and N/P/K",
+    "Plot IDs are returned only when the related plot's farm belongs to the requested location",
+    "Budget IDs, costs, notes, arbitrary metadata, and removal-factor source text are omitted",
+    "Responses are bounded, no-store, and missing tenant grants deny before service access"
+  ],
+  "known_gap": "nutrient_input.cost has no documented currency, so cost output and legacy cost-summary parity remain open.",
+  "rollback": "Remove the additive event route, exact authorization policy, service module, focused tests, and documentation; no schema or data rollback is needed."
+}

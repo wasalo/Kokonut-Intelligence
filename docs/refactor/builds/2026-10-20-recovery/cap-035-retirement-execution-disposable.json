@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "502_location_solution_retirement_execution.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 502 applies and replays after the ordered CAP-035 lifecycle migrations",
+    "only an independently approved exact-location retirement can begin migration",
+    "migration start requires an operator-selected current or future effective timestamp and keeps the solution active",
+    "sunset is rejected before effective_at and then retires the solution atomically without deleting data",
+    "post-retirement review requires a separate active human under exact review scope",
+    "all three transitions use immutable retry receipts and preserve append-only history",
+    "runtime and Directus cannot directly access transition receipts; only runtime can execute the bounded function"
+  ],
+  "acceptance_groups_passed": 9
+}

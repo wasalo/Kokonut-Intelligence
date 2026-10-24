@@ -1,0 +1,42 @@
+{
+  "assertions": {
+    "accepted_receipt_and_terminal_duplicate_suppression": "passed",
+    "broker_did_not_redeliver_after_ack": true,
+    "broker_duplicate_flag_after_unacknowledged_delivery": true,
+    "concurrent_identical_deliveries_execute_handler_once": "passed",
+    "concurrent_operator_replay_and_disposal_are_single_winner": "passed",
+    "database_payload_constraint_rejects_oversized_evidence": "passed",
+    "five_persisted_failures_and_dead_letter_duplicate_suppression": "passed",
+    "manual_ack_after_durable_receipt": true,
+    "operator_action_rows": 4,
+    "operator_delivery_list_redacts_raw_failure_details": "passed",
+    "operator_disposal_audit_and_terminal_duplicate_suppression": "passed",
+    "operator_disposal_cli_output_is_terminal": "passed",
+    "process_crash_between_source_and_receipt_commits_recovers_idempotently": "passed",
+    "real_mosquitto_qos1_process_crash_redelivery": "passed",
+    "receipt_recovered_on_attempt": 2,
+    "rejected_receipt_and_duplicate_suppression": "passed",
+    "reviewed_replay_audit_and_fresh_attempt_budget": "passed",
+    "row_lock_timeout_and_redelivery_recovery": "passed",
+    "source_effect_committed_once": true,
+    "synthetic_receipt_rows": 6
+  },
+  "broker_host_port_binding": "127.0.0.1 only",
+  "broker_image": "eclipse-mosquitto:2@sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797",
+  "broker_volume": false,
+  "candidate_or_legacy_modified": false,
+  "check": "CAP-040 MQTT durable receipt and broker process-recovery acceptance",
+  "database_image": "postgres:16-alpine",
+  "database_target": "new disposable PostgreSQL 16 container; no volume; host port bound to 127.0.0.1",
+  "database_volume": false,
+  "date": "2026-10-19",
+  "disposable_broker_contacted": true,
+  "host_port_binding": "127.0.0.1 only",
+  "limitations": [
+    "The disposable Mosquitto broker used anonymous plaintext on a loopback-only published port; this does not verify production TLS, ACLs, device HMAC, or credentials.",
+    "The child exits after a synthetic source commit; this does not establish actual source/outbox parity or restart a real subscriber or broker.",
+    "It does not verify replay after device-authorization changes or live sensor/provider parity."
+  ],
+  "live_provider_contacted": false,
+  "result": "passed"
+}

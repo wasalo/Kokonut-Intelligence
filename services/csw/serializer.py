@@ -4,10 +4,28 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from xml.sax.saxutils import escape
 
 from services.common.logging import get_logger
 
 logger = get_logger("csw.serializer")
+
+
+def _xml_text(value: Any) -> str:
+    """Escape untrusted metadata before inserting it into XML text nodes."""
+    text = str(value)
+    xml_safe = "".join(
+        character
+        if (
+            character in "\t\n\r"
+            or 0x20 <= ord(character) <= 0xD7FF
+            or 0xE000 <= ord(character) <= 0xFFFD
+            or 0x10000 <= ord(character) <= 0x10FFFF
+        )
+        else "\uFFFD"
+        for character in text
+    )
+    return escape(xml_safe)
 
 ISO_19115_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <gmd:MD_Metadata xmlns:gmd="http://www.isotc211.org/2005/gmd"
@@ -66,24 +84,37 @@ ISO_19115_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 
 def serialize_to_iso19115(record: dict) -> str:
     return ISO_19115_TEMPLATE.format(
-        identifier=record.get("identifier", str(record.get("id", ""))),
-        title=record.get("title", "Untitled"),
-        abstract=record.get("abstract", record.get("content", "")),
-        date=record.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
-        topic_category=record.get("topic_category", "environment"),
-        reference_system=record.get("reference_system", "EPSG:4326"),
+        identifier=_xml_text(record.get("identifier", str(record.get("id", "")))),
+        title=_xml_text(record.get("title", "Untitled")),
+        abstract=_xml_text(record.get("abstract", record.get("content", ""))),
+        date=_xml_text(record.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))),
+        topic_category=_xml_text(record.get("topic_category", "environment")),
+        reference_system=_xml_text(record.get("reference_system", "EPSG:4326")),
     )
 
 
 def serialize_records_to_iso19115(records: list[dict]) -> str:
     xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
-    xml_parts.append('<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2">')
+    xml_parts.append(
+        '<csw:GetRecordsResponse xmlns:csw="http://www.opengis.net/cat/csw/2.0.2" '
+        'xmlns:gmd="http://www.isotc211.org/2005/gmd" '
+        'xmlns:gco="http://www.isotc211.org/2005/gco">'
+    )
 
     for record in records:
         xml_parts.append("  <csw:Record>")
-        xml_parts.append(f"    <gmd:fileIdentifier><gco:CharacterString>{record.get('identifier', '')}</gco:CharacterString></gmd:fileIdentifier>")
-        xml_parts.append(f"    <gmd:title><gco:CharacterString>{record.get('title', '')}</gco:CharacterString></gmd:title>")
-        xml_parts.append(f"    <gmd:abstract><gco:CharacterString>{record.get('abstract', '')}</gco:CharacterString></gmd:abstract>")
+        xml_parts.append(
+            "    <gmd:fileIdentifier><gco:CharacterString>"
+            f"{_xml_text(record.get('identifier', ''))}</gco:CharacterString></gmd:fileIdentifier>"
+        )
+        xml_parts.append(
+            "    <gmd:title><gco:CharacterString>"
+            f"{_xml_text(record.get('title', ''))}</gco:CharacterString></gmd:title>"
+        )
+        xml_parts.append(
+            "    <gmd:abstract><gco:CharacterString>"
+            f"{_xml_text(record.get('abstract', ''))}</gco:CharacterString></gmd:abstract>"
+        )
         xml_parts.append("  </csw:Record>")
 
     xml_parts.append("</csw:GetRecordsResponse>")

@@ -17,6 +17,16 @@ def _out(value):
     print_json(value)
 
 
+def _run_with_connection(operation) -> None:
+    """Own and close the database connection for one CLI read command."""
+    conn = _connection()
+    try:
+        result = operation(conn)
+    finally:
+        conn.close()
+    _out(result)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut cross-circle links CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -42,8 +52,8 @@ def main() -> None:
     listing.add_argument("--target-circle-id")
     listing.add_argument("--party-id")
     listing.add_argument("--status")
-    listing.set_defaults(func=lambda a: _out(list_links(
-        _connection(), source_circle_id=a.source_circle_id,
+    listing.set_defaults(func=lambda a: _run_with_connection(lambda conn: list_links(
+        conn, source_circle_id=a.source_circle_id,
         target_circle_id=a.target_circle_id, party_id=a.party_id, status=a.status,
     )))
 

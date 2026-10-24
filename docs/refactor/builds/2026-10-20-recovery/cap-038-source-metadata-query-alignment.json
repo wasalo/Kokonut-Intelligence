@@ -1,0 +1,31 @@
+{
+  "capability": "CAP-038",
+  "check": "legacy-agent-source-label-query-alignment",
+  "date": "2026-10-20",
+  "result": "passed",
+  "findings": [
+    {
+      "agent": "BioFactorySynthesisAgent",
+      "removed_stale_source_table": "bio_ingredient_composition_reference",
+      "reason": "The synthesis path reads five public summary views backed by the remaining declared source tables; no query or view in the agent path reads this composition reference."
+    },
+    {
+      "agent": "FeedbackSynthesisAgent",
+      "removed_stale_source_table": "stakeholder_feedback_review",
+      "reason": "The synthesis path reads the public feedback summary view and aggregates stakeholder_feedback; it does not query review rows."
+    }
+  ],
+  "tests": {
+    "command": "python3 -m pytest tests/test_agent_source_metadata.py tests/test_agents_base.py tests/test_ai_summary_safety.py tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agent_input_preflight.py tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_source_references.py tests/test_gateway_ai_summary_draft.py -q",
+    "passed": 91,
+    "postgresql_dependent_skips": 9,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 66 rows",
+    "database_or_provider_calls": 0
+  },
+  "limitations": [
+    "This corrects false table-name hints only; it does not add immutable row-level source references for legacy/background agent runs.",
+    "It does not establish agent identity, database least privilege, tenant authorization, or MAN-CAP-038 acceptance."
+  ]
+}

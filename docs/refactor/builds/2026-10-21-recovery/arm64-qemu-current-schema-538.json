@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-21",
+  "scope": "Fresh ordered replay of all current PostgreSQL schema migrations on ARM64 PostgreSQL/PostGIS under QEMU",
+  "source_revision": "855914f8e338ff3bbbcb58e65ad4e382cde7312d",
+  "host": {
+    "docker_server": "29.8.2 linux/x86_64",
+    "physical_raspberry_pi_available": false
+  },
+  "database": {
+    "image": "kokonut-kernel-postgis-arm64:local",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296",
+    "architecture": "linux/arm64",
+    "postgres_major": 16
+  },
+  "isolation": {
+    "compose_file": "docker-compose.schema-bootstrap.yml",
+    "compose_project": "kokonut-schema-arm64-debug-20261021b",
+    "database_service_only": true,
+    "network_mode": "none",
+    "host_ports_published": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "external_provider_or_data_source_contacted": false,
+    "candidate_or_legacy_targeted": false,
+    "password": "synthetic one-run value; not retained"
+  },
+  "schema_replay": {
+    "runner": "services.migration CLI with explicit Compose project and --schemas-only",
+    "schema_files_discovered": 529,
+    "schema_migrations_applied": 529,
+    "schema_migrations_failed": 0,
+    "latest_migration": "schema:538_location_operating_pilot_resource_categories.sql"
+  },
+  "recovery_of_initial_attempt": {
+    "initial_attempt": "Stopped at migration 042 with a sanitized psql failure.",
+    "diagnostic_full_replay": "A second clean replay applied all 529 migrations through 538; migration 042 and the previous migration-068 stall point passed.",
+    "root_cause": "The initial migration-042 failure was not reproduced; no SQL cause was identified."
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_volume_removed": true,
+    "temporary_network_created": false,
+    "docker_project_container_filter_empty": true,
+    "docker_project_volume_filter_empty": true,
+    "candidate_services_after_run": {
+      "app": "healthy",
+      "database": "healthy",
+      "proxy": "running",
+      "metabase": "healthy"
+    },
+    "legacy_stack_targeted": false
+  },
+  "result": "PASS: all 529 current PostgreSQL schemas through migration 538 applied on an isolated linux/arm64 PostgreSQL 16/PostGIS image under QEMU, with zero failures.",
+  "limitations": [
+    "QEMU replay is software compatibility evidence, not physical Raspberry Pi, thermal, power-loss, storage, or performance acceptance.",
+    "This replay exercised PostgreSQL/PostGIS migrations only; it did not start the ARM64 application stack or external providers.",
+    "No candidate migration or rollout occurred; candidate and legacy databases were not targeted."
+  ]
+}

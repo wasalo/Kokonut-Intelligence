@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "448_location_scoped_identity_resolution.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "ordered migrations 446\u2013448 application",
+    "approved mapping resolves to canonical party in its source location",
+    "resolver requires a distinct exact location grant",
+    "mismatched signed location is denied",
+    "legacy conflict, unapproved, and pending sources return no mapping",
+    "consent withdrawal suppresses resolution",
+    "private canonical party suppresses resolution",
+    "runtime cannot read the identity ledger directly"
+  ],
+  "assertions_passed": 8
+}

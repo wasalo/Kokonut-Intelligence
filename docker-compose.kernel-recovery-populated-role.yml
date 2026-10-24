@@ -23,9 +23,12 @@ services:
       KOKONUT_DB_ADMIN_PASSWORD: ${KOKONUT_DB_ADMIN_PASSWORD:?Supply the synthetic restore admin password}
       KOKONUT_RUNTIME_USER: ${KOKONUT_RUNTIME_USER:?Supply the synthetic runtime user}
       KOKONUT_RUNTIME_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?Supply the synthetic runtime password}
+      KOKONUT_OPERATOR_AUTH_USER: ${KOKONUT_OPERATOR_AUTH_USER:-kokonut_operator_auth}
+      KOKONUT_OPERATOR_AUTH_PASSWORD: ${KOKONUT_OPERATOR_AUTH_PASSWORD:?Supply the synthetic operator-auth password}
     volumes:
       - ./VERSION:/workspace/VERSION:ro
       - ./services:/workspace/services:ro
+      - ./schemas/postgres/395_operator_session_auth_boundary.sql:/workspace/schemas/postgres/395_operator_session_auth_boundary.sql:ro
       - ./scripts/fixtures/kernel-db-runtime-role-populated-check.py:/workspace/scripts/fixtures/kernel-db-runtime-role-populated-check.py:ro
     networks: [recovery]
 

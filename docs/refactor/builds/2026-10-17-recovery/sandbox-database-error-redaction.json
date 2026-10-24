@@ -1,0 +1,19 @@
+{
+  "scope": "sandbox environment, resource monitor, and isolation database failures",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_sandbox_database_error_redaction.py tests/test_sandbox_error_redaction.py tests/test_phase3_4.py -q",
+    "focused_test_result": "36 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "environment creation still rolls back and re-raises",
+    "destroy and resource-usage writes preserve rollback and fallback behavior",
+    "read operations retain their existing empty/None fallbacks",
+    "persisted sandbox run error details remain redacted from API results"
+  ],
+  "redaction": "sandbox database failures omit exception messages and tracebacks; only bounded exception classes are logged"
+}

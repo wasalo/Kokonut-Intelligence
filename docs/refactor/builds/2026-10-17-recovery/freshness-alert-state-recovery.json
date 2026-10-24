@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked data-freshness configuration, database read failure, alert state, and notification effects; no live database or provider access",
+  "files": [
+    "services/ingestion/data_freshness.py",
+    "tests/test_telemetry_freshness.py"
+  ],
+  "focused_tests": 33,
+  "result": "passed",
+  "checks": [
+    "A failed measurement is recorded as an error check without replacing the last known alert state",
+    "A failed measurement does not emit an alert or recovery notification",
+    "A later fresh measurement can still use the stale state to emit the existing recovery event",
+    "The query failure rolls back only to its savepoint and the check transaction completes"
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live database, webhook, or SMTP destination was contacted",
+    "Production freshness recovery and MAN-CAP-047 acceptance remain open"
+  ]
+}

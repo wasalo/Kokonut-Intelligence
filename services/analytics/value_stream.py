@@ -16,11 +16,12 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 # (table, lifecycle_column) for the governed publication pipeline (5-state
 # vocabulary). Most tables carry a location_id (enabling per-location scoping);
-# agent_task does not, so it is excluded from location-scoped queries.
+# ai_summary and agent_task do not, so they are excluded from farm-scoped sets.
 _PIPELINE = [
     ("data_stream_post", "status"),
     ("ai_summary", "status"),
@@ -36,8 +37,6 @@ _PIPELINE = [
 # column but is tracked via the verified boolean -> draft/verified mapping).
 INSTRUMENTED_TYPES = [t for t, _ in _PIPELINE] + ["metric_value"]
 
-_NO_LOCATION = {"agent_task", "ai_summary"}
-
 # VSM value classification of each lifecycle stage.
 STAGES = {
     "draft": {"class": "NNVA", "note": "necessary non-value-adding; awaiting action"},
@@ -48,35 +47,93 @@ STAGES = {
 }
 
 
-def _entity_loc_sql(loc: Optional[str]):
-    legs = []
-    for tbl, _ in _PIPELINE:
-        loc_expr = "NULL::uuid AS location_id" if tbl in _NO_LOCATION else "location_id"
-        leg = f"SELECT '{tbl}' AS et, id, {loc_expr} FROM {tbl}"
-        if loc:
-            if tbl in _NO_LOCATION:
-                leg += " WHERE 1 = 0"  # no location dimension; exclude when scoping
-            else:
-                leg += " WHERE location_id = %(loc)s"
-        legs.append(leg)
-    return " UNION ALL ".join(legs), ({"loc": loc} if loc else {})
+_ENTITY_LOC_SQL = """
+    SELECT 'data_stream_post' AS et, entity.id, entity.location_id
+    FROM data_stream_post AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+    UNION ALL
+    SELECT 'ai_summary' AS et, entity.id, NULL::uuid AS location_id
+    FROM ai_summary AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL
+    UNION ALL
+    SELECT 'impact_claim' AS et, entity.id, entity.location_id
+    FROM impact_claim AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+    UNION ALL
+    SELECT 'report_snapshot' AS et, entity.id, entity.location_id
+    FROM report_snapshot AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+    UNION ALL
+    SELECT 'stakeholder_feedback' AS et, entity.id, entity.location_id
+    FROM stakeholder_feedback AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+    UNION ALL
+    SELECT 'farm_activity' AS et, entity.id, entity.location_id
+    FROM farm_activity AS entity CROSS JOIN scope
+    WHERE farm_activity_source_eligible_for_use(
+              entity.source_system, entity.source_id, entity.source_raw, entity.location_id
+          )
+      AND (scope.loc IS NULL OR entity.location_id = scope.loc)
+    UNION ALL
+    SELECT 'harvest_event' AS et, entity.id, entity.location_id
+    FROM harvest_event AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+    UNION ALL
+    SELECT 'agent_task' AS et, entity.id, NULL::uuid AS location_id
+    FROM agent_task AS entity CROSS JOIN scope
+    WHERE scope.loc IS NULL
+"""
 
 
 def wip_by_stage(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Current work-in-process counts per stage across the pipeline."""
-    legs, params = [], []
-    for tbl, col in _PIPELINE:
-        leg = f"SELECT '{tbl}' AS entity_type, {col}::text AS status, COUNT(*) AS wip FROM {tbl}"
-        if location_id and tbl not in _NO_LOCATION:
-            leg += " WHERE location_id = %s"
-            params.append(location_id)
-        elif location_id and tbl in _NO_LOCATION:
-            leg += " WHERE 1 = 0"
-        leg += f" GROUP BY {col}::text"
-        legs.append(leg)
-    sql = " UNION ALL ".join(legs) + " ORDER BY entity_type, wip DESC"
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(sql, params)
+    cur.execute(
+        """
+        WITH scope AS (SELECT %s::uuid AS loc),
+        entities AS (
+            SELECT 'data_stream_post' AS entity_type, entity.status::text AS status
+            FROM data_stream_post AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+            UNION ALL
+            SELECT 'ai_summary', entity.status::text
+            FROM ai_summary AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL
+            UNION ALL
+            SELECT 'impact_claim', entity.status::text
+            FROM impact_claim AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+            UNION ALL
+            SELECT 'report_snapshot', entity.status::text
+            FROM report_snapshot AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+            UNION ALL
+            SELECT 'stakeholder_feedback', entity.status::text
+            FROM stakeholder_feedback AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+            UNION ALL
+            SELECT 'farm_activity', entity.status::text
+            FROM farm_activity AS entity CROSS JOIN scope
+            WHERE farm_activity_source_eligible_for_use(
+                      entity.source_system, entity.source_id, entity.source_raw, entity.location_id
+                  )
+              AND (scope.loc IS NULL OR entity.location_id = scope.loc)
+            UNION ALL
+            SELECT 'harvest_event', entity.status::text
+            FROM harvest_event AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL OR entity.location_id = scope.loc
+            UNION ALL
+            SELECT 'agent_task', entity.review_status::text
+            FROM agent_task AS entity CROSS JOIN scope
+            WHERE scope.loc IS NULL
+        )
+        SELECT entity_type, status, COUNT(*) AS wip
+        FROM entities
+        GROUP BY entity_type, status
+        ORDER BY entity_type, wip DESC
+        """,
+        (location_id or None,),
+    )
     return [dict(r) for r in cur.fetchall()]
 
 
@@ -93,30 +150,32 @@ def stage_lead_times(
     """
     ps = period_start or "1970-01-01"
     pe = period_end or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    el_sql, el_params = _entity_loc_sql(location_id)
-    params: Dict[str, Any] = dict(el_params)
-    params.update(ps=ps, pe=pe, goal=goal_status, initial=initial_status)
-    et_filter = ""
-    if entity_type:
-        et_filter = " AND lt.entity_type = %(etype)s"
-        params["etype"] = entity_type
+    params: Dict[str, Any] = {
+        "loc": location_id or None,
+        "ps": ps,
+        "pe": pe,
+        "goal": goal_status,
+        "initial": initial_status,
+        "etype": entity_type or None,
+    }
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(f"""
-        WITH entity_loc AS ({el_sql}),
+        WITH scope AS (SELECT %(loc)s::uuid AS loc),
+        entity_loc AS ({_ENTITY_LOC_SQL}),
         pub AS (
             SELECT lt.entity_type, lt.entity_id, MIN(lt.transitioned_at) AS published_at
             FROM lifecycle_transition lt
             JOIN entity_loc el ON el.et = lt.entity_type AND el.id = lt.entity_id
             WHERE lt.to_status = %(goal)s
               AND lt.transitioned_at >= %(ps)s AND lt.transitioned_at <= %(pe)s
-              {et_filter}
+              AND (%(etype)s IS NULL OR lt.entity_type = %(etype)s)
             GROUP BY lt.entity_type, lt.entity_id
         ),
         start AS (
             SELECT entity_type, entity_id, MIN(transitioned_at) AS start_at
             FROM lifecycle_transition lt
             WHERE (from_status = %(initial)s OR to_status = %(initial)s)
-              {et_filter}
+              AND (%(etype)s IS NULL OR lt.entity_type = %(etype)s)
             GROUP BY entity_type, entity_id
         )
         SELECT p.entity_type,
@@ -139,25 +198,32 @@ def first_time_through(
     """Share of goal-reaching entities that never entered a failure terminal."""
     ps = period_start or "1970-01-01"
     pe = period_end or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    el_sql, el_params = _entity_loc_sql(location_id)
-    params: Dict[str, Any] = dict(el_params)
-    params.update(ps=ps, pe=pe, goal=goal_status, fail=fail_status)
-    et_filter = ""
-    if entity_type:
-        et_filter = " AND lt.entity_type = %(etype)s"
-        params["etype"] = entity_type
+    params: Dict[str, Any] = {
+        "loc": location_id or None,
+        "ps": ps,
+        "pe": pe,
+        "goal": goal_status,
+        "fail": fail_status,
+        "etype": entity_type or None,
+    }
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(f"""
-        WITH entity_loc AS ({el_sql}),
+        WITH scope AS (SELECT %(loc)s::uuid AS loc),
+        entity_loc AS ({_ENTITY_LOC_SQL}),
         pub AS (
             SELECT DISTINCT lt.entity_type, lt.entity_id
             FROM lifecycle_transition lt
             JOIN entity_loc el ON el.et = lt.entity_type AND el.id = lt.entity_id
             WHERE lt.to_status = %(goal)s
               AND lt.transitioned_at >= %(ps)s AND lt.transitioned_at <= %(pe)s
-              {et_filter}
+              AND (%(etype)s IS NULL OR lt.entity_type = %(etype)s)
         ),
-        rej AS (SELECT DISTINCT entity_type, entity_id FROM lifecycle_transition lt WHERE to_status = %(fail)s {et_filter})
+        rej AS (
+            SELECT DISTINCT entity_type, entity_id
+            FROM lifecycle_transition lt
+            WHERE to_status = %(fail)s
+              AND (%(etype)s IS NULL OR lt.entity_type = %(etype)s)
+        )
         SELECT COUNT(*) AS published_count,
                COUNT(*) FILTER (WHERE r.entity_type IS NULL) AS first_time_through
         FROM pub p

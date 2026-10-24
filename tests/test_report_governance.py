@@ -42,3 +42,33 @@ def test_report_context_uses_public_safe_modeled_views() -> None:
     assert "v_crisp_composite_rating" in source
     assert "predicted_value - actual_value" in source
     assert "This is not evidence that adverse outcomes" in source
+
+
+def test_report_context_closes_cursor_when_source_query_fails() -> None:
+    import pytest
+
+    from services.export.report_generator import fetch_public_interest_context
+
+    class Cursor:
+        closed = False
+
+        def execute(self, *_args, **_kwargs):
+            raise RuntimeError("synthetic query failure")
+
+        def close(self):
+            self.closed = True
+
+    class Connection:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, **_kwargs):
+            return self.cursor_value
+
+    connection = Connection()
+    with pytest.raises(RuntimeError, match="synthetic query failure"):
+        fetch_public_interest_context(
+            connection, "a0000000-0000-0000-0000-000000000001"
+        )
+
+    assert connection.cursor_value.closed

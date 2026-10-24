@@ -1,0 +1,22 @@
+{
+  "result": "passed",
+  "migration": "465_location_scoped_business_canvas_metadata_edit.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 457, 463, 464, and 465 apply; migrations 464 and 465 replay",
+    "exact business_planning:update and signed location context are required",
+    "only draft canvases accept block edits; status remains unchanged",
+    "version and updated_at concurrency rejects stale writes",
+    "request ID retries are idempotent and changed-content collisions fail",
+    "allowlisted metadata edits are draft-only, optimistic, and idempotent",
+    "metadata edits share the append-only prior snapshot/version history",
+    "metadata values reject invalid bounds, types, and duplicate tags",
+    "prior snapshots and current state are returned under exact read grant",
+    "legacy snapshots expose only the allowlisted canvas fields and blocks",
+    "edit history is append-only and hidden from runtime/directus table access",
+    "runtime can invoke bounded functions but Directus cannot",
+    "migration 465 also applies with runtime/directus roles absent"
+  ],
+  "assertions_passed": 21
+}

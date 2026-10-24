@@ -20,8 +20,14 @@ def process_delivery(topic: str, payload: bytes, handler, *, replay_actor=None, 
     """
     if len(payload) > 10240:
         raise ValueError("MQTT payload exceeds the broker's evidence limit")
-    if replay_actor is not None and (not replay_actor.strip() or not (replay_reason or "").strip()):
-        raise ValueError("Replay requires an actor and reason")
+    if replay_actor is not None or replay_reason is not None:
+        if (
+            not isinstance(replay_actor, str)
+            or not replay_actor.strip()
+            or not isinstance(replay_reason, str)
+            or not replay_reason.strip()
+        ):
+            raise ValueError("Replay requires an actor and reason")
     with get_connection() as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         conn.execute(

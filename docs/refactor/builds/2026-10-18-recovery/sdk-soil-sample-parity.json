@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript soil sample SDK schema parity",
+  "model": "SoilSample",
+  "source_table": "schemas/postgres/005_environmental.sql:soil_sample",
+  "additive_columns": {
+    "schemas/postgres/013_prd_completion.sql": [
+      "source_system", "source_id", "source_raw", "schema_version"
+    ],
+    "schemas/postgres/080_field_collection.sql": [
+      "status", "verified_by", "verified_at", "evidence_maturity"
+    ],
+    "schemas/postgres/095_soil_protocol.sql": [
+      "lab_accredited", "analytical_method", "protocol_id", "composite_count",
+      "sub_sample_count", "gps_latitude", "gps_longitude", "collector_name",
+      "collector_id", "chain_of_custody", "container_type", "preservative",
+      "sample_mass_g", "moisture_conditions"
+    ],
+    "schemas/postgres/133_geostatistics.sql": ["point_geometry"]
+  },
+  "schema_guard": {
+    "models": 50,
+    "canonical_columns": 1060,
+    "scalar_types": 991,
+    "postgis_shapes": 8,
+    "jsonb_shapes": 59,
+    "enum_fields": 20,
+    "check_literal_fields": 32
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 56 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "SoilSample represents stored measurements and does not validate lab results or perform review transitions.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

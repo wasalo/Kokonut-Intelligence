@@ -141,5 +141,28 @@ def test_rdf_persist_stages_and_activates_without_deleting():
     conn.commit.assert_called_once_with()
 
 
+def test_rdf_persist_redacts_failure_and_preserves_rollback(caplog):
+    import logging
+
+    from services.rdf import graph_builder
+
+    conn = MagicMock()
+    conn.execute.return_value.mappings.return_value.first.return_value = {"id": "generation-1"}
+    failure = RuntimeError("postgresql://operator:secret@db.internal/kokonut")
+    with (
+        patch.object(graph_builder, "build_full_graph", side_effect=failure),
+        caplog.at_level(logging.ERROR, logger="kokonut.rdf.graph_builder"),
+        pytest.raises(RuntimeError, match="operator:secret"),
+    ):
+        graph_builder._persist_graph(conn, "sensitive-location-id", cutoff="2026-01-01")
+
+    conn.rollback.assert_called_once_with()
+    conn.commit.assert_not_called()
+    assert "postgresql://operator:secret" not in caplog.text
+    assert "sensitive-location-id" not in caplog.text
+    assert "RuntimeError" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

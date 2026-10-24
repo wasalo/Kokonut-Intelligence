@@ -11,21 +11,23 @@ from ..common import _serialize_rows
 def generate_gnh_alignment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe GNH alignment report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_gnh_alignment_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR assessment_date >= %s::date)
-          AND (%s::date IS NULL OR assessment_date <= %s::date)
-        ORDER BY assessment_date DESC, gnh_domain
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    assessments = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_gnh_alignment_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR assessment_date >= %s::date)
+              AND (%s::date IS NULL OR assessment_date <= %s::date)
+            ORDER BY assessment_date DESC, gnh_domain
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        assessments = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     scores = [float(row["alignment_score"]) for row in assessments if row.get("alignment_score") is not None]
     return {
         "report_type": "gnh_alignment",
@@ -47,21 +49,23 @@ def generate_gnh_alignment(conn, location_id: str, period_start: str = None, per
 def generate_cultural_preservation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe cultural preservation report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_cultural_preservation_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR plan_date >= %s::date)
-          AND (%s::date IS NULL OR plan_date <= %s::date)
-        ORDER BY plan_date DESC, cultural_element
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    plans = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_cultural_preservation_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR plan_date >= %s::date)
+              AND (%s::date IS NULL OR plan_date <= %s::date)
+            ORDER BY plan_date DESC, cultural_element
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        plans = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "cultural_preservation",
         "location_id": location_id,
@@ -81,21 +85,23 @@ def generate_cultural_preservation(conn, location_id: str, period_start: str = N
 def generate_renewable_energy(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe renewable energy report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_renewable_energy_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR plan_date >= %s::date)
-          AND (%s::date IS NULL OR plan_date <= %s::date)
-        ORDER BY plan_date DESC, energy_use_case
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    plans = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_renewable_energy_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR plan_date >= %s::date)
+              AND (%s::date IS NULL OR plan_date <= %s::date)
+            ORDER BY plan_date DESC, energy_use_case
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        plans = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "renewable_energy",
         "location_id": location_id,
@@ -117,21 +123,23 @@ def generate_renewable_energy(conn, location_id: str, period_start: str = None, 
 def generate_vulnerable_access(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe vulnerable group access report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_vulnerable_access_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR plan_date >= %s::date)
-          AND (%s::date IS NULL OR plan_date <= %s::date)
-        ORDER BY plan_date DESC, access_scope
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    plans = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_vulnerable_access_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR plan_date >= %s::date)
+              AND (%s::date IS NULL OR plan_date <= %s::date)
+            ORDER BY plan_date DESC, access_scope
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        plans = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "vulnerable_access",
         "location_id": location_id,
@@ -151,21 +159,23 @@ def generate_vulnerable_access(conn, location_id: str, period_start: str = None,
 def generate_foundational_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe foundational well-being report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
-    location = cur.fetchone()
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_foundational_wellbeing_summary
-        WHERE location_id = %s
-          AND (%s::date IS NULL OR observation_date >= %s::date)
-          AND (%s::date IS NULL OR observation_date <= %s::date)
-        ORDER BY observation_date DESC, wellbeing_domain
-        """,
-        (location_id, period_start, period_start, period_end, period_end),
-    )
-    observations = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+        location = cur.fetchone()
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_foundational_wellbeing_summary
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR observation_date >= %s::date)
+              AND (%s::date IS NULL OR observation_date <= %s::date)
+            ORDER BY observation_date DESC, wellbeing_domain
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+        observations = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     return {
         "report_type": "foundational_wellbeing",
         "location_id": location_id,

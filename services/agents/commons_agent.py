@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe time liberation, capital alignment, governance inclusion, and land stewardship."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -27,7 +32,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                hours_reclaimed, burden_reduction_pct, automation_or_agent_used,
                automation_type, beneficiary_group, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_time_liberation_summary
+        FROM kokonut_agent_source.v_public_time_liberation_summary
         {where}
         ORDER BY observation_date DESC, workflow_area
         """,
@@ -42,7 +47,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                alignment_status, extractive_risk_level, community_control_terms,
                profit_extraction_limits, commons_reinvestment_commitment_pct,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_capital_alignment_summary
+        FROM kokonut_agent_source.v_public_capital_alignment_summary
         {where}
         ORDER BY assessment_date DESC, provider_type
         """,
@@ -58,7 +63,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
                marginalized_voice_count, total_participant_count,
                representation_coverage_pct, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_governance_inclusion_summary
+        FROM kokonut_agent_source.v_public_governance_inclusion_summary
         {where}
         ORDER BY observation_date DESC, governance_body
         """,
@@ -72,7 +77,7 @@ def synthesize_commons(conn, location_id: str | None = None) -> dict[str, Any]:
         SELECT stewardship_model, location_id, commitment_date, landlord_dependency_risk,
                anti_speculation_terms, community_benefit_rights, commons_transition_path,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_land_stewardship_summary
+        FROM kokonut_agent_source.v_public_land_stewardship_summary
         {where}
         ORDER BY commitment_date DESC, stewardship_model
         """,
@@ -121,6 +126,12 @@ class CommonsSynthesisAgent(SynthesisAgent):
     read_collection = "time_liberation_observation"
     model_version = "commons-agent-v1"
     source_tables = ["time_liberation_observation", "capital_alignment_assessment", "governance_inclusion_observation", "land_stewardship_commitment"]
+    source_reference_views = {
+        "time_liberation_observation": "v_public_time_liberation_summary",
+        "capital_alignment_assessment": "v_public_capital_alignment_summary",
+        "governance_inclusion_observation": "v_public_governance_inclusion_summary",
+        "land_stewardship_commitment": "v_public_land_stewardship_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_commons(conn, location_id)
@@ -135,7 +146,7 @@ def run_commons_synthesis(location_id: str | None = None, store: bool = False) -
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut commons liberation synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut commons liberation synthesis agent")
 
 
 if __name__ == "__main__":

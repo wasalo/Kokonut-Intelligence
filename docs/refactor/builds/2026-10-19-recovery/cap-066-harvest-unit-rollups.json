@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-066",
+  "date": "2026-10-19",
+  "scope": "Farm-summary and network harvest quantity unit preservation",
+  "status": "focused source checks passed",
+  "changes": [
+    "Farm summary returns per-unit harvest totals and exposes total/average scalar quantities only when the selected rows use one unit.",
+    "State of Kokonut and comprehensive-status network rollups sum matching units independently and suppress mixed-unit scalar totals.",
+    "Existing single-unit network output retains the scalar total and now identifies its unit."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_farm_activity_summary_report.py tests/test_state_of_kokonut.py tests/test_comprehensive_status.py -q",
+    "result": "17 passed",
+    "additional_checks": [
+      "ruff check services/export/reports/core.py services/export/reports/state.py tests/test_farm_activity_summary_report.py tests/test_state_of_kokonut.py tests/test_comprehensive_status.py",
+      "python3 -m compileall -q services/export/reports/core.py services/export/reports/state.py tests/test_farm_activity_summary_report.py tests/test_state_of_kokonut.py tests/test_comprehensive_status.py",
+      "git diff --check"
+    ],
+    "additional_checks_result": "passed"
+  },
+  "database_touched": false,
+  "candidate_or_legacy_touched": false,
+  "populated_output_parity_claimed": false
+}

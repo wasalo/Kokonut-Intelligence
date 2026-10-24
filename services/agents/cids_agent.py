@@ -10,30 +10,15 @@ import argparse
 import json
 from typing import Any
 
-from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
-from services.registry.cids_export import export_location, get_connection, _json_default
 from services.common.cli import print_json
+from services.registry.cids_export import _json_default
+
 
 def run_cids_export(location_id: str) -> dict[str, Any]:
-    """Return a validated CIDS export task output."""
-    assert_agent_action_allowed("read", "cids_export", {"location_id": location_id})
-    conn = get_connection()
-    try:
-        document = export_location(conn, location_id)
-    finally:
-        conn.close()
+    """Return a validated CIDS export through the signed worker boundary."""
+    from services.agents.worker_cli import run_worker_cids_export
 
-    output = {
-        "document": document,
-        "graph_count": len(document.get("@graph", [])),
-        "alignment_tier": document.get("kokonut:alignmentTier"),
-        "cids_version": document.get("kokonut:cidsVersion"),
-    }
-    errors = validate_output("cids_export", output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    return run_worker_cids_export(location_id)
 
 
 def main() -> None:

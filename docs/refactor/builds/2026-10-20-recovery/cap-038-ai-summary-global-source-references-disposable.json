@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "migration": "521_location_scoped_ai_summary_review.sql, 522_authenticated_ai_summary_drafts.sql, 523_ai_summary_source_references.sql, 524_ai_summary_global_source_references.sql",
+  "database_target": "new disposable PostgreSQL 16 container, network disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 521\u2013524 apply/replay on disposable PostgreSQL 16",
+    "exact signed draft scope attributes requester and location; private receipts stay inaccessible",
+    "same-intent request lookup/replay returns the original draft before regeneration and prevents duplicates",
+    "bounded source record IDs attach only when every record belongs to the exact granted location",
+    "shared crop and expense-category IDs require exact location-backed source relationships",
+    "source manifests survive retries and appear only through scoped draft/review functions",
+    "private source-reference tables deny direct runtime/Directus reads and immutable changes",
+    "request ID reuse for another location/type fails closed",
+    "self-review approval and rejection are denied; queue reports self_review",
+    "legacy unattributed summaries are approval-blocked but remain rejectable",
+    "independent reviewer may verify only to verified, never published",
+    "runtime and Directus cannot bypass functions or read private receipt/source history"
+  ],
+  "assertions_passed": 12
+}

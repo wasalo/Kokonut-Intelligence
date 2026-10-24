@@ -6,7 +6,6 @@ from services.agents.tasks import get_task, list_tasks, validate_output
 from services.agents.wellbeing_agent import synthesize_wellbeing
 from services.export.report_generator import REPORT_GENERATORS, generate_holistic_wellbeing
 
-
 SCHEMA = Path("schemas/postgres/034_holistic_wellbeing.sql")
 SEED = Path("schemas/seeds/035_holistic_wellbeing.sql")
 PILOT_SEED = Path("schemas/seeds/029_pilot_impact_accountability.sql")
@@ -70,10 +69,13 @@ def test_wellbeing_agent_task_catalogue_and_validation() -> None:
 
 def test_wellbeing_agent_omits_private_raw_text() -> None:
     class Cursor:
-        calls = 0
+        def __init__(self):
+            self.calls = 0
+            self.queries = []
 
         def execute(self, query, params):
             self.calls += 1
+            self.queries.append(query)
 
         def fetchall(self):
             if self.calls == 1:
@@ -113,21 +115,26 @@ def test_wellbeing_agent_omits_private_raw_text() -> None:
                     "evidence_maturity": 3,
                     "evidence_maturity_label": "Reviewed record",
                 }]
-            return [{"language": "es", "feedback_count": 2, "public_safe_count": 1}]
+            return []
 
         def close(self):
             pass
 
     class Conn:
         def cursor(self, cursor_factory=None):
-            return Cursor()
+            self.cursor_instance = Cursor()
+            return self.cursor_instance
 
-    summary = synthesize_wellbeing(Conn(), "a0000000-0000-0000-0000-000000000001")
+    conn = Conn()
+    summary = synthesize_wellbeing(conn, "a0000000-0000-0000-0000-000000000001")
     assert summary["cultural_context_count"] == 1
     assert summary["wellbeing_metric_count"] == 1
     assert summary["participatory_action_count"] == 1
     assert summary["languages"] == ["es"]
-    assert "raw private" in summary["safety_note"]
+    assert summary["language_coverage"] == [{"language": "es", "public_safe_evidence_count": 2}]
+    assert len(conn.cursor_instance.queries) == 3
+    assert all("FROM stakeholder_feedback" not in query for query in conn.cursor_instance.queries)
+    assert "private feedback" in summary["safety_note"]
 
 
 def test_holistic_report_generator_registered_and_public_safe() -> None:
@@ -151,8 +158,10 @@ def test_holistic_report_generator_registered_and_public_safe() -> None:
             pass
 
     class Conn:
+        cursor_instance = None
         def cursor(self, cursor_factory=None):
-            return Cursor()
+            self.cursor_instance = Cursor()
+            return self.cursor_instance
 
     report = generate_holistic_wellbeing(Conn(), "a0000000-0000-0000-0000-000000000001")
     assert report["report_type"] == "holistic_wellbeing"

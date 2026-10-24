@@ -1,0 +1,78 @@
+{
+  "record_type": "candidate_migration_435_checkpoint_restore_and_rollout",
+  "recorded_at_utc": "2026-10-18T16:32:52Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "source_revision": "641a04b99f9639e06d07c5a5081c0ca862cce70e",
+  "scope": "Apply only PostgreSQL schema migration 435 to the local Kokonut Kernel candidate after a fresh encrypted checkpoint and isolated restore rehearsal.",
+  "checkpoint": {
+    "created_at_utc": "2026-10-18T16:26:30Z",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database": "kokonut_intelligence",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "archive": "postgres.dump.age",
+    "archive_sha256": "3861187937adf03aa6f711479aa9118cbdff15cab0695c91e412d77126f308be",
+    "archive_bytes": 6311378,
+    "stored_outside_repository": true,
+    "scope_limit": "Single PostgreSQL database only. Roles/grants, other databases, Compose volumes, provider state, and external media are excluded."
+  },
+  "restore_rehearsal": {
+    "completed": true,
+    "container": "kokonut-pre435-restore-20261018t1626z",
+    "network": "none",
+    "host_ports_published": false,
+    "persistent_volume": false,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "platform": "linux/amd64",
+    "target_created_from": "template0",
+    "role_prerequisites": "passed",
+    "restore_method": "age decryption streamed directly into pg_restore with --exit-on-error --single-transaction --no-owner --no-privileges",
+    "candidate_ledger_rows": 431,
+    "restored_ledger_rows": 431,
+    "candidate_applied_rows": 431,
+    "restored_applied_rows": 431,
+    "candidate_and_restore_ledger_fingerprint": "7a89605df1b16d966b420fd86bab9bde",
+    "extensions": "btree_gist:1.7,fuzzystrmatch:1.2,pg_stat_statements:1.10,pg_trgm:1.6,pgcrypto:1.3,plpgsql:1.0,postgis:3.4.3,postgis_tiger_geocoder:3.4.3,postgis_topology:3.4.3,uuid-ossp:1.1",
+    "candidate_and_restore_public_relation_count": 1396,
+    "scratch_container_removed": true
+  },
+  "candidate_rollout": {
+    "compose_project": "kokonut-kernel-candidate",
+    "migration_id": "schema:435_financial_projection_conflict_guard.sql",
+    "migration_sha256": "0d15ee00903ba6baa0e95758571588aec1842e5d2080ec3ed3e2a8becfee362e",
+    "command": "python3 -m services.migration.cli migrate --schemas-only --only-migration schema:435_financial_projection_conflict_guard.sql --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-local-db.yml",
+    "status": "applied",
+    "ledger_rows_after": 432,
+    "applied_rows_after": 432,
+    "applied_schema_rows_after": 426,
+    "applied_seed_rows_after": 6,
+    "non_applied_ledger_rows_after": 0,
+    "ordered_schema_plan_pending_after": 0,
+    "candidate_app_recreated": false,
+    "candidate_services_after": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "candidate_app_container_id_after": "8c9bce50a7ec684ce1d416cc1a6ccd5525cbe9f86c89251ed30940af969c9f11",
+    "health_http_status": 200,
+    "anonymous_operator_review_queue_http_status": 401
+  },
+  "isolation": {
+    "legacy_stack_touched": false,
+    "candidate_seed_sql_run": false,
+    "candidate_metabase_recreated": false,
+    "candidate_proxy_recreated": false,
+    "candidate_database_changed_only_by_migration_435": true
+  },
+  "rollback": {
+    "migration_failure_behavior": "The migration runner executes each migration transactionally, so an apply error leaves migration 435 unapplied.",
+    "database_recovery": "Retain the encrypted pre-435 checkpoint. For database recovery, restore it to a fresh isolated PostgreSQL target, verify it, then use a separately reviewed candidate replacement; do not overwrite the live candidate with pg_restore.",
+    "application_recovery": "The candidate app image and container were not changed during this database-only rollout."
+  },
+  "limitations": [
+    "The restore verifies the migration ledger, extension versions, and public relation count; it does not establish populated farm-data, external media, cluster-role/grant, provider, or full-system backup parity.",
+    "The migration protects create-time sales and expense projections. Financial update/delete reconciliation, historical backfill, ClickHouse delivery, and populated report/dashboard parity remain open.",
+    "The local rollout does not establish production recovery, tenant-wide RLS, physical Raspberry Pi behavior, or named MAN-CAP acceptance."
+  ]
+}

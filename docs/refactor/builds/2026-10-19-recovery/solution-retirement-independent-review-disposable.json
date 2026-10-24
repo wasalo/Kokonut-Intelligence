@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "474_solution_retirement_independent_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 474 applies and replays after ordered solution lifecycle migrations",
+    "new approvals require a non-null proposer and a distinct reviewer",
+    "self-approval and approval without proposer attribution fail closed",
+    "proposer and reviewer attribution cannot be rewritten after approval",
+    "independent approval succeeds and unreviewed legacy rows are not rewritten"
+  ],
+  "acceptance_groups_passed": 5
+}

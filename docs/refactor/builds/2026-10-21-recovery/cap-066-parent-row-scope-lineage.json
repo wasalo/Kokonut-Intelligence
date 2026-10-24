@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "scope": "Recognize report query scope inherited through a directly location-filtered parent row without treating unscoped or overwritten rows as scoped.",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py -q",
+    "result": "passed",
+    "passed": 42
+  },
+  "report_inventory": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "bound_location_scope_signals_before": 126,
+    "bound_location_scope_signals_after": 129,
+    "statement_of_work": {
+      "direct_query_sites": 13,
+      "visible_location_scope_sites": 13,
+      "inherited_child_queries": [
+        "sow_deliverable",
+        "sow_payment_schedule",
+        "sow_change_request"
+      ]
+    }
+  },
+  "ruff": "passed",
+  "py_compile": "passed",
+  "report_query_inventory": "regenerated and current",
+  "report_helper_inventory": "current",
+  "capability_matrix": "passed",
+  "git_diff_check": "passed",
+  "database_or_provider_calls": false,
+  "limits": [
+    "The analyzer only follows straight-line direct function-scope execute/fetchone assignments and does not infer scope through branches, loops, helpers, or arbitrary row transformations.",
+    "A source-level scope signal does not establish authorization, RLS, runtime SQL behavior, or populated report-output parity."
+  ]
+}

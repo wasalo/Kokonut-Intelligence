@@ -1,4 +1,4 @@
-"""Private coaching and explicit resource requests."""
+"""Private coaching helpers; resource-request writes require the Gateway."""
 
 import json
 import uuid
@@ -26,28 +26,14 @@ def record_coaching_session(conn, scope_type: str, scope_id: str, coachee_party_
 
 
 def request_resource(conn, scope_type: str, scope_id: str, requested_by_party_id: str, resource_type: str, description: str, *, urgency: str = "medium", requested_by: Optional[str] = None) -> Dict[str, Any]:
-    if scope_type not in ("internal", "adelphi"):
-        raise ValueError("scope_type must be internal or adelphi")
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""INSERT INTO operating_resource_request
-            (scope_type, scope_id, requested_by_party_id, resource_type, description, urgency, requested_by)
-            VALUES (%s, %s::uuid, %s::uuid, %s, %s, %s, COALESCE(%s::date, CURRENT_DATE)) RETURNING *""", (scope_type, scope_id, requested_by_party_id, resource_type, description, urgency, requested_by))
-        row = _clean(cur.fetchone())
-        conn.commit()
-        return row
+    del conn, scope_type, scope_id, requested_by_party_id, resource_type, description, urgency, requested_by
+    raise RuntimeError(
+        "Unscoped resource-request writes are disabled; use the authenticated operating-pilot Gateway."
+    )
 
 
 def decide_resource(conn, request_id: str, decided_by_party_id: str, decision: str, *, reason: Optional[str] = None) -> Dict[str, Any]:
-    if decision not in ("approved", "partially_approved", "declined", "fulfilled"):
-        raise ValueError("invalid resource decision")
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""UPDATE operating_resource_request
-            SET decision = %s, decision_reason = %s, decided_by_party_id = %s::uuid,
-                decided_at = NOW(), status = 'reviewed', updated_at = NOW()
-            WHERE id = %s::uuid RETURNING *""", (decision, reason, decided_by_party_id, request_id))
-        row = cur.fetchone()
-        if not row:
-            conn.rollback()
-            raise ValueError("resource request not found")
-        conn.commit()
-        return _clean(row)
+    del conn, request_id, decided_by_party_id, decision, reason
+    raise RuntimeError(
+        "Unscoped resource decisions are disabled; use the independently authorized operating-pilot Gateway."
+    )

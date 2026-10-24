@@ -6,7 +6,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -111,13 +111,53 @@ def test_query_logs_returns_dicts(audit, mock_conn):
 def test_log_access_rolls_back_on_exception(audit, mock_conn):
     """log_access rolls back the connection on DB error."""
     cursor = MagicMock()
-    cursor.execute.side_effect = Exception("DB error")
+    secret = "postgres://user:password@host/db"
+    cursor.execute.side_effect = RuntimeError(secret)
     mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
-    with pytest.raises(Exception, match="DB error"):
+    logger = MagicMock()
+    with (
+        patch("services.security.audit.logger", logger),
+        pytest.raises(RuntimeError, match="postgres://user:password@host/db"),
+    ):
         audit.log_access("agent-1", "harvest_event", "write", "allowed")
     mock_conn.rollback.assert_called_once()
+    assert logger.error.call_args.args == ("Failed to log access (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
+
+
+def test_query_logs_redacts_database_exception(audit, mock_conn):
+    secret = "password=private-query-value"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.audit.logger", logger):
+        assert audit.query_logs() == []
+
+    assert logger.error.call_args.args == ("Failed to query audit logs (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
+
+
+def test_stats_redacts_database_exception(audit, mock_conn):
+    secret = "postgres://user:password@host/db"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.audit.logger", logger):
+        assert audit.stats() == {}
+
+    assert logger.error.call_args.args == ("Failed to get audit stats (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -61,6 +61,58 @@ const farm = await client.farms.get('farm-uuid');
 // List crop cycles for a plot
 const cycles = await client.cropCycles.listByPlot('plot-uuid');
 
+// Read stored farm task plans for one location
+const tasks = await client.farmTasks.listByLocation('location-uuid');
+// This read does not assign, schedule, or complete work.
+
+// Read stored forecast/observation accuracy rows for one forecast
+const accuracy = await client.forecastAccuracies.listByForecast('forecast-uuid');
+// This returns persisted comparisons; it does not calculate or verify accuracy.
+
+// Read stored fitted variogram parameters for one location
+const variograms = await client.variogramModels.listByLocation('location-uuid');
+// This reads fitted output; it does not fit or validate a variogram.
+
+// Read saved spatial predictions and diagnostics for a location
+const predictions = await client.krigingPredictions.listByLocation('location-uuid');
+const realizations = await client.geostatRealizations.listByLocation('location-uuid');
+const spatialTests = await client.spatialAutocorrelations.listByLocation('location-uuid');
+const cvResults = await client.geostatCvResults.listByLocation('location-uuid');
+const sensorDesigns = await client.sensorNetworkDesigns.listByLocation('location-uuid');
+// Point rows are read through their owning prediction/realization.
+const predictionPoints = await client.krigingPoints.listByPrediction('prediction-uuid');
+const realizationPoints = await client.geostatRealizationPoints.listByRealization('realization-uuid');
+// These reads return stored output only; they do not run spatial analysis.
+
+// Read systems-thinking definitions and location results
+const loops = await client.causalLoops.list();
+const links = await client.causalLinks.listByLoop('loop-uuid');
+const models = await client.stockFlowModels.list();
+const runs = await client.stockFlowRuns.listByLocation('location-uuid');
+const archetypes = await client.systemArchetypes.listByLocation('location-uuid');
+const leverage = await client.leverageAssessments.listByLocation('location-uuid');
+// These return persisted definitions/results; they do not evaluate or simulate.
+
+// Read persisted OODA assessments, evidence, and cycle timing by location/parent
+const assessments = await client.situationAssessments.listByLocation('location-uuid');
+const signals = await client.assessmentSignals.listByAssessment('assessment-uuid');
+const dimensions = await client.assessmentDimensions.listByAssessment('assessment-uuid');
+const cycles = await client.oodaCycleLogs.listByLocation('location-uuid');
+// These reads are advisory records; they do not choose or execute actions.
+
+// Read stored CRISP assessments and their five dimension records
+const riskAssessments = await client.crispRiskAssessments.listByLocation('location-uuid');
+const climateDetails = await client.crispClimateRisks.listByAssessment('assessment-uuid');
+// These return persisted scores/evidence only; they do not score or verify CRISP.
+
+// Read location-scoped organic certification, transition, and compliance records
+const certifications = await client.organicCertificationRecords.listByLocation('location-uuid');
+const transitions = await client.organicTransitionPlans.listByLocation('location-uuid');
+const readiness = await client.organicReadinessAssessments.listByLocation('location-uuid');
+const buffers = await client.bufferZones.listByLocation('location-uuid');
+// Other read-only groups cover substance, input, handling, and checklist evidence.
+// These are persisted records; they do not recalculate readiness or certify a farm.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -74,6 +126,49 @@ const harvest = await client.harvestEvents.create({
 
 // Query unpaid sales
 const unpaid = await client.salesEvents.listUnpaid();
+
+// Read governed carbon-credit ledger records for one location
+const credits = await client.carbonCredits.listByLocation('location-uuid');
+const retirements = await client.creditRetirements.listByLocation('location-uuid');
+// Ledger helpers expose reads only; reviewed services own lifecycle changes.
+
+// Read recorded financial facts and stored cash-flow summaries
+const transactions = await client.financialTransactions.listByLocation('location-uuid');
+const cashFlows = await client.cashFlowSnapshots.listByLocation('location-uuid');
+// These reads do not initiate transactions or calculate/reconcile balances.
+
+// Read persisted ecological observations and reviewed MRV claims
+const soilSamples = await client.soilSamples.listByLocation('location-uuid');
+const claims = await client.mrvClaims.listByLocation('location-uuid');
+// These reads do not ingest, calculate, verify, or attest records.
+
+// Read registered sensor inventory and alert history for one location
+const devices = await client.sensorDevices.listByLocation('location-uuid');
+const alerts = await client.sensorAlerts.listByLocation('location-uuid');
+// These reads do not register devices, acknowledge/resolve alerts, or actuate equipment.
+
+// Read stored metrics and forecast results for one location
+const metricValues = await client.metricValues.listByLocation('location-uuid');
+const forecasts = await client.demandForecasts.listByLocation('location-uuid');
+// Stored outputs are returned as-is; the SDK does not compute or verify them.
+
+// Read stored local prices and market demand records
+const prices = await client.priceObservations.listByLocation('location-uuid');
+const demand = await client.buyerDemandSignals.listByLocation('location-uuid');
+// These reads do not fetch prices or confirm buyer commitments/fulfillment.
+
+// Read shared reference catalogs
+const crops = await client.crops.list();
+const protocols = await client.protocols.list();
+const sensorTypes = await client.sensorTypes.list();
+const schemas = await client.attestationSchemas.list();
+// Catalog helpers are read-only; API permissions still govern access.
+
+// Aggregate records through Directus
+const harvestCounts = await client.aggregate('harvest_event', {
+  aggregate: { count: '*' },
+  groupBy: ['location_id'],
+});
 
 // List sensor readings with anomalies
 const anomalies = await client.sensorReadings.listAnomalies();
@@ -89,13 +184,47 @@ const { token, refreshToken } = await client.login('user@example.com', 'password
 await client.logout();
 ```
 
+## Error handling
+
+The Directus client maps HTTP 400, 401, 403, and 404 responses to stable SDK
+errors. Other HTTP failures use `KokonutError`; network failures without an HTTP
+response remain native transport errors.
+
+```typescript
+import {
+  AuthenticationError,
+  ForbiddenError,
+  KokonutError,
+  NotFoundError,
+  ValidationError,
+} from '@kokonut-intelligence/sdk';
+
+try {
+  await client.locations.get('missing-location');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Location not found');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Please log in');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Permission denied');
+  } else if (error instanceof ValidationError) {
+    console.error(`Invalid input: ${error.message}`);
+  } else if (error instanceof KokonutError) {
+    console.error(`API error ${error.statusCode}: ${error.message}`);
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Pagination
 
 ```typescript
 // Page-based
 const page1 = await client.locations.list({ page: 1, limit: 20 });
 
-// Offset-based (requires a limit; converted to page-based)
+// Offset-based (requires a non-zero limit; preserves the exact row offset)
 const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 ```
 
@@ -114,10 +243,103 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `walletProfiles` | `wallet_profile` | `findByAddress` |
 | `attestations` | `attestation_record` | `listPending`, `listByEntity` |
 | `reports` | `report_snapshot` | `listByType` |
-| `exports` | `export_log` | — |
+| `exports` | `export_log` | `createExport` (Python-parity method); existing `create` remains available |
 | `noi` | `noi_snapshot` | `listByCropCycle` |
+| `carbonCredits` | `carbon_credit` | `listByLocation` |
+| `creditAdjustments` | `credit_adjustment` | `listByLocation` |
+| `creditRetirements` | `credit_retirement` | `listByLocation` |
+| `creditTransfers` | `credit_transfer` | `listByLocation` |
+| `financialTransactions` | `financial_transaction` | `listByLocation` |
+| `cashFlowSnapshots` | `cash_flow_snapshot` | `listByLocation` |
+| `weatherObservations` | `weather_observation` | `listByLocation` |
+| `sensorDevices` | `sensor_device` | `listByLocation` |
+| `sensorAlerts` | `sensor_alert` | `listByLocation` |
+| `soilSamples` | `soil_sample` | `listByLocation` |
+| `soilCarbonMeasurements` | `soil_carbon_measurement` | `listByLocation` |
+| `environmentalBaselines` | `environmental_baseline` | `listByLocation` |
+| `speciesObservations` | `species_observation` | `listByLocation` |
+| `remoteSensingObservations` | `remote_sensing_observation` | `listByLocation` |
+| `mrvClaims` | `mrv_claim` | `listByLocation` |
+| `metricValues` | `metric_value` | `listByLocation` |
+| `forecastScenarios` | `forecast_scenario` | `listByLocation` |
+| `forecastOutputs` | `forecast_output` | `listByLocation` |
+| `timeSeriesForecasts` | `time_series_forecast` | `listByLocation` |
+| `demandForecasts` | `demand_forecast` | `listByLocation` |
+| `marketSizeEstimates` | `market_size_estimate` | `listByLocation` |
+| `priceObservations` | `price_observation` | `listByLocation` |
+| `demandTrends` | `demand_trend` | `listByLocation` |
+| `buyerDemandSignals` | `buyer_demand_signal` | `listByLocation` |
+| `productionMarketMatches` | `production_market_match` | `listByLocation` |
+| `buyerSegments` | `buyer_segment` | `listByLocation` |
+| `valueFlowEvents` | `value_flow_event` | `listByLocation` |
+| `trendEstimates` | `trend_estimate` | `listByLocation` |
+| `trendSmoothing` | `trend_smoothing` | `listByLocation` |
+| `changePoints` | `change_point` | `listByLocation` |
+| `seasonalDecompositions` | `seasonal_decomposition` | `listByLocation` |
+| `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
+| `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
+| `farmTasks` | `farm_task` | `listByLocation` (read-only) |
+| `forecastAccuracies` | `forecast_accuracy` | `listByForecast` (read-only) |
+| `variogramModels` | `variogram_model` | `listByLocation` (read-only) |
+| `krigingPredictions` | `kriging_prediction` | `listByLocation` (read-only) |
+| `krigingPoints` | `kriging_point` | `listByPrediction` (read-only) |
+| `geostatRealizations` | `geostat_realization` | `listByLocation` (read-only) |
+| `geostatRealizationPoints` | `geostat_realization_point` | `listByRealization` (read-only) |
+| `spatialAutocorrelations` | `spatial_autocorrelation` | `listByLocation` (read-only) |
+| `geostatCvResults` | `geostat_cv_result` | `listByLocation` (read-only) |
+| `sensorNetworkDesigns` | `sensor_network_design` | `listByLocation` (read-only) |
+| `causalLoops` | `causal_loop` | — (read-only list/detail) |
+| `causalLinks` | `causal_link` | `listByLoop` (read-only) |
+| `systemVariables` | `system_variable` | `listByLocation` (read-only) |
+| `stockFlowModels` | `stock_flow_model` | — (read-only list/detail) |
+| `stockFlowRuns` | `stock_flow_run` | `listByLocation` (read-only) |
+| `systemArchetypes` | `system_archetype` | `listByLocation` (read-only) |
+| `leverageAssessments` | `leverage_assessment` | `listByLocation` (read-only) |
+| `timeDelays` | `time_delay` | — (read-only list/detail) |
+| `structuralAssumptions` | `structural_assumption` | `listByLocation` (read-only) |
+| `situationAssessments` | `situation_assessment` | `listByLocation` (read-only) |
+| `assessmentSignals` | `assessment_signal` | `listByAssessment` (read-only) |
+| `assessmentDimensions` | `assessment_dimension` | `listByAssessment` (read-only) |
+| `oodaCycleLogs` | `ooda_cycle_log` | `listByLocation` (read-only) |
+| `crispRiskAssessments` | `crisp_risk_assessment` | `listByLocation` (read-only) |
+| `crispCarbonYieldRisks` | `crisp_carbon_yield_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispClimateRisks` | `crisp_climate_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispPolicyRisks` | `crisp_policy_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispFinancialRisks` | `crisp_financial_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispImplementationRisks` | `crisp_implementation_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `organicCertificationRecords` | `organic_certification_record` | `listByLocation` (read-only) |
+| `organicTransitionPlans` | `organic_transition_plan` | `listByLocation` (read-only) |
+| `prohibitedSubstanceRecords` | `prohibited_substance_record` | `listByLocation` (read-only) |
+| `bufferZones` | `buffer_zone` | `listByLocation` (read-only) |
+| `organicInputAudits` | `organic_input_audit` | `listByLocation` (read-only) |
+| `harvestHandlingRecords` | `harvest_handling_record` | `listByLocation` (read-only) |
+| `organicComplianceChecklists` | `organic_compliance_checklist` | `listByLocation` (read-only) |
+| `organicReadinessAssessments` | `organic_readiness_assessment` | `listByLocation` (read-only) |
+| `crops` | `crop` | — (read-only list/detail) |
+| `protocols` | `protocol` | — (read-only list/detail) |
+| `sensorTypes` | `sensor_type` | — (read-only list/detail) |
+| `attestationSchemas` | `attestation_schema` | — (read-only list/detail) |
 
-All groups inherit `GenericMethods`: `list`, `get`, `create`, `createMany`, `update`, `delete`.
+Geostatistics groups expose saved outputs only. `krigingPoints` requires a
+prediction ID, and `geostatRealizationPoints` requires a realization ID,
+because their canonical tables have no location column. Client-side filters do
+not grant access; the configured API must enforce the caller's authorization.
+Systems-thinking groups also expose persisted configuration and results only;
+`causalLinks` requires a loop ID. Stakeholder `mental_model` records are not
+exposed because their canonical table has no location scope.
+
+Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
+`createMany`, `update`, `delete`. The credit-ledger, finance, ecological
+observation, and MRV groups are read-only and expose only `list`, `get`, and
+`listByLocation`; metric, forecast, market, and value-flow groups follow the
+same read-only contract, except `forecastAccuracies`, which filters by
+`forecast_id` because the canonical table has no `location_id`. SDK filters are query conveniences, not
+authorization boundaries; Directus must enforce the caller's grants, especially
+for buyer and commercial records. Shared reference catalog helpers also expose
+only list/detail reads. These methods do not ingest, calculate,
+verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
+forecast, metric, and trend outputs are returned without recalculation or an
+assertion that they are current or verified.
 
 ## Examples
 

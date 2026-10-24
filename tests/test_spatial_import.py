@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from services.export.spatial_import import (
     _slugify,
@@ -160,6 +161,124 @@ def test_geojson_string_input() -> None:
     result = import_geojson(_MockConn(), "loc-1", geojson_str)
     assert result["zones_created"] == 0
     assert result["error"] == "No features found in GeoJSON"
+
+
+def test_geojson_feature_failure_redacts_exception_from_result_audit_and_log(monkeypatch) -> None:
+    from services.export import spatial_import
+
+    secret = "ST_GeomFromGeoJSON rejected private coordinates: 18.521,-69.987"
+    audit_calls = []
+
+    class _FailingCursor(_MockCursor):
+        def execute(self, query, params=None):
+            raise RuntimeError(secret)
+
+    class _AuditCursor(_MockCursor):
+        def execute(self, query, params=None):
+            audit_calls.append((query, params))
+
+    class _Conn:
+        def __init__(self):
+            self._cursor_index = 0
+
+        def cursor(self, cursor_factory=None):
+            self._cursor_index += 1
+            return _FailingCursor() if self._cursor_index == 1 else _AuditCursor()
+
+    logger = MagicMock()
+    monkeypatch.setattr(spatial_import, "logger", logger)
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": []}}],
+    }
+
+    result = import_geojson(_Conn(), "loc-1", geojson)
+
+    assert result["status"] == "failed"
+    assert result["errors"] == [{
+        "feature_index": 0,
+        "error": "GeoJSON feature import failed (RuntimeError)",
+    }]
+    audited_errors = json.loads(audit_calls[0][1][8])
+    assert audited_errors == result["errors"]
+    assert secret not in repr(result)
+    assert secret not in repr(audit_calls)
+    assert secret not in repr(logger.mock_calls)
+
+
+def test_kml_invalid_xml_does_not_echo_source_content() -> None:
+    secret = "private-coordinate-payload"
+
+    result = import_kml(_MockConn(), "loc-1", f"<broken>{secret}<unfinished")
+
+    assert result["error"].startswith("Invalid KML XML (")
+    assert secret not in repr(result)
+
+
+def test_kml_placemark_failure_redacts_exception_from_result_and_audit(monkeypatch) -> None:
+    from services.export import spatial_import
+
+    secret = "PostGIS rejected private coordinate 18.521,-69.987"
+    audit_calls = []
+
+    class _FailingCursor(_MockCursor):
+        def execute(self, query, params=None):
+            raise RuntimeError(secret)
+
+    class _AuditCursor(_MockCursor):
+        def execute(self, query, params=None):
+            audit_calls.append((query, params))
+
+    class _Conn:
+        def __init__(self):
+            self._cursor_index = 0
+
+        def cursor(self, cursor_factory=None):
+            self._cursor_index += 1
+            return _FailingCursor() if self._cursor_index == 1 else _AuditCursor()
+
+    logger = MagicMock()
+    monkeypatch.setattr(spatial_import, "logger", logger)
+    kml = """<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><Polygon>
+    <outerBoundaryIs><LinearRing><coordinates>0,0 1,0 1,1 0,0</coordinates>
+    </LinearRing></outerBoundaryIs></Polygon></Placemark></kml>"""
+
+    result = import_kml(_Conn(), "loc-1", kml)
+
+    assert result["status"] == "failed"
+    assert result["errors"] == [{
+        "placemark_index": 0,
+        "error": "KML Placemark import failed (RuntimeError)",
+    }]
+    assert json.loads(audit_calls[0][1][8]) == result["errors"]
+    assert secret not in repr(result)
+    assert secret not in repr(audit_calls)
+    assert secret not in repr(logger.mock_calls)
+
+
+def test_spatial_import_audit_write_logs_only_exception_class(monkeypatch) -> None:
+    from services.export import spatial_import
+
+    secret = "database connection password=private"
+
+    class _FailingCursor(_MockCursor):
+        def execute(self, query, params=None):
+            raise RuntimeError(secret)
+
+    class _Conn:
+        def cursor(self, cursor_factory=None):
+            return _FailingCursor()
+
+    logger = MagicMock()
+    monkeypatch.setattr(spatial_import, "logger", logger)
+
+    spatial_import._log_import(
+        _Conn(), "loc-1", "geojson", "upload.geojson", "hash",
+        1, 0, 0, 0, [], "failed",
+    )
+
+    assert secret not in repr(logger.mock_calls)
+    assert "RuntimeError" in repr(logger.mock_calls)
 
 
 # ---------------------------------------------------------------------------

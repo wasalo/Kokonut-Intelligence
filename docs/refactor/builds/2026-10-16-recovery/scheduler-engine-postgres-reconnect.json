@@ -1,0 +1,43 @@
+{
+  "both_runs_claimed_by_same_worker": true,
+  "candidate_or_legacy_modified": false,
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_restart_reconnected": true,
+  "database_volume": false,
+  "date": "2026-10-17",
+  "external_provider_calls": 0,
+  "limitations": [
+    "Only the scheduler, event bus, notification, and durable ownership migrations were replayed; the full schema ledger was not applied. The disposable notification table adds the nullable location_id column from migration 406 without applying unrelated anomaly-table changes.",
+    "The bounded task ran EventBus processing against an empty synthetic queue; no domain provider or external service ran.",
+    "One crash probe killed the scheduler after its durable lease claim but before it launched the task subprocess. A second killed the parent after the task child processed a synthetic data_stale event and committed its notification outbox effect, while the parent was paused before task completion; the replacement attempt observed the completed event and did not duplicate the notification row.",
+    "The synthetic webhook destination is configuration only; no delivery worker or external network request was run.",
+    "The PostgreSQL container had no volume and was bound only to loopback."
+  ],
+  "migrations_replayed": [
+    "116_event_bus.sql",
+    "117_task_scheduler.sql",
+    "164_scheduler_durability.sql",
+    "165_event_bus_durability.sql",
+    "297_event_handler_registration_fix.sql",
+    "337_scheduler_ownership.sql",
+    "371_scheduler_run_windows.sql",
+    "375_notification_outbox.sql"
+  ],
+  "post_effect_event_handler_delivery": "success|1",
+  "post_effect_event_id": "3e193e7d-d259-4881-8bed-68f75380f9cc",
+  "post_effect_notification_rows": "1|1",
+  "post_effect_task_run_history": "failed,scheduler-engine-effect-crash-probe,1;completed,scheduler-engine-crash-recovery,2",
+  "result": "passed",
+  "retry_did_not_duplicate_committed_effect": true,
+  "scheduler_crash_run_history": "failed,scheduler-engine-crash-probe,1;completed,scheduler-engine-crash-recovery,2",
+  "scheduler_crashed_after_effect_commit": true,
+  "scheduler_engine": "real SchedulerEngine",
+  "scheduler_task_lease_reclaimed": true,
+  "scheduler_worker_killed_after_claim": true,
+  "task_after_restart_completed": true,
+  "task_before_restart_completed": true,
+  "task_command": "python -m services.events --process --batch-size 10",
+  "worker_alive_during_outage": true,
+  "worker_id": "scheduler-engine-reconnect-probe"
+}

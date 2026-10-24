@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "status": "implemented_disposable_accepted",
+  "purpose": "Source-visible effect contract for the first signed worker integration, accepted against disposable PostgreSQL; this is not a grant list, global RLS policy, or deployment approval.",
+  "operation": {
+    "module": "services.ingestion.anomaly_detector",
+    "function": "handle_sensor_reading",
+    "event_type": "sensor_reading",
+    "resource": "sensor_reading",
+    "action": "process",
+    "scope": "One source event and its source reading at the currently owner-verified location, per transaction."
+  },
+  "transaction": {
+    "connection": "One non-autocommit PostgreSQL connection for context setup, scoped reads, effects, and event/notification intent writes.",
+    "event_publication": "EventBus.publish(commit=False); the handler owns the final commit or rollback.",
+    "context": "Migration 405 signs this exact tenant/location/resource/action scope; the integrated anomaly worker establishes it before any scoped operation.",
+    "retry": "The source-reading/rule receipt suppresses duplicate database effects; event and notification delivery remain durable downstream worker responsibilities."
+  },
+  "effects": [
+    {
+      "relation": "public.platform_event",
+      "access": "select_source_event; insert_sensor_alert_event",
+      "class": "tenant_source_and_control_plane_intent",
+      "required_boundary": "Read only the requested sensor_reading source event whose type, source table, source ID, payload location, and joined reading all agree with signed scope. Publish only the sensor_alert intent through a bounded function that verifies the signed location and alert row. Never expose claim, lease, retry, delivery-receipt, or dead-letter mutation to this operation.",
+      "current_enforcement": "Migrations 412 and 414 provide bounded source-read and canonical sensor-alert publication functions. The integrated worker uses these functions in the same transaction as alert and notification intents. EventBus grants worker DSN/credential forwarding only to the exact anomaly handler. Queue lease, retry, delivery-receipt, and dead-letter mutation remain outside this operation. Disposable EventBus child-process crash/recovery passes for the signed adapter; production credential and runtime recovery remain open."
+    },
+    {
+      "relation": "public.sensor_reading",
+      "access": "select",
+      "class": "tenant_data",
+      "required_boundary": "Read only the event source row at the signed location; event ID, event type, source table, sensor ID, and location must match.",
+      "current_enforcement": "The integrated worker reads only through migration 412 SECURITY DEFINER functions, which match the requested source event, source row, payload location, and supplied sensor selectors to signed scope. Metric evaluation revalidates event/source/device/rule linkage and bounds history to the same location. The worker has no direct sensor_reading SELECT."
+    },
+    {
+      "relation": "public.alert_rule",
+      "access": "select_enabled_reference",
+      "class": "shared_reference",
+      "required_boundary": "Read enabled rules as shared read-only configuration. The event handler must not bootstrap, insert, update, or delete global alert rules.",
+      "current_enforcement": "Event processing skips default-rule bootstrap. Migration 412 lists enabled rules only for the signed-location device's sensor type and evaluates only an enabled rule matching the event-linked reading. Migrations 407\u2013408 also require/derive from the matching enabled rule. Reads are confined to SECURITY DEFINER functions; there is no direct worker table grant."
+    },
+    {
+      "relation": "public.sensor_type",
+      "access": "select_reference",
+      "class": "shared_reference",
+      "required_boundary": "Read only sensor-type reference rows needed to interpret enabled alert rules.",
+      "current_enforcement": "Migrations 408 and 412 verify the rule/device/sensor-type relationship inside bounded event-publication and scoped-read functions; no direct worker table grant exists."
+    },
+    {
+      "relation": "public.sensor_device",
+      "access": "select",
+      "class": "tenant_data",
+      "required_boundary": "Read the source device only when its ID and location match the signed scope and source reading.",
+      "current_enforcement": "Migration 412 verifies device ID, location, and type against the event-linked reading for source reads, rule listing, evaluation, and cooldown; migrations 407\u2013408 apply the same relation checks to effects. The integrated worker uses only these bounded functions and has no direct table grant."
+    },
+    {
+      "relation": "public.location",
+      "access": "select_name",
+      "class": "tenant_data",
+      "required_boundary": "Read the current authorized location's display name only; owner/tenant resolution remains in the signed context setter.",
+      "current_enforcement": "Migration 412 returns a location display name only through the event-linked source read after checking the signed location; the owner role has only the required name/ID columns. A narrowly scoped SELECT policy is added only if RLS is already enabled on this source table."
+    },
+    {
+      "relation": "public.sensor_alert",
+      "access": "select_cooldown; insert; update_claim_link",
+      "class": "tenant_data",
+      "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 412 bounds cooldown reads to an enabled rule/device pair at signed location. Migrations 408 and 411 bound canonical alert-event publication and claim linking. Migration 413 atomically creates the location-bound alert, appends audit, and advances the receipt. The integrated worker calls these operations plus draft-claim creation in one transaction; it has no direct sensor_alert SELECT/INSERT/UPDATE access. Eight disposable end-to-end checks pass under forced RLS, including EventBus child-process crash and retry recovery."
+    },
+    {
+      "relation": "public.sensor_anomaly_effect",
+      "access": "insert_receipt; update_outcome",
+      "class": "tenant_idempotency_state",
+      "required_boundary": "Insert/update only the receipt for the signed source reading, source event, and rule. Preserve unique-key retry suppression; unresolved or cross-location source lineage must fail closed.",
+      "current_enforcement": "Migration 406 adds nullable location_id; unresolved history remains NULL. Migration 407 provides bounded reserve/outcome functions validating signed location, event payload selectors, reading, device, rule, and alert linkage. The integrated worker uses them inside its one transaction; disposable acceptance provisions a synthetic login and confirms no direct receipt-table privilege. No real deployment login is provisioned."
+    },
+    {
+      "relation": "public.mrv_claim",
+      "access": "insert_draft; adopt_legacy_draft_source_identity",
+      "class": "tenant_governed_data",
+      "required_boundary": "Create or adopt one claim only for the signed location, source-reading event and linked alert, with status draft. The anomaly worker must not submit, verify, publish, reject, or otherwise transition lifecycle state or edit review/attestation fields.",
+      "current_enforcement": "Migration 411 provides a bounded draft claim function validating signed location, source event/receipt, reading/device/rule/alert lineage, and creates or adopts an idempotent draft without lifecycle mutation. The integrated worker calls it only for rules configured for automatic claim creation; it has no direct mrv_claim or sensor_alert access."
+    },
+    {
+      "relation": "public.ingestion_log",
+      "access": "insert_anomaly_audit",
+      "class": "tenant_audit",
+      "required_boundary": "Append an audit row for the signed location and source reading. The operation must not update or delete prior audit rows.",
+      "current_enforcement": "Migration 413 appends the sensor-alert ingestion entry in the same signed, source-validated transaction as alert creation. The integrated worker invokes that bounded operation; it has no direct ingestion_log INSERT access. Disposable forced-RLS checks cover audit linkage and rollback."
+    },
+    {
+      "relation": "public.notification_outbox",
+      "access": "insert_sensor_alert_intent",
+      "class": "tenant_notification_intent",
+      "required_boundary": "Enqueue an intent for the signed location and newly published sensor_alert event. Do not claim, edit, replay, dispose, or deliver notification rows or attempts.",
+      "current_enforcement": "Migration 409 provides a bounded enqueue function requiring signed location, matching source receipt, and published alert event. Migration 414 makes the canonical event payload include notification formatter context. The integrated worker publishes through the bounded function, then enqueues matching pending notification intents within the same transaction; downstream delivery and attempts remain separate."
+    },
+    {
+      "relation": "public.actuation_log",
+      "access": "insert_pending_intent",
+      "class": "tenant_safety_intent",
+      "required_boundary": "Record only an intent at the signed location and linked alert. Preserve the existing approval-required state; the anomaly worker cannot approve, send, execute, or access MQTT transport.",
+      "current_enforcement": "Migration 410 provides a bounded approval-required intent function; migration 414 adds a signed boolean-only configuration read so the worker avoids calling the intent function when no actuator is configured. The integrated worker creates pending approval intents only. It cannot approve, send, execute, or access MQTT transport; the disposable end-to-end check verifies no command is sent."
+    }
+  ],
+  "implementation_constraints": [
+    "Do not grant the shared kokonut_runtime role worker execution or worker authorization-table access.",
+    "Prefer bounded SECURITY DEFINER functions for shared event/notification intents and other writes that otherwise expose global queue state.",
+    "Migration 406 leaves unresolved historical location lineage NULL; bounded worker functions reject unresolved or mismatched rows, and this worker cannot access those rows directly.",
+    "Do not enable application-table FORCE ROW LEVEL SECURITY or roll migration changes onto the candidate as part of this source contract.",
+    "The dispatcher allowlist forwards this worker identity only to the exact anomaly handler; provision the real login, credential, and active location grant before enabling it in a deployment."
+  ]
+}

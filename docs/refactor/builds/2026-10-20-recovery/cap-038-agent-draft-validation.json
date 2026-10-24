@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "capability": "CAP-038",
+  "area": "agent_draft_output_validation",
+  "runners": [
+    "services/agents/base.py:SynthesisAgent.run",
+    "services/agents/ai_summary.py:run_ai_summary"
+  ],
+  "behavior": "Declared top-level output presence, types, and UUID formats are validated before optional draft persistence; invalid output raises before INSERT/COMMIT and connections close in finally blocks. Nested content is not validated.",
+  "verification": {
+    "focused_tests": "86 passed across 12 agent-focused test files",
+    "python_files": [
+      "tests/test_agent_tasks.py",
+      "tests/test_agents_base.py",
+      "tests/test_ai_summary_safety.py",
+      "tests/test_bio_factory_operations.py",
+      "tests/test_capital_efficiency.py",
+      "tests/test_commons_liberation.py",
+      "tests/test_financial_resilience.py",
+      "tests/test_gnh_alignment.py",
+      "tests/test_holistic_wellbeing.py",
+      "tests/test_kokonut_commons_governance.py",
+      "tests/test_open_source_capitalist_scaling.py",
+      "tests/test_regenerative_outcomes.py"
+    ],
+    "database_or_model_provider_contacted": false
+  },
+  "acceptance_limits": [
+    "Task output validation remains lightweight and does not constitute semantic review.",
+    "Does not establish authenticated agent identity or database least privilege.",
+    "Does not replace independent human verification, publication, attestation, or execution approval."
+  ]
+}

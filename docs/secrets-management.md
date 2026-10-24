@@ -161,7 +161,7 @@ If a private age key may have been compromised, rotate every secret value protec
 
 ## CI/CD
 
-OneDev CI currently uses a short-lived, permission-restricted test `.env` with placeholder credentials and explicitly sets `KOKONUT_ENV=ci` plus `KOKONUT_ALLOW_PLAINTEXT_ENV=true`. Production deployments should use platform secret injection or SOPS decryption; they must not enable plaintext fallback. If a plaintext dotenv file is created, restrict its permissions and delete it in an always-run cleanup step.
+GitHub Actions CI uses a short-lived, permission-restricted test `.env` with placeholder credentials and explicitly sets `KOKONUT_ENV=ci` plus `KOKONUT_ALLOW_PLAINTEXT_ENV=true`. Production deployments should use platform secret injection or SOPS decryption; they must not enable plaintext fallback. If a plaintext dotenv file is created, restrict its permissions and delete it in an always-run cleanup step.
 
 ### GitHub Actions
 

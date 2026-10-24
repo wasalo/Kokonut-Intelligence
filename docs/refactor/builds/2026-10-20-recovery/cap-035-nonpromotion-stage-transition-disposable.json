@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "503_location_solution_nonpromotion_stage_transition.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 503 applies and replays after the ordered CAP-035 lifecycle chain",
+    "stage targets require signed exact-location read context; writes require exact transition grant and active human binding",
+    "transitions are limited to non-promotion stages and exact location-origin solutions",
+    "adopting retains approved location readiness and configuration prerequisites; supersession remains on the reviewed retirement/replacement workflow",
+    "expected-stage compare-and-set, acknowledgement, rationale, evidence, and rollback bounds are enforced",
+    "stage update, lifecycle event, and private idempotency receipt are atomic",
+    "exact retries replay, changed payloads and stale stages fail, and runtime/Directus cannot access receipts directly"
+  ],
+  "acceptance_groups_passed": 14
+}

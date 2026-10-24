@@ -16,15 +16,16 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .carbon_balance import compute_carbon_balance
-from services.common.cli import print_json
+
 logger = get_logger("analytics.carbon_credits")
 
 
@@ -420,8 +421,9 @@ def review_retirement(
             from services.credit_class.chain_sync import retire_onchain
             chain_result = retire_onchain(conn, retirement_id)
         except Exception as e:
-            logger.warning("On-chain retirement failed for %s (non-blocking): %s", retirement_id, e)
-            chain_result = {"error": str(e)}
+            safe_error = f"on-chain retirement failed ({type(e).__name__})"
+            logger.warning("On-chain retirement failed for %s (non-blocking; %s)", retirement_id, type(e).__name__)
+            chain_result = {"error": safe_error}
 
     return {"status": "success", "retirement_id": retirement_id,
             "retirement_status": new_status, "retired_tonnes": float(tonnes),
@@ -511,8 +513,7 @@ def check_adjustments(conn, location_id: str = None) -> List[Dict[str, Any]]:
 if __name__ == "__main__":
     import argparse
 
-    from ..common.db import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
-    import psycopg2
+    from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 
     parser = argparse.ArgumentParser(description="Carbon credit management")
     parser.add_argument("--issue", action="store_true", help="Issue a new carbon credit")

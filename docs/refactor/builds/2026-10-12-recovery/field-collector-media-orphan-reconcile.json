@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-12",
+  "acceptance": "field-collector-media-orphan-reconcile-dry-run",
+  "source_commit": "e523e2a7fc56d3482722eeba6ec247b026e9eee0",
+  "compose_project": "kokonut-kernel-candidate",
+  "compose_files": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-metabase.yml",
+    "docker-compose.kernel-edge.yml",
+    "docker-compose.kernel-proxy.yml"
+  ],
+  "provider": "local",
+  "execution": {
+    "mode": "dry-run",
+    "command": "python -m services.mobile.media_reconcile",
+    "one_off_app_container": true,
+    "no_dependencies_started": true,
+    "source_mounts": {
+      "services": "read-only",
+      "VERSION": "read-only",
+      "repository_root": "not mounted"
+    },
+    "application_service_rebuilt_or_recreated": false,
+    "database_service_recreated": false,
+    "metabase_service_recreated": false,
+    "proxy_service_recreated": false
+  },
+  "inventory": {
+    "provider_object_count": 0,
+    "registered_object_count": 0,
+    "unregistered_object_count": 0,
+    "eligible_count": 0,
+    "deleted_count": 0,
+    "database_upload_rows": 0,
+    "database_mutations": 0
+  },
+  "verification": {
+    "focused_tests": 31,
+    "focused_test_suites": [
+      "tests/test_mobile_media_reconcile.py",
+      "tests/test_mobile_media_storage.py",
+      "tests/test_mobile_media_cleanup.py"
+    ],
+    "ruff_standard": "passed",
+    "ruff_security_select_S_BLE_ignore_BLE001": "passed",
+    "standalone_cli_help": "passed",
+    "candidate_services_after_run": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    }
+  },
+  "scope_and_limitations": {
+    "apply_requested": false,
+    "object_keys_or_handles_printed": false,
+    "secret_values_printed": false,
+    "legacy_compose_project_touched": false,
+    "s3_or_r2_inventory_tested": false,
+    "populated_external_bucket_tested": false,
+    "production_retention_policy_decided": false
+  },
+  "rollback": "The invocation was read-only and deleted no objects; no rollback was required."
+}

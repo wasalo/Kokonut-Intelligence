@@ -1,0 +1,33 @@
+{
+  "result": "failed",
+  "date": "2026-10-23",
+  "source_revision": "a6e8822b",
+  "working_tree_dirty": true,
+  "runtime_architecture": "linux/arm64",
+  "execution": "QEMU on Docker host",
+  "database_image": {
+    "name": "kokonut-kernel-postgis-arm64:local",
+    "platform": "linux/arm64",
+    "image_id": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296"
+  },
+  "isolated_compose_project": "kokonut-arm64-schema-20261023-c85d56be",
+  "schema_files_expected": 589,
+  "schema_files_applied": 444,
+  "schema_files_pending": 144,
+  "schema_files_failed": 1,
+  "latest_migration": "schema:598_agent_safety_superuser_session_guard.sql",
+  "network_mode": "none",
+  "host_ports_published": false,
+  "seeds_applied": 0,
+  "farm_data_loaded": false,
+  "candidate_or_legacy_touched": false,
+  "cleanup": {
+    "attempted": true,
+    "completed": true
+  },
+  "failed_migration": "schema:454_location_scoped_management_work_summary.sql",
+  "latest_applied_migration": "schema:453_location_scoped_competitive_landscape_read.sql",
+  "failed_stage": "migration_454_location_scoped_management_work_summary.sql",
+  "failure": "ReplayCommandFailure",
+  "elapsed_seconds": 1687.2
+}

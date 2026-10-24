@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from services.common.logging import get_logger
@@ -27,6 +28,20 @@ def _compute_content_hash(content: Optional[str]) -> Optional[str]:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def _normalize_expiration(value: datetime | str | None) -> datetime | None:
+    """Accept an explicit timezone-aware expiry without choosing a retention period."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("expires_at must be an ISO-8601 timestamp with a timezone") from exc
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("expires_at must be a timezone-aware datetime")
+    return value.astimezone(timezone.utc)
+
+
 def create_post(
     conn,
     location_id: str,
@@ -44,6 +59,7 @@ def create_post(
     source_raw: dict | None = None,
     metadata: dict | None = None,
     created_by: str | None = None,
+    expires_at: datetime | str | None = None,
 ) -> dict:
     if post_type not in VALID_POST_TYPES:
         raise ValueError(f"Invalid post_type: {post_type}. Must be one of: {sorted(VALID_POST_TYPES)}")
@@ -51,6 +67,7 @@ def create_post(
         raise ValueError(f"Invalid visibility: {visibility}. Must be one of: {sorted(VALID_VISIBILITY)}")
     if not title:
         raise ValueError("title is required")
+    expires_at = _normalize_expiration(expires_at)
 
     row = {
         "location_id": location_id,
@@ -71,6 +88,7 @@ def create_post(
         "metadata": json.dumps(metadata) if metadata else "{}",
         "created_by": created_by,
         "updated_by": created_by,
+        "expires_at": expires_at,
     }
 
     result = conn.execute(
@@ -78,11 +96,11 @@ def create_post(
             "INSERT INTO data_stream_post "
             "(location_id, post_type, title, content, content_hash, visibility, status, "
             " evidence_urls, file_ids, media_type, plot_id, crop_cycle_id, "
-            " source_system, source_id, source_raw, metadata, created_by, updated_by) "
+            " source_system, source_id, source_raw, metadata, created_by, updated_by, expires_at) "
             "VALUES "
             "(:location_id, :post_type, :title, :content, :content_hash, :visibility, :status, "
             " :evidence_urls, :file_ids, :media_type, :plot_id, :crop_cycle_id, "
-            " :source_system, :source_id, :source_raw, :metadata, :created_by, :updated_by) "
+            " :source_system, :source_id, :source_raw, :metadata, :created_by, :updated_by, :expires_at) "
             "RETURNING id, created_at"
         ),
         row,
@@ -96,7 +114,7 @@ def update_post(conn, post_id: str, **kwargs) -> dict:
     allowed_fields = {
         "title", "content", "post_type", "visibility", "evidence_urls",
         "file_ids", "media_type", "status", "plot_id", "crop_cycle_id",
-        "source_system", "source_id", "source_raw", "metadata", "updated_by",
+        "source_system", "source_id", "source_raw", "metadata", "updated_by", "expires_at",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
     if not updates:
@@ -116,6 +134,8 @@ def update_post(conn, post_id: str, **kwargs) -> dict:
         updates["source_raw"] = json.dumps(updates["source_raw"])
     if "metadata" in updates and isinstance(updates["metadata"], dict):
         updates["metadata"] = json.dumps(updates["metadata"])
+    if "expires_at" in updates:
+        updates["expires_at"] = _normalize_expiration(updates["expires_at"])
 
     set_clause = ", ".join(f"{k} = :{k}" for k in updates)
     updates["post_id"] = post_id

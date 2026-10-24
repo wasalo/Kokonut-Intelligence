@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-16",
+  "branch": "feat/mobile-offline-acceptance",
+  "scope": "Dry-run-first environment Gateway API-key to PostgreSQL tenant-scope provisioner",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_api_key_provisioning.py tests/test_runtime_role_boundary.py -q",
+    "result": "passed",
+    "tests_passed": 16
+  },
+  "lint": {
+    "command": "ruff check services/gateway/api_key_provisioning.py tests/test_gateway_api_key_provisioning.py",
+    "result": "passed"
+  },
+  "cli": {
+    "command": "python3 -m services.gateway.api_key_provisioning --help",
+    "result": "passed"
+  },
+  "contracts_checked": [
+    "Raw keys are held only while parsing and are never retained in manifest representations or output",
+    "Only strong keys with exact resource/action/canonical-location scopes enter the database manifest",
+    "The default database session is read-only and does not lock or insert rows",
+    "Apply mode uses a separate operator-supplied DSN and concurrent-safe create-only inserts containing hashes, prefixes, and exact scopes",
+    "Concurrent insert conflicts are re-read and accepted only when the stored row exactly matches",
+    "Matching active, unexpired rows are idempotent; drift, inactive rows, and expired rows fail closed",
+    "The command never updates, reactivates, or implicitly revokes existing credentials",
+    "Runtime role boundary checks continue to deny API-key writes"
+  ],
+  "database_targets_touched": [],
+  "limitations": [
+    "Tests use synthetic manifests and database fakes; no candidate or legacy database was accessed",
+    "The encrypted maintenance DSN and actual tenant-scoped environment keys remain deployment inputs"
+  ]
+}

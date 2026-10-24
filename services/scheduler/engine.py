@@ -12,10 +12,18 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
+from services.common.worker_environment import (
+    scheduled_module_worker_key,
+    worker_subprocess_environment,
+)
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
-from services.security.execution_allowlist import validate_scheduled_module
+from services.security.scheduled_command_contracts import (
+    ScheduledCommandRejected,
+    validate_scheduled_command,
+)
 
 logger = get_logger("scheduler.engine")
 
@@ -137,7 +145,19 @@ class SchedulerEngine:
                 if not row:
                     self._conn.commit()
                     return None
-                task_id, name, module_path, args, cron, priority, timeout, retry_attempt, retry_at, overlap, scheduled_for = row
+                (
+                    task_id,
+                    name,
+                    module_path,
+                    args,
+                    cron,
+                    priority,
+                    timeout,
+                    retry_attempt,
+                    retry_at,
+                    overlap,
+                    scheduled_for,
+                ) = row
                 run_id = str(uuid.uuid4())
                 attempt = retry_attempt + 1
                 next_run = next_run_time(cron, after=now) if retry_at is None else None
@@ -159,11 +179,20 @@ class SchedulerEngine:
                          lease_owner = %s, lease_token = %s, lease_expires_at = %s, updated_at = %s
                     WHERE id = %s
                     """,
-                    (now, next_run, scheduled_for, self._worker_id, run_id, now + timedelta(seconds=timeout + 60), now, task_id),
+                    (
+                        now,
+                        next_run,
+                        scheduled_for,
+                        self._worker_id,
+                        run_id,
+                        now + timedelta(seconds=timeout + 60),
+                        now,
+                        task_id,
+                    ),
                 )
             self._conn.commit()
             logger.info("Claimed task %s (run %s, attempt %d)", name, run_id[:8], attempt)
-            return run_id, task_id, name, module_path, list(args or []), priority, timeout
+            return run_id, task_id, name, module_path, args, priority, timeout
         except Exception:
             self._conn.rollback()
             raise
@@ -203,12 +232,17 @@ class SchedulerEngine:
         """Execute the task as a subprocess and record the result."""
         start_time = time.monotonic()
         try:
-            validate_scheduled_module(module_path)
+            validated_args = validate_scheduled_command(module_path, command_args)
+            worker_key = scheduled_module_worker_key(module_path)
             result = subprocess.run(
-                [sys.executable, "-m", module_path, *command_args],
+                [sys.executable, "-m", module_path, *validated_args],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=worker_subprocess_environment(
+                    allowed_worker_keys=(worker_key,) if worker_key is not None else (),
+                    isolated_database_credentials=worker_key is not None,
+                ),
             )
             duration_ms = int((time.monotonic() - start_time) * 1000)
 
@@ -227,7 +261,7 @@ class SchedulerEngine:
                     run_id,
                     "failed",
                     duration_ms,
-                    error=(result.stderr or result.stdout)[-2000:],
+                    error=f"Scheduled command failed (exit code {result.returncode})",
                 )
                 return False
 
@@ -239,9 +273,28 @@ class SchedulerEngine:
         except SchedulerLeaseLostError:
             raise
 
+        except ScheduledCommandRejected as exc:
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            self._complete_task(
+                task_id,
+                run_id,
+                "failed",
+                duration_ms,
+                str(exc),
+                retryable=False,
+            )
+            return False
+
         except Exception as exc:
             duration_ms = int((time.monotonic() - start_time) * 1000)
-            self._complete_task(task_id, run_id, "failed", duration_ms, str(exc), retry_immediately=True)
+            self._complete_task(
+                task_id,
+                run_id,
+                "failed",
+                duration_ms,
+                f"Scheduled task execution failed ({safe_exception_class(exc)})",
+                retry_immediately=True,
+            )
             return False
 
     def _complete_task(
@@ -253,6 +306,7 @@ class SchedulerEngine:
         error: str | None = None,
         stdout: str | None = None,
         retry_immediately: bool = False,
+        retryable: bool = True,
     ) -> None:
         """Record task completion and update task state."""
         now = datetime.now(timezone.utc)
@@ -299,7 +353,7 @@ class SchedulerEngine:
             else:
                 retry_at = (
                     (now if retry_immediately else now + timedelta(seconds=retry_delay))
-                    if attempt <= max_retries
+                    if retryable and attempt <= max_retries
                     else None
                 )
                 cur.execute(

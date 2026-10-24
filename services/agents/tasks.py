@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
+from copy import deepcopy
+from datetime import date
 from typing import Any
+from uuid import UUID
 
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     "cids_export": {
@@ -23,7 +28,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "high_risk": False,
     },
     "feedback_synthesis": {
-        "description": "Summarize stakeholder feedback using public summaries and aggregate private-feedback signals.",
+        "description": "Summarize stakeholder feedback from consented public summaries only.",
         "risk": "medium",
         "inputs": {
             "location_id": {"type": "string", "format": "uuid", "required": True},
@@ -66,7 +71,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe financial sustainability, risk mitigation, scaling roadmap, and Green Paper publication status.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -80,7 +85,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe capital efficiency, regenerative payback, governance throughput, and capital-provider utility scenarios.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -94,7 +99,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe time liberation, capital alignment, governance inclusion, and land stewardship evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -108,7 +113,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe GNH alignment, cultural preservation, renewable energy, vulnerable access, and foundational well-being evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -122,7 +127,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe regenerative outcomes, community governance, replication readiness, and adaptive stewardship evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -136,7 +141,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe scaling economics, adoption barriers, perpetual-value stress tests, and open-source reuse evidence.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -150,7 +155,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe anti-capture governance, flexible redistribution policies, federation protocols, algorithmic redistribution mechanisms, and participatory signals.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -164,7 +169,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "description": "Summarize public-safe bio-organic fertilizer batches, input provenance, recipe library, distribution, quality tests, and LAC regional input availability.",
         "risk": "medium",
         "inputs": {
-            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
             "store": {"type": "boolean", "required": False},
         },
         "outputs": {
@@ -210,6 +215,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "risk": "low",
         "inputs": {
             "scorecard_id": {"type": "string", "format": "uuid", "required": True},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
         },
         "outputs": {
             "evidence_gaps": {"type": "array", "required": True},
@@ -233,16 +239,17 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "high_risk": False,
     },
     "delphi_facilitation": {
-        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary of panel consensus and draft a recommendation. Agents cannot publish; a human must approve.",
+        "description": "Act as the Real-time Delphi facilitator: build a consent-aware, location-scoped live summary and an in-memory recommendation suggestion. Persistence and review require the authenticated operator Gateway.",
         "risk": "medium",
         "inputs": {
             "study_id": {"type": "string", "format": "uuid", "required": True},
+            "location_id": {"type": "string", "format": "uuid", "required": True},
         },
         "outputs": {
             "summary": {"type": "object", "required": True},
             "recommendation_draft": {"type": "object", "required": False},
         },
-        "writes": ["delphi_recommendation:draft"],
+        "writes": [],
         "high_risk": False,
     },
     "coordination_strategy_draft": {
@@ -303,17 +310,93 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     },
 }
 
+AGENT_TASK_WRITE_CAPABILITIES = frozenset(
+    {
+        "agent_task:draft",
+        "agent_task:submitted",
+        "ai_summary:draft",
+        "ai_summary:submitted",
+        "ebf_calibration_decision:draft",
+        "ebf_score:draft",
+        "ebf_scorecard:draft",
+        "delphi_recommendation:draft",
+        "coordination_alliance:draft",
+    }
+)
+
+
+def _task_definition(task_key: str) -> dict[str, Any]:
+    if task_key not in TASK_CATALOGUE:
+        raise KeyError(f"Unknown agent task: {task_key}")
+    return TASK_CATALOGUE[task_key]
+
+
+def validate_task_capabilities(task_key: str) -> None:
+    """Validate task schemas and fail closed unless writes stay draft/submission only."""
+    task = _task_definition(task_key)
+    if task.get("high_risk") is not False:
+        raise ValueError(f"Agent task {task_key} cannot declare high-risk execution")
+
+    supported_schema_keys = {"type", "format", "required"}
+    for section in ("inputs", "outputs"):
+        schema = task.get(section)
+        if not isinstance(schema, dict):
+            raise ValueError(f"Agent task {task_key} must declare {section} as an object")
+        for field, spec in schema.items():
+            if not isinstance(field, str) or not re.fullmatch(r"[a-z][a-z0-9_]*", field):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} field name")
+            if not isinstance(spec, dict):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} schema for {field}")
+            if set(spec) - supported_schema_keys:
+                raise ValueError(f"Agent task {task_key} uses unsupported {section} schema constraints for {field}")
+            expected_type = spec.get("type")
+            if not isinstance(expected_type, str) or expected_type not in _SCHEMA_TYPE_CHECKS:
+                raise ValueError(f"Agent task {task_key} uses unsupported {section} schema type for {field}")
+            if not isinstance(spec.get("required"), bool):
+                raise ValueError(f"Agent task {task_key} has an invalid {section} required flag for {field}")
+            value_format = spec.get("format")
+            if value_format is not None:
+                if (
+                    not isinstance(value_format, str)
+                    or value_format not in {"uuid", "date"}
+                    or expected_type != "string"
+                ):
+                    raise ValueError(f"Agent task {task_key} uses unsupported {section} format for {field}")
+
+    writes = task.get("writes")
+    if not isinstance(writes, list):
+        raise ValueError(f"Agent task {task_key} must declare writes as a list")
+
+    from services.agents.safety import assess_agent_action
+
+    for target in writes:
+        if not isinstance(target, str) or target.count(":") != 1:
+            raise ValueError(f"Agent task {task_key} has an invalid write capability")
+        collection, status = target.split(":", 1)
+        if (
+            not re.fullmatch(r"[a-z][a-z0-9_]*", collection)
+            or target not in AGENT_TASK_WRITE_CAPABILITIES
+        ):
+            raise ValueError(f"Agent task {task_key} declares an unapproved write capability")
+        if status not in {"draft", "submitted"}:
+            raise ValueError(f"Agent task {task_key} may write drafts or submissions only")
+        status_field = "review_status" if collection == "agent_task" else "status"
+        decision = assess_agent_action("create", collection, {status_field: status})
+        if not decision.allowed:
+            raise ValueError(f"Agent task {task_key} has a blocked write capability: {decision.reason}")
+
 
 def list_tasks() -> list[str]:
     """Return supported task keys in stable order."""
+    for task_key in TASK_CATALOGUE:
+        validate_task_capabilities(task_key)
     return sorted(TASK_CATALOGUE.keys())
 
 
 def get_task(task_key: str) -> dict[str, Any]:
     """Return one task definition."""
-    if task_key not in TASK_CATALOGUE:
-        raise KeyError(f"Unknown agent task: {task_key}")
-    return TASK_CATALOGUE[task_key]
+    validate_task_capabilities(task_key)
+    return deepcopy(_task_definition(task_key))
 
 
 def output_schema(task_key: str) -> dict[str, Any]:
@@ -321,14 +404,80 @@ def output_schema(task_key: str) -> dict[str, Any]:
     return get_task(task_key)["outputs"]
 
 
-def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
-    """Perform lightweight required-field output validation."""
+_SCHEMA_TYPE_CHECKS = {
+    "array": lambda item: isinstance(item, list),
+    "boolean": lambda item: isinstance(item, bool),
+    "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
+    "number": lambda item: (
+        not isinstance(item, bool)
+        and (
+            isinstance(item, int)
+            or (isinstance(item, float) and math.isfinite(item))
+        )
+    ),
+    "object": lambda item: isinstance(item, dict),
+    "string": lambda item: isinstance(item, str),
+}
+
+
+def _validate_declared_fields(
+    schema: dict[str, Any], values: dict[str, Any], *, field_kind: str
+) -> list[str]:
+    if not isinstance(values, dict):
+        return [f"{field_kind.capitalize()} values must be an object"]
+
     errors: list[str] = []
-    schema = output_schema(task_key)
     for field, spec in schema.items():
-        if spec.get("required") and field not in output:
-            errors.append(f"Missing required output field: {field}")
+        if field not in values:
+            if spec.get("required"):
+                if field_kind == "output":
+                    errors.append(f"Missing required output field: {field}")
+                else:
+                    errors.append(f"Missing required task input: {field}")
+            continue
+
+        value = values[field]
+        expected_type = spec.get("type")
+        check_type = _SCHEMA_TYPE_CHECKS.get(expected_type)
+        if check_type is None:
+            errors.append(f"Unsupported {field_kind} schema type for field: {field}")
+            continue
+        if not check_type(value):
+            errors.append(
+                f"Invalid {field_kind} type for field: {field} (expected {expected_type})"
+            )
+            continue
+
+        value_format = spec.get("format")
+        if value_format in {"uuid", "date"}:
+            try:
+                if value_format == "uuid":
+                    UUID(value)
+                else:
+                    parsed_date = date.fromisoformat(value)
+                    if parsed_date.isoformat() != value:
+                        raise ValueError("date must use YYYY-MM-DD")
+            except (TypeError, ValueError, AttributeError):
+                errors.append(
+                    f"Invalid {field_kind} format for field: {field} (expected {value_format})"
+                )
+        elif value_format is not None:
+            errors.append(f"Unsupported {field_kind} format for field: {field}")
     return errors
+
+
+def validate_task_inputs(task_key: str, inputs: dict[str, Any]) -> list[str]:
+    """Validate declared top-level task input presence, types, and formats."""
+    return _validate_declared_fields(
+        get_task(task_key)["inputs"], inputs, field_kind="task input"
+    )
+
+
+def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
+    """Validate declared top-level output presence, types, and known formats."""
+    return _validate_declared_fields(
+        output_schema(task_key), output, field_kind="output"
+    )
 
 
 def main() -> None:

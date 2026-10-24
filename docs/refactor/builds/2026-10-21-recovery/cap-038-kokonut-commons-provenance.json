@@ -1,0 +1,96 @@
+{
+  "capability": "CAP-038",
+  "batch": "Kokonut Commons farm-assigned source provenance",
+  "date": "2026-10-21",
+  "result": "passed",
+  "agent": "kokonut_commons_synthesis",
+  "registered_location_scoped_views": 3,
+  "excluded_global_sources": [
+    "federation_protocol",
+    "participatory_signal_experiment",
+    "anti_capture_governance_policy rows without location assignment",
+    "commons_redistribution_policy rows without location assignment",
+    "algorithmic_redistribution_mechanism rows without location assignment"
+  ],
+  "checks": [
+    {
+      "name": "focused tests",
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+      "result": "passed",
+      "passed": 78
+    },
+    {
+      "name": "Ruff",
+      "result": "passed"
+    },
+    {
+      "name": "Python compilation",
+      "result": "passed"
+    },
+    {
+      "name": "generated inventories and matrix",
+      "result": "passed",
+      "checks": [
+        "runtime SQL inventory",
+        "worker source closure",
+        "worker SQL inventory",
+        "agent write-boundary inventory",
+        "capability matrix: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+      ]
+    },
+    {
+      "name": "migration and authorization acceptance",
+      "command": "python3 scripts/check-agent-worker-ai-summary-disposable.py",
+      "database": "network-disabled disposable PostgreSQL 16 container",
+      "result": "passed",
+      "migrations": [
+        "405_signed_worker_tenant_context.sql",
+        "419_private_worker_context_functions.sql",
+        "521_location_scoped_ai_summary_review.sql",
+        "522_authenticated_ai_summary_drafts.sql",
+        "523_ai_summary_source_references.sql",
+        "524_ai_summary_global_source_references.sql",
+        "529_signed_agent_ai_summary_drafts.sql",
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql",
+        "535_consent_safe_wellbeing_feedback_source_views.sql",
+        "536_location_scoped_kokonut_commons_source_views.sql"
+      ],
+      "replayed_migrations": [
+        "530_signed_agent_ai_summary_source_references.sql",
+        "531_capital_efficiency_synthesis_source_references.sql",
+        "532_registered_agent_source_reference_views.sql",
+        "533_regenerator_synthesis_source_references.sql",
+        "534_public_synthesis_source_reference_views.sql",
+        "535_consent_safe_wellbeing_feedback_source_views.sql",
+        "536_location_scoped_kokonut_commons_source_views.sql"
+      ],
+      "assertions_passed": 22,
+      "candidate_or_legacy_modified": false,
+      "coverage": [
+        "three farm-assigned policy views round-trip under signed location scope",
+        "global federation and participatory-signal sources are omitted",
+        "unassigned commons policies do not enter a farm manifest",
+        "the drafter can read only IDs and locations; worker execution has no direct policy-table access"
+      ]
+    },
+    {
+      "name": "diff whitespace validation",
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "rollout": {
+    "migration_536_applied_to_candidate": false,
+    "worker_credentials_provisioned": false,
+    "candidate_or_legacy_modified": false
+  },
+  "remaining_limits": [
+    "Network-wide governance sources remain unreferenced until they have a deliberate shared-source scope contract.",
+    "Other non-synthesis agent paths, runtime least privilege, populated task parity, and MAN-CAP-038 owner acceptance remain open."
+  ],
+  "disposable_evidence": "cap-038-kokonut-commons-source-references-disposable.json"
+}

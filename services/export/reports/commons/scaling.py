@@ -8,56 +8,66 @@ import psycopg2.extras
 from services.common.database import query
 
 from ..common import _serialize_rows
+from ..scope import require_network_scope
 
 
 def generate_scaling_economics(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe scaling economics and unit-cost report."""
+    network_scope = location_id in (None, "all")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_farm_launch_unit_economics
-            WHERE location_id = %s OR location_id IS NULL
-            ORDER BY target_region, economics_name
-            """,
-            (location_id,),
-        )
-    else:
-        cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
-    economics = [dict(r) for r in cur.fetchall()]
+    try:
+        if network_scope:
+            cur.execute("SELECT * FROM v_public_farm_launch_unit_economics ORDER BY target_region, economics_name")
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_farm_launch_unit_economics
+                WHERE location_id = %s::uuid
+                ORDER BY target_region, economics_name
+                """,
+                (location_id,),
+            )
+        economics = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT *
-        FROM v_public_network_scaling_target
-        WHERE (%s::date IS NULL OR target_date >= %s::date)
-          AND (%s::date IS NULL OR target_date <= %s::date)
-        ORDER BY target_date, target_name
-        """,
-        (period_start, period_start, period_end, period_end),
-    )
-    targets = [dict(r) for r in cur.fetchall()]
-    cur.close()
+        targets = []
+        if network_scope:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_network_scaling_target
+                WHERE (%s::date IS NULL OR target_date >= %s::date)
+                  AND (%s::date IS NULL OR target_date <= %s::date)
+                ORDER BY target_date, target_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+            targets = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
     total_launch_cost = sum(float(row.get("total_launch_cost_usd") or 0) for row in economics)
     total_target_capital = sum(float(row.get("capital_required_usd") or 0) for row in targets)
     planned_farms = sum(int(row.get("planned_farm_count") or 0) for row in economics)
-    target_farms = sum(int(row.get("target_farm_count") or 0) for row in targets)
+    target_farms = sum(int(row.get("target_farm_count") or 0) for row in targets) if network_scope else None
+    limitations = [
+        "Scaling economics are planning evidence, not guaranteed ROI or securities-style return claims.",
+        "Planned farm counts are roadmap targets unless backed by separate registry records.",
+        "Private capital terms, side letters, and unsupported external integrations are excluded.",
+    ]
+    if not network_scope:
+        limitations.append("Network-wide scaling targets are omitted from farm-scoped snapshots.")
     return {
         "report_type": "scaling_economics",
-        "location_id": location_id,
+        "location_id": None if network_scope else location_id,
+        "scope": "network" if network_scope else "location",
         "unit_economics": _serialize_rows(economics),
         "network_targets": _serialize_rows(targets),
-        "total_launch_cost_usd": round(total_launch_cost, 2),
-        "total_target_capital_usd": round(total_target_capital, 2),
+        "total_launch_cost_usd": round(total_launch_cost, 2) if network_scope else None,
+        "total_target_capital_usd": round(total_target_capital, 2) if network_scope else None,
         "planned_farm_count": planned_farms,
         "target_farm_count": target_farms,
-        "limitations": [
-            "Scaling economics are planning evidence, not guaranteed ROI or securities-style return claims.",
-            "Planned farm counts are roadmap targets unless backed by separate registry records.",
-            "Private capital terms, side letters, and unsupported external integrations are excluded.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -67,31 +77,33 @@ def generate_scaling_economics(conn, location_id: str = None, period_start: str 
 def generate_adoption_barriers(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
     """Generate public-safe adoption and market barrier report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_adoption_barrier_assessment
-            WHERE (location_id = %s OR location_id IS NULL)
-              AND (%s::date IS NULL OR assessment_date >= %s::date)
-              AND (%s::date IS NULL OR assessment_date <= %s::date)
-            ORDER BY assessment_date DESC, barrier_category, barrier_name
-            """,
-            (location_id, period_start, period_start, period_end, period_end),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_adoption_barrier_assessment
-            WHERE (%s::date IS NULL OR assessment_date >= %s::date)
-              AND (%s::date IS NULL OR assessment_date <= %s::date)
-            ORDER BY assessment_date DESC, barrier_category, barrier_name
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-    barriers = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_adoption_barrier_assessment
+                WHERE (location_id = %s OR location_id IS NULL)
+                  AND (%s::date IS NULL OR assessment_date >= %s::date)
+                  AND (%s::date IS NULL OR assessment_date <= %s::date)
+                ORDER BY assessment_date DESC, barrier_category, barrier_name
+                """,
+                (location_id, period_start, period_start, period_end, period_end),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_adoption_barrier_assessment
+                WHERE (%s::date IS NULL OR assessment_date >= %s::date)
+                  AND (%s::date IS NULL OR assessment_date <= %s::date)
+                ORDER BY assessment_date DESC, barrier_category, barrier_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+        barriers = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     active = [row for row in barriers if row.get("resolution_status") in {"open", "mitigating", "blocked"}]
     return {
         "report_type": "adoption_barriers",
@@ -114,31 +126,33 @@ def generate_perpetual_value_stress(
 ) -> dict:
     """Generate public-safe downside stress-test report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_perpetual_value_stress_test
-            WHERE (location_id = %s OR location_id IS NULL)
-              AND (%s::date IS NULL OR scenario_date >= %s::date)
-              AND (%s::date IS NULL OR scenario_date <= %s::date)
-            ORDER BY scenario_date DESC, stress_type, scenario_name
-            """,
-            (location_id, period_start, period_start, period_end, period_end),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT *
-            FROM v_public_perpetual_value_stress_test
-            WHERE (%s::date IS NULL OR scenario_date >= %s::date)
-              AND (%s::date IS NULL OR scenario_date <= %s::date)
-            ORDER BY scenario_date DESC, stress_type, scenario_name
-            """,
-            (period_start, period_start, period_end, period_end),
-        )
-    scenarios = [dict(r) for r in cur.fetchall()]
-    cur.close()
+    try:
+        if location_id:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_perpetual_value_stress_test
+                WHERE (location_id = %s OR location_id IS NULL)
+                  AND (%s::date IS NULL OR scenario_date >= %s::date)
+                  AND (%s::date IS NULL OR scenario_date <= %s::date)
+                ORDER BY scenario_date DESC, stress_type, scenario_name
+                """,
+                (location_id, period_start, period_start, period_end, period_end),
+            )
+        else:
+            cur.execute(
+                """
+                SELECT *
+                FROM v_public_perpetual_value_stress_test
+                WHERE (%s::date IS NULL OR scenario_date >= %s::date)
+                  AND (%s::date IS NULL OR scenario_date <= %s::date)
+                ORDER BY scenario_date DESC, stress_type, scenario_name
+                """,
+                (period_start, period_start, period_end, period_end),
+            )
+        scenarios = [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
     watchlist = [
         row
         for row in scenarios
@@ -164,6 +178,7 @@ def generate_open_source_impact(
     conn, location_id: str = None, period_start: str = None, period_end: str = None
 ) -> dict:
     """Generate public-safe open-source artifact reuse report."""
+    require_network_scope("open_source_impact", location_id)
     artifacts = query(conn,
         "SELECT * FROM v_public_open_source_impact_artifact ORDER BY reuse_count DESC, artifact_type, artifact_name"
     )

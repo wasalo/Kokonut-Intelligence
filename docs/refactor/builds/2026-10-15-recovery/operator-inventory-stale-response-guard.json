@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-15",
+  "scope": "ignore stale Field Collector operations inventory responses after location changes",
+  "implementation": {
+    "request_version": "Each inventory request gets a monotonically increasing local version; response and error handlers only update the console when their version remains current.",
+    "network_behavior": "No additional request is created, aborted, or retried by the guard."
+  },
+  "verification": {
+    "command": ".venv/bin/python -m pytest tests/test_operator_mobile_review.py tests/test_operator_route_policy_inventory.py tests/test_operator_auth.py tests/test_operator_console_mobile_disposition.py -q",
+    "result": "83 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "inline_javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "The race guard is pinned by source contract tests; browser automation did not simulate delayed network responses.",
+    "This does not establish live OIDC, database, or external ingress acceptance."
+  ]
+}

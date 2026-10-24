@@ -4,20 +4,33 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import textwrap
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.common.logging import get_logger
-from services.common.cli import print_json
+
 logger = get_logger(__name__)
 
 CATEGORIES = ("political", "economic", "social", "technological", "environmental", "legal")
 FACTOR_TYPES = ("strength", "opportunity", "risk", "neutral")
+
+
+def _validate_factor_score(name: str, value: Any, minimum: float, maximum: float) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    try:
+        score = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}") from exc
+    if not math.isfinite(score) or not minimum <= score <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return score
 
 
 def create_analysis(
@@ -61,16 +74,21 @@ def add_factor(
     if factor_type not in FACTOR_TYPES:
         raise ValueError(f"factor_type must be one of {FACTOR_TYPES}")
 
-    if location_id is None:
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT location_id FROM pestel_analysis WHERE id = %s",
-                (analysis_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                raise ValueError(f"Analysis {analysis_id} not found")
-            location_id = str(row[0])
+    impact_score = _validate_factor_score("impact_score", impact_score, 1.0, 10.0)
+    likelihood = _validate_factor_score("likelihood", likelihood, 0.0, 1.0)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT location_id FROM pestel_analysis WHERE id = %s",
+            (analysis_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise ValueError(f"Analysis {analysis_id} not found")
+        analysis_location_id = str(row[0])
+        if location_id is not None and str(location_id) != analysis_location_id:
+            raise ValueError("location_id must match the PESTEL analysis location")
+        location_id = analysis_location_id
 
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(

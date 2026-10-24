@@ -116,7 +116,7 @@ def get_class(conn, class_id: str) -> dict | None:
     return dict(result) if result else None
 
 
-def list_classes(conn, credit_type: str = None, status: str = None) -> list[dict]:
+def _class_filter(credit_type: str = None, status: str = None, admin_address: str = None):
     conditions = []
     params: dict[str, Any] = {}
     if credit_type:
@@ -125,12 +125,46 @@ def list_classes(conn, credit_type: str = None, status: str = None) -> list[dict
     if status:
         conditions.append("status = :s")
         params["s"] = status
+    if admin_address is not None:
+        conditions.append("admin_address = :admin")
+        params["admin"] = admin_address
     where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    return where, params
+
+
+def list_classes(conn, credit_type: str = None, status: str = None) -> list[dict]:
+    where, params = _class_filter(credit_type, status)
     result = conn.execute(
-        conn.text(f"SELECT * FROM credit_class {where} ORDER BY created_at DESC"),
+        conn.text(f"SELECT * FROM credit_class {where} ORDER BY created_at DESC, id DESC"),
         params,
     )
     return [dict(r) for r in result.mappings()]
+
+
+def list_classes_page(
+    conn,
+    *,
+    limit: int,
+    offset: int,
+    credit_type: str = None,
+    status: str = None,
+    admin_address: str = None,
+) -> tuple[list[dict], int]:
+    """Fetch a bounded credit-class page with optional list filters."""
+    from services.credit_class.page_queries import fetch_page
+
+    where, params = _class_filter(credit_type, status, admin_address)
+    return fetch_page(
+        conn,
+        count_sql=f"SELECT COUNT(*) AS total FROM credit_class {where}",
+        select_sql=(
+            f"SELECT * FROM credit_class {where} "
+            "ORDER BY created_at DESC, id DESC LIMIT :_page_limit OFFSET :_page_offset"
+        ),
+        params=params,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def deprecate_class(conn, class_id: str) -> dict:

@@ -9,7 +9,17 @@ import sys
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from services.common.worker_environment import (
+    scheduled_module_worker_key,
+    worker_subprocess_environment,
+)
+from services.core.features import is_enabled
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
+from services.security.scheduled_command_contracts import (
+    EAS_SCHEDULE_CHAINS,
+    RPC_SCHEDULE_CHAINS,
+    validate_scheduled_command,
+)
 
 
 @dataclass(frozen=True)
@@ -20,6 +30,7 @@ class JobSpec:
     retries: int
     retry_delay_seconds: int
     label: str
+    required_inputs: tuple[str, ...] = ()
 
     @property
     def scheduler_allowed(self) -> bool:
@@ -27,24 +38,153 @@ class JobSpec:
         return self.module in ALLOWED_SCHEDULED_MODULES
 
 
-JOBS = MappingProxyType({
-    "weather": JobSpec("services.ingestion.weather", (), 300, 2, 300, "Weather ingestion"),
-    "sensors": JobSpec("services.ingestion.sensor_ingester", (), 120, 3, 60, "Sensor ingestion"),
-    "market_data": JobSpec("services.ingestion.market_data", ("--source", "world_bank"), 600, 2, 600, "Market data ingestion"),
-    "eas": JobSpec("services.ingestion.eas_indexer", (), 120, 3, 60, "EAS indexing"),
-    "rpc": JobSpec("services.ingestion.rpc_indexer", (), 300, 3, 120, "RPC indexing"),
-    "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
-    "anomaly": JobSpec("services.ingestion.anomaly_detector", (), 300, 2, 300, "Anomaly detection"),
-    "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
-    "metrics": JobSpec("services.metrics", ("--compute", "--all-locations"), 1800, 2, 600, "Metrics computation"),
-    "noi_snapshots": JobSpec("services.metrics", ("--reconcile-noi-snapshots",), 300, 2, 600, "Crop-cycle NOI snapshot reconciliation"),
-    "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
-    "credit_adjustment": JobSpec("services.analytics.carbon_credits", ("--check-adjustments",), 600, 2, 600, "Credit adjustment check"),
-    "remote_sensing": JobSpec("services.ingestion.remote_sensing_fetcher", ("--run-jobs",), 1800, 2, 600, "Remote sensing fetch"),
-    "climate": JobSpec("services.ingestion.climate_data", ("--all",), 600, 1, 3600, "Climate data refresh"),
-    "projections": JobSpec("services.ingestion.clickhouse_outbox", ("--run-once", "--limit", "100"),
-                           300, 0, 60, "Sensor and ingestion projection delivery"),
-})
+JOBS = MappingProxyType(
+    {
+        "weather": JobSpec(
+            "services.ingestion.weather_worker",
+            (),
+            300,
+            2,
+            300,
+            "Weather ingestion",
+            required_inputs=("location_id",),
+        ),
+        "weather_forecast": JobSpec(
+            "services.ingestion.weather_forecast_worker",
+            (),
+            300,
+            2,
+            300,
+            "Weather forecast ingestion",
+            required_inputs=("location_id",),
+        ),
+        "sensors": JobSpec(
+            "services.ingestion.sensor_worker",
+            (),
+            120,
+            3,
+            60,
+            "Sensor ingestion",
+            required_inputs=("location_id", "driver_instance_id"),
+        ),
+        "market_data": JobSpec(
+            "services.ingestion.market_data_worker", (), 600, 2, 600, "Market data ingestion"
+        ),
+        "eas": JobSpec(
+            "services.ingestion.eas_worker",
+            (),
+            120,
+            3,
+            60,
+            "EAS indexing",
+            required_inputs=("chain",),
+        ),
+        "eas_legacy": JobSpec(
+            "services.ingestion.eas_indexer",
+            (),
+            120,
+            3,
+            60,
+            "EAS indexing (legacy compatibility)",
+            required_inputs=("chain",),
+        ),
+        "rpc": JobSpec(
+            "services.ingestion.rpc_worker",
+            (),
+            300,
+            3,
+            120,
+            "RPC wallet snapshot indexing",
+            required_inputs=("chain",),
+        ),
+        # Keep previously persisted task references and the manual CLI
+        # available until schedule owners have reconciled them.
+        "rpc_legacy": JobSpec(
+            "services.ingestion.rpc_indexer",
+            (),
+            300,
+            3,
+            120,
+            "RPC indexing (legacy compatibility)",
+            required_inputs=("chain",),
+        ),
+        "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
+        "anomaly": JobSpec(
+            "services.ingestion.anomaly_detector",
+            (),
+            300,
+            2,
+            300,
+            "Anomaly detection",
+            required_inputs=("location_id",),
+        ),
+        "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
+        "metrics": JobSpec(
+            "services.metrics",
+            ("--compute", "--all"),
+            1800,
+            2,
+            600,
+            "Metrics computation",
+            required_inputs=("location_id",),
+        ),
+        "noi_snapshots": JobSpec(
+            "services.metrics.noi_snapshot_worker",
+            (),
+            300,
+            2,
+            600,
+            "Crop-cycle NOI snapshot reconciliation",
+            required_inputs=("location_id",),
+        ),
+        "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
+        "credit_adjustment": JobSpec(
+            "services.analytics.carbon_credit_adjustment_worker",
+            (),
+            600,
+            2,
+            600,
+            "Credit adjustment check",
+            required_inputs=("location_id",),
+        ),
+        "remote_sensing": JobSpec(
+            "services.ingestion.remote_sensing_worker",
+            (),
+            1800,
+            2,
+            600,
+            "Signed remote sensing fetch",
+            required_inputs=("location_id",),
+        ),
+        "climate": JobSpec(
+            "services.ingestion.climate_worker",
+            (),
+            600,
+            1,
+            3600,
+            "Climate data refresh",
+            required_inputs=("location_id",),
+        ),
+        "projections": JobSpec(
+            "services.ingestion.clickhouse_outbox",
+            ("--run-once", "--limit", "100"),
+            300,
+            0,
+            60,
+            "Sensor and ingestion projection delivery",
+        ),
+    }
+)
+
+_LEGACY_CREDIT_ADJUSTMENT = JobSpec(
+    "services.analytics.carbon_credit_adjustment_check",
+    (),
+    600,
+    2,
+    600,
+    "Credit adjustment check (legacy compatibility)",
+    required_inputs=("location_id",),
+)
 
 
 class JobFailed(RuntimeError):
@@ -56,26 +196,187 @@ class JobFailed(RuntimeError):
         super().__init__(f"{label} failed: {result.stderr}")
 
 
-def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
+def _run_job_spec(
+    job_id: str,
+    spec: JobSpec,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+    chain: str | None = None,
+) -> dict[str, str]:
     """Invoke one known operation; never accept arbitrary modules or arguments.
 
     Explicit invocation is separate from database-driven scheduler authorization.
     Metrics remain draft and credit checks do not confirm retirements.
     """
-    spec = JOBS[job_id]
     arguments = list(spec.arguments)
-    if job_id == "climate" and location_id is None:
-        raise ValueError("Climate refresh requires a location")
+    supplied_inputs = {
+        "location_id": location_id,
+        "driver_instance_id": driver_instance_id,
+        "chain": chain,
+    }
+    missing_inputs = [
+        key for key in spec.required_inputs if supplied_inputs.get(key) is None
+    ]
+    if missing_inputs:
+        labels = {
+            "location_id": "a location",
+            "driver_instance_id": "a driver instance",
+            "chain": "a chain",
+        }
+        job_label = {
+            "eas": "EAS indexing",
+            "rpc": "RPC indexing",
+        }.get(job_id, job_id.replace("_", " ").capitalize())
+        raise ValueError(
+            f"{job_label} refresh requires "
+            f"{' and '.join(labels.get(key, key) for key in missing_inputs)}"
+        )
+    unexpected_inputs = [
+        key for key, value in supplied_inputs.items()
+        if value is not None and key not in spec.required_inputs
+    ]
+    if unexpected_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} does not accept "
+            f"{', '.join(unexpected_inputs)}"
+        )
     if location_id is not None:
-        if job_id not in {"weather", "climate"}:
-            raise ValueError("Location override is supported only for weather and climate")
         from uuid import UUID
 
         arguments.extend(("--location-id", str(UUID(str(location_id)))))
+    if driver_instance_id is not None:
+        from uuid import UUID
+
+        arguments.extend(("--driver-instance-id", str(UUID(str(driver_instance_id)))))
+    if chain is not None:
+        arguments.extend(("--chain", chain))
+    if spec.scheduler_allowed:
+        validate_scheduled_command(spec.module, arguments)
+    worker_key = scheduled_module_worker_key(spec.module)
     result = subprocess.run(
         [sys.executable, "-m", spec.module, *arguments],
-        capture_output=True, text=True, timeout=spec.timeout_seconds,
+        capture_output=True,
+        text=True,
+        timeout=spec.timeout_seconds,
+        env=worker_subprocess_environment(
+            allowed_worker_keys=(worker_key,) if worker_key is not None else (),
+            isolated_database_credentials=worker_key is not None,
+        ),
     )
     if result.returncode != 0:
         raise JobFailed(spec.label, result)
     return {"status": "success", "output": result.stdout[-500:]}
+
+
+def run_job(
+    job_id: str,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+    chain: str | None = None,
+) -> dict[str, str]:
+    """Invoke one known operation through its canonical JobSpec."""
+    spec = JOBS[job_id]
+    if job_id == "credit_adjustment" and not is_enabled("signed_credit_adjustment_worker"):
+        # Keep the existing Prefect daily flow usable until the owner has
+        # provisioned the signed login/grant and explicitly enabled the new
+        # worker. Native Kernel plans still point at the default-off worker.
+        job_id = "credit_adjustment_legacy"
+        spec = _LEGACY_CREDIT_ADJUSTMENT
+    return _run_job_spec(
+        job_id,
+        spec,
+        location_id=location_id,
+        driver_instance_id=driver_instance_id,
+        chain=chain,
+    )
+
+
+def run_job_for_indexing_chains(job_id: str) -> dict:
+    """Run supported EAS or RPC chains as separately scoped child commands.
+
+    This preserves the optional Prefect adapters' multi-chain coverage while
+    native Kernel schedules plan one explicit chain per disabled task.
+    """
+    chains_by_job = {
+        "eas": EAS_SCHEDULE_CHAINS,
+        "rpc": RPC_SCHEDULE_CHAINS,
+    }
+    chains = chains_by_job.get(job_id)
+    spec = JOBS[job_id]
+    if chains is None or spec.required_inputs != ("chain",):
+        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not chain-scoped")
+
+    # Prefect remains an optional compatibility adapter. Until isolated
+    # database roles are provisioned and their features enabled, historical
+    # flows continue through their original direct CLIs. Native Kernel plans
+    # use the default-off isolated workers in JOBS["eas"] and JOBS["rpc"].
+    dispatch_job_id = job_id
+    if job_id == "eas" and not is_enabled("isolated_eas_indexer_worker"):
+        dispatch_job_id = "eas_legacy"
+        spec = JOBS[dispatch_job_id]
+    if job_id == "rpc" and not is_enabled("isolated_rpc_indexer_worker"):
+        dispatch_job_id = "rpc_legacy"
+        spec = JOBS[dispatch_job_id]
+
+    results = [
+        {
+            "chain": chain,
+            **_run_job_spec(dispatch_job_id, spec, chain=chain),
+        }
+        for chain in chains
+    ]
+    return {"status": "success", "chains_processed": len(results), "results": results}
+
+
+def run_job_for_eas_chains() -> dict:
+    """Run all supported EAS chains, with Celo first."""
+    return run_job_for_indexing_chains("eas")
+
+
+def run_job_for_rpc_chains() -> dict:
+    """Run all supported RPC-indexing chains as separate operations."""
+    return run_job_for_indexing_chains("rpc")
+
+
+def kokonut_network_location_ids() -> list[str]:
+    """List active locations assigned to the owner-selected Kokonut Network org."""
+    from services.common.database import get_connection
+
+    with get_connection(readonly=True) as connection:
+        rows = connection.execute(
+            """
+            SELECT location.id
+            FROM location
+            JOIN organization ON organization.id = location.organization_id
+            WHERE location.status = 'active'
+              AND organization.status = 'active'
+              AND organization.org_key = :org_key
+            ORDER BY location.id
+            """,
+            {"org_key": "kokonut-network"},
+        ).all()
+    return [str(row["id"]) for row in rows]
+
+
+def run_job_for_kokonut_network_locations(job_id: str) -> dict:
+    """Run a location-scoped catalog job for active Kokonut Network locations.
+
+    Native scheduled commands still take one explicit location per task. This
+    helper preserves the optional Prefect adapter's historical fan-out without
+    selecting unassigned or other-organization locations.
+    """
+    spec = JOBS[job_id]
+    if "location_id" not in spec.required_inputs:
+        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not location-scoped")
+
+    location_ids = kokonut_network_location_ids()
+    if not location_ids:
+        return {"status": "skipped", "reason": "No active Kokonut Network locations are assigned"}
+
+    results = [
+        {"location_id": location_id, **run_job(job_id, location_id=location_id)}
+        for location_id in location_ids
+    ]
+    return {"status": "success", "locations_processed": len(results), "results": results}

@@ -1,0 +1,28 @@
+{
+  "verified_at": "2026-10-23T17:13:24Z",
+  "scope": "source-only inventory of authenticated Gateway agent/draft entry points",
+  "routes": {
+    "ai_summary": {
+      "path": "POST /operator/api/ai-summaries/{location_id}/drafts",
+      "operator_source": "authenticated Gateway session",
+      "persistence": "operator/request receipt linked to draft by migrations 522 and 597"
+    },
+    "delphi_recommendation": {
+      "path": "POST /operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts",
+      "operator_source": "authenticated Gateway session",
+      "persistence": "created_by on recommendation and append-only request receipt in migration 451",
+      "agent_execution": "route persists facilitator output; it does not execute the facilitator"
+    }
+  },
+  "generic_agent_task_run_route_registered": false,
+  "delphi_cli_draft_recommendation": "in-memory output only; legacy --created-by is ignored",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_ai_summary_draft.py tests/test_gateway_delphi_recommendation_drafts.py tests/test_delphi.py -q",
+    "result": "94 passed in 13.51s"
+  },
+  "limitations": [
+    "No live OIDC provider or candidate/legacy database was used.",
+    "Source inventory does not attribute CLI, scheduled, or background worker runs to a human.",
+    "Worker identity remains distinct from the human who may have requested work."
+  ]
+}

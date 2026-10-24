@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-22",
+  "scope": "CI #729 agent write-boundary assertion stability",
+  "hosted_failure": "The pinned policy test expected worker draft call sites at source lines 336 and 352; the current functions had moved to lines 376 and 392. The generated inventory also correctly reported the moved lines.",
+  "change": "The policy test now pins the exact authenticated worker draft function names and verifies that the line-bearing draft-call inventory corresponds to those functions. Operator draft coverage pins its unique source module without an unstable line number. The generated inventory retains source lines and its serialized freshness check remains exact.",
+  "local_verification": {
+    "command": "python3 -m pytest -q tests/test_agent_write_boundary_inventory.py",
+    "result": "3 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "inventory_freshness": "passed"
+  },
+  "hosted_verification": "CI run for commit a10e137402171e255ddf4ce49e8504730e960d78 is still in progress; this local hardening commit is not included in that run.",
+  "database_or_provider_access": false
+}

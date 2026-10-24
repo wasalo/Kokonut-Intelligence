@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-15",
+  "scope": "Directus 12 hook source contract for tenant-scoped collection queries and mutations",
+  "commands": [
+    "cd extensions/kokonut-hooks && npm test",
+    "cd extensions/kokonut-hooks && npm run build"
+  ],
+  "results": {
+    "status": "passed",
+    "test_files": 5,
+    "tests": 61,
+    "vitest": "passed",
+    "directus_extension_bundle": "passed",
+    "typescript_no_emit": "passed"
+  },
+  "covered_contracts": [
+    "Resolve an active Directus user external_identifier only under the exact configured OIDC issuer and enabled Kokonut operator identity",
+    "Query collection/action grants through operator_scope_grant_allows and exclude legacy grants without organization_id",
+    "Intersect existing collection query filters with the authorized location set",
+    "Check selected read result IDs against stored location IDs even when location_id was not requested",
+    "Require a non-null location and create grant for new tenant rows",
+    "Check every update/delete key and reject unknown, cross-location, or location-moving writes",
+    "Fail closed for missing accountability, issuer, operator mapping, and grants",
+    "Wire filters to Directus request accountability and transaction context"
+  ],
+  "runtime_acceptance": {
+    "status": "not_run",
+    "reason": "The local Docker socket returned permission denied; no Directus container or database was started or changed."
+  },
+  "limitations": [
+    "No real OIDC provider, operator identity, or Directus grants were provisioned.",
+    "The fake-store tests and package build do not prove the SQL queries against PostgreSQL or the pinned Directus runtime.",
+    "Directus role and field permissions, expanded relations, lifecycle policy parity, grant-revocation concurrency, and signed PostgreSQL tenant context remain unaccepted.",
+    "The legacy Compose Directus service still uses the kokonut superuser; application-table RLS is not enabled."
+  ],
+  "data_scope": "No candidate or legacy database was accessed or modified; no secrets or user data were recorded."
+}

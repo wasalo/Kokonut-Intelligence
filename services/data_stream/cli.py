@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import sys
 
-from services.common.database import get_connection
 from services.common.cli import print_json
+from services.common.database import get_connection
+
 
 def cmd_post(args):
     with get_connection() as conn:
@@ -21,6 +22,7 @@ def cmd_post(args):
             evidence_urls=[args.evidence_url] if args.evidence_url else None,
             file_ids=[args.file_id] if args.file_id else None,
             media_type=args.media_type,
+            expires_at=args.expires_at,
         )
         print_json(result)
 
@@ -155,6 +157,7 @@ def main():
     p_post.add_argument("--evidence-url", default=None)
     p_post.add_argument("--file-id", default=None)
     p_post.add_argument("--media-type", default=None)
+    p_post.add_argument("--expires-at", default=None, help="Optional ISO-8601 timestamp with timezone")
     p_post.set_defaults(func=cmd_post)
 
     p_stream = sub.add_parser("stream", help="View chronological stream")

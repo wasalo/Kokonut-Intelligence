@@ -43,10 +43,101 @@ def test_flows_have_flow_decorators() -> None:
 def test_flows_import_existing_cli_tools() -> None:
     content = Path("services/flows/pipelines.py").read_text()
     assert "weather_ingestion_flow" in content
-    assert "sensor_ingestion_flow" in content
+    assert "sensor_ingestion_flow" not in content
     assert "market_data_flow" in content
     assert "metrics_computation_flow" in content
     assert "dashboard_refresh_flow" in content
+
+
+def test_ingestion_pipeline_skips_source_less_sensor_job_and_waits_for_other_jobs() -> None:
+    from unittest.mock import Mock, call, patch
+
+    from services.flows.pipelines import ingestion_pipeline
+
+    jobs = ("weather", "market_data", "eas", "rpc", "gnosis")
+    futures = {job_id: Mock() for job_id in jobs}
+
+    with patch("services.flows.pipelines._submit_job", side_effect=futures.__getitem__) as submit:
+        result = ingestion_pipeline.fn()
+
+    assert result == {"status": "success", "ingestion": "complete"}
+    assert submit.call_args_list == [call(job_id) for job_id in jobs]
+    assert all(future.result.call_count == 1 for future in futures.values())
+
+
+def test_eas_flow_preserves_multi_chain_adapter():
+    from unittest.mock import patch
+
+    from services.flows.eas_indexer import eas_indexing_flow
+
+    expected = {"status": "success", "chains_processed": 3}
+    with patch("services.flows.eas_indexer.run_job_for_eas_chains", return_value=expected) as run:
+        assert eas_indexing_flow.fn() == expected
+
+    run.assert_called_once_with()
+
+
+def test_rpc_flow_preserves_multi_chain_adapter():
+    from unittest.mock import patch
+
+    from services.flows.rpc_indexer import rpc_indexing_flow
+
+    expected = {"status": "success", "chains_processed": 7}
+    with patch("services.flows.rpc_indexer.run_job_for_rpc_chains", return_value=expected) as run:
+        assert rpc_indexing_flow.fn() == expected
+
+    run.assert_called_once_with()
+
+
+def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_hourly
+
+    with (
+        patch("services.flows.anomaly_detection.anomaly_detection_flow") as anomaly,
+        patch("services.flows.freshness.freshness_check_flow") as freshness,
+        patch("services.flows.sensors.sensor_ingestion_flow") as sensor,
+    ):
+        scheduled_hourly.fn()
+
+    anomaly.assert_called_once_with()
+    freshness.assert_called_once_with()
+    sensor.assert_not_called()
+
+
+def test_sensor_prefect_flow_requires_a_location_and_registered_driver_instance() -> None:
+    from unittest.mock import patch
+    from uuid import uuid4
+
+    from services.flows.sensors import sensor_ingestion_flow
+
+    location_id = str(uuid4())
+    driver_instance_id = str(uuid4())
+    with patch("services.flows.sensors.run_job", return_value={"status": "success"}) as run_job:
+        result = sensor_ingestion_flow.fn(location_id, driver_instance_id)
+
+    assert result == {"status": "success"}
+    run_job.assert_called_once_with(
+        "sensors",
+        location_id=location_id,
+        driver_instance_id=driver_instance_id,
+    )
+
+
+def test_anomaly_prefect_flow_uses_owner_scoped_location_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.anomaly_detection import anomaly_detection_flow
+
+    with patch(
+        "services.flows.anomaly_detection.run_job_for_kokonut_network_locations",
+        return_value={"status": "success", "locations_processed": 2},
+    ) as run_job:
+        result = anomaly_detection_flow.fn()
+
+    assert result == {"status": "success", "locations_processed": 2}
+    run_job.assert_called_once_with("anomaly")
 
 
 def test_flows_have_retry_config() -> None:
@@ -74,16 +165,102 @@ def test_requirements_has_prefect() -> None:
 
 
 def test_weather_flow_wraps_cli() -> None:
-    content = Path("services/flows/weather.py").read_text()
-    assert "services.ingestion.weather" in content
-    assert "subprocess" in content
+    from unittest.mock import patch
+
+    from services.flows.weather import weather_ingestion_flow
+
+    with patch("services.flows.weather.run_job", return_value={"status": "success"}) as run_job:
+        assert weather_ingestion_flow.fn("80b1d06b-a82d-4d02-a4f6-243e81fdf122") == {"status": "success"}
+    run_job.assert_called_once_with("weather", location_id="80b1d06b-a82d-4d02-a4f6-243e81fdf122")
 
 
 def test_metrics_flow_wraps_cli() -> None:
-    content = Path("services/flows/metrics.py").read_text()
-    assert "services.metrics" in content
-    assert "--all-locations" in content
-    assert "--verify" not in content
+    from services.core.jobs import JOBS
+
+    spec = JOBS["metrics"]
+    assert spec.module == "services.metrics"
+    assert spec.arguments == ("--compute", "--all")
+    assert spec.required_inputs == ("location_id",)
+    assert "--verify" not in spec.arguments
+
+
+def test_metrics_and_credit_prefect_flows_preserve_owner_scoped_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.credit_adjustment import credit_adjustment_flow
+    from services.flows.metrics import metrics_computation_flow
+
+    with (
+        patch("services.flows.metrics.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as metrics_fanout,
+        patch("services.flows.credit_adjustment.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as credit_fanout,
+    ):
+        metrics_computation_flow.fn()
+        credit_adjustment_flow.fn()
+
+    metrics_fanout.assert_called_once_with("metrics")
+    credit_fanout.assert_called_once_with("credit_adjustment")
+
+
+def test_remote_sensing_prefect_flow_preserves_owner_scoped_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.remote_sensing import remote_sensing_flow
+
+    with patch(
+        "services.flows.remote_sensing.run_job_for_kokonut_network_locations",
+        return_value={"status": "success"},
+    ) as fanout:
+        assert remote_sensing_flow.fn() == {"status": "success"}
+
+    fanout.assert_called_once_with("remote_sensing")
+
+
+def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as fanout,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("weather")
+
+    assert result == {"status": "success"}
+    fanout.assert_called_once_with("weather")
+    run_job.assert_not_called()
+
+
+def test_pipeline_dispatch_scopes_eas_to_explicit_chains():
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_eas_chains", return_value={"status": "success"}) as eas,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("eas")
+
+    assert result == {"status": "success"}
+    eas.assert_called_once_with()
+    run_job.assert_not_called()
+
+
+def test_pipeline_dispatch_scopes_rpc_to_explicit_chains():
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_rpc_chains", return_value={"status": "success"}) as rpc,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("rpc")
+
+    assert result == {"status": "success"}
+    rpc.assert_called_once_with()
+    run_job.assert_not_called()
 
 
 def test_pipeline_has_dependency_chains() -> None:

@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-16",
+  "scope": "dedicated read-only tenant preflight identity source contract",
+  "commands": [
+    "python3 -m pytest tests/test_mobile_tenant_database_readiness.py tests/test_mobile_tenant_operator_preflight.py tests/test_mobile_tenant_binding.py -q",
+    "python3 -m ruff check services/mobile/tenant_preflight.py tests/test_mobile_tenant_database_readiness.py tests/test_mobile_tenant_operator_preflight.py tests/test_mobile_tenant_binding.py",
+    "python3 -m services.mobile.tenant_preflight --help",
+    "python3 scripts/check-capability-matrix.py",
+    "git diff --check"
+  ],
+  "result": "passed",
+  "tests_passed": 15,
+  "ruff": "passed",
+  "cli_help": "passed without loading database credentials",
+  "capability_matrix": "valid: 66 rows; 55 baseline-retained, 7 deployed, 4 prepared",
+  "database_connections": 0,
+  "candidate_or_legacy_accessed": false,
+  "migrations_applied": false,
+  "secrets_emitted": false,
+  "disposable_postgres_acceptance": {
+    "result": "passed",
+    "evidence": "tenant-preflight-identity-postgres.json",
+    "database": "PostgreSQL 16",
+    "network_egress": "blocked",
+    "published_ports": false,
+    "synthetic_inventory_rls_relations": 1,
+    "preflight_role_bypasses_rls": true,
+    "preflight_role_dml_relations": 0,
+    "preflight_role_owned_relations": 0,
+    "preflight_role_memberships": 0,
+    "temporary_database_and_network_removed": true
+  },
+  "implemented": [
+    "requires an explicit KOKONUT_TENANT_PREFLIGHT_DSN",
+    "connects through a read-only connection wrapper",
+    "pins a read-only repeatable-read transaction and pg_catalog, public search path",
+    "requires a direct kokonut_tenant_preflight login before schema or inventory SQL",
+    "rejects role memberships, public DML, public relation ownership, and database/public-schema object creation privileges",
+    "requires BYPASSRLS to match the enabled-RLS state of inventory relations so global counts are not silently filtered",
+    "reports the configured application role separately from the preflight identity",
+    "sanitizes driver connection errors so DSNs are not echoed"
+  ],
+  "remaining_gates": [
+    "provision the role and encrypted DSN in an explicitly approved target environment",
+    "authorize the operators allowed to run global ownership inventory",
+    "confirm cross-tenant read scope and handling of the resulting aggregate inventory",
+    "replay the full schema-complete inventory on a populated isolated restore with the approved grants before production use"
+  ]
+}

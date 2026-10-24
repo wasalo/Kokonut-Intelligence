@@ -1,0 +1,71 @@
+{
+  "verified_at": "2026-10-22T15:31:54Z",
+  "environment": "local Kokonut Kernel candidate",
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-445-548-20261022T151308Z",
+    "format": "age-encrypted PostgreSQL custom-format archive",
+    "sha256": "ab6588f3f2db2947a04c62a2b65b22c308f080e37b563b62c50b12658586cdaa",
+    "bytes": 6860427,
+    "scope": "kokonut_intelligence database only; roles, grants, other databases, volumes, and external media excluded",
+    "restore_rehearsed": true
+  },
+  "restore_rehearsal": {
+    "project": "kokonut-kernel-recovery-445548-20261022",
+    "database": "kokonut_restore",
+    "container_image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "network": "internal-only; no host ports or application services",
+    "healthcheck": "passed",
+    "empty_template0_target": true,
+    "pre_migration_schema_count": 435,
+    "pre_migration_latest": 444,
+    "pre_migration_fingerprint": "3d45804d93ab5a7dc733ce69b298eb26",
+    "public_relations": 1403,
+    "public_table_row_counts_matched": 1023,
+    "mutable_audit_table": {
+      "name": "public.access_audit_log",
+      "snapshot_rows": 34347,
+      "candidate_rows_when_verified": 34357,
+      "excluded_from_live_row_count_comparison": true
+    },
+    "recovery_volume_retained": "kokonut-kernel-recovery-445548-20261022_recovery-postgres-data",
+    "recovery_container_stopped": true
+  },
+  "migrations": {
+    "runner": "python3 -m services.migration.cli migrate --schemas-only",
+    "from": 445,
+    "through": 548,
+    "applied": 104,
+    "failed": 0,
+    "seed_sql_applied": false,
+    "restored_clone_pending_after_replay": 0,
+    "candidate_pending_after_rollout": 0,
+    "candidate_and_clone_schema_count": 539,
+    "candidate_and_clone_latest_schema": 548,
+    "candidate_and_clone_checksum_fingerprint": "72b81ae1cc0eee54864726403135553e"
+  },
+  "candidate_app": {
+    "service_rebuilt": true,
+    "service_recreated": "app only",
+    "image_id": "sha256:a49802c9cae61fdfc164d0bf68facdc01ea0fef88e861f7c37c927e5e2956e03",
+    "health": "healthy",
+    "health_route_status": 200,
+    "anonymous_operator_review_queue_status": 401
+  },
+  "not_recreated_or_modified": [
+    "candidate PostgreSQL container and persistent volume identity (the database schema was migrated)",
+    "candidate Metabase",
+    "candidate proxy",
+    "legacy kokonut-intelligence stack"
+  ],
+  "data_actions": [
+    "candidate PostgreSQL schema migrations 445–548 applied",
+    "candidate app image rebuilt and app service recreated",
+    "no seed SQL applied"
+  ],
+  "limitations": [
+    "This is a local single-database checkpoint and does not cover roles, grants, media, other databases, or external providers.",
+    "The checkpoint is stored on the same host disk as the repository; production independent-copy and Cloudflare R2 recovery remain open.",
+    "Raspberry Pi hardware acceptance remains unavailable; ARM64/QEMU source replay is separate evidence.",
+    "This candidate rollout does not close named MAN-CAP acceptance or production cutover gates."
+  ]
+}

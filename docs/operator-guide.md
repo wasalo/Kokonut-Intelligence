@@ -71,6 +71,8 @@ python3 -m services.agents.open_source_capitalist_agent --location-id UUID --sto
 ```
 
 - `--store` writes a draft for human review; without it, summary agents do not persist the output.
+- Read-only generation for the ten registered shared synthesis agents and the deterministic AI summary uses separate signed source-reader credentials, migrations 543/544, and an exact `ai_summary/read` grant for the selected location. EBF, CIDS, and Delphi each use task-specific credentials and SET-only login roles; migration 580 gives each reader role access only to its own projection, in addition to its exact signed location grant. None falls back to the shared `PG_*` connection. Worker credentials and grants still require deployment provisioning; the optional one-shot profiles and variable names are listed in `.env.example` and `docker-compose.worker.yml`.
+- Run the isolated EBF reader with `docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile ebf-evidence-gap-worker run --rm ebf-evidence-gap-worker --scorecard-id UUID --location-id UUID`. It receives only the dedicated source DSN and credential; the exact location authorization is enforced by the signed database grant.
 - Agents cannot verify or publish governed records, approve recommendations, attest, submit onchain actions, or autonomously execute financial or destructive actions.
 - Check the task catalogue in `services/agents/tasks.py` for each agent’s inputs, outputs, writes, and risk classification.
 - Treat agent-generated summaries, EBF drafts, recommendations, tactical opportunities, and credit proposals as advisory or draft material until a human completes the applicable workflow.

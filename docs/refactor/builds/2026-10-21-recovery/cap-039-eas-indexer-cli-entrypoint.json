@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 EAS indexer CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable EAS indexer parser and callable main(argv=None).",
+    "Standalone and unified chain argument forwarding and help output match.",
+    "Unsupported chain choices fail before indexer dispatch."
+  ],
+  "checks": {
+    "eas_pytest": {
+      "command": "python3 -m pytest tests/test_eas_indexer_cli.py tests/test_eas_indexer_recovery.py tests/test_attestation_signer_error_redaction.py tests/test_attestation_reconciliation_error_redaction.py tests/test_ingestion_outbox_producers.py -q",
+      "result": "passed",
+      "passed": 41
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "chain": false,
+    "database": false,
+    "provider": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "The indexer run function was stubbed in CLI tests.",
+    "Does not establish live EAS ingestion, populated parity, or cursor recovery."
+  ]
+}

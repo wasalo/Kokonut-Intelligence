@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import hmac
 import json
@@ -22,6 +23,7 @@ import os
 import signal
 import sys
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
 from .field_validation import get_transport_timestamp_mode, parse_transport_timestamp, validate_sensor_reading
@@ -35,7 +37,34 @@ SENSOR_TOPIC = "sensors/+/+/readings"  # sensors/{location_id}/{sensor_type}/rea
 
 # Default config
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
-DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "8883"))
+
+
+def _validated_port(value: object) -> int:
+    """Convert a broker port and enforce the valid TCP destination range."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("port must be an integer from 1 to 65535") from None
+    if isinstance(value, bool) or not 1 <= port <= 65535:
+        raise ValueError("port must be an integer from 1 to 65535")
+    return port
+
+
+def _parse_port(value: str) -> int:
+    """Adapt port validation to argparse's user-facing error type."""
+    try:
+        return _validated_port(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
+
+
+_PORT_SETTING = os.environ.get("MQTT_BROKER_PORT", "8883")
+try:
+    DEFAULT_PORT: int | str = _validated_port(_PORT_SETTING)
+except ValueError:
+    # Keep module import and --help usable; argparse reports the bad setting
+    # when an operation tries to use this configured default.
+    DEFAULT_PORT = _PORT_SETTING
 DEFAULT_KEEPALIVE = 60
 DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
 DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
@@ -86,7 +115,7 @@ class MQTTSensorSubscriber:
         client_key: str = DEFAULT_CLIENT_KEY,
     ):
         self.broker = broker
-        self.port = port
+        self.port = _validated_port(port)
         self.username = username
         self.password = password
         self.ca_cert = ca_cert
@@ -149,10 +178,12 @@ class MQTTSensorSubscriber:
                 if client.ack(msg.mid, msg.qos) != 0:
                     raise RuntimeError("MQTT acknowledgement failed")
         except Exception as e:
-            logger.error("Error processing MQTT message: %s", e)
+            logger.error("Error processing MQTT message (%s)", type(e).__name__)
             if self._delivery_mode == "qos1":
                 # Exit without ACK. Broker session can redeliver after restart.
-                raise
+                raise RuntimeError(
+                    f"MQTT message processing failed ({type(e).__name__})"
+                ) from None
 
     def _on_subscribe(self, client, userdata, mid, reason_codes, properties=None):
         if mid != self._subscription_mid:
@@ -369,7 +400,7 @@ class MQTTSensorSubscriber:
             project_sensor_reading(reading_id, location_id, plot_id, sensor_id, sensor_type,
                                    value, unit, timestamp, quality)
         except Exception as exc:
-            logger.warning("ClickHouse insert failed: %s", exc)
+            logger.warning("ClickHouse insert failed (%s)", type(exc).__name__)
 
     def start(self):
         """Start the MQTT subscriber."""
@@ -408,9 +439,12 @@ class MQTTSensorSubscriber:
         self.client.username_pw_set(self.username, self.password)
         try:
             self.client.tls_set(ca_certs=self.ca_cert, certfile=self.client_cert, keyfile=self.client_key)
-        except Exception:
-            logger.exception("MQTT TLS configuration failed")
-            raise
+        except Exception as exc:
+            error_class = safe_exception_class(exc)
+            logger.error("MQTT TLS configuration failed (%s)", error_class)
+            raise RuntimeError(
+                f"MQTT TLS configuration failed ({error_class})"
+            ) from None
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
         self.client.on_subscribe = self._on_subscribe
@@ -453,12 +487,27 @@ def run(broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT):
         subscriber.stop()
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="MQTT sensor subscriber")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="mqtt_subscriber.py",
+        description="MQTT sensor subscriber",
+    )
     parser.add_argument("--broker", default=DEFAULT_BROKER, help="MQTT broker host")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="MQTT broker port")
-    args = parser.parse_args()
+    parser.add_argument(
+        "--port",
+        type=_parse_port,
+        default=os.environ.get("MQTT_BROKER_PORT", str(DEFAULT_PORT)),
+        help="MQTT broker port (1-65535)",
+    )
+    return parser
 
+
+def main(argv: list[str] | None = None) -> None:
+    """Start the MQTT sensor subscriber."""
+    args = build_parser().parse_args(argv)
     run(broker=args.broker, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

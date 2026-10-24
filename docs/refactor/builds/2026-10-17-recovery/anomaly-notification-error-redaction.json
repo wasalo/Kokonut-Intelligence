@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Sensor-anomaly email, Directus, and actuator failure logging",
+  "behavior": {
+    "email": "SMTP exception details are replaced with the exception class while delivery remains best effort.",
+    "directus": "Directus exception details are replaced with the exception class while delivery remains best effort.",
+    "actuation": "Owned-connection dispatch failures log only the exception class; critical severity still forces human approval."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_anomaly_notification_error_redaction.py tests/test_anomaly_detector.py tests/test_iot_sensor_push.py -q",
+    "result": "72 passed",
+    "new_regressions": 3,
+    "coverage": [
+      "secret-bearing SMTP and Directus failures are redacted from logs",
+      "secret-bearing actuator failure is redacted and connection cleanup runs",
+      "critical actuator command continues to require human approval"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_delivery_access": "none; mocked SMTP, HTTP, connection, and actuator boundaries"
+  },
+  "limitations": [
+    "No mail server, Directus instance, MQTT broker, or database was contacted.",
+    "This does not establish delivery destination ownership or end-to-end actuator acceptance."
+  ]
+}

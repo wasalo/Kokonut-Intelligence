@@ -77,6 +77,30 @@ def test_issue_inserts_into_db(MockToken, manager, mock_conn):
     mock_conn.commit.assert_called_once()
 
 
+@patch("services.security.capabilities.secrets.token_urlsafe", return_value="test-token")
+def test_issue_redacts_database_exception(MockToken, manager, mock_conn):
+    secret = "postgres://user:password@db/private"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with (
+        patch("services.security.capabilities.logger", logger),
+        pytest.raises(RuntimeError, match="postgres://user:password@db/private"),
+    ):
+        manager.issue("holder", [])
+
+    mock_conn.rollback.assert_called_once()
+    assert logger.error.call_args.args == (
+        "Failed to issue capability token (%s)",
+        "RuntimeError",
+    )
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
+
+
 def test_verify_returns_none_for_unknown_hash(manager, mock_conn):
     """verify() returns None when the token hash is not in the DB."""
     cursor = MagicMock()
@@ -86,6 +110,23 @@ def test_verify_returns_none_for_unknown_hash(manager, mock_conn):
 
     result = manager.verify("unknown-token", resource="harvest_event", action="write")
     assert result is None
+
+
+def test_verify_redacts_database_exception(manager, mock_conn):
+    secret = "capability-token-query-secret"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.capabilities.logger", logger):
+        assert manager.verify("raw-token", "resource", "read") is None
+
+    mock_conn.rollback.assert_called_once()
+    assert logger.error.call_args.args == ("Token verification failed (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
 
 
 def test_verify_returns_none_for_revoked_token(manager, mock_conn):
@@ -119,6 +160,43 @@ def test_verify_requires_exact_location_scope(manager, mock_conn):
     assert manager.verify("some-token", "harvest_event", "write", "loc-b") is None
 
 
+def test_global_resource_rejects_location_bound_capability(manager, mock_conn):
+    """A farm-scoped token cannot authorize a route with global data scope."""
+    future = datetime.now(timezone.utc) + timedelta(hours=1)
+    cursor = MagicMock()
+    cursor.fetchone.return_value = (
+        "tok-id",
+        "holder",
+        '[{"resource":"governance","action":"read","location_id":"loc-a"}]',
+        future,
+        None,
+        False,
+    )
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    assert manager.verify("some-token", "governance", "read", None) is None
+    mock_conn.commit.assert_not_called()
+
+
+def test_global_capability_can_authorize_global_resource(manager, mock_conn):
+    future = datetime.now(timezone.utc) + timedelta(hours=1)
+    cursor = MagicMock()
+    cursor.fetchone.side_effect = [
+        ("tok-id", "holder", '[{"resource":"governance","action":"read"}]', future, None, False),
+        ("tok-id",),
+    ]
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    assert manager.verify("some-token", "governance", "read", None) == {
+        "holder": "holder",
+        "capability": {"resource": "governance", "action": "read"},
+        "token_id": "tok-id",
+    }
+    mock_conn.commit.assert_called_once()
+
+
 def test_revoke_returns_true_on_success(manager, mock_conn):
     """revoke() returns True when the token was successfully revoked."""
     cursor = MagicMock()
@@ -140,6 +218,23 @@ def test_revoke_returns_false_on_failure(manager, mock_conn):
     assert manager.revoke("nonexistent-tok-id") is False
 
 
+def test_revoke_redacts_database_exception(manager, mock_conn):
+    secret = "token-row database detail"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.capabilities.logger", logger):
+        assert manager.revoke("tok-id") is False
+
+    mock_conn.rollback.assert_called_once()
+    assert logger.error.call_args.args == ("Failed to revoke token (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
+
+
 def test_revoke_by_holder_returns_count(manager, mock_conn):
     """revoke_by_holder() returns the number of tokens revoked."""
     cursor = MagicMock()
@@ -149,6 +244,42 @@ def test_revoke_by_holder_returns_count(manager, mock_conn):
 
     count = manager.revoke_by_holder("agent-1")
     assert count == 3
+
+
+def test_revoke_by_holder_redacts_database_exception(manager, mock_conn):
+    secret = "holder query contains private value"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.capabilities.logger", logger):
+        assert manager.revoke_by_holder("agent-1") == 0
+
+    mock_conn.rollback.assert_called_once()
+    assert logger.error.call_args.args == (
+        "Failed to revoke tokens for holder (%s)",
+        "RuntimeError",
+    )
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
+
+
+def test_list_tokens_redacts_database_exception(manager, mock_conn):
+    secret = "postgres password in driver error"
+    cursor = MagicMock()
+    cursor.execute.side_effect = RuntimeError(secret)
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    logger = MagicMock()
+
+    with patch("services.security.capabilities.logger", logger):
+        assert manager.list_tokens() == []
+
+    assert logger.error.call_args.args == ("Failed to list tokens (%s)", "RuntimeError")
+    assert secret not in str(logger.mock_calls)
+    logger.exception.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -6,6 +6,9 @@ These are advisory-only analytical helpers; no governed state is touched.
 
 from __future__ import annotations
 
+import math
+import threading
+import time
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -52,9 +55,90 @@ def test_monte_carlo_seed_reproducible():
     assert a["samples"] == b["samples"]
 
 
+def test_monte_carlo_parallel_draws_preserve_seed_order():
+    def _delayed_sim(_conn, *, rainfall_multiplier):
+        time.sleep((1.0 - rainfall_multiplier) * 0.001)
+        if rainfall_multiplier > 0.9:
+            raise RuntimeError("private simulator detail")
+        return {"value": rainfall_multiplier}
+
+    params = {}
+    sampler = {"rainfall_multiplier": {"dist": "uniform", "low": 0.0, "high": 1.0}}
+    sequential = monte_carlo(
+        _delayed_sim, params, sampler=sampler, metric="value", n=100, seed=19, max_workers=1
+    )
+    parallel = monte_carlo(
+        _delayed_sim,
+        params,
+        sampler=sampler,
+        metric="value",
+        conn_factory=MagicMock(return_value=MagicMock()),
+        n=100,
+        seed=19,
+        max_workers=8,
+    )
+
+    assert sequential["samples"] == parallel["samples"]
+    assert sequential["failures"] == parallel["failures"]
+    assert parallel["failures"]
+    assert "private simulator detail" not in repr(parallel)
+
+
+def test_monte_carlo_isolates_connection_factory_failure():
+    state = {"count": 0, "failed_once": False}
+    lock = threading.Lock()
+
+    def _factory():
+        with lock:
+            state["count"] += 1
+            fail_this_call = not state["failed_once"]
+            state["failed_once"] = True
+        if fail_this_call:
+            raise ConnectionError("private database detail")
+        return MagicMock()
+
+    out = monte_carlo(
+        lambda _conn, **params: {"value": params["x"]},
+        {},
+        sampler={"x": {"dist": "uniform", "low": 0.0, "high": 1.0}},
+        metric="value",
+        conn_factory=_factory,
+        n=4,
+        seed=10,
+        max_workers=4,
+    )
+
+    assert state["count"] == 4
+    assert len(out["samples"]) == 3
+    assert len(out["failures"]) == 1
+    assert out["failures"][0]["draw"] in range(4)
+    assert out["failures"][0]["error"] == "simulation failed (ConnectionError)"
+    assert "private database detail" not in repr(out)
+
+
+def test_monte_carlo_rejects_nonfinite_metric_draws():
+    out = monte_carlo(
+        lambda *_args, **_kwargs: {"value": math.nan},
+        {},
+        sampler={},
+        metric="value",
+        n=2,
+        seed=2,
+    )
+
+    assert out["samples"] == []
+    assert out["mean"] is None
+    assert out["failures"] == [
+        {"draw": index, "error": "simulation failed (ValueError)"}
+        for index in range(2)
+    ]
+
+
 def test_monte_carlo_isolates_failing_draw():
+    secret = "database password=private-token"
+
     def _boom(conn, **params):
-        raise RuntimeError("draw failed")
+        raise RuntimeError(secret)
 
     out = monte_carlo(
         _boom,
@@ -67,6 +151,28 @@ def test_monte_carlo_isolates_failing_draw():
     assert out["failures"] and len(out["failures"]) == 50
     assert out["samples"] == []
     assert out["mean"] is None
+    assert {failure["error"] for failure in out["failures"]} == {
+        "simulation failed (RuntimeError)"
+    }
+    assert secret not in repr(out)
+
+
+def test_monte_carlo_redacts_error_returned_by_simulator():
+    secret = "database password=private-token"
+    out = monte_carlo(
+        lambda *_args, **_kwargs: {"error": secret},
+        {},
+        sampler={"x": {"dist": "uniform", "low": 0.0, "high": 1.0}},
+        metric="y",
+        n=3,
+        seed=1,
+    )
+
+    assert out["failures"] == [
+        {"draw": index, "error": "simulation returned an error"}
+        for index in range(3)
+    ]
+    assert secret not in repr(out)
 
 
 def test_monte_carlo_per_draw_conn_factory():
@@ -127,6 +233,8 @@ def test_clash_sweep_concurrent_and_isolated():
     assert "A" in by_label and "B" in by_label
     assert by_label["A"]["attacker_win_p"] > by_label["B"]["attacker_win_p"]
     assert "error" in by_label["bad"]
+    assert by_label["bad"]["error"] == "clash resolution failed (ValueError)"
+    assert "not-a-number" not in repr(by_label["bad"])
 
 
 def test_distribution_spec_sample_sd():

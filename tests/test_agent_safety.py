@@ -6,6 +6,7 @@ import pytest
 
 from services.agents.safety import (
     GOVERNED_COLLECTIONS,
+    HIGH_RISK_ACTIONS,
     assert_agent_action_allowed,
     assess_agent_action,
     payload_hash,
@@ -26,10 +27,28 @@ def test_blocks_agent_publish_status() -> None:
 
 
 def test_high_risk_action_requires_human_approval() -> None:
-    decision = assert_agent_action_allowed("attest", "attestation_request", {})
-    assert decision.allowed is True
+    decision = assess_agent_action("attest", "attestation_request", {})
+    assert decision.allowed is False
     assert decision.high_risk is True
     assert decision.requires_human_approval is True
+    with pytest.raises(ValueError, match="cannot execute attest"):
+        assert_agent_action_allowed("attest", "attestation_request", {})
+
+
+def test_every_high_risk_action_is_denied_before_execution() -> None:
+    assert "verify" in HIGH_RISK_ACTIONS
+    for action in HIGH_RISK_ACTIONS:
+        decision = assess_agent_action(action, "unrestricted_collection", {})
+        assert decision.allowed is False, action
+        assert decision.high_risk is True, action
+        assert decision.requires_human_approval is True, action
+
+
+def test_agent_action_input_is_normalized_and_invalid_input_fails_closed() -> None:
+    assert assess_agent_action(" VERIFY ", "agent_task", {}).allowed is False
+    assert assess_agent_action(" ", "agent_task", {}).allowed is False
+    assert assess_agent_action("read", "agent_task", "not-an-object").allowed is False
+    assert assess_agent_action("create", " STAKEHOLDER_CONSENT ", {}).allowed is False
 
 
 def test_modeled_decision_outputs_are_governed() -> None:
@@ -72,14 +91,33 @@ def test_stakeholder_human_review_collections_are_write_protected() -> None:
         assert decision.requires_human_approval is True
 
 
+def test_protocol_bridge_records_are_human_write_protected():
+    for collection in (
+        "protocol_project_location",
+        "protocol_execution_intent",
+        "protocol_execution_outbox",
+        "protocol_execution_reconciliation",
+    ):
+        decision = assess_agent_action("create", collection, {})
+        assert decision.allowed is False
+        assert decision.requires_human_approval is True
+        read_decision = assess_agent_action("read", collection, {})
+        assert read_decision.allowed is True
+
+
 def test_agent_can_read_stakeholder_records() -> None:
     decision = assess_agent_action("read", "stakeholder_decision", {})
     assert decision.allowed is True
 
 
-def test_set_agent_context_exists() -> None:
-    """set_agent_context helper is importable and callable."""
-    assert callable(set_agent_context)
+def test_set_agent_context_fails_closed_without_touching_connection() -> None:
+    """The legacy transaction marker must not impersonate an agent identity."""
+    class UntouchedConnection:
+        def execute(self, *_args, **_kwargs):
+            raise AssertionError("legacy helper must not issue SQL")
+
+    with pytest.raises(RuntimeError, match="caller-controlled"):
+        set_agent_context(UntouchedConnection(), "agent-123")
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +220,10 @@ def test_agent_blocked_from_publishing_via_direct_sql(db):
 
         # Set agent context and try to publish — should fail
         cur.execute("SET LOCAL app.agent_id = 'test_agent'")
-        with pytest.raises(psycopg2.errors.RaiseException, match="Agent test_agent cannot set status to published"):
+        with pytest.raises(
+            psycopg2.errors.InsufficientPrivilege,
+            match="Agent worker operations cannot set status to published",
+        ):
             cur.execute(
                 "UPDATE test_agent_safety_check SET status = 'published' WHERE id = %s",
                 (row_id,),
@@ -273,4 +314,4 @@ if __name__ == "__main__":
     test_payload_hash_is_stable()
     test_blocks_agent_publish_status()
     test_high_risk_action_requires_human_approval()
-    test_set_agent_context_exists()
+    test_set_agent_context_fails_closed_without_touching_connection()

@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-16",
+  "capability": "CAP-021",
+  "scope": "Native Gateway public location IRI projection",
+  "branch_base": "0260f92",
+  "implementation": {
+    "route": "GET /api/iri/resolve?iri=kokonut:location:{uuid}:v{version}",
+    "content_type": "application/ld+json",
+    "eligibility": "Explicit public_projection snapshot and current location in v_public_farm_summary",
+    "snapshot_fields": ["name", "country", "region", "status"],
+    "registry_private_metadata_returned": false,
+    "stored_registry_content_hash_returned": false,
+    "projection_hash": "SHA-256 of canonical JSON-LD before hash fields are added",
+    "lineage": "Only a same-entity, immediately preceding version with its own public snapshot is linked",
+    "unknown_or_ineligible_response": 404,
+    "cache_control": "no-store"
+  },
+  "migration": {
+    "file": "schemas/postgres/420_iri_public_projection_snapshot.sql",
+    "reproducible_check": "scripts/check-iri-public-projection-disposable.py",
+    "disposable_evidence": "public-iri-projection-migration-disposable.json",
+    "runtime": "PostgreSQL 16 disposable container with no host port and no persistent volume",
+    "apply": "passed",
+    "idempotent_replay": "passed",
+    "object_value": "accepted",
+    "array_value": "rejected by chk_iri_public_projection_object",
+    "cleanup": "temporary container stopped and removed"
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_iri_cli_offline.py tests/test_iri_public_projection.py tests/test_gateway_public_iri.py tests/test_linked_data.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py tests/test_migration.py -q",
+    "result": "217 passed",
+    "offline_cli_help": "IRI and Metadata API help verified without SOPS decryption or database access",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "passed"
+  },
+  "not_verified": [
+    "Full ordered replay of all repository migrations through 420",
+    "Local candidate migration rollout or app recreation",
+    "Historical IRI snapshot backfill",
+    "Other IRI entity types, RDF graph/SPARQL, and storage parity",
+    "Live ingress, PostgreSQL role grants/RLS, and named MAN-CAP-021 acceptance"
+  ],
+  "data_touched": {
+    "candidate_database": false,
+    "legacy_database": false,
+    "existing_iri_rows": false,
+    "provider_or_chain": false
+  }
+}

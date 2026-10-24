@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 def _make_mock_conn(mock_cursor):
@@ -232,19 +231,53 @@ class TestMLRetrainingPipeline:
         assert result["accuracy_before"] == 20.0
         assert result["accuracy_after"] < 20.0
 
-    def test_trigger_retrain_logs_error_on_failure(self):
+    def test_trigger_retrain_logs_only_bounded_error_on_failure(self, caplog):
         """Training failure should log error but not crash."""
         pipeline, mock_conn, mock_cursor = self._make_pipeline()
         mock_cursor.fetchone.return_value = {"accuracy_threshold": 20.0}
 
         loc = str(uuid.uuid4())
+        sensitive_detail = "credential=synthetic-private-value /private/model/path"
+        caplog.set_level(logging.ERROR, logger="kokonut.systems.ml_retraining")
         with patch("services.systems.ml_retraining.MLRetrainingPipeline._get_conn", return_value=mock_conn), \
-             patch("services.ingestion.ml_anomaly_detector.fit_prophet", side_effect=RuntimeError("boom")), \
-             patch("services.ingestion.ml_anomaly_detector.save_models", side_effect=RuntimeError("boom")):
+             patch("services.ingestion.ml_anomaly_detector.fit_prophet", side_effect=RuntimeError(sensitive_detail)), \
+             patch("services.ingestion.ml_anomaly_detector.save_models", side_effect=RuntimeError(sensitive_detail)):
             result = pipeline.trigger_retrain("weather_anomaly", location_id=loc, reason="scheduled")
 
         assert result["status"] == "completed"
         assert result["improvement_pct"] == 0.0
+        assert "Training failed (RuntimeError)" in caplog.text
+        assert sensitive_detail not in caplog.text
+        assert "weather_anomaly" not in caplog.text
+
+    def test_auto_retrain_logs_only_bounded_error(self, caplog):
+        pipeline, _, mock_cursor = self._make_pipeline()
+        now = datetime.now(timezone.utc)
+        mock_cursor.fetchall.return_value = [
+            {
+                "model_name": "weather_anomaly",
+                "location_id": str(uuid.uuid4()),
+                "accuracy_threshold": 15.0,
+                "last_retrain_at": now - timedelta(days=35),
+                "next_retrain_at": now - timedelta(days=5),
+                "retrain_interval_days": 30,
+                "auto_retrain": True,
+            }
+        ]
+        sensitive_detail = "credential=synthetic-private-value /private/model/path"
+        caplog.set_level(logging.ERROR, logger="kokonut.systems.ml_retraining")
+
+        with patch.object(
+            pipeline,
+            "trigger_retrain",
+            side_effect=RuntimeError(sensitive_detail),
+        ):
+            result = pipeline.check_models()
+
+        assert result[0]["auto_retrain_result"] is None
+        assert "Auto-retrain failed (RuntimeError)" in caplog.text
+        assert sensitive_detail not in caplog.text
+        assert "weather_anomaly" not in caplog.text
 
     def test_auto_retrain_triggered_when_enabled(self):
         """Auto-retrain should fire when auto_retrain=True and retrain is due."""

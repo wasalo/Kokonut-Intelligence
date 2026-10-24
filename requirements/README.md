@@ -1,8 +1,8 @@
 # Candidate Kernel dependency groups
 
 These additive manifests copy every direct requirement and version constraint
-from the legacy `requirements.txt`. Existing images and CI continue using that
-complete manifest. No default installation changes in this step.
+from the legacy `requirements.txt`. Legacy images continue using that complete
+manifest; the Kernel image uses the selected hash-locked closure below.
 
 | Manifest | Intended dependency area |
 | --- | --- |
@@ -13,10 +13,13 @@ complete manifest. No default installation changes in this step.
 | clickhouse.txt | Optional ClickHouse client only |
 | analytics.txt | Tabular analytics, forecasting, ML, market data |
 | geospatial.txt | Earth Engine and GIS file access |
+| oidc.txt | Optional operator OIDC integration |
 | orchestration.txt | Prefect |
 | mqtt.txt | Paho sensor/actuator transport |
 | grpc.txt | gRPC, generated bindings tooling, protobuf |
-| dev.txt | Python test runner |
+| dev.txt | Python test runner and Starlette ASGI test client |
+| kernel-runtime.in / kernel-runtime.lock | Standard Kernel runtime input and hash-locked transitive closure |
+| kernel-clickhouse.in / kernel-clickhouse.lock | Standard runtime plus hash-locked optional ClickHouse closure |
 
 Install selected groups with repeated `-r` arguments. For example:
 
@@ -30,15 +33,22 @@ require the Web3 group even when no local blockchain node is deployed.
 Analytics/geospatial include workloads unsuitable for a small edge device and
 will need further splitting before ARM64 resource certification.
 
-Transitive dependency weight remains unmeasured. These files preserve version
-ranges rather than locking a complete environment. Package resolution, image
-builds, runtime imports, compatibility suites, and ARM64 wheel availability are
-pending. Do not remove packages from the existing images until capability checks
-pass. Keep constraints synchronized with `requirements.txt` during transition.
+Dependency weight remains unmeasured. The group files preserve compatibility
+ranges, while the Kernel image lockfiles pin the resolved versions and artifact
+hashes for the standard runtime and optional ClickHouse profile. Package
+resolution, image builds, runtime imports, compatibility suites, and ARM64 wheel
+availability still require acceptance. Do not remove packages from legacy
+images until capability checks pass. Keep constraints synchronized with
+`requirements.txt` during transition.
 
-`python3 scripts/check-requirement-groups.py` checks that the union of these eleven
+Regenerate both Kernel locks with `pip-tools==7.6.2` using the commands in
+[`docs/refactor/kernel-release-inputs.md`](../docs/refactor/kernel-release-inputs.md).
+The current locks do not pin apt dependencies or the Python base image's bundled
+pip independently from the digest.
+
+`python3 scripts/check-requirement-groups.py` checks that the union of these twelve
 groups exactly matches the legacy constraints, including duplicate counts.
 It runs in the fast-fail CI gate and uses no external packages.
 
-Rollback: remove these unused additive manifests. No image, service, or data
-changes have occurred.
+Rollback: point the Kernel Dockerfile back to the compatible group manifests;
+legacy images, services, and data remain independent of these locks.

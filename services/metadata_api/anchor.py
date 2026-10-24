@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("metadata_api.anchor")
@@ -78,6 +79,6 @@ def batch_anchor(conn, entity_type: str, location_id: str, chain: str = "celo") 
             anchor_metadata(conn, r["iri"], chain=chain)
             count += 1
         except Exception as e:
-            logger.warning("Failed to anchor %s: %s", r["iri"], e)
+            logger.warning("Metadata anchor failed (%s)", safe_exception_class(e))
 
     return count

@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import textwrap
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
 from services.common.database import get_db
 from services.common.logging import get_logger
-from services.common.cli import print_json
+
 logger = get_logger(__name__)
 
 SCAN_TYPES = ("full", "quick", "focused", "update")
@@ -191,6 +190,11 @@ def auto_populate(conn, scan_id: str) -> Dict[str, Any]:
         raise ValueError(f"Scan {scan_id} not found")
     location_id = scan["location_id"]
     results: Dict[str, Any] = {}
+    findings_by_step = {
+        step["step_number"]: step["findings"]
+        for step in scan.get("steps", [])
+        if step.get("step_number") in (1, 2, 3) and step.get("findings")
+    }
 
     # Step 1: Identify — query threatcasting signals and stakeholder feedback
     findings_1 = []
@@ -227,8 +231,9 @@ def auto_populate(conn, scan_id: str) -> Dict[str, Any]:
         conn.rollback()
 
     if findings_1:
+        findings_by_step[1] = "\n".join(findings_1)
         update_step(conn, scan_id, 1, status="completed",
-                    findings="\n".join(findings_1),
+                    findings=findings_by_step[1],
                     recommendations="Review high-severity threats; engage dissatisfied stakeholders")
     results["step_1"] = {"evidence_count": len(findings_1)}
 
@@ -263,8 +268,9 @@ def auto_populate(conn, scan_id: str) -> Dict[str, Any]:
         conn.rollback()
 
     if findings_2:
+        findings_by_step[2] = "\n".join(findings_2)
         update_step(conn, scan_id, 2, status="completed",
-                    findings="\n".join(findings_2),
+                    findings=findings_by_step[2],
                     recommendations="Cross-reference market data with PESTEL risk factors")
     results["step_2"] = {"evidence_count": len(findings_2)}
 
@@ -301,16 +307,17 @@ def auto_populate(conn, scan_id: str) -> Dict[str, Any]:
         conn.rollback()
 
     if findings_3:
+        findings_by_step[3] = "\n".join(findings_3)
         update_step(conn, scan_id, 3, status="completed",
-                    findings="\n".join(findings_3),
+                    findings=findings_by_step[3],
                     recommendations="Focus on high-risk CRISP dimensions; verify draft metrics")
     results["step_3"] = {"evidence_count": len(findings_3)}
 
     # Step 4: Communicate — generate summary from all steps
-    all_findings = []
-    for step in scan.get("steps", []):
-        if step.get("findings"):
-            all_findings.append(f"Step {step['step_number']} ({step['step_name']}): {step['findings'][:200]}")
+    all_findings = [
+        f"Step {step_number} ({STEP_NAMES[step_number - 1]}): {findings[:200]}"
+        for step_number, findings in sorted(findings_by_step.items())
+    ]
 
     if all_findings:
         update_step(conn, scan_id, 4, status="completed",

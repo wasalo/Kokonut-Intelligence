@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-20",
+  "scope": "Documented DAO governance framework-list CLI compatibility and parity",
+  "source_revision": "aa1f8398d3070753b9d310fd096f925e7efebaed",
+  "commands": [
+    "python3 -m services.governance.cli framework list",
+    "python3 -m services.cli dao framework list"
+  ],
+  "compatibility": {
+    "standalone_framework_without_list_argument": true,
+    "unified_framework_without_list_argument": true,
+    "unknown_action_rejected_before_database_access": true
+  },
+  "verification": {
+    "focused_tests": "3 passed: standalone/unified JSON parity, legacy no-argument compatibility, and invalid-action preflight",
+    "database": "synthetic fake connection only",
+    "provider": "not contacted",
+    "connection_cleanup": "verified on successful standalone and unified invocations",
+    "ruff": "passed",
+    "python_compile": "passed"
+  },
+  "result": "PASS: both documented framework-list commands work and produce matching JSON, while the pre-existing no-argument form remains supported.",
+  "limitations": [
+    "No live database, OIDC identity, DAO RPC provider, or authorization boundary was exercised.",
+    "This CLI compatibility fix does not close MAN-CAP-039 or validate local operator authorization."
+  ]
+}

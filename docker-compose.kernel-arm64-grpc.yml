@@ -1,0 +1,4 @@
+# Select the verified ARM64 application target for the gRPC transport.
+services:
+  grpc:
+    platform: linux/arm64

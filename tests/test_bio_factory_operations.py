@@ -2,7 +2,10 @@
 
 from pathlib import Path
 
-from services.agents.bio_factory_agent import synthesize_bio_factory
+from services.agents.bio_factory_agent import (
+    BioFactorySynthesisAgent,
+    synthesize_bio_factory,
+)
 from services.agents.tasks import get_task, list_tasks, validate_output
 from services.export.report_generator import (
     REPORT_GENERATORS,
@@ -12,7 +15,6 @@ from services.export.report_generator import (
     generate_bio_recipe_library,
     generate_bio_regional_input,
 )
-
 
 SCHEMA = Path("schemas/postgres/043_bio_factory_operations.sql")
 SEED = Path("schemas/seeds/044_bio_factory_operations.sql")
@@ -293,6 +295,52 @@ def test_bio_factory_agent_summarizes_public_safe_records() -> None:
     assert summary["quality_pass_rate_pct"] == 100.0
     assert summary["ingredients_with_warnings"] == 1
     assert "smallholder pilot evidence" in summary["safety_note"].lower() or "advisory" in summary["safety_note"].lower()
+
+
+def test_bio_factory_worker_lineage_includes_network_regional_catalog() -> None:
+    class Cursor:
+        def __init__(self):
+            self.query = None
+            self.params = None
+
+        def execute(self, query, params=None):
+            self.query = query
+            self.params = params
+
+        def fetchall(self):
+            return [
+                {
+                    "source_table": source_table,
+                    "row_count": 1,
+                    "record_ids": [f"e0000000-0000-4000-8000-{index:012d}"],
+                }
+                for index, source_table in enumerate(
+                    BioFactorySynthesisAgent.source_reference_views, start=1
+                )
+            ]
+
+        def close(self):
+            pass
+
+    class Conn:
+        def __init__(self):
+            self.cursor_value = Cursor()
+
+        def cursor(self, cursor_factory=None):
+            return self.cursor_value
+
+    conn = Conn()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    references = BioFactorySynthesisAgent().collect_source_references(conn, location_id)
+
+    assert set(references) == set(BioFactorySynthesisAgent.source_reference_views)
+    assert references["bio_regional_input_availability"]["scope"] == "network"
+    for source_table, view_name in BioFactorySynthesisAgent.source_reference_views.items():
+        assert view_name in conn.cursor_value.query
+        assert references[source_table]["row_count"] == 1
+        assert references[source_table]["truncated"] is False
+    assert "v_public_bio_regional_input_summary" in conn.cursor_value.query
+    assert conn.cursor_value.params == (location_id,) * 4
 
 
 def test_bio_factory_report_generators_registered() -> None:

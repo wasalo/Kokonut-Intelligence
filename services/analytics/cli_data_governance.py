@@ -6,10 +6,13 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_data_governance --help
 """
 
+import sys
 from datetime import datetime
 
+from ..common.cli import run
 from ..common.commands import CommandLine
 from .data_governance import (
+    approve_retention_policy,
     check_consent,
     create_sharing_agreement,
     enforce_retention_policies,
@@ -19,9 +22,14 @@ from .data_governance import (
     get_governance_summary,
     get_portability_requests,
     get_sharing_agreements,
+    list_retention_legal_holds,
+    list_retention_policies,
     log_access,
+    place_retention_legal_hold,
     record_consent,
+    release_retention_legal_hold,
     request_portability,
+    retire_retention_policy,
     set_retention_policy,
     withdraw_consent,
 )
@@ -94,6 +102,53 @@ def _cmd_set_retention(db, a):
         db, a.data_category, a.retention_days,
         action=a.action, entity_type=a.entity_type,
         location_id=a.location_id, policy_owner=a.policy_owner,
+        actor=a.actor, reason=a.reason,
+        jurisdiction_code=a.jurisdiction_code, purpose_code=a.purpose_code,
+    )
+
+
+def _cmd_list_retention_policies(db, a):
+    return list_retention_policies(
+        db,
+        status=a.status,
+        data_category=a.data_category,
+        jurisdiction_code=a.jurisdiction_code,
+        purpose_code=a.purpose_code,
+        location_id=a.location_id,
+        limit=a.limit,
+    )
+
+
+def _cmd_list_retention_holds(db, a):
+    return list_retention_legal_holds(
+        db,
+        active_only=not a.include_released,
+        entity_type=a.entity_type,
+        entity_id=a.entity_id,
+        limit=a.limit,
+    )
+
+
+def _cmd_approve_retention(db, a):
+    return approve_retention_policy(
+        db, a.policy_id, a.approved_by, auto_enforce=a.auto_enforce,
+        reason=a.reason,
+    )
+
+
+def _cmd_retire_retention(db, a):
+    return retire_retention_policy(db, a.policy_id, a.actor, a.reason)
+
+
+def _cmd_place_retention_hold(db, a):
+    return place_retention_legal_hold(
+        db, a.entity_type, a.entity_id, a.actor, a.reason,
+    )
+
+
+def _cmd_release_retention_hold(db, a):
+    return release_retention_legal_hold(
+        db, a.hold_id, a.actor, a.reason,
     )
 
 
@@ -205,14 +260,71 @@ cli.subcommand("sharing-agreements", "List sharing agreements") \
 
 cli.subcommand("set-retention", "Set retention policy") \
     .add("--data-category", required=True) \
-    .add("--retention-days", type=int, required=True) \
+    .add("--retention-days", type=int,
+         help="Proposed positive window; omit to leave the draft unconfigured") \
     .add("--action", default="soft_delete",
          choices=["soft_delete", "hard_delete", "anonymize", "archive", "none"]) \
     .add("--entity-type") \
     .add("--location-id") \
+    .add("--jurisdiction-code",
+         help="Owner-defined scope code; does not select a legal period") \
+    .add("--purpose-code",
+         help="Owner-defined scope code; enforcement needs a resolver") \
     .add("--policy-owner") \
+    .add("--actor", required=True) \
+    .add("--reason", required=True) \
     .add("--json", action="store_true") \
     .run(_cmd_set_retention)
+
+cli.subcommand("retention-policies", "List configured retention policies") \
+    .add("--status", choices=["draft", "active", "inactive"]) \
+    .add("--data-category") \
+    .add("--jurisdiction-code") \
+    .add("--purpose-code") \
+    .add("--location-id") \
+    .add("--limit", type=int, default=100) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list_retention_policies)
+
+cli.subcommand("retention-holds", "List active legal holds") \
+    .add("--entity-type") \
+    .add("--entity-id") \
+    .add("--include-released", action="store_true",
+         help="Include released holds in the bounded inventory") \
+    .add("--limit", type=int, default=100) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list_retention_holds)
+
+cli.subcommand("approve-retention", "Approve a configured retention policy") \
+    .add("--policy-id", required=True) \
+    .add("--approved-by", required=True) \
+    .add("--reason", required=True) \
+    .add("--auto-enforce", action="store_true",
+         help="Allow scheduled enforcement when its independent feature gate is enabled") \
+    .add("--json", action="store_true") \
+    .run(_cmd_approve_retention)
+
+cli.subcommand("retire-retention", "Deactivate an approved retention policy") \
+    .add("--policy-id", required=True) \
+    .add("--actor", required=True) \
+    .add("--reason", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_retire_retention)
+
+cli.subcommand("place-retention-hold", "Place an audited record-level legal hold") \
+    .add("--entity-type", required=True) \
+    .add("--entity-id", required=True) \
+    .add("--actor", required=True) \
+    .add("--reason", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_place_retention_hold)
+
+cli.subcommand("release-retention-hold", "Release an active audited legal hold") \
+    .add("--hold-id", required=True) \
+    .add("--actor", required=True) \
+    .add("--reason", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_release_retention_hold)
 
 cli.subcommand("enforce-retention", "Run governed retention sweep") \
     .add("--actor", required=True) \
@@ -227,7 +339,18 @@ cli.subcommand("governance-summary", "Aggregated governance metrics") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    tokens = list(sys.argv[1:] if argv is None else argv)
+    if (
+        tokens
+        and tokens[0] == "enforce-retention"
+        and "--dry-run" not in tokens
+        and "-h" not in tokens
+        and "--help" not in tokens
+    ):
+        from .retention import require_data_retention_enforcement
+
+        run(require_data_retention_enforcement)
+    run(cli.main, tokens)
 
 
 if __name__ == "__main__":

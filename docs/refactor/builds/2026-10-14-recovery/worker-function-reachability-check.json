@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Retain a conservative worker function graph with inferred instance methods and explicit metrics registry dispatch.",
+  "command": "python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json",
+  "inventory": "docs/refactor/worker-function-reachability.json",
+  "operation_roots": 17,
+  "source_files": 69,
+  "entry_functions": 31,
+  "function_memberships": 341,
+  "direct_call_edges": 483,
+  "dynamic_dispatch_edges": 20,
+  "operations_without_resolved_entry_functions": 0,
+  "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py tests/test_worker_source_closure.py tests/test_worker_sql_inventory.py tests/test_worker_operation_map.py -q",
+  "focused_tests": {
+    "passed": 31,
+    "failed": 0
+  },
+  "static_graph": {
+    "instance_method_resolution": "Included only when every candidate class type was inferred locally.",
+    "explicit_registry_dispatch": "All 20 entries in services.metrics.calculators.CALCULATORS are represented as dynamic-dispatch edges.",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "diff_check": "passed"
+  },
+  "limits": [
+    "This graph remains incomplete for callbacks, other dynamic dispatch, unresolved instance types, extension code, and database/provider behavior.",
+    "Database functions/views, provider behavior, runtime effects, worker identity, and authorization are not established.",
+    "The graph is a review index, not a complete runtime call graph or least-privilege grant list.",
+    "No database was accessed and no migration was required."
+  ]
+}

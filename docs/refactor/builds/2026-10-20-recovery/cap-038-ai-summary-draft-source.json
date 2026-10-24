@@ -1,0 +1,35 @@
+{
+  "result": "passed",
+  "slice": "CAP-038 authenticated AI-summary draft creation and independent review",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_commit": "3e96cf8b68e971a8d71d41ac7e655867f6ce766b",
+  "candidate_or_legacy_modified": false,
+  "checks": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_gateway_ai_summary_draft.py tests/test_gateway_ai_summary_review.py tests/test_operator_console_ai_summary_review.py tests/test_operator_route_policy_inventory.py tests/test_ai_summary_safety.py -q",
+      "result": "passed",
+      "tests_passed": 51
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_inline_javascript_syntax": "passed through the console contract test with Node.js v26.5.0",
+    "disposable_postgresql_16": {
+      "checker": "scripts/check-ai-summary-draft-disposable.py",
+      "result": "passed",
+      "migrations_applied_and_replayed": [521, 522],
+      "assertion_groups_passed": 8,
+      "network": "disabled"
+    },
+    "migration_unit_tests": {
+      "command": "python3 -m pytest tests/test_migration.py -q",
+      "result": "passed",
+      "tests_passed": 33
+    },
+    "capability_matrix": "valid: 66 rows; MAN-CAP-038 remains separately gated",
+    "requirement_groups": "passed",
+    "provider_import_boundaries": "passed",
+    "runtime_sql_inventory": "regenerated and current; checker passed",
+    "repository_inventory": "regenerated: 66 capabilities, 646 test files, 0 parse errors"
+  },
+  "rollout": "Migration 522 is not applied to the local candidate, legacy, or production database."
+}

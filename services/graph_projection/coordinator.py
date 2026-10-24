@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from services.common.errors import safe_exception_class
 from services.iri.resolver import generate_iri
 from services.rdf.graph_builder import _persist_graph
 
@@ -70,7 +71,12 @@ def rebuild_synchronized(conn, actor: str, location_id: str, iri_updates=None) -
     except Exception as exc:
         conn.rollback()
         try:
-            _finish_request(conn, request_id, "failed", error=str(exc))
+            _finish_request(
+                conn,
+                request_id,
+                "failed",
+                error=f"Graph projection rebuild failed ({safe_exception_class(exc)})",
+            )
             conn.commit()
         except Exception:
             conn.rollback()

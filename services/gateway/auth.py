@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 
@@ -46,6 +47,8 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
                 "authenticated": True,
                 "caller": result.get("holder", "cap-token"),
                 "capability_token_id": result.get("token_id"),
+                "credential_type": "capability_token",
+                "credential_hash": hashlib.sha256(cap_token.encode("utf-8")).hexdigest(),
                 "resource": resource,
                 "action": action,
                 "location_id": location_id,
@@ -89,6 +92,10 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
             return {
                 "authenticated": True,
                 "caller": key_meta.get("name", "api-key"),
+                # This digest is an internal transaction proof. The raw key is
+                # never propagated past authentication or written to audit.
+                "credential_type": "api_key",
+                "credential_hash": hashlib.sha256(api_key.encode("utf-8")).hexdigest(),
                 "resource": resource,
                 "action": action,
                 "location_id": location_id,
@@ -151,6 +158,11 @@ def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str |
         # scope that explicitly names a location (or wildcard).  Two-part
         # scopes (scope_location is None) are not enough.
         if strict and location_id and scope_location is None:
+            continue
+        # A location-bound key cannot authorize a route whose resource is
+        # global. Otherwise a farm grant could accidentally cross into DAO-
+        # wide state simply because the route has no location parameter.
+        if scope_location and location_id is None and scope_location != "*":
             continue
         if scope_location and location_id and scope_location not in ("*", location_id):
             continue

@@ -30,15 +30,20 @@ config/
 - **TLS certificates** are provisioned externally before the relevant service starts (Mosquitto fails without them).
 - **`directus/permissions.sql`** is the canonical RBAC seed — roles, policies, and per-collection access rules for 6 human roles and 3 agent roles.
 
-## Gateway (Host-Only)
+## Gateway (Kernel Profiles)
 
-The FastAPI API gateway (`services/gateway/`) is **not containerized** and **not routed through Caddy**. It runs as a host-only process:
+The FastAPI gateway (`services/gateway/`) runs in the selected Kernel Compose
+profile. The legacy host command remains available for local development:
 
 ```bash
 python3 -m services.gateway.cli --serve --port 8099
 ```
 
-It provides a public REST API (`/api/locations`, `/api/metrics/{id}`, `/api/crisp/{id}`, etc.) with API key auth, rate limiting, and audit logging. It reads `DIRECTUS_URL` and `DIRECTUS_ADMIN_TOKEN` from the environment to proxy Directus requests. No config file exists for it — it is configured entirely via environment variables.
+It provides the public REST API, API-key authentication, rate limits, and audit
+logging. Public location reads use the bounded native PostgreSQL projection;
+they do not proxy Directus. Identity, database, optional-provider, and transport
+settings are configured through environment variables. Reverse-proxy paths are
+defined in `config/caddy/` and differ by deployment profile.
 
 ## Modifying Configs
 

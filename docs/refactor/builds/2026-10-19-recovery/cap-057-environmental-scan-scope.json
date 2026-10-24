@@ -1,0 +1,23 @@
+{
+  "capability": "CAP-057",
+  "title": "Environmental scan summary and PESTEL factor scope",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and mocked checks pass; capability not accepted",
+  "changes": [
+    "Environmental scan communication now uses current findings collected during this run and retained findings from steps for which no new evidence was collected.",
+    "PESTEL factor writes require an existing analysis and bind factor location to that analysis; a conflicting caller-supplied location is rejected before insert.",
+    "PESTEL impact scores must be finite and within 1-10, and likelihood must be finite and within 0-1, before database access."
+  ],
+  "verification": {
+    "command": "11 explicitly selected mocked tests across tests/test_env_scanning.py and tests/test_pestel.py",
+    "result": "11 passed",
+    "ruff": "python3 -m ruff check services/analytics/env_scanning.py services/analytics/pestel.py tests/test_env_scanning.py tests/test_pestel.py: passed",
+    "compilation": "python3 -m compileall -q services/analytics/env_scanning.py services/analytics/pestel.py: passed"
+  },
+  "scope_limits": [
+    "Checks use mocked connections; no database or external provider was contacted.",
+    "Regional readiness and segment outputs, owner-selected reference fixtures, populated data parity, and tenant authorization remain unassessed.",
+    "MAN-CAP-057 owner acceptance remains open."
+  ]
+}

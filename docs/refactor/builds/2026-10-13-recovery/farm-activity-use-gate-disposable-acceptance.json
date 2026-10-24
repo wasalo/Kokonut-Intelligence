@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-13",
+  "migration": "schemas/postgres/386_farm_activity_consent_use_gate.sql",
+  "migration_sha256": "2968b14ee0089e6da713022a4f6d718294ceb126e6913bf60f485fb0bff9ceb1",
+  "database": {
+    "image": "postgis/postgis:16-3.4",
+    "network": "none",
+    "fixture": "tests/fixtures/farm_activity_use_gate_disposable_setup.sql",
+    "scope": "Synthetic schema and records for migration 386; not a full ordered migration replay or a restored production-like database."
+  },
+  "migration_checks": {
+    "directus_present": "passed",
+    "directus_permissions_json_column_and_recursive_seed_repair_idempotence": "passed; applied the Directus permission repair twice after existing location scopes, verified the second run made zero changes, and confirmed one recursively nested gate per read policy including a NULL permission row",
+    "directus_absent_kernel_only": "passed",
+    "eligibility_and_legacy_source": "passed",
+    "wrong_location_and_malformed_lineage_fail_closed": "passed",
+    "withdrawal_followed_by_later_grant_remains_ineligible": "passed",
+    "ineligible_content_edit_and_productive_transition_blocked": "passed",
+    "rejection_disposition_remains_available": "passed",
+    "field_collector_provenance_is_immutable": "passed",
+    "retired_revision_queues_collection_for_review": "passed",
+    "directus_read_scope_preserved_field_collector_rows_excluded_and_null_permission_closed": "passed",
+    "repository_seeded_dashboard_queries_gated": "passed",
+    "migration_version_marker": "passed"
+  },
+  "focused_python_suite": {
+    "result": "passed",
+    "passed": 56,
+    "skipped": 18,
+    "modules": [
+      "tests/test_farm_activity_use_gate.py",
+      "tests/test_farm_activity_lifecycle.py",
+      "tests/test_farm_activity_workflow.py",
+      "tests/test_farm_activity_metrics.py",
+      "tests/test_farm_activity_summary_report.py",
+      "tests/test_process_mining.py",
+      "tests/test_value_stream.py",
+      "tests/test_value_stream_defs.py",
+      "tests/test_operator_console_farm_activity.py",
+      "tests/test_directus_metadata.py"
+    ]
+  },
+  "static_checks": {
+    "operator_console_inline_javascript": "node --check passed",
+    "ruff_targeted_changed_boundary": "passed",
+    "ruff_touched_modules_sweep": {
+      "findings": 31,
+      "findings_on_added_or_modified_lines": 0
+    },
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "cleanup": {
+    "temporary_containers_removed": true,
+    "named_volumes_created": false,
+    "candidate_or_legacy_services_changed": false
+  },
+  "remaining": [
+    "Candidate rollout with fresh encrypted checkpoint and exact-target acceptance",
+    "Directus HTTP/API authorization acceptance",
+    "Configured OIDC and manual capability acceptance"
+  ]
+}

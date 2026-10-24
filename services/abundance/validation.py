@@ -10,8 +10,8 @@ import hashlib
 import json
 import math
 import secrets
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
@@ -19,6 +19,7 @@ import psycopg2.extras
 from ..common.logging import get_logger
 
 logger = get_logger("abundance.validation")
+VOTE_TYPES = ("accuracy", "penalty", "weight_adjustment")
 
 
 def _generate_commit_hash(data: str, salt: str = None) -> str:
@@ -26,6 +27,19 @@ def _generate_commit_hash(data: str, salt: str = None) -> str:
     if not salt:
         salt = secrets.token_hex(32)
     return hashlib.sha256(f"{data}:{salt}".encode()).hexdigest()
+
+
+def _expertise_match_score(domain_expertise: List[str], categories: List[Dict[str, Any]]) -> float:
+    domains = {str(value).strip().casefold() for value in domain_expertise or []}
+    seen = set()
+    score = 0.0
+    for category in categories:
+        category_name = str(category["category_name"]).strip().casefold()
+        category_id = str(category.get("category_id") or category_name)
+        if category_name in domains and category_id not in seen:
+            score += float(category["relative_impact_score"] or 0)
+            seen.add(category_id)
+    return score
 
 
 def select_validators(
@@ -39,6 +53,19 @@ def select_validators(
 
     Returns validation_round_id.
     """
+    if isinstance(tier, bool) or tier not in (1, 2, 3):
+        raise ValueError("tier must be 1, 2, or 3")
+    if isinstance(slot_count, bool) or not isinstance(slot_count, int) or slot_count < 1:
+        raise ValueError("slot_count must be a positive integer")
+    if isinstance(required_expertise, bool):
+        raise ValueError("required_expertise must be finite and non-negative")
+    try:
+        required_expertise = float(required_expertise)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("required_expertise must be finite and non-negative") from exc
+    if not math.isfinite(required_expertise) or required_expertise < 0:
+        raise ValueError("required_expertise must be finite and non-negative")
+
     # Get category expertise requirements for the estimate
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
@@ -51,23 +78,32 @@ def select_validators(
 
     # Get eligible evaluators with relevant expertise
     cur.execute("""
-        SELECT e.id, e.display_name, e.trust_score, e.evaluator_type
+        SELECT e.id, e.display_name, e.trust_score, e.evaluator_type,
+               e.domain_expertise
         FROM evaluator e
         WHERE e.status = 'active'
         AND e.trust_score > 0.1
         ORDER BY e.trust_score DESC
     """)
-    eligible = [dict(r) for r in cur.fetchall()]
+    evaluators = [dict(r) for r in cur.fetchall()]
     cur.close()
+
+    eligible = []
+    for evaluator in evaluators:
+        expertise_score = _expertise_match_score(
+            evaluator.get("domain_expertise") or [], categories,
+        )
+        if expertise_score >= required_expertise:
+            eligible.append({**evaluator, "expertise_score": expertise_score})
 
     if not eligible:
         logger.warning("No eligible evaluators for estimate %s", estimate_id[:8])
         return None
 
-    # Simple random selection (commit-reveal will be handled separately)
-    import random
+    # Use system randomness so validator selection is not predictable from a
+    # process-level pseudorandom seed.
     selected_count = min(slot_count, len(eligible))
-    selected = random.sample(eligible, selected_count)
+    selected = secrets.SystemRandom().sample(eligible, selected_count)
 
     # Create validation round
     now = datetime.now(timezone.utc)
@@ -89,7 +125,7 @@ def select_validators(
             INSERT INTO validator_selection
                 (round_id, evaluator_id, tier, slot_number, expertise_score, status)
             VALUES (%s, %s, %s, %s, %s, 'selected')
-        """, (round_id, str(evaluator["id"]), tier, i + 1, float(evaluator["trust_score"])))
+        """, (round_id, str(evaluator["id"]), tier, i + 1, evaluator["expertise_score"]))
 
     # Generate commit hash for the selection
     commit_data = json.dumps([str(e["id"]) for e in selected])
@@ -142,9 +178,21 @@ def cast_review(
     """Submit a validator review."""
     # Get tier from round
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT tier FROM validation_round WHERE id = %s", (round_id,))
+    cur.execute("""
+        SELECT vr.tier
+        FROM validation_round vr
+        JOIN validator_selection vs ON vs.round_id = vr.id
+        WHERE vr.id = %s
+          AND vs.evaluator_id = %s
+          AND vs.status = 'revealed'
+          AND vr.status IN ('committed', 'revealing', 'revealed', 'reviewing')
+        FOR UPDATE OF vs
+    """, (round_id, validator_id))
     row = cur.fetchone()
-    tier = row["tier"] if row else 1
+    if not row:
+        cur.close()
+        raise ValueError("validator is not selected and revealed for this round")
+    tier = row["tier"]
 
     cur.execute("""
         INSERT INTO validator_review
@@ -161,7 +209,7 @@ def cast_review(
     # Update validator selection status
     cur.execute("""
         UPDATE validator_selection SET status = 'reviewed'
-        WHERE round_id = %s AND evaluator_id = %s
+        WHERE round_id = %s AND evaluator_id = %s AND status = 'revealed'
     """, (round_id, validator_id))
 
     conn.commit()
@@ -180,6 +228,16 @@ def cast_qv_vote(
     justification: str = None,
 ) -> str:
     """Cast a quadratic vote with sqrt-weighting."""
+    if isinstance(vote_weight, bool):
+        raise ValueError("vote_weight must be finite and in (0, 1]")
+    try:
+        vote_weight = float(vote_weight)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("vote_weight must be finite and in (0, 1]") from exc
+    if not math.isfinite(vote_weight) or not 0 < vote_weight <= 1:
+        raise ValueError("vote_weight must be finite and in (0, 1]")
+    if vote_type not in VOTE_TYPES:
+        raise ValueError(f"vote_type must be one of {VOTE_TYPES}")
     sqrt_weight = math.sqrt(vote_weight)
 
     cur = conn.cursor()

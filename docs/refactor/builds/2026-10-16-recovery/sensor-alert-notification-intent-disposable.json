@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Migration 409 bounded sensor-alert notification intent",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migrations": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+    "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
+    "schemas/postgres/408_sensor_alert_event_function.sql",
+    "schemas/postgres/409_sensor_alert_notification_intent.sql"
+  ],
+  "migration_409_sha256": "00b7b28a05e8566c6124d0e7de22113a7da6345ab74e797da04fc6b77c9cfe52",
+  "migration_replay": "passed",
+  "command": "python3 scripts/check-sensor-alert-notification-intent-disposable.py",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migration 409 applies and replays after worker context and effect migrations"
+    },
+    {
+      "result": "passed",
+      "description": "notification enqueue rejects calls without a signed worker scope"
+    },
+    {
+      "result": "passed",
+      "description": "matching signed receipt and published alert create one webhook intent"
+    },
+    {
+      "result": "passed",
+      "description": "identical source/channel/destination retries are idempotent"
+    },
+    {
+      "result": "passed",
+      "description": "Directus and email channel payload contracts are accepted"
+    },
+    {
+      "result": "passed",
+      "description": "all channel intents are location-bound, pending, and have zero attempts"
+    },
+    {
+      "result": "passed",
+      "description": "conflicting stable identity fails without replacing saved payload"
+    },
+    {
+      "result": "passed",
+      "description": "invalid channels, destinations, payloads, content, and oversized messages fail closed"
+    },
+    {
+      "result": "passed",
+      "description": "wrong source, non-alert event, and out-of-scope location are rejected"
+    },
+    {
+      "result": "passed",
+      "description": "retry preserves delivered status, attempt count, and attempt history"
+    },
+    {
+      "result": "passed",
+      "description": "worker has bounded function EXECUTE only; runtime and auth roles cannot call it"
+    },
+    {
+      "result": "passed",
+      "description": "worker cannot directly read or mutate notification rows or attempt history"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false
+}

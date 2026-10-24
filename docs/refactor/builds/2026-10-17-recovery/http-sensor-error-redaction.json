@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "HTTP sensor credential lookup, processing, and ClickHouse fallback failures",
+  "behavior": {
+    "credential_lookup": "Storage exception details are removed from logs and the 503 response remains bounded.",
+    "reading_processing": "Processing failures log only the exception class and return the existing retryable 503 response.",
+    "clickhouse_fallback": "The direct compatibility fallback logs only the exception class.",
+    "cleanup": "Processing rollback and connection close behavior remain intact."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_http_sensor_error_redaction.py tests/test_iot_sensor_push.py tests/test_mqtt_subscriber_error_redaction.py -q",
+    "result": "50 passed",
+    "new_regressions": 3,
+    "coverage": [
+      "secret-bearing credential lookup failure is absent from logs and HTTP response",
+      "secret-bearing reading failure retains retryable 503 and cleanup without exposing details",
+      "secret-bearing ClickHouse fallback error is absent from logs"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none; TestClient with mocked database, signature secret, and projection boundary"
+  },
+  "limitations": [
+    "No live HTTP receiver, database, broker, or ClickHouse endpoint was used.",
+    "This does not establish network listener, TLS, rate-limit, or live device behavior."
+  ]
+}

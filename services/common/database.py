@@ -14,6 +14,7 @@ Provides two connection factories:
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Iterator, Optional
 
@@ -21,6 +22,7 @@ import psycopg2
 import psycopg2.extras
 
 from .db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from .worker_environment import ISOLATED_WORKER_KEY_ENV
 
 _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -38,6 +40,10 @@ def get_db(*, connect_timeout: int | None = None):
     delegate here to ensure a consistent default database name and
     connection parameters.
     """
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
+        raise RuntimeError(
+            "shared database access is unavailable to isolated worker processes"
+        )
     options = {}
     if connect_timeout is not None:
         if isinstance(connect_timeout, bool) or not isinstance(connect_timeout, int) or connect_timeout <= 0:
@@ -109,17 +115,26 @@ class MappingResult:
 class DatabaseConnection:
     """Transaction-owning connection adapter used by CLI entry points."""
 
-    def __init__(self, connection=None, *, connect_timeout: int | None = None):
+    def __init__(self, connection=None, *, connect_timeout: int | None = None, readonly: bool = False):
+        if not isinstance(readonly, bool):
+            raise TypeError("readonly must be a boolean")
         if connection is not None:
             if connect_timeout is not None:
                 raise ValueError("connect_timeout cannot configure an existing connection")
             self._connection = connection
         else:
             self._connection = get_db() if connect_timeout is None else get_db(connect_timeout=connect_timeout)
+        if readonly:
+            self._connection.set_session(readonly=True)
 
     @staticmethod
     def text(sql: str) -> str:
         return sql
+
+    @property
+    def autocommit(self) -> bool:
+        """Expose transaction mode to helpers that require transaction-local state."""
+        return self._connection.autocommit
 
     def execute(self, sql: str, params: Optional[dict[str, Any]] = None) -> MappingResult:
         cur = self._connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -161,6 +176,6 @@ class DatabaseConnection:
         return False
 
 
-def get_connection(*, connect_timeout: int | None = None) -> DatabaseConnection:
-    """Return a transaction-owning credit-service connection."""
-    return DatabaseConnection(connect_timeout=connect_timeout)
+def get_connection(*, connect_timeout: int | None = None, readonly: bool = False) -> DatabaseConnection:
+    """Return a transaction-owning connection, optionally defaulting it to read-only."""
+    return DatabaseConnection(connect_timeout=connect_timeout, readonly=readonly)

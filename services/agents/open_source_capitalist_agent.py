@@ -7,7 +7,11 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -18,6 +22,7 @@ def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[A
 
 def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> dict[str, Any]:
     """Summarize public-safe scaling economics, barriers, stress tests, and open-source reuse."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     where, params = _location_filter("location_id", location_id)
@@ -30,7 +35,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                projected_annual_noi_usd, projected_roi_pct, payback_months,
                launch_timeline_months, assumptions, evidence_confidence,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_farm_launch_unit_economics
+        FROM kokonut_agent_source.v_public_farm_launch_unit_economics
         {where}
         ORDER BY target_region, economics_name
         """,
@@ -46,7 +51,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                expected_verification_outputs, readiness_score, dependency_summary,
                risk_gate_summary, target_status, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_network_scaling_target
+        FROM kokonut_agent_source.v_public_network_scaling_target
         ORDER BY target_date, target_name
         """
     )
@@ -59,7 +64,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                severity, likelihood, resolution_status, owner_role,
                estimated_mitigation_cost_usd, target_resolution_date,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_adoption_barrier_assessment
+        FROM kokonut_agent_source.v_public_adoption_barrier_assessment
         {where}
         ORDER BY assessment_date DESC, barrier_category, barrier_name
         """,
@@ -76,7 +81,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                baseline_noi_usd, downside_noi_usd, solvency_status,
                mitigation_actions, public_summary, evidence_maturity,
                evidence_maturity_label
-        FROM v_public_perpetual_value_stress_test
+        FROM kokonut_agent_source.v_public_perpetual_value_stress_test
         {where}
         ORDER BY scenario_date DESC, stress_type, scenario_name
         """,
@@ -90,7 +95,7 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
                license, version, reuse_status, reuse_count, supported_use_cases,
                verification_outputs, maintenance_owner, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_open_source_impact_artifact
+        FROM kokonut_agent_source.v_public_open_source_impact_artifact
         ORDER BY reuse_count DESC, artifact_type, artifact_name
         """
     )
@@ -145,6 +150,20 @@ class OpenSourceCapitalistSynthesisAgent(SynthesisAgent):
     read_collection = "farm_launch_unit_economics"
     model_version = "open-source-capitalist-agent-v1"
     source_tables = ["farm_launch_unit_economics", "network_scaling_target", "adoption_barrier_assessment", "perpetual_value_stress_test", "open_source_impact_artifact"]
+    source_reference_views = {
+        "farm_launch_unit_economics": "v_public_farm_launch_unit_economics",
+        "adoption_barrier_assessment": "v_public_adoption_barrier_assessment",
+        "perpetual_value_stress_test": "v_public_perpetual_value_stress_test",
+        "network_scaling_target": "v_public_network_scaling_target",
+        "open_source_impact_artifact": "v_public_open_source_impact_artifact",
+    }
+    source_reference_scopes = {
+        "farm_launch_unit_economics": "location_or_network",
+        "adoption_barrier_assessment": "location_or_network",
+        "perpetual_value_stress_test": "location_or_network",
+        "network_scaling_target": "network",
+        "open_source_impact_artifact": "network",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_open_source_capitalist(conn, location_id)
@@ -159,7 +178,7 @@ def run_open_source_capitalist_synthesis(location_id: str | None = None, store: 
 
 
 def main() -> None:
-    agent_cli(agent, description="Run the Kokonut Open Source Capitalist synthesis agent", location_required=False)
+    agent_cli(agent, description="Run the Kokonut Open Source Capitalist synthesis agent")
 
 
 if __name__ == "__main__":

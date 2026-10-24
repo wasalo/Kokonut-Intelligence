@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector retired required-consent sync through Gateway ASGI/HTTP",
+  "target": {
+    "source_compose_project": "kokonut-kernel-candidate",
+    "temporary_database": "codex_ki_retired_http_20261012_c28a591d",
+    "route": "POST /api/mobile/sync",
+    "transport": "Uvicorn bound to an ephemeral 127.0.0.1 port inside the candidate app container, with PG_DB pointed at the disposable clone"
+  },
+  "fixture": {
+    "form_revision": "synthetic reviewed revision codex-retired-consent-acceptance/v0",
+    "status": "retired",
+    "consent_policy_status": "required",
+    "basis": "The candidate's five seeded 1.1.0 retired revisions are all classified not_required, so a synthetic reviewed retired required-consent revision was used to exercise the withdrawal policy branch. The fixture existed only in the disposable clone."
+  },
+  "method": "Restored the candidate database into a temporary clone; added synthetic location, participant, reviewer-scoped participant link, device token hash, and reviewed retired required-consent form revision. Added a grant effective before collection, a withdrawal after collection, and a later current grant. Sent one real HTTP request through the Gateway ASGI middleware and mobile sync route. GatewayAudit.log was stubbed in the temporary process so the shared audit spool was not used.",
+  "result": {
+    "http_status": 403,
+    "detail": "Consent was withdrawn or denied after collection",
+    "offline_collection_rows_for_client": 0,
+    "upload_success_sync_log_rows_for_device": 0,
+    "gateway_audit_log_stubbed": true
+  },
+  "clone_after_request": {
+    "offline_collection_rows_for_client": 0,
+    "upload_success_sync_log_rows_for_device": 0,
+    "synthetic_locations": 1,
+    "synthetic_parties": 1,
+    "synthetic_devices": 1,
+    "synthetic_participant_links": 1,
+    "synthetic_consent_events": 3,
+    "synthetic_retired_form_revisions": 1
+  },
+  "source_database_before_and_after": {
+    "locations": 0,
+    "parties": 0,
+    "devices": 0,
+    "participant_links": 0,
+    "consent_events": 0,
+    "collections": 0,
+    "sync_logs": 0,
+    "form_revisions": 10
+  },
+  "cleanup": {
+    "temporary_server_stopped": true,
+    "temporary_database_dropped": true,
+    "temporary_dump_removed": true,
+    "candidate_app_healthy": true,
+    "candidate_database_healthy": true
+  },
+  "limitations": [
+    "The consent-withdrawal case used a synthetic reviewed retired required-consent revision because the seeded retired 1.1.0 revisions are classified not_required.",
+    "The browser UI, OS airplane mode, real OIDC enrollment, and human retention/erasure disposition were not exercised."
+  ],
+  "rollback": "All fixtures were confined to the disposable clone, which was dropped after the request. The temporary dump and loopback server were removed; the candidate source database was unchanged."
+}

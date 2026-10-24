@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Migration CLI database and subprocess error containment",
+  "behavior": {
+    "database_failure": "Nonzero psql exits report only the exit status; raw stdout and stderr are not copied into MigrationError.",
+    "process_failure": "OS and timeout failures report only the bounded exception class; captured process output is suppressed."
+  },
+  "focused_checks": {
+    "command": "python3 -m pytest tests/test_migration.py -q",
+    "result": "32 passed; includes two new mocked failure regressions",
+    "coverage": [
+      "synthetic database stdout and stderr are absent from the raised error",
+      "nonzero psql exit status remains actionable",
+      "synthetic timeout stdout and stderr are absent while the exception class remains visible"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "database_or_provider_access": "none; mocked subprocess boundaries"
+  },
+  "limitations": [
+    "No migration was applied and no PostgreSQL service was contacted.",
+    "Live transactional replay and rollback acceptance remain open."
+  ]
+}

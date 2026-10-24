@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-066",
+  "purpose": "Source-only verification of helper queries assembled from optional SQL filter lists and positional parameter lists.",
+  "analysis": {
+    "supported_shape": "Local literal clause and parameter lists receive simple append operations guarded by if/else branches; an f-string interpolates the joined clauses and passes the parameter list to execute/query.",
+    "guard_limit": 6,
+    "behavior": "Enumerate every guard combination, resolve each SQL variant, and compare positional placeholder count with the corresponding parameter-list length.",
+    "scope_limit": "The generic optional-filter solver does not certify tenant/location-scope correlation. Nested, computed, aliased, reassigned, or otherwise unrecognized mutations remain unresolved."
+  },
+  "newly_resolved_report_helper_memberships": [
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/strategy_execution.py",
+      "line": 30
+    },
+    {
+      "report_type": "business_plan",
+      "source_file": "services/analytics/strategy_kernel.py",
+      "line": 126
+    },
+    {
+      "report_type": "capability_assessment",
+      "source_file": "services/analytics/capability_map.py",
+      "line": 284
+    },
+    {
+      "report_type": "capability_dashboard",
+      "source_file": "services/analytics/capability_map.py",
+      "line": 284
+    },
+    {
+      "report_type": "strategy_execution",
+      "source_file": "services/analytics/strategy_execution.py",
+      "line": 30
+    }
+  ],
+  "inventory": {
+    "report_to_helper_memberships": 175,
+    "static_sql_sites": 141,
+    "unresolved_sql_sites": 34,
+    "positional_bind_contracts": 127,
+    "named_bind_contracts": 2,
+    "positional_bind_mismatches": 0,
+    "named_bind_mismatches": 0,
+    "location_scope_signals": 67
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+      "result": "37 passed"
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "report_source_inventory_freshness": "passed",
+    "report_query_scope_inventory_freshness": "passed",
+    "report_helper_scope_inventory_freshness": "passed",
+    "capability_matrix_validation": "passed",
+    "git_diff_check": "passed"
+  },
+  "runtime_database_or_provider_used": false,
+  "candidate_or_legacy_stack_touched": false,
+  "acceptance_limit": "Static AST and synthetic source tests verify recognized source shapes and bind arity. They do not prove runtime SQL execution, tenant isolation, populated report output parity, or provider behavior."
+}

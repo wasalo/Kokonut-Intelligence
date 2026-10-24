@@ -1,5 +1,6 @@
 """Health check flow."""
 
+from services.common.worker_environment import worker_subprocess_environment
 from services.core.adapters.prefect import flow
 
 
@@ -10,6 +11,7 @@ def health_check_flow():
     result = subprocess.run(
         ["bash", "scripts/health-check.sh", "--json"],
         capture_output=True, text=True, timeout=60,
+        env=worker_subprocess_environment(),
     )
     if result.returncode != 0:
         raise RuntimeError(f"Health check failed: {result.stderr}")

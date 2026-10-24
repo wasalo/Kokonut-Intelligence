@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "459_location_scoped_solution_lifecycle_summary.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 459 applies and replays on disposable PostgreSQL 16",
+    "location associations accept exact location links and exclude other scopes",
+    "stage gates, evaluations, experiments, funding decisions, adoption, scale, learning, and retirement aggregates match fixtures",
+    "signed location context and exact solution_lifecycle:read grant are enforced",
+    "runtime and Directus lack direct solution table/function access",
+    "reader role is non-login, read-only, and has no identity access"
+  ],
+  "assertions_passed": 6
+}

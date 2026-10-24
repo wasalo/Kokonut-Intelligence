@@ -1,0 +1,35 @@
+{
+  "capability": "CAP-003",
+  "slice": "initial location-scoped traceability reads",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "49d1f1dd",
+  "tested_source": "CAP-003 working-tree changes committed with this evidence record",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_traceability.py tests/test_operator_auth.py -q",
+    "passed": 76,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "regenerated and current",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Exact traceability:read location policy for list and detail routes",
+    "Signed tenant context on the same read-only connection before data queries",
+    "Explicit location predicates on batch and related-record queries",
+    "Bounded pagination and per-collection response limits",
+    "Actor names, free text, GPS, evidence links, and arbitrary metadata omitted",
+    "Unknown/cross-location batch is indistinguishable from missing batch",
+    "Tenant denial prevents data reads and all connections roll back/close"
+  ],
+  "remaining": [
+    "Populated legacy fixture and forward/backward output parity",
+    "Live ZITADEL/browser acceptance",
+    "Direct-database RLS and broader runtime-role least privilege",
+    "Report audience/scope review and MAN-CAP-003 owner acceptance"
+  ]
+}

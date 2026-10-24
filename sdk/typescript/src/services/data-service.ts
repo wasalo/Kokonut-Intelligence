@@ -7,14 +7,15 @@
 import {
   Client,
   Metadata,
-  credentials,
   type ChannelCredentials,
   type ServiceError,
 } from "@grpc/grpc-js";
+import { existsSync } from "fs";
 import * as protoLoader from "@grpc/proto-loader";
 import path from "path";
 
 import { KokonutGrpcError } from "../errors";
+import { resolveChannelCredentials } from "../transport";
 
 /** Options for constructing a DataServiceClient. */
 export interface DataServiceClientOptions {
@@ -28,7 +29,10 @@ export class DataServiceClient {
   private readonly defaultMetadata: Metadata;
 
   constructor(address: string, options: DataServiceClientOptions = {}) {
-    const protoRoot = path.resolve(__dirname, "../proto");
+    const bundledProtoRoot = path.resolve(__dirname, "../proto");
+    const protoRoot = existsSync(bundledProtoRoot)
+      ? bundledProtoRoot
+      : path.resolve(__dirname, "../../../../proto");
     const protoPath = path.resolve(protoRoot, "data/v1/service.proto");
     const packageDefinition = protoLoader.loadSync(protoPath, {
       keepCase: true,
@@ -47,7 +51,7 @@ export class DataServiceClient {
 
     this.client = new ServiceDefinition(
       address,
-      options.credentials ?? credentials.createInsecure(),
+      resolveChannelCredentials(address, options.credentials),
     ) as Client;
     this.defaultMetadata = options.metadata ?? new Metadata();
   }

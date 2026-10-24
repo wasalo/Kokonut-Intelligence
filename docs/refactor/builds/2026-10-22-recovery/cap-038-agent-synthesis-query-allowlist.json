@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "check": "shared synthesis SQL relation allowlist",
+  "command": "KOKONUT_ALLOW_PLAINTEXT_ENV=true python3 -m pytest tests/test_synthesis_source_references.py -q",
+  "result": "passed",
+  "tests_passed": 35,
+  "ruff": "passed",
+  "assertions": [
+    "All ten shared synthesis entry points execute against a recording fake cursor.",
+    "Every observed FROM/JOIN relation is a v_public_* view declared by that agent's source_reference_views map.",
+    "Location-only reads bind the requested location; mixed-scope reads include unassigned rows; network reads are unfiltered.",
+    "The union of the ten registered source-view maps equals migration 541's explicit SELECT grant list."
+  ],
+  "related_regression_selection_tests_passed": 77,
+  "external_services_used": false,
+  "database_used": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "Does not establish tenant row-level security.",
+    "Does not establish populated-output parity or deployment readiness."
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-22",
+  "capability": "CAP-038",
+  "change": "retire_generic_shared_database_synthesis_fallback",
+  "scope": {
+    "implementation": [
+      "SynthesisAgent.run requires an exact location and a declared source-reference view map.",
+      "Both read-only and draft synthesis delegate through the registered signed worker.",
+      "Unmapped synthesis subclasses fail before database access.",
+      "run_fetch remains as a compatibility symbol that fails before validation, callback execution, or database access."
+    ],
+    "production_run_fetch_call_sites": 0,
+    "registered_synthesis_agents_with_source_maps": 10
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_agents_base.py tests/test_synthesis_source_references.py tests/test_agent_worker_cli.py -q",
+      "result": "passed",
+      "passed": 134,
+      "failed": 0,
+      "skipped": 0
+    },
+    "ruff": {
+      "command": "ruff check services/agents/base.py tests/test_agents_base.py tests/test_synthesis_source_references.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m py_compile services/agents/base.py tests/test_agents_base.py tests/test_synthesis_source_references.py",
+      "result": "passed"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 66,
+      "classifications": {
+        "baseline_retained": 30,
+        "deployed": 7,
+        "prepared": 29
+      },
+      "manual_acceptance_checks_accepted": 0
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json followed by --check docs/refactor/runtime-sql-inventory.json",
+      "result": "refreshed and verified"
+    },
+    "worker_source_closure": {
+      "command": "python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json",
+      "result": "passed"
+    }
+  },
+  "not_performed": [
+    "No migration or database was used.",
+    "No provider, candidate, legacy stack, or real credential was used.",
+    "No live identity, operator-attribution, populated-parity, or MAN-CAP-038 acceptance is claimed."
+  ],
+  "rollback": "Revert the base runner and its regressions only if a replacement signed source adapter is reviewed and registered; do not restore the shared runtime database fallback."
+}

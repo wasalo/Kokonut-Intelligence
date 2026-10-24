@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Retain deterministic source-import inventory evidence for the allowlisted scheduler and event-handler operations.",
+  "command": "python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json",
+  "inventory": "docs/refactor/worker-source-closure.json",
+  "operations": 17,
+  "scheduled_modules": 12,
+  "event_handler_pairs": 5,
+  "distinct_local_source_files": 69,
+  "local_import_edges": 407,
+  "unresolved_local_modules": 0,
+  "unresolved_dynamic_import_sites": [
+    {
+      "source": "services/events/bus.py",
+      "line": 23,
+      "dispatch_guard": "services.security.execution_allowlist.validate_event_handler"
+    }
+  ],
+  "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_source_closure.py tests/test_worker_operation_map.py -q",
+  "focused_tests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "limits": [
+    "The static import closure is not a function-level call graph.",
+    "It does not prove runtime reachability, database effects, authorization, tenant context, least-privilege grants, or replay safety.",
+    "No candidate or legacy database was accessed and no migration was required."
+  ]
+}

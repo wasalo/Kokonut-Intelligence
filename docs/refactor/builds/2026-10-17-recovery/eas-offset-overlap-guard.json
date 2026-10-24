@@ -1,0 +1,67 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked EAS worker pages and regenerated source inventories; no provider or database access",
+  "files": [
+    "services/ingestion/eas_worker.py",
+    "tests/test_eas_worker.py"
+  ],
+  "behavior": {
+    "page_state": "Retain the attestation IDs from only the preceding full provider page",
+    "in_page_duplicates": "Reject duplicate IDs among the in-scope records before persistence",
+    "adjacent_overlap": "Reject an in-scope page that shares an ID with the preceding full page, including a shorter terminal page",
+    "failure_boundary": "Do not persist the repeated/overlapping page or advance the recipient cursor; prior page commits remain idempotent"
+  },
+  "regressions": [
+    "Consecutive identical full pages fail before the second page write",
+    "A shifted full page with one overlapping ID fails before persistence",
+    "A shorter terminal page with one overlapping ID fails before persistence",
+    "Duplicate attestation IDs within one full page fail before persistence"
+  ],
+  "focused_tests": {
+    "eas_provider_worker_cursor": {
+      "files": [
+        "tests/test_eas_worker.py",
+        "tests/test_eas_provider.py",
+        "tests/test_eas_indexer_recovery.py"
+      ],
+      "tests": 39,
+      "result": "passed"
+    },
+    "scheduled_command_contracts": {
+      "file": "tests/test_scheduled_command_contracts.py",
+      "tests": 130,
+      "result": "passed"
+    },
+    "worker_runtime_inventories": {
+      "tests": 50,
+      "result": "passed",
+      "files": [
+        "tests/test_worker_operation_map.py",
+        "tests/test_worker_source_closure.py",
+        "tests/test_worker_function_reachability.py",
+        "tests/test_worker_sql_reachability.py",
+        "tests/test_worker_boundary_preflight.py",
+        "tests/test_worker_sql_inventory.py",
+        "tests/test_worker_job_contract_inventory.py",
+        "tests/test_runtime_sql_inventory.py"
+      ]
+    },
+    "combined_total": 219,
+    "python_mode": "python -s to exclude a broken user-site pytest plugin entrypoint"
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "generated_worker_runtime_inventory_check_modes": "passed",
+    "repository_inventory": "fresh generation byte-compared successfully",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live EAS endpoint, database, candidate, or legacy service was contacted",
+    "Adjacent overlap detection cannot identify a missing interval that has no shared ID",
+    "Non-adjacent offset cycles, general snapshot instability, and earlier-than-cursor arrivals remain open",
+    "Live provider parity and MAN-CAP acceptance remain open"
+  ]
+}

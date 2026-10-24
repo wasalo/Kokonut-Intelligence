@@ -1,0 +1,130 @@
+{
+  "tested_at_utc": "2026-10-14T17:48:36Z",
+  "repository_revision": "e236251",
+  "assessment": "code-only ARM64 compatibility and recovery acceptance",
+  "host_and_emulation": {
+    "host": "macOS with Docker Desktop",
+    "execution": "Docker Buildx and QEMU linux/arm64",
+    "physical_raspberry_pi_available": false,
+    "claims_excluded": [
+      "physical-device performance",
+      "thermal behavior",
+      "storage wear",
+      "power-loss behavior",
+      "physical network reliability",
+      "on-device restart behavior"
+    ]
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-arm64-assess",
+    "database_volume": "kokonut-kernel-arm64-assess_portability-postgres-data",
+    "seeds_applied": false,
+    "candidate_database_touched": false,
+    "legacy_stack_touched": false,
+    "published_host_ports": []
+  },
+  "images": {
+    "postgis": {
+      "tag": "kokonut-kernel-arm64-assessment-postgis:local",
+      "architecture": "linux/arm64",
+      "image_id": "sha256:c94e7a07d5cc9d48df604eb7d6a617c86bc3e997c3abee360c185d7dd7d7489c",
+      "postgis_package_version": "3.6.4+dfsg-2.pgdg12+1",
+      "buildkit_package_install_seconds": 482.0
+    },
+    "kernel_app": {
+      "tag": "kokonut-kernel-arm64-assessment-app:local",
+      "architecture": "linux/arm64",
+      "image_id": "sha256:ca39e55d60dbe48141157e4cc52cfaaa351886c1d1cb229bc9e2bb160bc3ec67",
+      "target": "minimal kernel",
+      "runtime_lock": "requirements/kernel-runtime.lock",
+      "buildkit_dependency_install_seconds": 767.4
+    },
+    "platform_selection_finding": "The Compose portability manifest set runtime platform but did not explicitly set build platforms. An initial app build produced an AMD64 image. Adding the selected platform to build.platforms for both services fixed the mismatch; the isolated images inspect as ARM64 and a focused Compose contract test confirms build/runtime alignment."
+  },
+  "runtime": {
+    "postgresql": "16.15 (Debian 16.15-1.pgdg12+2), aarch64",
+    "postgis": "3.6.4",
+    "schema_migrations": {
+      "applied": 386,
+      "failed": 0,
+      "pending_after_apply": 0,
+      "seeds_applied": 0
+    },
+    "extensions": [
+      "pg_stat_statements:1.10",
+      "pg_trgm:1.6",
+      "postgis:3.6.4",
+      "postgis_topology:3.6.4"
+    ],
+    "raster": {
+      "available_version": "3.6.4",
+      "transactional_pixel_query_value": 1,
+      "transaction_rolled_back": true
+    },
+    "application_health": {
+      "initial_http_status": 200,
+      "database_restart_http_status": 200,
+      "app_sigkill_restart_http_status": 200,
+      "health_status": "ok"
+    }
+  },
+  "resource_limits_and_samples": {
+    "database_limit_bytes": 1610612736,
+    "app_limit_bytes": 1073741824,
+    "database_cpu_limit": 2.0,
+    "app_cpu_limit": 2.0,
+    "combined_container_memory_ceiling_bytes": 2684354560,
+    "samples": [
+      {
+        "stage": "schema migration",
+        "database_memory": "243.9 MiB / 1.5 GiB",
+        "database_cpu": "49.69%"
+      },
+      {
+        "stage": "after migrations and app health",
+        "database_memory": "401.6 MiB / 1.5 GiB",
+        "app_memory": "150.6 MiB / 1 GiB"
+      },
+      {
+        "stage": "final idle sample after restart checks",
+        "database_memory": "63.11 MiB / 1.5 GiB",
+        "app_memory": "141.5 MiB / 1 GiB"
+      }
+    ],
+    "interpretation": "These are container cgroup limits and point-in-time QEMU samples. They are not a 4 GB device benchmark or sustained-load result."
+  },
+  "backup_restore": {
+    "format": "pg_dump custom format",
+    "archive_size": "4.9 MB",
+    "host_file_permissions": "0600",
+    "restored_to": "kokonut_restore_verify",
+    "source_and_restore": {
+      "applied_migrations": 386,
+      "distinct_migration_checksums": 386,
+      "migration_fingerprint_sha256": "e5e847e132f2be42c1808c5ba61f46a48ae5ddda4e6e6fd3e0090184e0e38c1e",
+      "public_table_count": 1010,
+      "extensions_match": true
+    },
+    "kernel_schema_readiness": {
+      "ready": true,
+      "expected_migrations": 386,
+      "missing": 0,
+      "not_applied": 0,
+      "checksum_drift": 0,
+      "unknown_applied": 0,
+      "missing_extensions": 0,
+      "invalid_relations": 0,
+      "missing_columns": 0
+    }
+  },
+  "recovery": {
+    "database_orderly_restart": "healthy; all 386 migration records persisted",
+    "app_abrupt_container_loss": "SIGKILL followed by Compose start; health returned to HTTP 200",
+    "external_provider_calls": false
+  },
+  "verification": {
+    "focused_command": ".venv/bin/python -m pytest tests/test_compose_metabase_profile.py::test_portability_profile_builds_images_for_selected_runtime_architecture -q",
+    "focused_result": "1 passed",
+    "remote_ci_baseline": "CI #308 and Security #32 passed on pushed revision 7953afe; this local Compose/test change still requires a later batched push for remote CI."
+  }
+}

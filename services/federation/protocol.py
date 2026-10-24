@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import uuid
 import json
-from datetime import datetime, timezone
-from typing import Any, Optional
+import uuid
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("federation.protocol")
@@ -64,9 +63,9 @@ class FederationProtocol:
             conn.commit()
             logger.info("Shared %s data from %s (id=%s)", data_type, source_node_name, share_id[:8])
             return share_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to share data")
+            logger.error("Failed to share federation data (%s)", safe_exception_class(exc))
             raise
 
     def query(
@@ -102,9 +101,9 @@ class FederationProtocol:
             conn.commit()
             logger.info("Federation query submitted: %s (id=%s)", query_type, query_id[:8])
             return query_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to submit federation query")
+            logger.error("Failed to submit federation query (%s)", safe_exception_class(exc))
             raise
 
     def complete_query(self, query_id: str, result: dict, status: str = "completed") -> bool:
@@ -124,9 +123,9 @@ class FederationProtocol:
                 row = cur.fetchone()
             conn.commit()
             return row is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to complete federation query")
+            logger.error("Failed to complete federation query (%s)", safe_exception_class(exc))
             return False
 
     def get_shares(
@@ -178,8 +177,8 @@ class FederationProtocol:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to get federation shares")
+        except Exception as exc:
+            logger.error("Failed to get federation shares (%s)", safe_exception_class(exc))
             return []
 
     def get_queries(self, status: str | None = None, limit: int = 20) -> list[dict]:
@@ -222,6 +221,6 @@ class FederationProtocol:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to get federation queries")
+        except Exception as exc:
+            logger.error("Failed to get federation queries (%s)", safe_exception_class(exc))
             return []

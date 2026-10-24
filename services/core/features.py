@@ -64,6 +64,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "orchestration",
         "description": "Prefect workflow orchestration",
     },
+    "legacy_dataset_sql": {
+        "enabled": _providers.legacy_dataset_sql,
+        "critical": False,
+        "category": "analytics",
+        "description": "Legacy stored-SQL dashboard dataset refresh",
+    },
     "agents": {
         "enabled": os.getenv("KOKONUT_FEATURE_AGENTS", "true").lower() == "true",
         "critical": False,
@@ -93,6 +99,99 @@ FEATURES: dict[str, dict[str, Any]] = {
         "critical": False,
         "category": "core",
         "description": "Reactive event bus",
+    },
+    "notification_delivery": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
+            os.getenv("KOKONUT_FEATURE_EVENT_BUS", "true"),
+        ).lower() == "true",
+        "critical": False,
+        "category": "communications",
+        "description": "Durable outbox delivery through configured notification providers",
+    },
+    "isolated_notification_enqueue": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded function for event notification enqueue",
+    },
+    "event_retention_cleanup": {
+        "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
+        "critical": False,
+        "category": "governance",
+        "description": "Destructive event cleanup; requires approved retention and implemented legal-hold enforcement",
+    },
+    "signed_cache_invalidation": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated worker login and signed location grant for EventBus cache invalidation",
+    },
+    "signed_noi_snapshot_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific credential, signed location grant, and bounded function for NOI snapshot reconciliation",
+    },
+    "signed_credit_adjustment_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_SIGNED_CREDIT_ADJUSTMENT_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific credential, signed location grant, and bounded read-only function for credit adjustment checks",
+    },
+    "signed_weather_forecast_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific credential, signed location grant, and bounded functions for weather forecast ingestion",
+    },
+    "signed_weather_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_WEATHER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific provider key, database credential, signed location grant, and bounded functions for current-weather ingestion",
+    },
+    "signed_climate_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated GEE key path, database credential, signed location grant, and bounded functions for climate ingestion",
+    },
+    "isolated_market_data_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded function for global World Bank price ingestion",
+    },
+    "isolated_eas_indexer_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for global EAS attestation indexing",
+    },
+    "isolated_rpc_indexer_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_RPC_INDEXER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for global RPC wallet balance snapshots",
+    },
+    "signed_sensor_ingestion_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login, signed location grant, and bounded functions for scheduled CSV sensor ingestion",
+    },
+    "signed_remote_sensing_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login, signed location grant, and bounded functions for scheduled remote-sensing ingestion",
     },
 }
 

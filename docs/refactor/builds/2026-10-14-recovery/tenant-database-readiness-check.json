@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-14",
+  "scope": "aggregate tenant database-readiness source checks",
+  "command": ".venv/bin/python -m pytest tests/test_mobile_tenant_database_readiness.py tests/test_mobile_tenant_operator_preflight.py tests/test_mobile_tenant_binding.py -q",
+  "result": "passed",
+  "tests_passed": 10,
+  "new_readiness_checks": 4,
+  "existing_tenant_preflight_checks": 6,
+  "ruff": "passed",
+  "format": "passed",
+  "database_connections": 0,
+  "candidate_or_legacy_accessed": false,
+  "migrations_applied": false,
+  "identifiers_or_secrets_emitted": false,
+  "remaining_limits": [
+    "The preflight still uses the configured CLI database identity.",
+    "A dedicated read-only preflight role is required before running this command after application RLS is enabled.",
+    "Aggregate role and schedule indicators do not prove worker tenant isolation or resolve owner mappings."
+  ]
+}

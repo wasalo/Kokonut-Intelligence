@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 import psycopg2
 
 from services.migration.runtime_role import provision_runtime_role
-
 
 HOST = os.environ.get("PG_HOST", "database")
 PORT = int(os.environ.get("PG_PORT", "5432"))
@@ -18,7 +18,21 @@ ADMIN_USER = os.environ.get("KOKONUT_DB_ADMIN_USER", "kokonut")
 ADMIN_PASSWORD = os.environ["KOKONUT_DB_ADMIN_PASSWORD"]
 RUNTIME_USER = os.environ.get("KOKONUT_RUNTIME_USER", "kokonut_runtime")
 RUNTIME_PASSWORD = os.environ["KOKONUT_RUNTIME_PASSWORD"]
+OPERATOR_AUTH_USER = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
+OPERATOR_AUTH_PASSWORD = os.environ["KOKONUT_OPERATOR_AUTH_PASSWORD"]
 UNRELATED_DATABASE = "runtime_role_unrelated"
+OPERATOR_SESSION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/395_operator_session_auth_boundary.sql"
+)
+GATEWAY_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql"
+)
+MOBILE_ROLE_FIXTURE = (
+    Path(__file__).resolve().parents[2]
+    / "tests/fixtures/operator_session_mobile_role_boundary.sql"
+)
 
 
 def connect(user: str, password: str, database: str = DATABASE):
@@ -55,6 +69,36 @@ def main() -> None:
                 cur.execute(f'CREATE DATABASE "{UNRELATED_DATABASE}"')
             cur.execute("DROP TABLE IF EXISTS public.kernel_role_probe_existing CASCADE")
             cur.execute("DROP TABLE IF EXISTS public.kernel_role_probe_future CASCADE")
+            cur.execute("DROP TABLE IF EXISTS public.mobile_device_enrollment CASCADE")
+            cur.execute("DROP TABLE IF EXISTS public.mobile_device CASCADE")
+            cur.execute(
+                """CREATE TABLE IF NOT EXISTS public.operator_identity (
+                       id UUID PRIMARY KEY,
+                       issuer TEXT NOT NULL,
+                       subject TEXT NOT NULL,
+                       display_name TEXT,
+                       email TEXT,
+                       enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                       UNIQUE (issuer, subject)
+                   )"""
+            )
+            cur.execute(
+                """CREATE TABLE IF NOT EXISTS public.operator_session (
+                       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                       operator_id UUID NOT NULL REFERENCES public.operator_identity(id),
+                       session_token_hash CHAR(64) NOT NULL UNIQUE,
+                       csrf_token_hash CHAR(64) NOT NULL,
+                       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                       last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                       expires_at TIMESTAMPTZ NOT NULL,
+                       revoked_at TIMESTAMPTZ
+                   )"""
+            )
+            cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
+            cur.execute(GATEWAY_CONTEXT_MIGRATION.read_text())
+            cur.execute(MOBILE_ROLE_FIXTURE.read_text())
             cur.execute(
                 """
                 CREATE TABLE public.kernel_role_probe_existing (
@@ -74,6 +118,8 @@ def main() -> None:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
         second = provision_runtime_role(
             admin,
@@ -82,6 +128,8 @@ def main() -> None:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
 
         with admin.cursor() as cur:
@@ -118,6 +166,9 @@ def main() -> None:
                 cur.execute("DELETE FROM public.kernel_role_probe_future WHERE id = %s", (future_id,))
 
             for statement in (
+                "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
+                "SELECT push_token FROM public.mobile_device LIMIT 1",
+                "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
                 "CREATE TABLE public.kernel_role_probe_forbidden (id INTEGER)",
                 "CREATE ROLE kernel_role_probe_forbidden LOGIN",
                 "CREATE DATABASE kernel_role_probe_forbidden",

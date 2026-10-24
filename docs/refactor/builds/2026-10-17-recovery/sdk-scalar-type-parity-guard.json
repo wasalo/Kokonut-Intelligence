@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and TypeScript scalar SDK type parity with PostgreSQL",
+  "source_of_truth": "Mapped CREATE TABLE declarations and additive/altering PostgreSQL migrations",
+  "change": "The offline schema guard now compares supported scalar SQL families with Python and TypeScript annotations for all mapped base and added columns. JSONB and PostGIS values remain excluded pending structured shape contracts.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "25 passed (21 SDK tests and 4 guard regressions)"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "schema_guard": "passed: 20 models, 473 columns, 442 scalar SQL type families checked per SDK",
+    "capability_matrix": "passed: 66 rows; classifications unchanged",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and mocked clients only"
+}

@@ -12,14 +12,39 @@ import tempfile
 import uuid
 from pathlib import Path
 
-from ..common.db import PG_DB, PG_USER
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
+from ..common.worker_environment import worker_subprocess_environment
 
 logger = get_logger("migration")
 
 PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
+SEED_VERSION_PREFIX = re.compile(r"^\d+(?:-\d+)?$")
+MOBILE_FORM_SEED_ID = "seed:140_mobile_forms.sql"
+MOBILE_FORM_SEED_COLUMNS = (
+    "form_id",
+    "name",
+    "description",
+    "form_schema",
+    "ui_schema",
+    "version",
+    "collection_type",
+    "status",
+    "consent_policy_status",
+    "consent_data_category",
+    "consent_purpose",
+    "consent_scope_type",
+    "consent_scope_id",
+    "consent_recipient_type",
+    "consent_recipient_party_id",
+    "consent_recipient_name",
+    "consent_version",
+    "consent_policy_reviewed_by",
+    "consent_policy_reviewed_at",
+    "consent_policy_evidence",
+)
 # Canonical KI tables and migration tracking live in public; exclude "$user" so
 # a role-named schema cannot shadow public objects during migrations.
 MIGRATION_SEARCH_PATH = "public, topology, tiger"
@@ -94,6 +119,11 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
     through ``docker compose exec -T database psql`` — especially with
     large ``BEGIN``/``COMMIT``-wrapped migrations and ``ON_ERROR_STOP=1``.
     """
+    # Source-only commands such as `validate` must not load SOPS credentials.
+    # Import the configured connection only when a command actually contacts
+    # PostgreSQL.
+    from ..common.db import PG_DB, PG_USER
+
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False)
     try:
         tmp.write(f"SET search_path = {MIGRATION_SEARCH_PATH};\n{input_sql}")
@@ -120,13 +150,20 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         ]
         try:
             result = subprocess.run(
-                shell_cmd, capture_output=True, text=True, timeout=3600
+                shell_cmd,
+                capture_output=True,
+                text=True,
+                timeout=3600,
+                env=worker_subprocess_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise MigrationError(f"psql execution failed: {exc}") from exc
+            raise MigrationError(
+                f"psql execution failed ({safe_exception_class(exc)})"
+            ) from exc
         if result.returncode != 0:
-            detail = result.stderr.strip() or result.stdout.strip() or "unknown psql error"
-            raise MigrationError(detail)
+            raise MigrationError(
+                f"psql execution failed with exit status {result.returncode}"
+            )
         return result
     finally:
         try:
@@ -148,7 +185,10 @@ def _discover_files(*, include_seeds: bool = True) -> list[dict]:
         directories.append((SEED_DIR, "seed"))
     for directory, kind in directories:
         for path in sorted(directory.glob("*.sql"), key=lambda item: item.name):
-            if not path.stem.split("_", 1)[0].isdigit():
+            version = path.stem.split("_", 1)[0]
+            if kind == "schema" and not version.isdigit():
+                continue
+            if kind == "seed" and not SEED_VERSION_PREFIX.fullmatch(version):
                 continue
             migration_id = f"{kind}:{path.name}"
             if migration_id in seen_ids:
@@ -156,7 +196,7 @@ def _discover_files(*, include_seeds: bool = True) -> list[dict]:
             seen_ids.add(migration_id)
             files.append({
                 "id": migration_id,
-                "version": path.stem.split("_", 1)[0],
+                "version": version,
                 "name": path.stem,
                 "kind": kind,
                 "path": path,
@@ -268,7 +308,7 @@ ORDER BY migration_id;
             continue
         parts = line.split("|")
         if len(parts) != 4 or not parts[0]:
-            raise MigrationError(f"invalid schema_migration query output: {line!r}")
+            raise MigrationError("invalid schema_migration query output")
         migration_id, name, checksum, status = parts
         if migration_id in applied:
             raise MigrationError(f"duplicate tracked migration ID: {migration_id}")
@@ -441,6 +481,93 @@ def _migration_body_without_transaction(migration_id: str, sql_content: str) -> 
     ) + "\n"
 
 
+def _mobile_form_seed_state_query(seed_path: Path) -> str:
+    """Build a source-derived check for empty or exactly matching form state."""
+    sql_source = seed_path.read_text()
+    values_marker = "FROM (VALUES"
+    alias_marker = ") AS seed ("
+    try:
+        values_start = sql_source.index(values_marker) + len(values_marker)
+        values_end = sql_source.index(alias_marker, values_start)
+        columns_start = values_end + len(alias_marker)
+        columns_end = sql_source.index(")", columns_start)
+    except ValueError as exc:
+        raise MigrationError(
+            "mobile form seed source no longer matches the reviewed VALUES layout"
+        ) from exc
+
+    columns = tuple(
+        column.strip()
+        for column in sql_source[columns_start:columns_end].split(",")
+    )
+    if columns != MOBILE_FORM_SEED_COLUMNS:
+        raise MigrationError(
+            "mobile form seed columns changed; update and review its parity guard first"
+        )
+    values = sql_source[values_start:values_end].strip()
+    if not values:
+        raise MigrationError("mobile form seed has no source rows")
+
+    actual_form_differences = ", ".join(
+        f"CASE WHEN actual.{column} IS DISTINCT FROM expected.{column} "
+        f"THEN '{column}' END"
+        for column in columns
+        if column != "form_id"
+    )
+    active_revision_differences = ", ".join(
+        f"CASE WHEN revision.{column} IS DISTINCT FROM expected.{column} "
+        f"THEN '{column}' END"
+        for column in columns
+        if column not in {"form_id", "version"}
+    )
+    return f"""
+WITH expected ({", ".join(columns)}) AS (
+    VALUES
+{values}
+)
+SELECT CASE
+    WHEN NOT EXISTS (
+        SELECT 1
+        FROM expected
+        JOIN public.mobile_form AS actual USING (form_id)
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM expected
+        JOIN public.mobile_form_version AS revision USING (form_id)
+    ) THEN 'empty'
+    WHEN EXISTS (
+        SELECT 1
+        FROM expected
+        LEFT JOIN public.mobile_form AS actual USING (form_id)
+        LEFT JOIN public.mobile_form_version AS revision
+          ON revision.form_id = expected.form_id
+         AND revision.version = expected.version
+         AND revision.status = expected.status
+        WHERE actual.form_id IS NULL
+           OR concat_ws(',', {actual_form_differences}) <> ''
+           OR revision.form_id IS NULL
+           OR concat_ws(',', {active_revision_differences}) <> ''
+    ) THEN 'mismatch'
+    ELSE 'matched'
+END
+"""
+
+
+def _assert_mobile_form_seed_matches_source(seed_path: Path) -> str:
+    """Allow a clean insert or a verified no-op; reject partial or divergent rows."""
+    result = _psql(_mobile_form_seed_state_query(seed_path))
+    state = result.stdout.strip()
+    if state not in {"empty", "matched"}:
+        if state == "mismatch":
+            raise MigrationError(
+                "existing mobile form or active revision differs from "
+                "seed:140_mobile_forms.sql; reconcile it before recording this seed"
+            )
+        raise MigrationError("could not verify existing mobile-form seed state")
+    return state
+
+
 def _apply_files(files: list[dict]) -> None:
     """Apply migrations one at a time, each in its own psql session.
 
@@ -457,6 +584,24 @@ def _apply_files(files: list[dict]) -> None:
     for file_info in files:
         migration_id = file_info["id"]
         logger.info("Applying migration %s...", migration_id)
+        precondition_sql = ""
+        if migration_id == MOBILE_FORM_SEED_ID:
+            state_query = _mobile_form_seed_state_query(file_info["path"]).strip().rstrip(";")
+            precondition_sql = f"""
+LOCK TABLE public.mobile_form IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.mobile_form_version IN SHARE ROW EXCLUSIVE MODE;
+DO $$
+DECLARE
+    seed_state TEXT;
+BEGIN
+    SELECT ({state_query}) INTO seed_state;
+    IF seed_state = 'mismatch' THEN
+        RAISE EXCEPTION USING MESSAGE =
+            'existing mobile form or active revision differs from seed:140_mobile_forms.sql; reconcile it before recording this seed';
+    END IF;
+END;
+$$;
+"""
         sql_content = _migration_body_without_transaction(
             migration_id, file_info["path"].read_text()
         )
@@ -485,6 +630,7 @@ SELECT EXISTS (
     SELECT pg_advisory_unlock(777204681);
 \\else
 BEGIN;
+{precondition_sql}
 {sql_content}
 {sql_track}
 COMMIT;
@@ -512,6 +658,16 @@ def _load_state(*, include_seeds: bool = True) -> tuple[list[dict], dict[str, di
     return files, applied
 
 
+def _bootstrap_optional_roles() -> None:
+    """Create locked optional-role placeholders required by schema REVOKEs."""
+    bootstrap_path = PROJECT_DIR / "scripts" / "bootstrap-optional-roles.sql"
+    try:
+        bootstrap_sql = bootstrap_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise MigrationError("optional database role bootstrap is unavailable") from exc
+    _psql(bootstrap_sql)
+
+
 def cmd_status() -> None:
     files, applied = _load_state()
     print(f"{'Migration ID':<55} {'Status':<12} {'Checksum'}")
@@ -526,15 +682,43 @@ def cmd_status() -> None:
     print(f"\n{len(files)} total, {done} applied, {len(files) - done} pending")
 
 
-def cmd_migrate(dry_run: bool = False, schemas_only: bool = False) -> None:
+def cmd_migrate(
+    dry_run: bool = False,
+    schemas_only: bool = False,
+    only_migrations: list[str] | None = None,
+) -> None:
     files, applied = _load_state(include_seeds=not schemas_only)
+    if only_migrations is not None:
+        if not only_migrations:
+            raise MigrationError("--only-migration requires at least one migration ID")
+        if len(set(only_migrations)) != len(only_migrations):
+            raise MigrationError("--only-migration IDs must be unique")
+        by_id = {item["id"]: item for item in files}
+        missing = [migration_id for migration_id in only_migrations if migration_id not in by_id]
+        if missing:
+            raise MigrationError(
+                "selected migration IDs were not discovered: " + ", ".join(missing)
+            )
+        files = [by_id[migration_id] for migration_id in only_migrations]
     pending = [
         item for item in files
         if applied.get(item["id"], {}).get("status") != "applied"
     ]
+    if (
+        only_migrations is not None
+        and any(item["id"] == MOBILE_FORM_SEED_ID for item in pending)
+    ):
+        # Refuse before earlier members of a curated batch can run; _apply_files
+        # repeats the source comparison under table locks before the seed body.
+        seed_file = next(
+            item for item in pending if item["id"] == MOBILE_FORM_SEED_ID
+        )
+        _assert_mobile_form_seed_matches_source(seed_file["path"])
     if not pending:
         print("All migrations already applied.")
         return
+    if not dry_run and any(item.get("kind") == "schema" for item in pending):
+        _bootstrap_optional_roles()
     action = "Would apply" if dry_run else "Applying"
     print(f"{action} {len(pending)} migration(s)...")
     for item in pending:
@@ -591,9 +775,17 @@ def main() -> None:
         action="store_true",
         help="Apply only PostgreSQL schema migrations, excluding seed data",
     )
+    parser.add_argument(
+        "--only-migration",
+        action="append",
+        dest="only_migrations",
+        help="Apply only this discovered migration ID (repeat to preserve an explicit order)",
+    )
     args = parser.parse_args()
     try:
         configure_compose(args.compose_project, args.compose_file)
+        if args.only_migrations and args.command != "migrate":
+            raise MigrationError("--only-migration is supported only by the migrate command")
         if args.command == "status":
             cmd_status()
         elif args.command == "validate":
@@ -618,7 +810,10 @@ def main() -> None:
         elif args.command in {"plan", "dry-run"}:
             cmd_plan(schemas_only=args.schemas_only)
         else:
-            cmd_migrate(schemas_only=args.schemas_only)
+            cmd_migrate(
+                schemas_only=args.schemas_only,
+                only_migrations=args.only_migrations,
+            )
     except MigrationError as exc:
         logger.error("Migration failed: %s", exc)
         raise SystemExit(1) from exc

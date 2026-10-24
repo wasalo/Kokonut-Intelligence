@@ -385,7 +385,7 @@ Deployment configuration: `config/prefect/deployment.yaml`.
 
 | Deployment | UTC schedule | Flow | Actual work |
 |------------|--------------|------|-------------|
-| `scheduled-hourly` | `0 * * * *` | `scheduled_hourly` | Sensor ingestion, anomaly detection, freshness check |
+| `scheduled-hourly` | `0 * * * *` | `scheduled_hourly` | Anomaly detection and freshness check; sensor capture remains push/manual |
 | `scheduled-every-6h` | `0 */6 * * *` | `scheduled_every_6h` | Weather, dashboard refresh, remote-sensing flow |
 | `scheduled-daily` | `0 6 * * *` | `scheduled_daily` | Market data, metrics, credit adjustment |
 | `scheduled-weekly` | `0 3 * * 0` | `scheduled_weekly` | Climate data refresh only |

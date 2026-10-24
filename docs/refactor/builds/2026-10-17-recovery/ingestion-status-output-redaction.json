@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Ingestion status CLI error output and offline help",
+  "behavior": {
+    "persisted_errors": "Ingestion-log and chain-indexer error columns show a redacted marker when an error is present; stored diagnostics are never printed.",
+    "filters": "Existing failed-record filtering and status columns remain unchanged.",
+    "offline_help": "The module-qualified CLI uses the package-qualified database adapter lazily, so --help works without importing database configuration or loading SOPS secrets."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_ingestion_status_error_redaction.py -q",
+    "result": "3 passed",
+    "coverage": [
+      "ingestion-log output redacts persisted provider diagnostics",
+      "indexer-status output redacts persisted provider diagnostics",
+      "failed-record SQL filtering and connection cleanup remain intact",
+      "module help starts without database or secret loading"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "module_help": "passed",
+    "database_or_provider_access": "none; mocked connections only"
+  },
+  "limitations": [
+    "No database, provider, or service was contacted.",
+    "The CLI preserves error presence but does not expose historical raw diagnostics."
+  ]
+}

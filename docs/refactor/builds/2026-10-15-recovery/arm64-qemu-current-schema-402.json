@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-15",
+  "check": "arm64_qemu_current_schema_402",
+  "repository_head_at_recording": "c9507e6",
+  "runtime_image_source_head": "9f5c006",
+  "runtime_image_source_note": "The subsequent c9507e6 commit changes only report-inventory tooling, tests, and documentation; services and schema sources in the image are unchanged.",
+  "host": {
+    "platform": "macOS Docker Desktop on darwin/amd64",
+    "docker_server": "29.8.2 amd64",
+    "runtime_architecture": "linux/arm64 under Docker emulation",
+    "physical_raspberry_pi_available": false
+  },
+  "images": {
+    "app": {
+      "reference": "kokonut-kernel-qemu-20261015-402-app:latest",
+      "platform": "linux/arm64",
+      "image_id": "sha256:0bf1df5544a343663a1f6f304da609da6feb279b558a89c10256aa1362b920de"
+    },
+    "database": {
+      "reference": "kokonut-kernel-candidate-postgis:arm64",
+      "platform": "linux/arm64",
+      "image_id": "sha256:2a48dea6797e804122ae98b9e8c6978eb79910d04ceee8c87608c225358429c5",
+      "postgresql": "16.15 (Debian 16.15-1.pgdg12+2)",
+      "postgis": "3.6.4"
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-qemu-20261015-402",
+    "candidate_project_selected": false,
+    "legacy_project_selected": false,
+    "metabase_selected": false,
+    "app_host_port": "127.0.0.1:18104->8099/tcp",
+    "database_host_port_published": false,
+    "explicit_memory_or_cpu_limits": false,
+    "seeds_applied": false,
+    "seed_ledger_rows": 0,
+    "farm_data_loaded": false
+  },
+  "schema_replay": {
+    "runner": "python3 -m services.migration migrate --schemas-only --compose-project kokonut-kernel-qemu-20261015-402",
+    "schemas_applied": 393,
+    "latest_migration": "schema:402_retention_policy_scope_codes.sql",
+    "failed": 0,
+    "non_applied": 0,
+    "distinct_checksums": 393,
+    "plan_after_replay_pending": 0
+  },
+  "logical_restore": {
+    "method": "custom-format pg_dump to a private temporary file, then pg_restore into a template0 database in the same isolated ARM64 PostgreSQL container",
+    "target_database": "kokonut_restore_verify",
+    "dump_bytes": 5220702,
+    "source_and_restore_schema_rows": 393,
+    "source_and_restore_applied_rows": 393,
+    "source_and_restore_non_applied_rows": 0,
+    "source_and_restore_distinct_checksums": 393,
+    "migration_fingerprint_sha256": "6e9a0d97aee2252d350e1f11200f1121a347a91e9f227247c581547fc019b49c",
+    "restore_plan_pending": 0,
+    "restored_extensions": [
+      "postgis:3.6.4",
+      "postgis_topology:3.6.4"
+    ],
+    "spatial_point_round_trip": "POINT(-69.9 18.5)"
+  },
+  "application": {
+    "loopback_health_initial": 200,
+    "anonymous_protected_data_stream_write_initial": 401,
+    "loopback_health_after_database_restart": 200,
+    "loopback_health_after_app_sigkill_then_compose_up": 200,
+    "anonymous_protected_data_stream_write_after_recovery": 401,
+    "database_restart_observation": "Gateway health returned 200 after PostgreSQL restart. Task/event lease and long-duration provider recovery were not exercised.",
+    "bootstrap_observation": "The app was started before schema replay; background workers logged missing-relation/column errors while the database was still schema-empty. This refresh verified health and protected access after migration, not clean worker startup ordering."
+  },
+  "result": "ARM64 images, clean schema-only replay through migration 402, zero-pending plans, logical restore with matching migration fingerprint, PostGIS spatial behavior, health, protected-route denial, database restart health recovery, and explicit Compose app recovery passed under emulation.",
+  "limitations": [
+    "This is QEMU/emulator evidence, not Raspberry Pi hardware acceptance, a 4 GB device benchmark, or physical performance evidence.",
+    "This current-schema refresh did not impose explicit memory/CPU limits; the previous migration-400 run separately recorded 1.5 GiB PostgreSQL and 1 GiB app limits with two CPUs each.",
+    "No seeds, farm data, candidate database, legacy database, Metabase data, or production services were modified.",
+    "The initial app-before-migration start emitted worker schema errors; deployments should complete schema bootstrap before starting worker-bearing app services.",
+    "No 24-hour run, physical power-loss, real provider recovery, lease recovery, replica failover, or scale-concurrency test was performed."
+  ]
+}

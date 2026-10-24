@@ -19,7 +19,9 @@ _ENTITY_LOC = """
     UNION ALL SELECT 'impact_claim', id, location_id FROM impact_claim WHERE location_id = %(loc)s
     UNION ALL SELECT 'report_snapshot', id, location_id FROM report_snapshot WHERE location_id = %(loc)s
     UNION ALL SELECT 'stakeholder_feedback', id, location_id FROM stakeholder_feedback WHERE location_id = %(loc)s
-    UNION ALL SELECT 'farm_activity', id, location_id FROM farm_activity WHERE location_id = %(loc)s
+    UNION ALL SELECT 'farm_activity', id, location_id FROM farm_activity
+        WHERE location_id = %(loc)s
+          AND farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)
     UNION ALL SELECT 'harvest_event', id, location_id FROM harvest_event WHERE location_id = %(loc)s
     UNION ALL SELECT 'agent_task', id, subject_id FROM agent_task WHERE subject_type = 'location' AND subject_id = %(loc)s
 """

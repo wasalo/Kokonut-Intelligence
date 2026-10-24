@@ -1,0 +1,19 @@
+{
+  "capability": "CAP-039",
+  "slice": "HTTP sensor receiver port preflight",
+  "date": "2026-10-21",
+  "implementation": "services/ingestion/http_sensor_receiver.py",
+  "test": "tests/test_http_sensor_receiver_cli.py",
+  "command": "python3 -m pytest tests/test_http_sensor_receiver_cli.py tests/test_mqtt_subscriber_cli.py -q",
+  "result": "11 HTTP receiver CLI tests passed (25 total across both listener CLIs). Ruff and Python compilation passed.",
+  "verified": [
+    "Standalone and unified CLIs reject port 0, -1, and 65536 before server startup.",
+    "Non-integer ports remain rejected before startup.",
+    "Valid default and explicit bind options and help output retain parity."
+  ],
+  "external_effects": "Server startup was stubbed; no socket, database, or provider was accessed.",
+  "limitations": [
+    "No live HTTP listener or client connection was exercised.",
+    "Authenticated sensor transport and runtime recovery remain open."
+  ]
+}

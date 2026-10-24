@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-23",
+  "commit_base": "237c7c86874ee454902cff807bda39a58887b7a8",
+  "scope": "AST-only source analysis; no report execution, database, provider, candidate, legacy stack, or secret access",
+  "change": {
+    "module": "scripts/report_generator_query_scope_inventory.py",
+    "behavior": "Propagate parent-row location scope into child queries inside try and if branches using branch-local inference state; do not merge state between branches.",
+    "regressions": [
+      "A location-filtered Statement of Work parent row scopes its sow_deliverable, sow_payment_schedule, and sow_change_request queries.",
+      "A location-filtered EBF scorecard summary scopes its v_public_ebf_scorecard child query.",
+      "An unscoped branch replacement does not inherit the previous parent-row scope."
+    ]
+  },
+  "inventory": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "static_positional_arity_sites": 175,
+    "positional_arity_mismatch_sites": 0,
+    "static_named_bind_contract_sites": 1,
+    "named_bind_contract_mismatch_sites": 0,
+    "query_sites_with_bound_location_scope_signal": 131,
+    "conditional_scope_query_sites": 6,
+    "unresolved_query_sites": 0,
+    "classification_counts": {
+      "all_direct_queries_show_bound_location_scope": 37,
+      "conditional_direct_query_scope": 4,
+      "helper_or_computed_without_direct_query": 28,
+      "mixed_direct_query_scope": 12,
+      "no_bound_location_scope_visible": 13
+    },
+    "statement_of_work": {
+      "direct_query_sites": 13,
+      "scoped_query_sites": 13,
+      "inherited_child_query_lines": [703, 706, 709]
+    },
+    "ebf_scorecard": {
+      "direct_query_sites": 2,
+      "scoped_query_sites": 2,
+      "inherited_child_query_line": 34
+    }
+  },
+  "verification": [
+    {
+      "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py -q",
+      "result": "48 passed"
+    },
+    {
+      "command": "ruff check scripts/report_generator_query_scope_inventory.py tests/test_report_generator_query_scope_inventory.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/report_generator_query_scope_inventory.py --check docs/refactor/report-generator-query-scope-inventory.json",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "limitations": [
+    "A source scope signal does not prove database authorization, RLS, correct view lineage, tenant isolation, PostgreSQL execution, or semantic report parity.",
+    "Report-owner decisions, populated reference outputs, and MAN-CAP-066 acceptance remain open."
+  ]
+}

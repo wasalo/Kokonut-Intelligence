@@ -68,8 +68,10 @@ services:
           memory: 512M
 
   grpc:
-    # No ports exposed to host in production — accessible only through reverse proxy
+    # No host ports; a separate gRPC-aware ingress is required for remote clients.
     ports: []
+    environment:
+      GRPC_ALLOW_INSECURE: "false"
     deploy:
       resources:
         limits:

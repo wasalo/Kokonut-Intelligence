@@ -5,11 +5,11 @@ propose → reconcile lifecycle without touching a real chain.
 """
 
 import uuid
-from unittest.mock import patch
 
 import pytest
 
 from services.attestation.safe_flow import (
+    process_pending_requests_via_safe,
     propose_attestation,
     reconcile_attestation_executions,
 )
@@ -242,3 +242,28 @@ def test_reconcile_skips_non_executed(monkeypatch):
     result = reconcile_attestation_executions(conn, safe_chain="celo")
     assert result["checked"] == 1
     assert result["executed"] == 0
+
+
+def test_safe_proposal_failure_persists_and_returns_only_exception_class(monkeypatch):
+    secret = "provider token=private and confidential request body"
+    conn = _FakeConn(rows=[_FakeRow(id=REQ_ID)])
+
+    def fail_proposal(*_args, **_kwargs):
+        raise RuntimeError(secret)
+
+    monkeypatch.setattr("services.attestation.safe_flow.propose_attestation", fail_proposal)
+
+    result = process_pending_requests_via_safe(conn)
+
+    safe_error = "attestation proposal failed (RuntimeError)"
+    assert result["proposed"] == 0
+    assert result["failed"] == 1
+    assert result["results"] == [
+        {"request_id": REQ_ID, "status": "failed", "error": safe_error}
+    ]
+    update = next(
+        call for call in conn.cursor_.calls if "SET proposal_status = 'failed'" in call[0]
+    )
+    assert update[1]["e"] == safe_error
+    assert secret not in repr(result)
+    assert secret not in repr(conn.cursor_.calls)

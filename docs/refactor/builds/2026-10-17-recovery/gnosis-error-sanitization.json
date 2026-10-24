@@ -1,0 +1,33 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked Gnosis indexer failure paths only; no RPC provider or database access",
+  "files": [
+    "services/ingestion/gnosis_indexer.py",
+    "tests/test_gnosis_indexer_recovery.py",
+    "docs/refactor/worker-operation-map.json"
+  ],
+  "checks": [
+    "A failed latest-block RPC lookup returns only the exception class and does not expose the synthetic credential-bearing URL",
+    "A failed block range persists a safe exception-class summary and returns a safe scheduler error while preserving rollback and last-checkpoint behavior",
+    "An outbox failure remains typed but uses a fixed summary in both durable status and the propagated exception",
+    "Failure-status persistence logging records only the secondary exception class"
+  ],
+  "focused_tests": {
+    "file": "tests/test_gnosis_indexer_recovery.py",
+    "tests": 13,
+    "result": "passed",
+    "python_mode": "python -s to exclude a broken user-site pytest plugin entrypoint"
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No RPC provider, ClickHouse service, candidate database, or legacy database was contacted",
+    "Safe summaries intentionally omit provider response details; operators receive the error class and failed block-range context",
+    "This does not implement legacy receipt backfill, removed-log rollback, deep-reorg reconciliation, or live provider acceptance",
+    "The Gnosis schedule remains gated"
+  ]
+}

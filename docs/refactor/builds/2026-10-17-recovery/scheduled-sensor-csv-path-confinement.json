@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-17",
+  "scope": "scheduled sensor CSV path confinement and worker mount contract",
+  "status": "passed",
+  "implementation": [
+    "Scheduled sensor driver implementations must expose fetch_scheduled; the registry loader checks that contract before use.",
+    "The built-in CSV scheduled fetch confines file_path to KOKONUT_SENSOR_CSV_ROOT and rejects traversal, outside-root paths, symlinked path components, missing roots, and non-regular files.",
+    "The root and every directory/file component are opened with O_NOFOLLOW using descriptor-relative traversal.",
+    "Legacy worker, Kernel standard, and Kernel portability Compose worker profiles mount the configured host input directory read-only at /var/lib/kokonut/sensor-inputs.",
+    "Manual CSV and driver operations remain unchanged."
+  ],
+  "focused_checks": {
+    "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=. .venv/bin/python -m pytest -q tests/test_sensor_driver_schedule.py tests/test_sensor_ingester_cli_contract.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py",
+    "result": "179 passed in 1.75s",
+    "coverage": [
+      "relative path succeeds beneath configured root",
+      "parent traversal is rejected",
+      "symlinked file is rejected",
+      "symlinked parent directory is rejected",
+      "missing root is rejected",
+      "source and registry tampering remain rejected"
+    ]
+  },
+  "ruff": {
+    "command": ".venv/bin/ruff check services/drivers/registry.py services/ingestion/drivers/sensor_csv.py services/ingestion/sensor_ingester.py tests/test_sensor_driver_schedule.py",
+    "result": "passed"
+  },
+  "compilation": {
+    "command": ".venv/bin/python -m py_compile services/drivers/registry.py services/ingestion/drivers/sensor_csv.py services/ingestion/sensor_ingester.py",
+    "result": "passed"
+  },
+  "compose_profiles": {
+    "legacy_scheduler": "passed: root configured; input bind read-only",
+    "kernel_candidate_standard": "passed: root configured; input bind read-only",
+    "kernel_portability_workers": "passed: root configured; input bind read-only"
+  },
+  "inventory_and_docs": {
+    "worker_source_closure": "current",
+    "worker_function_reachability": "current",
+    "worker_sql_inventory": "current",
+    "runtime_sql_inventory": "current",
+    "worker_sql_reachability": "current",
+    "worker_boundary_preflight": "current",
+    "capability_matrix": "valid: 66 rows; MAN-CAP checks remain separately gated",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Only synthetic temporary CSV fixtures were read by tests; no configured sensor input was accessed.",
+    "No candidate or legacy database, provider, persisted schedule, candidate service, or legacy service was accessed or changed.",
+    "This does not establish a distinct sensor worker database principal, signed tenant context, bounded SQL functions, tenant authorization/RLS, source parity, or live schedule acceptance."
+  ]
+}

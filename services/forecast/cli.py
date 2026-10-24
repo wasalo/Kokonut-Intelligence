@@ -14,21 +14,25 @@ Usage:
 import argparse
 import sys
 
-from .engine import run_forecast, run_all_scenarios, load_scenario, load_scenario_by_name
 from services.common.cli import print_json
+
+from .engine import load_scenario, load_scenario_by_name, run_all_scenarios, run_forecast
+
 
 def list_scenarios():
     """List all forecast scenarios."""
     from ..ingestion.base import get_db
     db = get_db()
-    with db.cursor() as cur:
-        cur.execute("""
-            SELECT id, name, scenario_type, status, location_id
-            FROM forecast_scenario
-            ORDER BY created_at
-        """)
-        rows = cur.fetchall()
-    db.close()
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, scenario_type, status, location_id
+                FROM forecast_scenario
+                ORDER BY created_at
+            """)
+            rows = cur.fetchall()
+    finally:
+        db.close()
 
     if not rows:
         print("No forecast scenarios found.")
@@ -54,15 +58,15 @@ def show_scenario_details(scenario_id: str):
     print(f"Status: {scenario.get('status', 'N/A')}")
     print(f"{'='*60}")
 
-    print(f"\nAssumptions:")
+    print("\nAssumptions:")
     print_json(scenario.get("assumptions", {}))
-    print(f"\nPrice Assumptions:")
+    print("\nPrice Assumptions:")
     print_json(scenario.get("price_assumptions", {}))
-    print(f"\nYield Assumptions:")
+    print("\nYield Assumptions:")
     print_json(scenario.get("yield_assumptions", {}))
-    print(f"\nCost Assumptions:")
+    print("\nCost Assumptions:")
     print_json(scenario.get("cost_assumptions", {}))
-    print(f"\nGrowth Assumptions:")
+    print("\nGrowth Assumptions:")
     print_json(scenario.get("growth_assumptions", {}))
 
     # Show outputs
@@ -79,7 +83,7 @@ def show_scenario_details(scenario_id: str):
     db.close()
 
     if rows:
-        print(f"\nForecast Outputs:")
+        print("\nForecast Outputs:")
         print(f"{'Metric':<35} {'Value':>12} {'Unit':<10} {'Low':>12} {'High':>12}")
         print("-" * 83)
         for row in rows:

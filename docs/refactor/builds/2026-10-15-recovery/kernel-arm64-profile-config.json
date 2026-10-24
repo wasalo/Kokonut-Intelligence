@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-15",
+  "check": "kernel_arm64_profile_selection",
+  "commands": [
+    "python3 -m pytest tests/test_kernel_profile.py -q",
+    "ruff check scripts/kernel-profile.py tests/test_kernel_profile.py",
+    "docker compose config --quiet (minimal, edge, standard; synthetic environment only)"
+  ],
+  "results": {
+    "planner_tests": 9,
+    "planner_tests_status": "passed",
+    "ruff": "passed",
+    "compose_minimal": "passed",
+    "compose_edge": "passed",
+    "compose_standard": "passed"
+  },
+  "verified_profile": {
+    "platform": "linux/arm64",
+    "database": "Dockerfile.kernel-postgis with locked PostgreSQL 16/PostGIS 3.6.4 package versions",
+    "application": "linux/arm64 runtime and build platform",
+    "standard_worker": "linux/arm64 runtime and build platform",
+    "compose_project": "kokonut-kernel-candidate-arm64",
+    "database_volume": "isolated from AMD64 candidate through a distinct Compose project",
+    "supported_profiles": ["minimal", "edge", "standard"],
+    "rejected_until_image_verification": ["analytics", "optional service overlays"]
+  },
+  "runtime_scope": "Compose merged configuration and planner source contracts only. Docker daemon access was denied at the host socket, so no image build, container, database, migration, or volume was created or changed.",
+  "prior_runtime_evidence": "The separately recorded Buildx/QEMU acceptance ran the minimal app/PostGIS stack through migration 386 on revision e236251. The current repository has 391 numbered migration files through migration 400 and has not been replayed on ARM64 in this check.",
+  "remaining_gates": [
+    "Repeat ARM64/QEMU image build, current-schema bootstrap through migration source 400, health, restart, and logical restore when Docker daemon access is available.",
+    "Physical Raspberry Pi performance, thermal, storage, power-loss, network, and restart behavior remain unverified because hardware is unavailable."
+  ]
+}

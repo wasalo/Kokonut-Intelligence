@@ -1,0 +1,27 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T15:36:45.061114+00:00",
+  "database": "PostgreSQL 16 disposable container with Docker networking disabled",
+  "migrations": [
+    "394_signed_operator_tenant_context.sql",
+    "394_signed_operator_tenant_context.sql (idempotency replay)"
+  ],
+  "checks": [
+    "current owner session and tenant-qualified grant establish signed forced-RLS context",
+    "active location share plus operator membership and grant establish partner context",
+    "cross-tenant required scopes, legacy grants, disabled identity, revoked/expired sessions, and expired share are denied",
+    "denied scope clears prior signed context and application row visibility",
+    "caller-controlled GUC and tampered HMAC payload cannot forge tenant visibility",
+    "share revocation immediately removes shared tenant context",
+    "share locks serialize grant revocation against an active signed context",
+    "transaction end clears signed context",
+    "runtime role cannot read the private context-signing key"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_requests": 0,
+  "candidate_application_table_rls_enabled": false,
+  "disposable_forced_rls": true,
+  "synthetic_rows_remaining": 0,
+  "scope_limit": "Validates the OIDC operator context function and signed tenant accessor under synthetic forced RLS. Runtime session-table isolation, API-key context, workers, Directus, legacy CLI, and candidate RLS rollout remain open."
+}

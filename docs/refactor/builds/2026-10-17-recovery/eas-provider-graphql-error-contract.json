@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked provider responses and in-process worker persistence fakes only; no external EAS request or database access",
+  "files": [
+    "tests/test_eas_provider.py",
+    "tests/test_eas_worker.py",
+    "tests/test_eas_indexer_recovery.py"
+  ],
+  "focused_tests": 20,
+  "result": "passed",
+  "checks": [
+    "GraphQL errors fail with a sanitized provider exception",
+    "Partial data accompanied by GraphQL errors is rejected",
+    "Invalid JSON, non-object payloads, and missing data objects are rejected",
+    "HTTP status failures propagate and provider responses close on every path",
+    "A missing attestations field fails before bounded persistence or cursor advancement",
+    "Valid data is returned unchanged to the worker"
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live provider contract was exercised",
+    "Offset-pagination movement and earlier-than-cursor arrivals remain open",
+    "This does not establish EAS runtime/provider parity or MAN-CAP-040/047 acceptance"
+  ]
+}

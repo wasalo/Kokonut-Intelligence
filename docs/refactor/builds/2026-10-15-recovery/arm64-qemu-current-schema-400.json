@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-15",
+  "commit": "c80260c",
+  "check": "arm64_qemu_current_schema_400",
+  "host": {
+    "platform": "macOS Docker Desktop on darwin/amd64",
+    "runtime_architecture": "linux/arm64 under Docker emulation",
+    "physical_raspberry_pi_available": false
+  },
+  "images": {
+    "app": {
+      "reference": "kokonut-kernel-candidate-arm64-app:latest",
+      "platform": "linux/arm64",
+      "image_id": "sha256:4a73d37989610f6d0d84612e3ac522408ec1a46653bae45a56e9fd4477d033e0"
+    },
+    "database": {
+      "reference": "kokonut-kernel-candidate-postgis:arm64",
+      "platform": "linux/arm64",
+      "image_id": "sha256:e3db9d6aa4407af51fc40e6da2c1134f4c96501cd0adce1a6000d24534bf907f",
+      "postgresql": "16.15 (Debian 16.15-1.pgdg12+2)",
+      "postgis": "3.6.4 94d984b"
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-candidate-arm64",
+    "database_volume": "kokonut-kernel-candidate-arm64_kernel-postgres-data",
+    "candidate_project_selected": false,
+    "legacy_project_selected": false,
+    "host_ports": ["127.0.0.1:18104->8099/tcp"],
+    "database_host_port_published": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false
+  },
+  "schema_replay": {
+    "runner": "python3 -m services.migration migrate --schemas-only",
+    "schemas_applied": 391,
+    "latest_migration": "schema:400_operator_auth_security_schema_usage.sql",
+    "failed": 0,
+    "non_applied": 0,
+    "distinct_checksums": 391,
+    "plan_after_replay_pending": 0
+  },
+  "logical_restore": {
+    "method": "custom-format pg_dump piped to pg_restore inside the isolated ARM64 database container",
+    "target_database": "kokonut_restore_verify",
+    "source_and_restore_schema_rows": 391,
+    "source_and_restore_applied_rows": 391,
+    "source_and_restore_non_applied_rows": 0,
+    "source_and_restore_distinct_checksums": 391,
+    "migration_fingerprint_sha256": "8036097308af7f4d206b22045ca36fa0f054d3ac63d3aca328df310c00a54917",
+    "restore_plan_pending": 0
+  },
+  "spatial": {
+    "point_round_trip": "POINT(-69.9 18.5)",
+    "raster_extension": "postgis_raster 3.6.4, explicitly enabled only in the disposable source database for this check",
+    "raster_pixel_value": 42.5,
+    "raster_test_transaction_rolled_back": true,
+    "raster_extension_in_ordered_schema": false
+  },
+  "application": {
+    "loopback_health_initial": 200,
+    "anonymous_protected_data_stream_write_initial": 401,
+    "loopback_health_after_database_restart": 200,
+    "loopback_health_after_sigkill_and_compose_restart": 200,
+    "anonymous_protected_data_stream_write_after_restart": 401,
+    "database_restart_observation": "One scheduler child observed a closed database connection and exited; the Kernel supervisor restarted the app processes and health recovered. Long-duration and repeated provider-outage behavior remain open."
+  },
+  "result": "ARM64 image build, current-source schema replay, migration-plan parity, logical restore, spatial/raster functions, health, protected-route rejection, and short restart recovery passed under emulation.",
+  "limitations": [
+    "This is QEMU/emulator evidence, not Raspberry Pi hardware evidence or a 4 GB device benchmark.",
+    "postgis_raster is not created by the current ordered schema; this test enabled it manually in the disposable source database. Product deployment requirements for raster remain a separate contract decision.",
+    "No seeds, farm data, candidate database, legacy database, Metabase data, or production services were modified.",
+    "A transient database connection loss caused the scheduler child to exit before the supervisor restarted it; repeat/outage-duration acceptance remains open."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "capability": "CAP-026",
+  "result": "prepared",
+  "scope": "location-scoped, read-only Kernel backcast-plan list and detail routes",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_gateway_threatcasting_reads.py tests/test_operator_route_policy_inventory.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py -q",
+    "result": "146 passed"
+  },
+  "ruff": {
+    "result": "passed",
+    "files": [
+      "services/gateway/threatcasting_reads.py",
+      "services/gateway/threatcasting_routes.py",
+      "services/gateway/operator_auth.py",
+      "tests/test_gateway_threatcasting_reads.py",
+      "tests/test_operator_route_policy_inventory.py"
+    ]
+  },
+  "python_compileall": "passed",
+  "capability_matrix": "valid: 66 rows; 44 baseline-retained, 7 deployed, 15 prepared",
+  "database_or_provider_accessed": false,
+  "candidate_or_legacy_changed": false,
+  "migration_required": false,
+  "acceptance_limits": [
+    "live OIDC and browser behavior",
+    "populated output and evidence parity",
+    "least-privilege runtime ACL and domain-table RLS",
+    "named MAN-CAP-026 owner acceptance"
+  ]
+}

@@ -11,15 +11,16 @@ python3 -m services.metrics
 python3 -m services.metrics.cli --help
 ```
 
-Reconcile the current crop-cycle NOI snapshots from PostgreSQL's shared view
-(requires migration 379):
+Reconcile crop-cycle NOI snapshots for one location (requires migration 379):
 
 ```bash
-python3 -m services.metrics --reconcile-noi-snapshots
+python3 -m services.metrics --reconcile-noi-snapshots --location-id UUID
 ```
 
-The corresponding `noi_snapshots` scheduler job is planned as a daily task and
-remains disabled until its schedule owner approves activation.
+For an explicitly requested manual aggregate reconciliation, use
+`--reconcile-noi-snapshots --all-locations`. The native scheduler requires one
+location per `noi_snapshots` task; its daily plan remains disabled until the
+schedule owner approves activation.
 
 ## Modules
 

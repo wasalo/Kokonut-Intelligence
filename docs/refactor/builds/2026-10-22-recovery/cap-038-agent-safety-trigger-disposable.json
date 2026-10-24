@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "scope": "Migration 405 signed worker context and migration 578 authenticated agent lifecycle guard acceptance",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migration_files": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/578_authenticated_agent_safety_trigger.sql"
+  ],
+  "migration_replay": "passed for migrations 405 and 578",
+  "command": "python3 scripts/check-worker-tenant-context-disposable.py",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "valid exact worker grant signs tenant/location/actor and operation"
+    },
+    {
+      "result": "passed",
+      "description": "tampered worker context payload fails HMAC validation"
+    },
+    {
+      "result": "passed",
+      "description": "authenticated worker role cannot verify governed records when app.agent_id is cleared"
+    },
+    {
+      "result": "passed",
+      "description": "worker session membership preserves lifecycle guard through a security-definer function"
+    },
+    {
+      "result": "passed",
+      "description": "worker can perform allowed non-terminal governed status transitions"
+    },
+    {
+      "result": "passed",
+      "description": "non-worker runtime retains the existing human lifecycle path"
+    },
+    {
+      "result": "passed",
+      "description": "legacy app.agent_id marker remains restrictive for compatibility"
+    },
+    {
+      "result": "passed",
+      "description": "worker role cannot read credentials or the HMAC signing key"
+    },
+    {
+      "result": "passed",
+      "description": "signed worker context expires at transaction end"
+    },
+    {
+      "result": "passed",
+      "description": "signed worker context cannot be replayed in a later transaction"
+    },
+    {
+      "result": "passed",
+      "description": "cross-location and non-exact resource/action grants fail closed"
+    },
+    {
+      "result": "passed",
+      "description": "a denied setter clears an earlier signed scope in the transaction"
+    },
+    {
+      "result": "passed",
+      "description": "shared runtime login cannot execute or assume worker execution role"
+    },
+    {
+      "result": "passed",
+      "description": "worker grant lock serializes revocation with an active context"
+    },
+    {
+      "result": "passed",
+      "description": "owner transfer invalidates a still-active worker grant"
+    },
+    {
+      "result": "passed",
+      "description": "inactive location is denied"
+    },
+    {
+      "result": "passed",
+      "description": "inactive owner tenant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "expired worker grant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "inactive worker principal is denied"
+    },
+    {
+      "result": "passed",
+      "description": "expired worker credential is denied"
+    },
+    {
+      "result": "passed",
+      "description": "revoked worker grant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "revoked worker credential is denied"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false,
+  "limitations": [
+    "Migrations 405 and 578 ran against a minimal synthetic prior-schema fixture; the lifecycle trigger uses one synthetic table instead of replaying all governed tables.",
+    "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised."
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Gateway internal-error logging and response",
+  "behavior": {
+    "server_log": "Logs the route's fixed message and bounded exception class without exception text or traceback.",
+    "http_response": "Returns the existing generic 500 message without exception details."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_gateway_internal_error_redaction.py tests/test_gateway_route_policy_inventory.py tests/test_gateway_auth.py -q",
+    "result": "34 passed",
+    "coverage": [
+      "synthetic exception text is absent from log arguments",
+      "HTTP status remains 500",
+      "response body remains the generic Gateway request failure"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "gitleaks_changed_source_and_test": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_access": "none; routes and errors tested in process",
+  "limitations": [
+    "No live Gateway request or database was accessed.",
+    "Request validation errors continue to use their existing client-facing 400 responses."
+  ]
+}

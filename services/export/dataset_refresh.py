@@ -18,10 +18,21 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
+from services.analytics.reporting_reader import count_reporting_rows, safe_query_error
+from services.core.features import require_feature
+
+
+def _dataset_failure_summary(exc: Exception) -> str:
+    """Return an operator-safe refresh failure without dataset/error contents."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"dataset refresh failed ({name})"
 
 
 def get_pg():
+    from services.common.database import get_db
+
     return get_db()
 
 
@@ -44,70 +55,79 @@ def list_datasets(conn, dataset_id: str = None):
 
 
 def refresh_dataset(conn, dataset_id: str) -> dict:
-    """Execute a dataset's stored SQL query and update metadata."""
+    """Run an active saved query as the reporting role; update metadata as app."""
+    require_feature("legacy_dataset_sql")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Fetch dataset definition
     cur.execute(
-        "SELECT id, name, dataset_type, query_sql, refresh_interval_minutes FROM dashboard_dataset WHERE id = %s",
+        "SELECT id, name, dataset_type, query_sql, refresh_interval_minutes "
+        "FROM dashboard_dataset WHERE id = %s AND status = 'active'",
         (dataset_id,),
     )
     dataset = cur.fetchone()
     if not dataset:
         cur.close()
-        raise ValueError(f"Dataset {dataset_id} not found")
+        raise ValueError(f"Active dataset {dataset_id} not found")
 
     query_sql = dataset["query_sql"]
     if not query_sql:
         cur.close()
         raise ValueError(f"Dataset {dataset['name']} has no query_sql defined")
 
-    # Execute the stored query. Roll back before recording an error because a
-    # failed PostgreSQL statement leaves the transaction unusable.
+    cur.close()
     start_time = datetime.now(timezone.utc)
     try:
-        cur.execute(query_sql)
-        rows = cur.fetchall()
-        row_count = len(rows)
+        # Query execution uses a separate, credential- and ACL-verified
+        # connection. The application connection never executes saved SQL.
+        row_count = count_reporting_rows(query_sql)
         status = "active"
         error_message = None
-    except Exception as e:
-        conn.rollback()
+    except Exception as exc:
         row_count = 0
         status = "error"
-        error_message = str(e)
-        print(f"  [Dataset] Query failed for {dataset['name']}: {e}")
+        error_message = safe_query_error(exc)
+        print(f"  [Dataset] Read-only reporting query failed for {dataset['name']} ({error_message})")
 
     end_time = datetime.now(timezone.utc)
     duration_ms = int((end_time - start_time).total_seconds() * 1000)
 
     # Update dataset metadata
-    cur.execute(
-        """
-        UPDATE dashboard_dataset
-        SET last_refreshed_at = NOW(),
-            metadata = jsonb_set(
-                COALESCE(metadata, '{}'),
-                '{last_refresh}',
-                %s::jsonb
-            )
-        WHERE id = %s
-        """,
-        (
-            json.dumps(
-                {
-                    "row_count": row_count,
-                    "duration_ms": duration_ms,
-                    "status": status,
-                    "error": error_message,
-                    "refreshed_at": end_time.isoformat(),
-                }
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            UPDATE dashboard_dataset
+            SET last_refreshed_at = NOW(),
+                metadata = jsonb_set(
+                    COALESCE(metadata, '{}'),
+                    '{last_refresh}',
+                    %s::jsonb
+                )
+            WHERE id = %s AND status = 'active' AND query_sql = %s
+            """,
+            (
+                json.dumps(
+                    {
+                        "row_count": row_count,
+                        "duration_ms": duration_ms,
+                        "status": status,
+                        "error": error_message,
+                        "refreshed_at": end_time.isoformat(),
+                    }
+                ),
+                dataset_id,
+                query_sql,
             ),
-            dataset_id,
-        ),
-    )
-    conn.commit()
-    cur.close()
+        )
+        if cur.rowcount != 1:
+            raise RuntimeError("Active dataset changed while its reporting query ran")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
 
     return {
         "dataset_id": dataset_id,
@@ -125,6 +145,16 @@ def main():
     parser.add_argument("--list", action="store_true", help="List existing datasets")
     parser.add_argument("--all", action="store_true", help="Refresh all active datasets")
     args = parser.parse_args()
+
+    # Listing is a read-only inventory operation and remains available while
+    # the legacy SQL runner is disabled. Reject refresh requests before opening
+    # the application database so an off feature has no connection side effect.
+    if not args.list and (args.all or args.dataset_id):
+        require_feature("legacy_dataset_sql")
+
+    if not (args.list or args.all or args.dataset_id):
+        parser.print_help()
+        return
 
     conn = get_pg()
 
@@ -147,12 +177,21 @@ def main():
     if args.dataset_id:
         # Refresh single dataset
         print(f"Refreshing dataset {args.dataset_id}...")
-        result = refresh_dataset(conn, args.dataset_id)
-        status_icon = "✓" if result["status"] == "active" else "✗"
-        print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
-        if result["error"]:
-            print(f"    Error: {result['error']}")
-        conn.close()
+        try:
+            result = refresh_dataset(conn, args.dataset_id)
+            if result["status"] == "active":
+                print(
+                    f"  ✓ {result['name']}: {result['row_count']} rows "
+                    f"in {result['duration_ms']}ms"
+                )
+            else:
+                print("  ✗ dataset refresh failed (reported query error)")
+        except Exception as exc:
+            safe_error = _dataset_failure_summary(exc)
+            print(f"  ✗ {safe_error}")
+            raise RuntimeError(safe_error) from None
+        finally:
+            conn.close()
         return
 
     if args.all:
@@ -170,23 +209,19 @@ def main():
             try:
                 result = refresh_dataset(conn, str(d["id"]))
                 status_icon = "✓" if result["status"] == "active" else "✗"
-                print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
                 if result["status"] == "active":
+                    print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
                     success += 1
                 else:
+                    print("  ✗ dataset refresh failed (reported query error)")
                     failed += 1
-            except Exception as e:
-                print(f"  ✗ {d['name']}: {e}")
+            except Exception as exc:
+                print(f"  ✗ {_dataset_failure_summary(exc)}")
                 failed += 1
 
         print(f"\nDone: {success} refreshed, {failed} failed")
         conn.close()
         return
-
-    # Default: show help
-    parser.print_help()
-    conn.close()
-
 
 if __name__ == "__main__":
     main()

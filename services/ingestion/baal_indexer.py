@@ -53,6 +53,10 @@ EVENT_DECODERS = {
 VOTE_CHOICES = {True: "yes", False: "no"}
 
 
+class BaalIndexingError(RuntimeError):
+    """A Baal indexer failure with a safe operator-facing summary."""
+
+
 def _get_protocol_id(db) -> str | None:
     with db.cursor() as cur:
         cur.execute(
@@ -183,20 +187,26 @@ def _checksum(addr: str) -> str:
 
 
 def run(from_block: int | None = None, to_block: int | None = None) -> int:
-    w3 = Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
-    client = BaalReadClient(w3=w3)
-    baal = client._baal
-
-    start = from_block or (get_last_synced_block(KOKONUT_DAO_CHAIN, INDEXER_TYPE) or 0)
-    end = to_block or w3.eth.block_number
+    _validate_block_range(from_block, to_block)
+    try:
+        w3 = Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
+        client = BaalReadClient(w3=w3)
+        baal = client._baal
+        last_committed_block = get_last_synced_block(KOKONUT_DAO_CHAIN, INDEXER_TYPE) or 0
+        start = from_block if from_block is not None else last_committed_block
+        end = to_block if to_block is not None else w3.eth.block_number
+    except Exception as exc:
+        raise BaalIndexingError(
+            f"Baal provider initialization failed ({type(exc).__name__})"
+        ) from None
     if start > end:
         logger.info("Baal indexer: start %s >= end %s, nothing to do", start, end)
         return 0
 
     db = get_db()
-    protocol_id = _get_protocol_id(db)
     processed = 0
     try:
+        protocol_id = _get_protocol_id(db)
         for cur_block, batch_end in batch_ranges(start, end, BLOCK_BATCH):
             for event_name in EVENT_DECODERS:
                 try:
@@ -204,8 +214,9 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
                         from_block=cur_block, to_block=batch_end
                     )
                 except Exception as exc:  # pragma: no cover - network dependent
-                    logger.warning("Baal event %s fetch failed: %s", event_name, exc)
-                    continue
+                    raise BaalIndexingError(
+                        f"Baal event {event_name} fetch failed ({type(exc).__name__})"
+                    ) from None
                 for ev in logs:
                     record = _decode_event(ev, w3, protocol_id)
                     if not record:
@@ -219,23 +230,58 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
             update_indexer_status(
                 KOKONUT_DAO_CHAIN, INDEXER_TYPE, batch_end, "syncing"
             )
+            last_committed_block = batch_end
             logger.info("Baal indexed through block %s (%s events)", batch_end, processed)
         update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, end, "healthy")
     except Exception as exc:
         db.rollback()
-        update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, None, "failed", str(exc))
-        logger.error("Baal indexer failed: %s", exc)
-        raise
+        error_message = (
+            str(exc)
+            if isinstance(exc, BaalIndexingError)
+            else f"Baal indexer failed ({type(exc).__name__})"
+        )
+        update_indexer_status(
+            KOKONUT_DAO_CHAIN,
+            INDEXER_TYPE,
+            last_committed_block,
+            "failed",
+            error_message,
+        )
+        logger.error("Baal indexer failed (%s)", type(exc).__name__)
+        raise BaalIndexingError(error_message) from None
     finally:
         db.close()
     return processed
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Index Kokonut Baal (Moloch v3) DAO events")
+def _validate_block_range(from_block: int | None, to_block: int | None) -> None:
+    """Reject invalid block ranges before provider or database initialization."""
+    if from_block is not None and from_block < 0:
+        raise ValueError("--from-block must be non-negative")
+    if to_block is not None and to_block < 0:
+        raise ValueError("--to-block must be non-negative")
+    if from_block is not None and to_block is not None and from_block > to_block:
+        raise ValueError("--to-block must be greater than or equal to --from-block")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the parser shared by standalone and unified CLI entry points."""
+    parser = argparse.ArgumentParser(
+        prog="baal_indexer.py",
+        description="Index Kokonut Baal (Moloch v3) DAO events"
+    )
     parser.add_argument("--from-block", type=int, default=None)
     parser.add_argument("--to-block", type=int, default=None)
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        _validate_block_range(args.from_block, args.to_block)
+    except ValueError as exc:
+        parser.error(str(exc))
     count = run(from_block=args.from_block, to_block=args.to_block)
     logger.info("Baal indexer complete: %s events ingested", count)
 

@@ -1,0 +1,19 @@
+{
+  "scope": "federation service failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_federation_error_redaction.py tests/test_phase3_4.py -q",
+    "focused_test_result": "40 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "registration and share/query submission still re-raise database errors",
+    "mutations still roll back on database failure",
+    "read and update fallback values remain unchanged",
+    "sync caller-provided error details are omitted from logs"
+  ],
+  "redaction": "database exception logs include only the bounded exception class; no traceback or exception message"
+}

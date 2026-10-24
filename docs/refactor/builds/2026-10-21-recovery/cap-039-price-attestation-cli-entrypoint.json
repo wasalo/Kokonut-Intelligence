@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-21",
+  "scope": "CAP-039 / CAP-040 price-attestation CLI entrypoint",
+  "result": "passed",
+  "changes": [
+    "Added a reusable parser and callable main(argv=None).",
+    "Standalone and unified argument dispatch and help output match.",
+    "Incomplete invocations return help before PostgreSQL setup.",
+    "Manual and daily command branches preserve connection cleanup."
+  ],
+  "checks": {
+    "price_attestation_pytest": {
+      "command": "python3 -m pytest tests/test_price_attestation_cli.py tests/test_price_attestation.py tests/test_price_provider_error_redaction.py tests/test_oracle_infrastructure.py -q",
+      "result": "passed",
+      "passed": 50
+    },
+    "ingestion_cli_pytest": {
+      "command": "python3 -m pytest tests/test_ingestion_cli_help_isolation.py tests/test_unified_cli_success_contract.py -q",
+      "result": "passed",
+      "passed": 62
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "standalone_unified_help_parity": "passed"
+  },
+  "external_access": {
+    "database": false,
+    "eas_or_chain": false,
+    "candidate": false,
+    "legacy_service": false
+  },
+  "limitations": [
+    "Price inserts and attestation integrations were stubbed in CLI tests.",
+    "Does not establish populated price lineage or on-chain attestation behavior."
+  ]
+}

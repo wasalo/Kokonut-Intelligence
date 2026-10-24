@@ -15,7 +15,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+
 from services.common.cli import print_json
+from services.common.errors import safe_exception_class
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -93,8 +96,12 @@ def main() -> None:
             _handle_query(args)
         elif args.command == "info":
             _handle_info(args)
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+    except Exception as exc:
+        print(
+            "Attestation command failed "
+            f"({safe_exception_class(exc)})",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
 
@@ -195,8 +202,8 @@ def _handle_info(args: argparse.Namespace) -> None:
             signer = EASSigner(args.chain)
             print(f"Attester: {signer.address}")
             print(f"Balance: {signer.get_balance_eth():.6f} native token")
-        except Exception as e:
-            print(f"Attester: Error - {e}")
+        except Exception as exc:
+            print(f"Attester: unavailable ({safe_exception_class(exc)})")
     else:
         print("Attester: Not configured (set ATTESTER_PRIVATE_KEY)")
 

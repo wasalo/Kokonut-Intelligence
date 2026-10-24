@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-18",
+  "scope": "Current-source ARM64/QEMU Kernel runtime through schema migration 434",
+  "source_revision": "625c2c60f3dc0668d0d3f8e8f99c0ed229ec88b9",
+  "host": {
+    "docker_server": "29.8.2 linux/x86_64",
+    "physical_raspberry_pi_available": false
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-arm64-current-434-20261018",
+    "candidate_project_selected": false,
+    "legacy_project_selected": false,
+    "network": "internal-only",
+    "subnet": "10.253.240.0/24",
+    "host_ports_published": false,
+    "observed_container_ports": {
+      "8099/tcp": null
+    },
+    "runtime_network_egress": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "provider_calls_made": false,
+    "database_password": "synthetic ephemeral value; not retained",
+    "bootstrap": "scripts/bootstrap-optional-roles.sql applied before ordered schema replay"
+  },
+  "resource_limits": {
+    "app_memory_bytes": 1073741824,
+    "database_memory_bytes": 1610612736,
+    "cpus_each": 2,
+    "observed_app_memory_bytes_nano_cpus": "1073741824 2000000000"
+  },
+  "images": {
+    "app_architecture": "aarch64",
+    "database_architecture": "aarch64",
+    "built_from_current_source": true,
+    "temporary_image_tags_removed": true
+  },
+  "schema_replay": {
+    "runner": "Host Kokonut migration CLI with synthetic-only environment, explicit Compose target, --schemas-only",
+    "applied_schema_migrations": 425,
+    "failed_schema_migrations": 0,
+    "latest_migration": "schema:434_financial_events_clickhouse_outbox.sql",
+    "migration_434_applied": true,
+    "seeds_included": false
+  },
+  "application": {
+    "compose_health": "healthy",
+    "health_route": "HTTP 200; {\"status\":\"ok\",\"audit_capture\":\"ok\",\"service\":\"gateway\",\"version\":\"0.1.0\"}",
+    "anonymous_protected_route": "HTTP 401; credentials_required",
+    "app_container_resource_limit": "1 GiB, 2 CPUs"
+  },
+  "cleanup": {
+    "compose_down_exit": 0,
+    "temporary_containers_removed": true,
+    "temporary_network_removed": true,
+    "temporary_volumes_removed": true,
+    "temporary_images_removed": true,
+    "candidate_container_ids_unchanged": true,
+    "candidate_health_unchanged": true,
+    "candidate_container_ids": {
+      "app": "8c9bce50a7ec",
+      "database": "ce258407c47a",
+      "proxy": "4ced55867e8b",
+      "metabase": "6bf987cd9fb8"
+    }
+  },
+  "result": "PASS: all ARM64 architecture, schema, health, authorization, resource, isolation, and cleanup assertions were met.",
+  "recording_note": "The orchestration wrapper returned exit 1 because its final validator treated the observed null host-port binding as published and compared uptime strings when checking candidate identity. The captured values confirm no host port was bound and all candidate IDs/health were unchanged; this is a harness false negative, not an application or migration failure.",
+  "limitations": [
+    "QEMU is not physical Raspberry Pi acceptance or a hardware benchmark.",
+    "No 24-hour recovery, power-loss, physical storage, provider recovery, replica failover, or scale-concurrency acceptance was performed."
+  ]
+}

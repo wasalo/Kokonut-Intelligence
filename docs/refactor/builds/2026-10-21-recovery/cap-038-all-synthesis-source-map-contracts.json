@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-21",
+  "capability": "CAP-038",
+  "scope": "Offline contract regression for the ten shared synthesis agent source-reference maps.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agent_worker_draft.py tests/test_capital_efficiency.py tests/test_bio_factory_operations.py tests/test_regenerative_outcomes.py tests/test_synthesis_source_references.py -q",
+      "result": "passed",
+      "passed": 84
+    },
+    "ruff": "passed",
+    "py_compile": "passed",
+    "runtime_sql_inventory": "passed",
+    "worker_source_closure": "passed",
+    "worker_sql_inventory": "passed",
+    "agent_write_boundary_inventory": "passed",
+    "capability_matrix": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "The checks use mocks and static source contracts; they do not demonstrate populated task parity or external provider behavior.",
+    "Disposable PostgreSQL evidence for migrations 529-536 is recorded separately.",
+    "No candidate or legacy database was changed and no worker credentials were provisioned."
+  ]
+}

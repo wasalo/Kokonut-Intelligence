@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-22",
+  "scope": "AI-summary registry and deterministic generator cursor lifecycle",
+  "focused_test_command": "python3 -m pytest tests/test_ai_summary_source_references.py tests/test_ai_summary_safety.py tests/test_ai_summary_cli_lifecycle.py tests/test_agent_input_preflight.py -q",
+  "focused_tests_passed": 45,
+  "failure_injection_cases": 8,
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "refreshed and current",
+    "capability_matrix": "valid; 66 rows",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "candidate_or_legacy_database_changed": false,
+  "migration_required": false,
+  "rollback": "Revert the AI-summary query helpers, focused test updates, and regenerated runtime SQL inventory; no database rollback is required."
+}

@@ -48,14 +48,15 @@ def test_oracle_aggregator_exists() -> None:
 
 
 def test_oracle_aggregator_has_consensus() -> None:
-    from services.ingestion.oracle_aggregator import median_consensus, weighted_average_consensus, PriceReading
+    from services.ingestion.oracle_aggregator import median_consensus, weighted_average_consensus
     assert callable(median_consensus)
     assert callable(weighted_average_consensus)
 
 
 def test_median_consensus_basic() -> None:
-    from services.ingestion.oracle_aggregator import median_consensus, PriceReading
     from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, median_consensus
 
     readings = [
         PriceReading("world_bank", 100.0, datetime.now(timezone.utc)),
@@ -70,8 +71,9 @@ def test_median_consensus_basic() -> None:
 
 
 def test_median_consensus_rejects_outlier() -> None:
-    from services.ingestion.oracle_aggregator import median_consensus, PriceReading
     from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, median_consensus
 
     readings = [
         PriceReading("world_bank", 100.0, datetime.now(timezone.utc)),
@@ -87,6 +89,84 @@ def test_median_consensus_rejects_outlier() -> None:
 def test_median_consensus_empty() -> None:
     from services.ingestion.oracle_aggregator import median_consensus
     assert median_consensus([]) is None
+
+
+def test_median_consensus_rejects_invalid_prices_and_naive_timestamps() -> None:
+    from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, median_consensus
+
+    timestamp = datetime.now(timezone.utc)
+    readings = [
+        PriceReading("source_a", 100.0, timestamp),
+        PriceReading("source_b", 101.0, timestamp),
+        PriceReading("source_nan", float("nan"), timestamp),
+        PriceReading("source_negative", -10.0, timestamp),
+        PriceReading("source_naive", 99.0, datetime(2026, 1, 1)),
+    ]
+
+    result = median_consensus(readings, commodity="COFFEE")
+
+    assert result is not None
+    assert result.source_count == 2
+    assert result.sources_used == ["source_a", "source_b"]
+    assert set(result.sources_rejected) == {"source_nan", "source_negative", "source_naive"}
+    assert result.metadata["invalid_or_duplicate_reading_count"] == 3
+
+
+def test_median_consensus_counts_each_source_once() -> None:
+    from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, median_consensus
+
+    timestamp = datetime.now(timezone.utc)
+    readings = [
+        PriceReading("provider_a", 100.0, timestamp),
+        PriceReading(" PROVIDER_A ", 200.0, timestamp),
+        PriceReading("provider_b", 101.0, timestamp),
+        PriceReading("provider_c", 99.0, timestamp),
+    ]
+
+    result = median_consensus(readings, commodity="COFFEE")
+
+    assert result is not None
+    assert result.source_count == 2
+    assert result.sources_used == ["provider_b", "provider_c"]
+    assert [source.casefold() for source in result.sources_rejected] == ["provider_a"]
+
+
+def test_median_consensus_rejects_invalid_deviation_thresholds() -> None:
+    from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, median_consensus
+
+    readings = [PriceReading("source", 100.0, datetime.now(timezone.utc))]
+
+    assert median_consensus(readings, max_deviation_pct=-1) is None
+    assert median_consensus(readings, max_deviation_pct=float("nan")) is None
+    assert median_consensus(readings, max_deviation_pct=True) is None
+
+
+def test_weighted_consensus_rejects_invalid_and_zero_weight_sources() -> None:
+    from datetime import datetime, timezone
+
+    from services.ingestion.oracle_aggregator import PriceReading, weighted_average_consensus
+
+    timestamp = datetime.now(timezone.utc)
+    readings = [
+        PriceReading("valid", 100.0, timestamp, confidence=0.5),
+        PriceReading("bad-confidence", 500.0, timestamp, confidence=1.5),
+        PriceReading("zero-weight", 10000.0, timestamp, confidence=0.0),
+    ]
+
+    result = weighted_average_consensus(readings, commodity="COFFEE")
+
+    assert result is not None
+    assert result.price == 100.0
+    assert result.source_count == 1
+    assert result.sources_used == ["valid"]
+    assert set(result.sources_rejected) == {"bad-confidence", "zero-weight"}
+    assert result.metadata["zero_weight_source_count"] == 1
 
 
 def test_yahoo_finance_exists() -> None:
@@ -154,8 +234,11 @@ def test_gee_climate_exists() -> None:
 
 def test_gee_climate_has_all_fetchers() -> None:
     from services.ingestion.gee_climate import (
-        fetch_modis_lst, fetch_smap_moisture,
-        fetch_sentinel1_sar, fetch_era5_land, fetch_all_climate
+        fetch_all_climate,
+        fetch_era5_land,
+        fetch_modis_lst,
+        fetch_sentinel1_sar,
+        fetch_smap_moisture,
     )
     assert callable(fetch_modis_lst)
     assert callable(fetch_smap_moisture)
@@ -179,8 +262,8 @@ def test_gee_climate_has_modis_dataset() -> None:
 
 def test_gee_climate_has_smap_dataset() -> None:
     content = Path("services/ingestion/gee_climate.py").read_text()
-    assert "NASA/SMAP/SPL3SMP_E/005" in content
-    assert "sm_pm" in content
+    assert "NASA/SMAP/SPL3SMP_E/006" in content
+    assert "soil_moisture_pm" in content
 
 
 def test_gee_climate_has_sentinel1_dataset() -> None:

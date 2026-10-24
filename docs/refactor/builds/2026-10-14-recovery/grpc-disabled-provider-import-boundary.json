@@ -1,0 +1,34 @@
+{
+  "check": "grpc_disabled_provider_import_boundary",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "disabled_operations": [
+      "server startup",
+      "health check"
+    ],
+    "explicit_disabled_error_before_optional_import": true,
+    "blocked_optional_modules": [
+      "grpc",
+      "grpc_health",
+      "grpc_health.v1",
+      "grpc_health.v1.health_pb2",
+      "grpc_health.v1.health_pb2_grpc",
+      "services.grpc.server"
+    ],
+    "database_or_docker_used": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_grpc_optional_boundary.py -q",
+    "passed": 2,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed"
+  },
+  "limitations": [
+    "This verifies disabled-provider behavior only; enabled transport authorization parity, TLS, streaming, and deployed runtime acceptance remain open."
+  ]
+}

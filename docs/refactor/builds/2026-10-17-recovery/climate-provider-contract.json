@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "scope": "Climate persistence contract and migration 428 only; no provider or application database was accessed.",
+  "focused_tests": {
+    "command": "python3 -m pytest tests/test_climate_data.py -q",
+    "passed": 25
+  },
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "disposable_postgresql": {
+    "runner": "scripts/check-climate-summary-idempotency-disposable.py",
+    "evidence": "climate-summary-idempotency-disposable.json",
+    "checks": [
+      "migration refuses unreviewed location-level duplicates",
+      "migration applies and replays cleanly after duplicate reconciliation",
+      "all four canonical summary keys collapse repeated provider retries",
+      "plot-level records retain their existing independent key space"
+    ]
+  },
+  "provider_sources_reviewed": [
+    "https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2",
+    "https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL3SMP_E_006",
+    "https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD",
+    "https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR"
+  ],
+  "candidate_migration_applied": false,
+  "real_provider_contacted": false
+}

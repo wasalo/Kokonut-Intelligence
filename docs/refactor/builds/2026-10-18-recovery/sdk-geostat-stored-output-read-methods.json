@@ -1,0 +1,59 @@
+{
+  "record_type": "sdk_geostatistics_stored_output_read_methods",
+  "recorded_at": "2026-10-18",
+  "scope": "Add schema-aligned Python and JavaScript read models and read-only access to persisted geostatistics output.",
+  "source_contract": {
+    "schema": "schemas/postgres/133_geostatistics.sql",
+    "location_scoped_collections": [
+      "kriging_prediction",
+      "geostat_realization",
+      "spatial_autocorrelation",
+      "geostat_cv_result",
+      "sensor_network_design"
+    ],
+    "parent_scoped_collections": {
+      "kriging_point": "prediction_id",
+      "geostat_realization_point": "realization_id"
+    },
+    "point_tables_have_location_id": false,
+    "checked_models": 82,
+    "checked_canonical_columns": 1652,
+    "checked_scalar_types": 1544,
+    "checked_postgis_types": 12,
+    "checked_jsonb_shapes": 93,
+    "checked_enum_fields": 23,
+    "checked_check_literal_fields": 56
+  },
+  "contract": {
+    "run_methods": ["list", "get", "list_by_location/listByLocation"],
+    "point_methods": [
+      "list",
+      "get",
+      "list_by_prediction/listByPrediction",
+      "list_by_realization/listByRealization"
+    ],
+    "required_location_or_parent_filter_overrides_conflicting_caller_filter": true,
+    "other_list_options_preserved": true,
+    "create_update_delete_exposed": false,
+    "interpolation_simulation_spatial_testing_or_optimization_performed": false,
+    "authorization_enforced_by_sdk": false
+  },
+  "verification": {
+    "python_sdk_schema_and_method_tests": "100 passed",
+    "javascript_sdk_tests": "50 passed",
+    "typescript_build": "passed",
+    "ruff": "passed on touched Python files",
+    "python_compilation": "passed",
+    "sdk_schema_parity_guard": "passed: 82 models, 1652 canonical columns, 1544 scalar types, 12 PostGIS types, 93 JSONB shapes, 23 enum fields, 56 CHECK-literal fields per SDK",
+    "capability_matrix_validator": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "network": "not used",
+    "database": "not used",
+    "provider": "not used",
+    "credentials": "not used",
+    "candidate_or_legacy_services": "not accessed"
+  },
+  "capability_status": "CAP-008 remains partial; no MAN-CAP classification or acceptance status changed."
+}

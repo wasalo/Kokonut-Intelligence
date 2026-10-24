@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "migrations": [
+    "461_location_scoped_operating_pilot_summary.sql",
+    "479_location_operating_pilot_demand_signals.sql",
+    "480_location_operating_pilot_capacity_periods.sql",
+    "526_location_operating_pilot_work_claims.sql",
+    "538_location_operating_pilot_resource_categories.sql",
+    "552_location_operating_pilot_demand_draft.sql",
+    "553_location_operating_pilot_capacity_draft.sql"
+  ],
+  "database_target": "new disposable PostgreSQL 16 container",
+  "network_access": "disabled with Docker network mode none",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 461, 479, 480, 526, 538, 552, and 553 apply and replay on disposable PostgreSQL 16",
+    "active Adelphi farm scope maps through farm.location_id and gates exact location data",
+    "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
+    "signed tenant context and exact operating_pilot:read are enforced",
+    "other locations/internal scope and private coaching are excluded; small sensitive cohorts are suppressed",
+    "demand pages are bounded and exclude IDs, narratives, source references, creators, other farms, and internal scope",
+    "capacity periods aggregate only submitted/approved active-farm profiles, hide hours below three people, and exclude identities/notes/out-of-scope rows",
+    "capacity pages enforce bounds, deterministic paging, exact tenant grant, and runtime-function-only access",
+    "work-claim pages aggregate by fixed safe work-type bucket, suppress counts below three claimants, and exclude IDs, free text, claim states, and identities",
+    "work-claim pages enforce bounded deterministic paging, exact tenant scope, and runtime-function-only access",
+    "resource requests map free-text values to fixed categories, suppress counts below three requesters, and exclude identity, narrative, urgency, and lifecycle state",
+    "resource-category pages enforce bounds, deterministic paging, exact tenant scope, and runtime-function-only access",
+    "demand draft creation requires exact location context, create grant, active human-party binding, and active farm mapping",
+    "demand drafts are private, attributed, draft-only, request-idempotent, and reject mismatched retries or invalid input",
+    "runtime and Directus cannot insert or mutate demand rows or access private draft receipts directly",
+    "synthetic pre-existing table-level and column-level runtime/Directus demand writes are revoked; reader has only required columns and no identity or private-content read access",
+    "capacity draft creation requires signed exact location create context and an active human-party binding; it creates only the actor's attributed self-reported Adelphi draft",
+    "capacity requests are bounded, idempotent on exact retry, reject changed retries and duplicate periods, and never return hours, party IDs, or private notes",
+    "runtime/Directus stale table-level and column-level capacity writes are revoked; direct table and receipt access remains denied"
+  ],
+  "assertion_groups_passed": 28,
+  "preexisting_runtime_or_directus_grants_assessed": true
+}

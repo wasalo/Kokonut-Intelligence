@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-16",
+  "result": "passed",
+  "postgres_image": "postgres:16-alpine",
+  "database_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "candidate_or_legacy_modified": false,
+  "provider_calls": 0,
+  "checks": {
+    "first_location_claims_only_its_two_jobs": true,
+    "second_location_claims_only_its_job": true,
+    "unscoped_claim_rejected_before_database_access": true,
+    "unclaimed_rows_after_expected_claims": 1
+  },
+  "limitations": [
+    "Uses a synthetic remote_sensing_job table and rows; no repository database or provider is contacted.",
+    "Exercises SQL claim filtering and leases only, not provider response parity or worker identity/RLS.",
+    "The temporary container has no volume and publishes PostgreSQL only on loopback."
+  ],
+  "runner": "scripts/check-remote-sensing-location-claim-disposable.py"
+}

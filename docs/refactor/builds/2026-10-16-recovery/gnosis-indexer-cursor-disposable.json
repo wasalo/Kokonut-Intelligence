@@ -1,0 +1,14 @@
+{
+  "migration": "424_gnosis_indexer_cursor_namespace.sql",
+  "migration_sha256": "57ed404a48f6f09bb16a2c2c5e280a5caec2fb9bfb7ddef9c8612dd9ad19504e",
+  "postgres_image": "postgres:16",
+  "checks": [
+    "migration 424 copies the existing shared cursor on an isolated database",
+    "copied cursor is paused with provenance; the wallet RPC row remains intact",
+    "migration replay is idempotent and never overwrites either cursor"
+  ],
+  "network_enabled": false,
+  "candidate_or_legacy_accessed": false,
+  "provider_accessed": false,
+  "schedule_activated": false
+}

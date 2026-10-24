@@ -2,22 +2,28 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
-from services.agents.base import SynthesisAgent, agent_cli
+from services.agents.base import (
+    SynthesisAgent,
+    agent_cli,
+    require_synthesis_location_id,
+)
 
 
 def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
     """Summarize public-safe well-being, cultural, and participation evidence."""
+    location_id = require_synthesis_location_id(location_id)
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """
         SELECT practice_name, practice_type, stakeholder_group, language,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_cultural_context_summary
+        FROM kokonut_agent_source.v_public_cultural_context_summary
         WHERE location_id = %s
         ORDER BY practice_type, practice_name
         """,
@@ -30,7 +36,7 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         SELECT metric_key, metric_name, observation_date, stakeholder_group,
                language, score_value, count_value, public_summary,
                evidence_maturity, evidence_maturity_label
-        FROM v_public_wellbeing_metric_summary
+        FROM kokonut_agent_source.v_public_wellbeing_metric_summary
         WHERE location_id = %s
         ORDER BY observation_date DESC, metric_key
         """,
@@ -43,7 +49,7 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         SELECT action_type, action_date, stakeholder_group, feedback_type,
                sentiment, metric_name, metric_proposal_status, decision_status,
                public_summary, evidence_maturity, evidence_maturity_label
-        FROM v_public_participatory_governance_summary
+        FROM kokonut_agent_source.v_public_participatory_governance_summary
         WHERE location_id = %s
         ORDER BY action_date DESC, action_type
         """,
@@ -51,20 +57,22 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
     )
     participation_rows = [dict(r) for r in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT language, COUNT(*) AS feedback_count,
-               COUNT(*) FILTER (WHERE consent_given = TRUE AND is_public = TRUE) AS public_safe_count
-        FROM stakeholder_feedback
-        WHERE location_id = %s AND status != 'rejected'
-        GROUP BY language
-        ORDER BY feedback_count DESC, language
-        """,
-        (location_id,),
-    )
-    language_rows = [dict(r) for r in cur.fetchall()]
     cur.close()
 
+    # Language coverage is derived from the same public-safe cultural and
+    # wellbeing views as the rest of this summary. Do not read private feedback
+    # just to produce language totals.
+    language_counts = Counter(
+        row["language"]
+        for row in (*cultural_rows, *wellbeing_rows)
+        if row.get("language")
+    )
+    language_rows = [
+        {"language": language, "public_safe_evidence_count": count}
+        for language, count in sorted(
+            language_counts.items(), key=lambda item: (-item[1], item[0])
+        )
+    ]
     languages = sorted({row["language"] for row in language_rows if row.get("language")})
     cultural_count = len(cultural_rows)
     wellbeing_count = len(wellbeing_rows)
@@ -93,7 +101,10 @@ def synthesize_wellbeing(conn, location_id: str) -> dict[str, Any]:
         "participatory_actions": participation_rows,
         "language_coverage": language_rows,
         "synthesis": " ".join(synthesis_lines),
-        "safety_note": "Public-safe summaries and aggregate language counts only; raw private stakeholder or cultural evidence is not included.",
+        "safety_note": (
+            "Public-safe summaries and language counts from published, public-safe "
+            "evidence only; private feedback and cultural evidence are not queried."
+        ),
     }
 
 
@@ -102,7 +113,16 @@ class WellbeingSynthesisAgent(SynthesisAgent):
     summary_type = "holistic_wellbeing"
     read_collection = "wellbeing_metric_observation"
     model_version = "wellbeing-agent-v1"
-    source_tables = ["cultural_context_record", "wellbeing_metric_observation", "participatory_action_record"]
+    source_tables = [
+        "cultural_context_record",
+        "wellbeing_metric_observation",
+        "participatory_action_record",
+    ]
+    source_reference_views = {
+        "cultural_context_record": "v_public_cultural_context_summary",
+        "wellbeing_metric_observation": "v_public_wellbeing_metric_summary",
+        "participatory_action_record": "v_public_participatory_governance_summary",
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_wellbeing(conn, location_id)

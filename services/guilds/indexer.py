@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import time
 import uuid
@@ -12,6 +13,7 @@ from typing import Any
 from eth_abi import decode as abi_decode
 from web3 import Web3
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 from ..ingestion.base import get_db
 from ..ingestion.config import GNOSIS_RPC_URL
@@ -46,6 +48,8 @@ EVENT_SIGNATURES = {
     "MotionObjected": "MotionObjected(uint256,address,bytes32)",
     "MotionFinalized": "MotionFinalized(uint256,uint8)",
     "MotionExecuted": "MotionExecuted(uint256,bytes)",
+    "TargetSelectorPermissionUpdated": "TargetSelectorPermissionUpdated(address,bytes4,bool)",
+    "GuildScopedTargetUpdated": "GuildScopedTargetUpdated(address,bool)",
 }
 EVENT_TOPICS = {
     "0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()
@@ -81,6 +85,8 @@ EVENT_DATA_TYPES = {
     "MotionObjected": (["bytes32"], ["reason_hash"]),
     "MotionFinalized": (["uint8"], ["status"]),
     "MotionExecuted": (["bytes"], ["return_data"]),
+    "TargetSelectorPermissionUpdated": (["bool"], ["allowed"]),
+    "GuildScopedTargetUpdated": (["bool"], ["guild_scoped"]),
 }
 
 
@@ -183,8 +189,14 @@ def decode_log(log: dict[str, Any]) -> dict[str, Any]:
         decoded["review_id"] = _hex(topics[1])
         if event_name == "EvidenceDisputed":
             decoded["disputer"] = _topic_address(topics[2])
-    elif event_name in {"TargetPermissionUpdated"}:
+    elif event_name in {
+        "TargetPermissionUpdated",
+        "TargetSelectorPermissionUpdated",
+        "GuildScopedTargetUpdated",
+    }:
         decoded["target"] = _topic_address(topics[1])
+        if event_name == "TargetSelectorPermissionUpdated":
+            decoded["selector"] = _hex(topics[2])[:10]
     elif event_name in {"MotionCreated", "MotionObjected", "MotionFinalized", "MotionExecuted"}:
         decoded["motion_id"] = int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big")
         if event_name == "MotionCreated":
@@ -425,20 +437,71 @@ class KGPIndexer:
 
     def run_forever(self, poll_interval: float = 30.0, worker_id: str | None = None) -> None:
         """Continuously scan with durable cursor failure state and recovery."""
+        if not math.isfinite(poll_interval) or poll_interval <= 0:
+            raise ValueError("poll_interval must be a finite positive number")
+
+        from ..common.database import get_db as connect_database
+
         worker_id = worker_id or f"kgp-{uuid.uuid4().hex[:8]}"
         while True:
+            self.db = None
             try:
+                self.db = connect_database(connect_timeout=5)
                 self._claim_worker_lease(worker_id)
                 self.scan_once(worker_id)
                 self._heartbeat_worker_lease(worker_id)
             except KeyboardInterrupt:
-                self.db.rollback()
-                self._release_worker_lease(worker_id)
+                if self.db is not None:
+                    try:
+                        self.db.rollback()
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker rollback failed during shutdown (%s)",
+                            safe_exception_class(exc),
+                        )
+                    try:
+                        self._release_worker_lease(worker_id)
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker lease release failed during shutdown (%s)",
+                            safe_exception_class(exc),
+                        )
                 raise
             except Exception as exc:
-                logger.exception("KGP scan failed for %s", self.deployment_id)
-                self.db.rollback()
-                self._record_scan_failure(worker_id, str(exc))
+                safe_error = f"KGP scan failed ({safe_exception_class(exc)})"
+                logger.error(
+                    "KGP scan failed for %s (%s)",
+                    self.deployment_id,
+                    safe_exception_class(exc),
+                )
+                if self.db is not None:
+                    try:
+                        self.db.rollback()
+                    except Exception as rollback_exc:
+                        logger.warning(
+                            "KGP worker rollback failed after scan error (%s)",
+                            safe_exception_class(rollback_exc),
+                        )
+                    try:
+                        self._record_scan_failure(worker_id, safe_error)
+                    except Exception as persist_exc:
+                        # During a database outage the durable cursor may not
+                        # be writable; its lease expires and the next cycle
+                        # reconnects before attempting the scan again.
+                        logger.warning(
+                            "KGP scan failure could not be persisted (%s)",
+                            safe_exception_class(persist_exc),
+                        )
+            finally:
+                if self.db is not None:
+                    try:
+                        self.db.close()
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker connection close failed (%s)",
+                            safe_exception_class(exc),
+                        )
+                    self.db = None
             time.sleep(poll_interval)
 
     def _claim_worker_lease(self, worker_id: str) -> None:
@@ -610,7 +673,7 @@ def main() -> None:
     if not args.contract_address and not args.addresses_json:
         parser.error("one of --contract-address or --addresses-json is required")
     addresses = json.loads(args.addresses_json) if args.addresses_json else args.contract_address
-    db = get_db()
+    db = get_db() if args.once else None
     try:
         indexer = KGPIndexer(
             Web3(Web3.HTTPProvider(args.rpc_url)),
@@ -624,7 +687,8 @@ def main() -> None:
         else:
             print(json.dumps({"processed": indexer.scan_once()}))
     finally:
-        db.close()
+        if db is not None:
+            db.close()
 
 
 if __name__ == "__main__":

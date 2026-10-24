@@ -1,0 +1,29 @@
+{
+  "capability": "CAP-050",
+  "title": "Monte Carlo draw ordering and failure isolation",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and focused tests pass; capability not accepted",
+  "changes": [
+    "Parallel samples and failures are returned in draw-index order for a fixed seed.",
+    "Sampling and connection-factory setup run inside per-draw error isolation.",
+    "Non-finite simulation metrics are rejected as isolated draw failures to protect aggregate statistics.",
+    "Failure details remain redacted to stable exception classes."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_simulation_resolution.py -q",
+    "result": "14 passed",
+    "ruff": "python3 -m ruff check services/simulation/resolution.py tests/test_simulation_resolution.py: passed",
+    "compilation": "python3 -m compileall -q services/simulation/resolution.py: passed",
+    "specific_cases": [
+      "Seeded sequential and parallel runs return identical ordered samples and failures.",
+      "A concurrent connection-factory failure is isolated to one draw.",
+      "Non-finite metrics do not enter aggregate statistics."
+    ]
+  },
+  "scope_limits": [
+    "No database connection was opened by the tests; factories and simulations were mocked.",
+    "Legacy model fixture parity and agreed output tolerance remain unassessed.",
+    "Broader tactical model parity and MAN-CAP-050 acceptance remain open."
+  ]
+}

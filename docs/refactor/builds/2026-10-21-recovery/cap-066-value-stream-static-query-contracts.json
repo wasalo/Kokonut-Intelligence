@@ -1,0 +1,59 @@
+{
+  "task": "CAP-066 value-stream report static SQL and bind contracts",
+  "date": "2026-10-21",
+  "source_file": "services/analytics/value_stream.py",
+  "query_functions": [
+    "wip_by_stage",
+    "stage_lead_times",
+    "first_time_through"
+  ],
+  "report_types": [
+    "business_plan",
+    "process_health",
+    "value_stream_map"
+  ],
+  "resolved_report_helper_memberships": 9,
+  "contracts": {
+    "wip_by_stage": {
+      "positional_placeholders": 1,
+      "positional_values": 1,
+      "mismatches": 0
+    },
+    "stage_lead_times": {
+      "named_keys": ["etype", "goal", "initial", "loc", "pe", "ps"],
+      "mismatches": 0
+    },
+    "first_time_through": {
+      "named_keys": ["etype", "fail", "goal", "loc", "pe", "ps"],
+      "mismatches": 0
+    }
+  },
+  "preserved_rules": [
+    "All eight lifecycle entity types remain in the pipeline.",
+    "agent_task uses review_status and ai_summary/agent_task remain excluded from location-scoped reads.",
+    "farm_activity remains filtered by farm_activity_source_eligible_for_use.",
+    "Location and optional date/status filters remain parameterized.",
+    "An empty entity_type remains equivalent to an omitted filter."
+  ],
+  "verification": {
+    "focused_command": "python3 -m pytest tests/test_value_stream.py::test_module_shape tests/test_value_stream.py::test_wip_query_keeps_pipeline_location_and_review_status_rules tests/test_value_stream.py::test_lead_time_query_uses_location_cte_and_exact_named_parameters tests/test_value_stream.py::test_first_time_through_query_uses_location_cte_and_exact_named_parameters tests/test_value_stream.py::test_lead_time_empty_entity_type_keeps_the_unfiltered_behavior tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "focused_tests_passed": 19,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "source_query_helper_inventory_checks": "passed",
+    "runtime_sql_inventory_check": "passed",
+    "capability_matrix_validation": "passed",
+    "helper_inventory": {
+      "memberships": 175,
+      "static_sql_sites": 168,
+      "unresolved_sql_sites": 7,
+      "positional_bind_contracts": 148,
+      "named_bind_contracts": 8,
+      "bind_mismatches": 0
+    }
+  },
+  "scope_boundary": "Static location predicates and bound location IDs are source signals only. They do not prove tenant authorization, row-level security, populated report parity, or PostgreSQL execution.",
+  "database_or_provider_used": false,
+  "candidate_or_legacy_changed": false,
+  "rollback": "Revert the value-stream query/test changes, generated inventories, progress and checklist entries, and this evidence. No persisted data changed."
+}

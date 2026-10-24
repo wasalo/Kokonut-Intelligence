@@ -1,0 +1,36 @@
+{
+  "capability": "CAP-002",
+  "slice": "deterministic crop-simulation weather variation and synthetic regression fixture",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_revision": "0e2762ef",
+  "status": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_digital_twin.py tests/test_gateway_crop_simulations.py tests/test_operator_auth.py -q",
+    "passed": 114,
+    "failed": 0
+  },
+  "cross_process_hash_seed_checks": {
+    "command": "tests/test_digital_twin.py::TestSimulationReferenceFixture::test_seeded_simulation_matches_frozen_synthetic_fixture",
+    "python_hash_seeds": [1, 98765],
+    "passed": 1,
+    "failed": 0
+  },
+  "ruff": "passed",
+  "python_compile": "passed",
+  "runtime_sql_inventory": "current",
+  "capability_matrix": "valid: 67 rows; 28 baseline-retained, 7 deployed, 32 prepared; MAN-CAP checks remain separately gated",
+  "diff_check": "passed",
+  "migration": "not required",
+  "candidate_database": "untouched",
+  "legacy_database": "untouched",
+  "provider_or_chain": "not contacted",
+  "verified_contract": [
+    "Daily temperature and rainfall variation use process-independent SHA-256 buckets keyed by model namespace, integer weather seed, channel, and day",
+    "The default weather seed is zero; selected seed is recorded in run parameter overrides and returned in the simulation result",
+    "Boolean and non-integer seeds fail before a simulation_run insert",
+    "Synthetic 30-day maize outputs for seeds 0 and 42 match frozen summary and sampled daily-state values",
+    "The same synthetic fixture passes in separate processes with PYTHONHASHSEED=1 and PYTHONHASHSEED=98765"
+  ],
+  "known_gap": "The fixture is generated from the current repository model and is not legacy/populated output parity, agronomic validation, cross-architecture libm certification, or MAN-CAP-002 acceptance.",
+  "rollback": "Restore the prior process-salted jitter expressions, remove weather_seed from defaults/results/run overrides, and remove the synthetic fixture/tests/docs. No schema or stored-data rollback is needed."
+}

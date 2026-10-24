@@ -1,0 +1,56 @@
+{
+  "run_id": "reporting-tenant-lineage-review-20261013",
+  "date": "2026-10-13",
+  "scope": "read-only location-lineage review of unlocated archived dashboard definitions and report snapshots",
+  "source": {
+    "archive": "backups/legacy-logical-batch2-20261010/kokonut_intelligence.dump.age",
+    "archive_sha256": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "replay_migrations_applied": "353 through 385, preserving numbering gaps",
+    "retained_volume": "kokonut-kernel-migration-replay-retry1-20261013_recovery-postgres-data"
+  },
+  "execution_boundary": {
+    "container_network": "none",
+    "published_ports": [],
+    "database": "kokonut_restore",
+    "default_transaction_read_only": true,
+    "explicit_transaction_mode": "READ ONLY",
+    "stored_query_sql_returned": false,
+    "stored_query_sql_executed": false,
+    "report_payloads_returned": false,
+    "reviewed_data": "column/constraint definitions, aggregate counts, JSON key names, and exact-match predicates against known location identifiers/names",
+    "raw_record_identifiers_or_owner_labels_retained": false,
+    "candidate_or_legacy_database_touched": false,
+    "temporary_container_stopped_and_removed": true,
+    "recovery_volume_retained": true
+  },
+  "known_location_scope": {
+    "location_count": 2,
+    "unlocated_dashboard_dataset_count": 38,
+    "unlocated_report_snapshot_count": 3
+  },
+  "dashboard_dataset": {
+    "unlocated_rows_with_query_reference_to_known_location_uuid": 0,
+    "unlocated_rows_with_metadata_reference_to_known_location_uuid": 0,
+    "unlocated_rows_with_metadata_reference_to_known_location_name": 0,
+    "unlocated_rows_with_owner_metadata": 38,
+    "unlocated_rows_whose_owner_equals_confirmed_kokonut_network": 0,
+    "interpretation": "No archived location or confirmed-tenant marker establishes a location or tenant for these definitions. Stored SQL remains inert and is not accepted as an executable reporting capability."
+  },
+  "report_snapshot": {
+    "unlocated_rows_by_type": {
+      "dao_proposal_history": 2,
+      "state_of_kokonut": 1
+    },
+    "all_rows_are_draft": true,
+    "dao_proposal_history_rows_with_root_location_id_field": 2,
+    "dao_proposal_history_root_location_ids_matching_known_locations": 0,
+    "state_of_kokonut_rows_with_selected_location_ids_or_locations_fields": 1,
+    "state_of_kokonut_selected_location_ids_matching_known_locations": 0,
+    "payload_text_mentions_location_names": 3,
+    "payload_text_mentions_kokonut_network": 3,
+    "interpretation": "Two DAO proposal history snapshots contain root location_id fields, but neither matches a current location. The State of Kokonut snapshot contains location-list fields, but none matches a current location. Narrative mentions do not identify a single owning location."
+  },
+  "conclusion": "No source-grounded location or tenant backfill is justified for the 38 dashboard definitions or three report snapshots. Keep all 41 records unassigned pending explicit owner/source evidence; do not infer access from report content, organization relationships, or owner labels.",
+  "rollback": "No database rows, schema, candidate service, or legacy service were changed. The temporary read-only container was removed; the retained recovery volume and encrypted source archive remain available for review."
+}

@@ -54,9 +54,11 @@ def _check_view(view_name: str) -> bool:
 def _run_ch(sql: str) -> str:
     """Execute SQL via ClickHouse client in Docker."""
     password = os.environ.get("CLICKHOUSE_PASSWORD", "dev-clickhouse-kokonut-2026")
+    database = os.environ.get("CH_DB", os.environ.get("CLICKHOUSE_DB", "kokonut_analytics"))
     result = subprocess.run(
         ["docker", "compose", "exec", "-T", "clickhouse", "clickhouse-client",
          "--user", "kokonut", "--password", password,
+         "--database", database,
          "--query", sql],
         capture_output=True, text=True, timeout=30,
     )
@@ -69,6 +71,20 @@ def _check_ch_view(view_name: str) -> bool:
         f"SELECT count() FROM system.tables WHERE name = '{view_name}' AND database = currentDatabase()"
     )
     return result.strip() != "0"
+
+
+def test_clickhouse_query_selects_analytics_database(monkeypatch):
+    from unittest.mock import patch
+
+    monkeypatch.delenv("CH_DB", raising=False)
+    monkeypatch.delenv("CLICKHOUSE_DB", raising=False)
+    with patch("tests.test_e2e_platform.subprocess.run") as run:
+        run.return_value.stdout = "1\n"
+        run.return_value.returncode = 0
+        _run_ch("SELECT 1")
+
+    args = run.call_args.args[0]
+    assert args[args.index("--database") + 1] == "kokonut_analytics"
 
 
 def _check_column(table_name: str, column_name: str) -> bool:

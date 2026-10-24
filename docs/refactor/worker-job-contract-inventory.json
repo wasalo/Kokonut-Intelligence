@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "generated_by": "scripts/worker_job_contract_inventory.py",
+  "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
+  "summary": {
+    "catalog_jobs": 18,
+    "allowlisted_modules": 26,
+    "outcomes": {
+      "default_arguments_accepted": 5,
+      "required_runtime_inputs_validated": 13
+    }
+  },
+  "jobs": [
+    {
+      "job": "anomaly",
+      "module": "services.ingestion.anomaly_detector",
+      "worker_key": null,
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "climate",
+      "module": "services.ingestion.climate_worker",
+      "worker_key": "climate",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "credit_adjustment",
+      "module": "services.analytics.carbon_credit_adjustment_worker",
+      "worker_key": "credit_adjustment",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "dashboards",
+      "module": "services.export.dataset_refresh",
+      "worker_key": null,
+      "argument_count": 1,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "eas",
+      "module": "services.ingestion.eas_worker",
+      "worker_key": "eas_indexer",
+      "argument_count": 0,
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "eas_legacy",
+      "module": "services.ingestion.eas_indexer",
+      "worker_key": null,
+      "argument_count": 0,
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "freshness",
+      "module": "services.ingestion.data_freshness",
+      "worker_key": null,
+      "argument_count": 1,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "gnosis",
+      "module": "services.ingestion.gnosis_indexer",
+      "worker_key": null,
+      "argument_count": 0,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "market_data",
+      "module": "services.ingestion.market_data_worker",
+      "worker_key": "market_data",
+      "argument_count": 0,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "metrics",
+      "module": "services.metrics",
+      "worker_key": null,
+      "argument_count": 2,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "noi_snapshots",
+      "module": "services.metrics.noi_snapshot_worker",
+      "worker_key": "noi_snapshot",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "projections",
+      "module": "services.ingestion.clickhouse_outbox",
+      "worker_key": null,
+      "argument_count": 3,
+      "required_inputs": [],
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "remote_sensing",
+      "module": "services.ingestion.remote_sensing_worker",
+      "worker_key": "remote_sensing",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "rpc",
+      "module": "services.ingestion.rpc_worker",
+      "worker_key": "rpc_indexer",
+      "argument_count": 0,
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "rpc_legacy",
+      "module": "services.ingestion.rpc_indexer",
+      "worker_key": null,
+      "argument_count": 0,
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "sensors",
+      "module": "services.ingestion.sensor_worker",
+      "worker_key": "sensor_ingestion",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id",
+        "driver_instance_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "weather",
+      "module": "services.ingestion.weather_worker",
+      "worker_key": "weather",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "weather_forecast",
+      "module": "services.ingestion.weather_forecast_worker",
+      "worker_key": "weather_forecast",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    }
+  ]
+}

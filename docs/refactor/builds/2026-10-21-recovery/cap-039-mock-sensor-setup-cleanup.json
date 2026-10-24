@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-039",
+  "date": "2026-10-21",
+  "change": "Mock sensor setup rolls back on failure and closes its database connection on all exits.",
+  "validation": {
+    "success_path": [
+      "setup commits",
+      "connection closes",
+      "no rollback"
+    ],
+    "failure_path": [
+      "location setup failure propagates",
+      "transaction rolls back",
+      "connection closes",
+      "no commit",
+      "sensor-type query failure after location lookup"
+    ],
+    "focused_tests": "26 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database": "synthetic connection and cursors only"
+  },
+  "scope": "No PostgreSQL, provider, candidate, legacy service, or sample farm data was accessed. This is connection lifecycle evidence, not scheduled worker/runtime recovery acceptance."
+}

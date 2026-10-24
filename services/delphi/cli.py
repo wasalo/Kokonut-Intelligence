@@ -100,17 +100,15 @@ def cmd_submit(args):
 
 
 def cmd_live_summary(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.get_live_summary(args.study_id)))
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    print(_json(summarize_study(args.study_id, args.location_id)))
 
 
 def cmd_consensus(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    study = f.get_study(args.study_id)
-    # Return current consensus snapshots via live summary items
-    summary = f.get_live_summary(args.study_id)
+    from services.agents.delphi_facilitator_agent import summarize_study
+
+    summary = summarize_study(args.study_id, args.location_id)
     print(_json({"study_id": args.study_id, "items": summary["items"]}))
 
 
@@ -121,10 +119,10 @@ def cmd_check_stopping(args):
 
 
 def cmd_draft_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.draft_recommendation(
+    from services.agents.delphi_facilitator_agent import draft_recommendation
+    rec = draft_recommendation(
         study_id=args.study_id,
+        location_id=args.location_id,
         recommendation_text=args.text,
         summary=args.summary,
         created_by=args.created_by,
@@ -133,25 +131,24 @@ def cmd_draft_recommendation(args):
 
 
 def cmd_approve_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.approve_recommendation(args.recommendation_id, args.approved_by)
-    print(_json(rec))
+    raise SystemExit(
+        "Direct Delphi recommendation review is disabled; use the authenticated "
+        "operator Gateway review route"
+    )
 
 
 def cmd_list_recommendations(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    print(_json(f.list_recommendations(args.study_id)))
+    raise SystemExit(
+        "Direct Delphi recommendation reads are disabled; use the authenticated "
+        "operator Gateway review route"
+    )
 
 
 def cmd_reject_recommendation(args):
-    from services.delphi.facilitator import Facilitator
-    f = Facilitator(conn=_get_conn())
-    rec = f.reject_recommendation(
-        args.recommendation_id, args.rejected_by, args.reason,
+    raise SystemExit(
+        "Direct Delphi recommendation review is disabled; use the authenticated "
+        "operator Gateway review route"
     )
-    print(_json(rec))
 
 
 def cmd_calibrate_panel(args):
@@ -161,14 +158,10 @@ def cmd_calibrate_panel(args):
 
 
 def cmd_list_studies(args):
-    conn = _get_conn()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM delphi_study ORDER BY created_at DESC LIMIT 50")
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.close()
-    for row in rows:
-        print(_json(dict(zip(cols, row))))
+    raise SystemExit(
+        "Unscoped Delphi study listing is disabled; use the authenticated "
+        "location-scoped Operator Gateway study list"
+    )
 
 
 def main():
@@ -238,10 +231,12 @@ def main():
     # Consensus / summaries
     p = sub.add_parser("live-summary", help="Anonymized live summary")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_live_summary)
 
     p = sub.add_parser("consensus", help="Current consensus snapshots")
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_consensus)
 
     p = sub.add_parser("check-stopping", help="Evaluate stopping criteria")
@@ -249,11 +244,15 @@ def main():
     p.set_defaults(func=cmd_check_stopping)
 
     # Recommendations
-    p = sub.add_parser("draft-recommendation", help="Draft a recommendation (agent)")
+    p = sub.add_parser(
+        "draft-recommendation",
+        help="Generate an in-memory recommendation suggestion (not persisted)",
+    )
     p.add_argument("--study-id", required=True)
+    p.add_argument("--location-id", required=True)
     p.add_argument("--text", required=True)
     p.add_argument("--summary")
-    p.add_argument("--created-by")
+    p.add_argument("--created-by", help="Ignored for compatibility; identity is Gateway-derived")
     p.set_defaults(func=cmd_draft_recommendation)
 
     p = sub.add_parser("approve-recommendation", help="Approve a recommendation (human)")

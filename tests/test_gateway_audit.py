@@ -60,6 +60,24 @@ def test_gateway_audit_marks_handler_failures_as_errors():
     assert audit_logger.log_access.call_args.kwargs["metadata"]["outcome"] == "error"
 
 
+def test_gateway_audit_preserves_boolean_oidc_scope_check():
+    conn = MagicMock()
+    audit_logger = MagicMock()
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="operator:synthetic",
+                path="/operator/api/true-cost/location/summary",
+                method="GET",
+                status="allowed",
+                resource="true_cost_accounting",
+                action="read",
+                scope_checked=True,
+            )
+
+    assert audit_logger.log_access.call_args.kwargs["metadata"]["scope_checked"] is True
+
+
 def test_gateway_audit_closes_owned_connection():
     conn = MagicMock()
     with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
@@ -87,6 +105,51 @@ def test_gateway_audit_does_not_reuse_closed_owned_connection():
     assert conn.close.call_count == 2
 
 
+def test_gateway_audit_database_failure_log_omits_exception_details():
+    diagnostic = "synthetic database credential diagnostic"
+    audit = GatewayAudit(conn=MagicMock())
+    spool = MagicMock()
+    spool.path.exists.return_value = False
+    spool.pending.return_value = []
+    spool.enqueue.return_value = 1
+    spool.alert_threshold = 100
+    spool.max_pending = 100
+    audit._get_spool = lambda: spool
+    audit._write_record = MagicMock(side_effect=RuntimeError(diagnostic))
+    audit._report_capture_state = MagicMock()
+
+    with patch("services.gateway.audit.logger.error") as log_error:
+        audit.log(caller="caller", path="/api/write", method="POST", status="allowed")
+
+    log_error.assert_called_once_with("Gateway audit database write failed (%s)", "RuntimeError")
+    assert diagnostic not in str(log_error.call_args)
+    spool.enqueue.assert_called_once()
+
+
+def test_gateway_audit_journal_failure_log_omits_exception_details():
+    diagnostic = "synthetic local journal path diagnostic"
+    audit = GatewayAudit(conn=MagicMock())
+    spool = MagicMock()
+    spool.path.exists.return_value = False
+    spool.pending.return_value = []
+    spool.enqueue.side_effect = OSError(diagnostic)
+    audit._get_spool = lambda: spool
+    audit._write_record = MagicMock(side_effect=RuntimeError("database unavailable"))
+    audit._report_capture_state = MagicMock()
+
+    with patch("services.gateway.audit.logger.error") as log_error:
+        audit.log(caller="caller", path="/api/write", method="POST", status="allowed")
+
+    assert log_error.call_count == 2
+    assert log_error.call_args_list[0].args == (
+        "Gateway audit database write failed (%s)", "RuntimeError",
+    )
+    assert log_error.call_args_list[1].args == (
+        "Gateway audit local journal could not retain an event (%s)", "OSError",
+    )
+    assert diagnostic not in str(log_error.call_args_list)
+
+
 def test_request_identity_does_not_return_raw_credentials():
     request = MagicMock()
     request.headers.get.side_effect = lambda key: "secret" if key == "x-api-key" else None
@@ -104,3 +167,15 @@ def test_rate_limiter_returns_retry_after_and_bounds_callers():
     assert limiter.retry_after("first") >= 1
     assert limiter.check("second")
     assert "first" not in limiter._buckets
+
+
+def test_rate_limiter_does_not_log_caller_identity():
+    caller = "ip:203.0.113.17"
+    limiter = RateLimiter(max_tokens=1)
+    assert limiter.check(caller)
+
+    with patch("services.gateway.rate_limiter.logger.warning") as warning:
+        assert not limiter.check(caller)
+
+    warning.assert_called_once_with("Rate limit exceeded")
+    assert caller not in str(warning.call_args)

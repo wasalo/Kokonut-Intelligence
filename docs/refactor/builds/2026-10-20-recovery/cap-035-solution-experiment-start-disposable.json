@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "509_location_solution_experiment_start.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 509 applies and replays after the ordered experiment protocol approval chain",
+    "start requires signed exact-location transition scope and an active human identity",
+    "only an independently approved active-origin experiment at an eligible stage can start",
+    "exact retries replay one immutable receipt and request collisions are rejected",
+    "start does not collect observations, assert consent, or change solution stage",
+    "runtime and Directus cannot read, forge, edit, or delete private start receipts",
+    "Directus cannot execute the start function and runtime cannot bypass bounded lifecycle functions with direct updates"
+  ],
+  "acceptance_groups_passed": 7
+}

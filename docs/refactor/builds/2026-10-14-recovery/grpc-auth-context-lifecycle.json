@@ -1,0 +1,37 @@
+{
+  "check": "grpc_auth_context_lifecycle",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "handler_cardinalities": [
+      "unary-unary",
+      "unary-stream",
+      "stream-unary",
+      "stream-stream"
+    ],
+    "identity_visible_during_handler_execution": true,
+    "identity_reset_before_stream_response_yield": true,
+    "identity_reset_between_bidirectional_responses": true,
+    "canceled_iterator_closed_under_authenticated_context": true,
+    "identity_reset_after_cancellation_or_exception": true,
+    "candidate_or_legacy_database_touched": false,
+    "rpc_listener_started": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_grpc_auth_context_lifecycle.py tests/test_grpc.py -q",
+    "new_lifecycle_tests_passed": 5,
+    "existing_grpc_tests_passed": 28,
+    "passed": 33,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The tests call wrapped gRPC handlers in process and do not establish live network transport, API-key database behavior, tenant isolation, or parity with native Gateway policies."
+  ]
+}

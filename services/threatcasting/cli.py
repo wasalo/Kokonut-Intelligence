@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from datetime import datetime
 from typing import Any
 
@@ -24,7 +23,6 @@ def _json(obj: Any) -> str:
 
 
 def cmd_create_threat(args):
-    from services.threatcasting.cross_impact import CrossImpactAnalyzer
     conn = _get_conn()
     cur = conn.cursor()
     cur.execute(
@@ -48,20 +46,25 @@ def cmd_create_threat(args):
 
 def cmd_list_threats(args):
     conn = _get_conn()
-    cur = conn.cursor()
-    conditions = ["is_active = TRUE"]
-    params = []
-    if args.location_id:
-        conditions.append("location_id = %s")
-        params.append(args.location_id)
-    if args.type:
-        conditions.append("threat_type = %s")
-        params.append(args.type)
-    where = " AND ".join(conditions)
-    cur.execute(f"SELECT * FROM threat WHERE {where} ORDER BY threat_name", params)
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    cur.close()
+    try:
+        cur = conn.cursor()
+        try:
+            conditions = ["is_active = TRUE"]
+            params = []
+            if args.location_id:
+                conditions.append("location_id = %s")
+                params.append(args.location_id)
+            if args.type:
+                conditions.append("threat_type = %s")
+                params.append(args.type)
+            where = " AND ".join(conditions)
+            cur.execute(f"SELECT * FROM threat WHERE {where} ORDER BY threat_name", params)
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+        finally:
+            cur.close()
+    finally:
+        conn.close()
     for row in rows:
         print(_json(dict(zip(cols, row))))
 

@@ -24,6 +24,10 @@
 | 14 | Data residency / retention | 17 references in AGENTS.md/docs; no consolidated policy | ⚠️ Partial |
 | 15 | Vendor / third-party | Referenced in AGENTS.md governance; no register | ⚠️ Partial |
 
+This is a point-in-time August 2026 baseline. Its OneDev CI reference was
+superseded on 13 October 2026: the tracked OneDev buildspec was removed and the
+GitHub workflow migration is documented in [`docs/github-actions.md`](../github-actions.md).
+
 ## Verdict
 
 **Baseline confirmed — unchanged from original assessment:**

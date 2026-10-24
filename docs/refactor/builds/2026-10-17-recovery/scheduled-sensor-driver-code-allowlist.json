@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "scheduled sensor driver import target validation",
+  "implementation": [
+    "Scheduled driver name/type/module/class must match an immutable source-controlled mapping.",
+    "Only the code-mapped module is imported; database registry values are never passed to importlib.",
+    "Unreviewed driver names and altered module/class/type values fail before import.",
+    "The manual registry loader and manual sensor capture entrypoints are unchanged."
+  ],
+  "focused_checks": {
+    "command": "PYTHONPATH=. PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/pytest -q tests/test_sensor_driver_schedule.py tests/test_sensor_ingester_cli_contract.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py",
+    "result": "174 passed"
+  },
+  "ruff": {
+    "command": ".venv/bin/ruff check services/drivers/registry.py services/ingestion/sensor_ingester.py tests/test_sensor_driver_schedule.py",
+    "result": "passed"
+  },
+  "compilation": {
+    "command": "python3 -m py_compile services/drivers/registry.py services/ingestion/sensor_ingester.py tests/test_sensor_driver_schedule.py",
+    "result": "passed"
+  },
+  "limitations": [
+    "This does not establish a distinct database principal, signed tenant context, RLS, or bounded SQL functions for the scheduled pull.",
+    "The configured CSV source path still needs an explicit confinement policy.",
+    "No database, provider, file, driver instance, persisted schedule, candidate service, or legacy service was accessed."
+  ]
+}

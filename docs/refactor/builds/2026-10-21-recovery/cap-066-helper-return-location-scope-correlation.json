@@ -1,0 +1,56 @@
+{
+  "batch": "CAP-066 helper-return location-scope correlation",
+  "date": "2026-10-21",
+  "tests": {
+    "command": "python3 -m pytest tests/test_report_generator_query_scope_inventory.py tests/test_report_generator_helper_scope_inventory.py tests/test_report_generator_inventory.py -q",
+    "result": "57 passed"
+  },
+  "static_inventory": {
+    "registered_report_types": 94,
+    "direct_query_sites": 176,
+    "direct_positional_contracts": 175,
+    "direct_named_contracts": 1,
+    "direct_bind_mismatches": 0,
+    "reachable_helper_query_memberships": 169,
+    "helper_sql_sites_resolved": 169,
+    "helper_sql_sites_unresolved": 0,
+    "helper_location_scope_signals": 81,
+    "helper_positional_contracts": 149,
+    "helper_named_contracts": 8,
+    "helper_bind_mismatches": 0
+  },
+  "recognized_helper_variants": {
+    "report": "business_plan",
+    "source": "services/analytics/swot.py:_location_filter",
+    "reachable_query_lines": [107, 126, 144],
+    "variants": [
+      {
+        "helper_return_line": 82,
+        "location_predicate_visible": true,
+        "bind_matches_caller_location_id": true,
+        "scope_signal": true
+      },
+      {
+        "helper_return_line": 88,
+        "location_predicate_visible": false,
+        "bind_matches_caller_location_id": false,
+        "scope_signal": false
+      },
+      {
+        "helper_return_line": 89,
+        "location_predicate_visible": false,
+        "bind_matches_caller_location_id": false,
+        "scope_signal": false
+      }
+    ],
+    "conditional_location_scope": true
+  },
+  "verification": [
+    "Ruff and Python compilation passed.",
+    "Report source, direct-query, helper-query, runtime SQL, and capability-matrix inventories are current.",
+    "Capability matrix validation passed for all 66 rows.",
+    "git diff --check passed."
+  ],
+  "scope_limit": "Static source signal only. It does not prove correct tenant authorization, RLS, all runtime branches, populated report parity, or report audience access.",
+  "environment": "No database, migration, candidate, legacy stack, provider, or secret was used."
+}

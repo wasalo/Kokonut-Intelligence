@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T04:27:46Z",
+  "operation": "Fresh empty-database schema and curated-seed bootstrap acceptance",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "commit": "c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec",
+    "migration_runner_sha256": "df87c91265e22f146e0ffb274b072f384d3665b6aaf5ae62816f5e5e055ba295",
+    "seed_script_sha256": "ceb488eae94b64d4261956d9aba9d832ff07eb7a9d773a521bad0e9edb992777",
+    "discovered_migration_sources": 503,
+    "selected_curated_seed_ids": [
+      "seed:000_expense_categories.sql",
+      "seed:000_metric_definitions.sql",
+      "seed:022_metric_governance.sql",
+      "seed:103_flow_metrics.sql",
+      "seed:015_revenue_multiplier_config.sql",
+      "seed:023_impact_frameworks.sql",
+      "seed:027_carbon_framework_seeds.sql",
+      "seed:032_ebf_rubric.sql",
+      "seed:033_ebf_dashboard_datasets.sql",
+      "seed:034_ebf_p2_dashboard_datasets.sql",
+      "seed:035_holistic_wellbeing.sql",
+      "seed:036_financial_resilience_and_scaling.sql",
+      "seed:037_capital_efficiency_and_utility.sql",
+      "seed:038_commons_liberation_and_stewardship.sql",
+      "seed:039_gnh_alignment_and_inclusion.sql",
+      "seed:040_regenerative_outcomes_and_stewardship.sql",
+      "seed:041_open_source_capitalist_scaling.sql",
+      "seed:042_kokonut_commons_governance.sql",
+      "seed:044_bio_factory_operations.sql",
+      "seed:090_pitch_templates.sql",
+      "seed:091_business_architecture.sql",
+      "seed:092_technology_roadmap.sql",
+      "seed:105_stakeholder_vocabulary.sql",
+      "seed:106_stakeholder_engagement.sql",
+      "seed:107_stakeholder_cockpit.sql",
+      "seed:108_coordination_example.sql",
+      "seed:109_adelphi_governance_roles.sql",
+      "seed:110_adelphi_governance_circles.sql",
+      "seed:114_state_of_kokonut_funding.sql",
+      "seed:115_strategic_reserve.sql",
+      "seed:140_mobile_forms.sql"
+    ],
+    "selected_seed_count": 31
+  },
+  "target": {
+    "compose_project": "kokonut-seed-validation",
+    "database": "kokonut_seed_preflight",
+    "created_from": "template0",
+    "public_tables_before_bootstrap": 0,
+    "legacy_or_candidate_archive_restored": false
+  },
+  "result": {
+    "applied_schema_migrations": 382,
+    "schema_failures": 0,
+    "applied_curated_seed_migrations": 31,
+    "seed_failures": 0,
+    "non_applied_ledger_rows": 0,
+    "remaining_unselected_seed_sources": 90,
+    "representative_counts": {
+      "business_capability": 33,
+      "dashboard_dataset": 38,
+      "service_registry": 67,
+      "mobile_form": 5,
+      "mobile_form_version": 5
+    },
+    "scratch_container_and_volume_removed": true
+  },
+  "live_candidate_after_test": {
+    "applied_schemas": 382,
+    "applied_seeds": 1,
+    "pending_seed_sources": 120,
+    "mobile_forms": 5,
+    "service_registry": 63,
+    "containers": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http": {
+      "health": 200,
+      "anonymous_protected_review_queue": 401
+    },
+    "seed_sql_executed": false
+  },
+  "legacy_stack_accessed": false,
+  "result_summary": "Passed: clean schema bootstrap through migration 391 and the exact ordered curated seed set applied from template0. Remaining 90 seed files were not selected. The live candidate retained its original ledger and row counts; its next curated-seed rollout is a separate gated operation."
+}

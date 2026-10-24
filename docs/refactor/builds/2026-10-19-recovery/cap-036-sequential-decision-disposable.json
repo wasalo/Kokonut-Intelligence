@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "460_location_scoped_sequential_decision_summary.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 460 applies and replays on disposable PostgreSQL 16",
+    "strategy, threat, and solution hypotheses include only exact location lineage",
+    "evidence quality, posterior updates, and latest decisions match fixtures",
+    "signed tenant context and exact sequential_evidence:read are enforced",
+    "private statement, source, value, likelihood, and unscoped records are omitted",
+    "runtime and Directus lack direct ledger access; reader has no write or identity access"
+  ],
+  "assertions_passed": 6
+}

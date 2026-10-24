@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-20",
+  "source_revision": "cd256a8f1d5538f2f087c07059d7fecceeb55431",
+  "scope": "Keep data-freshness CLI help and invalid invocation preflight offline",
+  "entrypoints": [
+    "python3 -m services.ingestion.data_freshness",
+    "python3 -m services.ingestion data_freshness"
+  ],
+  "behavior": {
+    "no_action_prints_help_without_loading_database_configuration": true,
+    "source_requires_check": true,
+    "check_and_summary_are_mutually_exclusive": true,
+    "valid_check_and_summary_still_open_database": true
+  },
+  "verification": {
+    "focused_tests": "37 passed in tests/test_telemetry_freshness.py",
+    "fresh_process_import_check": "passed for standalone and unified CLI; services.ingestion.base is not imported on either help path",
+    "database": "mocked; get_db is configured to fail if preflight reaches it",
+    "provider": "not contacted",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "result": "PASS: help and invalid action combinations return or fail before secret-bearing database configuration is imported.",
+  "limitations": [
+    "No live database, provider delivery, candidate, or legacy stack was exercised.",
+    "This CLI preflight fix does not close production alert routing, retention ownership, or MAN-CAP-047."
+  ]
+}

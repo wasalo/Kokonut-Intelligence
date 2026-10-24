@@ -12,6 +12,7 @@ Usage:
     uvicorn services.ingestion.http_sensor_receiver:app --host 0.0.0.0 --port 8056
 """
 
+import argparse
 import hashlib
 import hmac
 import json
@@ -229,7 +230,7 @@ def _get_app():
             return {"status": "success", "reading_id": reading_id}
 
         except Exception as e:
-            logger.exception("Error processing reading: %s", e)
+            logger.error("Error processing sensor reading (%s)", type(e).__name__)
             return {"status": "error", "message": "Unable to process sensor reading", "retryable": True}
         finally:
             try:
@@ -248,17 +249,17 @@ def _get_app():
     def _authenticated_secret(device_id: str) -> Optional[str]:
         try:
             return _get_device_secret(device_id)
-        except Exception:
-            logger.exception("Sensor credential lookup unavailable")
-            raise HTTPException(status_code=503, detail="Sensor storage unavailable", headers={"Retry-After": "30"})
+        except Exception as exc:
+            logger.error("Sensor credential lookup unavailable (%s)", type(exc).__name__)
+            raise HTTPException(status_code=503, detail="Sensor storage unavailable", headers={"Retry-After": "30"}) from None
 
     def _process_with_retry_outcome(reading: SensorReading, authenticated_secret: str) -> Dict[str, Any]:
         try:
             return _process_reading(reading, authenticated_secret)
-        except Exception:
+        except Exception as exc:
             # Cleanup/commit uncertainty can occur after a durable write. The
             # caller must retry the same timestamp, not generate a new reading.
-            logger.exception("Sensor processing cleanup failed")
+            logger.error("Sensor processing cleanup failed (%s)", type(exc).__name__)
             return {"status": "error", "message": "Unable to process sensor reading", "retryable": True}
 
     @app.post("/api/v1/sensors/{device_id}/readings")
@@ -330,7 +331,7 @@ def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, 
         project_sensor_reading(reading_id, location_id, plot_id, sensor_id, sensor_type,
                                value, unit, timestamp, quality)
     except Exception as exc:
-        logger.warning("ClickHouse insert failed: %s", exc)
+        logger.warning("ClickHouse insert failed (%s)", type(exc).__name__)
 
 def run(host: str = "0.0.0.0", port: int = 8056):
     """Run the HTTP sensor receiver."""
@@ -350,12 +351,33 @@ def run(host: str = "0.0.0.0", port: int = 8056):
     uvicorn.run(app, host=host, port=port, proxy_headers=False)
 
 
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="HTTP sensor receiver")
+def build_parser() -> argparse.ArgumentParser:
+    """Build the standalone and unified CLI parser."""
+    parser = argparse.ArgumentParser(
+        prog="http_sensor_receiver.py",
+        description="HTTP sensor receiver",
+    )
     parser.add_argument("--host", default="0.0.0.0", help="Bind host")
-    parser.add_argument("--port", type=int, default=8056, help="Bind port")
-    args = parser.parse_args()
+    parser.add_argument("--port", type=_parse_port, default=8056, help="Bind port")
+    return parser
 
+
+def _parse_port(value: str) -> int:
+    """Reject invalid bind ports during argument parsing, before server startup."""
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError("port must be an integer from 1 to 65535") from None
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be an integer from 1 to 65535")
+    return port
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Start the HTTP sensor receiver with the requested bind address."""
+    args = build_parser().parse_args(argv)
     run(host=args.host, port=args.port)
+
+
+if __name__ == "__main__":
+    main()

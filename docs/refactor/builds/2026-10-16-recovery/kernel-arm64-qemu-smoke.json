@@ -1,0 +1,36 @@
+{
+  "checked_at_utc": "2026-10-16T03:24:05Z",
+  "source_revision": "04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9",
+  "scope": "current Kernel image ARM64 build and no-network emulated CLI smoke",
+  "builder": {
+    "name": "Docker Buildx desktop-linux",
+    "buildkit": "0.33.1",
+    "host_platform": "linux/amd64",
+    "target_platform": "linux/arm64"
+  },
+  "build": {
+    "target": "kernel",
+    "base": "python:3.11-slim pinned by Dockerfile.kernel",
+    "result": "passed",
+    "exported_image_manifest": "sha256:6b99f76d7190cc2078d15468974f7f89e0038652921f004711e85388e640bde5"
+  },
+  "runtime_smoke": {
+    "reported_image_platform": "linux/arm64",
+    "configured_user": "appuser",
+    "network": "none",
+    "checks": {
+      "runtime_cli_help": "passed",
+      "kernel_image_manifest_command": "passed"
+    }
+  },
+  "cleanup": {
+    "temporary_image_removed": true,
+    "temporary_oci_and_docker_archives_removed": true,
+    "project_compose_services_started_or_replaced": false
+  },
+  "limitations": [
+    "This is QEMU/Buildx software evidence, not Raspberry Pi hardware acceptance.",
+    "Physical performance, thermals, storage behavior, and power-loss recovery remain unverified.",
+    "This smoke did not start the API against PostgreSQL or exercise ingress, provider, or farm data."
+  ]
+}

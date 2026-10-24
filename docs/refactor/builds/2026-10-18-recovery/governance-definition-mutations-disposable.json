@@ -1,0 +1,22 @@
+{
+  "title": "Migrations 437-443 governance role assignment, definition mutation, and lifecycle acceptance",
+  "status": "passed",
+  "checks": [
+    "migrations 438\u2013443 apply and replay transactionally after migration 437",
+    "runtime retains assignment reads and bounded proposal execution but loses direct table writes and ledger access",
+    "start, dispose, and cancel enforce signed location action grants, direct or same-location role ownership, completed-session follow-up, required reasons, exact idempotent replay, and append-only actor history",
+    "runtime and Directus roles cannot mutate tactical lifecycle rows or read/write the private action ledger; append-only history rejects edits",
+    "active bound operator creates an attributed location role nomination; exact retry returns the same proposed row without activation",
+    "circle/role definition transitions require exact signed location grants and independent human review, replay idempotently, block assignment conflicts, keep immutable actor history, and deny runtime/Directus direct status changes",
+    "circle and role creation always yields draft records; exact create/update grants, same-location parents, draft-only edits, idempotent retries, private append-only before/after history, and runtime/Directus direct-write denial are enforced",
+    "read-only readback pages only the signed operator's nominations, rejects missing or mismatched scope, and omits nominee identity and mandate",
+    "review queue reveals nominee, submitter, role, and mandate only to a separately granted reviewer; keyset paging is bounded, and proposers cannot decide their own proposal",
+    "independent approval and rejection atomically update lifecycle state, require exact action grants and reason, reject repeat decisions, and preserve exact idempotent retries",
+    "decision history is append-only and private to the bounded function owner; runtime and Directus cannot read or mutate it directly",
+    "signed tenant context, exact location grant, active party binding, and request-content identity are enforced",
+    "role location, nominee active state, and delegate mandate are validated before writing",
+    "runtime cannot bypass the bounded write function, activate/delete assignments, inspect the private request ledger, or rewrite request history"
+  ],
+  "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
+  "elapsed_seconds": 65.68
+}

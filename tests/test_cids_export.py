@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import sys
 from datetime import date
 from decimal import Decimal
 
@@ -119,7 +121,9 @@ def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:
 
     import services.registry.cids_export as cids_export
 
-    monkeypatch.setattr(cids_export, "fetch_cids_source", lambda conn, location_id: _source())
+    monkeypatch.setattr(
+        cids_export, "fetch_cids_source", lambda conn, location_id, **_kwargs: _source()
+    )
     exported = export_location(Conn(), "a0000000-0000-0000-0000-000000000001")
 
     assert exported["kokonut:alignmentTier"] == "essential"
@@ -157,3 +161,75 @@ def test_cids_source_query_requires_public_feedback_opt_in() -> None:
     assert "sf.consent_scope IN ('public_summary', 'public_quote', 'public_full')" in feedback_query
     assert "sf.status = 'published'" in feedback_query
     assert "NULLIF(TRIM(COALESCE(sf.public_summary, '')), '') IS NOT NULL" in feedback_query
+
+
+def test_scoped_cids_source_reads_only_signed_projection_views() -> None:
+    class Cursor:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+            self.fetchone_calls = 0
+
+        def execute(self, query: str, params: tuple[str]) -> None:
+            assert params == ("location-id",)
+            self.queries.append(query)
+
+        def fetchone(self) -> dict[str, str]:
+            self.fetchone_calls += 1
+            return {"id": "location-id", "name": "Kokonut Adelphi"}
+
+        def fetchall(self) -> list[dict]:
+            return []
+
+        def close(self) -> None:
+            pass
+
+    class Connection:
+        def __init__(self, cursor: Cursor) -> None:
+            self._cursor = cursor
+
+        def cursor(self, **kwargs: object) -> Cursor:
+            return self._cursor
+
+    cursor = Cursor()
+    source = fetch_cids_source(
+        Connection(cursor), "location-id", source_schema="kokonut_agent_source"
+    )
+
+    assert source["location"]["id"] == "location-id"
+    assert len(cursor.queries) == 6
+    assert all("kokonut_agent_source.cids_" in query for query in cursor.queries)
+    assert all("public." not in query for query in cursor.queries)
+    assert "public_summary" not in cursor.queries[4]
+    assert "consent" not in cursor.queries[4].lower()
+
+
+def test_cids_export_rejects_unapproved_source_schema() -> None:
+    class Conn:
+        pass
+
+    import pytest
+
+    with pytest.raises(ValueError, match="source_schema"):
+        export_location(Conn(), "location-id", source_schema="public; DROP TABLE location")
+
+
+def test_registry_export_cli_uses_signed_worker(monkeypatch, capsys) -> None:
+    import services.registry.cids_export as cids_export
+    from services.agents import worker_cli
+
+    document = {
+        "@context": [],
+        "@graph": [{"@type": "cids:Organization"}],
+        "kokonut:cidsVersion": "3.2.0",
+        "kokonut:alignmentTier": "essential",
+    }
+    monkeypatch.setattr(sys, "argv", ["cids_export", "--location-id", "location-id"])
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_cids_export",
+        lambda _location_id: {"document": document, "graph_count": 1},
+    )
+
+    cids_export.main()
+
+    assert json.loads(capsys.readouterr().out) == document

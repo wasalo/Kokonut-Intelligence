@@ -16,6 +16,9 @@ def command(args):
                    FROM mqtt_delivery WHERE status IN ('failed', 'dead_letter', 'rejected')
                    ORDER BY updated_at DESC LIMIT :limit""", {"limit": args.limit},
             ).all()
+        for row in rows:
+            if row.get("last_error"):
+                row["last_error"] = "[details redacted]"
         print_json(rows)
         return
     if not (args.actor or "").strip() or not (args.reason or "").strip():

@@ -3,8 +3,10 @@
 **Subsequent deployment:** the [AMD64 runtime record](portability-runtime.md)
 documents the completed isolated startup and 364 applied schemas through 373.
 Preparation-only statements below describe the earlier implementation slices;
-the runtime record is the current deployment evidence. ARM64 runtime and Pi
-certification remain pending.
+the runtime record is the current deployment evidence. The ARM64 minimal runtime
+has since passed Buildx/QEMU bootstrap, migration, health, logical backup/restore,
+and restart checks; physical Pi certification remains unverified. See the
+[ARM64 acceptance record](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).
 
 `docker-compose.kernel-portability.yml` is a standalone database evaluation
 manifest with project name `kokonut-kernel-portability`, a separate private
@@ -13,8 +15,9 @@ with candidate/legacy manifests, override its project name to an existing
 deployment, or attach an existing data directory to this evaluation service.
 
 The build selects `Dockerfile.kernel-postgis`'s final target and the package
-versions verified on AMD64 and ARM64. Platform defaults to linux/amd64; explicitly
-export KOKONUT_DATABASE_PLATFORM=linux/arm64 for the ARM64 counterpart. The
+versions verified on AMD64 and ARM64. Runtime and build platforms are both set
+from `KOKONUT_DATABASE_PLATFORM`; it defaults to linux/amd64. Explicitly export
+`KOKONUT_DATABASE_PLATFORM=linux/arm64` for the ARM64 counterpart. The
 mutable evaluation image tag is rebuilt for the selected architecture; do not
 assume it holds both architectures simultaneously. Retain the separately recorded
 artifact tags/digests for comparison and rollback evidence.

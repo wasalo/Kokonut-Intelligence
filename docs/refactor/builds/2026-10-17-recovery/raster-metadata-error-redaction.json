@@ -1,0 +1,17 @@
+{
+  "scope": "raster metadata header reads",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_raster_metadata_error_redaction.py tests/test_drone_raster_integration.py -q",
+    "focused_test_result": "21 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "metadata read failures retain their existing generic error results",
+    "missing dependency and file-not-found behavior is unchanged"
+  ],
+  "redaction": "raster read exceptions omit private file paths, exception messages, and tracebacks; only bounded exception classes are logged"
+}

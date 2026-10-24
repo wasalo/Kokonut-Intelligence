@@ -1,0 +1,24 @@
+{
+  "database_image": "postgres:16",
+  "migrations": [
+    {
+      "name": "421_eas_recipient_cursors.sql",
+      "sha256": "797f52ae5a1edda4ab88779e273aa4350c254a6db7cd029b9a64eb4fc4b73355"
+    },
+    {
+      "name": "422_eas_cursor_rebaseline.sql",
+      "sha256": "ccb5ea50eba80213127c8f5e404a2c1a9492b4cdcf05a6a472df714823b07f62"
+    }
+  ],
+  "checks": [
+    "migration 421 applies and replays idempotently",
+    "migration 421 backfills the legacy chain watermark for supported wallets",
+    "migration 422 replays and resets inherited cursors for full recipient-history recovery",
+    "newly tracked wallet starts with an independent zero cursor",
+    "recipient cursors advance independently and never regress",
+    "cursor and indexer status roll back together with an uncommitted projection batch"
+  ],
+  "status": "passed",
+  "candidate_or_legacy_database_touched": false,
+  "provider_calls": 0
+}

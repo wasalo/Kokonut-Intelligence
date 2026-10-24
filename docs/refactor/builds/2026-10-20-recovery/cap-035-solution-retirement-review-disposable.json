@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "482_location_solution_retirement_review_queue.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "review queue and detail require exact signed review scope and active human attribution",
+    "only pending exact-origin proposals appear; reviewer identity remains private and self-authorship is a boolean",
+    "review detail is available only through the separate reviewer function owner; runtime table access and Directus execution are denied",
+    "approved, cross-location, mismatched, ungranted, unbound, and unbounded reads fail closed",
+    "location-origin superseded retirement approval rejects a cross-location replacement atomically and accepts a same-location replacement",
+    "migration 482 applies and replays after the required solution lifecycle predecessors"
+  ],
+  "acceptance_groups_passed": 7
+}

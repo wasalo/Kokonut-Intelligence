@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Migration 407 bounded anomaly-effect reservation and outcome functions",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migrations": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+    "schemas/postgres/407_sensor_anomaly_effect_functions.sql"
+  ],
+  "migration_407_sha256": "b628b9d053754f2d61663d990c24e223ead7cd5cb83b8353d5dfcdac55b93dd2",
+  "migration_replay": "passed",
+  "command": "python3 scripts/check-sensor-anomaly-effect-functions-disposable.py",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migration 407 applies and replays cleanly after migrations 405 and 406"
+    },
+    {
+      "result": "passed",
+      "description": "receipt reservation rejects missing signed worker context"
+    },
+    {
+      "result": "passed",
+      "description": "matching signed scope reserves once and suppresses duplicate retries"
+    },
+    {
+      "result": "passed",
+      "description": "cooldown outcome transitions once and cannot be replayed"
+    },
+    {
+      "result": "passed",
+      "description": "alert-created outcome links a same-location alert and transitions once"
+    },
+    {
+      "result": "passed",
+      "description": "reservation rejects conflicting selectors, wrong event/reading/location, disabled rules, and out-of-scope locations"
+    },
+    {
+      "result": "passed",
+      "description": "outcome API rejects unsupported transitions, bad alert links, and cross-location alerts"
+    },
+    {
+      "result": "passed",
+      "description": "worker has only bounded receipt EXECUTE grants; runtime/auth lack EXECUTE and worker has no direct DML"
+    },
+    {
+      "result": "passed",
+      "description": "worker login cannot directly SELECT, INSERT, UPDATE, or DELETE receipt rows"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false
+}

@@ -1,0 +1,20 @@
+{
+  "title": "CAP-024 nomination console contract",
+  "status": "passed",
+  "test_command": "python3 -m pytest tests/test_gateway_governance_assignment_proposal_reads.py tests/test_gateway_governance_assignment_proposals.py tests/test_operator_route_policy_inventory.py tests/test_gateway_governance_roles.py tests/test_gateway_governance_operations.py tests/test_gateway_governance_tension_actions.py tests/test_gateway_governance_tension_review.py tests/test_migration.py tests/test_operator_auth.py tests/test_operator_console_governance_assignment_proposals.py tests/test_operator_console_governance_tensions.py -q",
+  "tests_passed": 167,
+  "checks": [
+    "nomination form requires the separate location-scoped governance_roles:create grant",
+    "same-origin POST sends the session CSRF token and a fresh idempotency request UUID",
+    "own-status queue uses governance_roles:read with bounded cursor paging and no-store fetches",
+    "console renders only request and role status metadata without nominee identity or mandate",
+    "no approval, activation, rejection, or ending control is exposed",
+    "inline JavaScript parses successfully with Node.js"
+  ],
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "capability_matrix": "valid",
+  "runtime_sql_inventory": "current",
+  "candidate_and_legacy_databases": "not accessed",
+  "browser_runtime_acceptance": "not exercised"
+}

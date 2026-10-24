@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
 
 from .types import (
     AttestationRecord,
     CropCycle,
-    ExportLog,
     ExpenseEvent,
+    ExportLog,
     Farm,
+    FieldNote,
     HarvestEvent,
+    LaborEvent,
     ListOptions,
     Location,
+    LossEvent,
     NoiSnapshot,
     Plot,
     ReportSnapshot,
@@ -21,6 +24,9 @@ from .types import (
 
 if TYPE_CHECKING:
     from .client import KokonutClient
+
+
+ReadModel = TypeVar("ReadModel")
 
 
 def _to_dataclass(data: Dict[str, Any], cls: Any) -> Any:
@@ -40,6 +46,19 @@ def _build_filter(*args: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         merged.update(f)
     merged.update(kwargs)
     return merged
+
+
+def _list_options_with_filter(options: Optional[ListOptions], required_filter: Dict[str, Any]) -> ListOptions:
+    """Preserve list options while making the convenience method's filter authoritative."""
+    return ListOptions(
+        filter=_build_filter(options.filter if options and options.filter else {}, required_filter),
+        sort=options.sort if options else None,
+        fields=options.fields if options else None,
+        limit=options.limit if options else None,
+        offset=options.offset if options else None,
+        page=options.page if options else None,
+        meta=options.meta if options else None,
+    )
 
 
 class GenericMethods:
@@ -64,6 +83,182 @@ class GenericMethods:
 
     def delete(self, item_id: str) -> None:
         self._client.delete_item(self._collection, item_id)
+
+
+class LocationReadMethods(Generic[ReadModel]):
+    """Typed, location-scoped reads without generic mutation methods."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_location(
+        self, location_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"location_id": {"_eq": location_id}}),
+        )
+
+
+class ReferenceReadMethods(Generic[ReadModel]):
+    """Read-only list/detail access for shared reference catalogs."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+
+class ForecastAccuracyReadMethods(Generic[ReadModel]):
+    """Read-only stored accuracy rows scoped to their parent forecast."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "forecast_accuracy"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_forecast(
+        self, forecast_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"forecast_id": {"_eq": forecast_id}}),
+        )
+
+
+class KrigingPointReadMethods(Generic[ReadModel]):
+    """Read-only kriging point results scoped to their parent prediction."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "kriging_point"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_prediction(
+        self, prediction_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"prediction_id": {"_eq": prediction_id}}),
+        )
+
+
+class GeostatRealizationPointReadMethods(Generic[ReadModel]):
+    """Read-only simulation points scoped to their parent realization."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "geostat_realization_point"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_realization(
+        self, realization_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"realization_id": {"_eq": realization_id}}),
+        )
+
+
+class CausalLinkReadMethods(Generic[ReadModel]):
+    """Read-only causal links scoped to their shared parent loop."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "causal_link"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_loop(
+        self, loop_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"loop_id": {"_eq": loop_id}}),
+        )
+
+
+class AssessmentChildReadMethods(Generic[ReadModel]):
+    """Read-only situation-assessment evidence scoped to its parent assessment."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_assessment(
+        self, assessment_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"assessment_id": {"_eq": assessment_id}}),
+        )
+
+
+class AssessmentLocationReadMethods(Generic[ReadModel]):
+    """Read-only dimension details addressable by location or assessment."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_location(
+        self, location_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"location_id": {"_eq": location_id}}),
+        )
+
+    def list_by_assessment(
+        self, assessment_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"assessment_id": {"_eq": assessment_id}}),
+        )
 
 
 class LocationMethods(GenericMethods):
@@ -106,17 +301,7 @@ class FarmMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[Farm]:
-        extra_filter = {"location_id": {"_eq": location_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
 
 
 class PlotMethods(GenericMethods):
@@ -139,17 +324,7 @@ class PlotMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_farm(self, farm_id: str, options: Optional[ListOptions] = None) -> List[Plot]:
-        extra_filter = {"farm_id": {"_eq": farm_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"farm_id": {"_eq": farm_id}}))
 
 
 class CropCycleMethods(GenericMethods):
@@ -172,30 +347,10 @@ class CropCycleMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_plot(self, plot_id: str, options: Optional[ListOptions] = None) -> List[CropCycle]:
-        extra_filter = {"plot_id": {"_eq": plot_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"plot_id": {"_eq": plot_id}}))
 
     def list_active(self, options: Optional[ListOptions] = None) -> List[CropCycle]:
-        extra_filter = {"status": {"_in": ["planted", "growing"]}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"status": {"_in": ["planted", "growing"]}}))
 
 
 class HarvestEventMethods(GenericMethods):
@@ -218,17 +373,7 @@ class HarvestEventMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[HarvestEvent]:
-        extra_filter = {"crop_cycle_id": {"_eq": crop_cycle_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))
 
 
 class SalesEventMethods(GenericMethods):
@@ -251,30 +396,10 @@ class SalesEventMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[SalesEvent]:
-        extra_filter = {"crop_cycle_id": {"_eq": crop_cycle_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))
 
     def list_unpaid(self, options: Optional[ListOptions] = None) -> List[SalesEvent]:
-        extra_filter = {"payment_status": {"_in": ["pending", "partial"]}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"payment_status": {"_in": ["pending", "partial"]}}))
 
 
 class ExpenseEventMethods(GenericMethods):
@@ -297,30 +422,79 @@ class ExpenseEventMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[ExpenseEvent]:
-        extra_filter = {"crop_cycle_id": {"_eq": crop_cycle_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))
 
     def list_pending_approval(self, options: Optional[ListOptions] = None) -> List[ExpenseEvent]:
-        extra_filter = {"status": {"_eq": "submitted"}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"status": {"_eq": "submitted"}}))
+
+
+class LossEventMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "loss_event")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[LossEvent]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> LossEvent:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> LossEvent:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[LossEvent]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> LossEvent:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[LossEvent]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
+
+
+class LaborEventMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "labor_event")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[LaborEvent]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> LaborEvent:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> LaborEvent:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[LaborEvent]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> LaborEvent:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[LaborEvent]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
+
+
+class FieldNoteMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "field_note")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[FieldNote]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> FieldNote:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> FieldNote:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[FieldNote]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> FieldNote:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[FieldNote]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
 
 
 class SensorReadingMethods(GenericMethods):
@@ -343,43 +517,13 @@ class SensorReadingMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_device(self, sensor_id: str, options: Optional[ListOptions] = None) -> List[SensorReading]:
-        extra_filter = {"sensor_id": {"_eq": sensor_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"sensor_id": {"_eq": sensor_id}}))
 
     def list_by_plot(self, plot_id: str, options: Optional[ListOptions] = None) -> List[SensorReading]:
-        extra_filter = {"plot_id": {"_eq": plot_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"plot_id": {"_eq": plot_id}}))
 
     def list_anomalies(self, options: Optional[ListOptions] = None) -> List[SensorReading]:
-        extra_filter = {"quality": {"_eq": "suspect"}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"quality": {"_eq": "suspect"}}))
 
 
 class WalletProfileMethods(GenericMethods):
@@ -429,17 +573,7 @@ class AttestationMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_pending(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        extra_filter = {"status": {"_in": ["draft", "submitted"]}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"status": {"_in": ["draft", "submitted"]}}))
 
     def list_by_entity(self, subject_type: str, subject_id: str) -> List[AttestationRecord]:
         return self._client.list_items(
@@ -468,17 +602,7 @@ class ReportMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_type(self, report_type: str, options: Optional[ListOptions] = None) -> List[ReportSnapshot]:
-        extra_filter = {"report_type": {"_eq": report_type}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"report_type": {"_eq": report_type}}))
 
 
 class ExportMethods(GenericMethods):
@@ -500,16 +624,18 @@ class ExportMethods(GenericMethods):
         target_table: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> ExportLog:
-        return super().create({
-            "export_type": export_type,
-            "format": format,
-            "entity_type": entity_type,
-            "entity_ids": entity_ids,
-            "target_table": target_table,
-            "filters": filters,
-            "status": "pending",
-            "requested_by": "sdk",
-        })
+        return super().create(
+            {
+                "export_type": export_type,
+                "format": format,
+                "entity_type": entity_type,
+                "entity_ids": entity_ids,
+                "target_table": target_table,
+                "filters": filters,
+                "status": "pending",
+                "requested_by": "sdk",
+            }
+        )
 
 
 class NoiMethods(GenericMethods):
@@ -532,14 +658,4 @@ class NoiMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_by_crop_cycle(self, crop_cycle_id: str, options: Optional[ListOptions] = None) -> List[NoiSnapshot]:
-        extra_filter = {"crop_cycle_id": {"_eq": crop_cycle_id}}
-        if options and options.filter:
-            extra_filter.update(options.filter)
-        opts = ListOptions(
-            filter=extra_filter,
-            sort=options.sort if options else None,
-            fields=options.fields if options else None,
-            limit=options.limit if options else None,
-            page=options.page if options else None,
-        )
-        return super().list(opts)
+        return super().list(_list_options_with_filter(options, {"crop_cycle_id": {"_eq": crop_cycle_id}}))

@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import json
-from typing import Any
-
 from services.common.logging import get_logger
 
 logger = get_logger("linkml.jsonld")
 
 # Schema.org context
-SCHEMA_ORG_CONTEXT = "https://schema.org"
+SCHEMA_ORG_CONTEXT = "http://schema.org/"
 
 # Kokonut namespace
 KOKONUT_NS = "https://kokonut.network/ontology#"
@@ -22,7 +19,7 @@ REGEN_NS = "https://framework.regen.network/schema/"
 QUDT_NS = "http://qudt.org/schema/qudt/"
 
 # GeoSPARQL namespace
-GEO_NS = "http://www.opengis.net/ont/geosparql/"
+GEO_NS = "http://www.opengis.net/ont/geosparql#"
 
 # Default context mapping
 DEFAULT_CONTEXT = {
@@ -50,9 +47,10 @@ def to_jsonld_document(
     context: dict = None,
 ) -> dict:
     """Convert entity data to a JSON-LD document."""
+    type_term = entity_type if ":" in entity_type else f"kokonut:{entity_type}"
     doc = {
-        "@context": context or DEFAULT_CONTEXT,
-        "@type": f"kokonut:{entity_type}",
+        "@context": DEFAULT_CONTEXT if context is None else context,
+        "@type": type_term,
     }
     if iri:
         doc["@id"] = iri
@@ -80,14 +78,14 @@ def to_jsonld_with_graph(entities: list[dict], context: dict = None) -> dict:
         graph.append(doc)
 
     return {
-        "@context": context or DEFAULT_CONTEXT,
+        "@context": DEFAULT_CONTEXT if context is None else context,
         "@graph": graph,
     }
 
 
 def expand_prefixed_term(term: str, context: dict = None) -> str:
     """Expand a prefixed term (e.g., 'schema:name') to a full URI."""
-    ctx = context or DEFAULT_CONTEXT
+    ctx = DEFAULT_CONTEXT if context is None else context
     if ":" in term:
         prefix, local = term.split(":", 1)
         if prefix in ctx:
@@ -97,7 +95,7 @@ def expand_prefixed_term(term: str, context: dict = None) -> str:
 
 def compact_uri(uri: str, context: dict = None) -> str:
     """Compact a full URI to a prefixed term."""
-    ctx = context or DEFAULT_CONTEXT
+    ctx = DEFAULT_CONTEXT if context is None else context
     for prefix, ns in ctx.items():
         if uri.startswith(ns):
             return f"{prefix}:{uri[len(ns):]}"

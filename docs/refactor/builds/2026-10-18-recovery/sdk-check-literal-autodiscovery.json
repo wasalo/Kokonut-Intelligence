@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-18",
+  "scope": "Automatic SQL CHECK literal discovery for mapped Python and TypeScript SDK models",
+  "source_of_truth": "Mapped base-table definitions and ordered PostgreSQL migrations",
+  "change": "Removed the second hard-coded field list. The SDK schema guard now scans all mapped tables for simple text CHECK (column IN ('value', ...)) constraints and requires both language types to match each discovered value set.",
+  "discovered_fields": [
+    "AlertRule.actuator_type",
+    "AttestationRecord.verdict",
+    "Organization.org_type",
+    "Organization.status",
+    "SensorAlert.actuation_status"
+  ],
+  "inventory": {
+    "models": 21,
+    "canonical_columns": 493,
+    "scalar_types": 461,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 25,
+    "enum_fields": 16,
+    "auto_discovered_check_literal_fields": 5
+  },
+  "focused_checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "32 passed"
+    },
+    "javascript": {
+      "command": "npm test",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "schema_guard": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed: 66 rows; classifications unchanged",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local SQL source, fixtures, and SDK tests only",
+  "limitations": [
+    "Discovery handles simple literal IN checks on mapped text fields; it does not interpret arbitrary SQL CHECK expressions.",
+    "Only model tables explicitly registered in the SDK guard are scanned.",
+    "No capability classification or MAN-CAP acceptance status changed."
+  ]
+}

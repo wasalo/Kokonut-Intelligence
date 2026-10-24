@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-17",
+  "scope": "Data freshness measurement query failure reporting",
+  "behavior": {
+    "failure_metadata": "Per-source evaluation failures store only a bounded operation summary and exception class.",
+    "failure_logs": "Freshness evaluation logs identify source, optional location, and exception class without raw database details.",
+    "alert_state": "Savepoint rollback and preservation of the last known alert state are unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_telemetry_freshness.py -q",
+    "result": "33 passed",
+    "regression": "secret-bearing measurement query error is absent from result, persisted metadata, and logs"
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_delivery_access": "none; synthetic connection and mocked query"
+  },
+  "limitations": [
+    "No database or alert destination was contacted.",
+    "This does not validate production destination ownership or runtime retention policy."
+  ]
+}

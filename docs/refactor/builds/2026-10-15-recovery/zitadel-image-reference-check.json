@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-15",
+  "kind": "zitadel_image_reference_and_architecture_check",
+  "branch": "feat/mobile-offline-acceptance",
+  "pushed_head": "d01941abad13c5128fca85acb0f4b5645a4322b4",
+  "profile": "docker-compose.kernel-zitadel.yml",
+  "release_review": {
+    "current_stable_release": "v4.19.4",
+    "v4.20.0_release_lookup": "GitHub releases-by-tag API returned 404",
+    "sources": [
+      "https://github.com/zitadel/zitadel/releases",
+      "https://api.github.com/repos/zitadel/zitadel/releases/tags/v4.20.0"
+    ]
+  },
+  "images": {
+    "api": {
+      "reference": "ghcr.io/zitadel/zitadel:v4.19.4@sha256:90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b",
+      "digest_source": "https://github.com/zitadel/zitadel/pkgs/container/zitadel"
+    },
+    "login": {
+      "reference": "ghcr.io/zitadel/zitadel-login:v4.19.4@sha256:93ffd1395b827f685ba29c02fa70aee881fc21102519c4e2bbb0b89c0e00f42c",
+      "digest_source": "https://github.com/zitadel/zitadel/pkgs/container/zitadel-login"
+    }
+  },
+  "architecture_source": {
+    "workflow": "https://github.com/zitadel/zitadel/blob/main/.github/workflows/pack.yml",
+    "declared_platforms": [
+      "linux/amd64",
+      "linux/arm64"
+    ],
+    "source_claim_only": true
+  },
+  "local_registry_inspection": {
+    "command": "docker buildx imagetools inspect ghcr.io/zitadel/zitadel:v4.20.0",
+    "buildx_version": "v0.37.2",
+    "result": "blocked",
+    "reason": "DNS lookup for ghcr.io failed (no such host)",
+    "images_pulled": false,
+    "candidate_or_legacy_stack_changed": false
+  },
+  "source_checks": {
+    "compose_profile_tests": {
+      "command": "python3 -m pytest tests/test_compose_zitadel_profile.py -q",
+      "passed": 5,
+      "failed": 0
+    },
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "remaining": [
+    "Resolve registry DNS, inspect the exact pinned manifests, and confirm linux/amd64 and linux/arm64 children for both references.",
+    "Run isolated ZITADEL profile startup and login acceptance after the owner supplies identity hostname and provisions secrets."
+  ]
+}

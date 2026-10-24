@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-10-21",
+  "capability": "CAP-066",
+  "report_types": [
+    "bio_regional_input",
+    "green_paper_publication_status",
+    "open_source_impact"
+  ],
+  "scope_basis": "Each report reads a public reference view with no farm predicate: regional bio-input availability, organization Green Paper status, or published open-source artifacts.",
+  "policy": "Network-only; farm-specific CLI requests fail before database access, direct generator calls reject location IDs, and automatic runs store the reports without a farm assignment.",
+  "focused_test_command": "python3 -m pytest tests/test_report_generator_cli.py tests/test_dao_proposal_history.py tests/test_technology_roadmap.py tests/test_coordination_end_to_end.py tests/test_governance_integration.py -q",
+  "focused_tests": {
+    "passed": 86,
+    "skipped": 5
+  },
+  "checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "report_generator_source_inventory": "current",
+    "report_generator_query_scope_inventory": "current",
+    "report_generator_helper_scope_inventory": "current",
+    "capability_matrix": "valid: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared"
+  },
+  "database_or_provider_used": false,
+  "migration_added_or_applied": false,
+  "candidate_or_legacy_database_touched": false,
+  "tenant_authorization_or_farm_level_parity_claimed": false
+}
