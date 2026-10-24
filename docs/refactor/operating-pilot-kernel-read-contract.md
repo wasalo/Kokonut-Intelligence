@@ -777,3 +777,10 @@ Candidate and legacy databases were not used; migration 605 is not rolled out.
 Rollback by disabling the route and exact policy while retaining the additive
 migration. Create/edit/review parity, populated farm data, live OIDC/browser,
 broader ACL/RLS, recovery, and MAN-CAP-037 acceptance remain open.
+
+The operator console exposes this history in a hidden-by-default read-only
+panel only when the session has the exact location `read_own` grant. Requests
+are same-origin, no-store, paginated in bounded pages, and ignored when a
+location change makes the response stale. Plan fields are rendered through
+`textContent`; structured goal/support values are length-capped before display.
+The console adds no write, submit, activation, or review controls.

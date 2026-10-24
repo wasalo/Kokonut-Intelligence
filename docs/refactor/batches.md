@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,109 checklist items complete and 25
-open (1,134 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,110 checklist items complete and 25
+open (1,135 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3330,3 +3330,7 @@ The AST scope inventory now follows a location-filtered parent row into child re
 ### CAP-037 private own learning-plan history — 24 October 2026
 
 - [x] Add `GET /operator/api/operating-pilot/{location_id}/my-learning-plans` under the separate exact location `operating_pilot:read_own` grant. Migration 605 returns a bounded private page only for the requesting operator’s single active human-party binding and active Adelphi farm mapped to the exact location. The caller can see their own title, competency goals, support request, target date, and status; other parties, internal scope, creator/scope identifiers, and plans from other locations remain excluded. The API is read-only and adds no creation, edit, submission, or review path. Eleven focused Gateway/policy/HTTP checks pass; network-disabled disposable PostgreSQL 16 applies and replays migration 605 and passes 206 grouped assertions across the CAP-037 acceptance runner ([contract](operating-pilot-kernel-read-contract.md); [migration](../schemas/postgres/605_location_own_operating_pilot_learning_plans.sql); [tests](../../tests/test_gateway_operating_pilot_learning.py); [evidence](builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json)). Candidate and legacy databases are untouched; migration 605 is not rolled out. Roll back by disabling the route and exact policy while retaining the additive migration. CAP-037 remains prepared pending learning-plan write/review parity, populated farm-data comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner acceptance. Checklist: 1,109 complete / 25 open (1,134 total); matrix: 24 baseline-retained, 7 deployed, 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+
+### CAP-037 private learning-plan history console — 24 October 2026
+
+- [x] Add a hidden-by-default, read-only console panel for the own learning-plan history route. It appears only for an exact location `operating_pilot:read_own` grant, sends same-origin no-store requests with bounded pagination, ignores stale location responses, renders data through `textContent`, and caps structured field display. No write or review control is added. All 36 operator-console operating-pilot tests pass, including the new grant, pagination, stale-response, safe-rendering, and JavaScript parsing regression. No migration, database, candidate, or legacy service was used. Roll back by removing the panel, loader, and exact-grant wiring; the API remains independently gated. The read path is documented in the [contract](operating-pilot-kernel-read-contract.md). CAP-037 remains prepared pending learning-plan write/review parity, populated farm-data comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner acceptance. Checklist: 1,110 complete / 25 open (1,135 total); matrix: 24 baseline-retained, 7 deployed, 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted.

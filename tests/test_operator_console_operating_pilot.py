@@ -895,6 +895,44 @@ def test_competency_draft_history_revision_and_submission_are_separately_gated()
     assert "operatingPilotPendingCompetencyWrite.location_id !== locationId" in sync_location
 
 
+def test_own_learning_plan_history_console_is_grant_gated_read_only_and_text_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        '<section id="operating-pilot-learning-plans"',
+        '<section id="operating-pilot-own-demand"',
+    )
+    load = _function(
+        source,
+        "async function loadOperatingPilotOwnLearningPlans(append = false)",
+        "function appendOperatingPilotOwnLearningPlanRow(item)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnLearningPlanRow(item)",
+        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+
+    assert 'id="operating-pilot-learning-plans-rows"' in panel
+    assert 'id="operating-pilot-learning-plans-more"' in panel
+    assert 'hidden aria-labelledby="operating-pilot-learning-plans-heading"' in panel
+    assert "operatingPilotOwnLearningPlanLocations.has(locationId)" in load
+    assert "/my-learning-plans?${params}" in load
+    assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
+    assert "requestVersion !== operatingPilotOwnLearningPlanRequestVersion" in load
+    assert "locationId !== operatingPilotLocation.value" in load
+    assert "nextOffset <= 10000" in load and "result.has_more === true" in load
+    assert "cell.textContent = displayValue" in row
+    assert "JSON.stringify(value)" in row and "displayValue.slice(0, 1200)" in row
+    assert "innerHTML" not in panel + load + row
+    assert "operatingPilotOwnLearningPlans.hidden = !operatingPilotOwnLearningPlanLocations.has(locationId)" in initialize
+    assert "reads.push(loadOperatingPilotOwnLearningPlans())" in initialize
+    assert "operatingPilotOwnLearningPlanLocations = new Set(operatingPilotOwnCapacityLocationIds)" in source
+    assert 'scope.action === "read_own"' in source
+    assert '"click", () => loadOperatingPilotOwnLearningPlans(true)' in source
+
+
 def test_competency_review_console_is_grant_gated_private_and_retry_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(

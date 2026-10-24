@@ -1,3 +1,17 @@
+### Progress addendum — CAP-037 private learning-plan history console, 24 October 2026
+
+The operator console now provides a hidden-by-default, read-only panel for
+`GET /operator/api/operating-pilot/{location_id}/my-learning-plans`, gated by
+the exact location `operating_pilot:read_own` grant. It uses same-origin,
+no-store requests, bounded pagination, stale-location protection, and safe
+text-only rendering with a display cap for structured fields. The focused
+operator-console operating-pilot suite passes all 36 tests, including the new
+panel contract and JavaScript parsing regression. No database, migration,
+candidate, or legacy service was used for this UI slice. The earlier Gateway
+and disposable PostgreSQL evidence remains recorded below and in the contract.
+Checklist: 1,110 complete / 25 open (1,135 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows; no MAN-CAP-037 acceptance is claimed.
+
 ### Progress addendum — CAP-037 private own learning-plan history, 24 October 2026
 
 A bounded `GET /operator/api/operating-pilot/{location_id}/my-learning-plans`

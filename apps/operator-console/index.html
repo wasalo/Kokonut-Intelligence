@@ -706,6 +706,18 @@
             </div>
             <button id="operating-pilot-competency-review-more" class="secondary" type="button" hidden>Load more competency submissions</button>
           </section>
+          <section id="operating-pilot-learning-plans" hidden aria-labelledby="operating-pilot-learning-plans-heading">
+            <h3 id="operating-pilot-learning-plans-heading">Your learning plans</h3>
+            <p class="muted">A separate exact-location read_own grant shows only your own plans. This view is read-only; editing, submission, activation, and review remain separate workflows.</p>
+            <p id="operating-pilot-learning-plans-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Status</th><th>Updated</th></tr></thead>
+                <tbody id="operating-pilot-learning-plans-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-learning-plans-more" class="secondary" type="button" hidden>Load more of your plans</button>
+          </section>
           <section id="operating-pilot-own-demand" hidden aria-labelledby="operating-pilot-own-demand-heading">
             <h3 id="operating-pilot-own-demand-heading">Your demand records</h3>
             <p class="muted">This separate exact-location read_own grant shows only your receipt-backed demand records and private planning notes. It does not expose another submitter’s records or provide review or fulfillment actions.</p>
@@ -2506,6 +2518,10 @@
       const operatingPilotCompetencyReviewStatus = document.querySelector("#operating-pilot-competency-review-status");
       const operatingPilotCompetencyReviewRows = document.querySelector("#operating-pilot-competency-review-rows");
       const operatingPilotCompetencyReviewMore = document.querySelector("#operating-pilot-competency-review-more");
+      const operatingPilotOwnLearningPlans = document.querySelector("#operating-pilot-learning-plans");
+      const operatingPilotOwnLearningPlansStatus = document.querySelector("#operating-pilot-learning-plans-status");
+      const operatingPilotOwnLearningPlansRows = document.querySelector("#operating-pilot-learning-plans-rows");
+      const operatingPilotOwnLearningPlansMore = document.querySelector("#operating-pilot-learning-plans-more");
       const operatingPilotCapacityReview = document.querySelector("#operating-pilot-capacity-review");
       const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
       const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
@@ -2589,6 +2605,7 @@
       let operatingPilotOwnCapacityLocations = new Set();
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotCompetencyReadLocations = new Set();
+      let operatingPilotOwnLearningPlanLocations = new Set();
       let operatingPilotCompetencyCreateLocations = new Set();
       let operatingPilotCompetencyEditLocations = new Set();
       let operatingPilotCompetencySubmitLocations = new Set();
@@ -2613,6 +2630,8 @@
       let operatingPilotCompetencyFormLocationId = null;
       let operatingPilotCompetencyOffset = 0;
       let operatingPilotCompetencyRequestVersion = 0;
+      let operatingPilotOwnLearningPlanOffset = 0;
+      let operatingPilotOwnLearningPlanRequestVersion = 0;
       let operatingPilotCompetencyReviewOffset = 0;
       let operatingPilotCompetencyReviewRequestVersion = 0;
       let operatingPilotPendingResourceFulfillment = null;
@@ -4489,6 +4508,71 @@
         operatingPilotCompetencyRows.append(row);
       }
 
+      async function loadOperatingPilotOwnLearningPlans(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotOwnLearningPlanRequestVersion;
+        if (!operatingPilotOwnLearningPlanLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotOwnLearningPlanOffset = 0;
+          operatingPilotOwnLearningPlansRows.replaceChildren();
+          operatingPilotOwnLearningPlansMore.hidden = true;
+        }
+        const offset = append ? operatingPilotOwnLearningPlanOffset : 0;
+        operatingPilotOwnLearningPlansMore.disabled = true;
+        operatingPilotOwnLearningPlansStatus.textContent = "Loading your learning plans…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/my-learning-plans?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotOwnLearningPlanRequestVersion
+              || locationId !== operatingPilotLocation.value
+              || !operatingPilotOwnLearningPlanLocations.has(locationId)) return;
+          for (const item of result.items || []) appendOperatingPilotOwnLearningPlanRow(item);
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotOwnLearningPlansMore.hidden = !canContinue;
+          operatingPilotOwnLearningPlanOffset = canContinue ? nextOffset : 0;
+          operatingPilotOwnLearningPlansStatus.textContent = canContinue
+            ? "Showing a bounded page of your private learning plans."
+            : operatingPilotOwnLearningPlansRows.childElementCount
+              ? "Your learning plans are loaded."
+              : "You have no learning plans for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotOwnLearningPlanRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotOwnLearningPlansMore.hidden = true;
+          operatingPilotOwnLearningPlansStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotOwnLearningPlanRequestVersion) {
+            operatingPilotOwnLearningPlansMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotOwnLearningPlanRow(item) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.title,
+          item.competency_goals,
+          item.support_requested,
+          item.target_date,
+          item.status,
+          item.updated_at
+        ]) {
+          const cell = document.createElement("td");
+          const displayValue = Array.isArray(value) || (value !== null && typeof value === "object")
+            ? JSON.stringify(value)
+            : operatingPilotDisplayValue(value);
+          cell.textContent = displayValue.length > 1200 ? `${displayValue.slice(0, 1200)}…` : displayValue;
+          row.append(cell);
+        }
+        operatingPilotOwnLearningPlansRows.append(row);
+      }
+
       async function loadOperatingPilotCompetencyReviewQueue(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotCompetencyReviewRequestVersion;
@@ -5904,6 +5988,7 @@
           && !operatingPilotCompetencyCreateLocations.has(locationId)
           && !operatingPilotCompetencyEditLocations.has(locationId)
           && !operatingPilotCompetencyReviewLocations.has(locationId);
+        operatingPilotOwnLearningPlans.hidden = !operatingPilotOwnLearningPlanLocations.has(locationId);
         operatingPilotCompetencyForm.hidden = (!operatingPilotCompetencyCreateLocations.has(locationId)
           && !operatingPilotCompetencyEditLocations.has(locationId))
           || (operatingPilotPendingCompetencyWrite !== null
@@ -5951,6 +6036,14 @@
             operatingPilotCompetencyRows.replaceChildren();
             operatingPilotCompetencyMore.hidden = true;
             operatingPilotCompetencyHistoryStatus.textContent = "A separate exact location read_own grant is required to view your assessments.";
+          }
+          if (operatingPilotOwnLearningPlanLocations.has(locationId)) {
+            await loadOperatingPilotOwnLearningPlans();
+          } else {
+            operatingPilotOwnLearningPlanRequestVersion += 1;
+            operatingPilotOwnLearningPlansRows.replaceChildren();
+            operatingPilotOwnLearningPlansMore.hidden = true;
+            operatingPilotOwnLearningPlansStatus.textContent = "A separate exact location read_own grant is required to view your plans.";
           }
           if (operatingPilotOwnDemandLocations.has(locationId)) {
             await loadOperatingPilotOwnDemandSignals();
@@ -6042,6 +6135,14 @@
           operatingPilotCompetencyRows.replaceChildren();
           operatingPilotCompetencyMore.hidden = true;
           operatingPilotCompetencyHistoryStatus.textContent = "A separate exact location read_own grant is required to view your assessments.";
+        }
+        if (operatingPilotOwnLearningPlanLocations.has(locationId)) {
+          reads.push(loadOperatingPilotOwnLearningPlans());
+        } else {
+          operatingPilotOwnLearningPlanRequestVersion += 1;
+          operatingPilotOwnLearningPlansRows.replaceChildren();
+          operatingPilotOwnLearningPlansMore.hidden = true;
+          operatingPilotOwnLearningPlansStatus.textContent = "A separate exact location read_own grant is required to view your plans.";
         }
         if (operatingPilotOwnDemandLocations.has(locationId)) {
           reads.push(loadOperatingPilotOwnDemandSignals());
@@ -17749,6 +17850,7 @@
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotOwnCapacityLocations = new Set(operatingPilotOwnCapacityLocationIds);
           operatingPilotCompetencyReadLocations = new Set(operatingPilotOwnCapacityLocationIds);
+          operatingPilotOwnLearningPlanLocations = new Set(operatingPilotOwnCapacityLocationIds);
           operatingPilotOwnDemandLocations = new Set(operatingPilotOwnCapacityLocationIds);
           const operatingPilotSubmitOwnCapacityLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "submit_own")
@@ -22054,6 +22156,9 @@
       operatingPilotCompetencyForm.addEventListener("submit", saveOperatingPilotCompetencyDraft);
       operatingPilotCompetencyCancel.addEventListener("click", cancelOperatingPilotCompetencyRevision);
       operatingPilotCompetencyMore.addEventListener("click", () => loadOperatingPilotOwnCompetencyAssessments(true));
+      operatingPilotOwnLearningPlansMore.addEventListener(
+        "click", () => loadOperatingPilotOwnLearningPlans(true)
+      );
       document.querySelector("#operating-pilot-competency-review-refresh").addEventListener(
         "click", () => loadOperatingPilotCompetencyReviewQueue()
       );
