@@ -3,25 +3,26 @@
 Tests for Nutrient Budget Tracking
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
-from unittest.mock import MagicMock, PropertyMock
 from datetime import date
+from unittest.mock import MagicMock, PropertyMock
 
 from services.analytics.nutrient_budget import (
+    compute_removal,
     create_budget,
+    get_efficiency_ratio,
+    get_input_summary,
+    get_nutrient_balance,
+    get_nutrient_dashboard,
+    get_recommendation,
     record_input,
     record_removal,
-    get_nutrient_balance,
-    get_input_summary,
     record_soil_test,
-    get_recommendation,
-    get_nutrient_dashboard,
-    compute_removal,
-    get_efficiency_ratio,
 )
 
 
@@ -97,6 +98,40 @@ class TestRecordInput(unittest.TestCase):
             product_name="Urea 46-0-0",
         )
         self.assertEqual(result["product_name"], "Urea 46-0-0")
+
+    def test_records_currency_qualified_cost(self):
+        result = record_input(
+            self.conn, "budget-001", date(2026, 1, 1), "fertilizer",
+            cost=24.50, cost_currency_code=" usd ",
+        )
+        insert_sql, insert_params = self.mock_cursor.execute.call_args_list[0].args
+        self.assertIn("cost_currency_code", insert_sql)
+        self.assertEqual(insert_params[10:12], (24.50, "USD"))
+        self.assertEqual(result["cost_currency_code"], "USD")
+
+    def test_cost_requires_currency_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "required when cost is set"):
+            record_input(
+                self.conn, "budget-001", date(2026, 1, 1), "fertilizer",
+                cost=24.50,
+            )
+        self.conn.cursor.assert_not_called()
+
+    def test_currency_requires_cost_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "requires a cost"):
+            record_input(
+                self.conn, "budget-001", date(2026, 1, 1), "fertilizer",
+                cost_currency_code="USD",
+            )
+        self.conn.cursor.assert_not_called()
+
+    def test_rejects_invalid_currency_code_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "three-letter code"):
+            record_input(
+                self.conn, "budget-001", date(2026, 1, 1), "fertilizer",
+                cost=24.50, cost_currency_code="US1",
+            )
+        self.conn.cursor.assert_not_called()
 
     def test_updates_budget(self):
         record_input(
@@ -208,6 +243,7 @@ class TestGetInputSummary(unittest.TestCase):
             ("input_type",), ("event_count",), ("total_nitrogen_kg",),
             ("total_phosphorus_kg",), ("total_potassium_kg",),
             ("total_cost",), ("avg_application_rate",), ("rate_unit",),
+            ("cost_currency_code",), ("unclassified_cost_count",),
         ])
 
     def test_returns_budget_id(self):
@@ -219,12 +255,25 @@ class TestGetInputSummary(unittest.TestCase):
     def test_returns_summary(self):
         self._mock_description()
         self.mock_cursor.fetchall.return_value = [
-            ("fertilizer", 5, 250.0, 50.0, 100.0, 150.0, 100.0, "kg/ha"),
+            ("fertilizer", 5, 250.0, 50.0, 100.0, 150.0, 100.0, "kg/ha", "USD", 0),
         ]
         result = get_input_summary(self.conn, "budget-001")
         self.assertEqual(len(result["summary"]), 1)
         self.assertEqual(result["summary"][0]["input_type"], "fertilizer")
         self.assertEqual(result["summary"][0]["nitrogen_kg"], 250.0)
+        self.assertEqual(result["summary"][0]["total_cost"], 150.0)
+        self.assertEqual(result["summary"][0]["cost_currency_code"], "USD")
+        self.assertEqual(result["summary"][0]["unclassified_cost_count"], 0)
+
+    def test_does_not_sum_historic_cost_without_currency(self):
+        self._mock_description()
+        self.mock_cursor.fetchall.return_value = [
+            ("fertilizer", 2, 250.0, 50.0, 100.0, None, 100.0, "kg/ha", None, 2),
+        ]
+        result = get_input_summary(self.conn, "budget-001")
+        self.assertIsNone(result["summary"][0]["total_cost"])
+        self.assertIsNone(result["summary"][0]["cost_currency_code"])
+        self.assertEqual(result["summary"][0]["unclassified_cost_count"], 2)
 
 
 class TestRecordSoilTest(unittest.TestCase):
@@ -311,7 +360,8 @@ class TestGetNutrientDashboard(unittest.TestCase):
              ("phosphorus_input_kg",), ("phosphorus_removal_kg",), ("phosphorus_surplus_kg",),
              ("potassium_input_kg",), ("potassium_removal_kg",), ("potassium_surplus_kg",)],
             [("input_type",), ("event_count",), ("total_n",), ("total_p",),
-             ("total_k",), ("total_cost",)],
+             ("total_k",), ("total_cost",), ("unclassified_cost_count",),
+             ("cost_currency_code",)],
             [("plot_id",), ("test_date",), ("soil_ph",), ("organic_matter_pct",),
              ("nitrogen_ppm",), ("phosphorus_ppm",), ("potassium_ppm",)],
         ])
@@ -339,11 +389,16 @@ class TestGetNutrientDashboard(unittest.TestCase):
         self._mock_descriptions()
         self.mock_cursor.fetchall.side_effect = [
             [],
-            [("fertilizer", 5, 250.0, 50.0, 100.0, 150.0)],
+            [("fertilizer", 5, 250.0, 50.0, 100.0, 150.0, 1, "USD")],
             [],
         ]
         result = get_nutrient_dashboard(self.conn, "loc-001")
         self.assertEqual(len(result["inputs_by_type"]), 1)
+        self.assertEqual(result["inputs_by_type"][0]["cost_currency_code"], "USD")
+        self.assertEqual(result["inputs_by_type"][0]["unclassified_cost_count"], 1)
+        input_query = self.mock_cursor.execute.call_args_list[1].args[0]
+        self.assertIn("GROUP BY ni.input_type, ni.cost_currency_code", input_query)
+        self.assertIn("FILTER (WHERE ni.cost_currency_code IS NOT NULL)", input_query)
 
     def test_returns_soil_tests(self):
         self._mock_descriptions()

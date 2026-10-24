@@ -9,7 +9,8 @@ GET /operator/api/nutrients/{location_id}/events/inputs?limit=25&offset=0
 GET /operator/api/nutrients/{location_id}/events/removals?limit=25&offset=0
 ```
 
-The input read returns product/type, application rate, and N/P/K quantities.
+The input read returns product/type, application rate, N/P/K quantities, and
+currency-qualified cost state.
 The removal read returns harvest date, crop, yield, unit, and N/P/K quantities.
 Both preserve the child event and parent budget lifecycle statuses so a
 verified child under a draft budget cannot be mistaken for a published balance.
@@ -30,13 +31,22 @@ These reads do not change or approve any record.
 - Page size is capped at 50, offset at 10,000, statement timeout at five seconds,
   and lock timeout at two seconds. Connections roll back and close on all exits.
 - Plot IDs are returned only when the referenced plot's farm belongs to the
-  requested location. Budget IDs, costs, notes, arbitrary metadata, and the
-  removal factor's free-text source are omitted.
-- `nutrient_input.cost` has no currency field or documented location-currency
-  binding, so cost is withheld until its unit is defined. Legacy cost-summary
-  parity remains open.
+  requested location. Budget IDs, notes, arbitrary metadata, and the removal
+  factor's free-text source are omitted.
+- Migration 601 adds optional per-input `cost_currency_code` without assigning
+  a default. New or changed cost amounts require a three-letter uppercase code;
+  historic amounts remain unclassified unless an operator explicitly
+  reconciles them. No location-wide currency is assumed and no conversion is
+  performed.
+- An input with a classified cost returns `cost: {amount, currency_code}` and
+  `cost_status: "classified"`. An input with no cost returns null and
+  `not_recorded`. A historic cost whose currency is unknown returns a null
+  amount and `currency_unclassified`; the raw amount is not exposed. Nutrient
+  summaries group cost amounts by currency and report the count of unclassified
+  costs separately rather than summing them.
 - Responses use `Cache-Control: no-store` and `Vary: Cookie`.
-- No migration or additional provider is required.
+- No external provider is required. Migration 601 is required before deploying
+  the currency-aware Gateway and nutrient-budget writer.
 
 ## Verification boundary
 
@@ -46,12 +56,17 @@ distinct parent/event lifecycle, deterministic bounded pagination, tenant-safe
 plot IDs, omitted fields, connection cleanup, no-store responses, and denial
 before data access when the grant is missing.
 
-These checks do not establish populated-data parity, cost/currency semantics,
-live ZITADEL/browser behavior, database RLS or least-privilege boundaries, or
-MAN-CAP-002 acceptance.
+These checks establish the currency capture and aggregation contract only; they
+do not reconcile historic unclassified amounts, establish populated-data
+parity, validate live ZITADEL/browser behavior, prove database RLS or
+least-privilege boundaries, or close MAN-CAP-002.
 
 ## Rollback
 
-Remove the additive event route, exact authorization policy, service module,
-tests, and documentation. No schema or data rollback is required; existing
-nutrient-budget commands and reads remain unchanged.
+The migration is ordered and immutable. The prior application can still read
+the view's existing columns, but its cost writer cannot create or change a cost
+without a currency and will fail closed. If rolling back application code,
+disable legacy cost writes until the currency-aware writer is restored. Keep the
+column and recorded codes; do not restore an aggregate that sums mixed or
+unclassified currencies. A later forward migration is required for any schema
+reversal; never edit migration 601 after application.

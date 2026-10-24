@@ -1,3 +1,27 @@
+### Progress addendum — CAP-002 nutrient input cost currencies, 23 October 2026
+
+Migration 601 adds an optional per-event currency code without guessing the
+currency of existing `nutrient_input.cost` values. New cost inserts and cost
+or currency changes require a three-letter code; unrelated edits to historical
+unclassified rows remain allowed. The nutrient CLI now requires
+`--cost-currency` whenever `--cost` is set. Gateway input events return a cost
+only as an amount/code pair; legacy amounts without a currency are withheld and
+marked `currency_unclassified`. Legacy input summaries now separate currencies
+and count unclassified amounts instead of adding them together. No conversion or
+location-wide currency assumption is introduced.
+
+The focused nutrient/Gateway/operator-auth/migration selection passes 182 tests.
+Six checks pass against a fresh network-disabled PostgreSQL 16 disposable
+container, including migration 601 replay, USD/DOP aggregate separation,
+historical-row preservation, currency validation, and write enforcement. Ruff,
+compilation, regenerated runtime SQL inventory, capability validation, and diff
+checks pass. No candidate or legacy database, provider, or chain was used.
+Historical currency reconciliation and populated parity remain open. Checklist:
+1,044 complete / 25 open (1,069 total); matrix: 28 baseline-retained, 7
+deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+[Contract](nutrient-events-kernel-read-contract.md); [migration](../schemas/postgres/601_nutrient_input_cost_currency.sql);
+[evidence](builds/2026-10-23-recovery/nutrient-input-cost-currency-disposable.json).
+
 ### Progress addendum — CAP-002 deterministic crop-simulation baseline, 23 October 2026
 
 The legacy daily weather variation no longer uses Python’s process-salted `hash()`. It now derives stable SHA-256 buckets from integer `weather_seed` and day/channel, defaults the seed to 0, records it in each run’s parameter overrides, returns it to the simulation caller, and rejects booleans/non-integers before inserting a run. A synthetic 30-day maize regression fixture pins summaries and selected daily states for seeds 0 and 42. The fixture passes in separate processes with `PYTHONHASHSEED=1` and `98765`. The combined Gateway, digital-twin, and operator-auth selection passes 114 tests; Ruff, Python compilation, and diff checks pass. No migration, candidate/legacy database, or provider was used. This establishes repeatability of current code only, not agronomic correctness or legacy/populated output parity. CAP-002 remains prepared; owner/populated reference parity, nutrient cost currency semantics, live OIDC/browser behavior, RLS, and MAN-CAP-002 remain open. Checklist: 1,043 complete / 25 open (1,068 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md); [fixture](../tests/fixtures/crop_simulation_reference_v1.json); [evidence](builds/2026-10-23-recovery/cap-002-simulation-determinism.json).

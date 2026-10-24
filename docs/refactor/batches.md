@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,043 checklist items complete and 25
-open (1,068 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,044 checklist items complete and 25
+open (1,069 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -108,9 +108,10 @@ acceptance remains separate; none is marked accepted.
   notes, and costs. The 116-test Gateway/nutrient/operator-auth selection,
   Ruff, compilation, runtime SQL inventory, capability validation, and diff
   checks pass. No migration, provider, candidate, or legacy database was used.
-  Input-cost currency semantics, simulation detail/state, model and
-  frozen-fixture/populated parity, live OIDC/browser, RLS, and MAN-CAP-002
-  remain open ([contract](nutrient-balances-kernel-read-contract.md);
+  At this stage, input-cost currency semantics, simulation detail/state, model
+  and frozen-fixture/populated parity, live OIDC/browser, RLS, and MAN-CAP-002
+  remained open; migration 601 later resolves the currency-capture contract
+  ([contract](nutrient-balances-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-balances-kernel-read.json)).
 
 ### CAP-002 location-scoped soil-test observations — 23 October 2026
@@ -121,9 +122,11 @@ acceptance remains separate; none is marked accepted.
   queries in a repeatable-read, read-only transaction. Both queries filter the
   requested location and lifecycle; a plot ID is returned only when its farm
   belongs to that location. Status is preserved, and notes/metadata are never
-  selected. The focused new contract suite passes 11 tests. Input/removal details are now available, while input-cost currency semantics,
-  model and populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remain
-  open. No migration, provider, candidate, or legacy database was used
+  selected. The focused new contract suite passes 11 tests. At this stage,
+  input/removal details were available while input-cost currency semantics,
+  model and populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remained
+  open; migration 601 later resolves the currency-capture contract. No
+  migration, provider, candidate, or legacy database was used
   ([contract](nutrient-soil-tests-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-soil-tests-kernel-read.json)).
 
@@ -139,12 +142,31 @@ acceptance remains separate; none is marked accepted.
   notes, metadata, and unreviewed removal-source text. The combined focused
   Gateway/domain/operator-auth selection passes 141 tests; Ruff, compilation,
   runtime SQL inventory, capability validation, and diff checks pass. No
-  migration, provider, candidate, or legacy database was used. Cost output and
-  legacy cost-summary parity remain open because `nutrient_input.cost` has no
-  documented currency. Simulation detail/state, model/populated parity, live
+  migration, provider, candidate, or legacy database was used. At this stage,
+  cost output and legacy cost-summary parity remained open because
+  `nutrient_input.cost` had no documented currency; migration 601 resolves the
+  capture/aggregation contract in the following batch. Simulation detail/state, model/populated parity, live
   OIDC/browser, RLS, and MAN-CAP-002 also remain open
   ([contract](nutrient-events-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-002-nutrient-events-kernel-read.json)).
+
+### CAP-002 currency-qualified nutrient input costs — 23 October 2026
+
+- [x] Add nullable `nutrient_input.cost_currency_code` in ordered migration
+  601 without assigning currencies to historical amounts. New/changed cost
+  writes require a three-letter code; the CLI requires `--cost-currency` with
+  `--cost`. The private event read returns cost only as an amount/code pair,
+  labels unclassified legacy cost without disclosing its amount, and summaries
+  keep currencies separate. No exchange conversion or farm-wide currency is
+  inferred. The 182-test nutrient/Gateway/auth/migration selection passes;
+  six disposable PostgreSQL 16 assertions cover migration replay, currency
+  separation, preservation of historical unknowns, malformed-code rejection,
+  and write enforcement. Ruff, compilation, runtime SQL inventory, capability
+  validation, and diff checks pass. The local candidate and legacy databases
+  were not touched. Historical amount reconciliation and populated output
+  parity remain open ([contract](nutrient-events-kernel-read-contract.md);
+  [migration](../schemas/postgres/601_nutrient_input_cost_currency.sql);
+  [evidence](builds/2026-10-23-recovery/nutrient-input-cost-currency-disposable.json)).
 
 **Phase 8 software/release update (23 October 2026):** the earlier clean
 network-disabled ARM64/QEMU PostgreSQL 16 replay applied all 588 schema files

@@ -3,7 +3,9 @@
 **Updated:** 23 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest local batch — CAP-002 deterministic crop-simulation baseline (23 October 2026):** the legacy simulator now derives daily weather variation from stable SHA-256 buckets keyed by `weather_seed` (default 0) and persists/returns the selected seed. A synthetic 30-day maize fixture covers seeds 0 and 42; it passes under `PYTHONHASHSEED=1` and `98765`. The focused Gateway/digital-twin/operator-auth selection passes 114 tests, with Ruff, compilation, and diff checks. This pins repeatability only; legacy/populated output parity, agronomic correctness, live OIDC/browser, RLS, and MAN-CAP-002 remain open. No migration, candidate/legacy database, or provider was used ([fixture](../tests/fixtures/crop_simulation_reference_v1.json); [contract](crop-simulation-runs-kernel-read-contract.md)).
+**Latest local batch — CAP-002 currency-qualified nutrient input costs (23 October 2026):** ordered migration 601 adds an optional currency code while preserving historical unclassified amounts. New or changed cost values require a three-letter code; Gateway projections withhold legacy amounts lacking currency, and nutrient summaries split totals by currency without conversion. The 182-test nutrient/Gateway/operator-auth/migration selection and six network-disabled PostgreSQL 16 migration/replay/data-integrity assertions pass. Ruff, compilation, runtime SQL inventory, capability validation, and diff checks pass. No candidate/legacy database, provider, or chain was used. Historic cost reconciliation, populated parity, live OIDC/browser, RLS, and MAN-CAP-002 remain open ([contract](nutrient-events-kernel-read-contract.md); [migration](../schemas/postgres/601_nutrient_input_cost_currency.sql); [evidence](builds/2026-10-23-recovery/nutrient-input-cost-currency-disposable.json)).
+
+**Previous local batch — CAP-002 deterministic crop-simulation baseline (23 October 2026):** the legacy simulator now derives daily weather variation from stable SHA-256 buckets keyed by `weather_seed` (default 0) and persists/returns the selected seed. A synthetic 30-day maize fixture covers seeds 0 and 42; it passes under `PYTHONHASHSEED=1` and `98765`. The focused Gateway/digital-twin/operator-auth selection passes 114 tests, with Ruff, compilation, runtime SQL inventory, capability validation, and diff checks. This pins repeatability only; legacy/populated output parity, agronomic correctness, live OIDC/browser, RLS, and MAN-CAP-002 remain open. No migration, candidate/legacy database, or provider was used ([fixture](../tests/fixtures/crop_simulation_reference_v1.json); [contract](crop-simulation-runs-kernel-read-contract.md)).
 
 **Latest pulled batch — Protocol execution bridge (23 October 2026):** branch head `7679b3ea` adds a governed KI-to-Protocol intent/outbox/reconciliation path and migration 600. The focused bridge/connector/safety selection passes 32 tests with 9 database-dependent skips; Ruff and Python compilation pass. A network-disabled disposable native PostgreSQL 16 replay applies all 591 schema files through migration 600 with zero pending/failed migrations, no seeds, and successful cleanup. The bridge and connector modules also pass 21 unit tests under linux/arm64 QEMU (`aarch64`) with the repository mounted read-only. The capability is tracked as prepared CAP-067; there is no live NEAR/EVM adapter, Gateway authorization surface, candidate rollout, external transaction, or named manual acceptance. Physical Raspberry Pi behavior remains unverified.
 
@@ -1569,9 +1571,11 @@ endpoints read stored outputs only and do not run the model. The legacy model's
 weather jitter now uses a stable integer `weather_seed` (default 0) rather than
 process-salted Python hashing. A synthetic two-seed, 30-day fixture passes
 under two distinct `PYTHONHASHSEED` values; it is a model regression oracle,
-not legacy/populated output parity or agronomic validation. Continue with
-nutrient input-cost currency semantics and owner/populated reference-output
-parity before requesting MAN-CAP-002 acceptance.
+not legacy/populated output parity or agronomic validation. Migration 601 adds
+currency-qualified nutrient input capture and aggregation, without mixed-
+currency totals or inferred conversion; historic amounts remain unclassified
+until reviewed. Continue with owner/populated reference-output parity before
+requesting MAN-CAP-002 acceptance.
 The endpoints and their limits are recorded in the [yield read
 contract](yield-monitoring-kernel-read-contract.md), [irrigation status
 contract](irrigation-status-kernel-read-contract.md), [crop-simulation run

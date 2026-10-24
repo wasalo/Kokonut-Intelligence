@@ -111,7 +111,8 @@ def get_location_nutrient_events(
                            budget.status AS budget_status, event.status AS event_status,
                            event.input_date, event.input_type, event.product_name,
                            event.nitrogen_kg, event.phosphorus_kg, event.potassium_kg,
-                           event.application_rate, event.rate_unit
+                           event.application_rate, event.rate_unit,
+                           event.cost, event.cost_currency_code
                       FROM nutrient_input AS event
                       JOIN nutrient_budget AS budget ON budget.id = event.budget_id
                       LEFT JOIN plot AS plot ON plot.id = budget.plot_id
@@ -166,6 +167,18 @@ def get_location_nutrient_events(
                 },
             }
             if event_type == "inputs":
+                if row["cost"] is None:
+                    cost_status = "not_recorded"
+                    cost = None
+                elif row["cost_currency_code"] is None:
+                    cost_status = "currency_unclassified"
+                    cost = None
+                else:
+                    cost_status = "classified"
+                    cost = {
+                        "amount": _number(row["cost"]),
+                        "currency_code": row["cost_currency_code"],
+                    }
                 item.update(
                     {
                         "input_date": _date(row["input_date"]),
@@ -173,6 +186,8 @@ def get_location_nutrient_events(
                         "product_name": row["product_name"],
                         "application_rate": _number(row["application_rate"]),
                         "rate_unit": row["rate_unit"],
+                        "cost": cost,
+                        "cost_status": cost_status,
                     }
                 )
             else:

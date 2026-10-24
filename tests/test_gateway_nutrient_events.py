@@ -59,17 +59,18 @@ class _Cursor:
                 "id", "plot_id", "season", "budget_crop_name", "budget_status",
                 "event_status", "input_date", "input_type", "product_name",
                 "nitrogen_kg", "phosphorus_kg", "potassium_kg", "application_rate",
-                "rate_unit",
+                "rate_unit", "cost", "cost_currency_code",
             ]
             self.rows = [
                 (
                     uuid4(), uuid4(), "2026-wet", "maize", "draft", "verified",
                     date(2026, 10, 22), "compost", "mature compost", 24, 8, 17,
-                    120, "kg/ha",
+                    120, "kg/ha", 14.25, "USD",
                 ),
                 (
                     uuid4(), None, "2026-wet", "maize", "published", "recorded",
                     date(2026, 10, 20), "manure", None, 6, 2, 5, None, None,
+                    9.50, None,
                 ),
             ]
         else:
@@ -158,7 +159,10 @@ def test_nutrient_event_read_sets_context_and_returns_parent_and_event_lifecycle
     assert "CASE WHEN farm.id IS NOT NULL THEN plot.id END" in page_sql
     assert "notes" not in page_sql.lower()
     assert "metadata" not in page_sql.lower()
-    assert "cost" not in page_sql.lower()
+    if event_type == "inputs":
+        assert "event.cost, event.cost_currency_code" in page_sql
+    else:
+        assert "event.cost" not in page_sql.lower()
     assert result["location_id"] == location_id
     assert result["event_type"] == event_type
     assert result["total_events"] == 2
@@ -180,7 +184,12 @@ def test_nutrient_event_read_sets_context_and_returns_parent_and_event_lifecycle
         assert first["input_type"] == "compost"
         assert first["product_name"] == "mature compost"
         assert first["application_rate"] == 120.0
-        assert "cost" not in first
+        assert first["cost"] == {"amount": 14.25, "currency_code": "USD"}
+        assert first["cost_status"] == "classified"
+        unclassified = result["events"][1]
+        assert unclassified["cost"] is None
+        assert unclassified["cost_status"] == "currency_unclassified"
+        assert "9.5" not in str(unclassified)
     else:
         assert first["harvest_date"] == "2026-10-21"
         assert first["crop_name"] == "maize"
