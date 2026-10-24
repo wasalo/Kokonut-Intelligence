@@ -1149,6 +1149,10 @@ _EXPECTED_OPERATOR_POLICIES[(
     f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans/{_PARAMETER_SAMPLES['learning_plan_id']}/submit",
 )] = _expected("operating_pilot", "submit_own", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans/{_PARAMETER_SAMPLES['learning_plan_id']}/review",
+)] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
     "PUT",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-assessments/"
     f"{_PARAMETER_SAMPLES['draft_id']}",

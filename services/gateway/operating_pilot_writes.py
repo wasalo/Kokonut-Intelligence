@@ -357,6 +357,48 @@ def _normalize_demand_review_payload(payload: Any) -> tuple[str, str | None]:
     return decision, reason
 
 
+def _normalize_learning_plan_review_payload(
+    payload: Any,
+) -> tuple[datetime, str, str | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Learning-plan review body must be an object")
+    submitted_at = payload.get("submitted_at")
+    if not isinstance(submitted_at, str) or len(submitted_at) > 64:
+        raise OperatingPilotWriteInvalid("submitted_at must be an ISO timestamp with a timezone")
+    try:
+        submitted_at = datetime.fromisoformat(submitted_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise OperatingPilotWriteInvalid(
+            "submitted_at must be an ISO timestamp with a timezone"
+        ) from exc
+    if submitted_at.tzinfo is None or submitted_at.utcoffset() is None:
+        raise OperatingPilotWriteInvalid("submitted_at must include a timezone")
+    submitted_at = submitted_at.astimezone(timezone.utc)
+
+    decision = payload.get("decision")
+    if not isinstance(decision, str) or decision not in {"approved", "rejected"}:
+        raise OperatingPilotWriteInvalid("Decision must be approved or rejected")
+    reason = payload.get("reason")
+    if reason is not None:
+        if not isinstance(reason, str) or len(reason) > 2000 or "\x00" in reason:
+            raise OperatingPilotWriteInvalid(
+                "Review reason must be text of at most 2000 characters"
+            )
+        reason = reason.strip() or None
+    if decision == "rejected" and reason is None:
+        raise OperatingPilotWriteInvalid(
+            "A reason is required when rejecting a learning plan"
+        )
+    if decision == "approved" and reason is not None:
+        raise OperatingPilotWriteInvalid(
+            "A review reason is only accepted when rejecting a learning plan"
+        )
+    unexpected = set(payload) - {"submitted_at", "decision", "reason"}
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Learning-plan review contains unsupported fields")
+    return submitted_at, decision, reason
+
+
 def _normalize_work_claim_payload(payload: Any) -> Decimal | None:
     if not isinstance(payload, dict):
         raise OperatingPilotWriteInvalid("Work-claim body must be an object")
@@ -709,6 +751,55 @@ def submit_location_operating_pilot_learning_plan(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot learning-plan submission returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_operating_pilot_learning_plan(
+    operator_id: str,
+    location_id: str,
+    learning_plan_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record one exact-version learning-plan decision; approval does not activate it."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_plan_id = _normalize_uuid(learning_plan_id, "learning plan")
+    request_id = _normalize_uuid(request_id, "request")
+    submitted_at, decision, reason = _normalize_learning_plan_review_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.review_location_operating_pilot_learning_plan(
+                           %s::uuid, %s::uuid, %s::uuid, %s::timestamptz,
+                           %s::text, %s::text)""",
+                (location_id, learning_plan_id, request_id, submitted_at, decision, reason),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating learning-plan review returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

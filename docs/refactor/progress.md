@@ -1,3 +1,37 @@
+### Progress addendum — CAP-037 independent learning-plan review decisions, 24 October 2026
+
+The console now lets an operator with the exact location
+`operating_pilot:review` grant approve or reject a receipt-backed submitted
+learning plan through `POST
+/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review`.
+Migration 610 records an append-only, private decision bound to the exact latest
+submission timestamp. Approval stays `submitted`; activation remains a separate
+action. Rejection returns the plan to `draft` and makes its required bounded
+feedback visible only in the submitter's own history. A new submission after
+revision has no inherited review outcome. Signed location context, current grant,
+active human binding, Adelphi scope, current submission version, and independent
+reviewer identity are rechecked in PostgreSQL. Exact request retries replay;
+changed request reuse, second decisions, stale versions, invalid reasons,
+missing grants, and self-review fail closed. Migration 610 removes stale
+PUBLIC/runtime/Directus table- and column-level ledger grants. The ledger is
+not readable by runtime or Directus; bounded functions use a column-limited
+non-login reader role. The console uses explicit acknowledgement, CSRF/no-store,
+and stable retry IDs.
+
+The focused Gateway, migration, route-policy, and console selection passes 401
+tests. Ruff and Python compilation pass. Network-disabled disposable PostgreSQL
+16 applies/replays migrations through 610 and passes 260 grouped assertions on
+native AMD64 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-arm64-disposable.json)).
+QEMU is software portability evidence only, not Raspberry Pi hardware
+acceptance. Candidate and legacy databases remain untouched; migration 610 is
+not rolled out. Roll back by disabling the route, exact policy, and console
+action while retaining the additive migration and append-only ledger. CAP-037
+remains prepared pending populated parity, live ZITADEL/browser acceptance,
+broader ACL/RLS, recovery, privacy review, and named owner acceptance. Checklist:
+1,115 complete / 25 open (1,140 total); 24 baseline-retained, 7 deployed, 36
+prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+
 ### Progress addendum — CAP-037 independent learning-plan review queue, 24 October 2026
 
 The operator console now has a read-only learning-plan review queue under the

@@ -120,16 +120,16 @@ def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
     assert "saving a revised private resource-request draft" in submit.lower()
 
 
-def test_learning_plan_review_queue_is_review_grant_gated_read_only_and_text_safe():
+def test_learning_plan_review_queue_is_review_grant_gated_bounded_and_text_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(source, 'id="operating-pilot-learning-plan-review"', 'id="operating-pilot-learning-plan-create"')
     loader = _function(
         source,
         "async function loadOperatingPilotLearningPlanReviewQueue(append = false)",
-        "async function submitOperatingPilotLearningPlan(",
+        "function appendOperatingPilotLearningPlanReviewRow(item, locationId)",
     )
     assert 'id="operating-pilot-learning-plan-review-rows"' in panel
-    assert "read-only" in panel
+    assert "Approval records the review outcome but does not activate the plan" in panel
     assert "operatingPilotLearningPlanReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in source
     assert "/learning-plan-review-queue?${params}" in loader
     assert 'credentials: "same-origin"' in loader
@@ -137,9 +137,43 @@ def test_learning_plan_review_queue_is_review_grant_gated_read_only_and_text_saf
     assert "operatingPilotCapacityReviewLocations.has(locationId)" in loader
     assert "operatingPilotLearningPlanReviewRequestVersion" in loader
     assert "result.next_offset" in loader and "nextOffset <= 10000" in loader
-    assert "cell.textContent = displayValue" in loader
     assert "innerHTML" not in panel + loader
-    assert 'type="submit"' not in panel
+    assert 'id="operating-pilot-learning-plan-review-dialog"' in panel
+    assert 'id="operating-pilot-learning-plan-review-acknowledged"' in panel
+    assert 'type="submit"' in panel
+
+
+def test_learning_plan_review_decision_is_exact_version_csrf_protected_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    append_row = _function(
+        source,
+        "function appendOperatingPilotLearningPlanReviewRow(item, locationId)",
+        "function beginOperatingPilotLearningPlanReview(item, locationId, decision)",
+    )
+    begin = _function(
+        source,
+        "function beginOperatingPilotLearningPlanReview(item, locationId, decision)",
+        "function syncOperatingPilotLearningPlanReviewReason()",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotLearningPlanReview(event)",
+        "async function submitOperatingPilotLearningPlan(",
+    )
+    assert 'item.status !== "submitted"' in begin
+    assert 'typeof item.submitted_at !== "string"' in begin
+    assert "operatingPilotPendingLearningPlanReviewDecisions" in append_row + begin + submit
+    assert 'window' not in begin
+    assert "submission version will be reused" in begin
+    assert 'method: "POST"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit and 'credentials: "same-origin"' in submit
+    assert "/learning-plans/${encodeURIComponent(pending.learning_plan_id)}/review" in submit
+    assert "submitted_at: pending.submitted_at" in submit
+    assert "pendingRequest.signature !== signature" in submit
+    assert "result.learning_plan_id !== pending.learning_plan_id" in submit
+    assert "cell.textContent = displayValue" in append_row
+    assert "activation remains separate" in submit
+    assert "innerHTML" not in append_row + begin + submit
 
 
 def test_resource_revision_is_edit_own_gated_idempotent_and_keeps_submission_separate():
@@ -939,6 +973,9 @@ def test_own_learning_plan_history_console_is_grant_gated_read_only_and_text_onl
     assert 'id="operating-pilot-learning-plans-rows"' in panel
     assert 'id="operating-pilot-learning-plans-more"' in panel
     assert 'hidden aria-labelledby="operating-pilot-learning-plans-heading"' in panel
+    assert "<th>Review outcome</th>" in panel
+    assert "item.review_reason" in row
+    assert "activation remains separate" in row
     assert "operatingPilotOwnLearningPlanLocations.has(locationId)" in load
     assert "operatingPilotEditOwnLearningPlanLocations.has(operatingPilotLocation.value)" in row
     assert 'item.status === "draft"' in row

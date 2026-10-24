@@ -306,6 +306,87 @@ def test_learning_plan_submission_sets_exact_submit_own_context_and_commits(monk
     connection.close.assert_called_once_with()
 
 
+def test_learning_plan_review_sets_exact_context_and_binds_submission_version(monkeypatch):
+    connection, cursor = _connection_with_result({
+        "learning_plan_id": PROFILE_ID,
+        "decision": "rejected",
+        "status": "draft",
+        "replayed": False,
+    })
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+    result = operating_pilot_writes.review_location_operating_pilot_learning_plan(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {
+            "submitted_at": "2026-10-24T12:34:56.123456Z",
+            "decision": "rejected",
+            "reason": "Please narrow the goals.",
+        },
+        connection_factory=lambda: connection,
+    )
+    assert result == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "decision": "rejected",
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "operating_pilot",
+            "action": "review",
+        },
+    )]
+    assert "SET LOCAL statement_timeout" in cursor.execute.call_args_list[0].args[0]
+    assert "review_location_operating_pilot_learning_plan" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        operating_pilot_writes.datetime(
+            2026, 10, 24, 12, 34, 56, 123456,
+            tzinfo=operating_pilot_writes.timezone.utc,
+        ),
+        "rejected",
+        "Please narrow the goals.",
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ({"submitted_at": "2026-10-24T12:00:00", "decision": "approved"}, "timezone"),
+        ({"submitted_at": "bad", "decision": "approved"}, "timezone"),
+        ({"submitted_at": "2026-10-24T12:00:00Z", "decision": "rejected"}, "reason is required"),
+        ({"submitted_at": "2026-10-24T12:00:00Z", "decision": "approved", "reason": "x"}, "only accepted when rejecting"),
+        ({"submitted_at": "2026-10-24T12:00:00Z", "decision": ["approved"]}, "Decision must be"),
+        ({"submitted_at": "2026-10-24T12:00:00Z", "decision": "approved", "reason": "x" * 2001}, "at most 2000"),
+        ({"submitted_at": "2026-10-24T12:00:00Z", "decision": "approved", "actor_id": OPERATOR_ID}, "unsupported fields"),
+    ],
+)
+def test_invalid_learning_plan_review_fails_before_database_access(payload, message):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match=message):
+        operating_pilot_writes.review_location_operating_pilot_learning_plan(
+            OPERATOR_ID, LOCATION_ID, PROFILE_ID, REQUEST_ID, payload,
+            connection_factory=factory,
+        )
+    factory.assert_not_called()
+
+
 @pytest.mark.parametrize("payload", [
     [],
     {**LEARNING_PLAN_PAYLOAD, "title": " "},
@@ -983,6 +1064,64 @@ def test_learning_plan_submission_route_policy_requires_exact_location_submit_ow
         "operator_auth": True,
     }
     assert auth_route_policy("POST", path, enabled=False) is None
+
+
+def test_learning_plan_review_http_route_passes_exact_submission_version_and_returns_no_store(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "decision": "approved",
+        "status": "submitted",
+        "replayed": False,
+    })
+    client = _route_app(monkeypatch, action, "review_location_operating_pilot_learning_plan")
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/review"
+    invalid = client.post(
+        path,
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+            "decision": "approved",
+            "status": "active",
+        },
+    )
+    assert invalid.status_code == 400
+    action.assert_not_called()
+
+    response = client.post(
+        path,
+        json={
+            "request_id": REQUEST_ID,
+            "submitted_at": "2026-10-24T12:00:00Z",
+            "decision": "approved",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == action.return_value
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {"submitted_at": "2026-10-24T12:00:00Z", "decision": "approved"},
+    )
+
+
+def test_learning_plan_review_route_policy_requires_exact_location_review_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/review"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "review",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=False) is None
+    assert auth_route_policy("GET", path, enabled=True) is None
+    assert auth_route_policy("POST", path + "/extra", enabled=True) is None
 
 
 def test_competency_draft_route_policy_requires_exact_location_create_grant():

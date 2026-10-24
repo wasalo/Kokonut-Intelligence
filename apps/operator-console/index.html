@@ -712,7 +712,7 @@
             <p id="operating-pilot-learning-plans-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Status</th><th>Updated</th><th>Action</th></tr></thead>
+                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Status</th><th>Review outcome</th><th>Updated</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-learning-plans-rows"></tbody>
               </table>
             </div>
@@ -720,17 +720,34 @@
           </section>
           <section id="operating-pilot-learning-plan-review" hidden aria-labelledby="operating-pilot-learning-plan-review-heading">
             <h3 id="operating-pilot-learning-plan-review-heading">Independent learning-plan review queue</h3>
-            <p class="muted">A separate exact-location review grant shows submitted, receipt-backed plans from other participants. This queue is read-only; approval, rejection, and activation are separate actions.</p>
+            <p class="muted">A separate exact-location review grant shows submitted, receipt-backed plans from other participants. Approval records the review outcome but does not activate the plan; rejection returns it to the owner as a draft with feedback.</p>
             <div class="toolbar"><button id="operating-pilot-learning-plan-review-refresh" type="button">Refresh learning-plan queue</button></div>
             <p id="operating-pilot-learning-plan-review-status" class="muted" role="status" aria-live="polite"></p>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Submitted</th></tr></thead>
+                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Submitted</th><th>Action</th></tr></thead>
                 <tbody id="operating-pilot-learning-plan-review-rows"></tbody>
               </table>
             </div>
             <button id="operating-pilot-learning-plan-review-more" class="secondary" type="button" hidden>Load more learning plans</button>
           </section>
+          <dialog id="operating-pilot-learning-plan-review-dialog" aria-labelledby="operating-pilot-learning-plan-review-dialog-heading">
+            <form id="operating-pilot-learning-plan-review-form">
+              <h3 id="operating-pilot-learning-plan-review-dialog-heading">Review submitted learning plan</h3>
+              <p id="operating-pilot-learning-plan-review-plan" class="muted"></p>
+              <label for="operating-pilot-learning-plan-review-decision">Decision</label>
+              <select id="operating-pilot-learning-plan-review-decision" required>
+                <option value="approved">Approve review; leave plan submitted</option>
+                <option value="rejected">Reject and return to owner for revision</option>
+              </select>
+              <label id="operating-pilot-learning-plan-review-reason-label" for="operating-pilot-learning-plan-review-reason" hidden>Feedback for the owner</label>
+              <textarea id="operating-pilot-learning-plan-review-reason" maxlength="2000" rows="4" hidden></textarea>
+              <label><input id="operating-pilot-learning-plan-review-acknowledged" type="checkbox" required> I reviewed this plan and am authorized to record this decision.</label>
+              <p id="operating-pilot-learning-plan-review-decision-status" class="muted" role="status" aria-live="polite"></p>
+              <button id="operating-pilot-learning-plan-review-cancel" class="secondary" type="button">Cancel</button>
+              <button id="operating-pilot-learning-plan-review-submit" type="submit">Record decision</button>
+            </form>
+          </dialog>
           <section id="operating-pilot-learning-plan-create" hidden aria-labelledby="operating-pilot-learning-plan-create-heading">
             <h3 id="operating-pilot-learning-plan-create-heading">Create a private learning-plan draft</h3>
             <p class="muted">An exact location create grant lets you save a private draft; separate edit_own and submit_own grants allow revising and submitting your draft for independent review. Each goal and support item is entered on a separate line. Submission does not activate or approve the plan.</p>
@@ -2558,6 +2575,16 @@
       const operatingPilotLearningPlanReviewStatus = document.querySelector("#operating-pilot-learning-plan-review-status");
       const operatingPilotLearningPlanReviewRows = document.querySelector("#operating-pilot-learning-plan-review-rows");
       const operatingPilotLearningPlanReviewMore = document.querySelector("#operating-pilot-learning-plan-review-more");
+      const operatingPilotLearningPlanReviewDialog = document.querySelector("#operating-pilot-learning-plan-review-dialog");
+      const operatingPilotLearningPlanReviewForm = document.querySelector("#operating-pilot-learning-plan-review-form");
+      const operatingPilotLearningPlanReviewPlan = document.querySelector("#operating-pilot-learning-plan-review-plan");
+      const operatingPilotLearningPlanReviewDecision = document.querySelector("#operating-pilot-learning-plan-review-decision");
+      const operatingPilotLearningPlanReviewReason = document.querySelector("#operating-pilot-learning-plan-review-reason");
+      const operatingPilotLearningPlanReviewReasonLabel = document.querySelector("#operating-pilot-learning-plan-review-reason-label");
+      const operatingPilotLearningPlanReviewAcknowledged = document.querySelector("#operating-pilot-learning-plan-review-acknowledged");
+      const operatingPilotLearningPlanReviewDecisionStatus = document.querySelector("#operating-pilot-learning-plan-review-decision-status");
+      const operatingPilotLearningPlanReviewSubmit = document.querySelector("#operating-pilot-learning-plan-review-submit");
+      const operatingPilotLearningPlanReviewCancel = document.querySelector("#operating-pilot-learning-plan-review-cancel");
       const operatingPilotLearningPlanCreate = document.querySelector("#operating-pilot-learning-plan-create");
       const operatingPilotLearningPlanCreateHeading = document.querySelector("#operating-pilot-learning-plan-create-heading");
       const operatingPilotLearningPlanCreateForm = document.querySelector("#operating-pilot-learning-plan-create-form");
@@ -2644,6 +2671,7 @@
       let operatingPilotPendingDemandReview = null;
       let operatingPilotPendingResourceReview = null;
       let operatingPilotPendingWorkClaimReview = null;
+      let operatingPilotPendingLearningPlanReview = null;
       let operatingPilotLocations = new Set();
       let operatingPilotCreateLocations = new Set();
       let operatingPilotSubmitOwnDemandLocations = new Set();
@@ -2678,6 +2706,7 @@
       const operatingPilotPendingLearningPlanWrites = new Map();
       const operatingPilotPendingLearningPlanRevisions = new Map();
       const operatingPilotPendingLearningPlanSubmissions = new Map();
+      const operatingPilotPendingLearningPlanReviewDecisions = new Map();
       let operatingPilotPendingLearningPlanEdit = null;
       let operatingPilotCompetencyFormLocationId = null;
       let operatingPilotCompetencyOffset = 0;
@@ -4615,6 +4644,11 @@
           item.support_requested,
           item.target_date,
           item.status,
+          item.review_decision === "approved"
+            ? "Approved; activation remains separate."
+            : item.review_decision === "rejected"
+              ? `Returned for revision${item.review_reason ? `: ${item.review_reason}` : "."}`
+              : "No review decision",
           item.updated_at
         ]) {
           const cell = document.createElement("td");
@@ -4669,22 +4703,7 @@
               || locationId !== operatingPilotLocation.value
               || !operatingPilotCapacityReviewLocations.has(locationId)) return;
           for (const item of result.items || []) {
-            const row = document.createElement("tr");
-            for (const value of [
-              item.title,
-              item.competency_goals,
-              item.support_requested,
-              item.target_date,
-              item.updated_at
-            ]) {
-              const cell = document.createElement("td");
-              const displayValue = Array.isArray(value) || (value !== null && typeof value === "object")
-                ? JSON.stringify(value)
-                : operatingPilotDisplayValue(value);
-              cell.textContent = displayValue.length > 1200 ? `${displayValue.slice(0, 1200)}…` : displayValue;
-              row.append(cell);
-            }
-            operatingPilotLearningPlanReviewRows.append(row);
+            appendOperatingPilotLearningPlanReviewRow(item, locationId);
           }
           const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
           const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
@@ -4704,6 +4723,167 @@
           if (requestVersion === operatingPilotLearningPlanReviewRequestVersion) {
             operatingPilotLearningPlanReviewMore.disabled = false;
           }
+        }
+      }
+
+      function appendOperatingPilotLearningPlanReviewRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.title,
+          item.competency_goals,
+          item.support_requested,
+          item.target_date,
+          item.submitted_at
+        ]) {
+          const cell = document.createElement("td");
+          const displayValue = Array.isArray(value) || (value !== null && typeof value === "object")
+            ? JSON.stringify(value)
+            : operatingPilotDisplayValue(value);
+          cell.textContent = displayValue.length > 1200 ? `${displayValue.slice(0, 1200)}…` : displayValue;
+          row.append(cell);
+        }
+        const actions = document.createElement("td");
+        for (const [decision, label] of [
+          ["approved", "Approve"],
+          ["rejected", "Return for revision"]
+        ]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = decision === "rejected" ? "secondary" : "";
+          const pending = operatingPilotPendingLearningPlanReviewDecisions.get(item.learning_plan_id);
+          button.textContent = pending?.decision === decision
+            ? `Retry ${decision === "approved" ? "approval" : "rejection"}`
+            : label;
+          button.disabled = Boolean(pending && pending.decision !== decision);
+          button.addEventListener("click", () => beginOperatingPilotLearningPlanReview(item, locationId, decision));
+          actions.append(button);
+        }
+        row.append(actions);
+        operatingPilotLearningPlanReviewRows.append(row);
+      }
+
+      function beginOperatingPilotLearningPlanReview(item, locationId, decision) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(locationId)
+            || item.status !== "submitted"
+            || typeof item.learning_plan_id !== "string"
+            || typeof item.submitted_at !== "string") return;
+        const pending = operatingPilotPendingLearningPlanReviewDecisions.get(item.learning_plan_id);
+        if (pending && (pending.location_id !== locationId || pending.decision !== decision)) {
+          operatingPilotLearningPlanReviewStatus.textContent = "Retry the unchanged pending decision before choosing another outcome.";
+          return;
+        }
+        operatingPilotPendingLearningPlanReview = {
+          learning_plan_id: item.learning_plan_id,
+          location_id: locationId,
+          submitted_at: item.submitted_at,
+          decision
+        };
+        operatingPilotLearningPlanReviewForm.reset();
+        operatingPilotLearningPlanReviewDecision.value = decision;
+        operatingPilotLearningPlanReviewDecision.disabled = Boolean(pending);
+        operatingPilotLearningPlanReviewReason.value = pending?.reason || "";
+        operatingPilotLearningPlanReviewReason.readOnly = Boolean(pending);
+        operatingPilotLearningPlanReviewAcknowledged.checked = false;
+        operatingPilotLearningPlanReviewPlan.textContent = operatingPilotDisplayValue(item.title);
+        operatingPilotLearningPlanReviewDecisionStatus.textContent = pending
+          ? "Retry this exact decision. Its original request ID and submission version will be reused."
+          : "Approval leaves the plan submitted. Rejection returns it to the owner as a draft.";
+        syncOperatingPilotLearningPlanReviewReason();
+        operatingPilotLearningPlanReviewDialog.showModal();
+      }
+
+      function syncOperatingPilotLearningPlanReviewReason() {
+        const rejecting = operatingPilotLearningPlanReviewDecision.value === "rejected";
+        operatingPilotLearningPlanReviewReason.hidden = !rejecting;
+        operatingPilotLearningPlanReviewReasonLabel.hidden = !rejecting;
+        operatingPilotLearningPlanReviewReason.required = rejecting;
+      }
+
+      async function submitOperatingPilotLearningPlanReview(event) {
+        event.preventDefault();
+        const pending = operatingPilotPendingLearningPlanReview;
+        if (!pending || pending.location_id !== operatingPilotLocation.value
+            || !operatingPilotCapacityReviewLocations.has(pending.location_id)) return;
+        const decision = operatingPilotLearningPlanReviewDecision.value;
+        const reason = decision === "rejected"
+          ? operatingPilotLearningPlanReviewReason.value.trim()
+          : null;
+        if (decision === "rejected" && !reason) {
+          operatingPilotLearningPlanReviewDecisionStatus.textContent = "Provide feedback before returning this plan for revision.";
+          operatingPilotLearningPlanReviewReason.focus();
+          return;
+        }
+        if (!operatingPilotLearningPlanReviewAcknowledged.checked) {
+          operatingPilotLearningPlanReviewDecisionStatus.textContent = "Confirm that you reviewed this plan and are authorized to decide.";
+          operatingPilotLearningPlanReviewAcknowledged.focus();
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotLearningPlanReviewDecisionStatus.textContent = "Refresh the page to establish a protected session before deciding.";
+          return;
+        }
+        const payload = {
+          submitted_at: pending.submitted_at,
+          decision,
+          reason
+        };
+        const signature = JSON.stringify(payload);
+        let pendingRequest = operatingPilotPendingLearningPlanReviewDecisions.get(pending.learning_plan_id);
+        if (pendingRequest && (pendingRequest.location_id !== pending.location_id
+            || pendingRequest.signature !== signature)) {
+          operatingPilotLearningPlanReviewDecisionStatus.textContent = "Retry the unchanged pending decision before changing its reason or submission version.";
+          return;
+        }
+        if (!pendingRequest) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotLearningPlanReviewDecisionStatus.textContent = "A secure browser context is required to record this decision.";
+            return;
+          }
+          pendingRequest = {
+            location_id: pending.location_id,
+            decision,
+            reason,
+            signature,
+            request_id: requestId
+          };
+          operatingPilotPendingLearningPlanReviewDecisions.set(pending.learning_plan_id, pendingRequest);
+        }
+        operatingPilotLearningPlanReviewSubmit.disabled = true;
+        operatingPilotLearningPlanReviewDecisionStatus.textContent = "Recording independent review decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(pending.location_id)}/learning-plans/${encodeURIComponent(pending.learning_plan_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pendingRequest.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (pending.location_id !== operatingPilotLocation.value) return;
+          if (result.learning_plan_id !== pending.learning_plan_id || result.decision !== decision) {
+            throw new Error("The review response did not match this decision. Retry using the same request.");
+          }
+          operatingPilotPendingLearningPlanReviewDecisions.delete(pending.learning_plan_id);
+          operatingPilotPendingLearningPlanReview = null;
+          operatingPilotLearningPlanReviewDialog.close();
+          operatingPilotLearningPlanReviewStatus.textContent = decision === "approved"
+            ? `Approval recorded; activation remains separate${result.replayed ? " (confirmed retry)" : ""}.`
+            : `Plan returned to its owner for revision${result.replayed ? " (confirmed retry)" : ""}.`;
+          await loadOperatingPilotLearningPlanReviewQueue();
+          if (operatingPilotOwnLearningPlanLocations.has(pending.location_id)) {
+            await loadOperatingPilotOwnLearningPlans();
+          }
+        } catch (error) {
+          operatingPilotLearningPlanReviewDecisionStatus.textContent = `${error.message} Retry with the same decision and feedback to reuse its request ID.`;
+        } finally {
+          operatingPilotLearningPlanReviewSubmit.disabled = false;
         }
       }
 
@@ -22511,6 +22691,11 @@
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
       operatingPilotLocation.addEventListener("change", () => {
+        if (operatingPilotPendingLearningPlanReview
+            && operatingPilotPendingLearningPlanReview.location_id !== operatingPilotLocation.value) {
+          operatingPilotPendingLearningPlanReview = null;
+          operatingPilotLearningPlanReviewDialog.close();
+        }
         if (operatingPilotPendingWorkClaimReview
             && operatingPilotPendingWorkClaimReview.location_id !== operatingPilotLocation.value) {
           operatingPilotPendingWorkClaimReview = null;
@@ -22561,6 +22746,16 @@
       operatingPilotLearningPlanReviewMore.addEventListener(
         "click", () => loadOperatingPilotLearningPlanReviewQueue(true)
       );
+      operatingPilotLearningPlanReviewForm.addEventListener(
+        "submit", submitOperatingPilotLearningPlanReview
+      );
+      operatingPilotLearningPlanReviewDecision.addEventListener(
+        "change", syncOperatingPilotLearningPlanReviewReason
+      );
+      operatingPilotLearningPlanReviewCancel.addEventListener("click", () => {
+        operatingPilotPendingLearningPlanReview = null;
+        operatingPilotLearningPlanReviewDialog.close();
+      });
       operatingPilotLearningPlanCreateForm.addEventListener(
         "submit", createOperatingPilotLearningPlanDraft
       );

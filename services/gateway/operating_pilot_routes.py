@@ -44,6 +44,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         review_location_operating_pilot_capacity,
         review_location_operating_pilot_competency_assessment,
         review_location_operating_pilot_demand,
+        review_location_operating_pilot_learning_plan,
         review_location_operating_pilot_resource_request,
         review_location_operating_pilot_work_claim,
         revise_location_operating_pilot_capacity_draft,
@@ -2183,6 +2184,89 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Operating learning-plan review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review"
+    )
+    async def review_operating_pilot_learning_plan(
+        request: Request, location_id: str, learning_plan_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        payload, body_error = await bounded_learning_plan_payload(request)
+        if body_error is not None:
+            return body_error
+        request_id = payload.pop("request_id", None)
+        if set(payload) - {"submitted_at", "decision", "reason"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Learning-plan review contains unsupported fields"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                review_location_operating_pilot_learning_plan,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                learning_plan_id,
+                request_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified learning-plan review access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location review grant and independent human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The review request conflicts or this submission already has a decision"},
+                    headers=headers,
+                )
+            if pgcode == "40001":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "This submitted plan changed; refresh the review queue"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Learning-plan review decision or reason is invalid"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating learning-plan review decision unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating learning-plan review decision unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

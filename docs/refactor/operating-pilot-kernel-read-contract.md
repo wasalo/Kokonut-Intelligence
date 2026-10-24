@@ -903,3 +903,41 @@ Candidate and legacy databases are untouched and migration 609 is not rolled
 out. Review-decision semantics, populated parity, live OIDC/browser behavior,
 broader ACL/RLS, recovery, privacy review, and MAN-CAP-037 acceptance remain
 open.
+
+## Independent learning-plan review decisions
+
+`POST /operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/review`
+uses the exact location `operating_pilot:review` grant and an authenticated
+OIDC operator session. The Gateway validates the location, learning-plan ID,
+request ID, submitted timestamp, decision, and optional rejection reason before
+opening PostgreSQL. It sets signed review context on the same transaction,
+enforces the request-size limit and CSRF protection, and returns `no-store`.
+
+Migration 610 requires the signed location to match, the live exact review
+grant, exactly one active human-party binding, the active Adelphi farm mapping,
+and the latest receipt-backed submitted version. Self-review is denied. The
+decision ledger is private and append-only, keyed to both the operator request
+ID and the exact submission timestamp. Migration 610 removes stale table- and
+column-level ledger access from PUBLIC, runtime, and Directus before granting
+the bounded function owner only required columns. Exact retries replay; changed request
+reuse, a second decision, stale submission, revoked grant, invalid decision,
+and invalid reason fail closed. Approval records an outcome but leaves the
+plan `submitted`, because activation is a separate lifecycle action. Rejection
+returns it to `draft` and requires bounded feedback; the decision response
+omits the feedback. The owner's own-history function exposes the outcome,
+reason, and review time only for that owner's matching latest submitted
+version. A revision and resubmission is a new version and does not carry stale
+rejection feedback forward.
+
+The console shows review controls only under the exact review grant, requires
+explicit acknowledgement, preserves the request ID for uncertain retries,
+and renders feedback through text nodes in the owner's history. Runtime can
+invoke only the bounded review function and cannot read the decision ledger;
+Directus cannot execute the function or read the ledger. The non-login bounded
+reader owns the security-definer functions and receives only the ledger
+columns those functions need. Candidate and legacy databases remain untouched;
+migration 610 has not been rolled out. Roll back by disabling the decision
+route, exact policy, and console action while preserving the additive migration
+and append-only records if it has been applied. CAP-037 remains prepared until
+populated parity, live OIDC/browser behavior, broader ACL/RLS, recovery,
+privacy review, and named MAN-CAP-037 acceptance are complete.
