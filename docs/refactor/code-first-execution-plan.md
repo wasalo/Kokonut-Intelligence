@@ -1,3 +1,5 @@
+**Latest local batch — CAP-006 farm-energy Kernel read path (23 October 2026):** the private `GET /operator/api/energy/{location_id}/summary` route requires exact `energy_monitoring:read`, sets signed tenant context before location-qualified SQL, and returns only grouped verified/approved kWh aggregates. The hidden-by-default console validates grant, response scope/unit, fixed categories, and stale state; it renders fixed fields as text. Fourteen focused Gateway/console/route-policy tests, Ruff, JavaScript syntax, SQL inventory, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-006 is prepared, with energy calculation parity, waste/habitat/pollinator coverage, populated data, ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006 still open ([contract](energy-monitoring-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-006-energy-kernel-read.json)).
+
 # Code-first refactor execution plan
 
 **Updated:** 23 October 2026

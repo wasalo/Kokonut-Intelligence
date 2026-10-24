@@ -19,10 +19,28 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,053 checklist items complete and 25
-open (1,078 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
+**Current snapshot (23 October 2026):** 1,054 checklist items complete and 25
+open (1,079 total). The [capability matrix](capability-matrix.md) has 67 validated
+rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 farm-energy Kernel read path — 23 October 2026
+
+- [x] Add a private `GET /operator/api/energy/{location_id}/summary` read under
+  exact `energy_monitoring:read`. The repeatable-read, read-only transaction
+  sets signed tenant context before SQL, requires both source and reading rows
+  to match the selected location, and includes only verified/approved readings.
+  The grouped kWh response is bounded by fixed schema dimensions; costs, source
+  names, equipment/device IDs, notes, and arbitrary metadata are excluded. A
+  hidden-by-default console panel displays only allowlisted fixed fields with
+  same-origin/no-store requests, response location/unit checks, and stale
+  request suppression. Fourteen focused Gateway/console/route-policy checks
+  pass; Ruff, inline JavaScript syntax, runtime SQL inventory, capability
+  validation, and diff checks pass. No migration, provider, candidate, or
+  legacy database was used. CAP-006 is prepared only; calculation parity,
+  waste/habitat/pollinator routes, populated output parity, ACL/RLS, live
+  OIDC/browser behavior, and MAN-CAP-006 remain open ([contract](energy-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-energy-kernel-read.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

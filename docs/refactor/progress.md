@@ -1,3 +1,20 @@
+### Progress addendum — CAP-006 farm-energy Kernel read path, 23 October 2026
+
+CAP-006 now has an initial private Kernel read: exact `energy_monitoring:read`
+grants gate a location-qualified, read-only, signed-context aggregate of
+verified/approved meter readings grouped by kWh reading/source/activity types.
+The response excludes costs, source names, device identifiers, notes, and
+arbitrary metadata. The console is hidden without an exact grant, validates
+response scope and fixed categories, uses no-store same-origin requests, and
+renders text only. Fourteen focused tests pass, with Ruff, JavaScript syntax,
+runtime SQL inventory, matrix validation, and diff checks passing. No migration,
+provider, candidate, or legacy database was accessed. CAP-006 is prepared, not
+accepted; waste/habitat/pollinator paths, populated parity, RLS, live OIDC, and
+MAN-CAP-006 remain open. Checklist: 1,054 complete / 25 open (1,079 total);
+matrix: 26 baseline-retained, 7 deployed, and 34 prepared across 67 rows;
+0/67 MAN-CAP checks accepted. [Contract](energy-monitoring-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-energy-kernel-read.json).
+
 ### Progress addendum — CAP-002 nutrient operations console, 23 October 2026
 
 The operator console now provides exact-grant, read-only views for nutrient
@@ -28,7 +45,7 @@ Ruff, capability validation, and diff checks pass. No migration,
 candidate/legacy database, provider, or chain was used. CAP-002 remains prepared
 pending model and populated/frozen-fixture parity, live OIDC/browser acceptance,
 database ACL/RLS, and MAN-CAP-002 acceptance. Checklist: 1,052 complete / 25
-open (1,077 total); matrix: 27 baseline-retained, 7 deployed, and 33 prepared
+open (1,077 total); matrix: 26 baseline-retained, 7 deployed, and 34 prepared
 across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-console.json).
 

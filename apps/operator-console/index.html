@@ -1827,6 +1827,23 @@
             <div id="yield-monitoring-recent"></div>
           </section>
         </section>
+        <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
+          <h2 id="energy-monitoring-heading">Farm energy</h2>
+          <p class="muted">Read-only aggregate of verified and approved meter readings for a granted location. Values are kWh; costs, source names, device IDs, notes, and unreviewed readings are excluded.</p>
+          <div class="toolbar">
+            <label for="energy-monitoring-location">Granted location</label>
+            <select id="energy-monitoring-location"></select>
+            <button id="energy-monitoring-refresh" type="button">Refresh energy</button>
+          </div>
+          <p id="energy-monitoring-status" class="muted" role="status" aria-live="polite"></p>
+          <dl id="energy-monitoring-overview"></dl>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Reading</th><th>Source type</th><th>Activity</th><th>Readings</th><th>Total (kWh)</th><th>First</th><th>Latest</th></tr></thead>
+              <tbody id="energy-monitoring-rows"></tbody>
+            </table>
+          </div>
+        </section>
         <section id="irrigation-status" hidden aria-labelledby="irrigation-status-heading">
           <h2 id="irrigation-status-heading">Irrigation zone status</h2>
           <p class="muted">Read-only status for active zones under a separate location grant. Moisture and schedules are advisory; this view cannot approve schedules or control devices.</p>
@@ -2883,6 +2900,13 @@
       const yieldMonitoringRecent = document.querySelector("#yield-monitoring-recent");
       let yieldMonitoringLocations = new Set();
       let yieldMonitoringRequestVersion = 0;
+      const energyMonitoring = document.querySelector("#energy-monitoring");
+      const energyMonitoringLocation = document.querySelector("#energy-monitoring-location");
+      const energyMonitoringStatus = document.querySelector("#energy-monitoring-status");
+      const energyMonitoringOverview = document.querySelector("#energy-monitoring-overview");
+      const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
+      let energyMonitoringLocations = new Set();
+      let energyMonitoringRequestVersion = 0;
       const irrigationStatus = document.querySelector("#irrigation-status");
       const irrigationStatusLocation = document.querySelector("#irrigation-status-location");
       const irrigationStatusMessage = document.querySelector("#irrigation-status-message");
@@ -13884,6 +13908,94 @@
         }
       }
 
+      function energyMonitoringValue(value) {
+        if (value === null || value === undefined || value === "") return "—";
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(value);
+        }
+        if (typeof value === "string" || typeof value === "boolean") return String(value);
+        return "—";
+      }
+
+      function renderEnergyMonitoringSummary(summary) {
+        energyMonitoringOverview.replaceChildren();
+        const term = document.createElement("dt");
+        const description = document.createElement("dd");
+        term.textContent = "Verified/approved readings";
+        description.textContent = energyMonitoringValue(summary.verified_reading_count);
+        energyMonitoringOverview.append(term, description);
+
+        const sourceTypes = new Set(["grid", "diesel_generator", "solar", "wind", "biogas", "biomass", "battery"]);
+        const activities = new Set(["irrigation", "processing", "storage", "lighting", "pump", "other", "unspecified"]);
+        const rows = Array.isArray(summary.groups) ? summary.groups : [];
+        if (rows.some((row) => !["consumption", "production"].includes(row?.reading_type)
+            || !sourceTypes.has(row?.source_type) || !activities.has(row?.activity_type)
+            || !Number.isSafeInteger(row?.reading_count) || row.reading_count < 0
+            || typeof row?.total_kwh !== "number" || !Number.isFinite(row.total_kwh))) {
+          throw new Error("The energy response did not match the supported summary format.");
+        }
+        energyMonitoringRows.replaceChildren();
+        if (!rows.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 7;
+          cell.textContent = "No verified or approved energy readings are available.";
+          row.append(cell);
+          energyMonitoringRows.append(row);
+          return;
+        }
+        for (const item of rows) {
+          const row = document.createElement("tr");
+          for (const value of [
+            item.reading_type, item.source_type, item.activity_type,
+            item.reading_count, item.total_kwh, item.first_reading_date,
+            item.last_reading_date
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = energyMonitoringValue(value);
+            row.append(cell);
+          }
+          energyMonitoringRows.append(row);
+        }
+      }
+
+      async function loadEnergyMonitoringSummary() {
+        const locationId = energyMonitoringLocation.value;
+        const requestVersion = ++energyMonitoringRequestVersion;
+        if (!energyMonitoringLocations.has(locationId)) return;
+        energyMonitoringOverview.replaceChildren();
+        energyMonitoringRows.replaceChildren();
+        energyMonitoringStatus.textContent = "Loading verified and approved meter aggregates…";
+        try {
+          const response = await fetch(
+            `/operator/api/energy/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location energy-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Farm-energy reads are unavailable for this location.");
+            throw new Error("Farm-energy aggregates could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== energyMonitoringRequestVersion
+              || locationId !== energyMonitoringLocation.value) return;
+          if (result.location_id !== locationId || result.unit !== "kWh"
+              || !Number.isSafeInteger(result.verified_reading_count)
+              || result.verified_reading_count < 0 || !Array.isArray(result.groups)) {
+            throw new Error("The response did not match the selected location or energy contract.");
+          }
+          renderEnergyMonitoringSummary(result);
+          energyMonitoringStatus.textContent = "Read-only kWh aggregates include verified and approved readings only. Costs and source identities are withheld.";
+        } catch (error) {
+          if (requestVersion !== energyMonitoringRequestVersion) return;
+          energyMonitoringOverview.replaceChildren();
+          energyMonitoringRows.replaceChildren();
+          energyMonitoringStatus.textContent = error.message;
+        }
+      }
+
       function irrigationStatusValue(value) {
         if (value === null || value === undefined || value === "") return "—";
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -15547,6 +15659,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           yieldMonitoringLocations = new Set(yieldMonitoringLocationIds);
+          const energyMonitoringLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "energy_monitoring" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          energyMonitoringLocations = new Set(energyMonitoringLocationIds);
           const irrigationStatusLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "precision_irrigation" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -15934,6 +16052,17 @@
             }
             yieldMonitoring.hidden = false;
             await loadYieldMonitoringSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (energyMonitoringLocationIds.length) {
+            for (const locationId of energyMonitoringLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              energyMonitoringLocation.append(option);
+            }
+            energyMonitoring.hidden = false;
+            await loadEnergyMonitoringSummary();
             hasAuthorizedSurface = true;
           }
           if (irrigationStatusLocationIds.length) {
@@ -20302,6 +20431,8 @@
       extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
+      document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);
+      energyMonitoringLocation.addEventListener("change", loadEnergyMonitoringSummary);
       document.querySelector("#irrigation-status-refresh").addEventListener("click", () => loadIrrigationStatus());
       irrigationStatusLocation.addEventListener("change", () => loadIrrigationStatus());
       irrigationStatusMore.addEventListener("click", () => loadIrrigationStatus(true));
