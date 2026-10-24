@@ -79,6 +79,15 @@ and `remediation` records, retrieves reporter attribution from metadata, and
 counts resolved rows using the lifecycle status/flag. These operations remain
 trusted CLI paths and do not establish tenant authorization.
 
+The legacy CLI contract was exercised against the actual migration-153 schema
+in disposable PostgreSQL 16. Migration apply/replay and synthetic inserts
+verified all four writers, initial recorded/open states, canonical enum
+constraints, JSONB preservation, verified-only waste summary, compost
+yield/pH, reporter attribution, and incident resolution. This does not
+exercise tenant roles or populated legacy outputs
+([runner](../scripts/check-waste-management-disposable.py);
+[evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+
 The legacy `get_composting_efficiency` read also uses schema-153 columns:
 `finished_volume_kg` supplies output values, per-batch yield is calculated
 from finished volume over positive feedstock, and `compost_date` supplies the

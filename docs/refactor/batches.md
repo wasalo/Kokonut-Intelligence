@@ -19,10 +19,25 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,107 checklist items complete and 25
-open (1,132 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,108 checklist items complete and 25
+open (1,133 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 migration-153 disposable waste-management acceptance — 24 October 2026
+
+- [x] Apply and replay migration 153 in a disposable PostgreSQL 16 container,
+  then run all four legacy write paths and their summary/lifecycle reads against
+  the installed schema. Verify recorded/open defaults, enum-to-metadata
+  compatibility, verified-only location-scoped waste totals, compost pH/yield,
+  reporter attribution, and incident resolution. Seven acceptance groups pass;
+  the container bound only to an ephemeral loopback port and was removed.
+  Candidate and legacy databases were untouched. The reusable script passes
+  Ruff and compilation. Rollback is removal of the script/evidence; no
+  persistent data was written
+  ([runner](../scripts/check-waste-management-disposable.py);
+  [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+  Checklist: 1,108 complete / 25 open (1,133 total).
 
 ### CAP-006 legacy composting read/write schema alignment — 24 October 2026
 

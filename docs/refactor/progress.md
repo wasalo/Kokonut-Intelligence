@@ -1,3 +1,17 @@
+### Progress addendum — CAP-006 migration-153 disposable waste-management acceptance, 24 October 2026
+
+Applied and replayed migration 153 against a disposable PostgreSQL 16
+container with a minimal synthetic `location` fixture, then exercised the
+waste, composting, recycling, and pollution-incident writers/reads through the
+actual service methods. Seven acceptance groups passed, including lifecycle
+defaults, JSONB compatibility values, verified/location-scoped summaries,
+compost pH/yield, reporter attribution, and incident resolution. The test
+container used an ephemeral loopback port and was removed; candidate and
+legacy databases were untouched. The reusable runner passes Ruff and
+compilation. Checklist: 1,108 complete / 25 open (1,133 total)
+([runner](../scripts/check-waste-management-disposable.py);
+[evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+
 ### Progress addendum — CAP-006 recycling material category fallback, 24 October 2026
 
 The recycling writer now normalizes supported material labels before insert

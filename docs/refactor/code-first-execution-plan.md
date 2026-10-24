@@ -1,3 +1,15 @@
+### Current CAP-006 implementation slice — migration-153 disposable CLI acceptance, 24 October 2026
+
+Migration 153 applies and replays on disposable PostgreSQL 16 with a minimal
+synthetic location fixture. Actual service methods insert waste, composting,
+recycling, and incident rows, and summaries validate the canonical schema,
+constraints, lifecycle fields, and location filter. Seven assertion groups
+pass, including pH metadata and incident resolution. The container was bound
+to loopback on an ephemeral port, then removed; candidate and legacy databases
+were not used. Ruff and compilation pass for the reusable runner
+([runner](../scripts/check-waste-management-disposable.py);
+[evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+
 ### Current CAP-006 implementation slice — recycling enum fallback, 24 October 2026
 
 `record_recycling` now maps unsupported material labels to the canonical
@@ -240,7 +252,7 @@ and production recovery acceptance remain open ([evidence](builds/2026-10-24-rec
 
 **Previous batch — current-source ARM64 replay and CI #771 correction:** the clean bootstrap now creates a locked historical `directus` placeholder only when absent, and the corrected network-disabled ARM64/QEMU PostgreSQL 16 run applied all 588 schema files through migration 597 with zero pending or failed files and successful cleanup. CI #771 then found that a PostgreSQL superuser seed session was classified as a worker because superusers have implicit membership in every role. New migration 598 excludes that implicit membership while retaining denial for explicit worker roles and non-superuser worker logins. Focused migration/agent-safety checks pass 49 tests with nine existing DB-dependent skips; Ruff, compilation, and network-disabled PostgreSQL 16.4/16.15 replay/role checks pass. The repeatable role test is integrated into the CI runner, replays migration 598 twice, and verifies admin/operator publication, worker terminal-state denial, and marker restrictions. The prior full-schema evidence records source `ba11ae3b` with the dirty working tree later committed as `c0eb4837`; it predates migration 598, which is separately verified. Candidate and legacy databases remain untouched; CI #772 later completed with failure and subsequent CI #773 passed on `b69b824c`. The repeatable role check is included in the current pushed batch. The Directus permission API boundary and owner parity gate remain open. Evidence: [full ARM64 replay](builds/2026-10-23-recovery/arm64-qemu-current-schema-597-after-bootstrap-retry.json), [repeatable lifecycle check](builds/2026-10-23-recovery/agent-safety-superuser-ci-regression.json), [PostgreSQL 16.15 role check](builds/2026-10-23-recovery/agent-safety-superuser-session-disposable.json), [Directus permission probe](builds/2026-10-23-recovery/directus-effective-permissions.json). This correction builds on the preceding pushed clean-bootstrap batch.
 
-Refactor status: docs/refactor/batches.md has 1,107 complete / 25 open checkboxes (1,132 total); 97.8% is checkbox completion, not capability acceptance. The 67-row capability matrix has 24 baseline-retained, 7 deployed, and 36 prepared capabilities; all 67 named MAN-CAP acceptance checks remain open. Human/runtime gates are tracked separately in docs/refactor/open-follow-ups.md.
+Refactor status: docs/refactor/batches.md has 1,108 complete / 25 open checkboxes (1,133 total); 97.8% is checkbox completion, not capability acceptance. The 67-row capability matrix has 24 baseline-retained, 7 deployed, and 36 prepared capabilities; all 67 named MAN-CAP acceptance checks remain open. Human/runtime gates are tracked separately in docs/refactor/open-follow-ups.md.
 
 **CAP-066 helper-return location scope correlation — 21 October 2026:** the
 report query analyzer follows literal same-module filter/bind pairs returned

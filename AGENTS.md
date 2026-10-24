@@ -92,6 +92,7 @@ Commands:
 - Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
 - Replay pollinator migrations 155/602 and exercise service SQL on disposable PostgreSQL 16: `python3 scripts/check-pollinator-health-disposable.py`
+- Apply/replay waste migration 153 and exercise legacy waste CLI operations on disposable PostgreSQL 16: `python3 scripts/check-waste-management-disposable.py`
 - Verify landscape habitat references and location-safe views on disposable PostgreSQL 16: `python3 scripts/check-landscape-reference-location-disposable.py`
 - Count location-mismatched landscape habitat references without returning row or farm identifiers: `LANDSCAPE_REFERENCE_PREFLIGHT_DSN=... python3 scripts/landscape-reference-preflight.py` (the target must be explicitly selected; the command starts a repeatable-read, read-only transaction)
 - Verify report-calculation read-only enforcement against a local disposable PostgreSQL target: `REPORT_GENERATOR_TEST_DSN=postgresql://...@127.0.0.1:PORT/postgres python3 scripts/check-report-generator-readonly-disposable.py`
