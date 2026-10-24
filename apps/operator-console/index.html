@@ -1810,6 +1810,17 @@
             </table>
           </div>
           <button id="geostatistics-autocorrelation-more" class="secondary" type="button" hidden>Load more statistics</button>
+          <h3>Spatial cross-validation</h3>
+          <p class="muted">Saved spatial-block, leave-one-out, and k-fold error summaries. Fold-level details and model identifiers are omitted; results are advisory.</p>
+          <button id="geostatistics-cross-validation-refresh" type="button">Refresh cross-validation</button>
+          <p id="geostatistics-cross-validation-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Property</th><th>Strategy</th><th>Folds</th><th>Block size (m)</th><th>Mean error</th><th>Mean squared error</th><th>Root mean squared error</th><th>Mean absolute error</th><th>R²</th><th>Computed</th></tr></thead>
+              <tbody id="geostatistics-cross-validation-rows"></tbody>
+            </table>
+          </div>
+          <button id="geostatistics-cross-validation-more" class="secondary" type="button" hidden>Load more validation summaries</button>
         </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
@@ -3042,6 +3053,11 @@
       let geostatisticsAutocorrelationLocations = new Set();
       let geostatisticsAutocorrelationRequestVersion = 0;
       let geostatisticsAutocorrelationOffset = 0;
+      const geostatisticsCrossValidationStatus = document.querySelector("#geostatistics-cross-validation-status");
+      const geostatisticsCrossValidationRows = document.querySelector("#geostatistics-cross-validation-rows");
+      const geostatisticsCrossValidationMore = document.querySelector("#geostatistics-cross-validation-more");
+      let geostatisticsCrossValidationRequestVersion = 0;
+      let geostatisticsCrossValidationOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14689,6 +14705,85 @@
         }
       }
 
+      async function loadGeostatisticsCrossValidation(loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsCrossValidationRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)) return;
+        const offset = loadMore ? geostatisticsCrossValidationOffset : 0;
+        if (!loadMore) {
+          geostatisticsCrossValidationOffset = 0;
+          geostatisticsCrossValidationRows.replaceChildren();
+          geostatisticsCrossValidationMore.hidden = true;
+        }
+        geostatisticsCrossValidationStatus.textContent = loadMore
+          ? "Loading more validation summaries…"
+          : "Loading saved cross-validation summaries…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/cross-validation?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Spatial cross-validation reads are unavailable for this location.");
+            throw new Error("Saved cross-validation summaries could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsCrossValidationRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value) return;
+          const strategies = new Set(["spatial_block", "leave_one_out", "k_fold"]);
+          const nullableNumbers = ["block_size_m", "mean_error", "mean_squared_error", "root_mean_squared_error", "mean_absolute_error", "r_squared"];
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item) => typeof item.property_key !== "string"
+                || item.property_key.length > 100
+                || !strategies.has(item.cv_strategy)
+                || !Number.isInteger(item.n_folds) || item.n_folds < 0
+                || typeof item.computed_at !== "string"
+                || nullableNumbers.some((field) => item[field] !== null
+                  && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
+            throw new Error("The cross-validation response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.property_key, item.cv_strategy, item.n_folds, item.block_size_m,
+              item.mean_error, item.mean_squared_error, item.root_mean_squared_error,
+              item.mean_absolute_error, item.r_squared, item.computed_at,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString()
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsCrossValidationRows.append(row);
+          }
+          geostatisticsCrossValidationOffset = offset + result.items.length;
+          geostatisticsCrossValidationMore.hidden = result.has_more !== true
+            || geostatisticsCrossValidationOffset > 10000;
+          geostatisticsCrossValidationStatus.textContent = geostatisticsCrossValidationOffset
+            ? `${geostatisticsCrossValidationOffset.toLocaleString()} saved cross-validation summaries shown. Values remain advisory.`
+            : "No saved cross-validation summaries are available for this location.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsCrossValidationRequestVersion) return;
+          if (!loadMore) geostatisticsCrossValidationRows.replaceChildren();
+          geostatisticsCrossValidationMore.hidden = true;
+          geostatisticsCrossValidationStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGeostatisticsLocation() {
+        await Promise.all([
+          loadGeostatisticsAutocorrelation(),
+          loadGeostatisticsCrossValidation(),
+        ]);
+      }
+
       function yieldMonitoringValue(value) {
         if (value === null || value === undefined || value === "") return "—";
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -17518,7 +17613,7 @@
               geostatisticsAutocorrelationLocation.append(option);
             }
             geostatisticsAutocorrelation.hidden = false;
-            await loadGeostatisticsAutocorrelation();
+            await loadGeostatisticsLocation();
             hasAuthorizedSurface = true;
           }
           if (yieldMonitoringLocationIds.length) {
@@ -21948,8 +22043,10 @@
       trendAnalysisLocation.addEventListener("change", () => loadTrendEstimates());
       trendAnalysisMore.addEventListener("click", () => loadTrendEstimates(true));
       document.querySelector("#geostatistics-autocorrelation-refresh").addEventListener("click", () => loadGeostatisticsAutocorrelation());
-      geostatisticsAutocorrelationLocation.addEventListener("change", () => loadGeostatisticsAutocorrelation());
+      geostatisticsAutocorrelationLocation.addEventListener("change", loadGeostatisticsLocation);
       geostatisticsAutocorrelationMore.addEventListener("click", () => loadGeostatisticsAutocorrelation(true));
+      document.querySelector("#geostatistics-cross-validation-refresh").addEventListener("click", () => loadGeostatisticsCrossValidation());
+      geostatisticsCrossValidationMore.addEventListener("click", () => loadGeostatisticsCrossValidation(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

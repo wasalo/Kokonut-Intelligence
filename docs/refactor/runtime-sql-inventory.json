@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 937,
-    "execution_sites": 4751,
+    "execution_sites": 4755,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4409,
+    "sites_without_worker_operation_refs": 4413,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2797,
-      "SET": 562,
+      "SELECT": 2798,
+      "SET": 565,
       "UNKNOWN": 200,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2797,
+      "read_candidate": 2798,
       "schema_change": 1,
-      "transaction_or_session": 605,
+      "transaction_or_session": 608,
       "unknown_requires_manual_review": 200,
       "with_requires_manual_review": 27,
       "write_candidate": 1121
@@ -33,10 +33,10 @@
       "composed": 19,
       "composed_or_variable": 276,
       "fstring": 290,
-      "literal": 4166
+      "literal": 4170
     },
     "relation_candidates": 1208,
-    "sites_without_relation_candidates": 1068,
+    "sites_without_relation_candidates": 1071,
     "service_packages": 68
   },
   "service_packages": {
@@ -366,16 +366,16 @@
     },
     "gateway": {
       "source_files": 124,
-      "execution_sites": 885,
+      "execution_sites": 889,
       "statement_groups": {
-        "read_candidate": 334,
-        "transaction_or_session": 495,
+        "read_candidate": 335,
+        "transaction_or_session": 498,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
-      "candidate_relation_names": 234,
-      "sites_without_relation_candidates": 570,
+      "candidate_relation_names": 235,
+      "sites_without_relation_candidates": 573,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
     },
@@ -1191,7 +1191,7 @@
     "gain_creator": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/business_model_canvas.py"]},
     "gateway_mutation_reservation": {"execution_site_count": 9,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/audit_spool.py"]},
     "gateway_rate_bucket": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE","WITH"],"statement_groups": ["read_candidate","with_requires_manual_review","write_candidate"],"source_files": ["services/gateway/postgres_rate_limiter.py","services/gateway/rate_limit_cli.py"]},
-    "geostat_cv_result": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/geostatistics/cross_validation.py"]},
+    "geostat_cv_result": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/geostatistics_reads.py","services/geostatistics/cross_validation.py"]},
     "geostat_realization": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/geostatistics/simulation.py"]},
     "geostat_realization_point": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/geostatistics/simulation.py"]},
     "geostory": {"execution_site_count": 4,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/geostory/__init__.py"]},
@@ -4704,10 +4704,14 @@
     {"id": "services/gateway/farm_activity_workflow.py:434:12","source": "services/gateway/farm_activity_workflow.py","line": 434,"column": 12,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["farm_activity"],"static_sql_sha256": "a83209fa0a3f52a1bdd7eef221aad58a4022c97ef7e59b33bab8cc9d2a0d85b7","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/gateway/farm_activity_workflow.py:462:16","source": "services/gateway/farm_activity_workflow.py","line": 462,"column": 16,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm_activity"],"static_sql_sha256": "e8d494b03983ae88c08b83896adf3e6f8ffcce1be3b0b16507e469e09094eb04","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/farm_activity_workflow.py:487:12","source": "services/gateway/farm_activity_workflow.py","line": 487,"column": 12,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["farm_activity_workflow_event"],"static_sql_sha256": "2c581c16cc48079f454fa287c8e88da9b79208e46a9bd3f8e3010af90b5fe37e","operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/gateway/geostatistics_reads.py:59:12","source": "services/gateway/geostatistics_reads.py","line": 59,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/geostatistics_reads.py:60:12","source": "services/gateway/geostatistics_reads.py","line": 60,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/geostatistics_reads.py:61:12","source": "services/gateway/geostatistics_reads.py","line": 61,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
-    {"id": "services/gateway/geostatistics_reads.py:72:12","source": "services/gateway/geostatistics_reads.py","line": 72,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["spatial_autocorrelation"],"static_sql_sha256": "1813e864dc61cde84a492cf322364a0e01ce56f4c1955020ba38ad9b42cb7791","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/geostatistics_reads.py:67:12","source": "services/gateway/geostatistics_reads.py","line": 67,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:68:12","source": "services/gateway/geostatistics_reads.py","line": 68,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:69:12","source": "services/gateway/geostatistics_reads.py","line": 69,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:80:12","source": "services/gateway/geostatistics_reads.py","line": 80,"column": 12,"scope": "list_location_spatial_autocorrelation","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["spatial_autocorrelation"],"static_sql_sha256": "1813e864dc61cde84a492cf322364a0e01ce56f4c1955020ba38ad9b42cb7791","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/geostatistics_reads.py:138:12","source": "services/gateway/geostatistics_reads.py","line": 138,"column": 12,"scope": "list_location_cross_validation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:139:12","source": "services/gateway/geostatistics_reads.py","line": 139,"column": 12,"scope": "list_location_cross_validation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:140:12","source": "services/gateway/geostatistics_reads.py","line": 140,"column": 12,"scope": "list_location_cross_validation","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/geostatistics_reads.py:151:12","source": "services/gateway/geostatistics_reads.py","line": 151,"column": 12,"scope": "list_location_cross_validation","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["geostat_cv_result"],"static_sql_sha256": "3d60aef30bc9aa6a3a19ddfded4910b6cdea0248af538dc86d4e35d0872c5b37","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/governance_assignment_proposal_reads.py:81:12","source": "services/gateway/governance_assignment_proposal_reads.py","line": 81,"column": 12,"scope": "list_own_governance_assignment_proposals","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/governance_assignment_proposal_reads.py:82:12","source": "services/gateway/governance_assignment_proposal_reads.py","line": 82,"column": 12,"scope": "list_own_governance_assignment_proposals","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/governance_assignment_proposal_reads.py:83:12","source": "services/gateway/governance_assignment_proposal_reads.py","line": 83,"column": 12,"scope": "list_own_governance_assignment_proposals","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

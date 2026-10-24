@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 saved spatial cross-validation Kernel read, 24 October 2026
+
+The geostatistics panel now also reads bounded spatial cross-validation error
+summaries for the granted location. The signed `geostatistics:read` transaction
+omits fold-level results, model identifiers, metadata, and narratives; the
+console validates the response scope and strategy, discards stale responses,
+and renders fixed fields as text. The combined CAP-008 Gateway/console/route-
+policy selection passes 44 tests with Ruff, Python compilation, JavaScript
+syntax, runtime SQL inventory, capability validation, and diff checks. No
+migration, provider, candidate, or legacy database was used. Fold-level
+diagnostics, other geostatistics paths, populated/numerical parity, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 remain open. Checklist:
+1,077 complete / 25 open (1,102 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks
+accepted ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-spatial-cross-validation-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved spatial-autocorrelation Kernel read, 24 October 2026
 
 The operator console now has a separate exact-grant panel for the latest saved

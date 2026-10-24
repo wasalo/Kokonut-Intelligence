@@ -28,9 +28,21 @@ shapes, suppresses stale responses, renders text only, and labels saved
 statistics advisory. This is a read of persisted output; it does not recompute
 or independently validate statistical methods or model assumptions.
 
+## Spatial cross-validation route
+
+`GET /operator/api/geostatistics/{location_id}/cross-validation` uses the same
+exact grant and signed transaction boundary. It returns a bounded page of
+saved spatial-block, leave-one-out, and k-fold summaries with property key,
+strategy, fold count, optional block size, mean error, mean squared error,
+root mean squared error, mean absolute error, R-squared, and computation time.
+Ordering includes a private row-ID tie-breaker for stable offset pagination.
+Fold-level JSON, model identifiers, SOC model references, metadata, and
+free-text notes are not selected. Non-finite numeric fields become `null`.
+The console renders the fixed projection as text and labels it advisory.
+
 ## Remaining work
 
-Other geostatistics outputs, numerical/populated fixture parity, live OIDC and
+Other geostatistics outputs and fold-level diagnostics, numerical/populated fixture parity, live OIDC and
 browser behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008`
 remain open. The autocorrelation producer can persist a narrative
 interpretation, but this read deliberately omits it pending governed semantic

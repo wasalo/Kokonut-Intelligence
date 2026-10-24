@@ -9,7 +9,10 @@ from fastapi import APIRouter, FastAPI  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
-from services.gateway.geostatistics_reads import list_location_spatial_autocorrelation
+from services.gateway.geostatistics_reads import (
+    list_location_cross_validation,
+    list_location_spatial_autocorrelation,
+)
 from services.gateway.operator_auth import auth_route_policy
 
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
@@ -41,6 +44,18 @@ class _Cursor:
                  "knn", float("inf"), 8, "2026-03-03"),
                 ("soil_carbon", "gearys_c", 0.8, 1.0, 0.03, 2.4, 30,
                  "distance", 500.0, None, "2026-03-02"),
+            )
+        elif "FROM geostat_cv_result" in query:
+            self.description = [(name,) for name in (
+                "property_key", "cv_strategy", "n_folds", "block_size_m",
+                "mean_error", "mean_squared_error", "root_mean_squared_error",
+                "mean_absolute_error", "r_squared", "computed_at",
+            )]
+            self.rows = (
+                ("soil_carbon", "spatial_block", 5, 250.0, 0.1, 2.0,
+                 1.4, 0.9, float("nan"), "2026-03-04"),
+                ("soil_carbon", "k_fold", 5, None, 0.0, 1.0,
+                 1.0, 0.8, 0.7, "2026-03-03"),
             )
 
     def fetchall(self):
@@ -136,6 +151,70 @@ def test_invalid_autocorrelation_scope_or_page_fails_before_connecting():
     assert not called
 
 
+def test_cross_validation_read_sets_tenant_before_query_and_omits_detail(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_cross_validation(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=3,
+        connection_factory=lambda: connection,
+    )
+    query, params = next(
+        (query, params) for query, params in connection.queries
+        if "FROM geostat_cv_result" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "ORDER BY computed_at DESC, property_key, cv_strategy" in query
+    assert "fold_results" not in query and "metadata" not in query
+    assert "soc_model_id" not in query and "variogram_model_id" not in query
+    assert params == (LOCATION_ID, 2, 3)
+    assert result["items"][0]["cv_strategy"] == "spatial_block"
+    assert result["items"][0]["r_squared"] is None
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_cross_validation_scope_or_page_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Invalid operator identifier"):
+        list_location_cross_validation("bad", LOCATION_ID, connection_factory=connect)
+    with pytest.raises(ValueError, match="limit must be between"):
+        list_location_cross_validation(
+            OPERATOR_ID, LOCATION_ID, limit=0, connection_factory=connect
+        )
+    assert not called
+
+
 def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -149,12 +228,27 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     assert auth_route_policy("POST", path, enabled=True) is None
     assert auth_route_policy("GET", f"{path}/extra", enabled=True) is None
 
+    cross_validation = f"/operator/api/geostatistics/{LOCATION_ID}/cross-validation"
+    assert auth_route_policy("GET", cross_validation, enabled=True) == {
+        "resource": "geostatistics",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", cross_validation, enabled=True) is None
+
 
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
 
     monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_spatial_autocorrelation",
+        reader,
+    )
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_cross_validation",
         reader,
     )
     app = FastAPI()
@@ -209,6 +303,44 @@ def test_http_route_denies_missing_tenant_grant(monkeypatch):
     with TestClient(app) as client:
         response = client.get(
             f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
+        )
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_cross_validation_http_route_is_no_store_and_passes_scope(monkeypatch):
+    def reader(operator_id, location_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert limit == 2
+        assert offset == 1
+        return {
+            "location_id": location_id,
+            "items": [],
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/cross-validation?limit=2&offset=1"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["offset"] == 1
+
+
+def test_cross_validation_http_route_denies_missing_tenant_grant(monkeypatch):
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("missing grant")
+
+    app = _app(monkeypatch, deny)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/cross-validation"
         )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"

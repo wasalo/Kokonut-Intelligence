@@ -37,3 +37,29 @@ def test_spatial_autocorrelation_reader_is_scoped_bounded_and_text_only():
     assert "interpretation" not in reader and "metadata" not in reader
     assert "textContent" in reader
     assert "innerHTML" not in reader
+
+
+def test_spatial_cross_validation_is_grant_gated_bounded_and_advisory():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-cross-validation-rows"' in source
+    assert 'id="geostatistics-cross-validation-more"' in source
+    start = source.index("async function loadGeostatisticsCrossValidation(")
+    end = source.index("async function loadGeostatisticsLocation(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/cross-validation?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "requestVersion !== geostatisticsCrossValidationRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    for field in (
+        "property_key", "cv_strategy", "n_folds", "block_size_m", "mean_error",
+        "mean_squared_error", "root_mean_squared_error", "mean_absolute_error",
+        "r_squared", "computed_at",
+    ):
+        assert field in reader
+    assert "fold_results" not in reader and "metadata" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader
