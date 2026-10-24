@@ -36,6 +36,18 @@ narrative, affected area, remedial action, reporter/recipient, notes, IDs, or
 arbitrary metadata. These counts are descriptive and do not determine
 compliance, severity response, or closure.
 
+## Legacy CLI summary compatibility
+
+The existing `services.analytics.waste_management.get_waste_summary` now reads
+the canonical `waste_stream` table and `record_date` column from migration 153.
+Its output shape is unchanged. It filters to `verified` rows, matching the
+schema's lifecycle constraint, and computes the requested window with a bound
+integer day count (`CURRENT_DATE - (%s - 1)`), which includes exactly the
+requested number of calendar dates including today. Invalid, non-positive,
+non-integer, and boolean windows fail before cursor acquisition. Its cursor
+closes on both success and query failure. This remains a trusted local CLI
+path; it does not add an authenticated API or tenant authorization boundary.
+
 The console is hidden unless the session has an exact location grant. It uses
 same-origin/no-store requests, validates the response location and bounded
 schema categories, discards stale responses, and renders fixed fields with

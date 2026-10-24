@@ -1,3 +1,18 @@
+### Progress addendum — CAP-006 legacy waste summary schema alignment, 24 October 2026
+
+The legacy waste CLI summary now queries the canonical `waste_stream` table
+using `record_date` and only schema-supported `verified` rows; its existing
+response shape is preserved. The reporting window is a bound positive integer,
+invalid values fail before cursor acquisition, and the cursor closes after
+success or query failure. The waste-management module passes 22 tests with
+five invalid-window subtests; Ruff and compilation pass. No migration,
+database, provider, candidate, or legacy stack was used. This read remains a
+trusted CLI path and adds no tenant authorization. Other waste writer/read
+parity and populated output parity remain open. Checklist: 1,101 complete / 25
+open (1,126 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-summary-schema-alignment.json)).
+
 ### Progress addendum — CAP-006 verified composting efficiency summary, 24 October 2026
 
 The location-scoped waste summary now includes verified compost output and

@@ -20,9 +20,9 @@ Usage:
 import json
 import uuid
 from datetime import date, datetime, timezone
-from typing import Optional
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.waste_management")
@@ -276,55 +276,59 @@ def resolve_incident(
 # ============================================================
 
 def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
-    """Get waste totals by type and disposal method."""
+    """Get verified waste totals by type and disposal method."""
+    if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+        raise ValueError("days must be a positive integer")
+
     cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT waste_type,
+                   SUM(quantity_kg) AS total_kg,
+                   COUNT(*) AS record_count
+            FROM waste_stream
+            WHERE location_id = %s
+              AND record_date >= CURRENT_DATE - (%s - 1)
+              AND status = 'verified'
+            GROUP BY waste_type
+            ORDER BY total_kg DESC
+            """,
+            (location_id, days),
+        )
+        cols = [d[0] for d in cur.description]
+        by_type = [dict(zip(cols, row)) for row in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT waste_type,
-               SUM(quantity_kg) AS total_kg,
-               COUNT(*) AS record_count
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        GROUP BY waste_type
-        ORDER BY total_kg DESC
-        """,
-        (location_id, days),
-    )
-    cols = [d[0] for d in cur.description]
-    by_type = [dict(zip(cols, row)) for row in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT disposal_method,
+                   SUM(quantity_kg) AS total_kg,
+                   COUNT(*) AS record_count
+            FROM waste_stream
+            WHERE location_id = %s
+              AND record_date >= CURRENT_DATE - (%s - 1)
+              AND status = 'verified'
+            GROUP BY disposal_method
+            ORDER BY total_kg DESC
+            """,
+            (location_id, days),
+        )
+        cols = [d[0] for d in cur.description]
+        by_disposal = [dict(zip(cols, row)) for row in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT disposal_method,
-               SUM(quantity_kg) AS total_kg,
-               COUNT(*) AS record_count
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        GROUP BY disposal_method
-        ORDER BY total_kg DESC
-        """,
-        (location_id, days),
-    )
-    cols = [d[0] for d in cur.description]
-    by_disposal = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT SUM(quantity_kg), COUNT(*)
-        FROM waste_stream_record
-        WHERE location_id = %s
-          AND recorded_at >= NOW() - INTERVAL '%s days'
-          AND status IN ('verified', 'published')
-        """,
-        (location_id, days),
-    )
-    total_row = cur.fetchone()
-    cur.close()
+        cur.execute(
+            """
+            SELECT SUM(quantity_kg), COUNT(*)
+            FROM waste_stream
+            WHERE location_id = %s
+              AND record_date >= CURRENT_DATE - (%s - 1)
+              AND status = 'verified'
+            """,
+            (location_id, days),
+        )
+        total_row = cur.fetchone()
+    finally:
+        cur.close()
 
     return {
         "location_id": location_id,

@@ -3,24 +3,24 @@
 Tests for Waste Management
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
 from unittest.mock import MagicMock, patch
-from datetime import date, datetime, timezone
 
 from services.analytics.waste_management import (
-    record_waste,
-    record_composting,
-    record_recycling,
-    report_incident,
-    resolve_incident,
-    get_waste_summary,
     get_composting_efficiency,
     get_open_incidents,
     get_waste_dashboard,
+    get_waste_summary,
+    record_composting,
+    record_recycling,
+    record_waste,
+    report_incident,
+    resolve_incident,
 )
 
 
@@ -191,6 +191,24 @@ class TestWasteSummary(unittest.TestCase):
         self.assertEqual(result["total_records"], 5)
         self.assertEqual(len(result["by_type"]), 1)
         self.assertEqual(len(result["by_disposal_method"]), 1)
+        statements = self.mock_cursor.execute.call_args_list
+        self.assertEqual(len(statements), 3)
+        for call in statements:
+            query, params = call.args
+            self.assertIn("FROM waste_stream", query)
+            self.assertNotIn("waste_stream_record", query)
+            self.assertIn("record_date >= CURRENT_DATE - (%s - 1)", query)
+            self.assertIn("status = 'verified'", query)
+            self.assertEqual(params, ("loc-001", 30))
+        self.mock_cursor.close.assert_called_once()
+
+    def test_get_waste_summary_rejects_invalid_day_window_before_cursor(self):
+        for days in (0, -1, 1.5, True, "30"):
+            with self.subTest(days=days):
+                conn = MagicMock()
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    get_waste_summary(conn, "loc-001", days=days)
+                conn.cursor.assert_not_called()
 
     def test_get_waste_summary_empty(self):
         self.mock_cursor.description = [
@@ -201,6 +219,12 @@ class TestWasteSummary(unittest.TestCase):
         result = get_waste_summary(self.conn, "loc-001")
         self.assertEqual(result["total_waste_kg"], 0)
         self.assertEqual(result["total_records"], 0)
+
+    def test_get_waste_summary_closes_cursor_when_query_fails(self):
+        self.mock_cursor.execute.side_effect = RuntimeError("synthetic query failure")
+        with self.assertRaisesRegex(RuntimeError, "synthetic query failure"):
+            get_waste_summary(self.conn, "loc-001")
+        self.mock_cursor.close.assert_called_once()
 
 
 class TestCompostingEfficiency(unittest.TestCase):
