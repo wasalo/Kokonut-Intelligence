@@ -169,6 +169,29 @@ def get_location_energy_summary(
             )
             annual_consumption_row = cur.fetchone()
 
+            cur.execute(
+                """
+                SELECT eel.log_date,
+                       eel.period,
+                       eel.total_consumption_kwh,
+                       eel.total_production_kwh,
+                       eel.net_energy_kwh,
+                       eel.renewable_pct,
+                       eel.carbon_intensity_kg_kwh
+                  FROM energy_efficiency_log AS eel
+                 WHERE eel.location_id = %s::uuid
+                   AND eel.period = 'daily'
+                   AND eel.status IN ('verified', 'approved')
+                 ORDER BY eel.log_date DESC
+                 LIMIT 12
+                """,
+                (location_id,),
+            )
+            efficiency_columns = [column[0] for column in cur.description]
+            efficiency_rows = [
+                dict(zip(efficiency_columns, row)) for row in cur.fetchall()
+            ]
+
         groups = [
             {
                 "reading_type": row["reading_type"],
@@ -282,6 +305,38 @@ def get_location_energy_summary(
                     "production_kwh": round(float(row["production_kwh"] or 0), 2),
                 }
                 for row in trend_rows
+            ],
+            "reviewed_efficiency_history": [
+                {
+                    "log_date": _iso(row["log_date"]),
+                    "period": row["period"],
+                    "total_consumption_kwh": (
+                        round(float(row["total_consumption_kwh"]), 2)
+                        if row["total_consumption_kwh"] is not None
+                        else None
+                    ),
+                    "total_production_kwh": (
+                        round(float(row["total_production_kwh"]), 2)
+                        if row["total_production_kwh"] is not None
+                        else None
+                    ),
+                    "net_energy_kwh": (
+                        round(float(row["net_energy_kwh"]), 2)
+                        if row["net_energy_kwh"] is not None
+                        else None
+                    ),
+                    "renewable_pct": (
+                        round(float(row["renewable_pct"]), 2)
+                        if row["renewable_pct"] is not None
+                        else None
+                    ),
+                    "carbon_intensity_kg_kwh": (
+                        round(float(row["carbon_intensity_kg_kwh"]), 4)
+                        if row["carbon_intensity_kg_kwh"] is not None
+                        else None
+                    ),
+                }
+                for row in efficiency_rows
             ],
         }
         return {

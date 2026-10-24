@@ -1829,7 +1829,7 @@
         </section>
         <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
           <h2 id="energy-monitoring-heading">Farm energy</h2>
-          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; carbon and registered renewable-offset values are advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
+          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; stored carbon intensity and registered renewable-offset values are historical/advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
           <div class="toolbar">
             <label for="energy-monitoring-location">Granted location</label>
             <select id="energy-monitoring-location"></select>
@@ -1855,6 +1855,13 @@
             <table>
               <thead><tr><th>Day</th><th>Consumption (kWh)</th><th>Production (kWh)</th></tr></thead>
               <tbody id="energy-monitoring-trend-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
+            <h3>Reviewed daily efficiency history</h3>
+            <table>
+              <thead><tr><th>Date</th><th>Period</th><th>Consumption (kWh)</th><th>Production (kWh)</th><th>Net (kWh)</th><th>Renewable (%)</th><th>Stored carbon intensity (kg/kWh)</th></tr></thead>
+              <tbody id="energy-monitoring-efficiency-rows"></tbody>
             </table>
           </div>
         </section>
@@ -2971,6 +2978,7 @@
       const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
       const energyMonitoringRenewableRows = document.querySelector("#energy-monitoring-renewable-rows");
       const energyMonitoringTrendRows = document.querySelector("#energy-monitoring-trend-rows");
+      const energyMonitoringEfficiencyRows = document.querySelector("#energy-monitoring-efficiency-rows");
       let energyMonitoringLocations = new Set();
       let energyMonitoringRequestVersion = 0;
       const wasteManagement = document.querySelector("#waste-management");
@@ -14024,6 +14032,8 @@
         const sourceEmissions = carbon.by_source_type;
         const renewableTypes = new Set(["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]);
         const renewableRows = renewables.by_type;
+        const efficiencyHistory = calculations.reviewed_efficiency_history;
+        const nullableFiniteNumber = (value) => value === null || finiteNumber(value);
         if (calculations.period_days !== 30
             || !finiteNumber(calculations.total_consumption_kwh)
             || !finiteNumber(calculations.total_production_kwh)
@@ -14048,6 +14058,15 @@
               || !finiteNumber(row?.capacity_kw) || !finiteNumber(row?.annual_generation_kwh)
               || !finiteNumber(row?.registered_carbon_offset_kg))
             || new Set(renewableRows.map((row) => row.renewable_type)).size !== renewableRows.length
+            || !Array.isArray(efficiencyHistory) || efficiencyHistory.length > 12
+            || efficiencyHistory.some((row) => typeof row?.log_date !== "string"
+              || !/^\d{4}-\d{2}-\d{2}$/.test(row.log_date)
+              || row.period !== "daily"
+              || !nullableFiniteNumber(row.total_consumption_kwh)
+              || !nullableFiniteNumber(row.total_production_kwh)
+              || !nullableFiniteNumber(row.net_energy_kwh)
+              || !nullableFiniteNumber(row.renewable_pct)
+              || !nullableFiniteNumber(row.carbon_intensity_kg_kwh))
             || sourceEmissions.some((row) => !sourceTypes.has(row?.source_type)
               || !finiteNumber(row?.consumption_kwh)
               || !finiteNumber(row?.emission_factor_kg_co2e_per_kwh)
@@ -14084,6 +14103,7 @@
         energyMonitoringRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
+        energyMonitoringEfficiencyRows.replaceChildren();
         if (!rows.length) {
           const row = document.createElement("tr");
           const cell = document.createElement("td");
@@ -14143,6 +14163,27 @@
           row.append(cell);
           energyMonitoringTrendRows.append(row);
         }
+        for (const item of efficiencyHistory) {
+          const row = document.createElement("tr");
+          for (const value of [
+            item.log_date, item.period, item.total_consumption_kwh,
+            item.total_production_kwh, item.net_energy_kwh,
+            item.renewable_pct, item.carbon_intensity_kg_kwh
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = energyMonitoringValue(value);
+            row.append(cell);
+          }
+          energyMonitoringEfficiencyRows.append(row);
+        }
+        if (!efficiencyHistory.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 7;
+          cell.textContent = "No reviewed daily efficiency history is available.";
+          row.append(cell);
+          energyMonitoringEfficiencyRows.append(row);
+        }
       }
 
       async function loadEnergyMonitoringSummary() {
@@ -14153,6 +14194,7 @@
         energyMonitoringRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
+        energyMonitoringEfficiencyRows.replaceChildren();
         energyMonitoringStatus.textContent = "Loading verified and approved meter aggregates…";
         try {
           const response = await fetch(
@@ -14178,17 +14220,19 @@
               || !result.dashboard_calculations.registered_renewables
               || typeof result.dashboard_calculations.registered_renewables !== "object"
               || !Array.isArray(result.dashboard_calculations.registered_renewables.by_type)
-              || !Array.isArray(result.dashboard_calculations.trend_7d)) {
+              || !Array.isArray(result.dashboard_calculations.trend_7d)
+              || !Array.isArray(result.dashboard_calculations.reviewed_efficiency_history)) {
             throw new Error("The response did not match the selected location or energy contract.");
           }
           renderEnergyMonitoringSummary(result);
-          energyMonitoringStatus.textContent = "Meter-derived calculations use verified/approved readings. Carbon and registered renewable-offset figures are advisory estimates; registered generation coverage is indicative. Cost totals stay withheld because the source schema does not classify currency.";
+          energyMonitoringStatus.textContent = "Meter-derived calculations and daily history include reviewed records only. Stored daily efficiency values and carbon/renewable-offset estimates are advisory; registered generation coverage is indicative. Cost totals stay withheld because the source schema does not classify currency.";
         } catch (error) {
           if (requestVersion !== energyMonitoringRequestVersion) return;
           energyMonitoringOverview.replaceChildren();
           energyMonitoringRows.replaceChildren();
           energyMonitoringRenewableRows.replaceChildren();
           energyMonitoringTrendRows.replaceChildren();
+          energyMonitoringEfficiencyRows.replaceChildren();
           energyMonitoringStatus.textContent = error.message;
         }
       }

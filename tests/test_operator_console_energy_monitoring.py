@@ -16,9 +16,11 @@ def test_energy_panel_is_hidden_and_describes_excluded_reading_fields():
     assert "verified and approved meter readings" in panel.group()
     assert "Costs, source names, device IDs, notes" in panel.group()
     assert "legacy fixed-factor estimate" in panel.group()
-    assert "registered renewable-offset values are advisory" in panel.group()
+    assert "registered renewable-offset values are historical/advisory" in panel.group()
+    assert "Reviewed daily efficiency history" in panel.group()
     assert 'id="energy-monitoring-renewable-rows"' in panel.group()
     assert 'id="energy-monitoring-trend-rows"' in panel.group()
+    assert 'id="energy-monitoring-efficiency-rows"' in panel.group()
     assert 'id="energy-monitoring-rows"' in panel.group()
 
 
@@ -50,6 +52,9 @@ def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
     assert "calculations.registered_renewables" in renderer.group()
     assert "registered_carbon_offset_kg" in renderer.group()
     assert "legacy_generation_coverage_pct" in renderer.group()
+    assert "calculations.reviewed_efficiency_history" in renderer.group()
+    assert "efficiencyHistory.length > 12" in renderer.group()
+    assert "energyMonitoringEfficiencyRows.append(row)" in renderer.group()
     assert "new Set(sourceEmissions.map" in renderer.group()
     assert "cell.textContent = energyMonitoringValue(value)" in renderer.group()
     assert ".innerHTML" not in renderer.group()

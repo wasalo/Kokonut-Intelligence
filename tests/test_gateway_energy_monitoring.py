@@ -66,6 +66,19 @@ class _Cursor:
         elif "AS annual_consumption_kwh" in query:
             self.description = [("annual_consumption_kwh",)]
             self.one = getattr(self.conn, "annual_energy_row", (Decimal("20000"),))
+        elif "FROM energy_efficiency_log AS eel" in query:
+            self.description = [(name,) for name in (
+                "log_date", "period", "total_consumption_kwh",
+                "total_production_kwh", "net_energy_kwh", "renewable_pct",
+                "carbon_intensity_kg_kwh",
+            )]
+            self.rows = getattr(self.conn, "daily_efficiency_rows", [
+                (
+                    date(2026, 10, 20), "daily", Decimal("42.25"),
+                    Decimal("12.5"), Decimal("-29.75"), Decimal("18.4"),
+                    Decimal("0.0312"),
+                ),
+            ])
 
     def fetchall(self):
         return self.rows
@@ -154,7 +167,19 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
     assert "SELECT res.renewable_type," in renewable_query
     assert "source_name" not in renewable_query and "metadata" not in renewable_query
     assert "res.source_id," not in renewable_query
-    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query"]
+    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query", "query"]
+    efficiency_query, efficiency_params = next(
+        (query, params) for query, params in conn.queries
+        if "FROM energy_efficiency_log AS eel" in query
+    )
+    assert "eel.location_id = %s::uuid" in efficiency_query
+    assert "eel.period = 'daily'" in efficiency_query
+    assert "eel.status IN ('verified', 'approved')" in efficiency_query
+    assert "ORDER BY eel.log_date DESC" in efficiency_query
+    assert "LIMIT 12" in efficiency_query
+    assert "eel.notes" not in efficiency_query and "eel.metadata" not in efficiency_query
+    assert "eel.cost_per_unit_output" not in efficiency_query
+    assert efficiency_params == (location_id,)
     assert result == {
         "location_id": location_id,
         "unit": "kWh",
@@ -216,6 +241,16 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                 {"reading_date": "2026-10-17", "consumption_kwh": 10.0, "production_kwh": 0.0},
                 {"reading_date": "2026-10-18", "consumption_kwh": 0.0, "production_kwh": 2.0},
             ],
+            "reviewed_efficiency_history": [
+                {
+                    "log_date": "2026-10-20", "period": "daily",
+                    "total_consumption_kwh": 42.25,
+                    "total_production_kwh": 12.5,
+                    "net_energy_kwh": -29.75,
+                    "renewable_pct": 18.4,
+                    "carbon_intensity_kg_kwh": 0.0312,
+                },
+            ],
         },
     }
     assert conn.rolled_back and conn.closed
@@ -243,6 +278,7 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
     conn.energy_trend_rows = []
     conn.renewable_asset_rows = []
     conn.annual_energy_row = (Decimal("0"),)
+    conn.daily_efficiency_rows = []
 
     with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
         result = get_location_energy_summary(
@@ -275,6 +311,7 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
             "by_type": [],
         },
         "trend_7d": [],
+        "reviewed_efficiency_history": [],
     }
     assert conn.rolled_back and conn.closed
 

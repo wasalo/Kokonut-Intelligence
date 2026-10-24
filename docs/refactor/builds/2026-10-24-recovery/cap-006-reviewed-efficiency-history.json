@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-006",
+  "batch": "reviewed daily efficiency history",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/energy/{location_id}/summary",
+    "authorization": "exact energy_monitoring:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "projection": {
+      "source": "energy_efficiency_log",
+      "scope": "exact location; daily period; verified or approved lifecycle state",
+      "limit": 12,
+      "fields": [
+        "log_date",
+        "period",
+        "total_consumption_kwh",
+        "total_production_kwh",
+        "net_energy_kwh",
+        "renewable_pct",
+        "carbon_intensity_kg_kwh"
+      ],
+      "omitted": ["notes", "metadata", "cost_per_unit_output"]
+    },
+    "interpretation": "Persisted calculations are historical/advisory; reviewed lifecycle status does not validate their formulas or source references.",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py tests/test_energy_monitoring.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "59 passed in 3.13s",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 26 baseline-retained, 7 deployed, 34 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "populated history and formula parity",
+    "runtime database ACL/RLS",
+    "live ZITADEL and browser acceptance",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Revert the efficiency-log query, response projection, and console history renderer, then regenerate the runtime SQL inventory. No persistent data was written."
+}

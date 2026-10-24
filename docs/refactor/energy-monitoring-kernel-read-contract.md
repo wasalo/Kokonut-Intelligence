@@ -45,12 +45,20 @@ join:
   consumption from verified/approved readings during the same 365-day window;
   the legacy implementation also counted `recorded` readings, which the Kernel
   intentionally excludes pending review.
+- The latest 12 daily `energy_efficiency_log` rows, filtered to `verified` or
+  `approved`. The fixed projection preserves date, period, consumption,
+  production, net energy, renewable percentage, and stored carbon intensity.
+  Notes, arbitrary metadata, and `cost_per_unit_output` are omitted. These
+  historical values were entered or computed by the legacy system; reviewed
+  status does not independently validate their formulas or reference data, so
+  stored carbon intensity remains advisory.
 
 These calculations restore source-defined formulas under the Kernel's
 reviewed-evidence boundary; they do not establish populated-output parity.
 The registered-asset summary includes capacity, annual generation, and
 recorded offset values, but these stored inputs are not independently verified;
-populated data/reference parity remains open. Cost totals remain withheld
+the daily efficiency history preserves reviewed rows without certifying their
+calculations. Populated data/reference parity remains open. Cost totals remain withheld
 because `energy_reading.total_cost` has no
 currency field, so values cannot safely be combined or labeled. The projection
 omits source names, equipment/device IDs, notes, and arbitrary metadata. Source
@@ -65,9 +73,10 @@ for fixed-factor emissions, registered offsets, and generation coverage.
 Focused fake-connection and Gateway tests cover exact authorization, denied
 route preflight, signed context ordering, location join/filter, verified-state
 selection, the 30-day formulas, fixed-factor estimate, seven-day trend,
-registered renewable metrics and location joins, empty denominators, response
-projection, connection cleanup, console grant gating, no-store behavior, and
-inline JavaScript syntax. The 59-test Gateway,
+registered renewable metrics and location joins, bounded latest-12 reviewed
+efficiency history with sensitive columns excluded, empty denominators,
+response projection, connection cleanup, console grant gating, history
+validation, no-store behavior, and inline JavaScript syntax. The 59-test Gateway,
 console, energy-domain, and route-policy selection passes; Ruff, Python
 compilation, runtime SQL inventory, capability validation, and diff checks
 pass. No schema migration is required. Rollback is a source rollback: remove

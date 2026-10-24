@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,064 checklist items complete and 25
-open (1,089 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,065 checklist items complete and 25
+open (1,090 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -181,6 +181,22 @@ acceptance remains separate; none is marked accepted.
   output parity, database ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006
   remain open. Rollback is a source revert ([contract](energy-monitoring-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-energy-calculation-parity.json)).
+
+### CAP-006 reviewed daily efficiency history — 24 October 2026
+
+- [x] Restore the legacy dashboard's recent daily efficiency-history surface as
+  a private exact-location projection of at most 12 `verified`/`approved`
+  records. Preserve the recorded date, energy totals, renewable percentage, and
+  stored carbon intensity; omit notes, metadata, and unclassified cost-per-unit
+  output. The console validates the bounded fixed shape and labels these saved
+  historical values advisory. The focused Gateway/console/energy-domain/route-
+  policy selection passes 59 tests; Ruff, Python compilation, inline JavaScript
+  syntax, runtime SQL inventory, capability validation, and diff checks pass.
+  No migration, database, candidate, legacy archive, provider, or Raspberry Pi
+  was used. Populated record/formula parity, ACL/RLS, live OIDC/browser
+  acceptance, and MAN-CAP-006 remain open. Rollback is a source revert
+  ([contract](energy-monitoring-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-reviewed-efficiency-history.json)).
 
 ### CAP-006 registered renewable metrics — 24 October 2026
 

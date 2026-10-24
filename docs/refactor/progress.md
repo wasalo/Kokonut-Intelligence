@@ -1,3 +1,21 @@
+### Progress addendum — CAP-006 reviewed daily efficiency history, 24 October 2026
+
+The signed energy summary now restores up to 12 recent daily efficiency-log
+rows, limited to verified/approved states and the exact location. The projection
+preserves date, period, consumption, production, net energy, renewable percent,
+and stored carbon intensity while omitting notes, arbitrary metadata, and the
+unclassified cost-per-unit-output field. The console validates the capped
+allowlisted shape and describes saved metrics as historical/advisory; reviewed
+status does not independently validate their formulas. The focused 59-test
+Gateway/console/energy-domain/route-policy selection passes. Ruff, Python
+compilation, inline JavaScript syntax, runtime SQL inventory, capability
+validation, and diff checks pass. No migration or database/provider access was
+needed. Populated record/formula parity, ACL/RLS, live OIDC/browser, and
+MAN-CAP-006 remain open. Checklist: 1,065 complete / 25 open (1,090 total);
+matrix: 26 baseline-retained, 7 deployed, and 34 prepared across 67 rows, with
+0/67 MAN-CAP checks accepted. [Contract](energy-monitoring-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-reviewed-efficiency-history.json).
+
 ### Progress addendum — CAP-006 registered renewable metrics, 24 October 2026
 
 The scoped energy summary now includes a fixed-type aggregate of active
