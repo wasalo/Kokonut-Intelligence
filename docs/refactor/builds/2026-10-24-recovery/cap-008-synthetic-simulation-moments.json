@@ -1,0 +1,68 @@
+{
+  "capability": "CAP-008",
+  "batch": "synthetic conditional-simulation moment reference",
+  "date": "2026-10-24",
+  "status": "passed",
+  "verification": {
+    "geostatistics_tests": {
+      "command": "python3 -m pytest tests/test_geostatistics.py -q",
+      "result": "130 passed"
+    },
+    "focused_regression": {
+      "command": "python3 -m pytest tests/test_geostatistics.py::TestGeostatSimulator::test_sgs_synthetic_conditional_moments_match_ordinary_kriging_reference -q",
+      "result": "passed"
+    },
+    "ruff": {
+      "command": "ruff check tests/test_geostatistics.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/geostatistics/simulation.py",
+      "result": "passed"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks separately gated"
+    },
+    "runtime_sql_inventory": {
+      "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+      "result": "current; simulation code and SQL inventory unchanged"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "synthetic_contract": {
+    "realizations": 512,
+    "grid_points": 9,
+    "variogram": {
+      "model_type": "exponential",
+      "sill": 2.5,
+      "range_m": 100.0,
+      "nugget": 0.0
+    },
+    "reference": "GSTools ordinary-kriging conditional mean and variance at generated grid nodes",
+    "tolerance": "four standard errors for sample mean and sample variance; exact observed-node condition uses absolute tolerance 2e-7",
+    "checks": [
+      "finite draws",
+      "pointwise sample means",
+      "pointwise sample variances",
+      "zero-nugget observation honoring",
+      "E-type and p10/p50/p90 recomputation"
+    ]
+  },
+  "interpretation": [
+    "This checks synthetic internal model consistency only; it does not establish populated-data parity, independent scientific review, or MAN-CAP-008 acceptance.",
+    "The pre-refactor algorithm computed a Simple-Kriging mean plus globally standardized unconditional residuals. Its realization values are not a sound exact-output parity oracle for the corrected conditional random-field method."
+  ],
+  "provider_or_database_used": false,
+  "candidate_or_legacy_touched": false,
+  "remaining": [
+    "populated-data parity",
+    "independent scientific review",
+    "live OIDC/browser acceptance",
+    "least-privilege ACL/RLS and audience review",
+    "named MAN-CAP-008 acceptance"
+  ]
+}

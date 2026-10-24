@@ -561,6 +561,73 @@ class TestGeostatSimulator:
         )
         assert r1["realizations"][0] == r2["realizations"][0]
 
+    def test_sgs_synthetic_conditional_moments_match_ordinary_kriging_reference(self):
+        import gstools as gs
+
+        simulator, _ = self._make_simulator()
+        coordinates = np.asarray(
+            [[0.0, 0.0], [100.0, 0.0], [0.0, 100.0], [100.0, 100.0]]
+        )
+        values = np.asarray([1.0, 2.0, 3.0, 4.0])
+        variogram = {
+            "model_type": "exponential",
+            "sill": 2.5,
+            "range": 100.0,
+            "nugget": 0.0,
+        }
+        n_realizations = 512
+        result = simulator.sequential_gaussian_simulation(
+            coordinates.tolist(),
+            values.tolist(),
+            variogram,
+            n_realizations=n_realizations,
+            grid_resolution_m=100.0,
+            seed=20261024,
+        )
+
+        assert "error" not in result
+        grid = np.asarray(result["grid_points"])
+        simulated = np.asarray(result["realizations"])
+        model = simulator._build_gstools_variogram(
+            variogram["model_type"], variogram["sill"],
+            variogram["range"], variogram["nugget"],
+        )
+        kriging = gs.krige.Ordinary(
+            model, [coordinates[:, 0], coordinates[:, 1]], values
+        )
+        expected_mean, expected_variance = kriging([grid[:, 0], grid[:, 1]])
+        sample_mean = simulated.mean(axis=0)
+        sample_variance = simulated.var(axis=0, ddof=1)
+
+        assert simulated.shape == (n_realizations, len(grid))
+        assert np.all(np.isfinite(simulated))
+        mean_tolerance = 4 * np.sqrt(expected_variance / n_realizations) + 1e-8
+        np.testing.assert_array_less(
+            np.abs(sample_mean - expected_mean), mean_tolerance
+        )
+        variance_relative_tolerance = 4 * np.sqrt(2 / (n_realizations - 1))
+        variance_tolerance = variance_relative_tolerance * expected_variance + 1e-8
+        np.testing.assert_array_less(
+            np.abs(sample_variance - expected_variance), variance_tolerance
+        )
+
+        for coordinate, observed_value in zip(coordinates, values):
+            matching = np.flatnonzero(np.all(np.isclose(grid, coordinate), axis=1))
+            assert len(matching) == 1
+            np.testing.assert_allclose(
+                simulated[:, matching[0]], observed_value, rtol=0, atol=2e-7
+            )
+        np.testing.assert_allclose(result["e_type"], sample_mean, rtol=0, atol=1e-12)
+        np.testing.assert_allclose(
+            result["p10"], np.percentile(simulated, 10, axis=0), rtol=0, atol=1e-12
+        )
+        np.testing.assert_allclose(
+            result["p50"], np.percentile(simulated, 50, axis=0), rtol=0, atol=1e-12
+        )
+        np.testing.assert_allclose(
+            result["p90"], np.percentile(simulated, 90, axis=0), rtol=0, atol=1e-12
+        )
+
     def test_sgs_uses_conditional_random_fields_without_dense_grid_cholesky(self, monkeypatch):
         simulator, _ = self._make_simulator()
         coords, values = _make_spatial_data(n=15)

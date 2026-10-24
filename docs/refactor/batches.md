@@ -19,10 +19,14 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,093 checklist items complete and 25
-open (1,118 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,094 checklist items complete and 25
+open (1,119 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 synthetic simulation moment reference — 24 October 2026
+
+- [x] Add a deterministic zero-nugget synthetic fixture with 512 conditional realizations. Compare pointwise sample means and variances against GSTools ordinary-kriging conditional moments using four-standard-error tolerances, verify observed grid nodes are honored, and recompute E-type/percentile summaries from returned draws. The full geostatistics module passes 130 tests; Ruff and compilation pass. No provider or database was used. The removed legacy algorithm is not a valid exact parity oracle: it combines a Simple-Kriging mean with globally standardized unconditional residuals. This verifies internal conditional-model consistency, not populated-data parity, independent scientific review, or MAN-CAP-008 acceptance ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-synthetic-simulation-moments.json)). Rollback is removal of the synthetic regression/evidence. Checklist: 1,094 complete / 25 open (1,119 total).
 
 ### CAP-008 saved kriging prediction point pages — 24 October 2026
 

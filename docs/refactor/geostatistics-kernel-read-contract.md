@@ -249,11 +249,22 @@ before opening PostgreSQL, drops non-finite/out-of-range cells, and samples
 the point cap deterministically. The projection remains a local equirectangular
 approximation; geographic parity remains part of scientific review.
 
-The 129-test geostatistics module now covers seeded reproducibility, the
+The 130-test geostatistics module now covers seeded reproducibility, the
 GSTools conditional-field path without dense Cholesky, resource bounds,
 invalid/degenerate models, DB source preflight, CLI settings, and WGS84
 persistence. These checks use synthetic data and mocks; no migration or
 database was used.
+
+A deterministic 512-realization fixture compares the synthetic ensemble's
+pointwise sample means and variances with GSTools ordinary-kriging conditional
+moments, verifies zero-nugget conditioning at observed grid nodes, and checks
+that E-type and percentile summaries are calculated from the returned
+realizations. Tolerances use four standard errors for the sample moments. This
+is model-consistency evidence, not a populated-data or scientific acceptance.
+The prior implementation combined a Simple-Kriging mean with globally
+standardized unconditional residuals, so byte-for-byte or realization-level
+legacy output is not a valid parity oracle for the corrected conditional
+random-field method.
 
 ## Remaining work
 
