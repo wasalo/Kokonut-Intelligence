@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,048 checklist items complete and 25
-open (1,073 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,049 checklist items complete and 25
+open (1,074 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -70,6 +70,23 @@ acceptance remains separate; none is marked accepted.
   populated parity, audience/privacy review, live OIDC/browser behavior,
   database ACL/RLS, and MAN-CAP-004 acceptance ([contract](extension-learning-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-console.json)).
+
+### CAP-003 traceability operator-console read surface — 23 October 2026
+
+- [x] Add a hidden-by-default batch list/detail panel gated by exact
+  `traceability:read` location grants. Batch listing has a fixed status filter,
+  bounded pagination, same-origin no-store requests, stale-response guards, and
+  clears prior-location detail state. Detail renders fixed batch, custody,
+  quality, certification, food-safety, and provenance columns using
+  `textContent`; IDs remain internal to the detail request, and actor identity,
+  GPS, free text, evidence links, and arbitrary metadata are not rendered. The
+  focused console/Gateway/route-policy selection passes 18 tests, including
+  inline JavaScript syntax; Ruff, capability validation, and diff checks pass.
+  No migration, provider, candidate, or legacy database was used. CAP-003
+  remains prepared pending populated parity, live OIDC/browser acceptance,
+  database ACL/RLS, audience review, recovery, and MAN-CAP-003 acceptance
+  ([contract](traceability-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-003-traceability-console.json)).
 
 ### CAP-003 initial traceability Kernel read slice — 23 October 2026
 

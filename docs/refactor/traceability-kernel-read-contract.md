@@ -44,7 +44,14 @@ The route does not create, edit, approve, publish, verify, or attest records.
 
 Focused source tests verify exact location context, parameterized location
 filters on all collections, pagination bounds, fail-closed authorization,
-private-field omission, and cleanup. No migration was needed. This establishes
+private-field omission, and cleanup. The operator console is hidden until the
+session includes an exact `traceability:read` location scope. It shows a
+bounded, status-filtered batch page and detail collections; requests are
+same-origin/no-store, old location/detail state is cleared on location changes,
+stale responses are ignored, and server data renders via `textContent`. The
+console identifies related collections truncated at the 100-record server
+limit. The console contract checks plus Gateway and route-policy coverage pass
+18 tests, including inline JavaScript syntax. No migration was needed. This establishes
 the initial operator read surface only; it does not establish populated-data
 parity, public/community access, direct-database RLS, live OIDC acceptance, or
 MAN-CAP-003 acceptance. Those remain separate review and deployment gates.

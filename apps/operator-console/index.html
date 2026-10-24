@@ -1771,6 +1771,39 @@
             <button id="extension-learning-more" class="secondary" type="button" hidden>Load more modules</button>
           </section>
         </section>
+        <section id="traceability" hidden aria-labelledby="traceability-heading">
+          <h2 id="traceability-heading">Produce traceability</h2>
+          <p class="muted">Read-only location-scoped batch, custody, quality, certification, food-safety, and provenance records. Actor identities, free text, GPS, evidence links, and arbitrary metadata are omitted. This view does not verify, publish, or attest a batch.</p>
+          <div class="toolbar">
+            <label for="traceability-location">Granted location</label>
+            <select id="traceability-location"></select>
+            <label for="traceability-status-filter">Batch status</label>
+            <select id="traceability-status-filter">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="in_transit">In transit</option>
+              <option value="delivered">Delivered</option>
+              <option value="consumed">Consumed</option>
+              <option value="rejected">Rejected</option>
+              <option value="expired">Expired</option>
+            </select>
+            <button id="traceability-refresh" type="button">Refresh batches</button>
+          </div>
+          <p id="traceability-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Batch</th><th>Crop</th><th>Quantity</th><th>Harvest date</th><th>Organic</th><th>Status</th><th></th></tr></thead>
+              <tbody id="traceability-rows"></tbody>
+            </table>
+          </div>
+          <button id="traceability-more" class="secondary" type="button" hidden>Load more batches</button>
+          <section id="traceability-detail" hidden aria-labelledby="traceability-detail-heading">
+            <h3 id="traceability-detail-heading">Batch details</h3>
+            <p id="traceability-detail-status" class="muted" role="status" aria-live="polite"></p>
+            <dl id="traceability-detail-batch"></dl>
+            <div id="traceability-detail-records"></div>
+          </section>
+        </section>
         <section id="business-planning-canvases" hidden aria-labelledby="business-planning-canvases-heading">
           <h2 id="business-planning-canvases-heading">Business model canvases</h2>
           <p class="muted">Read-only canvases for locations with an active business-planning read grant. Content blocks are shown as text; this view does not edit, verify, submit, or publish a canvas. Raw imports, actor identities, and organization-level canvases are excluded.</p>
@@ -2753,6 +2786,19 @@
       let extensionLearningSummaryRequestVersion = 0;
       let extensionLearningCatalogRequestVersion = 0;
       let extensionLearningOffset = 0;
+      const traceability = document.querySelector("#traceability");
+      const traceabilityLocation = document.querySelector("#traceability-location");
+      const traceabilityRows = document.querySelector("#traceability-rows");
+      const traceabilityStatus = document.querySelector("#traceability-status");
+      const traceabilityMore = document.querySelector("#traceability-more");
+      const traceabilityDetail = document.querySelector("#traceability-detail");
+      const traceabilityDetailStatus = document.querySelector("#traceability-detail-status");
+      const traceabilityDetailBatch = document.querySelector("#traceability-detail-batch");
+      const traceabilityDetailRecords = document.querySelector("#traceability-detail-records");
+      let traceabilityLocations = new Set();
+      let traceabilityListRequestVersion = 0;
+      let traceabilityDetailRequestVersion = 0;
+      let traceabilityOffset = 0;
       const businessPlanningCanvases = document.querySelector("#business-planning-canvases");
       const businessPlanningLocation = document.querySelector("#business-planning-location");
       const businessPlanningStatus = document.querySelector("#business-planning-status");
@@ -13595,6 +13641,192 @@
         }
       }
 
+      function traceabilityDisplayValue(value) {
+        if (value === null || value === undefined || value === "") return "—";
+        if (value === true) return "Yes";
+        if (value === false) return "No";
+        if (typeof value === "number" && Number.isFinite(value)) return value.toLocaleString();
+        return String(value);
+      }
+
+      function renderTraceabilityBatchRows(items) {
+        for (const batch of items) {
+          const row = document.createElement("tr");
+          for (const [field, formatter] of [
+            ["batch_number", traceabilityDisplayValue], ["crop_name", traceabilityDisplayValue],
+            ["quantity", (value) => `${traceabilityDisplayValue(value)} ${traceabilityDisplayValue(batch.unit)}`],
+            ["harvest_date", traceabilityDisplayValue], ["organic", traceabilityDisplayValue],
+            ["status", traceabilityDisplayValue]
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = formatter(batch[field]);
+            row.append(cell);
+          }
+          const action = document.createElement("td");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "secondary";
+          button.textContent = "View details";
+          button.addEventListener("click", () => loadTraceabilityBatch(batch.id));
+          action.append(button);
+          row.append(action);
+          traceabilityRows.append(row);
+        }
+      }
+
+      async function loadTraceabilityBatches(loadMore = false) {
+        const locationId = traceabilityLocation.value;
+        const requestVersion = ++traceabilityListRequestVersion;
+        if (!traceabilityLocations.has(locationId)) return;
+        const offset = loadMore ? traceabilityOffset : 0;
+        if (!loadMore) {
+          traceabilityOffset = 0;
+          traceabilityRows.replaceChildren();
+          traceabilityMore.hidden = true;
+          traceabilityDetailRequestVersion += 1;
+          traceabilityDetail.hidden = true;
+          traceabilityDetailBatch.replaceChildren();
+          traceabilityDetailRecords.replaceChildren();
+          traceabilityDetailStatus.textContent = "";
+        }
+        traceabilityStatus.textContent = loadMore ? "Loading more batches…" : "Loading location batches…";
+        const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+        const statusFilter = document.querySelector("#traceability-status-filter").value;
+        if (statusFilter) params.set("status", statusFilter);
+        try {
+          const response = await fetch(
+            `/operator/api/traceability/${encodeURIComponent(locationId)}/batches?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location traceability-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Traceability reads are unavailable for this location.");
+            throw new Error("Location batches could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== traceabilityListRequestVersion
+              || locationId !== traceabilityLocation.value) return;
+          if (result.offset !== offset) throw new Error("The batch page did not match the requested position.");
+          const items = Array.isArray(result.items) ? result.items : [];
+          renderTraceabilityBatchRows(items);
+          traceabilityOffset = offset + items.length;
+          traceabilityMore.hidden = result.has_more !== true || traceabilityOffset > 10000;
+          traceabilityStatus.textContent = traceabilityOffset
+            ? `${traceabilityOffset.toLocaleString()} location batch${traceabilityOffset === 1 ? "" : "es"} shown.`
+            : "No batches match this status.";
+        } catch (error) {
+          if (requestVersion !== traceabilityListRequestVersion) return;
+          if (!loadMore) traceabilityRows.replaceChildren();
+          traceabilityMore.hidden = true;
+          traceabilityStatus.textContent = error.message;
+        }
+      }
+
+      function renderTraceabilityRecords(title, records, columns) {
+        const section = document.createElement("section");
+        const heading = document.createElement("h4");
+        heading.textContent = title;
+        section.append(heading);
+        const items = Array.isArray(records) ? records : Array.isArray(records?.items) ? records.items : [];
+        if (records?.truncated === true) {
+          const notice = document.createElement("p");
+          notice.className = "muted";
+          notice.textContent = "Showing the first 100 records; additional records were omitted.";
+          section.append(notice);
+        }
+        if (items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No records.";
+          section.append(empty);
+          return section;
+        }
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        for (const [, label] of columns) {
+          const cell = document.createElement("th");
+          cell.scope = "col";
+          cell.textContent = label;
+          headerRow.append(cell);
+        }
+        thead.append(headerRow);
+        const tbody = document.createElement("tbody");
+        for (const record of items) {
+          const row = document.createElement("tr");
+          for (const [field] of columns) {
+            const cell = document.createElement("td");
+            cell.textContent = traceabilityDisplayValue(record[field]);
+            row.append(cell);
+          }
+          tbody.append(row);
+        }
+        table.append(thead, tbody);
+        section.append(table);
+        return section;
+      }
+
+      function renderTraceabilityBatch(result) {
+        traceabilityDetailBatch.replaceChildren();
+        traceabilityDetailRecords.replaceChildren();
+        for (const [field, label] of [
+          ["batch_number", "Batch number"], ["crop_name", "Crop"], ["variety", "Variety"],
+          ["quantity", "Quantity"], ["unit", "Unit"], ["harvest_date", "Harvest date"],
+          ["organic", "Organic"], ["status", "Lifecycle status"],
+          ["expiry_date", "Expiry date"], ["grade", "Grade"]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = traceabilityDisplayValue(result.batch[field]);
+          traceabilityDetailBatch.append(term, description);
+        }
+        for (const [key, title, columns] of [
+          ["custody_transfers", "Custody transfers", [["sequence_num", "Sequence"], ["from_actor_type", "From role"], ["to_actor_type", "To role"], ["transfer_date", "Transferred"], ["received_date", "Received"], ["quantity", "Quantity"], ["unit", "Unit"], ["transfer_method", "Method"], ["temperature_at_transfer_c", "Temperature °C"], ["status", "Status"]]],
+          ["quality_inspections", "Quality inspections", [["inspection_date", "Date"], ["inspection_point", "Point"], ["overall_grade", "Grade"], ["score", "Score"], ["moisture_pct", "Moisture %"], ["foreign_material_pct", "Foreign material %"], ["temperature_c", "Temperature °C"], ["appearance_score", "Appearance"], ["freshness_score", "Freshness"], ["size_uniformity", "Size uniformity"], ["defect_count", "Defects"], ["passed", "Passed"], ["status", "Status"]]],
+          ["certifications", "Certifications", [["certification", "Certification"], ["category", "Category"], ["issued_date", "Issued"], ["expiry_date", "Expires"], ["verified", "Verified"], ["chain_verified", "Chain verified"], ["status", "Status"]]],
+          ["food_safety_records", "Food-safety records", [["record_type", "Record type"], ["record_time", "Recorded"], ["temperature_c", "Temperature °C"], ["temperature_min_c", "Minimum °C"], ["temperature_max_c", "Maximum °C"], ["within_range", "Within range"], ["humidity_pct", "Humidity %"], ["ph_level", "pH"], ["hygiene_score", "Hygiene"], ["hand_wash_ok", "Hand wash"], ["protective_gear_ok", "Protective gear"], ["pest_detected", "Pest detected"], ["passed", "Passed"], ["status", "Status"]]],
+          ["provenance_events", "Provenance events", [["event_type", "Event"], ["event_time", "Recorded"], ["chain_verified", "Chain verified"], ["status", "Status"]]]
+        ]) {
+          traceabilityDetailRecords.append(renderTraceabilityRecords(title, result[key], columns));
+        }
+      }
+
+      async function loadTraceabilityBatch(batchId) {
+        const locationId = traceabilityLocation.value;
+        const requestVersion = ++traceabilityDetailRequestVersion;
+        if (!traceabilityLocations.has(locationId)) return;
+        traceabilityDetail.hidden = false;
+        traceabilityDetailBatch.replaceChildren();
+        traceabilityDetailRecords.replaceChildren();
+        traceabilityDetailStatus.textContent = "Loading bounded batch details…";
+        try {
+          const response = await fetch(
+            `/operator/api/traceability/${encodeURIComponent(locationId)}/batches/${encodeURIComponent(batchId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location traceability-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("This batch is unavailable in the selected location.");
+            throw new Error("Batch details could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== traceabilityDetailRequestVersion
+              || locationId !== traceabilityLocation.value) return;
+          renderTraceabilityBatch(result);
+          traceabilityDetailStatus.textContent = "Read-only bounded records. No verification, publication, or attestation was performed.";
+        } catch (error) {
+          if (requestVersion !== traceabilityDetailRequestVersion) return;
+          traceabilityDetailBatch.replaceChildren();
+          traceabilityDetailRecords.replaceChildren();
+          traceabilityDetailStatus.textContent = error.message;
+        }
+      }
+
       function renderBusinessPlanningCanvas(canvas) {
         businessPlanningMetadata.replaceChildren();
         businessPlanningBlocks.replaceChildren();
@@ -14633,6 +14865,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           extensionLearningLocations = new Set(extensionLearningLocationIds);
+          const traceabilityLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "traceability" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          traceabilityLocations = new Set(traceabilityLocationIds);
           const businessPlanningLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "business_planning" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -14985,6 +15223,17 @@
               loadExtensionLearningSummary(),
               loadExtensionLearningModules()
             ]);
+            hasAuthorizedSurface = true;
+          }
+          if (traceabilityLocationIds.length) {
+            for (const locationId of traceabilityLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              traceabilityLocation.append(option);
+            }
+            traceability.hidden = false;
+            await loadTraceabilityBatches();
             hasAuthorizedSurface = true;
           }
           if (businessPlanningLocationIds.length) {
@@ -19307,6 +19556,10 @@
         document.querySelector(selector).addEventListener("change", () => loadExtensionLearningModules());
       }
       extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
+      document.querySelector("#traceability-refresh").addEventListener("click", () => loadTraceabilityBatches());
+      traceabilityLocation.addEventListener("change", () => loadTraceabilityBatches());
+      document.querySelector("#traceability-status-filter").addEventListener("change", () => loadTraceabilityBatches());
+      traceabilityMore.addEventListener("click", () => loadTraceabilityBatches(true));
       document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());
       businessPlanningLocation.addEventListener("change", () => loadBusinessPlanningCanvases());
       businessPlanningMore.addEventListener("click", () => loadBusinessPlanningCanvases(true));

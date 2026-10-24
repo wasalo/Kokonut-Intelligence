@@ -16039,3 +16039,23 @@ and MAN-CAP-004 acceptance remain open. Checklist: 1,048 complete / 25 open
 (1,073 total); matrix: 27 baseline-retained, 7 deployed, and 33 prepared
 across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](extension-learning-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-console.json).
+
+### Progress addendum — CAP-003 traceability operator-console surface, 23 October 2026
+
+The operator console now exposes a batch list and bounded detail view only
+when the OIDC session has an exact `traceability:read` location grant. The
+location page offers the API's fixed status filters and bounded pagination;
+detail renders batch, custody, quality, certification, food-safety, and
+provenance fields with text-only DOM operations. Location changes clear prior
+detail state, request versions discard stale responses, and requests are
+same-origin/no-store. Actor identities, GPS, free text, evidence URLs, and
+arbitrary metadata are not rendered. The five focused console contracts plus
+Gateway reads and full route-policy inventory pass 18 tests; Ruff, inline
+JavaScript syntax, capability validation, and diff checks pass. No migration,
+provider, candidate, or legacy database was used. CAP-003 remains prepared
+pending populated parity, audience review, live OIDC/browser behavior,
+database ACL/RLS, production recovery, and MAN-CAP-003 acceptance. Checklist:
+1,049 complete / 25 open (1,074 total); matrix: 27 baseline-retained, 7
+deployed, and 33 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+[Contract](traceability-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-003-traceability-console.json).
