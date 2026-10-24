@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "8f5fd1eb",
+  "scope": "Current-source ARM64 Kernel image build and no-network software smoke under QEMU; not physical Raspberry Pi acceptance",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-current-arm64-8f5fd1eb:local --file Dockerfile.kernel .",
+    "result": "passed",
+    "platform": "linux/arm64",
+    "image_user": "appuser",
+    "image_id": "sha256:ce1a9867df703396b9d114054b992ed4be0034a134ef52c61d6d5f7fdca9b366",
+    "temporary_image_removed": true
+  },
+  "runtime": {
+    "architecture_reported": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "sdk_mount": "read-only sdk/python bind mount at /sdk",
+    "checks": {
+      "gateway_application_created": true,
+      "python_sdk_clients_imported": true,
+      "job_spec_entries": 18,
+      "migration_cli_help_without_database_credentials": true,
+      "synthetic_rpc_snapshot_construction": true,
+      "synthetic_rpc_snapshot_value": "1.00000000"
+    },
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_app_database_proxy_metabase": "not modified",
+    "legacy_stack_targeted": false,
+    "persistent_volumes_or_compose_stacks_modified": false
+  },
+  "result": "PASS: latest-source ARM64 image build and network-disabled Gateway/SDK/job/migration/RPC import smoke.",
+  "limitations": [
+    "QEMU is software-emulation evidence, not physical Raspberry Pi, power-loss, thermal, performance, or storage-endurance acceptance.",
+    "No application endpoint, database, provider, OIDC login, or long-duration recovery path was exercised."
+  ]
+}

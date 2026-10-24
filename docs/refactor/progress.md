@@ -1,3 +1,18 @@
+### Progress addendum — current-source ARM64 application smoke, 24 October 2026
+
+The current committed source `8f5fd1eb` builds the default Kernel image for
+`linux/arm64` as non-root `appuser`. Under QEMU, with networking disabled, a
+read-only root filesystem, and a read-only SDK mount, runtime checks report
+`aarch64`, create the Gateway app, import both Python SDK clients, load all 18
+job specifications, display migration CLI help without database credentials,
+and construct a synthetic RPC snapshot. The temporary image and container were
+removed. No database, provider, credential, candidate, legacy stack, or
+persistent Compose resource was accessed. This advances software portability
+evidence only; physical Raspberry Pi, power, thermal, performance, storage, and
+long-duration recovery gates remain open. The checklist remains 1,069 complete
+and 25 open; the capability matrix remains 67 prepared/retained/deployed rows
+with no named MAN-CAP acceptance added ([application evidence](builds/2026-10-24-recovery/arm64-kernel-current-source-smoke-8f5fd1eb.json)).
+
 ### Progress addendum — full current-source ARM64/QEMU schema replay, 24 October 2026
 
 The current source at `5eba5de4` passes a network-disabled ARM64/QEMU
