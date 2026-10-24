@@ -234,6 +234,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/trends/11111111-1111-4111-8111-111111111111/forecast",
     ): _expected("trend_analysis", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/trends/11111111-1111-4111-8111-111111111111/forecast",
+    ): _expected("trend_analysis", "compute", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/geostatistics/11111111-1111-4111-8111-111111111111/autocorrelation",
     ): _expected("geostatistics", "read", scoped=True, location_id=_LOCATION_ID),

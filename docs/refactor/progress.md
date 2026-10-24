@@ -1,3 +1,22 @@
+### Progress addendum — CAP-008 signed trend forecast generation, 24 October 2026
+
+The private forecast producer now requires exact `trend_analysis:compute`,
+operator authentication, and CSRF. It computes from at most 365 active-metric,
+verified observations for the exact location, validates finite values and
+bounded horizon/confidence, and atomically writes an advisory forecast.
+Repeated requests with the same verified inputs/configuration reuse the active
+ARIMA row; changed inputs supersede and replace that model row transactionally.
+Other model types are not superseded. The console shows generation only when
+the exact compute grant is present and reloads the fixed saved projection. The
+focused Gateway/console/route-policy selection passes 43 tests; Ruff, Python
+compilation, JavaScript syntax, refreshed runtime SQL inventory, and
+capability-matrix validation pass. No migration, provider, candidate, or legacy
+database was used. Scientific/populated parity, live OIDC/browser, ACL/RLS,
+audience review, and MAN-CAP-008 remain open. Checklist: 1,082 complete / 25
+open (1,107 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows, with 0/67 named MAN-CAP checks accepted
+([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-forecast-generation.json)).
+
 ### Progress addendum — CAP-008 saved geostatistical realization summaries, 24 October 2026
 
 The exact-location panel now summarizes saved geostatistical realizations by

@@ -19,10 +19,31 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,081 checklist items complete and 25
-open (1,106 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,082 checklist items complete and 25
+open (1,107 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 signed trend forecast generation — 24 October 2026
+
+- [x] Add a private `POST /operator/api/trends/{location_id}/forecast` path
+  requiring exact `trend_analysis:compute`, an authenticated operator, and
+  CSRF; request bodies are capped at 4 KiB. It loads at most 365 verified
+  observations for an active metric at the
+  requested location, rejects invalid/non-finite inputs and model outputs,
+  bounds horizon/confidence, and atomically persists the advisory forecast.
+  Identical verified inputs/configuration reuse the active ARIMA forecast;
+  changed inputs supersede the previous active ARIMA row in the same
+  transaction. The console exposes generation only for the exact compute
+  grant, then reloads the fixed saved projection. The focused
+  Gateway/console/route-policy selection passes 43 tests; Ruff, Python
+  compilation, JavaScript syntax, runtime SQL inventory, and capability-matrix
+  validation pass. No migration, provider, candidate, or legacy database was
+  used. Forecast/scientific and populated-data parity, live OIDC/browser,
+  least-privilege ACL/RLS, audience review, and MAN-CAP-008 remain open.
+  Rollback is a source revert plus runtime-SQL inventory regeneration
+  ([contract](trend-analysis-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-forecast-generation.json)).
 
 ### CAP-008 saved geostatistical realization summaries — 24 October 2026
 

@@ -25,7 +25,8 @@ def test_panel_requires_exact_read_scope_and_marks_outputs_advisory():
     assert 'id="trend-analysis" hidden' in panel.group()
     assert 'scope.resource === "trend_analysis" && scope.action === "read"' in source
     assert "trendAnalysis.hidden = false" in source
-    assert "does not rerun a model or independently verify" in panel.group()
+    assert "Forecast generation uses verified metric observations" in panel.group()
+    assert "does not verify or publish it" in panel.group()
     assert "Show saved smoothed values" in source
     assert "Show stored change points" in source
     assert "Show saved decomposition" in source
@@ -153,6 +154,24 @@ def test_forecast_reader_uses_saved_bounded_values_and_preserves_status_as_text(
     assert "innerHTML" not in renderer
     for value in ("forecast_values", "intervals", "lower", "upper", "status"):
         assert value in renderer
+
+
+def test_forecast_generation_requires_compute_scope_and_uses_csrf_no_store_post():
+    source = CONSOLE.read_text(encoding="utf-8")
+    estimate = _function(source, "function renderTrendEstimate(", "function renderTrendSmoothing(")
+    assert 'generateForecastButton.textContent = "Generate advisory forecast"' in estimate
+    assert "trendAnalysisComputeLocations.has(trendAnalysisLocation.value)" in estimate
+    assert 'scope.resource === "trend_analysis" && scope.action === "compute"' in source
+    generator = _function(
+        source, "async function generateTrendForecast(", "async function loadGeostatisticsAutocorrelation("
+    )
+    assert 'method: "POST"' in generator
+    assert 'credentials: "same-origin"' in generator
+    assert 'cache: "no-store"' in generator
+    assert '"X-CSRF-Token": csrf' in generator
+    assert 'forecast_horizon: 12, confidence: 0.95' in generator
+    assert "trendAnalysisComputeLocations.has(locationId)" in generator
+    assert "values remain advisory" in generator or "advisory forecast" in generator
 
 
 def test_inline_javascript_parses_when_node_is_available():

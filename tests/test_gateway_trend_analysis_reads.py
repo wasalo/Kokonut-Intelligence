@@ -512,12 +512,20 @@ def test_trend_route_policy_is_exact_location_scoped_read_only():
         "scope_required": True,
         "operator_auth": True,
     }
-    assert auth_route_policy("POST", forecast_path, enabled=True) is None
+    assert auth_route_policy("POST", forecast_path, enabled=True) == {
+        "resource": "trend_analysis",
+        "action": "compute",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("DELETE", forecast_path, enabled=True) is None
 
 
 def _register_route(
     monkeypatch, reader, smoothing_reader=None, change_points_reader=None,
-    decomposition_reader=None, forecast_reader=None,
+    decomposition_reader=None, forecast_reader=None, forecast_writer=None,
 ):
     from services.gateway.trend_analysis_routes import register_trend_analysis_routes
 
@@ -543,6 +551,11 @@ def _register_route(
         monkeypatch.setattr(
             "services.gateway.trend_analysis_reads.get_location_time_series_forecast",
             forecast_reader,
+        )
+    if forecast_writer is not None:
+        monkeypatch.setattr(
+            "services.gateway.trend_forecast_compute.create_location_time_series_forecast",
+            forecast_writer,
         )
     app = FastAPI()
     router = APIRouter()
@@ -750,3 +763,85 @@ def test_forecast_http_route_denies_missing_tenant_grant(monkeypatch):
         )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_forecast_compute_http_route_is_no_store_and_passes_bounded_request(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def forecast_writer(operator_id, location_id, metric_key, *, forecast_horizon, confidence):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert metric_key == "soil_carbon"
+        assert forecast_horizon == 12
+        assert confidence == 0.95
+        return {
+            "location_id": location_id,
+            "metric_key": metric_key,
+            "forecast_id": "33333333-3333-4333-8333-333333333333",
+            "status": "active",
+            "created": True,
+        }
+
+    app = _register_route(
+        monkeypatch, estimates_reader, forecast_writer=forecast_writer
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon", "forecast_horizon": 12, "confidence": 0.95},
+        )
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["created"] is True
+
+
+def test_forecast_compute_http_route_denies_missing_tenant_grant(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("missing compute grant")
+
+    app = _register_route(monkeypatch, estimates_reader, forecast_writer=deny)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon"},
+        )
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_forecast_compute_http_route_rejects_unknown_fields_before_writer(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def should_not_run(*_args, **_kwargs):
+        raise AssertionError("invalid body must fail before compute")
+
+    app = _register_route(monkeypatch, estimates_reader, forecast_writer=should_not_run)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            json={"metric_key": "soil_carbon", "arbitrary_sql": "SELECT 1"},
+        )
+    assert response.status_code == 400
+
+
+def test_forecast_compute_http_route_bounds_request_body_before_writer(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {"location_id": LOCATION_ID, "items": [], "limit": 25, "offset": 0, "has_more": False}
+
+    def should_not_run(*_args, **_kwargs):
+        raise AssertionError("oversized body must fail before compute")
+
+    app = _register_route(monkeypatch, estimates_reader, forecast_writer=should_not_run)
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/trends/{LOCATION_ID}/forecast",
+            content=b" " * 4097,
+            headers={"Content-Type": "application/json"},
+        )
+    assert response.status_code == 400
+    assert "4 KiB" in response.json()["error"]

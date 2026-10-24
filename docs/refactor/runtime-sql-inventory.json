@@ -3,40 +3,40 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 937,
-    "execution_sites": 4771,
+    "source_files": 938,
+    "execution_sites": 4778,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4429,
+    "sites_without_worker_operation_refs": 4436,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
-      "INSERT": 646,
+      "INSERT": 647,
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2800,
-      "SET": 577,
+      "SELECT": 2803,
+      "SET": 579,
       "UNKNOWN": 200,
-      "UPDATE": 429,
+      "UPDATE": 430,
       "WITH": 29
     },
     "statement_groups": {
-      "read_candidate": 2800,
+      "read_candidate": 2803,
       "schema_change": 1,
-      "transaction_or_session": 620,
+      "transaction_or_session": 622,
       "unknown_requires_manual_review": 200,
       "with_requires_manual_review": 29,
-      "write_candidate": 1121
+      "write_candidate": 1123
     },
     "expression_kinds": {
       "composed": 19,
       "composed_or_variable": 276,
       "fstring": 290,
-      "literal": 4186
+      "literal": 4193
     },
     "relation_candidates": 1209,
-    "sites_without_relation_candidates": 1083,
+    "sites_without_relation_candidates": 1086,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,17 +365,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 124,
-      "execution_sites": 905,
+      "source_files": 125,
+      "execution_sites": 912,
       "statement_groups": {
-        "read_candidate": 337,
-        "transaction_or_session": 510,
+        "read_candidate": 340,
+        "transaction_or_session": 512,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 4,
-        "write_candidate": 36
+        "write_candidate": 38
       },
-      "candidate_relation_names": 242,
-      "sites_without_relation_candidates": 585,
+      "candidate_relation_names": 244,
+      "sites_without_relation_candidates": 588,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
     },
@@ -1486,8 +1486,8 @@
     "mental_model": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/systems/leverage.py","services/systems/mental_models.py"]},
     "meta_learning_application": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/systems/meta_learning.py"]},
     "meta_learning_strategy": {"execution_site_count": 6,"statement_kinds": ["SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/systems/meta_learning.py"]},
-    "metric_definition": {"execution_site_count": 24,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/strategy_kpi_refresh.py","services/feedback/outcomes.py","services/metrics/cli.py","services/metrics/engine.py","services/orientation/assess.py","services/registry/cids_export.py","services/strategic_reserve/health.py","services/systems/archetypes.py","services/systems/causal_loops.py","services/systems/leverage.py","services/threatcasting/principles.py","services/trends/change_points.py","services/trends/dashboard.py","services/trends/estimator.py"]},
-    "metric_value": {"execution_site_count": 25,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/abundance/ai_evaluation.py","services/analytics/env_scanning.py","services/analytics/pin_dependency.py","services/analytics/promotion_ladder.py","services/analytics/strategy_kpi_refresh.py","services/feedback/outcomes.py","services/metrics/engine.py","services/orientation/assess.py","services/registry/cids_export.py","services/strategic_reserve/health.py","services/systems/archetypes.py","services/systems/causal_loops.py","services/systems/leverage.py","services/threatcasting/principles.py","services/trends/change_points.py","services/trends/dashboard.py","services/trends/estimator.py"]},
+    "metric_definition": {"execution_site_count": 25,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/strategy_kpi_refresh.py","services/feedback/outcomes.py","services/gateway/trend_forecast_compute.py","services/metrics/cli.py","services/metrics/engine.py","services/orientation/assess.py","services/registry/cids_export.py","services/strategic_reserve/health.py","services/systems/archetypes.py","services/systems/causal_loops.py","services/systems/leverage.py","services/threatcasting/principles.py","services/trends/change_points.py","services/trends/dashboard.py","services/trends/estimator.py"]},
+    "metric_value": {"execution_site_count": 26,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/abundance/ai_evaluation.py","services/analytics/env_scanning.py","services/analytics/pin_dependency.py","services/analytics/promotion_ladder.py","services/analytics/strategy_kpi_refresh.py","services/feedback/outcomes.py","services/gateway/trend_forecast_compute.py","services/metrics/engine.py","services/orientation/assess.py","services/registry/cids_export.py","services/strategic_reserve/health.py","services/systems/archetypes.py","services/systems/causal_loops.py","services/systems/leverage.py","services/threatcasting/principles.py","services/trends/change_points.py","services/trends/dashboard.py","services/trends/estimator.py"]},
     "mitigation_approach": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/mitigation.py"]},
     "ml_retrain_log": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/systems/ml_retraining.py"]},
     "ml_retrain_schedule": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/systems/ml_retraining.py"]},
@@ -1877,7 +1877,7 @@
     "threat_signal": {"execution_site_count": 12,"statement_kinds": ["DELETE","INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/threatcasting/cli.py","services/threatcasting/intelligence.py","services/threatcasting/signals.py"]},
     "threshold_adjustment_log": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/feedback/controller.py"]},
     "time_delay": {"execution_site_count": 5,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/systems/delays.py"]},
-    "time_series_forecast": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/trend_analysis_reads.py","services/trends/accuracy.py"]},
+    "time_series_forecast": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/trend_analysis_reads.py","services/gateway/trend_forecast_compute.py","services/trends/accuracy.py"]},
     "to": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/soc_prediction.py"]},
     "token_reward_distribution": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/reward_calibration.py","services/export/reports/operations.py"]},
     "towS_strategy": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/swot_enhanced.py"]},
@@ -5387,6 +5387,13 @@
     {"id": "services/gateway/trend_analysis_reads.py:433:12","source": "services/gateway/trend_analysis_reads.py","line": 433,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/trend_analysis_reads.py:434:12","source": "services/gateway/trend_analysis_reads.py","line": 434,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/trend_analysis_reads.py:445:12","source": "services/gateway/trend_analysis_reads.py","line": 445,"column": 12,"scope": "list_location_trend_estimates","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["trend_estimate"],"static_sql_sha256": "6f63c4cac76a73168ef26fff3eff36bf909b5b33797d7f694932d9609d76924a","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/trend_forecast_compute.py:106:12","source": "services/gateway/trend_forecast_compute.py","line": 106,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "cc3265b44463a68e525f37db0e1c57eaf3d7fead2bcf425d6a598c4e9bd35b33","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/trend_forecast_compute.py:107:12","source": "services/gateway/trend_forecast_compute.py","line": 107,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/trend_forecast_compute.py:118:12","source": "services/gateway/trend_forecast_compute.py","line": 118,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "43b53c04e53eaf42f31ef153fff642654146505dc368c4c7b93d21ab025dd1a5","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/trend_forecast_compute.py:122:12","source": "services/gateway/trend_forecast_compute.py","line": 122,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["metric_definition","metric_value"],"static_sql_sha256": "1237d64a22c465011fd6285ca1bcbf7b65c927dfb432e6ecf9f90d954e1e1150","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/trend_forecast_compute.py:208:12","source": "services/gateway/trend_forecast_compute.py","line": 208,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["time_series_forecast"],"static_sql_sha256": "6c5ae4d7f6aa3a86fe1ad1b68d223ca10a015b7cc9010b07ffd32256e4f7f93d","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/trend_forecast_compute.py:237:12","source": "services/gateway/trend_forecast_compute.py","line": 237,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["time_series_forecast"],"static_sql_sha256": "58c5d98b99ddc664d1f4b9292f7ddad7231494f22b7f0551b181ecd7f17b3d64","operation_refs": [],"statement_group": "write_candidate"},
+    {"id": "services/gateway/trend_forecast_compute.py:248:12","source": "services/gateway/trend_forecast_compute.py","line": 248,"column": 12,"scope": "create_location_time_series_forecast","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["time_series_forecast"],"static_sql_sha256": "4067ca0c6c34b6eda06470d7d750a997e48ab4242e01f4aa6f86fa6c40eec520","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/gateway/true_cost.py:49:12","source": "services/gateway/true_cost.py","line": 49,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:50:12","source": "services/gateway/true_cost.py","line": 50,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:51:12","source": "services/gateway/true_cost.py","line": 51,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

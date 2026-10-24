@@ -1,6 +1,6 @@
 # Trend analysis Kernel read contract
 
-**Status:** Saved estimate, smoothing, change-point, seasonal decomposition, and forecast reads implemented; capability remains prepared.
+**Status:** Saved trend reads and signed forecast generation implemented; capability remains prepared.
 **Updated:** 24 October 2026
 
 ## Route and authorization
@@ -53,41 +53,65 @@ response marks whether any component was truncated. The console labels a
 truncated result as partial and all saved decomposition output as advisory.
 This read does not calculate or verify decomposition.
 
-`GET /operator/api/trends/{location_id}/forecast` uses the same exact grant
-and signed-context transaction and selects the newest saved
-`time_series_forecast` row for the requested metric and location, regardless
-of its stored `active`/`superseded`/`expired` status. It returns at most 100
-forecast values and interval entries. Interval objects are reduced to step,
-forecast, lower, and upper fields; the only other interval field exposed is a
-finite confidence value. Non-finite or malformed numbers become `null` and
-the response marks truncation. Model parameters, metadata, identifiers, and
-accuracy rows are omitted. Status is displayed as stored; the console does not
-create, activate, supersede, expire, or verify a forecast. The current trend
-service tree has no writer to `time_series_forecast`; this route exposes any
-canonical saved rows but does not add a forecast producer or persistence path.
+`GET /operator/api/trends/{location_id}/forecast` uses the exact
+`trend_analysis:read` grant and signed-context transaction and selects the
+newest saved `time_series_forecast` row for the requested metric and location,
+regardless of its stored `active`/`superseded`/`expired` status. It returns at
+most 100 forecast values and interval entries. Interval objects are reduced to
+step, forecast, lower, and upper fields; the only other interval field exposed
+is a finite confidence value. Non-finite or malformed numbers become `null`
+and the response marks truncation. Model parameters, metadata, identifiers,
+and accuracy rows are omitted. Status is displayed as stored.
 
-The console appears only for the exact location grant, checks response scope
-and page correlation, suppresses stale requests, renders fixed fields using
-text nodes, and labels stored outputs advisory. It does not run a trend model
-or certify calculations. A selected estimate can load its saved smoothed
-points, stored change-point detections, and seasonal decomposition preview;
-saved forecast steps; location changes and stale requests cannot render results
-into a different location or metric. Stored change-point/forecast status is
+`POST /operator/api/trends/{location_id}/forecast` requires a separate exact
+`trend_analysis:compute` grant, authenticated operator session, and CSRF
+protection. Its streamed JSON body is capped at 4 KiB. It validates a metric
+key, a 1–100 step horizon, and one of the supported confidence levels (0.90,
+0.95, 0.99) before connecting. In a single transaction it establishes signed
+tenant context first, takes a per-location/metric advisory lock, and loads at
+most the 365 newest verified values for an active metric definition at that
+exact location. Draft/unverified values and other locations are excluded. It
+calls the existing in-process ARIMA helper; this implementation is an advisory
+approximation, not a verified scientific result. Forecast values and
+confidence intervals must be finite and match the requested horizon before
+persistence.
+
+An active ARIMA forecast with the same digest of verified observation
+identifiers and values, algorithm version, cadence, horizon, and confidence is
+reused. Changed inputs supersede previous active ARIMA forecasts and insert
+one new active ARIMA row atomically; other model types are not superseded. The
+persisted model parameters contain only algorithm/config and an input digest;
+the fixed `metadata` records advisory state and operator attribution. Cadence
+comes from the metric definition's update frequency, or uses `observation`
+when no supported frequency is configured. Failures roll back all writes. The
+response is a fixed identifier/status summary; the console then reloads the
+bounded read projection. It never verifies or publishes a forecast.
+
+The console appears only for the exact location read grant, checks response
+scope and page correlation, suppresses stale requests, renders fixed fields
+using text nodes, and labels stored outputs advisory. Read controls do not run
+a trend model or certify calculations. A selected estimate can load its saved
+smoothing points, stored change-point detections, and seasonal-decomposition
+preview; it can load saved forecast steps too. A separate generate button
+appears only for locations with the exact compute grant and sends a
+CSRF-protected, same-origin request.
+Location changes and stale requests cannot render results into a different
+location or metric. Stored change-point/forecast status is
 informational only and no lifecycle actions are exposed.
 
 ## Boundaries and remaining work
 
-This slice does not implement model execution, forecast persistence, accuracy
-verification, geostatistics, or populated
-numerical parity. Current application runtime database grants
+This slice does not implement forecast-accuracy verification, geostatistics,
+or populated numerical parity. Current application runtime database grants
 remain broad; signed tenant context is not least-privilege ACL/RLS. Live OIDC
 and browser behavior, scope configuration, populated fixtures, audience
 review, database isolation, and `MAN-CAP-008` remain open.
 
 ## Verification and rollback
 
-Focused route, paging, tenant-context, non-finite-value, console-contract, and
-JavaScript checks use fakes. No migration, seed, candidate/legacy database,
-provider, or external service is used. Rollback reverts the Gateway reader,
-route registration/policy, and console panel, then regenerates
-`runtime-sql-inventory.json`; no persistent data was written.
+Focused route, paging, tenant-context, bounded-input, idempotency, atomic-write,
+console-contract, and JavaScript checks use fakes. No migration, seed,
+candidate/legacy database, provider, or external service is used. Rollback
+reverts the Gateway reader/writer, route registration/policy, and console
+panel, then regenerates `runtime-sql-inventory.json`; no persistent data was
+written.
