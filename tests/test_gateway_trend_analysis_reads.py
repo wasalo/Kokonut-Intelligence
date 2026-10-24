@@ -10,7 +10,10 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.operator_auth import auth_route_policy
-from services.gateway.trend_analysis_reads import list_location_trend_estimates
+from services.gateway.trend_analysis_reads import (
+    list_location_trend_estimates,
+    list_location_trend_smoothing,
+)
 
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 OPERATOR_ID = "22222222-2222-4222-8222-222222222222"
@@ -41,6 +44,15 @@ class _Cursor:
                  0.02, "improving", "high", 0.08, 0.12, "day", "2026-03-02"),
                 ("water_use", "2026-01-01", "2026-03-01", 8, -0.1, 2.0, 0.8, 0.02,
                  0.04, "declining", "moderate", -0.12, -0.08, "day", "2026-03-01"),
+            )
+        elif "FROM trend_smoothing" in query:
+            self.description = [(name,) for name in (
+                "metric_key", "smoothing_type", "timestamp", "original_value",
+                "smoothed_value", "computed_at",
+            )]
+            self.rows = (
+                ("soil_carbon", "moving_average", "2026-03-02", 4.0, float("inf"), "2026-03-03"),
+                ("soil_carbon", "exponential", "2026-03-01", 3.0, 3.5, "2026-03-02"),
             )
 
     def fetchall(self):
@@ -140,6 +152,73 @@ def test_invalid_scope_or_page_fails_before_connecting():
     assert not called
 
 
+def test_smoothing_read_uses_signed_scope_and_only_selected_metric(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "trend_analysis",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.trend_analysis_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_trend_smoothing(
+        OPERATOR_ID,
+        LOCATION_ID,
+        "soil_carbon",
+        limit=2,
+        connection_factory=lambda: connection,
+    )
+
+    query, params = next(
+        (query, params) for query, params in connection.queries if "FROM trend_smoothing" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "AND metric_key = %s" in query
+    assert "ORDER BY timestamp DESC, computed_at DESC, id DESC" in query
+    assert "alpha" not in query and "beta" not in query and "metadata" not in query
+    assert params == (LOCATION_ID, "soil_carbon", 2)
+    assert result["location_id"] == LOCATION_ID
+    assert result["metric_key"] == "soil_carbon"
+    assert result["items"][0]["smoothed_value"] is None
+    assert result["items"][1]["smoothed_value"] == 3.5
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_smoothing_key_or_limit_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="metric_key must be"):
+        list_location_trend_smoothing(
+            OPERATOR_ID, LOCATION_ID, "\nunsafe", connection_factory=connect
+        )
+    with pytest.raises(ValueError, match="limit must be between"):
+        list_location_trend_smoothing(
+            OPERATOR_ID, LOCATION_ID, "soil_carbon", limit=101, connection_factory=connect
+        )
+    assert not called
+
+
 def test_trend_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/trends/{LOCATION_ID}/estimates"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -152,14 +231,29 @@ def test_trend_route_policy_is_exact_location_scoped_read_only():
     }
     assert auth_route_policy("POST", path, enabled=True) is None
     assert auth_route_policy("GET", f"{path}/extra", enabled=True) is None
+    smoothing_path = f"/operator/api/trends/{LOCATION_ID}/smoothing"
+    assert auth_route_policy("GET", smoothing_path, enabled=True) == {
+        "resource": "trend_analysis",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", smoothing_path, enabled=True) is None
 
 
-def _register_route(monkeypatch, reader):
+def _register_route(monkeypatch, reader, smoothing_reader=None):
     from services.gateway.trend_analysis_routes import register_trend_analysis_routes
 
     monkeypatch.setattr(
         "services.gateway.trend_analysis_reads.list_location_trend_estimates", reader
     )
+    if smoothing_reader is not None:
+        monkeypatch.setattr(
+            "services.gateway.trend_analysis_reads.list_location_trend_smoothing",
+            smoothing_reader,
+        )
     app = FastAPI()
     router = APIRouter()
 
@@ -202,5 +296,54 @@ def test_http_route_denies_missing_tenant_grant(monkeypatch):
     app = _register_route(monkeypatch, deny)
     with TestClient(app) as client:
         response = client.get(f"/operator/api/trends/{LOCATION_ID}/estimates")
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_smoothing_http_route_is_no_store_and_passes_metric_key(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        }
+
+    def smoothing_reader(operator_id, location_id, metric_key, *, limit):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert metric_key == "soil_carbon"
+        assert limit == 40
+        return {"location_id": location_id, "metric_key": metric_key, "items": []}
+
+    app = _register_route(monkeypatch, estimates_reader, smoothing_reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/trends/{LOCATION_ID}/smoothing?metric_key=soil_carbon&limit=40"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["metric_key"] == "soil_carbon"
+
+
+def test_smoothing_http_route_denies_missing_tenant_grant(monkeypatch):
+    def estimates_reader(*_args, **_kwargs):
+        return {
+            "location_id": LOCATION_ID,
+            "items": [],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
+        }
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("missing grant")
+
+    app = _register_route(monkeypatch, estimates_reader, deny)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/trends/{LOCATION_ID}/smoothing?metric_key=soil_carbon"
+        )
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"

@@ -1,3 +1,21 @@
+### Progress addendum — CAP-008 stored trend smoothing Kernel read, 24 October 2026
+
+The trend-analysis surface now reads up to 100 saved smoothing points for a
+metric already visible in the granted location's estimate list. The
+`trend_analysis:read` route sets signed tenant context before a bounded,
+read-only query; model parameters and metadata stay out of the projection, and
+non-finite values become `null`. The console fetches on demand, checks metric
+and location correlation, suppresses stale responses, and renders fixed values
+as text. The focused Gateway/console/route-policy selection passes 17 tests
+with Ruff, compilation, JavaScript syntax, runtime SQL inventory, capability
+validation, and diff checks. No migration, provider, candidate, or legacy
+database was used. CAP-008 remains prepared pending decomposition,
+change-point/forecast and geostatistics paths, numerical/populated parity, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,072
+complete / 25 open (1,097 total); matrix: 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks accepted
+([contract](trend-analysis-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-trend-smoothing-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved trend estimate Kernel read, 24 October 2026
 
 The first CAP-008 Kernel surface reads the latest saved `trend_estimate` for

@@ -19,10 +19,27 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,071 checklist items complete and 25
-open (1,096 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,072 checklist items complete and 25
+open (1,097 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved trend smoothing Kernel read — 24 October 2026
+
+- [x] Add a private `GET /operator/api/trends/{location_id}/smoothing` read
+  using the selected metric's exact location grant and database-signed tenant
+  context. It returns at most 100 stored smoothing points for that metric,
+  omitting estimator parameters and metadata and converting non-finite values
+  to `null`. The hidden-by-default estimate panel loads these values on demand,
+  validates location and metric correlation, suppresses stale responses, and
+  renders only fixed fields as text. The 17-test Gateway/console/route-policy
+  selection passes with Ruff, compilation, JavaScript syntax, runtime SQL
+  inventory, matrix validation, and diff checks. No migration, provider,
+  candidate, or legacy database was used. Rollback is a source revert and
+  inventory regeneration. Decomposition, change-point and forecast reads,
+  populated parity, live OIDC/browser, least-privilege ACL/RLS, audience review,
+  and MAN-CAP-008 remain open ([contract](trend-analysis-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-trend-smoothing-kernel-read.json)).
 
 ### CAP-008 saved trend estimate Kernel read — 24 October 2026
 

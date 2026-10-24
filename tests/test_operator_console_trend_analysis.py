@@ -26,6 +26,7 @@ def test_panel_requires_exact_read_scope_and_marks_outputs_advisory():
     assert 'scope.resource === "trend_analysis" && scope.action === "read"' in source
     assert "trendAnalysis.hidden = false" in source
     assert "does not rerun a model or independently verify" in panel.group()
+    assert "Show saved smoothed values" in source
 
 
 def test_estimate_reader_is_bounded_scoped_and_text_only():
@@ -60,6 +61,26 @@ def test_refresh_and_pagination_are_wired_without_duplicate_ids():
     ids = re.findall(r'\bid="([^\"]+)"', source)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+
+
+def test_smoothing_reader_uses_selected_metric_and_renders_fixed_values_as_text():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(source, "async function loadTrendSmoothing(", "async function loadTrendEstimates(")
+    assert '`/operator/api/trends/${encodeURIComponent(locationId)}/smoothing?${params}`' in reader
+    assert 'new URLSearchParams({ metric_key: metricKey, limit: "100" })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "trendAnalysisLocations.has(locationId)" in reader
+    assert "trendAnalysisMetricKeys.has(metricKey)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "result.metric_key !== metricKey" in reader
+    assert "panel.isConnected" in reader
+    assert "Number.isFinite(point.smoothed_value)" in reader
+    renderer = _function(source, "function renderTrendSmoothing(", "async function loadTrendSmoothing(")
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+    for value in ("timestamp", "smoothing_type", "original_value", "smoothed_value"):
+        assert value in renderer
 
 
 def test_inline_javascript_parses_when_node_is_available():

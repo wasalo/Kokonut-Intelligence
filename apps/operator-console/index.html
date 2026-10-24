@@ -3014,7 +3014,9 @@
       const trendAnalysisMore = document.querySelector("#trend-analysis-more");
       let trendAnalysisLocations = new Set();
       let trendAnalysisRequestVersion = 0;
+      const trendSmoothingRequestVersions = new WeakMap();
       let trendAnalysisOffset = 0;
+      let trendAnalysisMetricKeys = new Set();
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14060,7 +14062,107 @@
           details.append(term, description);
         }
         article.append(details);
+        const smoothingButton = document.createElement("button");
+        smoothingButton.type = "button";
+        smoothingButton.className = "secondary";
+        smoothingButton.textContent = "Show saved smoothed values";
+        const smoothingStatus = document.createElement("p");
+        smoothingStatus.className = "muted";
+        smoothingStatus.setAttribute("role", "status");
+        smoothingStatus.setAttribute("aria-live", "polite");
+        const smoothingPanel = document.createElement("div");
+        smoothingPanel.hidden = true;
+        smoothingButton.addEventListener("click", () => loadTrendSmoothing(
+          estimate.metric_key, smoothingPanel, smoothingStatus, smoothingButton
+        ));
+        article.append(smoothingButton, smoothingStatus, smoothingPanel);
         return article;
+      }
+
+      function renderTrendSmoothing(items) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-wrap";
+        const table = document.createElement("table");
+        const header = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        for (const label of ["Recorded at", "Method", "Original value", "Smoothed value"]) {
+          const cell = document.createElement("th");
+          cell.textContent = label;
+          headerRow.append(cell);
+        }
+        header.append(headerRow);
+        const body = document.createElement("tbody");
+        for (const point of items) {
+          const row = document.createElement("tr");
+          for (const value of [
+            point.timestamp,
+            point.smoothing_type,
+            point.original_value,
+            point.smoothed_value,
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = typeof value === "number" && Number.isFinite(value)
+              ? value.toLocaleString()
+              : value === null || value === undefined ? "—" : String(value);
+            row.append(cell);
+          }
+          body.append(row);
+        }
+        table.append(header, body);
+        wrapper.append(table);
+        return wrapper;
+      }
+
+      async function loadTrendSmoothing(metricKey, panel, status, button) {
+        const locationId = trendAnalysisLocation.value;
+        const requestVersion = (trendSmoothingRequestVersions.get(panel) || 0) + 1;
+        trendSmoothingRequestVersions.set(panel, requestVersion);
+        if (!trendAnalysisLocations.has(locationId) || !trendAnalysisMetricKeys.has(metricKey)) return;
+        button.disabled = true;
+        panel.hidden = false;
+        panel.replaceChildren();
+        status.textContent = "Loading saved smoothed values…";
+        try {
+          const params = new URLSearchParams({ metric_key: metricKey, limit: "100" });
+          const response = await fetch(
+            `/operator/api/trends/${encodeURIComponent(locationId)}/smoothing?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location trend-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Trend smoothing reads are unavailable for this location.");
+            throw new Error("Saved smoothed values could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== trendSmoothingRequestVersions.get(panel)
+              || locationId !== trendAnalysisLocation.value
+              || !panel.isConnected) return;
+          const allowedTypes = new Set([
+            "moving_average", "weighted_moving_average", "exponential", "holt_linear"
+          ]);
+          if (result.location_id !== locationId || result.metric_key !== metricKey
+              || !Array.isArray(result.items) || result.items.length > 100
+              || result.items.some((point) => point.metric_key !== metricKey
+                || !allowedTypes.has(point.smoothing_type)
+                || typeof point.timestamp !== "string"
+                || typeof point.computed_at !== "string"
+                || (point.original_value !== null && (typeof point.original_value !== "number" || !Number.isFinite(point.original_value)))
+                || (point.smoothed_value !== null && (typeof point.smoothed_value !== "number" || !Number.isFinite(point.smoothed_value))))) {
+            throw new Error("The smoothing response did not match the requested location or metric.");
+          }
+          if (result.items.length) panel.append(renderTrendSmoothing(result.items));
+          status.textContent = result.items.length
+            ? `Showing ${result.items.length} latest saved smoothing points. These outputs remain advisory.`
+            : "No saved smoothing points are available for this metric.";
+        } catch (error) {
+          if (requestVersion !== trendSmoothingRequestVersions.get(panel)) return;
+          panel.replaceChildren();
+          status.textContent = error.message;
+        } finally {
+          if (requestVersion === trendSmoothingRequestVersions.get(panel)) button.disabled = false;
+        }
       }
 
       async function loadTrendEstimates(loadMore = false) {
@@ -14070,6 +14172,7 @@
         const offset = loadMore ? trendAnalysisOffset : 0;
         if (!loadMore) {
           trendAnalysisOffset = 0;
+          trendAnalysisMetricKeys = new Set();
           trendAnalysisItems.replaceChildren();
           trendAnalysisMore.hidden = true;
         }
@@ -14094,7 +14197,12 @@
               || result.items.length > 25 || result.offset !== offset) {
             throw new Error("The trend response did not match the requested location or page.");
           }
-          for (const estimate of result.items) trendAnalysisItems.append(renderTrendEstimate(estimate));
+          for (const estimate of result.items) {
+            if (typeof estimate.metric_key === "string" && estimate.metric_key.length <= 100) {
+              trendAnalysisMetricKeys.add(estimate.metric_key);
+              trendAnalysisItems.append(renderTrendEstimate(estimate));
+            }
+          }
           trendAnalysisOffset = offset + result.items.length;
           trendAnalysisMore.hidden = result.has_more !== true || trendAnalysisOffset > 10000;
           trendAnalysisStatus.textContent = trendAnalysisOffset

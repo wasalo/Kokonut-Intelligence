@@ -1,6 +1,6 @@
 # Trend analysis Kernel read contract
 
-**Status:** First saved-estimate read implemented; capability remains prepared.
+**Status:** Saved trend-estimate and smoothing reads implemented; capability remains prepared.
 **Updated:** 24 October 2026
 
 ## Route and authorization
@@ -24,16 +24,26 @@ bounded pagination. Non-finite stored floating-point values are returned as
 Database IDs, `computed_by`, metadata, raw observations, model parameters,
 forecast values, and accuracy records are not selected.
 
+`GET /operator/api/trends/{location_id}/smoothing` uses the same exact
+`trend_analysis:read` grant and signed-context transaction. It requires the
+`metric_key` selected from a returned estimate and returns at most 100 saved
+points for that location and metric. The projection includes only timestamp,
+smoothing method, original value, smoothed value, and save time; estimator
+parameters and metadata are omitted. Non-finite values become `null` and the
+points are ordered newest first.
+
 The console appears only for the exact location grant, checks response scope
 and page correlation, suppresses stale requests, renders fixed fields using
 text nodes, and labels stored outputs advisory. It does not run a trend model
-or certify calculations.
+or certify calculations. A selected estimate can load its saved smoothed
+points; location changes and stale requests cannot render results into a
+different location or metric.
 
 ## Boundaries and remaining work
 
-This slice does not implement model execution, smoothing/decomposition,
-change-point or forecast-result reads, accuracy verification, geostatistics,
-or populated numerical parity. Current application runtime database grants
+This slice does not implement model execution, decomposition, change-point or
+forecast-result reads, accuracy verification, geostatistics, or populated
+numerical parity. Current application runtime database grants
 remain broad; signed tenant context is not least-privilege ACL/RLS. Live OIDC
 and browser behavior, scope configuration, populated fixtures, audience
 review, database isolation, and `MAN-CAP-008` remain open.

@@ -11,6 +11,7 @@ from services.common.tenant_context import set_operator_tenant_context
 
 _MAX_PAGE_SIZE = 50
 _MAX_OFFSET = 10_000
+_MAX_SMOOTHING_POINTS = 100
 _NUMERIC_FIELDS = (
     "slope",
     "intercept",
@@ -41,6 +42,82 @@ def _page(limit: int, offset: int) -> tuple[int, int]:
     if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= _MAX_OFFSET:
         raise ValueError(f"offset must be between 0 and {_MAX_OFFSET}")
     return limit, offset
+
+
+def _metric_key(value: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or len(value) > 100
+        or value != value.strip()
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise ValueError("metric_key must be a non-empty key of at most 100 characters")
+    return value
+
+
+def list_location_trend_smoothing(
+    operator_id: str,
+    location_id: str,
+    metric_key: str,
+    *,
+    limit: int = _MAX_SMOOTHING_POINTS,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List the latest stored smoothing points for one metric and location."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    metric_key = _metric_key(metric_key)
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= _MAX_SMOOTHING_POINTS:
+        raise ValueError(f"limit must be between 1 and {_MAX_SMOOTHING_POINTS}")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="trend_analysis",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT metric_key, smoothing_type, timestamp, original_value,
+                       smoothed_value, computed_at
+                  FROM trend_smoothing
+                 WHERE location_id = %s::uuid
+                   AND metric_key = %s
+                 ORDER BY timestamp DESC, computed_at DESC, id DESC
+                 LIMIT %s
+                """,
+                (location_id, metric_key, limit),
+            )
+            rows = _grouped_rows(cursor)
+            for row in rows:
+                for field in ("original_value", "smoothed_value"):
+                    value = row[field]
+                    if value is not None and not math.isfinite(value):
+                        row[field] = None
+        return {
+            "location_id": location_id,
+            "metric_key": metric_key,
+            "items": rows,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
 
 
 def _grouped_rows(cursor) -> list[dict]:
