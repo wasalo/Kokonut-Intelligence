@@ -133,6 +133,14 @@ class TestRecordRecycling(unittest.TestCase):
             self.conn, "loc-001", "metal", 8.0, "Scrap yard", revenue=12.50,
         )
         self.assertEqual(result["revenue"], 12.50)
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("INSERT INTO recycling_log", query)
+        self.assertIn("record_date", query)
+        self.assertIn("'recorded'", query)
+        self.assertNotIn("recycling_record", query)
+        self.assertNotIn("'draft'", query)
+        self.assertEqual(params[3], "metal")
+        self.assertEqual(params[6], 12.50)
 
 
 class TestReportIncident(unittest.TestCase):

@@ -58,6 +58,14 @@ compatible. This is a trusted local CLI write path without tenant
 authorization; the database lifecycle still requires human verification
 before the summary includes a row.
 
+The legacy `record_recycling` writer now inserts into migration-153
+`recycling_log`, including its required `record_date` and `recorded` lifecycle
+state. It preserves the existing CLI/function arguments and response fields,
+including destination, optional revenue, notes, and metadata. A successful
+insert is still only recorded; the verified-only summary does not include it
+until separate human verification. This remains a trusted local CLI write path
+without tenant authorization.
+
 The legacy `get_composting_efficiency` read also uses schema-153 columns:
 `finished_volume_kg` supplies output values, per-batch yield is calculated
 from finished volume over positive feedstock, and `compost_date` supplies the

@@ -218,21 +218,23 @@ def record_recycling(
     cur = conn.cursor()
     recycle_id = str(uuid.uuid4())
 
-    cur.execute(
-        """
-        INSERT INTO recycling_record
-            (id, location_id, material_type, quantity_kg, destination,
-             revenue, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            recycle_id, location_id, material_type, quantity_kg, destination,
-            revenue, notes, json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO recycling_log
+                (id, location_id, record_date, material_type, quantity_kg,
+                 destination, revenue, notes, metadata, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
+            RETURNING id
+            """,
+            (
+                recycle_id, location_id, date.today(), material_type, quantity_kg,
+                destination, revenue, notes, json.dumps(metadata or {}),
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
 
     logger.info("Recorded recycling %s: %s %s kg to %s", recycle_id, material_type, quantity_kg, destination)
 

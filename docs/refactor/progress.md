@@ -1,3 +1,17 @@
+### Progress addendum — CAP-006 legacy recycling writer schema alignment, 24 October 2026
+
+The legacy recycling writer now targets canonical migration-153
+`recycling_log`, supplies the required date, and inserts rows as `recorded`.
+It retains the existing interface, destination, revenue, notes, and metadata;
+cursor cleanup covers success and failure. The 24-test waste-management
+module and five invalid-window subtests pass, with Ruff, compilation, current
+SQL inventory, capability validation, and diff checks. No migration or
+database was used. Incident workflows, populated recycling parity, tenant
+isolation, and MAN-CAP-006 remain open.
+Checklist: 1,105 complete / 25 open (1,130 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-legacy-recycling-write-schema-alignment.json)).
+
 ### Progress addendum — CAP-006 legacy waste-stream writer schema alignment, 24 October 2026
 
 The legacy waste writer now targets the canonical migration-153

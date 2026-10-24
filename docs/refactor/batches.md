@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,104 checklist items complete and 25
-open (1,129 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,105 checklist items complete and 25
+open (1,130 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -59,6 +59,20 @@ acceptance remains separate; none is marked accepted.
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-stream-write-schema-alignment.json)).
   Checklist: 1,104 complete / 25 open (1,129 total).
+
+### CAP-006 legacy recycling writer schema alignment — 24 October 2026
+
+- [x] Align `record_recycling` to migration-153 `recycling_log`, including
+  its required date and supported `recorded` state. Preserve the existing
+  function/CLI interface and revenue/notes/metadata fields; close the cursor
+  on success and failure. The existing waste-management module passes 24
+  tests plus five invalid-window subtests; Ruff and compilation pass. SQL
+  inventory, matrix validation, and diff checks pass. No migration or database
+  was used. Incident workflows and populated recycling parity remain open.
+  Rollback restores the previous insert and regression assertions
+  ([contract](waste-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-legacy-recycling-write-schema-alignment.json)).
+  Checklist: 1,105 complete / 25 open (1,130 total).
 
 ### CAP-006 legacy waste summary schema alignment — 24 October 2026
 
