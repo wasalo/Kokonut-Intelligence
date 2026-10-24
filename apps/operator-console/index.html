@@ -1811,12 +1811,12 @@
           </div>
           <button id="geostatistics-autocorrelation-more" class="secondary" type="button" hidden>Load more statistics</button>
           <h3>Spatial cross-validation</h3>
-          <p class="muted">Saved spatial-block, leave-one-out, and k-fold error summaries. Fold-level details and model identifiers are omitted; results are advisory.</p>
+          <p class="muted">Saved spatial-block, leave-one-out, and k-fold error summaries. Spatial-block aggregates appear only when every fold has at least five held-out samples; point-level values and model identifiers stay omitted. Results are advisory.</p>
           <button id="geostatistics-cross-validation-refresh" type="button">Refresh cross-validation</button>
           <p id="geostatistics-cross-validation-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Property</th><th>Strategy</th><th>Folds</th><th>Block size (m)</th><th>Mean error</th><th>Mean squared error</th><th>Root mean squared error</th><th>Mean absolute error</th><th>R²</th><th>Computed</th></tr></thead>
+              <thead><tr><th>Property</th><th>Strategy</th><th>Folds</th><th>Block size (m)</th><th>Mean error</th><th>Mean squared error</th><th>Root mean squared error</th><th>Mean absolute error</th><th>R²</th><th>Computed</th><th>Spatial-block fold aggregates</th></tr></thead>
               <tbody id="geostatistics-cross-validation-rows"></tbody>
             </table>
           </div>
@@ -14865,6 +14865,7 @@
               || locationId !== geostatisticsAutocorrelationLocation.value) return;
           const strategies = new Set(["spatial_block", "leave_one_out", "k_fold"]);
           const nullableNumbers = ["block_size_m", "mean_error", "mean_squared_error", "root_mean_squared_error", "mean_absolute_error", "r_squared"];
+          const foldMetrics = ["mean_error", "mean_squared_error", "rmse", "mae", "r_squared"];
           if (result.location_id !== locationId || !Array.isArray(result.items)
               || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
               || typeof result.has_more !== "boolean"
@@ -14873,6 +14874,15 @@
                 || !strategies.has(item.cv_strategy)
                 || !Number.isInteger(item.n_folds) || item.n_folds < 0
                 || typeof item.computed_at !== "string"
+                || !Array.isArray(item.fold_diagnostics)
+                || item.fold_diagnostics.length > 10
+                || (item.cv_strategy !== "spatial_block" && item.fold_diagnostics.length !== 0)
+                || item.fold_diagnostics.some((fold, index) => !fold
+                  || fold.fold !== index + 1
+                  || !Number.isInteger(fold.train_samples) || fold.train_samples < 1
+                  || !Number.isInteger(fold.test_samples) || fold.test_samples < 5
+                  || foldMetrics.some((field) => fold[field] !== null
+                    && (typeof fold[field] !== "number" || !Number.isFinite(fold[field]))))
                 || nullableNumbers.some((field) => item[field] !== null
                   && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
             throw new Error("The cross-validation response did not match the requested location or page.");
@@ -14890,6 +14900,26 @@
                 : value === null || value === undefined ? "—" : String(value);
               row.append(cell);
             }
+            const diagnosticsCell = document.createElement("td");
+            if (item.fold_diagnostics.length) {
+              const details = document.createElement("details");
+              const summary = document.createElement("summary");
+              summary.textContent = `Show ${item.fold_diagnostics.length} spatial fold aggregates`;
+              details.append(summary);
+              const diagnostics = document.createElement("ul");
+              for (const fold of item.fold_diagnostics) {
+                const entry = document.createElement("li");
+                entry.textContent = `Fold ${fold.fold}: ${fold.test_samples.toLocaleString()} held-out samples; mean error ${fold.mean_error ?? "—"}; MSE ${fold.mean_squared_error ?? "—"}; RMSE ${fold.rmse ?? "—"}; MAE ${fold.mae ?? "—"}; R² ${fold.r_squared ?? "—"}`;
+                diagnostics.append(entry);
+              }
+              details.append(diagnostics);
+              diagnosticsCell.append(details);
+            } else {
+              diagnosticsCell.textContent = item.cv_strategy === "spatial_block"
+                ? "Unavailable or suppressed"
+                : "Not available for this strategy";
+            }
+            row.append(diagnosticsCell);
             geostatisticsCrossValidationRows.append(row);
           }
           geostatisticsCrossValidationOffset = offset + result.items.length;

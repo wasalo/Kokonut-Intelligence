@@ -10,6 +10,7 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.geostatistics_reads import (
+    _safe_spatial_fold_diagnostics,
     list_location_cross_validation,
     list_location_kriging_summaries,
     list_location_realization_summaries,
@@ -53,13 +54,19 @@ class _Cursor:
             self.description = [(name,) for name in (
                 "property_key", "cv_strategy", "n_folds", "block_size_m",
                 "mean_error", "mean_squared_error", "root_mean_squared_error",
-                "mean_absolute_error", "r_squared", "computed_at",
+                "mean_absolute_error", "r_squared", "computed_at", "fold_diagnostics",
             )]
             self.rows = (
                 ("soil_carbon", "spatial_block", 5, 250.0, 0.1, 2.0,
-                 1.4, 0.9, float("nan"), "2026-03-04"),
+                 1.4, 0.9, float("nan"), "2026-03-04", [
+                     {"train_samples": "30", "test_samples": "5", "mean_error": "0.1",
+                      "mean_squared_error": "2.0", "rmse": "1.4", "mae": "0.9",
+                      "r_squared": "NaN", "block_id": "private"}
+                 ] * 5),
                 ("soil_carbon", "k_fold", 5, None, 0.0, 1.0,
-                 1.0, 0.8, 0.7, "2026-03-03"),
+                 1.0, 0.8, 0.7, "2026-03-03", [
+                     {"actual": "private", "predicted": "private"}
+                 ] * 5),
             )
         elif "FROM variogram_model" in query:
             self.description = [(name,) for name in (
@@ -202,7 +209,7 @@ def test_invalid_autocorrelation_scope_or_page_fails_before_connecting():
     assert not called
 
 
-def test_cross_validation_read_sets_tenant_before_query_and_omits_detail(monkeypatch):
+def test_cross_validation_read_sets_tenant_and_projects_only_safe_spatial_folds(monkeypatch):
     connection = _Connection()
     order = []
     original_execute = _Cursor.execute
@@ -237,13 +244,25 @@ def test_cross_validation_read_sets_tenant_before_query_and_omits_detail(monkeyp
         if "FROM geostat_cv_result" in query
     )
     assert order[:4] == ["query", "query", "query", "context"]
-    assert "WHERE location_id = %s::uuid" in query
-    assert "ORDER BY computed_at DESC, property_key, cv_strategy" in query
-    assert "fold_results" not in query and "metadata" not in query
+    assert "WHERE cv.location_id = %s::uuid" in query
+    assert "ORDER BY cv.computed_at DESC, cv.property_key, cv.cv_strategy" in query
+    assert "jsonb_array_elements(cv.fold_results)" in query
+    assert "'actual'" not in query and "'predicted'" not in query
+    assert "'block_id'" not in query and "metadata" not in query
     assert "soc_model_id" not in query and "variogram_model_id" not in query
-    assert params == (LOCATION_ID, 2, 3)
+    assert params == (10, 16 * 1024, LOCATION_ID, 2, 3)
     assert result["items"][0]["cv_strategy"] == "spatial_block"
     assert result["items"][0]["r_squared"] is None
+    assert result["items"][0]["fold_diagnostics"][0] == {
+        "fold": 1,
+        "train_samples": 30,
+        "test_samples": 5,
+        "mean_error": 0.1,
+        "mean_squared_error": 2.0,
+        "rmse": 1.4,
+        "mae": 0.9,
+        "r_squared": None,
+    }
     assert result["has_more"] is True
     assert connection.rollback_count == 1
     assert connection.closed
@@ -264,6 +283,56 @@ def test_invalid_cross_validation_scope_or_page_fails_before_connecting():
             OPERATOR_ID, LOCATION_ID, limit=0, connection_factory=connect
         )
     assert not called
+
+
+def test_cross_validation_fold_diagnostics_reject_point_level_and_small_sample_data():
+    leave_one_out = [{
+        "train_samples": 9,
+        "test_samples": 1,
+        "actual": 0.4,
+        "predicted": 0.5,
+        "rmse": 0.1,
+    }]
+    assert _safe_spatial_fold_diagnostics("leave_one_out", 1, leave_one_out) == []
+
+    small_spatial_block = [{
+        "train_samples": 9,
+        "test_samples": 4,
+        "mean_error": 0.1,
+        "mean_squared_error": 0.2,
+        "rmse": 0.4,
+        "mae": 0.3,
+        "r_squared": 0.7,
+    }]
+    assert _safe_spatial_fold_diagnostics("spatial_block", 1, small_spatial_block) == []
+
+
+def test_cross_validation_fold_diagnostics_are_bounded_and_fail_closed():
+    fold = {
+        "train_samples": "10",
+        "test_samples": "5",
+        "mean_error": "0.1",
+        "mean_squared_error": "0.2",
+        "rmse": "0.4",
+        "mae": "0.3",
+        "r_squared": "0.7",
+        "error": "private exception detail",
+        "block_id": 12345,
+    }
+    assert _safe_spatial_fold_diagnostics("spatial_block", 11, [fold] * 11) == []
+    assert _safe_spatial_fold_diagnostics("spatial_block", 1, [fold] * 2) == []
+    assert _safe_spatial_fold_diagnostics("spatial_block", 1, "[" + " " * (16 * 1024) + "]") == []
+    safe = _safe_spatial_fold_diagnostics("spatial_block", 1, [fold])
+    assert safe == [{
+        "fold": 1,
+        "train_samples": 10,
+        "test_samples": 5,
+        "mean_error": 0.1,
+        "mean_squared_error": 0.2,
+        "rmse": 0.4,
+        "mae": 0.3,
+        "r_squared": 0.7,
+    }]
 
 
 def test_variogram_read_is_scoped_bounded_and_omits_model_identity(monkeypatch):

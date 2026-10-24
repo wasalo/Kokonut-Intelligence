@@ -61,6 +61,11 @@ def test_spatial_cross_validation_is_grant_gated_bounded_and_advisory():
     ):
         assert field in reader
     assert "fold_results" not in reader and "metadata" not in reader
+    assert "fold_diagnostics" in reader
+    assert "fold.test_samples < 5" in reader
+    assert "Show ${item.fold_diagnostics.length} spatial fold aggregates" in reader
+    assert "Spatial-block fold aggregates" in source
+    assert "held-out samples" in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
 

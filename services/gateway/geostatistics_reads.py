@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from functools import partial
 from typing import Callable
@@ -24,6 +25,16 @@ _CV_NUMERIC_FIELDS = (
     "mean_squared_error",
     "root_mean_squared_error",
     "mean_absolute_error",
+    "r_squared",
+)
+_MAX_FOLD_DIAGNOSTICS = 10
+_MIN_FOLD_TEST_SAMPLES = 5
+_MAX_FOLD_DIAGNOSTICS_BYTES = 16 * 1024
+_FOLD_METRIC_FIELDS = (
+    "mean_error",
+    "mean_squared_error",
+    "rmse",
+    "mae",
     "r_squared",
 )
 _VARIOGRAM_NUMERIC_FIELDS = (
@@ -78,6 +89,71 @@ def _page(limit: int, offset: int) -> tuple[int, int]:
     if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= _MAX_OFFSET:
         raise ValueError(f"offset must be between 0 and {_MAX_OFFSET}")
     return limit, offset
+
+
+def _safe_spatial_fold_diagnostics(strategy: str, n_folds: int, value) -> list[dict]:
+    """Project only aggregate spatial-block diagnostics from bounded JSONB."""
+    if strategy != "spatial_block" or isinstance(n_folds, bool):
+        return []
+    if not isinstance(n_folds, int) or not 1 <= n_folds <= _MAX_FOLD_DIAGNOSTICS:
+        return []
+    if isinstance(value, str):
+        if len(value.encode("utf-8")) > _MAX_FOLD_DIAGNOSTICS_BYTES:
+            return []
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            return []
+    if not isinstance(value, list) or len(value) != n_folds:
+        return []
+
+    safe = []
+    for index, fold in enumerate(value, start=1):
+        if not isinstance(fold, dict):
+            return []
+        train_samples = _strict_nonnegative_int(fold.get("train_samples"))
+        test_samples = _strict_nonnegative_int(fold.get("test_samples"))
+        if train_samples is None or train_samples < 1:
+            return []
+        if test_samples is None or test_samples < _MIN_FOLD_TEST_SAMPLES:
+            return []
+
+        metrics = {}
+        for field in _FOLD_METRIC_FIELDS:
+            raw = fold.get(field)
+            if raw is None:
+                metrics[field] = None
+                continue
+            if isinstance(raw, bool):
+                return []
+            try:
+                number = float(raw)
+            except (TypeError, ValueError, OverflowError):
+                return []
+            metrics[field] = number if math.isfinite(number) else None
+
+        safe.append({
+            "fold": index,
+            "train_samples": train_samples,
+            "test_samples": test_samples,
+            **metrics,
+        })
+    return safe
+
+
+def _strict_nonnegative_int(value) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        result = value
+    elif isinstance(value, str) and value.isascii() and value.isdigit():
+        try:
+            result = int(value)
+        except (ValueError, OverflowError):
+            return None
+    else:
+        return None
+    return result if result >= 0 else None
 
 
 def list_location_spatial_autocorrelation(
@@ -181,19 +257,55 @@ def list_location_cross_validation(
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT property_key, cv_strategy, n_folds, block_size_m,
-                       mean_error, mean_squared_error, root_mean_squared_error,
-                       mean_absolute_error, r_squared, computed_at
-                  FROM geostat_cv_result
-                 WHERE location_id = %s::uuid
-                 ORDER BY computed_at DESC, property_key, cv_strategy, id DESC
+                SELECT cv.property_key, cv.cv_strategy, cv.n_folds, cv.block_size_m,
+                       cv.mean_error, cv.mean_squared_error, cv.root_mean_squared_error,
+                       cv.mean_absolute_error, cv.r_squared, cv.computed_at,
+                       CASE
+                           WHEN cv.cv_strategy = 'spatial_block'
+                            AND cv.n_folds BETWEEN 1 AND %s
+                            AND CASE
+                                    WHEN jsonb_typeof(cv.fold_results) = 'array'
+                                    THEN jsonb_array_length(cv.fold_results) = cv.n_folds
+                                     AND octet_length(cv.fold_results::text) <= %s
+                                    ELSE FALSE
+                                END
+                           THEN COALESCE((
+                               SELECT jsonb_agg(
+                                   jsonb_build_object(
+                                       'train_samples', fold.item ->> 'train_samples',
+                                       'test_samples', fold.item ->> 'test_samples',
+                                       'mean_error', fold.item ->> 'mean_error',
+                                       'mean_squared_error', fold.item ->> 'mean_squared_error',
+                                       'rmse', fold.item ->> 'rmse',
+                                       'mae', fold.item ->> 'mae',
+                                       'r_squared', fold.item ->> 'r_squared'
+                                   ) ORDER BY fold.ordinality
+                               )
+                                 FROM jsonb_array_elements(cv.fold_results)
+                                      WITH ORDINALITY AS fold(item, ordinality)
+                                WHERE jsonb_typeof(fold.item) = 'object'
+                           ), '[]'::jsonb)
+                           ELSE '[]'::jsonb
+                       END AS fold_diagnostics
+                  FROM geostat_cv_result AS cv
+                 WHERE cv.location_id = %s::uuid
+                 ORDER BY cv.computed_at DESC, cv.property_key, cv.cv_strategy, cv.id DESC
                  LIMIT %s OFFSET %s
                 """,
-                (location_id, limit + 1, offset),
+                (
+                    _MAX_FOLD_DIAGNOSTICS,
+                    _MAX_FOLD_DIAGNOSTICS_BYTES,
+                    location_id,
+                    limit + 1,
+                    offset,
+                ),
             )
             columns = [column[0] for column in cursor.description]
             rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
             for row in rows:
+                row["fold_diagnostics"] = _safe_spatial_fold_diagnostics(
+                    row["cv_strategy"], row["n_folds"], row["fold_diagnostics"]
+                )
                 for field in _CV_NUMERIC_FIELDS:
                     value = row[field]
                     if value is not None and not math.isfinite(value):

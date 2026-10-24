@@ -36,9 +36,17 @@ saved spatial-block, leave-one-out, and k-fold summaries with property key,
 strategy, fold count, optional block size, mean error, mean squared error,
 root mean squared error, mean absolute error, R-squared, and computation time.
 Ordering includes a private row-ID tie-breaker for stable offset pagination.
-Fold-level JSON, model identifiers, SOC model references, metadata, and
-free-text notes are not selected. Non-finite numeric fields become `null`.
-The console renders the fixed projection as text and labels it advisory.
+For spatial-block rows only, it additionally projects at most ten per-fold
+aggregate diagnostics when the saved array is valid, under 16 KiB, contains
+exactly the declared fold count, and every fold has at least five held-out
+samples. Each diagnostic contains only sequence number, train/test counts, and
+aggregate error metrics. Block identifiers, coordinates, individual actual
+or predicted values, failure details, model identifiers, SOC model references,
+metadata, and free-text notes are never selected. Leave-one-out and other
+strategies return no per-fold diagnostics because their stored details can
+contain point-level values. Invalid, small-sample, oversized, or non-finite
+data fails closed or becomes `null`. The console renders the fixed projection
+as text and labels it advisory.
 
 ## Fitted variogram route
 
@@ -88,10 +96,11 @@ drive a lifecycle transition.
 
 ## Remaining work
 
-Other geostatistics outputs such as kriging predictions/points and simulations,
-plus fold-level diagnostics, numerical/populated fixture parity, live OIDC and
-browser behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008`
-remain open. The autocorrelation producer can persist a narrative
+Other geostatistics outputs such as per-point kriging predictions/points and
+simulations, numerical/populated fixture parity, live OIDC and browser
+behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008` remain
+open. Fold aggregates are a bounded presentation of saved values, not a
+recomputation or scientific validation. The autocorrelation producer can persist a narrative
 interpretation, but this read deliberately omits it pending governed semantic
 review.
 

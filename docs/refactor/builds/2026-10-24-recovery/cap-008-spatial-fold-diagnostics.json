@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "bounded spatial-block cross-validation fold diagnostics",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/geostatistics/{location_id}/cross-validation",
+    "authorization": "exact geostatistics:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "projection": [
+      "fold sequence",
+      "training and held-out sample counts",
+      "mean error, mean squared error, RMSE, MAE, and R-squared"
+    ],
+    "eligibility": "spatial-block strategy only; all folds must be valid and have at least five held-out samples",
+    "source_bounds": "at most ten folds and 16 KiB of source JSON per result",
+    "suppressed": [
+      "leave-one-out and other strategy fold details",
+      "blocks with fewer than five held-out samples",
+      "malformed, incomplete, oversized, or inconsistent fold arrays"
+    ],
+    "omitted": [
+      "block identifiers and coordinates",
+      "point-level actual and predicted values",
+      "failure strings",
+      "variogram/SOC model identifiers",
+      "metadata and free-text notes"
+    ],
+    "console": "grant-gated, bounded response validation, text-only disclosure control",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "42 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "database_sql_execution": "not run; verification used fake connections and synthetic rows",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "other geostatistics Kernel paths",
+    "numerical and populated fixture parity",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the fixed fold projection and console presentation, then regenerate runtime_sql_inventory.json. No persistent data was written."
+}

@@ -1,3 +1,22 @@
+### Progress addendum — CAP-008 bounded spatial-block fold diagnostics, 24 October 2026
+
+The saved cross-validation read now includes a strict spatial-block fold
+projection when its source is small and complete: at most ten folds, 16 KiB of
+source JSON, and at least five held-out samples in every fold. The API returns
+only fold sequence, train/test counts, and aggregate error measures. It omits
+block IDs, coordinates, point-level actual/predicted values, failure strings,
+and model references; leave-one-out and other strategies return no fold detail.
+The console validates and renders those values through text nodes. The focused
+Gateway, console, and route-policy selection passes 42 tests; Ruff, Python
+compilation, JavaScript syntax, runtime SQL inventory, capability validation,
+and diff checks pass. No migration, candidate/legacy database, or provider was
+used. Remaining CAP-008 work includes other geostatistics outputs, numerical
+and populated fixture parity, live OIDC/browser, ACL/RLS, audience review, and
+MAN-CAP-008. Checklist: 1,083 complete / 25 open (1,108 total); capability
+matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with
+0/67 MAN-CAP checks accepted ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-spatial-fold-diagnostics.json)).
+
 ### Progress addendum — CAP-008 signed trend forecast generation, 24 October 2026
 
 The private forecast producer now requires exact `trend_analysis:compute`,
@@ -2907,7 +2926,7 @@ apply; the context is established before source queries, and reads plus the
 draft write share one connection and transaction. Callers cannot supply the
 generated blocks. Source categories are returned and stored as bounded tags,
 not represented as row-level evidence links. The focused Gateway, route-policy,
-and legacy suggestion selection passes 33 tests; eight database-backed legacy
+and legacy suggestion selection passes 42 tests; eight database-backed legacy
 checks skip because localhost PostgreSQL is unavailable. Ruff, compilation,
 matrix validation, and diff checks pass; no database or migration was touched.
 The fourteen-section status source now rolls back failed sections to PostgreSQL
@@ -4089,7 +4108,7 @@ column-scoped outbox access, and only the conflict-key read needed for
 idempotent insertion. The Directus hook no longer sends best-effort HTTP writes
 or holds ClickHouse credentials. Three focused hook tests and the Directus
 extension build pass; migration validation recognizes 425 ordered schema
-sources, the migration suite passes 33 tests, Ruff passes, and isolated
+sources, the migration suite passes 42 tests, Ruff passes, and isolated
 PostgreSQL 16 apply/replay, forced-RLS, ACL, zero-value, currency, and
 transaction rollback checks pass. No candidate, legacy database, or ClickHouse
 service was touched.
@@ -13075,7 +13094,7 @@ docs/refactor/builds/2026-10-17-recovery/sandbox-module-input-validation.json.
 
 Malformed rows returned by the migration ledger query now produce a fixed
 diagnostic instead of echoing database-returned text into the migration CLI
-log. The full migration module passes 33 tests; Ruff, compilation, and
+log. The full migration module passes 42 tests; Ruff, compilation, and
 diff-check pass. The regression uses a synthetic result and makes no database
 call. Checklist: 524 complete / 19 open; capability classifications remain
 unchanged. Evidence:
@@ -14265,7 +14284,7 @@ or non-positive quantities/prices before database writes. Listing edits apply
 the same guard. Price observations persist the supplied quality grade, and
 listing evaluation no longer issues an unused historical-yield query.
 
-The mocked marketplace unit suite passes 33 tests and 17 subtests with Ruff and
+The mocked marketplace unit suite passes 42 tests and 17 subtests with Ruff and
 compilation. No database or provider was contacted. Order lifecycle/custody,
 concurrent reservation, cooperative order parity, populated fixtures, tenant
 authorization, and MAN-CAP-058 remain open. Checklist: 685 complete / 24 open;
@@ -14628,7 +14647,7 @@ their review state. The dedicated non-login reader receives only the extra
 timestamps are not granted to the reader.
 
 The focused Gateway and exact route-policy selection passes 21 tests; the
-migration-runner selection passes 33 tests. Ruff, Python compilation,
+migration-runner selection passes 42 tests. Ruff, Python compilation,
 capability validation, repository/runtime SQL inventory checks, and disposable
 PostgreSQL 16 migration apply/replay pass. The disposable fixture passed 11
 acceptance groups for active farm mapping, tenant grants, pagination, privacy,
