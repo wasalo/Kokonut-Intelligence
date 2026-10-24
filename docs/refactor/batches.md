@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,057 checklist items complete and 25
-open (1,082 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,058 checklist items complete and 25
+open (1,083 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -83,6 +83,26 @@ acceptance remains separate; none is marked accepted.
   prepared pending calculation and populated-fixture parity, broader ACL/RLS,
   live OIDC/browser acceptance, and MAN-CAP-006 ([contract](landscape-pollinator-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-landscape-pollinator-kernel-read.json)).
+- [x] Reconcile the legacy pollinator analytics service with migrations 155/602.
+  Migration 602 additively restores structured observation/source, habitat,
+  pesticide measurement, and hive score fields, and adds
+  location-bound hive inspection history plus a composite location/hive link for
+  observations. The service now uses the actual source tables, valid type and
+  review values, a required observation date, bounded pesticide detail, and
+  same-location hive inspection transactions. Its historic 0–10 colony score
+  remains separate from the categorical status. The 35-test CAP-006
+  Gateway/console/pollinator/route-policy selection passes, as do Ruff,
+  compilation, CLI help, runtime SQL inventory, and matrix validation. A
+  disposable PostgreSQL 16 replay of 155/602 passes six grouped schema, replay,
+  write/read, and cross-location-link assertions. Candidate and legacy databases
+  are untouched; rollback retains the additive migration/history and reverts
+  the application only after new-field use stops. CAP-006 remains prepared:
+  populated report/calculation parity, signed tenant context for legacy CLI
+  access, ACL/RLS, live OIDC/browser, candidate rollout, and MAN-CAP-006 remain
+  open ([contract](landscape-pollinator-kernel-read-contract.md);
+  [service tests](../../tests/test_pollinator_health.py);
+  [disposable checker](../../scripts/check-pollinator-health-disposable.py);
+  [evidence](builds/2026-10-23-recovery/cap-006-pollinator-health-disposable.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

@@ -1,3 +1,26 @@
+### Progress addendum — CAP-006 pollinator legacy-service alignment, 23 October 2026
+
+The older pollinator analytics service now matches the installed source tables
+from migration 155 through additive migration 602. This restores structured
+observation/source and habitat fields, pesticide application measurements,
+distinct hive score fields, location-bound hive inspection history, and a
+composite location/hive relation for optional hive-linked observations. The
+service enforces schema enums before writes, stores new records as `recorded`,
+uses verified/reviewed evidence in summaries, bounds pesticide detail to 500,
+and keeps hive inspection append plus snapshot update atomic and location
+qualified. The historic 0–10 strength score is preserved separately from the
+categorical colony state. The 35-test Gateway/console/pollinator/route-policy
+selection passes; Ruff, Python compilation, CLI help, and runtime SQL inventory
+pass. Disposable PostgreSQL 16 applied 155/602, replayed 602, and passed six
+grouped schema, read/write, location-isolation, and FK checks. No candidate or
+legacy database, provider, or Raspberry Pi was used. This does not close
+populated output parity or make the shared-identity CLI tenant-safe; CAP-006
+remains prepared pending ACL/RLS, live OIDC/browser, candidate rollout, and
+MAN-CAP-006. Checklist: 1,058 complete / 25 open (1,083 total); matrix: 26
+baseline-retained, 7 deployed, and 34 prepared across 67 rows; 0/67 MAN-CAP
+checks accepted. [Contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-pollinator-health-disposable.json).
+
 ### Progress addendum — CAP-006 landscape and pollinator Kernel reads, 23 October 2026
 
 CAP-006 now exposes separate private, exact-location `landscape_conservation:read`

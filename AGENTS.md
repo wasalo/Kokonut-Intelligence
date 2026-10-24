@@ -91,6 +91,7 @@ Commands:
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
 - Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
+- Replay pollinator migrations 155/602 and exercise service SQL on disposable PostgreSQL 16: `python3 scripts/check-pollinator-health-disposable.py`
 - Verify report-calculation read-only enforcement against a local disposable PostgreSQL target: `REPORT_GENERATOR_TEST_DSN=postgresql://...@127.0.0.1:PORT/postgres python3 scripts/check-report-generator-readonly-disposable.py`
 - Exercise scheduler worker reconnection across a disposable PostgreSQL stop/start: `python3 scripts/check-scheduler-worker-reconnect-disposable.py`
 - Check worker SQL call inventory: `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
