@@ -601,6 +601,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    geostatistics_autocorrelation_match = re.fullmatch(
+        r"/operator/api/geostatistics/([0-9a-fA-F-]{36})/autocorrelation", path
+    )
+    if geostatistics_autocorrelation_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "geostatistics",
+            "action": "read",
+            "public": False,
+            "location_id": geostatistics_autocorrelation_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     energy_summary_match = re.fullmatch(
         r"/operator/api/energy/([0-9a-fA-F-]{36})/summary", path
     )
@@ -4500,6 +4513,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_extension_learning_routes,
     )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
+    from services.gateway.geostatistics_routes import register_geostatistics_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
     from services.gateway.irrigation_routes import register_irrigation_routes
     from services.gateway.landscape_conservation_routes import (
@@ -4539,6 +4553,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
     register_cooperative_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_trend_analysis_routes(router, provider, run_in_threadpool, psycopg2)
+    register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_waste_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_landscape_conservation_routes(router, provider, run_in_threadpool, psycopg2)

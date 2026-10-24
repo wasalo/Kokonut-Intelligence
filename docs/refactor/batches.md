@@ -19,10 +19,25 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,075 checklist items complete and 25
-open (1,100 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,076 checklist items complete and 25
+open (1,101 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved spatial autocorrelation Kernel read — 24 October 2026
+
+- [x] Add the private `GET /operator/api/geostatistics/{location_id}/autocorrelation`
+  read under exact `geostatistics:read` and signed tenant context. It returns
+  the latest saved statistic per property/metric for the exact location with
+  bounded paging, and omits IDs, narrative interpretation, metadata, and point
+  coordinates. Non-finite values become `null`. A separate hidden-by-default
+  console panel requires the geostatistics grant, validates response scope and
+  enums, suppresses stale results, and renders fixed values as text. Thirty-nine
+  focused Gateway/console/route-policy tests pass with Ruff, compilation,
+  JavaScript syntax, runtime SQL inventory, matrix validation, and diff checks.
+  No migration, provider, candidate, or legacy database was used. Rollback is
+  a source revert and inventory regeneration ([contract](geostatistics-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-spatial-autocorrelation-kernel-read.json)).
 
 ### CAP-008 saved forecast Kernel read — 24 October 2026
 

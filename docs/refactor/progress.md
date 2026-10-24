@@ -1,3 +1,18 @@
+### Progress addendum — CAP-008 saved spatial-autocorrelation Kernel read, 24 October 2026
+
+The operator console now has a separate exact-grant panel for the latest saved
+spatial-autocorrelation result per property/metric. The `geostatistics:read`
+route sets signed tenant context before its bounded read-only query and omits
+IDs, narrative interpretation, metadata, and point coordinates. Non-finite
+values become `null`. The 39-test Gateway/console/route-policy selection passes
+with Ruff, compilation, JavaScript syntax, runtime SQL inventory, capability
+validation, and diff checks. No migration, provider, candidate, or legacy
+database was used. Other geostatistics paths, populated/numerical parity, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 remain open. Checklist:
+1,076 complete / 25 open (1,101 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks
+accepted ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-spatial-autocorrelation-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved forecast Kernel read, 24 October 2026
 
 The trend-analysis panel now reads the latest saved forecast for a metric in

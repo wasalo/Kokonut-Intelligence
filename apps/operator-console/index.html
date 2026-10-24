@@ -1794,6 +1794,23 @@
           <div id="trend-analysis-items"></div>
           <button id="trend-analysis-more" class="secondary" type="button" hidden>Load more estimates</button>
         </section>
+        <section id="geostatistics-autocorrelation" hidden aria-labelledby="geostatistics-autocorrelation-heading">
+          <h2 id="geostatistics-autocorrelation-heading">Spatial autocorrelation</h2>
+          <p class="muted">Read-only saved Moran's I, Geary's C, and join-count summaries for the granted location. Interpretive notes, metadata, and point coordinates are omitted; stored statistics are advisory.</p>
+          <div class="toolbar">
+            <label for="geostatistics-autocorrelation-location">Granted location</label>
+            <select id="geostatistics-autocorrelation-location"></select>
+            <button id="geostatistics-autocorrelation-refresh" type="button">Refresh spatial statistics</button>
+          </div>
+          <p id="geostatistics-autocorrelation-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Property</th><th>Statistic</th><th>Value</th><th>Expected</th><th>p-value</th><th>z-score</th><th>Samples</th><th>Weights</th><th>Distance threshold (m)</th><th>k neighbors</th><th>Computed</th></tr></thead>
+              <tbody id="geostatistics-autocorrelation-rows"></tbody>
+            </table>
+          </div>
+          <button id="geostatistics-autocorrelation-more" class="secondary" type="button" hidden>Load more statistics</button>
+        </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
           <p class="muted">Read-only location-scoped batch, custody, quality, certification, food-safety, and provenance records. Actor identities, free text, GPS, evidence links, and arbitrary metadata are omitted. This view does not verify, publish, or attest a batch.</p>
@@ -3017,6 +3034,14 @@
       const trendDetailRequestVersions = new WeakMap();
       let trendAnalysisOffset = 0;
       let trendAnalysisMetricKeys = new Set();
+      const geostatisticsAutocorrelation = document.querySelector("#geostatistics-autocorrelation");
+      const geostatisticsAutocorrelationLocation = document.querySelector("#geostatistics-autocorrelation-location");
+      const geostatisticsAutocorrelationStatus = document.querySelector("#geostatistics-autocorrelation-status");
+      const geostatisticsAutocorrelationRows = document.querySelector("#geostatistics-autocorrelation-rows");
+      const geostatisticsAutocorrelationMore = document.querySelector("#geostatistics-autocorrelation-more");
+      let geostatisticsAutocorrelationLocations = new Set();
+      let geostatisticsAutocorrelationRequestVersion = 0;
+      let geostatisticsAutocorrelationOffset = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -14589,6 +14614,81 @@
         }
       }
 
+      async function loadGeostatisticsAutocorrelation(loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsAutocorrelationRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)) return;
+        const offset = loadMore ? geostatisticsAutocorrelationOffset : 0;
+        if (!loadMore) {
+          geostatisticsAutocorrelationOffset = 0;
+          geostatisticsAutocorrelationRows.replaceChildren();
+          geostatisticsAutocorrelationMore.hidden = true;
+        }
+        geostatisticsAutocorrelationStatus.textContent = loadMore
+          ? "Loading more spatial statistics…"
+          : "Loading saved spatial autocorrelation…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/autocorrelation?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Spatial autocorrelation reads are unavailable for this location.");
+            throw new Error("Saved spatial autocorrelation could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsAutocorrelationRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value) return;
+          const allowedMetrics = new Set(["morans_i", "gearys_c", "join_count"]);
+          const allowedWeights = new Set(["queen", "rook", "distance", "knn"]);
+          const nullableNumbers = ["statistic_value", "expected_value", "p_value", "z_score", "distance_threshold"];
+          if (result.location_id !== locationId || !Array.isArray(result.items)
+              || result.items.length > 25 || result.limit !== 25 || result.offset !== offset
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item) => typeof item.property_key !== "string"
+                || item.property_key.length > 100
+                || !allowedMetrics.has(item.metric)
+                || !Number.isInteger(item.n_samples) || item.n_samples < 0
+                || (item.spatial_weights_type !== null && !allowedWeights.has(item.spatial_weights_type))
+                || (item.k_neighbors !== null && (!Number.isInteger(item.k_neighbors) || item.k_neighbors < 1))
+                || typeof item.computed_at !== "string"
+                || nullableNumbers.some((field) => item[field] !== null
+                  && (typeof item[field] !== "number" || !Number.isFinite(item[field]))))) {
+            throw new Error("The spatial autocorrelation response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.property_key, item.metric, item.statistic_value, item.expected_value,
+              item.p_value, item.z_score, item.n_samples, item.spatial_weights_type,
+              item.distance_threshold, item.k_neighbors, item.computed_at,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString()
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsAutocorrelationRows.append(row);
+          }
+          geostatisticsAutocorrelationOffset = offset + result.items.length;
+          geostatisticsAutocorrelationMore.hidden = result.has_more !== true
+            || geostatisticsAutocorrelationOffset > 10000;
+          geostatisticsAutocorrelationStatus.textContent = geostatisticsAutocorrelationOffset
+            ? `${geostatisticsAutocorrelationOffset.toLocaleString()} saved spatial statistics shown. Values remain advisory.`
+            : "No saved spatial autocorrelation is available for this location.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsAutocorrelationRequestVersion) return;
+          if (!loadMore) geostatisticsAutocorrelationRows.replaceChildren();
+          geostatisticsAutocorrelationMore.hidden = true;
+          geostatisticsAutocorrelationStatus.textContent = error.message;
+        }
+      }
+
       function yieldMonitoringValue(value) {
         if (value === null || value === undefined || value === "") return "—";
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -16974,6 +17074,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           trendAnalysisLocations = new Set(trendAnalysisLocationIds);
+          const geostatisticsAutocorrelationLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "geostatistics" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          geostatisticsAutocorrelationLocations = new Set(geostatisticsAutocorrelationLocationIds);
           const yieldMonitoringLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "yield_monitoring" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -17402,6 +17508,17 @@
             }
             trendAnalysis.hidden = false;
             await loadTrendEstimates();
+            hasAuthorizedSurface = true;
+          }
+          if (geostatisticsAutocorrelationLocationIds.length) {
+            for (const locationId of geostatisticsAutocorrelationLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              geostatisticsAutocorrelationLocation.append(option);
+            }
+            geostatisticsAutocorrelation.hidden = false;
+            await loadGeostatisticsAutocorrelation();
             hasAuthorizedSurface = true;
           }
           if (yieldMonitoringLocationIds.length) {
@@ -21830,6 +21947,9 @@
       document.querySelector("#trend-analysis-refresh").addEventListener("click", () => loadTrendEstimates());
       trendAnalysisLocation.addEventListener("change", () => loadTrendEstimates());
       trendAnalysisMore.addEventListener("click", () => loadTrendEstimates(true));
+      document.querySelector("#geostatistics-autocorrelation-refresh").addEventListener("click", () => loadGeostatisticsAutocorrelation());
+      geostatisticsAutocorrelationLocation.addEventListener("change", () => loadGeostatisticsAutocorrelation());
+      geostatisticsAutocorrelationMore.addEventListener("click", () => loadGeostatisticsAutocorrelation(true));
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

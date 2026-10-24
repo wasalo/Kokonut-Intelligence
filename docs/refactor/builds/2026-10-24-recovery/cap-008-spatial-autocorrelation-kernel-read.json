@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "location-scoped saved spatial-autocorrelation read",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/geostatistics/{location_id}/autocorrelation",
+    "authorization": "exact geostatistics:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "source": "latest spatial_autocorrelation row per property and statistic for exact location",
+    "pagination": "limit 1-50; offset 0-10000",
+    "projection": [
+      "property key",
+      "Moran's I, Geary's C, or join-count metric",
+      "statistic, expected value, p-value, and z-score",
+      "sample count",
+      "weight type, distance threshold, and neighbor count",
+      "computed time"
+    ],
+    "omitted": ["database IDs", "interpretive text", "metadata", "point coordinates"],
+    "non_finite_values": "converted to null",
+    "console": "separate grant-gated location panel; fixed text rendering; advisory label",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "39 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "other geostatistics outputs and populated/numerical parity",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the spatial-autocorrelation reader/route/policy and console panel, then regenerate the runtime SQL inventory. No persistent data was written."
+}
