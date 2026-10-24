@@ -1,3 +1,23 @@
+### Progress addendum — CAP-006 aggregate landscape-reference preflight, 23 October 2026
+
+An operator-run preflight now counts location-mismatched corridor source,
+corridor target, and buffer-habitat references in one repeatable-read,
+read-only transaction with a two-second lock timeout and 30-second statement
+timeout. It emits only the three fixed reference categories and global counts;
+it never selects farm, habitat, corridor, monitoring, or descriptive
+identifiers. The database target must be explicitly supplied, and
+the DSN is not included in output. Four unit tests and the six existing
+disposable PostgreSQL landscape groups plus two preflight groups pass, including
+a write-denial assertion for the read-only transaction. No
+candidate or legacy database was accessed; the synthetic fixture contains two
+historic mismatches and confirms their aggregate counts without leaking its
+UUIDs or names. This enables a reviewed migration inventory but does not
+reconcile any real row or validate migration 603's historical constraints.
+Checklist: 1,060 complete / 25 open (1,085 total); matrix: 26
+baseline-retained, 7 deployed, and 34 prepared across 67 rows; 0/67 MAN-CAP
+checks accepted. [Contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json).
+
 ### Progress addendum — CAP-006 location-bound landscape references, 23 October 2026
 
 Migration 603 binds corridor source/target habitats and buffer-check habitats to

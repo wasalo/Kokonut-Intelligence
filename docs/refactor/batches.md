@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,059 checklist items complete and 25
-open (1,084 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,060 checklist items complete and 25
+open (1,085 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -111,13 +111,26 @@ acceptance remains separate; none is marked accepted.
   historical mismatch does not reveal another farm's habitat name or inflate
   its inventory. The 71-test landscape/migration/Gateway selection passes, as
   do Ruff and compilation. Disposable PostgreSQL 16 applies/replays migrations
-  154/603 with six grouped checks: legacy mismatch retention and privacy-safe
+  154/603 with eight grouped checks: legacy mismatch retention and privacy-safe
   views, rejection of new cross-farm references, and successful same-farm links.
   Candidate and legacy databases remain untouched. Historical link review and
   later constraint validation, broader ACL/RLS, live OIDC/browser, and
   MAN-CAP-006 remain open ([contract](landscape-pollinator-kernel-read-contract.md);
   [tests](../../tests/test_landscape_reference_location.py);
   [checker](../../scripts/check-landscape-reference-location-disposable.py);
+  [evidence](builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json)).
+- [x] Add an operator-run historical-reference preflight that starts a
+  repeatable-read, read-only transaction with bounded lock/query timeouts and
+  returns only global counts for corridor source, corridor target, and
+  buffer-habitat mismatches. The explicit target DSN is never printed; unit
+  checks reject unexpected result categories, and the disposable migration
+  fixture confirms counts without returning farm, habitat, corridor, or
+  descriptive identifiers, and rejects a write attempt. This prepares
+  reconciliation; it does not approve individual repairs or validate the
+  historical FKs.
+  Candidate and legacy databases remain untouched ([contract](landscape-pollinator-kernel-read-contract.md);
+  [checker](../../scripts/landscape-reference-preflight.py);
+  [tests](../../tests/test_landscape_reference_preflight.py);
   [evidence](builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026

@@ -82,11 +82,28 @@ discard stale responses, and render values through `textContent`.
 
 ## Verification and rollback
 
+### Historical location-reference preflight
+
+Run `LANDSCAPE_REFERENCE_PREFLIGHT_DSN=... python3
+scripts/landscape-reference-preflight.py` only after explicitly selecting the
+intended database target. The script makes no connection when the variable is
+unset and never prints the DSN. Its first statement makes the transaction
+repeatable-read and read-only; lock waits are capped at two seconds and the
+query at 30 seconds. The result contains global counts for the fixed
+`corridor_source`, `corridor_target`, and `buffer_habitat` categories only; it
+does not expose row, location, habitat, or descriptive values. A nonzero count
+is a reconciliation queue size, not authorization to rewrite a row. Run it
+against a reviewed source copy first; only after every mismatch is reconciled
+should an operator separately validate migration 603's three composite
+constraints.
+
 The focused migration, landscape-domain, Gateway, route-policy, console,
 JavaScript syntax, and pollinator service selection passes 71 tests; Ruff and
-Python compilation pass. A disposable PostgreSQL 16 check applies migrations
-154/603 and passes six grouped checks for historical link privacy and new-write
-scope; a separate check applies 155/602 and passes six service/schema assertions.
+Python compilation pass. The aggregate preflight adds four unit tests. A
+disposable PostgreSQL 16 check applies migrations 154/603 and passes eight
+grouped checks for historical link privacy, new-write scope, sanitized
+aggregate mismatch counts, and read-only write denial; a separate check applies
+155/602 and passes six service/schema assertions.
 Evidence is in
 `builds/2026-10-23-recovery/cap-006-pollinator-health-disposable.json` and the
 `builds/2026-10-23-recovery/cap-006-landscape-reference-location-disposable.json`;

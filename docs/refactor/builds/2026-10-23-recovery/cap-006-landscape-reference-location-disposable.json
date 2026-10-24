@@ -1,15 +1,29 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-24T02:40:42.209985+00:00",
+  "checked_at": "2026-10-24T02:59:26.879970+00:00",
   "database": "PostgreSQL 16 disposable container with a geometry domain stub",
   "migrations": [
     "154_landscape_conservation.sql",
     "603_location_bound_landscape_references.sql"
   ],
   "migration_603_replayed": true,
-  "assertion_groups_passed": 6,
+  "assertion_groups_passed": 8,
+  "historical_reference_preflight": {
+    "scope": "all_locations_global_aggregate",
+    "location_reference_mismatch_counts": {
+      "corridor_source": 1,
+      "corridor_target": 0,
+      "buffer_habitat": 1
+    },
+    "total_location_reference_mismatch_count": 2,
+    "status": "mismatches_present"
+  },
+  "preflight_write_attempt_rejected": true,
   "checks": [
     "migration 603 adds location-composite references without rejecting historic rows",
+    "read-only preflight returns only global counts for the three fixed reference types",
+    "operator CLI requires an explicit target and prints only the sanitized aggregate",
+    "read-only preflight transaction rejects a synthetic write",
     "legacy corridor/buffer views hide mismatched foreign habitat names and counts",
     "new cross-location source-habitat and buffer links fail database constraints",
     "same-location corridor and buffer relationships remain available",
