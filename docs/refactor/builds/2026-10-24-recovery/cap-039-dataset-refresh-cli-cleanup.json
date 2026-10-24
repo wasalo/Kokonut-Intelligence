@@ -1,0 +1,56 @@
+{
+  "capability": "CAP-039",
+  "batch": "dataset-refresh CLI selector and cleanup contract",
+  "date": "2026-10-24",
+  "status": "passed",
+  "behavior": {
+    "feature_default": "disabled; legacy_dataset_sql remains opt-in",
+    "conflicting_selectors": [
+      "--all with --list",
+      "--all with --dataset-id"
+    ],
+    "conflict_preflight": "argparse rejects conflicts before feature checks or PostgreSQL access",
+    "cleanup": [
+      "list_datasets always closes its cursor after query or fetch failure",
+      "--list closes the application connection after inventory failure",
+      "--all closes the application connection after inventory failure"
+    ]
+  },
+  "verification": {
+    "dataset_refresh_tests": {
+      "command": "python3 -m pytest tests/test_dataset_refresh_readonly.py -q",
+      "result": "18 passed"
+    },
+    "scheduler_and_feature_contract_tests": {
+      "command": "python3 -m pytest tests/test_scheduled_command_contracts.py tests/test_core_features.py -k 'dataset_refresh or dataset' -q",
+      "result": "5 passed, 143 deselected"
+    },
+    "ruff": {
+      "command": "ruff check services/export/dataset_refresh.py tests/test_dataset_refresh_readonly.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/export/dataset_refresh.py tests/test_dataset_refresh_readonly.py",
+      "result": "passed"
+    },
+    "static_inventories": {
+      "result": "runtime SQL, worker source closure, function reachability, SQL inventory, SQL reachability, and worker boundary preflight regenerated and checked"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared; MAN-CAP checks remain separately gated"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "database_or_provider_used": false,
+  "candidate_or_legacy_touched": false,
+  "schema_migration_required": false,
+  "remaining": [
+    "legacy_dataset_sql stays disabled by default",
+    "query-ID policy, location parameterization, and tenant scope",
+    "retained-dashboard selection and populated report parity"
+  ]
+}

@@ -19,10 +19,24 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,096 checklist items complete and 25
-open (1,121 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,097 checklist items complete and 25
+open (1,122 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-039 dataset-refresh CLI selector and cleanup contract — 24 October 2026
+
+- [x] Reject conflicting `--all` combinations with `--list` or `--dataset-id`
+  before feature checks or database access. Close inventory cursors and
+  application connections on query/fetch failures for list and bulk paths. The
+  18-test dataset-refresh suite and five matching scheduler/feature checks pass;
+  Ruff, compilation, six SQL/worker inventory checks, capability validation,
+  and diff checks pass. `legacy_dataset_sql` remains disabled by default; no
+  database, provider, candidate, or legacy stack was used. No migration is
+  needed. Rollback reverts source, tests, evidence, and regenerated inventory
+  files. Query-ID policy, location parameterization/tenant scope, and populated
+  report/dashboard parity remain open ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-cli-cleanup.json)).
+  Checklist: 1,097 complete / 25 open (1,122 total).
 
 ### CAP-008 configurable conditional-simulation mode count — 24 October 2026
 

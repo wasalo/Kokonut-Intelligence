@@ -206,6 +206,69 @@ def test_no_operation_prints_help_without_opening_database(monkeypatch, capsys):
     assert "Dashboard Dataset Refresh Engine" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    "arguments",
+    [["--all", "--list"], ["--all", "--dataset-id", "dataset-1"]],
+)
+def test_conflicting_refresh_selectors_fail_before_opening_database(
+    monkeypatch, arguments
+):
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", *arguments])
+    monkeypatch.setattr(
+        dataset_refresh,
+        "get_pg",
+        lambda: pytest.fail("conflicting selectors must fail before PostgreSQL"),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        dataset_refresh.main()
+
+    assert error.value.code == 2
+
+
+@pytest.mark.parametrize("failure_phase", ["execute", "fetchall"])
+def test_list_datasets_closes_cursor_when_inventory_fails(failure_phase):
+    conn = FakeApplicationConnection()
+
+    class FailingCursor(FakeCursor):
+        def execute(self, _sql: str, _params: Any = None) -> None:
+            if failure_phase == "execute":
+                raise RuntimeError("synthetic inventory failure")
+
+        def fetchall(self):
+            if failure_phase == "fetchall":
+                raise RuntimeError("synthetic inventory failure")
+            return []
+
+    cursor = FailingCursor(conn)
+    conn.cursor = lambda *args, **kwargs: cursor
+
+    with pytest.raises(RuntimeError, match="synthetic inventory failure"):
+        dataset_refresh.list_datasets(conn)
+
+    assert cursor.closed
+
+
+@pytest.mark.parametrize("arguments", [["--list"], ["--all"]])
+def test_list_and_bulk_refresh_close_connection_when_inventory_fails(
+    monkeypatch, arguments
+):
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", *arguments])
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "list_datasets",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("synthetic inventory failure")),
+    )
+
+    with pytest.raises(RuntimeError, match="synthetic inventory failure"):
+        dataset_refresh.main()
+
+    assert conn.closed
+
+
 def test_dataset_refresh_all_redacts_outer_exception_and_dataset_name(
     monkeypatch, capsys
 ):

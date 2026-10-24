@@ -39,16 +39,16 @@ def get_pg():
 def list_datasets(conn, dataset_id: str = None):
     """List existing dashboard datasets."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if dataset_id:
-        cur.execute(
-            "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE id = %s",
-            (dataset_id,),
-        )
-    else:
-        cur.execute(
-            "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE status = 'active' ORDER BY name"
-        )
     try:
+        if dataset_id:
+            cur.execute(
+                "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE id = %s",
+                (dataset_id,),
+            )
+        else:
+            cur.execute(
+                "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE status = 'active' ORDER BY name"
+            )
         return [dict(r) for r in cur.fetchall()]
     finally:
         cur.close()
@@ -146,6 +146,11 @@ def main():
     parser.add_argument("--all", action="store_true", help="Refresh all active datasets")
     args = parser.parse_args()
 
+    if args.all and args.list:
+        parser.error("--all cannot be combined with --list")
+    if args.all and args.dataset_id:
+        parser.error("--all cannot be combined with --dataset-id")
+
     # Listing is a read-only inventory operation and remains available while
     # the legacy SQL runner is disabled. Reject refresh requests before opening
     # the application database so an off feature has no connection side effect.
@@ -159,19 +164,21 @@ def main():
     conn = get_pg()
 
     if args.list:
-        datasets = list_datasets(conn, args.dataset_id)
-        if not datasets:
-            print("No active datasets found.")
-        else:
-            print(f"{'ID':<38} {'Name':<30} {'Type':<15} {'Status':<10} {'Interval':<10} {'Last Refreshed'}")
-            print("-" * 140)
-            for d in datasets:
-                interval = f"{d['refresh_interval_minutes']}min" if d["refresh_interval_minutes"] else "manual"
-                last = str(d["last_refreshed_at"] or "never")[:19]
-                print(
-                    f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}"
-                )
-        conn.close()
+        try:
+            datasets = list_datasets(conn, args.dataset_id)
+            if not datasets:
+                print("No active datasets found.")
+            else:
+                print(f"{'ID':<38} {'Name':<30} {'Type':<15} {'Status':<10} {'Interval':<10} {'Last Refreshed'}")
+                print("-" * 140)
+                for d in datasets:
+                    interval = f"{d['refresh_interval_minutes']}min" if d["refresh_interval_minutes"] else "manual"
+                    last = str(d["last_refreshed_at"] or "never")[:19]
+                    print(
+                        f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}"
+                    )
+        finally:
+            conn.close()
         return
 
     if args.dataset_id:
@@ -195,32 +202,33 @@ def main():
         return
 
     if args.all:
-        # Refresh all active datasets
-        datasets = list_datasets(conn)
-        if not datasets:
-            print("No active datasets found.")
-            conn.close()
-            return
+        try:
+            # Refresh all active datasets
+            datasets = list_datasets(conn)
+            if not datasets:
+                print("No active datasets found.")
+                return
 
-        print(f"Refreshing {len(datasets)} datasets...")
-        success = 0
-        failed = 0
-        for d in datasets:
-            try:
-                result = refresh_dataset(conn, str(d["id"]))
-                status_icon = "✓" if result["status"] == "active" else "✗"
-                if result["status"] == "active":
-                    print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
-                    success += 1
-                else:
-                    print("  ✗ dataset refresh failed (reported query error)")
+            print(f"Refreshing {len(datasets)} datasets...")
+            success = 0
+            failed = 0
+            for d in datasets:
+                try:
+                    result = refresh_dataset(conn, str(d["id"]))
+                    status_icon = "✓" if result["status"] == "active" else "✗"
+                    if result["status"] == "active":
+                        print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
+                        success += 1
+                    else:
+                        print("  ✗ dataset refresh failed (reported query error)")
+                        failed += 1
+                except Exception as exc:
+                    print(f"  ✗ {_dataset_failure_summary(exc)}")
                     failed += 1
-            except Exception as exc:
-                print(f"  ✗ {_dataset_failure_summary(exc)}")
-                failed += 1
 
-        print(f"\nDone: {success} refreshed, {failed} failed")
-        conn.close()
+            print(f"\nDone: {success} refreshed, {failed} failed")
+        finally:
+            conn.close()
         return
 
 if __name__ == "__main__":

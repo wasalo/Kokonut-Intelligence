@@ -1,3 +1,17 @@
+### Current CAP-039 implementation slice — dataset-refresh CLI selector and cleanup, 24 October 2026
+
+The legacy dataset-refresh command rejects `--all` with `--list` or
+`--dataset-id` before feature checks or PostgreSQL access. Cursor and
+application-connection cleanup now covers failed list and bulk inventory
+queries. Eighteen module tests and five scheduler/feature contract checks
+pass, along with Ruff, compilation, six static inventory checks, capability
+validation, and diff checks. Stored-SQL refresh remains disabled by default;
+no database/provider or candidate/legacy stack was used. No schema migration is
+needed. Remaining report work includes query-ID policy, location parameter and
+tenant scope, and retained dashboard/populated parity. Rollback is a source,
+test, evidence, and inventory revert. Checklist: 1,097 complete / 25 open
+(1,122 total) ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-cli-cleanup.json)).
+
 ### Progress addendum — CAP-008 configurable conditional-simulation mode count, 24 October 2026
 
 The seeded GSTools `RandMeth` mode count is now configurable from 1 to 1,000 via `--mode-no`, retaining the previous 1,000-mode default. Lower mode counts trade spectral fidelity for runtime and are recorded with generator, sampling policy, and GSTools version in realization JSONB metadata. The CLI and database runner preflight the range. Added deterministic 128-draw conditional-moment checks for spherical and Gaussian at 100 modes; Matérn remains a finite-draw smoke case. The geostatistics suite passes 145 tests with focused checks, Ruff, compilation, and diff checks. No migration or database was used. This does not replace populated-data parity or scientific review. Checklist: 1,096 complete / 25 open (1,121 total) ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-mode-count-and-family-moments.json)).

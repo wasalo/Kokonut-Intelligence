@@ -1,3 +1,17 @@
+### Progress addendum — CAP-039 dataset-refresh CLI selector and cleanup contract, 24 October 2026
+
+The legacy dataset-refresh CLI now rejects `--all` combined with `--list` or
+`--dataset-id` before feature checks or PostgreSQL access. Dataset inventory
+cursors and application connections close reliably when list or bulk inventory
+queries fail. The module suite passes 18 tests and the matching scheduler and
+feature checks pass five; Ruff, compilation, six static SQL/worker inventory
+checks, matrix validation, and diff checks pass. The saved-SQL refresh remains
+disabled by default. No database, provider, candidate, or legacy service was
+used, and no migration is required. Query-ID policy, location parameterization
+and tenant scope, and retained-report/dashboard parity remain open. Rollback is
+a source, test, evidence, and regenerated-inventory revert. Checklist: 1,097
+complete / 25 open (1,122 total) ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-cli-cleanup.json)).
+
 ### Progress addendum — CAP-008 configurable conditional-simulation mode count, 24 October 2026
 
 The seeded GSTools `RandMeth` mode count is now configurable from 1 to 1,000 via `--mode-no`; the existing 1,000-mode default remains unchanged. Lower counts trade spectral fidelity for runtime, so the simulator persists the mode count, generator, sampling policy, and GSTools version in the existing realization metadata column. Input is rejected before database access when the count is out of range. Deterministic 128-draw tests compare spherical and Gaussian conditional means and variances against ordinary-kriging references at 100 modes; Matérn remains a finite-draw smoke case. The full geostatistics module passes 145 tests, with focused checks, Ruff, compilation, and diff checks passing. No migration, database, provider, candidate, or legacy stack was used. This adds software configurability and synthetic model-consistency evidence only; representative-data parity, independent scientific review, live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 remain open. Checklist: 1,096 complete / 25 open (1,121 total) ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-mode-count-and-family-moments.json)).
