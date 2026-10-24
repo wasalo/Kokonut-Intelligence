@@ -60,6 +60,11 @@ observation that produced it. If a fold fails, aggregate error and R-squared
 metrics use only the remaining successful pairs; later folds are never
 compared to an earlier observation by array position.
 
+The database runner accepts only `soil_carbon`, `soil_moisture`, `soil_ph`,
+and `ndvi`. Each soil property maps to an explicit source column; unsupported
+keys fail before the database is opened. This avoids silently treating an
+unknown soil property as organic carbon.
+
 ## Fitted variogram route
 
 `GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same

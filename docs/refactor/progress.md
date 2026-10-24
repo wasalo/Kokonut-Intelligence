@@ -1,3 +1,16 @@
+### Progress addendum — CAP-008 cross-validation property mapping, 24 October 2026
+
+Cross-validation now recognizes only `soil_carbon`, `soil_moisture`,
+`soil_ph`, and `ndvi`. The three soil properties each map to their own fixed
+database column; unsupported values are rejected before opening PostgreSQL,
+so unknown `soil_*` names cannot silently produce organic-carbon results under
+another label. The full geostatistics module passes 62 tests; Ruff, compilation,
+refreshed runtime SQL inventory, and diff checks pass. No database or migration
+was used. Checklist: 1,086 complete / 25 open (1,111 total); CAP-008 remains
+prepared, with scientific/populated parity, live OIDC/browser, ACL/RLS,
+audience review, and MAN-CAP-008 still open
+([evidence](builds/2026-10-24-recovery/cap-008-cross-validation-property-map.json)).
+
 ### Progress addendum — CAP-008 leave-one-out metric pairing, 24 October 2026
 
 Leave-one-out CV previously compared successful predictions against the first

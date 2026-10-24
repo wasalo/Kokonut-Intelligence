@@ -441,6 +441,44 @@ class TestSpatialCrossValidator:
         cv.spatial_block_cv.assert_called_once()
         mock_cursor.close.assert_called_once()
 
+    def test_cross_validation_rejects_unknown_soil_property_before_connecting(self):
+        cv, _ = self._make_cv()
+
+        result = cv.cross_validate_from_db(
+            "location-a", "soil_nitrogen", variogram_model_id="model-a"
+        )
+
+        assert result == {"error": "Unsupported property_key: soil_nitrogen"}
+        cv._conn.cursor.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("property_key", "column"),
+        [("soil_moisture", "moisture_pct"), ("soil_ph", "ph")],
+    )
+    def test_cross_validation_uses_the_selected_soil_property_column(self, property_key, column):
+        cv, mock_cursor = self._make_cv()
+        mock_cursor.fetchone.return_value = {
+            "model_type": "exponential",
+            "sill": 2.5,
+            "range": 500.0,
+            "nugget": 0.1,
+        }
+        mock_cursor.fetchall.return_value = [
+            {"lat": 18.5 + index / 1000, "lon": -69.9 + index / 1000, "value": 1.0 + index}
+            for index in range(4)
+        ]
+        cv.spatial_block_cv = MagicMock(return_value={"cv_strategy": "spatial_block"})
+
+        result = cv.cross_validate_from_db(
+            "location-a", property_key, variogram_model_id="model-a"
+        )
+
+        point_query, point_params = mock_cursor.execute.call_args_list[1].args
+        assert f"ss.{column} AS value" in point_query
+        assert "ss.organic_carbon_pct AS value" not in point_query
+        assert point_params == ("location-a",)
+        assert result["property_key"] == property_key
+
     def test_spatial_block_cv_returns_metrics(self):
         cv, _ = self._make_cv()
         coords, values = _make_spatial_data(n=30)

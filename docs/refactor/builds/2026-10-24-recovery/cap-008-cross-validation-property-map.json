@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "cross-validation property allowlist and source mapping",
+  "classification": "prepared",
+  "implementation": {
+    "source": "services/geostatistics/cross_validation.py:SpatialCrossValidator.cross_validate_from_db",
+    "supported_properties": {
+      "soil_carbon": "soil_sample.organic_carbon_pct",
+      "soil_moisture": "soil_sample.moisture_pct",
+      "soil_ph": "soil_sample.ph",
+      "ndvi": "remote_sensing_observation.ndvi"
+    },
+    "unsupported_property_behavior": "return before opening the database connection",
+    "fallback_behavior": "unknown soil property keys cannot fall back to organic carbon",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "62 passed",
+    "coverage": "unsupported-key preflight plus exact moisture and pH source-column selection",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "database_execution": "not run; mocked connections assert preflight and selected SQL column",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "scientific and populated fixture parity",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the property allowlist and mapping tests. No persistent data was changed."
+}

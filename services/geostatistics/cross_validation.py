@@ -17,6 +17,12 @@ from .config import (
     CV_STRATEGIES,
 )
 
+_SOIL_PROPERTY_COLUMNS = {
+    "soil_carbon": "organic_carbon_pct",
+    "soil_moisture": "moisture_pct",
+    "soil_ph": "ph",
+}
+
 
 class SpatialCrossValidator:
     """Spatial cross-validation for geostatistical models."""
@@ -259,6 +265,8 @@ class SpatialCrossValidator:
         """Run spatial cross-validation from database point data."""
         if cv_strategy not in CV_STRATEGIES:
             return {"error": f"Unknown cv_strategy: {cv_strategy}. Use one of {CV_STRATEGIES}"}
+        if property_key not in _SOIL_PROPERTY_COLUMNS and property_key != "ndvi":
+            return {"error": f"Unsupported property_key: {property_key}"}
 
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -295,13 +303,8 @@ class SpatialCrossValidator:
             variogram_model = vm_result
 
         # Fetch point data
-        if property_key.startswith("soil_"):
-            col_map = {
-                "soil_carbon": "organic_carbon_pct",
-                "soil_moisture": "moisture_pct",
-                "soil_ph": "ph",
-            }
-            val_col = col_map.get(property_key, "organic_carbon_pct")
+        if property_key in _SOIL_PROPERTY_COLUMNS:
+            val_col = _SOIL_PROPERTY_COLUMNS[property_key]
             cur.execute(f"""
                 SELECT ss.gps_latitude AS lat, ss.gps_longitude AS lon,
                        ss.{val_col} AS value
