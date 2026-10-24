@@ -19,10 +19,29 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,069 checklist items complete and 25
-open (1,094 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
+**Current snapshot (24 October 2026):** 1,070 checklist items complete and 25
+open (1,095 total). The [capability matrix](capability-matrix.md) has 67 validated
+rows: 25 baseline-retained, 7 deployed, and 35 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-005 cooperative management Kernel summary — 24 October 2026
+
+- [x] Add a first private cooperative-management read at
+  `GET /operator/api/cooperatives/{location_id}/summary`, gated by exact
+  `cooperative_management:read` and signed database tenant context. The
+  repeatable-read, read-only transaction returns grouped cooperative,
+  membership, shared-asset, and booking counts only. Member identity,
+  credentials/KYC, booking detail, financial values, GPS, evidence, and free
+  text remain omitted; joins require the exact cooperative location and
+  same-location membership. A hidden-by-default console panel renders fixed
+  fields as text. Twelve focused Gateway, console, and route-policy checks pass;
+  Ruff, compilation, JavaScript syntax, runtime SQL inventory, and diff checks
+  pass. No migration, provider, candidate, or legacy database was used.
+  Rollback is a source revert and runtime SQL inventory regeneration; no
+  persistent data was written. Profile/credential workflows, populated parity,
+  live OIDC/browser, least-privilege ACL/RLS, audience/privacy review, and
+  MAN-CAP-005 remain open ([contract](cooperative-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-005-cooperative-management-kernel-read.json)).
 
 ### CAP-006 currency-safe energy costs — 24 October 2026
 

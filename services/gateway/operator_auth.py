@@ -523,6 +523,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    cooperative_management_match = re.fullmatch(
+        r"/operator/api/cooperatives/([0-9a-fA-F-]{36})/summary", path
+    )
+    if cooperative_management_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "cooperative_management",
+            "action": "read",
+            "public": False,
+            "location_id": cooperative_management_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     energy_summary_match = re.fullmatch(
         r"/operator/api/energy/([0-9a-fA-F-]{36})/summary", path
     )
@@ -4400,6 +4413,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_competitive_landscape_routes,
     )
     from services.gateway.comprehensive_status_routes import register_comprehensive_status_routes
+    from services.gateway.cooperative_management_routes import (
+        register_cooperative_management_routes,
+    )
     from services.gateway.coordination_routes import register_coordination_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.crop_simulation_routes import register_crop_simulation_routes
@@ -4455,6 +4471,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
+    register_cooperative_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_waste_management_routes(router, provider, run_in_threadpool, psycopg2)
     register_landscape_conservation_routes(router, provider, run_in_threadpool, psycopg2)

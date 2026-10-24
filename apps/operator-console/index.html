@@ -1771,6 +1771,17 @@
             <button id="extension-learning-more" class="secondary" type="button" hidden>Load more modules</button>
           </section>
         </section>
+        <section id="cooperative-management" hidden aria-labelledby="cooperative-management-heading">
+          <h2 id="cooperative-management-heading">Cooperatives and shared assets</h2>
+          <p class="muted">Read-only counts for cooperatives, active memberships, shared assets, and bookings in the granted location. Member identities, credentials, booking details, financial amounts, GPS, and free text are omitted.</p>
+          <div class="toolbar">
+            <label for="cooperative-management-location">Granted location</label>
+            <select id="cooperative-management-location"></select>
+            <button id="cooperative-management-refresh" type="button">Refresh summary</button>
+          </div>
+          <p id="cooperative-management-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="cooperative-management-summary"></div>
+        </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
           <p class="muted">Read-only location-scoped batch, custody, quality, certification, food-safety, and provenance records. Actor identities, free text, GPS, evidence links, and arbitrary metadata are omitted. This view does not verify, publish, or attest a batch.</p>
@@ -2978,6 +2989,12 @@
       let extensionLearningSummaryRequestVersion = 0;
       let extensionLearningCatalogRequestVersion = 0;
       let extensionLearningOffset = 0;
+      const cooperativeManagement = document.querySelector("#cooperative-management");
+      const cooperativeManagementLocation = document.querySelector("#cooperative-management-location");
+      const cooperativeManagementStatus = document.querySelector("#cooperative-management-status");
+      const cooperativeManagementSummary = document.querySelector("#cooperative-management-summary");
+      let cooperativeManagementLocations = new Set();
+      let cooperativeManagementRequestVersion = 0;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -13913,6 +13930,94 @@
         }
       }
 
+      function renderCooperativeManagementSummary(summary) {
+        cooperativeManagementSummary.replaceChildren();
+        for (const [key, title, columns] of [
+          ["cooperatives", "Cooperatives and active memberships", [
+            ["cooperative_type", "Type"], ["cooperative_status", "Status"],
+            ["cooperative_count", "Cooperatives"], ["active_member_count", "Active memberships"]
+          ]],
+          ["assets", "Shared assets", [
+            ["asset_type", "Asset type"], ["asset_status", "Status"], ["asset_count", "Assets"]
+          ]],
+          ["bookings", "Asset bookings", [
+            ["booking_status", "Status"], ["booking_count", "Bookings"]
+          ]]
+        ]) {
+          const section = document.createElement("section");
+          const heading = document.createElement("h3");
+          heading.textContent = title;
+          section.append(heading);
+          const rows = Array.isArray(summary[key]) ? summary[key] : [];
+          if (rows.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "muted";
+            empty.textContent = "No records in this category.";
+            section.append(empty);
+          } else {
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            for (const [, label] of columns) {
+              const cell = document.createElement("th");
+              cell.scope = "col";
+              cell.textContent = label;
+              headerRow.append(cell);
+            }
+            thead.append(headerRow);
+            const tbody = document.createElement("tbody");
+            for (const row of rows) {
+              const tableRow = document.createElement("tr");
+              for (const [field] of columns) {
+                const cell = document.createElement("td");
+                const value = row[field];
+                cell.textContent = typeof value === "number" && Number.isFinite(value)
+                  ? value.toLocaleString()
+                  : value === null || value === undefined ? "—" : String(value);
+                tableRow.append(cell);
+              }
+              tbody.append(tableRow);
+            }
+            table.append(thead, tbody);
+            section.append(table);
+          }
+          cooperativeManagementSummary.append(section);
+        }
+      }
+
+      async function loadCooperativeManagementSummary() {
+        const locationId = cooperativeManagementLocation.value;
+        const requestVersion = ++cooperativeManagementRequestVersion;
+        if (!cooperativeManagementLocations.has(locationId)) return;
+        cooperativeManagementSummary.replaceChildren();
+        cooperativeManagementStatus.textContent = "Loading location cooperative summary…";
+        try {
+          const response = await fetch(
+            `/operator/api/cooperatives/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location cooperative-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Cooperative reads are unavailable for this location.");
+            throw new Error("The cooperative summary could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== cooperativeManagementRequestVersion
+              || locationId !== cooperativeManagementLocation.value) return;
+          if (result.location_id !== locationId) {
+            throw new Error("The cooperative summary returned a different location scope. Reload the console before retrying.");
+          }
+          renderCooperativeManagementSummary(result);
+          cooperativeManagementStatus.textContent = "Read-only location-scoped counts. No membership, asset, or booking state was changed.";
+        } catch (error) {
+          if (requestVersion !== cooperativeManagementRequestVersion) return;
+          cooperativeManagementSummary.replaceChildren();
+          cooperativeManagementStatus.textContent = error.message;
+        }
+      }
+
       function yieldMonitoringValue(value) {
         if (value === null || value === undefined || value === "") return "—";
         if (typeof value === "number" && Number.isFinite(value)) {
@@ -16286,6 +16391,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           extensionLearningLocations = new Set(extensionLearningLocationIds);
+          const cooperativeManagementLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "cooperative_management" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          cooperativeManagementLocations = new Set(cooperativeManagementLocationIds);
           const yieldMonitoringLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "yield_monitoring" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -16692,6 +16803,17 @@
               loadExtensionLearningSummary(),
               loadExtensionLearningModules()
             ]);
+            hasAuthorizedSurface = true;
+          }
+          if (cooperativeManagementLocationIds.length) {
+            for (const locationId of cooperativeManagementLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              cooperativeManagementLocation.append(option);
+            }
+            cooperativeManagement.hidden = false;
+            await loadCooperativeManagementSummary();
             hasAuthorizedSurface = true;
           }
           if (yieldMonitoringLocationIds.length) {
@@ -21115,6 +21237,8 @@
         document.querySelector(selector).addEventListener("change", () => loadExtensionLearningModules());
       }
       extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
+      document.querySelector("#cooperative-management-refresh").addEventListener("click", loadCooperativeManagementSummary);
+      cooperativeManagementLocation.addEventListener("change", loadCooperativeManagementSummary);
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

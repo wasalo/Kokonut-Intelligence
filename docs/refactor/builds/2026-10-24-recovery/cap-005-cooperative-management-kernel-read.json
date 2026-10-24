@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-005",
+  "batch": "location-scoped cooperative management summary",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/cooperatives/{location_id}/summary",
+    "authorization": "exact cooperative_management:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "projection": [
+      "cooperative counts by type and status with active membership counts",
+      "shared-asset counts by type and status",
+      "asset-booking counts by status"
+    ],
+    "scope": "cooperative location; memberships require exact location; assets/bookings are joined through same-location cooperative and membership",
+    "omitted": [
+      "profile and member identity/contact data",
+      "credentials and KYC",
+      "asset/member/booking identifiers",
+      "booking timing, purpose, and free text",
+      "financial values, GPS, evidence, and metadata"
+    ],
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_cooperative_management_reads.py tests/test_operator_console_cooperative_management.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "12 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "profile and credential Kernel workflows",
+    "populated-output and historical-scope parity",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience/privacy review",
+    "MAN-CAP-005 human acceptance"
+  ],
+  "rollback": "Revert the Gateway reader, route registration/policy, console panel, and regenerate the runtime SQL inventory. No persistent data was written."
+}

@@ -1,3 +1,20 @@
+### Progress addendum — CAP-005 cooperative management Kernel summary, 24 October 2026
+
+The first CAP-005 Kernel surface is a private, exact-location aggregate read for
+cooperative type/status counts, active memberships, shared assets, and bookings.
+The Gateway establishes signed tenant context before location-qualified SQL;
+the hidden-by-default operator panel renders only fixed grouped counts. Member
+identity, credentials/KYC, booking details, financial values, GPS, evidence,
+and free text are omitted. Twelve focused Gateway/console/route-policy checks
+pass, along with Ruff, compilation, JavaScript syntax, runtime SQL inventory,
+and diff checks. No migration, provider, candidate, or legacy database was
+used. CAP-005 is now prepared, not accepted; profile/credential workflows,
+populated parity, live OIDC/browser, least-privilege ACL/RLS, audience/privacy
+review, and MAN-CAP-005 remain open. Checklist: 1,070 complete / 25 open
+(1,095 total); matrix: 25 baseline-retained, 7 deployed, and 35 prepared
+across 67 rows, with 0/67 named MAN-CAP checks accepted ([contract](cooperative-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-005-cooperative-management-kernel-read.json)).
+
 ### Progress addendum — CAP-006 monthly carbon-offset compatibility, 24 October 2026
 
 The location-scoped energy summary now restores two values from the legacy
