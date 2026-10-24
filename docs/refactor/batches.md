@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,047 checklist items complete and 25
-open (1,072 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,048 checklist items complete and 25
+open (1,073 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -53,6 +53,23 @@ acceptance remains separate; none is marked accepted.
   provider, candidate, or legacy database was used. Content ownership and
   delivery behavior remain review gates ([contract](extension-learning-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json)).
+
+### CAP-004 operator-console read surface — 23 October 2026
+
+- [x] Add a grant-gated operator-console panel for the aggregate learning
+  summary and active public module catalog. It reuses only exact
+  `extension_learning:read` location grants, uses same-origin no-store requests,
+  rejects stale location responses, provides allowlisted filters and bounded
+  pagination, and renders fixed aggregate/catalog fields with `textContent`.
+  URLs, descriptions, IDs, tags, prerequisites, learner identities, scores,
+  notes, device/contact data, and delivery errors are not rendered. Five focused
+  console contracts pass; the combined console/Gateway/route-policy selection
+  passes 15 tests, Ruff and inline JavaScript syntax pass, and the capability
+  matrix validates. No migration, provider, candidate, or legacy database was
+  used. The capability remains prepared pending content-delivery implementation,
+  populated parity, audience/privacy review, live OIDC/browser behavior,
+  database ACL/RLS, and MAN-CAP-004 acceptance ([contract](extension-learning-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-console.json)).
 
 ### CAP-003 initial traceability Kernel read slice — 23 October 2026
 

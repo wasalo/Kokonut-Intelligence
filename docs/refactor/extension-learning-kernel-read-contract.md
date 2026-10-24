@@ -45,10 +45,18 @@ record or grade an assessment, manage a peer network, or issue an advisory.
 Source tests verify UUID and filter preflight before connection, read-only
 transaction setup, context before queries, exact location predicates, peer
 membership scope, aggregate-only output, catalog pagination, cleanup, route
-policy, no-store headers, and denial when tenant context is unavailable. No
-migration is required. Runtime SQL inventory captures the direct SQL sites.
+policy, no-store headers, and denial when tenant context is unavailable. The
+operator console exposes the summary and catalog only for exact
+`extension_learning:read` scopes, requests them same-origin with `no-store`,
+rejects stale responses after location changes, and renders fixed fields via
+`textContent`. Catalog filters match server allowlists and pages stop at the
+server's maximum offset. Focused console/Gateway/route-policy checks pass 15
+tests, including inline JavaScript syntax and duplicate-ID checks. No migration
+is required. Runtime SQL inventory captures the direct SQL sites.
 
-Rollback by removing the route registration and its exact route policy. No
-database state is changed. CAP-004 remains prepared until populated parity,
-audience/privacy review, live OIDC/browser behavior, database ACL/RLS review,
-and MAN-CAP-004 acceptance are complete.
+Rollback the console surface by reverting its HTML and test changes; the
+read-only Gateway routes can remain available to other clients or be removed
+with their exact route policies. No database state is changed. CAP-004 remains
+prepared until content/delivery behavior, populated parity, audience/privacy
+review, live OIDC/browser behavior, database ACL/RLS review, and MAN-CAP-004
+acceptance are complete.

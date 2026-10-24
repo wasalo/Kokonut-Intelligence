@@ -16020,3 +16020,22 @@ acceptance. Checklist: 1,047 complete / 25 open (1,072 total); matrix: 27
 baseline-retained, 7 deployed, 33 prepared across 67 rows; 0/67 MAN-CAP checks
 accepted. [Contract](extension-learning-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json).
+
+### Progress addendum — CAP-004 operator-console read surface, 23 October 2026
+
+The operator console now exposes CAP-004's read-only learning activity and
+active public module catalog for operators with an exact
+`extension_learning:read` location grant. Summary data is rendered as four
+fixed grouped tables; the catalog uses allowlisted category, difficulty, and
+format filters with bounded pagination. Both routes use same-origin no-store
+requests, stale responses are ignored after location changes, and all displayed
+server values enter the DOM through `textContent`. The five focused console
+contracts plus the Gateway service/HTTP and complete route-policy inventory
+pass 15 tests; Ruff, inline JavaScript syntax, capability-matrix validation, and
+diff checks pass. No migration, provider, candidate, or legacy database was
+used. CAP-004 remains prepared; content/delivery behavior, populated parity,
+audience/privacy review, live OIDC/browser behavior, direct-database ACL/RLS,
+and MAN-CAP-004 acceptance remain open. Checklist: 1,048 complete / 25 open
+(1,073 total); matrix: 27 baseline-retained, 7 deployed, and 33 prepared
+across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](extension-learning-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-004-extension-learning-console.json).

@@ -1720,6 +1720,57 @@
           <p id="coordination-summary-status" class="muted" role="status" aria-live="polite"></p>
           <dl id="coordination-summary-counts"></dl>
         </section>
+        <section id="extension-learning" hidden aria-labelledby="extension-learning-heading">
+          <h2 id="extension-learning-heading">Extension learning and peer groups</h2>
+          <p class="muted">Read-only location-scoped learning activity and the active public module catalog. Activity is shown as grouped counts; participant identities, individual scores, notes, contact details, delivery errors, and private module content are omitted.</p>
+          <div class="toolbar">
+            <label for="extension-learning-location">Granted location</label>
+            <select id="extension-learning-location"></select>
+            <button id="extension-learning-refresh" type="button">Refresh activity</button>
+          </div>
+          <p id="extension-learning-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="extension-learning-summary"></div>
+          <section aria-labelledby="extension-learning-catalog-heading">
+            <h3 id="extension-learning-catalog-heading">Public learning modules</h3>
+            <div class="toolbar">
+              <label for="extension-learning-category">Category</label>
+              <select id="extension-learning-category">
+                <option value="">All categories</option>
+                <option value="soil_health">Soil health</option>
+                <option value="water_management">Water management</option>
+                <option value="pest_control">Pest control</option>
+                <option value="post_harvest">Post harvest</option>
+                <option value="financial_literacy">Financial literacy</option>
+                <option value="agroforestry">Agroforestry</option>
+                <option value="climate_adaptation">Climate adaptation</option>
+                <option value="organic_practices">Organic practices</option>
+                <option value="record_keeping">Record keeping</option>
+                <option value="cooperative_management">Cooperative management</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="extension-learning-difficulty">Difficulty</label>
+              <select id="extension-learning-difficulty">
+                <option value="">All levels</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+              <label for="extension-learning-content-type">Format</label>
+              <select id="extension-learning-content-type">
+                <option value="">All formats</option>
+                <option value="video">Video</option>
+                <option value="guide">Guide</option>
+                <option value="quiz">Quiz</option>
+                <option value="interactive">Interactive</option>
+                <option value="audio">Audio</option>
+                <option value="field_practice">Field practice</option>
+              </select>
+            </div>
+            <p id="extension-learning-catalog-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="extension-learning-modules"></div>
+            <button id="extension-learning-more" class="secondary" type="button" hidden>Load more modules</button>
+          </section>
+        </section>
         <section id="business-planning-canvases" hidden aria-labelledby="business-planning-canvases-heading">
           <h2 id="business-planning-canvases-heading">Business model canvases</h2>
           <p class="muted">Read-only canvases for locations with an active business-planning read grant. Content blocks are shown as text; this view does not edit, verify, submit, or publish a canvas. Raw imports, actor identities, and organization-level canvases are excluded.</p>
@@ -2691,6 +2742,17 @@
       const coordinationSummaryCounts = document.querySelector("#coordination-summary-counts");
       let coordinationSummaryLocations = new Set();
       let coordinationSummaryRequestVersion = 0;
+      const extensionLearning = document.querySelector("#extension-learning");
+      const extensionLearningLocation = document.querySelector("#extension-learning-location");
+      const extensionLearningStatus = document.querySelector("#extension-learning-status");
+      const extensionLearningSummary = document.querySelector("#extension-learning-summary");
+      const extensionLearningCatalogStatus = document.querySelector("#extension-learning-catalog-status");
+      const extensionLearningModules = document.querySelector("#extension-learning-modules");
+      const extensionLearningMore = document.querySelector("#extension-learning-more");
+      let extensionLearningLocations = new Set();
+      let extensionLearningSummaryRequestVersion = 0;
+      let extensionLearningCatalogRequestVersion = 0;
+      let extensionLearningOffset = 0;
       const businessPlanningCanvases = document.querySelector("#business-planning-canvases");
       const businessPlanningLocation = document.querySelector("#business-planning-location");
       const businessPlanningStatus = document.querySelector("#business-planning-status");
@@ -13381,6 +13443,158 @@
         }
       }
 
+      function renderExtensionLearningSummary(summary) {
+        extensionLearningSummary.replaceChildren();
+        for (const [key, title, columns] of [
+          ["learning_progress", "Learning progress", [["module_category", "Category"], ["progress_status", "Progress status"], ["enrollment_count", "Enrollments"]]],
+          ["content_delivery", "Content delivery", [["delivery_channel", "Channel"], ["delivery_status", "Delivery status"], ["delivery_count", "Deliveries"]]],
+          ["assessments", "Assessments", [["assessment_type", "Assessment type"], ["assessment_count", "Assessments"], ["scored_assessment_count", "Scored assessments"]]],
+          ["peer_networks", "Peer groups", [["network_type", "Group type"], ["network_status", "Group status"], ["network_count", "Groups"], ["active_member_count", "Active members"]]]
+        ]) {
+          const section = document.createElement("section");
+          const heading = document.createElement("h3");
+          heading.textContent = title;
+          section.append(heading);
+          const rows = Array.isArray(summary[key]) ? summary[key] : [];
+          if (rows.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "muted";
+            empty.textContent = "No activity recorded.";
+            section.append(empty);
+          } else {
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+            for (const [, label] of columns) {
+              const cell = document.createElement("th");
+              cell.scope = "col";
+              cell.textContent = label;
+              headerRow.append(cell);
+            }
+            thead.append(headerRow);
+            const tbody = document.createElement("tbody");
+            for (const row of rows) {
+              const tableRow = document.createElement("tr");
+              for (const [field] of columns) {
+                const cell = document.createElement("td");
+                const value = row[field];
+                cell.textContent = typeof value === "number" && Number.isFinite(value)
+                  ? value.toLocaleString()
+                  : value === null || value === undefined ? "—" : String(value);
+                tableRow.append(cell);
+              }
+              tbody.append(tableRow);
+            }
+            table.append(thead, tbody);
+            section.append(table);
+          }
+          extensionLearningSummary.append(section);
+        }
+      }
+
+      async function loadExtensionLearningSummary() {
+        const locationId = extensionLearningLocation.value;
+        const requestVersion = ++extensionLearningSummaryRequestVersion;
+        if (!extensionLearningLocations.has(locationId)) return;
+        extensionLearningSummary.replaceChildren();
+        extensionLearningStatus.textContent = "Loading location learning activity…";
+        try {
+          const response = await fetch(
+            `/operator/api/extension-learning/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location learning-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Extension-learning reads are unavailable for this location.");
+            throw new Error("Location learning activity could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== extensionLearningSummaryRequestVersion
+              || locationId !== extensionLearningLocation.value) return;
+          renderExtensionLearningSummary(result);
+          extensionLearningStatus.textContent = "Read-only grouped activity; no enrollment, delivery, assessment, or group state was changed.";
+        } catch (error) {
+          if (requestVersion !== extensionLearningSummaryRequestVersion) return;
+          extensionLearningSummary.replaceChildren();
+          extensionLearningStatus.textContent = error.message;
+        }
+      }
+
+      function renderExtensionLearningModule(module) {
+        const card = document.createElement("article");
+        const heading = document.createElement("h4");
+        heading.textContent = String(module.module_name || "Untitled module");
+        card.append(heading);
+        const details = document.createElement("dl");
+        for (const [field, label] of [
+          ["category", "Category"], ["difficulty", "Difficulty"],
+          ["content_type", "Format"], ["duration_minutes", "Duration (minutes)"],
+          ["language", "Language"]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          const value = module[field];
+          description.textContent = value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        card.append(details);
+        return card;
+      }
+
+      async function loadExtensionLearningModules(loadMore = false) {
+        const locationId = extensionLearningLocation.value;
+        const requestVersion = ++extensionLearningCatalogRequestVersion;
+        if (!extensionLearningLocations.has(locationId)) return;
+        const offset = loadMore ? extensionLearningOffset : 0;
+        if (!loadMore) {
+          extensionLearningOffset = 0;
+          extensionLearningModules.replaceChildren();
+          extensionLearningMore.hidden = true;
+        }
+        extensionLearningCatalogStatus.textContent = loadMore ? "Loading more modules…" : "Loading public modules…";
+        const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+        for (const [field, selector] of [
+          ["category", "#extension-learning-category"],
+          ["difficulty", "#extension-learning-difficulty"],
+          ["content_type", "#extension-learning-content-type"]
+        ]) {
+          const value = document.querySelector(selector).value;
+          if (value) params.set(field, value);
+        }
+        try {
+          const response = await fetch(
+            `/operator/api/extension-learning/${encodeURIComponent(locationId)}/modules?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location learning-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("The public module catalog is unavailable for this location.");
+            throw new Error("Public modules could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== extensionLearningCatalogRequestVersion
+              || locationId !== extensionLearningLocation.value) return;
+          for (const module of Array.isArray(result.items) ? result.items : []) {
+            extensionLearningModules.append(renderExtensionLearningModule(module));
+          }
+          extensionLearningOffset = offset + (Array.isArray(result.items) ? result.items.length : 0);
+          extensionLearningMore.hidden = result.has_more !== true || extensionLearningOffset > 10000;
+          extensionLearningCatalogStatus.textContent = extensionLearningOffset
+            ? `${extensionLearningOffset.toLocaleString()} public module${extensionLearningOffset === 1 ? "" : "s"} shown.`
+            : "No public modules match these filters.";
+        } catch (error) {
+          if (requestVersion !== extensionLearningCatalogRequestVersion) return;
+          if (!loadMore) extensionLearningModules.replaceChildren();
+          extensionLearningMore.hidden = true;
+          extensionLearningCatalogStatus.textContent = error.message;
+        }
+      }
+
       function renderBusinessPlanningCanvas(canvas) {
         businessPlanningMetadata.replaceChildren();
         businessPlanningBlocks.replaceChildren();
@@ -14413,6 +14627,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           coordinationSummaryLocations = new Set(coordinationLocationIds);
+          const extensionLearningLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "extension_learning" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          extensionLearningLocations = new Set(extensionLearningLocationIds);
           const businessPlanningLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "business_planning" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -14751,6 +14971,20 @@
             }
             coordinationSummary.hidden = false;
             await loadCoordinationSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (extensionLearningLocationIds.length) {
+            for (const locationId of extensionLearningLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              extensionLearningLocation.append(option);
+            }
+            extensionLearning.hidden = false;
+            await Promise.all([
+              loadExtensionLearningSummary(),
+              loadExtensionLearningModules()
+            ]);
             hasAuthorizedSurface = true;
           }
           if (businessPlanningLocationIds.length) {
@@ -19059,6 +19293,20 @@
       });
       document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
       coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
+      document.querySelector("#extension-learning-refresh").addEventListener("click", () => {
+        loadExtensionLearningSummary();
+        loadExtensionLearningModules();
+      });
+      extensionLearningLocation.addEventListener("change", () => {
+        loadExtensionLearningSummary();
+        loadExtensionLearningModules();
+      });
+      for (const selector of [
+        "#extension-learning-category", "#extension-learning-difficulty", "#extension-learning-content-type"
+      ]) {
+        document.querySelector(selector).addEventListener("change", () => loadExtensionLearningModules());
+      }
+      extensionLearningMore.addEventListener("click", () => loadExtensionLearningModules(true));
       document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());
       businessPlanningLocation.addEventListener("change", () => loadBusinessPlanningCanvases());
       businessPlanningMore.addEventListener("click", () => loadBusinessPlanningCanvases(true));
