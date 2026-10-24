@@ -17,6 +17,13 @@
 **Updated:** 24 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Latest software portability check — 24 October 2026:** a network-disabled
+ARM64/QEMU PostgreSQL 16 replay applied all 595 current schema files through
+migration 604 with zero pending or failed migrations, no seeds/farm data, no
+published host ports, `aarch64` confirmed, and cleanup complete. This validates
+schema portability under emulation; physical Raspberry Pi, power, performance,
+and production recovery acceptance remain open ([evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-604.json)).
+
 **Latest local batch — CAP-002 nutrient operations operator-console reads (23 October 2026):** an exact `nutrient_budget:read` grant gates allowlisted balance, soil-test, input, and removal views. Same-origin/no-store pages validate location, offset, and event type, and stale views are discarded. Fixed scalar fields render as text; IDs, notes, and arbitrary metadata are omitted. Classified costs preserve currency and historic unclassified amounts are withheld. The 191-test CAP-002 console/Gateway/domain/route-policy selection, Ruff, inline JavaScript syntax, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-002 remains prepared pending historic currency reconciliation, model/populated parity, live OIDC/browser, ACL/RLS, and MAN-CAP-002 ([contract](nutrient-operations-console-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-nutrient-console.json)).
 
 **Latest local batch — CAP-002 crop-simulation operator-console reads (23 October 2026):** the exact `digital_twin:read` grant gates a completed-run list and bounded persisted daily-state detail. Same-origin/no-store pages validate location, offset, and selected-run correlation; stale results are discarded after location/run changes. Fixed run/state fields render as text, IDs stay internal, and no model is executed. The 106-test CAP-002 console/Gateway/domain/route-policy selection, Ruff, inline JavaScript syntax, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-002 remains prepared pending model/frozen/populated parity, live OIDC/browser acceptance, ACL/RLS, and MAN-CAP-002 ([contract](crop-simulation-runs-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-console.json)).

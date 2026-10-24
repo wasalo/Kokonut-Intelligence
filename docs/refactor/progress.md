@@ -1,3 +1,14 @@
+### Progress addendum — full current-source ARM64/QEMU schema replay, 24 October 2026
+
+The current source at `5eba5de4` passes a network-disabled ARM64/QEMU
+PostgreSQL 16 replay of all 595 schema files through migration 604. The
+container reported `aarch64`; zero schema migrations are pending or failed;
+no seeds or farm data were applied; no host ports were published; and the
+disposable Compose project and volume were removed successfully. This is
+software-emulation evidence only. Physical Raspberry Pi, power-loss,
+performance, and production recovery acceptance remain open. The candidate
+and legacy databases were not touched ([evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-604.json)).
+
 ### Progress addendum — CAP-006 currency-safe energy costs, 24 October 2026
 
 Migration 604 adds an optional recorded currency to energy costs without
