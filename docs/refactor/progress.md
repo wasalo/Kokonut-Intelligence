@@ -16002,3 +16002,21 @@ Checklist: 1,046 complete / 25 open (1,071 total); matrix: 27
 baseline-retained, 7 deployed, and 33 prepared across 67 rows; 0/67 MAN-CAP
 checks accepted. [Contract](extension-learning-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json).
+
+### Progress addendum — CAP-004 active public module catalog, 23 October 2026
+
+The same exact location `extension_learning:read` grant now provides a
+paginated list of active public learning modules. Category, difficulty, and
+content-type filters are allowlisted and rejected before connection on invalid
+input. Only stable ID, title, category, difficulty, content type, duration,
+and language are returned; URLs, descriptions, tags, prerequisites, and
+arbitrary metadata stay private pending content review. The combined focused
+service/HTTP/route-policy selection passes 10 tests; Ruff, Python compilation,
+runtime SQL inventory, capability-matrix validation, and diff checks pass. No
+migration, provider, candidate, or legacy database was used. CAP-004 remains
+prepared pending participant identity/workflow scope, content delivery review,
+populated parity, audience/privacy, live OIDC/browser, ACL/RLS, and MAN-CAP-004
+acceptance. Checklist: 1,047 complete / 25 open (1,072 total); matrix: 27
+baseline-retained, 7 deployed, 33 prepared across 67 rows; 0/67 MAN-CAP checks
+accepted. [Contract](extension-learning-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json).

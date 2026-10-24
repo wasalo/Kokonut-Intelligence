@@ -196,6 +196,10 @@ learner identities, scores, notes, contact details, delivery errors, and
 arbitrary metadata are omitted. It does not perform enrollments, deliveries,
 assessments, or peer-network writes. See the
 [Kernel read contract](../../docs/refactor/extension-learning-kernel-read-contract.md).
+The same grant can list the paginated active, public module catalog at
+`GET /operator/api/extension-learning/{location_id}/modules`, with optional
+category, difficulty, and content-type filters. Course URLs and free-text
+descriptions are withheld pending content review.
 
 Completed crop-simulation run summaries are available at
 `GET /operator/api/crop-simulations/{location_id}/runs` with an exact

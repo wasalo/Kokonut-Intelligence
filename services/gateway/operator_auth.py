@@ -511,7 +511,7 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
         }
 
     extension_learning_match = re.fullmatch(
-        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/summary", path
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/(summary|modules)", path
     )
     if extension_learning_match and method.upper() == "GET" and enabled:
         return {

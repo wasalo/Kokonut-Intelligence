@@ -207,6 +207,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("extension_learning", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/extension-learning/11111111-1111-4111-8111-111111111111/modules",
+    ): _expected("extension_learning", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/traceability/11111111-1111-4111-8111-111111111111/batches",
     ): _expected("traceability", "read", scoped=True, location_id=_LOCATION_ID),
     (

@@ -11,6 +11,7 @@ from starlette.testclient import TestClient  # noqa: E402
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.extension_learning_reads import (
     get_location_extension_learning_summary,
+    list_location_extension_modules,
 )
 from services.gateway.operator_auth import auth_route_policy
 
@@ -44,6 +45,15 @@ class _Cursor:
         elif "FROM peer_network AS pn" in query:
             columns = ("network_type", "network_status", "network_count", "active_member_count")
             rows = (("learning_group", "active", 1, 4),)
+        elif "FROM extension_module" in query:
+            columns = (
+                "id", "module_name", "category", "difficulty", "content_type",
+                "duration_minutes", "language",
+            )
+            rows = (
+                ("33333333-3333-4333-8333-333333333333", "Compost", "soil_health", "beginner", "guide", 20, "en"),
+                ("44444444-4444-4444-8444-444444444444", "Water", "water_management", "intermediate", "video", 30, "es"),
+            )
         else:
             self.description, self.rows = [], []
             return
@@ -129,6 +139,62 @@ def test_invalid_scope_fails_before_connecting():
     assert not called
 
 
+def test_public_active_module_catalog_is_filtered_and_paginated_without_content_payloads(monkeypatch):
+    connection = _Connection()
+    monkeypatch.setattr(
+        "services.gateway.extension_learning_reads.set_operator_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = list_location_extension_modules(
+        OPERATOR_ID,
+        LOCATION_ID,
+        category="soil_health",
+        difficulty="beginner",
+        content_type="guide",
+        limit=1,
+        offset=2,
+        connection_factory=lambda: connection,
+    )
+
+    query, params = next((query, params) for query, params in connection.queries if "FROM extension_module" in query)
+    assert "is_public IS TRUE" in query
+    assert "status = 'active'" in query
+    assert "content_url" not in query
+    assert "description" not in query
+    assert "tags" not in query
+    assert "metadata" not in query
+    assert params == ("soil_health", "soil_health", "beginner", "beginner", "guide", "guide", 2, 2)
+    assert result["has_more"] is True
+    assert result["items"] == [
+        {
+            "id": "33333333-3333-4333-8333-333333333333",
+            "module_name": "Compost",
+            "category": "soil_health",
+            "difficulty": "beginner",
+            "content_type": "guide",
+            "duration_minutes": 20,
+            "language": "en",
+        }
+    ]
+    assert connection.closed
+
+
+def test_invalid_catalog_filter_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Unsupported module category"):
+        list_location_extension_modules(
+            OPERATOR_ID, LOCATION_ID, category="arbitrary", connection_factory=connect
+        )
+    assert not called
+
+
 def test_exact_extension_learning_route_policy():
     path = f"/operator/api/extension-learning/{LOCATION_ID}/summary"
 
@@ -142,6 +208,9 @@ def test_exact_extension_learning_route_policy():
     }
     assert auth_route_policy("POST", path, enabled=True) is None
     assert auth_route_policy("GET", f"{path}/extra", enabled=True) is None
+    assert auth_route_policy(
+        "GET", f"/operator/api/extension-learning/{LOCATION_ID}/modules", enabled=True
+    ) == auth_route_policy("GET", path, enabled=True)
 
 
 def test_http_route_is_no_store_and_uses_operator_identity(monkeypatch):
@@ -155,6 +224,16 @@ def test_http_route_is_no_store_and_uses_operator_identity(monkeypatch):
             "content_delivery": [],
             "assessments": [],
             "peer_networks": [],
+        },
+    )
+    monkeypatch.setattr(
+        "services.gateway.extension_learning_reads.list_location_extension_modules",
+        lambda _operator_id, location_id, **_kwargs: {
+            "location_id": location_id,
+            "items": [{"module_name": "Compost"}],
+            "limit": 25,
+            "offset": 0,
+            "has_more": False,
         },
     )
     app = FastAPI()
@@ -175,11 +254,17 @@ def test_http_route_is_no_store_and_uses_operator_identity(monkeypatch):
 
     with TestClient(app) as client:
         response = client.get(f"/operator/api/extension-learning/{LOCATION_ID}/summary")
+        modules = client.get(
+            f"/operator/api/extension-learning/{LOCATION_ID}/modules?category=soil_health"
+        )
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["location_id"] == LOCATION_ID
+    assert modules.status_code == 200
+    assert modules.headers["cache-control"] == "no-store"
+    assert modules.json()["items"][0]["module_name"] == "Compost"
 
 
 def test_http_route_fails_closed_on_missing_tenant_grant(monkeypatch):

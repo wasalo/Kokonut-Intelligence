@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,046 checklist items complete and 25
-open (1,071 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,047 checklist items complete and 25
+open (1,072 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -39,6 +39,19 @@ acceptance remains separate; none is marked accepted.
   migration, provider, candidate, or legacy database was used. CAP-004 remains
   prepared pending populated parity, audience/privacy review, live OIDC/browser,
   direct-database ACL/RLS, and MAN-CAP-004 acceptance ([contract](extension-learning-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json)).
+
+### CAP-004 public active module catalog — 23 October 2026
+
+- [x] Add a paginated module-catalog read under the same exact
+  `extension_learning:read` grant. Only active public modules appear; optional
+  category, difficulty, and content-type filters use schema allowlists and
+  fail before opening the database when invalid. The bounded page omits URLs,
+  descriptions, tags, prerequisites, and arbitrary metadata. The combined
+  service/HTTP/route-policy suite passes 10 tests; Ruff, compilation, the
+  regenerated SQL inventory, and matrix validation pass. No migration,
+  provider, candidate, or legacy database was used. Content ownership and
+  delivery behavior remain review gates ([contract](extension-learning-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json)).
 
 ### CAP-003 initial traceability Kernel read slice — 23 October 2026

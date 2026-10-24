@@ -2,8 +2,9 @@
 
 ## Scope
 
-The first Kernel surface is the private operator route:
+The initial Kernel surface consists of these private operator routes:
 
+- `GET /operator/api/extension-learning/{location_id}/modules`
 - `GET /operator/api/extension-learning/{location_id}/summary`
 
 It requires an authenticated OIDC operator with an exact
@@ -14,7 +15,14 @@ statement and lock timeouts; it ends with rollback and connection cleanup.
 
 ## Projection
 
-The response groups location-owned records into four bounded summaries:
+The active, public module catalog is paginated (1–50 rows, offset 0–10,000)
+and can be filtered by the source schema's category, difficulty, and content
+type values. It returns only the stable module ID, title, category, difficulty,
+content type, duration, and language. URLs, descriptions, tags, prerequisites,
+and arbitrary metadata remain withheld until content ownership and delivery
+behavior are reviewed.
+
+The summary groups location-owned records into four bounded summaries:
 
 - learning enrollments by module category and progress status;
 - content deliveries by channel and delivery status;
@@ -34,11 +42,11 @@ record or grade an assessment, manage a peer network, or issue an advisory.
 
 ## Verification and rollback
 
-Source tests verify UUID preflight before connection, read-only transaction
-setup, context before queries, exact location predicates, peer membership scope,
-aggregate-only output, cleanup, route policy, no-store headers, and denial when
-tenant context is unavailable. No migration is required. Runtime SQL inventory
-captures the direct SQL sites.
+Source tests verify UUID and filter preflight before connection, read-only
+transaction setup, context before queries, exact location predicates, peer
+membership scope, aggregate-only output, catalog pagination, cleanup, route
+policy, no-store headers, and denial when tenant context is unavailable. No
+migration is required. Runtime SQL inventory captures the direct SQL sites.
 
 Rollback by removing the route registration and its exact route policy. No
 database state is changed. CAP-004 remains prepared until populated parity,
