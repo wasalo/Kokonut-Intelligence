@@ -366,6 +366,80 @@ class TestKrigingEngine:
         result = engine.ordinary_kriging(coords, values, variogram, grid=custom_grid)
         assert len(result["predicted_values"]) == 3
 
+    @pytest.mark.parametrize("method", ["ordinary", "simple", "indicator"])
+    def test_kriging_honors_max_neighbors_and_search_radius(self, method):
+        engine, _ = self._make_engine()
+        coords = [(0.0, 0.0), (10.0, 0.0), (100.0, 0.0)]
+        values = [0.0, 10.0, 100.0]
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 100.0, "nugget": 0.1}
+        grid = np.asarray([[5.0, 0.0], [1000.0, 0.0]])
+        krige = getattr(engine, f"{method}_kriging")
+        extra = {"threshold": 5.0} if method == "indicator" else {}
+
+        limited = krige(
+            coords, values, variogram, grid=grid, max_neighbors=1,
+            search_radius=5.0, **extra,
+        )
+        expanded = krige(
+            coords, values, variogram, grid=grid, max_neighbors=2,
+            search_radius=5.0, **extra,
+        )
+
+        assert limited["neighbor_counts"] == [1, 0]
+        assert expanded["neighbor_counts"] == [2, 0]
+        assert limited["n_estimated_points"] == expanded["n_estimated_points"] == 1
+        assert limited["predicted_values"][1] is None
+        assert limited["prediction_variance"][1] is None
+        if method in {"ordinary", "indicator"}:
+            assert limited["predicted_values"][0] != pytest.approx(
+                expanded["predicted_values"][0]
+            )
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"max_neighbors": 0}, "max_neighbors must be a positive integer"),
+            ({"max_neighbors": 1.5}, "max_neighbors must be a positive integer"),
+            ({"search_radius": float("inf")}, "search_radius must be finite and greater than zero"),
+            ({"resolution_m": 0}, "resolution_m must be finite and greater than zero"),
+        ],
+    )
+    def test_kriging_rejects_invalid_controls(self, kwargs, message):
+        engine, _ = self._make_engine()
+        coords, values = _make_spatial_data()
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1}
+
+        result = engine.ordinary_kriging(coords, values, variogram, **kwargs)
+
+        assert result == {"error": message}
+
+    def test_ordinary_kriging_accepts_a_pure_nugget_model(self):
+        engine, _ = self._make_engine()
+
+        result = engine.ordinary_kriging(
+            [(0.0, 0.0), (10.0, 0.0)],
+            [1.0, 2.0],
+            {"model_type": "exponential", "sill": 1.0, "range": 10.0, "nugget": 1.0},
+            grid=[[5.0, 0.0]],
+            max_neighbors=2,
+            search_radius=20.0,
+        )
+
+        assert result["predicted_values"] == pytest.approx([1.5])
+        assert result["neighbor_counts"] == [2]
+
+    def test_ordinary_kriging_rejects_unknown_variogram_type(self):
+        engine, _ = self._make_engine()
+        coords, values = _make_spatial_data()
+
+        result = engine.ordinary_kriging(
+            coords,
+            values,
+            {"model_type": "unknown", "sill": 2.5, "range": 500.0, "nugget": 0.1},
+        )
+
+        assert result == {"error": "Invalid variogram model"}
+
     def test_persist_kriging_returns_id(self):
         engine, mock_cursor = self._make_engine()
         mock_cursor.execute = MagicMock()
@@ -376,9 +450,48 @@ class TestKrigingEngine:
             "n_points": 3,
             "method": "ordinary",
             "resolution_m": 10.0,
+            "coordinate_origin": {"latitude": 18.5, "longitude": -69.9},
         }
         pred_id = engine.persist_kriging("loc1", "soil_carbon", "vm1", result)
         assert pred_id is not None
+        point_insert = next(
+            call for call in mock_cursor.execute.call_args_list
+            if "ST_SetSRID" in call.args[0]
+        )
+        assert point_insert.args[1][2:4] == pytest.approx((-69.9, 18.5))
+
+    def test_persist_kriging_requires_geographic_origin_before_database_access(self):
+        engine, _ = self._make_engine()
+        result = {
+            "predicted_values": [1.0],
+            "prediction_variance": [0.1],
+            "grid_points": [[0.0, 0.0]],
+            "n_points": 1,
+            "method": "ordinary",
+            "resolution_m": 10.0,
+        }
+
+        assert engine.persist_kriging("loc1", "soil_carbon", "vm1", result) is None
+        engine._conn.cursor.assert_not_called()
+
+    def test_persist_kriging_skips_cells_without_local_estimates(self):
+        engine, mock_cursor = self._make_engine()
+        result = {
+            "predicted_values": [1.0, None],
+            "prediction_variance": [0.1, None],
+            "grid_points": [[0.0, 0.0], [1000.0, 1000.0]],
+            "n_points": 2,
+            "method": "ordinary",
+            "resolution_m": 10.0,
+            "coordinate_origin": {"latitude": 18.5, "longitude": -69.9},
+        }
+
+        assert engine.persist_kriging("loc1", "soil_carbon", "vm1", result)
+        point_inserts = [
+            call for call in mock_cursor.execute.call_args_list
+            if "ST_SetSRID" in call.args[0]
+        ]
+        assert len(point_inserts) == 1
 
     def test_persist_kriging_error_returns_none(self):
         engine, _ = self._make_engine()
@@ -596,6 +709,7 @@ class TestSpatialCrossValidator:
         assert mock_cursor.execute.call_count == 1
         mock_cursor.close.assert_called_once()
 
+
     def test_cross_validation_uses_matching_model_and_location_scoped_points(self):
         cv, mock_cursor = self._make_cv()
         mock_cursor.fetchone.return_value = {
@@ -746,6 +860,61 @@ class TestSpatialCrossValidator:
         assert record_id is None
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"max_neighbors": 0},
+        {"search_radius": 0},
+        {"resolution_m": float("nan")},
+        {"method": "indicator", "threshold": float("nan")},
+    ],
+)
+def test_kriging_database_pipeline_rejects_invalid_settings_before_connecting(kwargs):
+    from services.geostatistics.kriging import KrigingEngine
+
+    connection = MagicMock()
+    result = KrigingEngine(conn=connection).kriging_from_db(
+        "location-a", "soil_carbon", **kwargs
+    )
+
+    assert "error" in result
+    connection.cursor.assert_not_called()
+
+
+def test_kriging_database_pipeline_forwards_neighborhood_settings():
+    from services.geostatistics.kriging import KrigingEngine
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {
+        "model_type": "exponential",
+        "sill": 2.5,
+        "range": 100.0,
+        "nugget": 0.1,
+        "partial_sill": 2.4,
+        "r_squared": 0.8,
+    }
+    cursor.fetchall.return_value = [
+        {"lat": 18.5, "lon": -69.9, "value": 1.0},
+        {"lat": 18.501, "lon": -69.901, "value": 2.0},
+        {"lat": 18.502, "lon": -69.902, "value": 3.0},
+    ]
+    engine = KrigingEngine(conn=connection)
+    engine.ordinary_kriging = MagicMock(return_value={"n_points": 3})
+
+    result = engine.kriging_from_db(
+        "location-a", "soil_carbon", variogram_model_id="model-a",
+        max_neighbors=7, search_radius=125.5,
+    )
+
+    engine.ordinary_kriging.assert_called_once()
+    assert engine.ordinary_kriging.call_args.kwargs["max_neighbors"] == 7
+    assert engine.ordinary_kriging.call_args.kwargs["search_radius"] == 125.5
+    assert result["coordinate_origin"] == pytest.approx(
+        {"latitude": 18.501, "longitude": -69.901}
+    )
+
+
 class TestSensorNetworkDesigner:
     def _make_designer(self):
         from services.geostatistics.sensor_optimization import SensorNetworkDesigner
@@ -890,6 +1059,48 @@ class TestCLI:
                         main()
                     except Exception:
                         pass
+
+    def test_cli_kriging_forwards_neighborhood_settings(self):
+        from services.geostatistics.cli import main
+        from services.geostatistics.kriging import KrigingEngine
+
+        argv = [
+            "geostatistics", "kriging", "--location-id", "test-loc",
+            "--property", "soil_carbon", "--method", "ordinary",
+            "--max-neighbors", "7", "--search-radius", "125.5",
+        ]
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db", return_value=MagicMock()
+        ), patch.object(
+            KrigingEngine, "kriging_from_db", return_value={"error": "synthetic"}
+        ) as run_kriging, patch("services.geostatistics.cli.print_json"):
+            main()
+
+        run_kriging.assert_called_once_with(
+            "test-loc", "soil_carbon", method="ordinary", resolution_m=10.0,
+            variogram_model_id=None, threshold=None, max_neighbors=7,
+            search_radius=125.5,
+        )
+
+    @pytest.mark.parametrize(
+        "argv",
+        [
+            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--search-radius", "0"],
+            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--max-neighbors", "0"],
+            ["geostatistics", "kriging", "--location-id", "test-loc", "--property", "soil_carbon", "--method", "indicator"],
+        ],
+    )
+    def test_cli_kriging_rejects_invalid_controls_before_database(self, argv):
+        from services.geostatistics.cli import main
+
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db"
+        ) as get_db:
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 2
+        get_db.assert_not_called()
 
     def test_cli_simulate_parser(self):
         """Simulate subcommand should parse arguments."""

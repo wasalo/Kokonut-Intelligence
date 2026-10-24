@@ -1,0 +1,52 @@
+{
+  "capability": "CAP-008",
+  "batch": "bounded local kriging neighborhoods and WGS84 persistence",
+  "date": "2026-10-24",
+  "status": "passed",
+  "verification": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_geostatistics.py -q",
+      "result": "104 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/geostatistics/kriging.py services/geostatistics/cli.py tests/test_geostatistics.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m compileall -q services/geostatistics tests/test_geostatistics.py",
+      "result": "passed"
+    },
+    "dependency_groups": {
+      "command": "python3 scripts/check-requirement-groups.py",
+      "result": "passed; 12 groups, 33 requirements"
+    },
+    "runtime_sql_inventory": {
+      "result": "regenerated and current"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed; 67 rows"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "behavior": [
+    "ordinary, simple, and indicator kriging use the nearest conditioning points within the configured search radius, capped by max_neighbors",
+    "equal-distance neighbors are ordered by source order for deterministic selection",
+    "cells without an in-radius observation return null estimates and zero neighbors, and are not persisted",
+    "database and CLI paths expose and validate both settings before database access",
+    "local meter coordinates are transformed back to WGS84 before insertion into geometry(4326); missing geographic origin fails before database access",
+    "point persistence sampling is deterministic and remains capped at 5000 records",
+    "a pure-nugget variogram remains valid, and unsupported model types fail closed instead of silently falling back to exponential"
+  ],
+  "database_or_migration_used": false,
+  "candidate_or_legacy_touched": false,
+  "remaining": [
+    "populated numerical parity and scientific review",
+    "live OIDC and browser acceptance",
+    "least-privilege ACL/RLS and audience review",
+    "named MAN-CAP-008 acceptance"
+  ]
+}

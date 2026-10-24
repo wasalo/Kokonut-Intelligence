@@ -134,6 +134,34 @@ seeds, IDs, variogram-model references, and metadata; non-finite values become
 `null`. Results are advisory and do not validate simulation assumptions or
 drive a lifecycle transition.
 
+## Kriging neighborhood and persisted geometry contract
+
+Ordinary, simple, and indicator kriging now honor `max_neighbors` and
+`search_radius` in their direct methods and database pipeline. For each grid
+point, the solver selects observations at or inside the configured radius,
+orders them by Euclidean distance, breaks equal-distance ties by source order,
+and limits the solve to the configured maximum. Cells with no observations in
+range have null prediction/variance/standard-deviation fields and a zero
+neighbor count. The CLI exposes `--max-neighbors` and `--search-radius`; invalid
+values fail before PostgreSQL opens. GSTools supports replacing conditioning
+positions and values through `set_condition` ([API documentation](https://geostat-framework.readthedocs.io/projects/gstools/en/stable/api/gstools.krige.Krige.html)).
+
+The database pipeline computes a local meter grid around the mean source
+latitude/longitude using the repository's existing equirectangular conversion.
+Before insertion into the schema's `geometry(4326)` column, persistence applies
+the inverse conversion back to longitude/latitude. Missing or invalid origin
+metadata fails closed before opening a connection. Non-finite/unestimated cells
+are not inserted. The 5,000-row persistence cap uses deterministic evenly spaced
+sampling; the run's `n_points` still records the full prediction grid size.
+These choices prevent projected meter values from being mislabeled as WGS84 and
+make capped saves repeatable. The numerical projection remains a local
+approximation; populated geographic parity and domain review remain open.
+
+The complete 104-test geostatistics selection covers neighbor limits, radius
+exclusion, all three methods, database/CLI forwarding and preflight, WGS84
+persistence, and skipping unresolved cells. These are synthetic tests; no
+candidate/legacy database or provider was used.
+
 ## Remaining work
 
 Other geostatistics outputs such as per-point kriging predictions/points and

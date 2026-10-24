@@ -1,3 +1,17 @@
+### Progress addendum — CAP-008 bounded local kriging and WGS84 persistence, 24 October 2026
+
+Ordinary, simple, and indicator kriging now use the nearest observations inside
+`search_radius`, capped by `max_neighbors`. No-neighbor cells are explicit nulls
+with zero neighbors, and the database/CLI pipeline validates and forwards both
+controls. Persistence converts the local-meter grid back to WGS84 before writing
+`geometry(4326)` and skips unresolved cells; its storage cap is deterministic.
+The 104-test geostatistics suite, Ruff, compilation, dependency-group check,
+refreshed SQL inventory, matrix check, and diff check pass. No migration or
+candidate/legacy database was used. CAP-008 stays prepared pending populated
+numerical parity, scientific review, live OIDC/browser, ACL/RLS, audience review,
+and MAN-CAP-008 ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-local-kriging-neighborhoods.json)).
+
 ### Progress addendum — CAP-008 empirical lag search contract, 24 October 2026
 
 Empirical variograms now use fixed-width bins based on `lag_distance`; the

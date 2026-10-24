@@ -26,6 +26,8 @@ from .config import (
     DEFAULT_BANDWIDTH,
     DEFAULT_LAG_DISTANCE,
     DEFAULT_LAG_TOLERANCE,
+    DEFAULT_MAX_NEIGHBORS,
+    DEFAULT_SEARCH_RADIUS_M,
     PROPERTY_DEFAULTS,
 )
 
@@ -49,6 +51,26 @@ def _nonnegative_finite_float(value: str) -> float:
         raise argparse.ArgumentTypeError("must be a number") from exc
     if not math.isfinite(parsed) or parsed < 0:
         raise argparse.ArgumentTypeError("must be a finite non-negative number")
+    return parsed
+
+
+def _finite_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed):
+        raise argparse.ArgumentTypeError("must be finite")
+    return parsed
+
+
+def _positive_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed
 
 def main():
@@ -77,11 +99,15 @@ def main():
     kr = sub.add_parser("kriging", help="Run kriging interpolation")
     kr.add_argument("--location-id", required=True, help="Location UUID")
     kr.add_argument("--property", required=True, dest="property_key")
-    kr.add_argument("--method", default="ordinary",
+    kr.add_argument("--method", choices=("ordinary", "simple", "indicator"), default="ordinary",
                     help="Kriging method (ordinary, simple, indicator)")
-    kr.add_argument("--resolution", type=float, default=10.0, help="Grid resolution in meters")
+    kr.add_argument("--resolution", type=_positive_finite_float, default=10.0, help="Grid resolution in meters")
     kr.add_argument("--variogram-id", default=None, help="Variogram model UUID to use")
-    kr.add_argument("--threshold", type=float, default=None, help="Threshold for indicator kriging")
+    kr.add_argument("--threshold", type=_finite_float, default=None, help="Threshold for indicator kriging")
+    kr.add_argument("--max-neighbors", type=_positive_integer, default=DEFAULT_MAX_NEIGHBORS,
+                    help="Maximum conditioning points per prediction")
+    kr.add_argument("--search-radius", type=_positive_finite_float, default=DEFAULT_SEARCH_RADIUS_M,
+                    help="Maximum conditioning-point distance in meters")
     kr.add_argument("--persist", action="store_true", help="Persist to database")
 
     # simulate
@@ -151,6 +177,14 @@ def main():
         if lag_tolerance > lag_distance / 2:
             parser.error("--lag-tolerance cannot exceed half of --lag-distance")
 
+    if args.command == "kriging":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        if args.method == "indicator" and args.threshold is None:
+            parser.error("indicator kriging requires --threshold")
+
     from services.common.database import get_db
 
     conn = get_db()
@@ -183,6 +217,8 @@ def main():
                 resolution_m=args.resolution,
                 variogram_model_id=args.variogram_id,
                 threshold=args.threshold,
+                max_neighbors=args.max_neighbors,
+                search_radius=args.search_radius,
             )
             if args.persist and "error" not in result:
                 # Need variogram_model_id for persistence
