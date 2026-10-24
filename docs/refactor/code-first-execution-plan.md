@@ -45,8 +45,8 @@ remain in JSONB metadata to avoid misclassification. The optional source is
 also preserved there. The existing 24-test
 waste-management module passes with five invalid-window subtests, Ruff,
 compilation, SQL inventory, matrix validation, and diff checks. No migration,
-database, provider, candidate, or legacy stack was used. Other waste
-writers/reads, tenant isolation, and populated parity remain open
+database, provider, candidate, or legacy stack was used. Tenant isolation,
+populated waste parity, and manual acceptance remain open
 ([contract](waste-management-kernel-read-contract.md);
 [evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-stream-write-schema-alignment.json)).
 

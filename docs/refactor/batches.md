@@ -53,9 +53,9 @@ acceptance remains separate; none is marked accepted.
   unsupported legacy types/disposal labels in metadata under `other`. The existing
   waste-management test module passes 24 tests plus five invalid-window
   subtests; Ruff, compilation, SQL inventory, matrix validation, and diff
-  checks pass. No migration or database was used. Recycling and incident
-  writers/reads, tenant isolation, populated parity, and MAN-CAP-006 remain
-  open. Rollback restores the previous insert and regression assertions
+  checks pass. No migration or database was used. Recycling and incident CLI schema
+  alignment is recorded in the following slices; tenant isolation, populated
+  parity, and MAN-CAP-006 remain open. Rollback restores the previous insert and regression assertions
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-stream-write-schema-alignment.json)).
   Checklist: 1,104 complete / 25 open (1,129 total).
@@ -68,7 +68,8 @@ acceptance remains separate; none is marked accepted.
   on success and failure. The existing waste-management module passes 24
   tests plus five invalid-window subtests; Ruff and compilation pass. SQL
   inventory, matrix validation, and diff checks pass. No migration or database
-  was used. Incident workflows and populated recycling parity remain open.
+  was used. Populated recycling parity, tenant isolation, and MAN-CAP-006
+  remain open.
   Rollback restores the previous insert and regression assertions
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-24-recovery/cap-006-legacy-recycling-write-schema-alignment.json)).
