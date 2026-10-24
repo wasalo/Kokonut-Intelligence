@@ -74,6 +74,18 @@ model IDs, thresholds, or metadata; non-finite numbers become `null`. The
 aggregation is bounded by the run page, with the transaction statement
 timeout retained. The console labels the saved output advisory.
 
+## Geostatistical realization summary route
+
+`GET /operator/api/geostatistics/{location_id}/realization-summaries` uses the
+same exact grant and signed, read-only transaction. It selects a bounded page
+of location-owned simulation runs before aggregating their child points. The
+response contains property, realization number, method, grid resolution,
+stored and actual result-point counts, mean and population standard deviation,
+minimum, maximum, and run time. It omits simulated point values, geometries,
+seeds, IDs, variogram-model references, and metadata; non-finite values become
+`null`. Results are advisory and do not validate simulation assumptions or
+drive a lifecycle transition.
+
 ## Remaining work
 
 Other geostatistics outputs such as kriging predictions/points and simulations,

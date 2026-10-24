@@ -50,6 +50,13 @@ _KRIGING_NUMERIC_FIELDS = (
     "min_predicted",
     "max_predicted",
 )
+_REALIZATION_NUMERIC_FIELDS = (
+    "grid_resolution_m",
+    "mean_simulated_value",
+    "stddev_simulated_value",
+    "min_simulated_value",
+    "max_simulated_value",
+)
 
 
 def _connection_factory() -> Callable:
@@ -395,6 +402,86 @@ def list_location_kriging_summaries(
             rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
             for row in rows:
                 for field in _KRIGING_NUMERIC_FIELDS:
+                    value = row[field]
+                    if value is not None and not math.isfinite(value):
+                        row[field] = None
+        return {
+            "location_id": location_id,
+            "items": rows[:limit],
+            "limit": limit,
+            "offset": offset,
+            "has_more": len(rows) > limit,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_realization_summaries(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List bounded location-scoped aggregate summaries of saved realizations."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    limit, offset = _page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="geostatistics",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                WITH selected_runs AS (
+                    SELECT id, property_key, realization_number,
+                           grid_resolution_m, n_points, method, created_at
+                      FROM geostat_realization
+                     WHERE location_id = %s::uuid
+                     ORDER BY created_at DESC, id DESC
+                     LIMIT %s OFFSET %s
+                )
+                SELECT run.property_key, run.realization_number, run.method,
+                       run.grid_resolution_m, run.n_points,
+                       COUNT(point.id) AS result_point_count,
+                       AVG(point.simulated_value) AS mean_simulated_value,
+                       STDDEV_POP(point.simulated_value) AS stddev_simulated_value,
+                       MIN(point.simulated_value) AS min_simulated_value,
+                       MAX(point.simulated_value) AS max_simulated_value,
+                       run.created_at
+                  FROM selected_runs AS run
+                  LEFT JOIN geostat_realization_point AS point
+                    ON point.realization_id = run.id
+                 GROUP BY run.id, run.property_key, run.realization_number,
+                          run.method, run.grid_resolution_m, run.n_points,
+                          run.created_at
+                 ORDER BY run.created_at DESC, run.id DESC
+                """,
+                (location_id, limit + 1, offset),
+            )
+            columns = [column[0] for column in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            for row in rows:
+                for field in _REALIZATION_NUMERIC_FIELDS:
                     value = row[field]
                     if value is not None and not math.isfinite(value):
                         row[field] = None

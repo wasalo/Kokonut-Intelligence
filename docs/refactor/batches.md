@@ -19,10 +19,26 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,080 checklist items complete and 25
-open (1,105 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,081 checklist items complete and 25
+open (1,106 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved geostatistical realization summaries — 24 October 2026
+
+- [x] Add the private `GET /operator/api/geostatistics/{location_id}/realization-summaries`
+  read under exact `geostatistics:read` and signed tenant context. It selects a
+  bounded run page before aggregating each realization's point values, returning
+  fixed distribution statistics and counts. Point values, geometries, seeds,
+  model IDs, and metadata are omitted; non-finite values become `null`. The
+  shared console validates method and scope, suppresses stale results, and
+  renders text only while labeling results advisory. The combined CAP-008
+  Gateway, console, and route-policy selection passes 60 tests with Ruff,
+  compilation, JavaScript syntax, runtime SQL inventory, matrix validation,
+  and diff checks. No migration, provider, candidate, or legacy database was
+  used. Rollback is a source revert and inventory regeneration
+  ([contract](geostatistics-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-realization-kernel-summaries.json)).
 
 ### CAP-008 saved kriging Kernel summaries — 24 October 2026
 

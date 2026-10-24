@@ -12,6 +12,7 @@ from services.common.tenant_context import TenantContextDenied
 from services.gateway.geostatistics_reads import (
     list_location_cross_validation,
     list_location_kriging_summaries,
+    list_location_realization_summaries,
     list_location_sensor_network_designs,
     list_location_spatial_autocorrelation,
     list_location_variogram_models,
@@ -82,7 +83,7 @@ class _Cursor:
                 ("soil_moisture", 25.0, 15.0, 12, 8, 33.3, float("nan"), "2026-03-06"),
                 ("soil_carbon", 50.0, 30.0, 6, 5, 16.7, 0.85, "2026-03-05"),
             )
-        elif "FROM selected_runs AS run" in query:
+        elif "FROM selected_runs AS run" in query and "kriging_point" in query:
             self.description = [(name,) for name in (
                 "property_key", "method", "grid_resolution_m", "n_points",
                 "result_point_count", "mean_predicted", "mean_variance", "mean_std",
@@ -93,6 +94,19 @@ class _Cursor:
                  float("nan"), 0.2, -0.5, 1.4, "2026-03-07"),
                 ("soil_carbon", "simple", 25.0, 40, 40, 0.8,
                  0.3, 0.5, -0.2, 1.6, "2026-03-06"),
+            )
+        elif "FROM selected_runs AS run" in query and "geostat_realization_point" in query:
+            self.description = [(name,) for name in (
+                "property_key", "realization_number", "method", "grid_resolution_m",
+                "n_points", "result_point_count", "mean_simulated_value",
+                "stddev_simulated_value", "min_simulated_value", "max_simulated_value",
+                "created_at",
+            )]
+            self.rows = (
+                ("soil_moisture", 2, "sgs", 10.0, 100, 99, 0.42,
+                 float("inf"), -0.2, 1.2, "2026-03-08"),
+                ("soil_moisture", 1, "sgs", 10.0, 100, 100, 0.4,
+                 0.18, -0.1, 1.1, "2026-03-07"),
             )
 
     def fetchall(self):
@@ -433,6 +447,67 @@ def test_invalid_kriging_scope_fails_before_connecting():
     assert not called
 
 
+def test_realization_read_aggregates_selected_runs_and_hides_point_details(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_realization_summaries(
+        OPERATOR_ID,
+        LOCATION_ID,
+        limit=1,
+        offset=2,
+        connection_factory=lambda: connection,
+    )
+    query, params = next(
+        (query, params) for query, params in connection.queries
+        if "geostat_realization_point" in query
+    )
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE location_id = %s::uuid" in query
+    assert "LIMIT %s OFFSET %s" in query
+    assert "STDDEV_POP(point.simulated_value)" in query
+    assert "point_geometry" not in query and "seed" not in query
+    assert "variogram_model_id" not in query and "metadata" not in query
+    assert params == (LOCATION_ID, 2, 2)
+    assert result["items"][0]["realization_number"] == 2
+    assert result["items"][0]["stddev_simulated_value"] is None
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_realization_scope_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Invalid location identifier"):
+        list_location_realization_summaries(OPERATOR_ID, "bad", connection_factory=connect)
+    assert not called
+
+
 def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     path = f"/operator/api/geostatistics/{LOCATION_ID}/autocorrelation"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -490,6 +565,17 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     }
     assert auth_route_policy("POST", kriging, enabled=True) is None
 
+    realizations = f"/operator/api/geostatistics/{LOCATION_ID}/realization-summaries"
+    assert auth_route_policy("GET", realizations, enabled=True) == {
+        "resource": "geostatistics",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", realizations, enabled=True) is None
+
 
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
@@ -512,6 +598,10 @@ def _app(monkeypatch, reader):
     )
     monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_kriging_summaries",
+        reader,
+    )
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_realization_summaries",
         reader,
     )
     app = FastAPI()
@@ -682,3 +772,28 @@ def test_kriging_http_route_is_no_store_and_passes_scope(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["offset"] == 4
+
+
+def test_realization_http_route_is_no_store_and_passes_scope(monkeypatch):
+    def reader(operator_id, location_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert limit == 3
+        assert offset == 2
+        return {
+            "location_id": location_id,
+            "items": [],
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/realization-summaries?limit=3&offset=2"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["offset"] == 2

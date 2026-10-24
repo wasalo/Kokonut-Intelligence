@@ -255,6 +255,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("geostatistics", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/geostatistics/11111111-1111-4111-8111-111111111111/realization-summaries",
+    ): _expected("geostatistics", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/energy/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("energy_monitoring", "read", scoped=True, location_id=_LOCATION_ID),
     (

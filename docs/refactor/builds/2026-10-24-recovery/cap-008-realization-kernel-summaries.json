@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "location-scoped saved geostatistical realization summaries",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/geostatistics/{location_id}/realization-summaries",
+    "authorization": "exact geostatistics:read location grant with signed tenant context",
+    "transaction": "read-only repeatable-read with statement and lock timeouts",
+    "source": "select a bounded page of exact-location realization runs before aggregating their child points",
+    "pagination": "limit 1-50; offset 0-10000",
+    "projection": [
+      "property, realization number, and method",
+      "grid resolution",
+      "stored and actual result-point counts",
+      "mean and population standard deviation",
+      "minimum and maximum simulated values",
+      "run time"
+    ],
+    "omitted": ["point values", "point geometries", "seeds", "database/run IDs", "model references", "metadata"],
+    "non_finite_values": "converted to null",
+    "console": "shared grant-gated geostatistics panel; fixed text rendering; advisory label",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_geostatistics_reads.py tests/test_gateway_trend_analysis_reads.py tests/test_operator_console_geostatistics.py tests/test_operator_console_trend_analysis.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "60 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "not_used": ["candidate database", "legacy database", "provider", "external service", "Raspberry Pi hardware"],
+  "remaining_acceptance": [
+    "per-point simulation output and scientific fixture parity",
+    "remaining geostatistics outputs and fold-level diagnostics",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the realization summary reader/route/policy and console panel, then regenerate runtime_sql_inventory.json. No persistent data was written."
+}

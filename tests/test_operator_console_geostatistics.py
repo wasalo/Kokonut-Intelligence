@@ -141,3 +141,30 @@ def test_kriging_panel_is_grant_gated_bounded_and_aggregate_only():
     assert "point_geometry" not in reader and "metadata" not in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
+
+
+def test_realization_panel_is_grant_gated_bounded_and_aggregate_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-realization-rows"' in source
+    assert "Raw point values, geometries, seeds, and model IDs are omitted" in source
+    start = source.index("async function loadGeostatisticsRealizationSummaries(")
+    end = source.index("function yieldMonitoringValue(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/realization-summaries?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "requestVersion !== geostatisticsRealizationRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    for field in (
+        "property_key", "realization_number", "method", "grid_resolution_m",
+        "n_points", "result_point_count", "mean_simulated_value",
+        "stddev_simulated_value", "min_simulated_value", "max_simulated_value",
+        "created_at",
+    ):
+        assert field in reader
+    assert "point_geometry" not in reader and "metadata" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader

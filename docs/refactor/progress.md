@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 saved geostatistical realization summaries, 24 October 2026
+
+The exact-location panel now summarizes saved geostatistical realizations by
+method and realization number, with stored/result point counts, mean, standard
+deviation, minimum, maximum, and run time. Point values, geometries, seeds,
+model IDs, and metadata are omitted. The run page is bounded before aggregate
+queries; non-finite values become `null`. The combined CAP-008 Gateway,
+console, and route-policy selection passes 60 tests with Ruff, compilation,
+JavaScript syntax, runtime SQL inventory, capability validation, and diff
+checks. No migration, provider, candidate, or legacy database was used.
+Per-point values, scientific/populated parity, remaining outputs, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 remain open. Checklist:
+1,081 complete / 25 open (1,106 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows, with 0/67 named MAN-CAP checks
+accepted ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-realization-kernel-summaries.json)).
+
 ### Progress addendum — CAP-008 saved kriging Kernel summaries, 24 October 2026
 
 The exact-location geostatistics panel now shows saved kriging run summaries.
