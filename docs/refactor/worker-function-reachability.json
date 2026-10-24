@@ -7,7 +7,7 @@
     "source_files": 97,
     "operations_without_resolved_entry_functions": 0,
     "function_memberships": 694,
-    "direct_call_edges": 947,
+    "direct_call_edges": 949,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -1766,7 +1766,7 @@
         {
           "function": "services.export.dataset_refresh:main",
           "source": "services/export/dataset_refresh.py",
-          "line": 236
+          "line": 245
         }
       ],
       "reachable_functions": [
@@ -1888,13 +1888,25 @@
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 198
+          "line": 182
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:_dataset_failure_summary",
           "source": "services/export/dataset_refresh.py",
-          "line": 227
+          "line": 202
+        },
+        {
+          "caller": "services.export.dataset_refresh:main",
+          "callee": "services.export.dataset_refresh:_dataset_failure_summary",
+          "source": "services/export/dataset_refresh.py",
+          "line": 215
+        },
+        {
+          "caller": "services.export.dataset_refresh:main",
+          "callee": "services.export.dataset_refresh:_dataset_failure_summary",
+          "source": "services/export/dataset_refresh.py",
+          "line": 236
         },
         {
           "caller": "services.export.dataset_refresh:main",
@@ -1912,19 +1924,19 @@
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:list_datasets",
           "source": "services/export/dataset_refresh.py",
-          "line": 208
+          "line": 213
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:refresh_dataset",
           "source": "services/export/dataset_refresh.py",
-          "line": 189
+          "line": 193
         },
         {
           "caller": "services.export.dataset_refresh:main",
           "callee": "services.export.dataset_refresh:refresh_dataset",
           "source": "services/export/dataset_refresh.py",
-          "line": 218
+          "line": 227
         },
         {
           "caller": "services.export.dataset_refresh:refresh_dataset",

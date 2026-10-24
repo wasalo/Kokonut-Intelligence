@@ -22,12 +22,12 @@ from services.analytics.reporting_reader import count_reporting_rows, safe_query
 from services.core.features import require_feature
 
 
-def _dataset_failure_summary(exc: Exception) -> str:
-    """Return an operator-safe refresh failure without dataset/error contents."""
+def _dataset_failure_summary(exc: Exception, *, operation: str = "refresh") -> str:
+    """Return an operator-safe dataset failure without private error contents."""
     name = type(exc).__name__
     if not name.isascii() or not name.isidentifier() or len(name) > 64:
         name = "Exception"
-    return f"dataset refresh failed ({name})"
+    return f"dataset {operation} failed ({name})"
 
 
 def get_pg():
@@ -178,6 +178,10 @@ def main():
                     print(
                         f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}"
                     )
+        except Exception as exc:
+            safe_error = _dataset_failure_summary(exc, operation="inventory")
+            print(f"  ✗ {safe_error}")
+            raise RuntimeError(safe_error) from None
         finally:
             conn.close()
         return
@@ -205,7 +209,12 @@ def main():
     if args.all:
         try:
             # Refresh all active datasets
-            datasets = list_datasets(conn)
+            try:
+                datasets = list_datasets(conn)
+            except Exception as exc:
+                safe_error = _dataset_failure_summary(exc, operation="inventory")
+                print(f"  ✗ {safe_error}")
+                raise RuntimeError(safe_error) from None
             if not datasets:
                 print("No active datasets found.")
                 return

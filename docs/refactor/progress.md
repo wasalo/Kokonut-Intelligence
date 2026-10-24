@@ -1,3 +1,18 @@
+### Progress addendum — CAP-039 dataset inventory failure redaction, 24 October 2026
+
+The `--list` and `--all` inventory-discovery failure paths now redact database
+exception contents. They print and raise a fixed inventory-failure summary
+containing only the sanitized exception class, and the application connection
+still closes. Mocked regressions use secret-shaped error text for both paths.
+Twenty dataset-refresh tests and five scheduler/feature checks pass with Ruff,
+compilation, six SQL/worker inventory checks, matrix validation, and diff
+checks. `legacy_dataset_sql` remains disabled by default; no database,
+provider, candidate, or legacy stack was used. No migration is required.
+Query/tenant policy and populated report/dashboard parity remain open. Rollback
+reverts source, tests, evidence, generated inventories, and progress records.
+Checklist: 1,099 complete / 25 open (1,124 total)
+([evidence](builds/2026-10-24-recovery/cap-039-dataset-inventory-error-redaction.json)).
+
 ### Progress addendum — CAP-039 dataset-refresh definition cursor failure cleanup, 24 October 2026
 
 The saved-dataset refresher now closes its active definition cursor whether the

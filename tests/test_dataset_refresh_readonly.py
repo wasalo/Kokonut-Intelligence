@@ -281,21 +281,26 @@ def test_list_datasets_closes_cursor_when_inventory_fails(failure_phase):
 
 @pytest.mark.parametrize("arguments", [["--list"], ["--all"]])
 def test_list_and_bulk_refresh_close_connection_when_inventory_fails(
-    monkeypatch, arguments
+    monkeypatch, capsys, arguments
 ):
     monkeypatch.setattr(sys, "argv", ["dataset_refresh", *arguments])
     monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
     conn = FakeApplicationConnection()
+    secret = "database password=private-token"
     monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
     monkeypatch.setattr(
         dataset_refresh,
         "list_datasets",
-        lambda *_args: (_ for _ in ()).throw(RuntimeError("synthetic inventory failure")),
+        lambda *_args: (_ for _ in ()).throw(RuntimeError(secret)),
     )
 
-    with pytest.raises(RuntimeError, match="synthetic inventory failure"):
+    with pytest.raises(RuntimeError, match=r"dataset inventory failed \(RuntimeError\)") as error:
         dataset_refresh.main()
 
+    output = capsys.readouterr().out
+    assert secret not in str(error.value)
+    assert secret not in output
+    assert "dataset inventory failed (RuntimeError)" in output
     assert conn.closed
 
 

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,098 checklist items complete and 25
-open (1,123 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,099 checklist items complete and 25
+open (1,124 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -50,6 +50,21 @@ acceptance remains separate; none is marked accepted.
   and progress records. Broader query policy, tenant scope, and populated
   report/dashboard parity remain open ([evidence](builds/2026-10-24-recovery/cap-039-dataset-refresh-definition-cursor-cleanup.json)).
   Checklist: 1,098 complete / 25 open (1,123 total).
+
+### CAP-039 dataset inventory failure redaction — 24 October 2026
+
+- [x] Redact database exception details when `--list` or the initial `--all`
+  inventory lookup fails. Both paths now print and raise only the fixed
+  inventory operation label and sanitized exception class, while still closing
+  the connection. Tests inject secret-shaped errors for both paths. The
+  20-test dataset-refresh suite and five scheduler/feature checks pass with
+  Ruff, compilation, six SQL/worker inventory checks, matrix validation, and
+  diff checks. The saved-SQL feature remains disabled by default; no database,
+  provider, candidate, or legacy stack was used. No migration is required.
+  Rollback reverts source, tests, evidence, inventory, and progress records.
+  Query/tenant policy and populated dashboard/report parity remain open
+  ([evidence](builds/2026-10-24-recovery/cap-039-dataset-inventory-error-redaction.json)).
+  Checklist: 1,099 complete / 25 open (1,124 total).
 
 ### CAP-008 configurable conditional-simulation mode count — 24 October 2026
 

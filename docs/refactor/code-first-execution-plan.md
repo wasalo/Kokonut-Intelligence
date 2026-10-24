@@ -1,3 +1,15 @@
+### Current CAP-039 implementation slice — dataset inventory failure redaction, 24 October 2026
+
+`--list` and the initial `--all` inventory lookup now redact database exception
+text, printing and raising only a fixed inventory-failure label with the
+sanitized exception class. The application connection closes on either error.
+Secret-shaped mocked failures cover both paths. The refresher suite passes 20
+tests; five scheduler/feature checks, Ruff, compilation, six inventory checks,
+matrix validation, and diff checks pass. The legacy SQL feature remains off;
+no database or provider was used and no migration is needed. Query/tenant policy
+and populated report parity remain open. Checklist: 1,099 complete / 25 open
+(1,124 total) ([evidence](builds/2026-10-24-recovery/cap-039-dataset-inventory-error-redaction.json)).
+
 ### Current CAP-039 implementation slice — dataset-refresh definition cursor failure cleanup, 24 October 2026
 
 The active saved-dataset definition cursor now closes after the initial query
