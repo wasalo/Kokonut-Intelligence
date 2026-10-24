@@ -1,3 +1,22 @@
+### Progress addendum — CAP-006 landscape dashboard calculations, 23 October 2026
+
+The signed landscape summary now includes source-defined dashboard aggregates
+for active habitat count/area and critical/high-value classifications, plus
+active corridor count, good/excellent count, total length, and non-null-width
+weighted mean. The historical connectivity ratio is preserved under an explicit
+legacy field and labeled in the console as a compatibility formula, not an
+ecological network metric. Buffer summaries use verified checks only and are
+not presented as legal compliance. Focused Gateway/console/reference tests pass
+(54 tests and eight subtests); Ruff, Python compilation, Node syntax,
+runtime SQL inventory, capability validation, and diff checks pass. No database,
+migration, provider, candidate, legacy archive, or Raspberry Pi was used. This
+closes a code-defined calculation slice only; populated archive parity,
+historical reference reconciliation, ACL/RLS, live OIDC/browser acceptance,
+and MAN-CAP-006 remain open. Checklist: 1,062 complete / 25 open (1,087 total);
+capability matrix: 26 baseline-retained, 7 deployed, and 34 prepared across 67
+rows, with 0/67 MAN-CAP checks accepted. [Contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-landscape-calculation-parity.json).
+
 ### Progress addendum — CAP-006 aggregate landscape-reference preflight, 23 October 2026
 
 An operator-run preflight now counts location-mismatched corridor source,

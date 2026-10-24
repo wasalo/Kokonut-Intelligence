@@ -81,7 +81,9 @@ def get_location_landscape_summary(
                 """
                 SELECT condition, status, COUNT(*)::bigint AS record_count,
                        SUM(length_m)::numeric AS total_length_m,
-                       AVG(width_m)::numeric AS mean_width_m
+                       AVG(width_m)::numeric AS mean_width_m,
+                       SUM(width_m)::numeric AS total_width_m,
+                       COUNT(width_m)::bigint AS width_value_count
                   FROM wildlife_corridor
                  WHERE location_id = %s::uuid
                  GROUP BY condition, status
@@ -137,6 +139,53 @@ def get_location_landscape_summary(
             )
             assessment = _rows(cur)[0]
 
+        active_habitats = [row for row in habitats if row["status"] == "active"]
+        active_habitat_count = sum(int(row["record_count"]) for row in active_habitats)
+        active_habitat_area = sum(_number(row["total_area_ha"]) or 0 for row in active_habitats)
+        critical_habitat_count = sum(
+            int(row["record_count"])
+            for row in active_habitats
+            if row["biodiversity_value"] == "critical"
+        )
+        high_value_habitat_count = sum(
+            int(row["record_count"])
+            for row in active_habitats
+            if row["biodiversity_value"] == "high"
+        )
+
+        active_corridors = [row for row in corridors if row["status"] == "active"]
+        active_corridor_count = sum(int(row["record_count"]) for row in active_corridors)
+        healthy_corridor_count = sum(
+            int(row["record_count"])
+            for row in active_corridors
+            if row["condition"] in {"excellent", "good"}
+        )
+        active_corridor_length = sum(_number(row["total_length_m"]) or 0 for row in active_corridors)
+        total_width = sum(_number(row["total_width_m"]) or 0 for row in active_corridors)
+        width_value_count = sum(int(row["width_value_count"]) for row in active_corridors)
+        active_corridor_mean_width = total_width / width_value_count if width_value_count else 0
+
+        total_verified_buffer_checks = sum(int(row["record_count"]) for row in buffer_checks)
+        compliant_verified_buffer_checks = sum(
+            int(row["record_count"]) for row in buffer_checks if row["compliant"] is True
+        )
+        verified_erosion_incidents = sum(
+            int(row["record_count"]) for row in buffer_checks if row["erosion_observed"] is True
+        )
+        verified_buffer_compliance_pct = (
+            round(compliant_verified_buffer_checks / total_verified_buffer_checks * 100, 1)
+            if total_verified_buffer_checks
+            else 0
+        )
+        legacy_connectivity_ratio_pct = (
+            round(healthy_corridor_count / active_habitat_count * 100, 1)
+            if active_habitat_count
+            else 0
+        )
+        for row in corridors:
+            row.pop("total_width_m", None)
+            row.pop("width_value_count", None)
+
         return {
             "location_id": location_id,
             "habitats": [
@@ -179,6 +228,27 @@ def get_location_landscape_summary(
                 "mean_overall_score": _number(assessment["mean_overall_score"]),
                 "first_assessment_date": _date(assessment["first_assessment_date"]),
                 "last_assessment_date": _date(assessment["last_assessment_date"]),
+            },
+            "dashboard_calculations": {
+                "active_habitats": {
+                    "zone_count": active_habitat_count,
+                    "total_area_ha": round(active_habitat_area, 2),
+                    "critical_habitats": critical_habitat_count,
+                    "high_value_habitats": high_value_habitat_count,
+                },
+                "active_corridors": {
+                    "corridor_count": active_corridor_count,
+                    "healthy_corridors": healthy_corridor_count,
+                    "total_length_m": round(active_corridor_length, 2),
+                    "mean_width_m": round(active_corridor_mean_width, 2),
+                },
+                "verified_buffer_checks": {
+                    "total_checks": total_verified_buffer_checks,
+                    "compliant_checks": compliant_verified_buffer_checks,
+                    "compliance_pct": verified_buffer_compliance_pct,
+                    "erosion_incidents": verified_erosion_incidents,
+                },
+                "legacy_connectivity_ratio_pct": legacy_connectivity_ratio_pct,
             },
         }
     finally:

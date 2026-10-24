@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,061 checklist items complete and 25
-open (1,086 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,062 checklist items complete and 25
+open (1,087 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -147,6 +147,23 @@ acceptance remains separate; none is marked accepted.
   open; this does not establish ecological or safety determinations. Rollback
   is a source revert ([contract](landscape-pollinator-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json)).
+
+### CAP-006 landscape dashboard calculation parity — 23 October 2026
+
+- [x] Restore the legacy dashboard's active habitat and corridor aggregates,
+  including area, critical/high-value zones, good/excellent corridor count,
+  length, and correctly weighted mean width. Add a verified-only buffer-check
+  summary and keep the historical connectivity ratio under an explicit
+  `legacy_` name; the console labels it a compatibility formula, not a network
+  metric. The focused Gateway/console/reference selection passes 54 tests plus
+  eight subtests; Ruff, Python compilation, JavaScript syntax, runtime SQL
+  inventory, capability validation, and diff checks pass. Checks cover grouped
+  inputs, inactive-row exclusion, null-width weighting, rounding, empty
+  denominators, and fixed labels. No database or migration is involved, and the verified rate is not a legal
+  compliance determination. Populated archive parity, reference remediation,
+  ACL/RLS, live OIDC/browser acceptance, and MAN-CAP-006 remain open. Rollback
+  is a source revert ([contract](landscape-pollinator-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-landscape-calculation-parity.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

@@ -38,12 +38,12 @@ class _Cursor:
         if "FROM habitat_zone" in query:
             columns, rows = (
                 ("habitat_type", "status", "biodiversity_value", "record_count", "total_area_ha"),
-                [("riparian", "active", "high", 2, Decimal("1.25"))],
+                getattr(self.connection, "landscape_habitat_rows", [("riparian", "active", "high", 2, Decimal("1.25"))]),
             )
         elif "FROM wildlife_corridor" in query:
             columns, rows = (
-                ("condition", "status", "record_count", "total_length_m", "mean_width_m"),
-                [("good", "active", 1, Decimal("120"), Decimal("4.5"))],
+                ("condition", "status", "record_count", "total_length_m", "mean_width_m", "total_width_m", "width_value_count"),
+                getattr(self.connection, "landscape_corridor_rows", [("good", "active", 1, Decimal("120"), Decimal("4.5"), Decimal("4.5"), 1)]),
             )
         elif "FROM hedgerow_record" in query:
             columns, rows = (
@@ -53,7 +53,7 @@ class _Cursor:
         elif "FROM buffer_zone_monitoring" in query:
             columns, rows = (
                 ("compliant", "erosion_observed", "record_count", "first_check_date", "last_check_date"),
-                [(True, False, 2, date(2026, 2, 1), date(2026, 3, 1))],
+                getattr(self.connection, "landscape_buffer_rows", [(True, False, 2, date(2026, 2, 1), date(2026, 3, 1))]),
             )
         elif "FROM landscape_biodiversity_score" in query:
             columns, rows = (
@@ -134,6 +134,20 @@ def test_landscape_and_pollinator_policies_are_exact_location_reads(path, resour
 def test_landscape_summary_sets_context_before_location_bound_aggregate_queries():
     operator_id, location_id = str(uuid4()), str(uuid4())
     conn = _Connection()
+    conn.landscape_habitat_rows = [
+        ("riparian", "active", "high", 2, Decimal("1.25")),
+        ("wetland", "active", "critical", 1, Decimal("0.75")),
+        ("forest_patch", "inactive", "critical", 4, Decimal("8.0")),
+    ]
+    conn.landscape_corridor_rows = [
+        ("good", "active", 2, Decimal("120"), Decimal("4.5"), Decimal("4.5"), 1),
+        ("fair", "active", 2, Decimal("50"), Decimal("2.5"), Decimal("5.0"), 2),
+        ("excellent", "inactive", 7, Decimal("900"), Decimal("3.0"), Decimal("21.0"), 7),
+    ]
+    conn.landscape_buffer_rows = [
+        (True, False, 2, date(2026, 2, 1), date(2026, 3, 1)),
+        (False, True, 1, date(2026, 1, 1), date(2026, 1, 1)),
+    ]
     events = []
 
     def set_context(connection, **kwargs):
@@ -174,6 +188,63 @@ def test_landscape_summary_sets_context_before_location_bound_aggregate_queries(
     assert result["verified_buffer_checks"][0]["last_check_date"] == "2026-03-01"
     assert result["verified_assessments"]["assessment_count"] == 2
     assert result["verified_assessments"]["mean_overall_score"] == 7.0
+    assert result["dashboard_calculations"] == {
+        "active_habitats": {
+            "zone_count": 3,
+            "total_area_ha": 2.0,
+            "critical_habitats": 1,
+            "high_value_habitats": 2,
+        },
+        "active_corridors": {
+            "corridor_count": 4,
+            "healthy_corridors": 2,
+            "total_length_m": 170.0,
+            "mean_width_m": 3.17,
+        },
+        "verified_buffer_checks": {
+            "total_checks": 3,
+            "compliant_checks": 2,
+            "compliance_pct": 66.7,
+            "erosion_incidents": 1,
+        },
+        "legacy_connectivity_ratio_pct": 66.7,
+    }
+    assert "total_width_m" not in result["corridors"][0]
+    assert "width_value_count" not in result["corridors"][0]
+    assert conn.rolled_back and conn.closed
+
+
+def test_landscape_dashboard_calculations_are_zero_safe_for_empty_location():
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    conn.landscape_habitat_rows = []
+    conn.landscape_corridor_rows = []
+    conn.landscape_buffer_rows = []
+
+    with patch("services.gateway.landscape_conservation_reads.set_operator_tenant_context"):
+        result = get_location_landscape_summary(operator_id, location_id, connection_factory=lambda: conn)
+
+    assert result["dashboard_calculations"] == {
+        "active_habitats": {
+            "zone_count": 0,
+            "total_area_ha": 0,
+            "critical_habitats": 0,
+            "high_value_habitats": 0,
+        },
+        "active_corridors": {
+            "corridor_count": 0,
+            "healthy_corridors": 0,
+            "total_length_m": 0,
+            "mean_width_m": 0,
+        },
+        "verified_buffer_checks": {
+            "total_checks": 0,
+            "compliant_checks": 0,
+            "compliance_pct": 0,
+            "erosion_incidents": 0,
+        },
+        "legacy_connectivity_ratio_pct": 0,
+    }
     assert conn.rolled_back and conn.closed
 
 

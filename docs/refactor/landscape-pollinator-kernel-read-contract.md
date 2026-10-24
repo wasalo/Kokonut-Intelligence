@@ -45,6 +45,17 @@ is returned. Buffer checks are limited to `verified`; biodiversity summaries
 include only `verified` and `published` assessments and report means across the
 selected records, not a latest-value or compliance determination.
 
+The landscape response also preserves the legacy dashboard's active-habitat
+count/area and critical/high-value counts, plus active-corridor count,
+good/excellent count, length, and a mean width weighted by non-null widths.
+Buffer calculations intentionally use verified checks only; their percentage
+is not the legacy all-status rate and must not be presented as legal or
+regulatory compliance. Empty groups return zero counts and zero-valued
+summaries. The historical `connectivity_ratio_pct` is exposed as
+`legacy_connectivity_ratio_pct`, calculated as healthy active corridors divided
+by active habitat zones. It is a compatibility formula, not a graph/network
+measure or ecological outcome, and is labeled accordingly in the console.
+
 Pollinator observations and pesticide-impact records include only `verified`
 or `reviewed` rows. Pollinator habitats are descriptive inventories grouped by
 type, condition, and source status. Active-hive summaries retain kg for honey
@@ -134,8 +145,16 @@ Synthetic cases pin the trend threshold, both pesticide critical-risk branches,
 and active-hive score aggregation. No database was accessed. Evidence:
 `builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json`.
 
-This is a prepared read path, not proof of populated output parity, landscape
-dashboard-derived calculation parity, deployment-role least privilege,
+The landscape calculation slice restores those source-defined active habitat
+and corridor summaries, adds a verified-only buffer rate, and labels the legacy
+ratio as a compatibility formula. Gateway and console checks cover grouped
+inputs, inactive-row exclusion, weighted width, rounding, empty denominators,
+and fixed labels. No populated archive or database was used, so output parity
+against an owner-reviewed reference fixture remains open; rollback is a source
+revert.
+
+This is a prepared read path, not proof of populated output parity,
+deployment-role least privilege,
 forced-RLS coverage, live ZITADEL behavior, browser acceptance, historical
 reference reconciliation, candidate rollout, or MAN-CAP-006 acceptance.
 Migrations 602 and 603 have not been applied to the candidate. The existing

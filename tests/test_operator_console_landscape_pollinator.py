@@ -57,6 +57,21 @@ def test_ecology_panels_use_allowlists_and_fixed_text_rendering():
     assert ".innerHTML" not in table_renderer.group()
 
 
+def test_landscape_dashboard_calculations_are_validated_and_labeled_as_compatibility_summaries():
+    landscape = re.search(r"function renderLandscapeSummary\(summary\).*?\n      }", SOURCE, re.DOTALL)
+    loader = re.search(r"async function loadLandscapeConservationSummary\(\).*?\n      }", SOURCE, re.DOTALL)
+    assert landscape and loader
+    for field in ("active_habitats", "active_corridors", "verified_buffer_checks"):
+        assert f"calculations.{field}" in landscape.group()
+        assert f"result.dashboard_calculations.{field}" in loader.group()
+    assert "Number.isSafeInteger" in landscape.group()
+    assert "row.compliant_checks <= row.total_checks" in landscape.group()
+    assert "row.compliance_pct <= 100" in landscape.group()
+    assert "legacy connectivity ratio" in landscape.group().lower()
+    assert "not a network metric" in SOURCE.lower()
+    assert "Verified compliance (%)" in landscape.group()
+
+
 def test_ecology_panels_refresh_on_change_and_have_unique_ids():
     assert 'document.querySelector("#landscape-conservation-refresh").addEventListener("click", loadLandscapeConservationSummary)' in SOURCE
     assert 'landscapeConservationLocation.addEventListener("change", loadLandscapeConservationSummary)' in SOURCE
