@@ -661,6 +661,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plans",
+    ): _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/demand-signals/dddddddd-dddd-4ddd-8ddd-dddddddddddd/submit",
     ): _expected("operating_pilot", "submit_own", scoped=True, location_id=_LOCATION_ID),
     (
@@ -1118,6 +1122,10 @@ _EXPECTED_OPERATOR_POLICIES[(
 _EXPECTED_OPERATOR_POLICIES[(
     "POST",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-assessments",
+)] = _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans",
 )] = _expected("operating_pilot", "create", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
     "PUT",

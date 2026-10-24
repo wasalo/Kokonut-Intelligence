@@ -91,7 +91,7 @@ Commands:
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
 - Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
-- Exercise CAP-037 operating-pilot workflows, including private learning-plan history, on disposable PostgreSQL 16: `python3 scripts/check-operating-pilot-summary-disposable.py --learning-plan-own-read`
+- Exercise CAP-037 operating-pilot workflows, including private learning-plan history and draft creation, on disposable PostgreSQL 16: `python3 scripts/check-operating-pilot-summary-disposable.py --learning-plan-draft` (use `--learning-plan-own-read` for the history-only slice)
 - Replay pollinator migrations 155/602 and exercise service SQL on disposable PostgreSQL 16: `python3 scripts/check-pollinator-health-disposable.py`
 - Apply/replay waste migration 153 and exercise legacy waste CLI operations on disposable PostgreSQL 16: `python3 scripts/check-waste-management-disposable.py`
 - Verify landscape habitat references and location-safe views on disposable PostgreSQL 16: `python3 scripts/check-landscape-reference-location-disposable.py`

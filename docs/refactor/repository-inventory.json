@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "9abe2f42abd0718ecd349c7a3660b4659ed1765a",
+  "baseline_commit": "ef3b5551078f74f550a0868c47661c9fbd372e8b",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1017,6 +1017,12 @@
       "source": "services/gateway/comprehensive_status_routes.py"
     },
     {
+      "line": 16,
+      "method": "GET",
+      "path": "/operator/api/cooperatives/{location_id}/summary",
+      "source": "services/gateway/cooperative_management_routes.py"
+    },
+    {
       "line": 17,
       "method": "GET",
       "path": "/operator/api/coordination/{location_id}/summary",
@@ -1141,6 +1147,54 @@
       "method": "POST",
       "path": "/operator/api/farm-activity-records/{activity_id}/{action}",
       "source": "services/gateway/farm_activity_routes.py"
+    },
+    {
+      "line": 25,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/autocorrelation",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 67,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/cross-validation",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 109,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/variogram-models",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 151,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/sensor-network-designs",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 193,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/kriging-summaries",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 235,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/kriging/{prediction_id}/points",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 287,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/realization-summaries",
+      "source": "services/gateway/geostatistics_routes.py"
+    },
+    {
+      "line": 329,
+      "method": "GET",
+      "path": "/operator/api/geostatistics/{location_id}/realizations/{realization_id}/points",
+      "source": "services/gateway/geostatistics_routes.py"
     },
     {
       "line": 128,
@@ -1311,379 +1365,391 @@
       "source": "services/gateway/nutrient_balance_routes.py"
     },
     {
-      "line": 56,
+      "line": 58,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 133,
+      "line": 135,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claim-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 194,
+      "line": 196,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 284,
+      "line": 286,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 347,
+      "line": 349,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 430,
+      "line": 432,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 508,
+      "line": 510,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 586,
+      "line": 588,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 661,
+      "line": 663,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 738,
+      "line": 740,
+      "method": "POST",
+      "path": "/operator/api/operating-pilot/{location_id}/learning-plans",
+      "source": "services/gateway/operating_pilot_routes.py"
+    },
+    {
+      "line": 817,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 815,
+      "line": 894,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 903,
+      "line": 982,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 983,
+      "line": 1062,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1067,
+      "line": 1146,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1147,
+      "line": 1226,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1227,
+      "line": 1306,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1311,
+      "line": 1390,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/summary",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1352,
+      "line": 1431,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1398,
+      "line": 1477,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-periods",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1446,
+      "line": 1525,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-capacity-profiles",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1507,
+      "line": 1586,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-competency-assessments",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1568,
+      "line": 1647,
+      "method": "GET",
+      "path": "/operator/api/operating-pilot/{location_id}/my-learning-plans",
+      "source": "services/gateway/operating_pilot_routes.py"
+    },
+    {
+      "line": 1708,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1629,
+      "line": 1769,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-resource-requests",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1690,
+      "line": 1830,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1751,
+      "line": 1891,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/competency-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1812,
+      "line": 1952,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/demand-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1873,
+      "line": 2013,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1934,
+      "line": 2074,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1995,
+      "line": 2135,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2083,
+      "line": 2223,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2163,
+      "line": 2303,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2251,
+      "line": 2391,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2339,
+      "line": 2479,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2427,
+      "line": 2567,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2475,
+      "line": 2615,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-categories",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2523,
+      "line": 2663,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-opportunities",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2584,
+      "line": 2724,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3213,
+      "line": 3433,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3228,
+      "line": 3448,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3237,
+      "line": 3457,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3295,
+      "line": 3515,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3323,
+      "line": 3543,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3363,
+      "line": 3583,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3414,
+      "line": 3634,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3454,
+      "line": 3674,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3507,
+      "line": 3727,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3567,
+      "line": 3787,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3622,
+      "line": 3842,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3666,
+      "line": 3886,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3727,
+      "line": 3947,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3810,
+      "line": 4030,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3903,
+      "line": 4123,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3951,
+      "line": 4171,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4003,
+      "line": 4223,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4061,
+      "line": 4281,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4115,
+      "line": 4335,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4204,
+      "line": 4424,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4224,
+      "line": 4444,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4244,
+      "line": 4464,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4280,
+      "line": 4500,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4308,
+      "line": 4528,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4336,
+      "line": 4556,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4379,
+      "line": 4599,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -2389,6 +2455,42 @@
       "method": "GET",
       "path": "/operator/api/traceability/{location_id}/batches/{batch_id}",
       "source": "services/gateway/traceability_routes.py"
+    },
+    {
+      "line": 25,
+      "method": "GET",
+      "path": "/operator/api/trends/{location_id}/estimates",
+      "source": "services/gateway/trend_analysis_routes.py"
+    },
+    {
+      "line": 67,
+      "method": "GET",
+      "path": "/operator/api/trends/{location_id}/change-points",
+      "source": "services/gateway/trend_analysis_routes.py"
+    },
+    {
+      "line": 109,
+      "method": "GET",
+      "path": "/operator/api/trends/{location_id}/decomposition",
+      "source": "services/gateway/trend_analysis_routes.py"
+    },
+    {
+      "line": 149,
+      "method": "GET",
+      "path": "/operator/api/trends/{location_id}/forecast",
+      "source": "services/gateway/trend_analysis_routes.py"
+    },
+    {
+      "line": 189,
+      "method": "POST",
+      "path": "/operator/api/trends/{location_id}/forecast",
+      "source": "services/gateway/trend_analysis_routes.py"
+    },
+    {
+      "line": 241,
+      "method": "GET",
+      "path": "/operator/api/trends/{location_id}/smoothing",
+      "source": "services/gateway/trend_analysis_routes.py"
     },
     {
       "line": 12,
@@ -3161,7 +3263,9 @@
       "schemas/postgres/601_nutrient_input_cost_currency.sql",
       "schemas/postgres/602_pollinator_health_kernel_alignment.sql",
       "schemas/postgres/603_location_bound_landscape_references.sql",
-      "schemas/postgres/604_energy_reading_cost_currency.sql"
+      "schemas/postgres/604_energy_reading_cost_currency.sql",
+      "schemas/postgres/605_location_own_operating_pilot_learning_plans.sql",
+      "schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3851,6 +3955,7 @@
         "tests/test_gateway_business_planning_reads.py",
         "tests/test_gateway_competitive_landscape_reads.py",
         "tests/test_gateway_comprehensive_status_reads.py",
+        "tests/test_gateway_cooperative_management_reads.py",
         "tests/test_gateway_coordination_reads.py",
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
@@ -3860,6 +3965,7 @@
         "tests/test_gateway_ecocredits.py",
         "tests/test_gateway_emergency_response.py",
         "tests/test_gateway_extension_learning_reads.py",
+        "tests/test_gateway_geostatistics_reads.py",
         "tests/test_gateway_governance_assignment_proposal_reads.py",
         "tests/test_gateway_governance_assignment_proposals.py",
         "tests/test_gateway_governance_assignment_review.py",
@@ -3872,6 +3978,7 @@
         "tests/test_gateway_governance_tactical_session_mutations.py",
         "tests/test_gateway_governance_tension_actions.py",
         "tests/test_gateway_management_work_reads.py",
+        "tests/test_gateway_operating_pilot_learning.py",
         "tests/test_gateway_operating_pilot_reads.py",
         "tests/test_gateway_operating_pilot_work_claim_allocations.py",
         "tests/test_gateway_operating_pilot_work_claim_reviews.py",
@@ -3914,6 +4021,8 @@
         "tests/test_gateway_strategy_reads.py",
         "tests/test_gateway_threatcasting_reads.py",
         "tests/test_gateway_traceability.py",
+        "tests/test_gateway_trend_analysis_reads.py",
+        "tests/test_gateway_trend_forecast_compute.py",
         "tests/test_gateway_true_cost.py",
         "tests/test_harvest_manager_error_redaction.py",
         "tests/test_kernel_runtime_supervisor.py",
@@ -4442,6 +4551,8 @@
         "services/gateway/competitive_landscape_routes.py",
         "services/gateway/comprehensive_status_reads.py",
         "services/gateway/comprehensive_status_routes.py",
+        "services/gateway/cooperative_management_reads.py",
+        "services/gateway/cooperative_management_routes.py",
         "services/gateway/coordination_reads.py",
         "services/gateway/coordination_routes.py",
         "services/gateway/credit_custody.py",
@@ -4468,6 +4579,8 @@
         "services/gateway/farm_activity_roles.py",
         "services/gateway/farm_activity_routes.py",
         "services/gateway/farm_activity_workflow.py",
+        "services/gateway/geostatistics_reads.py",
+        "services/gateway/geostatistics_routes.py",
         "services/gateway/governance.py",
         "services/gateway/governance_assignment_proposal_reads.py",
         "services/gateway/governance_assignment_proposals.py",
@@ -4528,6 +4641,9 @@
         "services/gateway/threatcasting_routes.py",
         "services/gateway/traceability.py",
         "services/gateway/traceability_routes.py",
+        "services/gateway/trend_analysis_reads.py",
+        "services/gateway/trend_analysis_routes.py",
+        "services/gateway/trend_forecast_compute.py",
         "services/gateway/true_cost.py",
         "services/gateway/true_cost_routes.py",
         "services/gateway/waste_management_reads.py",
@@ -4554,6 +4670,7 @@
         "tests/test_gateway_business_planning_writes.py",
         "tests/test_gateway_competitive_landscape_reads.py",
         "tests/test_gateway_comprehensive_status_reads.py",
+        "tests/test_gateway_cooperative_management_reads.py",
         "tests/test_gateway_coordination_reads.py",
         "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_crop_simulations.py",
@@ -4565,6 +4682,7 @@
         "tests/test_gateway_emergency_response.py",
         "tests/test_gateway_energy_monitoring.py",
         "tests/test_gateway_extension_learning_reads.py",
+        "tests/test_gateway_geostatistics_reads.py",
         "tests/test_gateway_governance.py",
         "tests/test_gateway_governance_assignment_proposal_reads.py",
         "tests/test_gateway_governance_assignment_proposals.py",
@@ -4586,6 +4704,7 @@
         "tests/test_gateway_nutrient_balances.py",
         "tests/test_gateway_nutrient_events.py",
         "tests/test_gateway_nutrient_soil_tests.py",
+        "tests/test_gateway_operating_pilot_learning.py",
         "tests/test_gateway_operating_pilot_reads.py",
         "tests/test_gateway_operating_pilot_work_claim_allocations.py",
         "tests/test_gateway_operating_pilot_work_claim_reviews.py",
@@ -4636,6 +4755,8 @@
         "tests/test_gateway_strategy_reads.py",
         "tests/test_gateway_threatcasting_reads.py",
         "tests/test_gateway_traceability.py",
+        "tests/test_gateway_trend_analysis_reads.py",
+        "tests/test_gateway_trend_forecast_compute.py",
         "tests/test_gateway_true_cost.py",
         "tests/test_gateway_waste_management_reads.py",
         "tests/test_gateway_yield_monitoring.py",
@@ -4661,6 +4782,7 @@
         "services/geostatistics/cli.py",
         "services/geostatistics/config.py",
         "services/geostatistics/cross_validation.py",
+        "services/geostatistics/data_sources.py",
         "services/geostatistics/kriging.py",
         "services/geostatistics/sensor_optimization.py",
         "services/geostatistics/simulation.py",
@@ -6038,6 +6160,7 @@
     "tests/test_gateway_business_planning_writes.py",
     "tests/test_gateway_competitive_landscape_reads.py",
     "tests/test_gateway_comprehensive_status_reads.py",
+    "tests/test_gateway_cooperative_management_reads.py",
     "tests/test_gateway_coordination_reads.py",
     "tests/test_gateway_credit_custody.py",
     "tests/test_gateway_crop_simulations.py",
@@ -6049,6 +6172,7 @@
     "tests/test_gateway_emergency_response.py",
     "tests/test_gateway_energy_monitoring.py",
     "tests/test_gateway_extension_learning_reads.py",
+    "tests/test_gateway_geostatistics_reads.py",
     "tests/test_gateway_governance.py",
     "tests/test_gateway_governance_assignment_proposal_reads.py",
     "tests/test_gateway_governance_assignment_proposals.py",
@@ -6070,6 +6194,7 @@
     "tests/test_gateway_nutrient_balances.py",
     "tests/test_gateway_nutrient_events.py",
     "tests/test_gateway_nutrient_soil_tests.py",
+    "tests/test_gateway_operating_pilot_learning.py",
     "tests/test_gateway_operating_pilot_reads.py",
     "tests/test_gateway_operating_pilot_work_claim_allocations.py",
     "tests/test_gateway_operating_pilot_work_claim_reviews.py",
@@ -6120,6 +6245,8 @@
     "tests/test_gateway_strategy_reads.py",
     "tests/test_gateway_threatcasting_reads.py",
     "tests/test_gateway_traceability.py",
+    "tests/test_gateway_trend_analysis_reads.py",
+    "tests/test_gateway_trend_forecast_compute.py",
     "tests/test_gateway_true_cost.py",
     "tests/test_gateway_waste_management_reads.py",
     "tests/test_gateway_yield_monitoring.py",
@@ -6257,6 +6384,7 @@
     "tests/test_operator_console_business_architecture.py",
     "tests/test_operator_console_business_planning.py",
     "tests/test_operator_console_competitive_landscape.py",
+    "tests/test_operator_console_cooperative_management.py",
     "tests/test_operator_console_coordination.py",
     "tests/test_operator_console_crop_simulations.py",
     "tests/test_operator_console_delphi_recommendation_drafts.py",
@@ -6264,6 +6392,7 @@
     "tests/test_operator_console_energy_monitoring.py",
     "tests/test_operator_console_extension_learning.py",
     "tests/test_operator_console_farm_activity.py",
+    "tests/test_operator_console_geostatistics.py",
     "tests/test_operator_console_governance_assignment_proposals.py",
     "tests/test_operator_console_governance_tactical_sessions.py",
     "tests/test_operator_console_governance_tensions.py",
@@ -6281,6 +6410,7 @@
     "tests/test_operator_console_strategy.py",
     "tests/test_operator_console_threatcasting.py",
     "tests/test_operator_console_traceability.py",
+    "tests/test_operator_console_trend_analysis.py",
     "tests/test_operator_console_waste_management.py",
     "tests/test_operator_console_yield_monitoring.py",
     "tests/test_operator_mobile_review.py",

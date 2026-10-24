@@ -46,6 +46,12 @@ COMPETENCY_PAYLOAD = {
     "target_level": "4",
     "evidence_note": "Private synthetic self-assessment evidence",
 }
+LEARNING_PLAN_PAYLOAD = {
+    "title": "Facilitation practice plan",
+    "competency_goals": [{"key": "facilitation", "target": 4}],
+    "support_requested": ["Peer mentoring"],
+    "target_date": "2026-12-15",
+}
 
 
 def _connection_with_result(result):
@@ -151,6 +157,74 @@ def test_competency_draft_sets_exact_context_and_commits_private_function_result
     connection.commit.assert_called_once_with()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
+
+
+def test_learning_plan_draft_sets_exact_create_context_and_commits_function_result(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"learning_plan_id": PROFILE_ID, "status": "draft", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.create_location_operating_pilot_learning_plan_draft(
+        OPERATOR_ID,
+        LOCATION_ID,
+        REQUEST_ID,
+        LEARNING_PLAN_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "operating_pilot",
+            "action": "create",
+        },
+    )]
+    assert "create_location_operating_pilot_learning_plan_draft" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        REQUEST_ID,
+        "Facilitation practice plan",
+        '[{"key":"facilitation","target":4}]',
+        '["Peer mentoring"]',
+        operating_pilot_writes.date(2026, 12, 15),
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("payload", [
+    [],
+    {**LEARNING_PLAN_PAYLOAD, "title": " "},
+    {**LEARNING_PLAN_PAYLOAD, "title": "x" * 256},
+    {**LEARNING_PLAN_PAYLOAD, "competency_goals": "not-an-array"},
+    {**LEARNING_PLAN_PAYLOAD, "support_requested": ["x"] * 51},
+    {**LEARNING_PLAN_PAYLOAD, "target_date": "2026-12-15T00:00:00Z"},
+    {**LEARNING_PLAN_PAYLOAD, "unexpected": True},
+])
+def test_invalid_learning_plan_draft_fails_before_database_access(payload):
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid):
+        operating_pilot_writes.create_location_operating_pilot_learning_plan_draft(
+            OPERATOR_ID,
+            LOCATION_ID,
+            REQUEST_ID,
+            payload,
+            connection_factory=lambda: pytest.fail("invalid learning-plan input must fail before DB access"),
+        )
 
 
 def test_competency_revision_uses_edit_own_context_and_replays_function_result(monkeypatch):
@@ -621,6 +695,65 @@ def test_competency_draft_http_route_passes_request_id_and_uses_no_store(monkeyp
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {"draft_id": PROFILE_ID, "status": "draft", "replayed": False}
     action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COMPETENCY_PAYLOAD)
+
+
+def test_learning_plan_draft_http_route_passes_request_id_and_uses_no_store(monkeypatch):
+    action = MagicMock(
+        return_value={"learning_plan_id": PROFILE_ID, "status": "draft", "replayed": False}
+    )
+    client = _route_app(
+        monkeypatch,
+        action,
+        "create_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        json={**LEARNING_PLAN_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json() == {
+        "learning_plan_id": PROFILE_ID,
+        "status": "draft",
+        "replayed": False,
+    }
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, LEARNING_PLAN_PAYLOAD)
+
+
+def test_learning_plan_draft_http_route_rejects_oversized_body_before_database(monkeypatch):
+    action = MagicMock(side_effect=AssertionError("oversized request must not reach the write helper"))
+    client = _route_app(
+        monkeypatch,
+        action,
+        "create_location_operating_pilot_learning_plan_draft",
+    )
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans",
+        content=b" " * (32 * 1024 + 1),
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 413
+    assert response.headers["cache-control"] == "no-store"
+    action.assert_not_called()
+
+
+def test_learning_plan_draft_route_policy_requires_exact_location_create_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("GET", path, enabled=True) is None
+    assert auth_route_policy("POST", path + "/unexpected", enabled=True) is None
+    assert auth_route_policy("POST", path, enabled=False) is None
 
 
 def test_competency_draft_route_policy_requires_exact_location_create_grant():

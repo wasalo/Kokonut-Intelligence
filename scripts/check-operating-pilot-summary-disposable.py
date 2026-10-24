@@ -45,6 +45,7 @@ COMPETENCY_OWN_READ_MIGRATION = ROOT / "schemas/postgres/575_location_own_operat
 COMPETENCY_LIFECYCLE_MIGRATION = ROOT / "schemas/postgres/576_location_operating_pilot_competency_draft_lifecycle.sql"
 COMPETENCY_REVIEW_MIGRATION = ROOT / "schemas/postgres/577_location_operating_pilot_competency_review.sql"
 LEARNING_PLAN_OWN_READ_MIGRATION = ROOT / "schemas/postgres/605_location_own_operating_pilot_learning_plans.sql"
+LEARNING_PLAN_DRAFT_MIGRATION = ROOT / "schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -75,6 +76,7 @@ COMPETENCY_LIFECYCLE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-reco
 COMPETENCY_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-disposable.json"
 COMPETENCY_REVIEW_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-competency-review-arm64-disposable.json"
 LEARNING_PLAN_OWN_READ_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-own-read-disposable.json"
+LEARNING_PLAN_DRAFT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-draft-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -5043,6 +5045,122 @@ END $$;
 ROLLBACK;
 """
 
+LEARNING_PLAN_DRAFT_ACCEPTANCE = r"""
+BEGIN;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE created jsonb; replay jsonb; own_page jsonb; plan_id uuid;
+        changed_retry_denied boolean := false; no_grant_denied boolean := false;
+        location_denied boolean := false; invalid_denied boolean := false;
+        oversized jsonb;
+BEGIN
+    created := kokonut_security.create_location_operating_pilot_learning_plan_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9900000-0000-4000-8000-000000000101',
+        '  Facilitation practice  ',
+        '[{"key":"facilitation","target":4}]'::jsonb,
+        '["Peer mentoring"]'::jsonb,
+        '2026-12-15'
+    );
+    replay := kokonut_security.create_location_operating_pilot_learning_plan_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9900000-0000-4000-8000-000000000101',
+        'Facilitation practice',
+        '[{"key":"facilitation","target":4}]'::jsonb,
+        '["Peer mentoring"]'::jsonb,
+        '2026-12-15'
+    );
+    plan_id := (created->>'learning_plan_id')::uuid;
+    IF plan_id IS NULL
+       OR created->>'status' <> 'draft' OR created->>'replayed' <> 'false'
+       OR replay->>'learning_plan_id' <> created->>'learning_plan_id'
+       OR replay->>'status' <> 'draft' OR replay->>'replayed' <> 'true'
+       OR created::text ~* '(Facilitation|Peer mentoring|competency_goals|party_id|scope_id)' THEN
+        RAISE EXCEPTION 'learning-plan create/replay exposed content or returned invalid result: %, %', created, replay;
+    END IF;
+    own_page := kokonut_security.location_operating_pilot_own_learning_plans(
+        'b0000000-0000-4000-8000-000000000001', 25, 0);
+    IF NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(own_page->'items') AS page_item(item)
+         WHERE item->>'learning_plan_id' = plan_id::TEXT
+           AND item->>'title' = 'Facilitation practice'
+           AND item->'competency_goals' = '[{"key":"facilitation","target":4}]'::jsonb
+           AND item->'support_requested' = '["Peer mentoring"]'::jsonb
+           AND item->>'target_date' = '2026-12-15'
+           AND item->>'status' = 'draft'
+    ) THEN
+        RAISE EXCEPTION 'new Kernel learning-plan draft is not privately returned in own history';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_learning_plan_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9900000-0000-4000-8000-000000000101',
+            'Facilitation practice', '[]'::jsonb, '["Changed"]'::jsonb, '2026-12-15');
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'changed learning-plan request retry was accepted'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_learning_plan_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9900000-0000-4000-8000-000000000102',
+            'No create grant', '[]'::jsonb, '[]'::jsonb, NULL);
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'learning-plan create accepted a read-only grant'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_learning_plan_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9900000-0000-4000-8000-000000000103',
+            'Wrong location', '[]'::jsonb, '[]'::jsonb, NULL);
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'learning-plan create accepted a mismatched signed location'; END IF;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+
+    SELECT jsonb_agg(to_jsonb(value)) INTO oversized FROM generate_series(1, 51) AS value;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_learning_plan_draft(
+            'b0000000-0000-4000-8000-000000000001',
+            'd9900000-0000-4000-8000-000000000104',
+            'Invalid goals', oversized, '[]'::jsonb, NULL);
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_denied := true;
+    END;
+    IF NOT invalid_denied THEN RAISE EXCEPTION 'learning-plan create accepted an oversized goal list'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+            'kokonut_runtime',
+            'kokonut_security.create_location_operating_pilot_learning_plan_draft(uuid,uuid,text,jsonb,jsonb,date)',
+            'EXECUTE')
+       OR has_function_privilege(
+            'kokonut_directus_runtime',
+            'kokonut_security.create_location_operating_pilot_learning_plan_draft(uuid,uuid,text,jsonb,jsonb,date)',
+            'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_learning_plan', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_learning_plan', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_learning_plan', 'INSERT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_draft_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_learning_plan', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_draft_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_draft_receipt', 'DELETE') THEN
+        RAISE EXCEPTION 'learning-plan writer function or private table ACL is incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 COMPETENCY_LIFECYCLE_ACCEPTANCE = r"""
 BEGIN;
 SET LOCAL ROLE kokonut_runtime;
@@ -5483,7 +5601,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 605 and test private, location-linked learning-plan history",
     )
+    parser.add_argument(
+        "--learning-plan-draft",
+        action="store_true",
+        help="Also apply/replay migration 606 and test private learning-plan draft creation",
+    )
     args = parser.parse_args(argv)
+    if args.learning_plan_draft:
+        args.learning_plan_own_read = True
     if args.learning_plan_own_read:
         args.competency_review = True
     if args.competency_review:
@@ -5511,7 +5636,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
-        LEARNING_PLAN_OWN_READ_OUTPUT
+        LEARNING_PLAN_DRAFT_OUTPUT
+        if args.learning_plan_draft
+        else LEARNING_PLAN_OWN_READ_OUTPUT
         if args.learning_plan_own_read
         else
         (COMPETENCY_REVIEW_ARM64_OUTPUT if args.platform == "linux/arm64" else COMPETENCY_REVIEW_OUTPUT)
@@ -5582,7 +5709,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"operating-pilot migrations through {605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"operating-pilot migrations through {606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -5842,6 +5969,19 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 605 applies and replays without rewriting canonical learning plans",
             ]
         )
+    if args.learning_plan_draft:
+        evidence["migrations"].append(LEARNING_PLAN_DRAFT_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "learning-plan draft creation requires exact signed create scope, one active human binding, and active Adelphi location mapping",
+                "canonical plan content is bounded, attributed to the active person and farm scope, and remains draft-only",
+                "exact request retries replay; changed input, missing create grant, mismatched signed location, and oversized goal arrays fail closed",
+                "a newly created plan appears only in the submitting operator's own read_own history",
+                "runtime can execute the bounded create function only; Directus cannot execute it and neither runtime role has direct canonical-table or receipt access",
+                "the non-login function owner can insert the required draft/receipt columns but cannot update canonical plans or mutate/delete receipts",
+                "migration 606 applies and replays without rewriting legacy learning plans",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -6008,11 +6148,17 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, learning_plan_own_read_migration)
             psql(docker, container, learning_plan_own_read_migration)
             psql(docker, container, LEARNING_PLAN_OWN_READ_ACCEPTANCE)
+        if args.learning_plan_draft:
+            learning_plan_draft_migration = LEARNING_PLAN_DRAFT_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, learning_plan_draft_migration)
+            psql(docker, container, learning_plan_draft_migration)
+            psql(docker, container, LEARNING_PLAN_DRAFT_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            206 if args.learning_plan_own_read
+            214 if args.learning_plan_draft
+            else 206 if args.learning_plan_own_read
             else 199 if args.competency_review
             else 198 if args.competency_lifecycle
             else
@@ -6034,7 +6180,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            605 if args.learning_plan_own_read
+            606 if args.learning_plan_draft
+            else 605 if args.learning_plan_own_read
             else 577 if args.competency_review
             else 576 if args.competency_lifecycle
             else

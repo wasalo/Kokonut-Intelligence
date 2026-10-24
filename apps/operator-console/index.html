@@ -718,6 +718,24 @@
             </div>
             <button id="operating-pilot-learning-plans-more" class="secondary" type="button" hidden>Load more of your plans</button>
           </section>
+          <section id="operating-pilot-learning-plan-create" hidden aria-labelledby="operating-pilot-learning-plan-create-heading">
+            <h3 id="operating-pilot-learning-plan-create-heading">Create a private learning-plan draft</h3>
+            <p class="muted">An exact location create grant lets you save a private draft for your own active person identity. Each goal and support item is entered on a separate line. Saving does not submit, activate, or approve the plan.</p>
+            <form id="operating-pilot-learning-plan-create-form" class="stacked-form">
+              <label for="operating-pilot-learning-plan-title">Plan title</label>
+              <input id="operating-pilot-learning-plan-title" type="text" maxlength="255" required autocomplete="off">
+              <label for="operating-pilot-learning-plan-goals">Competency goals</label>
+              <textarea id="operating-pilot-learning-plan-goals" maxlength="8000" rows="4" aria-describedby="operating-pilot-learning-plan-goals-help"></textarea>
+              <p id="operating-pilot-learning-plan-goals-help" class="muted">Up to 50 private goals.</p>
+              <label for="operating-pilot-learning-plan-support">Support requested</label>
+              <textarea id="operating-pilot-learning-plan-support" maxlength="8000" rows="4" aria-describedby="operating-pilot-learning-plan-support-help"></textarea>
+              <p id="operating-pilot-learning-plan-support-help" class="muted">Up to 50 private support items.</p>
+              <label for="operating-pilot-learning-plan-target-date">Target date (optional)</label>
+              <input id="operating-pilot-learning-plan-target-date" type="date">
+              <button id="operating-pilot-learning-plan-create-submit" type="submit">Save private learning-plan draft</button>
+            </form>
+            <p id="operating-pilot-learning-plan-create-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
           <section id="operating-pilot-own-demand" hidden aria-labelledby="operating-pilot-own-demand-heading">
             <h3 id="operating-pilot-own-demand-heading">Your demand records</h3>
             <p class="muted">This separate exact-location read_own grant shows only your receipt-backed demand records and private planning notes. It does not expose another submitter’s records or provide review or fulfillment actions.</p>
@@ -2522,6 +2540,14 @@
       const operatingPilotOwnLearningPlansStatus = document.querySelector("#operating-pilot-learning-plans-status");
       const operatingPilotOwnLearningPlansRows = document.querySelector("#operating-pilot-learning-plans-rows");
       const operatingPilotOwnLearningPlansMore = document.querySelector("#operating-pilot-learning-plans-more");
+      const operatingPilotLearningPlanCreate = document.querySelector("#operating-pilot-learning-plan-create");
+      const operatingPilotLearningPlanCreateForm = document.querySelector("#operating-pilot-learning-plan-create-form");
+      const operatingPilotLearningPlanTitle = document.querySelector("#operating-pilot-learning-plan-title");
+      const operatingPilotLearningPlanGoals = document.querySelector("#operating-pilot-learning-plan-goals");
+      const operatingPilotLearningPlanSupport = document.querySelector("#operating-pilot-learning-plan-support");
+      const operatingPilotLearningPlanTargetDate = document.querySelector("#operating-pilot-learning-plan-target-date");
+      const operatingPilotLearningPlanCreateSubmit = document.querySelector("#operating-pilot-learning-plan-create-submit");
+      const operatingPilotLearningPlanCreateStatus = document.querySelector("#operating-pilot-learning-plan-create-status");
       const operatingPilotCapacityReview = document.querySelector("#operating-pilot-capacity-review");
       const operatingPilotCapacityReviewStatus = document.querySelector("#operating-pilot-capacity-review-status");
       const operatingPilotCapacityReviewRows = document.querySelector("#operating-pilot-capacity-review-rows");
@@ -2627,6 +2653,7 @@
       let operatingPilotPendingResourceEdit = null;
       let operatingPilotCompetencyEditingDraftId = null;
       let operatingPilotPendingCompetencyWrite = null;
+      const operatingPilotPendingLearningPlanWrites = new Map();
       let operatingPilotCompetencyFormLocationId = null;
       let operatingPilotCompetencyOffset = 0;
       let operatingPilotCompetencyRequestVersion = 0;
@@ -4573,6 +4600,87 @@
         operatingPilotOwnLearningPlansRows.append(row);
       }
 
+      async function createOperatingPilotLearningPlanDraft(event) {
+        event.preventDefault();
+        const locationId = operatingPilotLocation.value;
+        if (!operatingPilotCreateLocations.has(locationId)) return;
+        const toItems = (value) => value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+        const competencyGoals = toItems(operatingPilotLearningPlanGoals.value);
+        const supportRequested = toItems(operatingPilotLearningPlanSupport.value);
+        if (competencyGoals.length > 50 || supportRequested.length > 50) {
+          operatingPilotLearningPlanCreateStatus.textContent = "Enter no more than 50 goals or support items.";
+          return;
+        }
+        const payload = {
+          title: operatingPilotLearningPlanTitle.value.trim(),
+          competency_goals: competencyGoals,
+          support_requested: supportRequested,
+          target_date: operatingPilotLearningPlanTargetDate.value || null
+        };
+        if (!payload.title || payload.title.length > 255) {
+          operatingPilotLearningPlanCreateStatus.textContent = "Enter a title of 1 to 255 characters.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotLearningPlanCreateStatus.textContent = "Refresh the page to establish a protected session before saving.";
+          return;
+        }
+        const payloadText = JSON.stringify(payload);
+        let pending = operatingPilotPendingLearningPlanWrites.get(locationId);
+        if (pending && pending.payload_text !== payloadText) {
+          operatingPilotLearningPlanCreateStatus.textContent = "Retry the unchanged request after an uncertain response before editing this draft.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotLearningPlanCreateStatus.textContent = "A secure browser context is required to save a learning-plan draft.";
+            return;
+          }
+          pending = { request_id: requestId, payload_text: payloadText };
+          operatingPilotPendingLearningPlanWrites.set(locationId, pending);
+        }
+        operatingPilotLearningPlanCreateSubmit.disabled = true;
+        operatingPilotLearningPlanCreateStatus.textContent = "Saving your private learning-plan draft…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/learning-plans`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id })
+            }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          const learningPlanStates = new Set(["draft", "submitted", "active", "completed", "paused", "cancelled"]);
+          if (result.location_id !== locationId
+              || !learningPlanStates.has(result.status)
+              || typeof result.replayed !== "boolean"
+              || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.learning_plan_id || "")) {
+            throw new Error("The learning-plan response did not match this draft. Retry unchanged to confirm its outcome.");
+          }
+          operatingPilotPendingLearningPlanWrites.delete(locationId);
+          if (locationId !== operatingPilotLocation.value) return;
+          operatingPilotLearningPlanCreateForm.reset();
+          operatingPilotLearningPlanCreateStatus.textContent = result.replayed
+            ? `Your learning-plan request was confirmed (current status: ${result.status}). This retry made no further changes.`
+            : "Your private learning-plan draft was saved. It has not been submitted or reviewed.";
+          if (operatingPilotOwnLearningPlanLocations.has(locationId)) {
+            await loadOperatingPilotOwnLearningPlans();
+          }
+        } catch (error) {
+          if (locationId === operatingPilotLocation.value) {
+            operatingPilotLearningPlanCreateStatus.textContent = `${error.message} If interrupted, retry the same draft unchanged to reuse its request ID.`;
+          }
+        } finally {
+          operatingPilotLearningPlanCreateSubmit.disabled = false;
+        }
+      }
+
       async function loadOperatingPilotCompetencyReviewQueue(append = false) {
         const locationId = operatingPilotLocation.value;
         const requestVersion = ++operatingPilotCompetencyReviewRequestVersion;
@@ -5984,6 +6092,7 @@
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId);
+        operatingPilotLearningPlanCreate.hidden = !operatingPilotCreateLocations.has(locationId);
         operatingPilotCompetency.hidden = !operatingPilotCompetencyReadLocations.has(locationId)
           && !operatingPilotCompetencyCreateLocations.has(locationId)
           && !operatingPilotCompetencyEditLocations.has(locationId)
@@ -22158,6 +22267,9 @@
       operatingPilotCompetencyMore.addEventListener("click", () => loadOperatingPilotOwnCompetencyAssessments(true));
       operatingPilotOwnLearningPlansMore.addEventListener(
         "click", () => loadOperatingPilotOwnLearningPlans(true)
+      );
+      operatingPilotLearningPlanCreateForm.addEventListener(
+        "submit", createOperatingPilotLearningPlanDraft
       );
       document.querySelector("#operating-pilot-competency-review-refresh").addEventListener(
         "click", () => loadOperatingPilotCompetencyReviewQueue()

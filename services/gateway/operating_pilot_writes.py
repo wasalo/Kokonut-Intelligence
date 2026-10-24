@@ -208,6 +208,48 @@ def _normalize_competency_draft_payload(
     return competency_key, levels["current_level"], levels["target_level"], evidence_note
 
 
+def _normalize_learning_plan_draft_payload(
+    payload: Any,
+) -> tuple[str, str, str, date | None]:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Learning-plan draft body must be an object")
+    title = payload.get("title")
+    if not isinstance(title, str) or not title.strip() or len(title.strip()) > 255 or "\x00" in title:
+        raise OperatingPilotWriteInvalid("Learning-plan title must be text of 1 to 255 characters")
+    title = title.strip()
+
+    encoded_fields: list[str] = []
+    for field in ("competency_goals", "support_requested"):
+        values = payload.get(field, [])
+        if not isinstance(values, list) or len(values) > 50:
+            raise OperatingPilotWriteInvalid(f"{field} must be an array with at most 50 entries")
+        try:
+            encoded = json.dumps(
+                values,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+        except (TypeError, ValueError, RecursionError) as exc:
+            raise OperatingPilotWriteInvalid(f"{field} must contain valid JSON values") from exc
+        if len(encoded.encode("utf-8")) > 8000:
+            raise OperatingPilotWriteInvalid(f"{field} must be at most 8000 UTF-8 bytes")
+        encoded_fields.append(encoded)
+    if sum(len(encoded.encode("utf-8")) for encoded in encoded_fields) > 12000:
+        raise OperatingPilotWriteInvalid("Learning-plan structured fields exceed 12000 UTF-8 bytes")
+
+    target_date_value = payload.get("target_date")
+    target_date = None if target_date_value in (None, "") else _normalize_date(
+        target_date_value, "target_date"
+    )
+    unexpected = set(payload) - {
+        "title", "competency_goals", "support_requested", "target_date"
+    }
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Learning-plan draft contains unsupported fields")
+    return title, encoded_fields[0], encoded_fields[1], target_date
+
+
 def _normalize_capacity_review_payload(payload: Any) -> tuple[str, str | None]:
     if not isinstance(payload, dict):
         raise OperatingPilotWriteInvalid("Capacity review body must be an object")
@@ -476,6 +518,62 @@ def create_location_operating_pilot_competency_draft(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot competency draft returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_operating_pilot_learning_plan_draft(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an exact-location learning-plan draft with an idempotent receipt."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    title, competency_goals, support_requested, target_date = (
+        _normalize_learning_plan_draft_payload(payload)
+    )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.create_location_operating_pilot_learning_plan_draft(
+                           %s::uuid, %s::uuid, %s::text, %s::jsonb,
+                           %s::jsonb, %s::date)""",
+                (
+                    location_id,
+                    request_id,
+                    title,
+                    competency_goals,
+                    support_requested,
+                    target_date,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot learning-plan draft returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

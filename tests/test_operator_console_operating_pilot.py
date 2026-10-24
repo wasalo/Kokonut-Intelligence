@@ -933,6 +933,41 @@ def test_own_learning_plan_history_console_is_grant_gated_read_only_and_text_onl
     assert '"click", () => loadOperatingPilotOwnLearningPlans(true)' in source
 
 
+def test_learning_plan_draft_console_uses_create_grant_and_stable_csrf_retry():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        '<section id="operating-pilot-learning-plan-create"',
+        '<section id="operating-pilot-own-demand"',
+    )
+    create = _function(
+        source,
+        "async function createOperatingPilotLearningPlanDraft(event)",
+        "async function loadOperatingPilotCompetencyReviewQueue(append = false)",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+
+    assert 'id="operating-pilot-learning-plan-create-form"' in panel
+    assert 'id="operating-pilot-learning-plan-title"' in panel
+    assert "An exact location create grant" in panel
+    assert "operatingPilotCreateLocations.has(locationId)" in initialize
+    assert "operatingPilotLearningPlanCreate.hidden = !operatingPilotCreateLocations.has(locationId)" in initialize
+    assert "competency_goals: competencyGoals" in create
+    assert "support_requested: supportRequested" in create
+    assert "competencyGoals.length > 50 || supportRequested.length > 50" in create
+    assert "operatingPilotPendingLearningPlanWrites.get(locationId)" in create
+    assert "payload_text !== payloadText" in create
+    assert 'method: "POST"' in create
+    assert '"X-CSRF-Token": csrf' in create
+    assert 'credentials: "same-origin"' in create and 'cache: "no-store"' in create
+    assert "/learning-plans`" in create
+    assert 'new Set(["draft", "submitted", "active", "completed", "paused", "cancelled"])' in create
+    assert 'typeof result.replayed !== "boolean"' in create
+    assert "current status: ${result.status}" in create
+    assert "has not been submitted or reviewed" in create
+    assert "innerHTML" not in panel + create
+
+
 def test_competency_review_console_is_grant_gated_private_and_retry_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(

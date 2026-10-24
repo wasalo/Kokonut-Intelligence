@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, suppressed resource-request category page, private resource-request draft creation/history/revision/submission, independent resource-request review queue and approve/reject decisions, competency self-assessment draft and own-history read, and private own learning-plan history
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`; `schemas/postgres/567_location_operating_pilot_resource_request_draft.sql`; `schemas/postgres/568_location_own_operating_pilot_resource_requests.sql`; `schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql`; `schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql`; `schemas/postgres/571_location_operating_pilot_resource_review_queue.sql`; `schemas/postgres/572_location_operating_pilot_resource_review_decision.sql`; `schemas/postgres/574_location_operating_pilot_competency_draft.sql`; `schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql`; `schemas/postgres/605_location_own_operating_pilot_learning_plans.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, private demand draft creation, own-demand history, revision and submission, independent redacted demand review queue and decisions, self-reported capacity creation, personal capacity history, own-draft revision and submission, independent capacity review queue and decisions, aggregate capacity-period page, suppressed work-claim category page, bounded work-opportunity queue and self-claim proposal, independent work-claim review and explicit allocation, suppressed resource-request category page, private resource-request draft creation/history/revision/submission, independent resource-request review queue and approve/reject decisions, competency self-assessment draft and own-history read, and private learning-plan history and draft creation
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`; `schemas/postgres/526_location_operating_pilot_work_claims.sql`; `schemas/postgres/538_location_operating_pilot_resource_categories.sql`; `schemas/postgres/552_location_operating_pilot_demand_draft.sql`; `schemas/postgres/553_location_operating_pilot_capacity_draft.sql`; `schemas/postgres/554_location_own_operating_pilot_capacity.sql`; `schemas/postgres/555_location_operating_pilot_capacity_draft_revision.sql`; `schemas/postgres/556_location_operating_pilot_capacity_draft_submission.sql`; `schemas/postgres/557_location_operating_pilot_capacity_review_queue.sql`; `schemas/postgres/558_location_operating_pilot_capacity_review_decision.sql`; `schemas/postgres/559_location_operating_pilot_demand_draft_submission.sql`; `schemas/postgres/560_location_operating_pilot_demand_review_queue.sql`; `schemas/postgres/561_location_own_operating_pilot_demand.sql`; `schemas/postgres/562_location_operating_pilot_demand_draft_revision.sql`; `schemas/postgres/563_location_operating_pilot_demand_review_decision.sql`; `schemas/postgres/564_location_operating_pilot_work_opportunities.sql`; `schemas/postgres/565_location_operating_pilot_work_claim_review.sql`; `schemas/postgres/566_location_operating_pilot_work_claim_allocation.sql`; `schemas/postgres/567_location_operating_pilot_resource_request_draft.sql`; `schemas/postgres/568_location_own_operating_pilot_resource_requests.sql`; `schemas/postgres/569_location_operating_pilot_resource_draft_revision.sql`; `schemas/postgres/570_location_operating_pilot_resource_draft_submission.sql`; `schemas/postgres/571_location_operating_pilot_resource_review_queue.sql`; `schemas/postgres/572_location_operating_pilot_resource_review_decision.sql`; `schemas/postgres/574_location_operating_pilot_competency_draft.sql`; `schemas/postgres/575_location_own_operating_pilot_competency_drafts.sql`; `schemas/postgres/605_location_own_operating_pilot_learning_plans.sql`; `schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql`
 
 ## Route and authorization
 
@@ -784,3 +784,37 @@ are same-origin, no-store, paginated in bounded pages, and ignored when a
 location change makes the response stale. Plan fields are rendered through
 `textContent`; structured goal/support values are length-capped before display.
 The console adds no write, submit, activation, or review controls.
+
+## Private learning-plan draft creation
+
+`POST /operator/api/operating-pilot/{location_id}/learning-plans` requires the
+separate exact `operating_pilot:create` grant, an authenticated OIDC session,
+same-origin CSRF protection, and a no-store response. The Gateway caps the raw
+request body at 32 KiB and validates a UUID request ID, a trimmed title,
+optional ISO target date, and JSON goal/support arrays before opening
+PostgreSQL. Each array is limited to 50 entries and 8 KB;
+the combined serialized arrays are limited to 12 KB.
+
+Migration 606 rechecks signed location context and the live create grant on the
+same transaction, requires one active human-party binding and the active
+Adelphi farm mapping, and inserts a canonical `operating_learning_plan` row
+with `status='draft'`, the authenticated person as owner/creator, and the
+location's farm scope. An append-only request receipt stores the input digest;
+exact retries replay, while changed payload reuse fails closed. The response
+contains only the plan ID, current lifecycle status, location, and replay flag.
+A new request returns `draft`; an exact retry returns the current status if a
+separate authorized lifecycle action changed it later. The new draft appears in
+the same operator's own-history projection. Runtime has only
+function execution, Directus cannot execute the function, and neither role can
+read or write the canonical plan or receipt tables directly. The function
+owner has only the insert columns and receipt access required for this action;
+it cannot update plans or mutate/delete receipts.
+
+The console's separate draft form is hidden unless the exact `create` grant is
+present. It collects goal and support entries as one item per line, sends a
+CSRF-protected same-origin no-store request, and retains an unchanged request
+ID for retries while the page remains open. It reports draft creation or
+confirms a prior request with its current lifecycle status; submission,
+activation, review, and approval remain separate actions. Rollback
+by disabling the POST route, exact route policy, and form while retaining the
+additive migration and receipts if applied.
