@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-006",
+  "batch": "registered renewable metrics",
+  "classification": "prepared",
+  "implementation": {
+    "route": "GET /operator/api/energy/{location_id}/summary",
+    "authorization": "exact energy_monitoring:read location grant with signed tenant context",
+    "query_boundary": "read-only repeatable-read transaction; registry and energy source location IDs must match",
+    "registered_rows": "active renewable_energy_source records grouped by the fixed renewable_type enum",
+    "aggregates": [
+      "active registered row count",
+      "rated capacity in kW",
+      "stored annual generation in kWh",
+      "stored carbon_offset_kg values"
+    ],
+    "generation_coverage": {
+      "formula": "min(annual_generation_kwh / annual_verified_consumption_kwh * 100, 100)",
+      "denominator_window_days": 365,
+      "denominator_states": ["verified", "approved"],
+      "legacy_difference": "Legacy also counted recorded readings; the Kernel excludes them pending review."
+    },
+    "constraints": [
+      "The registry reports stored asset declarations and offsets; these are not independently verified measurements.",
+      "Offset units are reported as stored kg without inferring CO2e.",
+      "No source IDs, source names, metadata, notes, or arbitrary values are projected.",
+      "No schema migration, database, provider, candidate, legacy archive, or Raspberry Pi was used."
+    ]
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py tests/test_energy_monitoring.py tests/test_operator_route_policy_inventory.py -q",
+    "result": "59 passed in 4.31s",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "operator_console_javascript_syntax": "passed in console contract checks",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix": "valid: 67 rows; 26 baseline-retained, 7 deployed, 34 prepared",
+    "git_diff_check": "passed"
+  },
+  "remaining_acceptance": [
+    "populated archive asset and output parity",
+    "independent review of registered capacity, generation, and stored offset values",
+    "runtime database ACL/RLS",
+    "live ZITADEL and browser acceptance",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Revert the registered-renewables query/response and console rendering changes, then regenerate the runtime SQL inventory. No persistent data was written."
+}

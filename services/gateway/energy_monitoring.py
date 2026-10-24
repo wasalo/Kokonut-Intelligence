@@ -132,6 +132,43 @@ def get_location_energy_summary(
             trend_columns = [column[0] for column in cur.description]
             trend_rows = [dict(zip(trend_columns, row)) for row in cur.fetchall()]
 
+            cur.execute(
+                """
+                SELECT res.renewable_type,
+                       COUNT(*)::bigint AS source_count,
+                       SUM(res.rated_capacity_kw)::numeric AS capacity_kw,
+                       SUM(res.annual_generation_kwh)::numeric AS annual_generation_kwh,
+                       SUM(res.carbon_offset_kg)::numeric AS registered_carbon_offset_kg
+                  FROM renewable_energy_source AS res
+                  JOIN energy_source AS es
+                    ON es.id = res.source_id
+                   AND es.location_id = res.location_id
+                 WHERE res.location_id = %s::uuid
+                   AND res.status = 'active'
+                 GROUP BY res.renewable_type
+                 ORDER BY res.renewable_type
+                """,
+                (location_id,),
+            )
+            renewable_columns = [column[0] for column in cur.description]
+            renewable_rows = [dict(zip(renewable_columns, row)) for row in cur.fetchall()]
+
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(er.kwh), 0)::numeric AS annual_consumption_kwh
+                  FROM energy_reading AS er
+                  JOIN energy_source AS es
+                    ON es.id = er.source_id
+                   AND es.location_id = er.location_id
+                 WHERE er.location_id = %s::uuid
+                   AND er.reading_type = 'consumption'
+                   AND er.reading_date >= CURRENT_DATE - INTERVAL '365 days'
+                   AND er.status IN ('verified', 'approved')
+                """,
+                (location_id,),
+            )
+            annual_consumption_row = cur.fetchone()
+
         groups = [
             {
                 "reading_type": row["reading_type"],
@@ -182,6 +219,35 @@ def get_location_energy_summary(
             if consumption_kwh > 0
             else 0
         )
+        renewable_by_type = [
+            {
+                "renewable_type": row["renewable_type"],
+                "source_count": int(row["source_count"] or 0),
+                "capacity_kw": round(float(row["capacity_kw"] or 0), 2),
+                "annual_generation_kwh": round(
+                    float(row["annual_generation_kwh"] or 0), 2
+                ),
+                "registered_carbon_offset_kg": round(
+                    float(row["registered_carbon_offset_kg"] or 0), 2
+                ),
+            }
+            for row in renewable_rows
+        ]
+        registered_capacity_kw = sum(row["capacity_kw"] for row in renewable_by_type)
+        registered_generation_kwh = sum(
+            row["annual_generation_kwh"] for row in renewable_by_type
+        )
+        registered_carbon_offset_kg = sum(
+            row["registered_carbon_offset_kg"] for row in renewable_by_type
+        )
+        annual_consumption_kwh = float(
+            annual_consumption_row[0] if annual_consumption_row else 0
+        )
+        registered_generation_coverage_pct = (
+            min(round(registered_generation_kwh / annual_consumption_kwh * 100, 2), 100.0)
+            if annual_consumption_kwh > 0
+            else 0
+        )
         energy_calculations = {
             "period_days": 30,
             "total_consumption_kwh": round(consumption_kwh, 2),
@@ -198,6 +264,16 @@ def get_location_energy_summary(
                     else 0
                 ),
                 "by_source_type": emissions_by_source,
+            },
+            "registered_renewables": {
+                "period_days": 365,
+                "active_sources": sum(row["source_count"] for row in renewable_by_type),
+                "total_capacity_kw": round(registered_capacity_kw, 2),
+                "annual_generation_kwh": round(registered_generation_kwh, 2),
+                "registered_carbon_offset_kg": round(registered_carbon_offset_kg, 2),
+                "annual_verified_consumption_kwh": round(annual_consumption_kwh, 2),
+                "legacy_generation_coverage_pct": registered_generation_coverage_pct,
+                "by_type": renewable_by_type,
             },
             "trend_7d": [
                 {

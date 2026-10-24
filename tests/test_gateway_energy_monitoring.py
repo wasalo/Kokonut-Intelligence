@@ -30,6 +30,7 @@ class _Cursor:
 
     def execute(self, query, params=None):
         self.conn.queries.append((query, params))
+        self.one = None
         if "GROUP BY er.reading_type" in query:
             self.description = [(name,) for name in (
                 "reading_type", "source_type", "activity_type", "reading_count",
@@ -53,9 +54,24 @@ class _Cursor:
                 (date(2026, 10, 17), Decimal("10"), Decimal("0")),
                 (date(2026, 10, 18), Decimal("0"), Decimal("2")),
             ])
+        elif "GROUP BY res.renewable_type" in query:
+            self.description = [(name,) for name in (
+                "renewable_type", "source_count", "capacity_kw",
+                "annual_generation_kwh", "registered_carbon_offset_kg",
+            )]
+            self.rows = getattr(self.conn, "renewable_asset_rows", [
+                ("solar_pv", 1, Decimal("15"), Decimal("22500"), Decimal("9000")),
+                ("wind", 2, Decimal("5.5"), Decimal("3000"), Decimal("1000")),
+            ])
+        elif "AS annual_consumption_kwh" in query:
+            self.description = [("annual_consumption_kwh",)]
+            self.one = getattr(self.conn, "annual_energy_row", (Decimal("20000"),))
 
     def fetchall(self):
         return self.rows
+
+    def fetchone(self):
+        return self.one
 
 
 class _Connection:
@@ -117,7 +133,8 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
         )
 
     queries = [(query, params) for query, params in conn.queries if "FROM energy_reading AS er" in query]
-    assert len(queries) == 3
+    assert len(queries) == 4
+    renewable_query = next(query for query, _ in conn.queries if "FROM renewable_energy_source AS res" in query)
     query, params = queries[0]
     assert "er.location_id = %s::uuid" in query
     assert "er.status IN ('verified', 'approved')" in query
@@ -129,7 +146,15 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
     assert all("er.status IN ('verified', 'approved')" in item for item, _ in queries)
     assert "CURRENT_DATE - INTERVAL '30 days'" in queries[1][0]
     assert "CURRENT_DATE - INTERVAL '7 days'" in queries[2][0]
-    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query"]
+    assert "CURRENT_DATE - INTERVAL '365 days'" in queries[3][0]
+    assert "er.reading_type = 'consumption'" in queries[3][0]
+    assert "res.location_id = %s::uuid" in renewable_query
+    assert "es.location_id = res.location_id" in renewable_query
+    assert "res.status = 'active'" in renewable_query
+    assert "SELECT res.renewable_type," in renewable_query
+    assert "source_name" not in renewable_query and "metadata" not in renewable_query
+    assert "res.source_id," not in renewable_query
+    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query"]
     assert result == {
         "location_id": location_id,
         "unit": "kWh",
@@ -166,6 +191,27 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                     {"source_type": "solar", "consumption_kwh": 20.0, "emission_factor_kg_co2e_per_kwh": 0.0, "estimated_emissions_kg_co2e": 0.0},
                 ],
             },
+            "registered_renewables": {
+                "period_days": 365,
+                "active_sources": 3,
+                "total_capacity_kw": 20.5,
+                "annual_generation_kwh": 25500.0,
+                "registered_carbon_offset_kg": 10000.0,
+                "annual_verified_consumption_kwh": 20000.0,
+                "legacy_generation_coverage_pct": 100.0,
+                "by_type": [
+                    {
+                        "renewable_type": "solar_pv", "source_count": 1,
+                        "capacity_kw": 15.0, "annual_generation_kwh": 22500.0,
+                        "registered_carbon_offset_kg": 9000.0,
+                    },
+                    {
+                        "renewable_type": "wind", "source_count": 2,
+                        "capacity_kw": 5.5, "annual_generation_kwh": 3000.0,
+                        "registered_carbon_offset_kg": 1000.0,
+                    },
+                ],
+            },
             "trend_7d": [
                 {"reading_date": "2026-10-17", "consumption_kwh": 10.0, "production_kwh": 0.0},
                 {"reading_date": "2026-10-18", "consumption_kwh": 0.0, "production_kwh": 2.0},
@@ -195,6 +241,8 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
     conn.energy_group_rows = []
     conn.energy_calculation_rows = []
     conn.energy_trend_rows = []
+    conn.renewable_asset_rows = []
+    conn.annual_energy_row = (Decimal("0"),)
 
     with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
         result = get_location_energy_summary(
@@ -215,6 +263,16 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
             "total_emissions_kg_co2e": 0,
             "intensity_kg_co2e_per_kwh": 0,
             "by_source_type": [],
+        },
+        "registered_renewables": {
+            "period_days": 365,
+            "active_sources": 0,
+            "total_capacity_kw": 0,
+            "annual_generation_kwh": 0,
+            "registered_carbon_offset_kg": 0,
+            "annual_verified_consumption_kwh": 0,
+            "legacy_generation_coverage_pct": 0,
+            "by_type": [],
         },
         "trend_7d": [],
     }
@@ -279,6 +337,16 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
                 "total_emissions_kg_co2e": 0,
                 "intensity_kg_co2e_per_kwh": 0,
                 "by_source_type": [],
+            },
+            "registered_renewables": {
+                "period_days": 365,
+                "active_sources": 0,
+                "total_capacity_kw": 0,
+                "annual_generation_kwh": 0,
+                "registered_carbon_offset_kg": 0,
+                "annual_verified_consumption_kwh": 0,
+                "legacy_generation_coverage_pct": 0,
+                "by_type": [],
             },
             "trend_7d": [],
         },

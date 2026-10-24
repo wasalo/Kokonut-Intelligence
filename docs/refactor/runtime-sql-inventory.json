@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 931,
-    "execution_sites": 4713,
+    "execution_sites": 4715,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4371,
+    "sites_without_worker_operation_refs": 4373,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,14 +15,14 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2780,
+      "SELECT": 2782,
       "SET": 541,
       "UNKNOWN": 200,
       "UPDATE": 429,
       "WITH": 27
     },
     "statement_groups": {
-      "read_candidate": 2780,
+      "read_candidate": 2782,
       "schema_change": 1,
       "transaction_or_session": 584,
       "unknown_requires_manual_review": 200,
@@ -33,7 +33,7 @@
       "composed": 19,
       "composed_or_variable": 276,
       "fstring": 287,
-      "literal": 4131
+      "literal": 4133
     },
     "relation_candidates": 1208,
     "sites_without_relation_candidates": 1047,
@@ -366,15 +366,15 @@
     },
     "gateway": {
       "source_files": 118,
-      "execution_sites": 849,
+      "execution_sites": 851,
       "statement_groups": {
-        "read_candidate": 319,
+        "read_candidate": 321,
         "transaction_or_session": 474,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 36
       },
-      "candidate_relation_names": 221,
+      "candidate_relation_names": 222,
       "sites_without_relation_candidates": 549,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
@@ -1121,8 +1121,8 @@
     "emergency_incident": {"execution_site_count": 8,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/emergency_response.py","services/crisp/climate_risk.py","services/gateway/emergency_response.py"]},
     "energy_efficiency_log": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/energy_monitoring.py"]},
     "energy_flow_measurement": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/ecological_modeling.py"]},
-    "energy_reading": {"execution_site_count": 15,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py","services/gateway/energy_monitoring.py"]},
-    "energy_source": {"execution_site_count": 12,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py","services/gateway/energy_monitoring.py"]},
+    "energy_reading": {"execution_site_count": 16,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py","services/gateway/energy_monitoring.py"]},
+    "energy_source": {"execution_site_count": 14,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py","services/gateway/energy_monitoring.py"]},
     "entities": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/analytics/value_stream.py"]},
     "entity_loc": {"execution_site_count": 5,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/analytics/value_stream.py","services/metrics/calculators/first_time_through_yield.py","services/metrics/calculators/governed_lead_time.py","services/metrics/calculators/rework_rate.py"]},
     "env_scan": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/env_scanning.py"]},
@@ -1695,7 +1695,7 @@
     "remote_sensing_observation": {"execution_site_count": 20,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/ecology.py","services/analytics/soc_prediction.py","services/analytics/time_series_features.py","services/crisp/carbon_yield.py","services/export/reports/core.py","services/forecast/ecology.py","services/fortune500/calculator.py","services/geostatistics/autocorrelation.py","services/geostatistics/cross_validation.py","services/geostatistics/kriging.py","services/geostatistics/simulation.py","services/geostatistics/variogram.py","services/ingestion/copernicus_remote_sensing.py","services/ingestion/gee_remote_sensing.py","services/ingestion/remote_sensing.py"]},
     "remote_sensing_provider_attempt": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/remote_sensing_fetcher.py"]},
     "removed": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/events/bus.py"]},
-    "renewable_energy_source": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py"]},
+    "renewable_energy_source": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/energy_monitoring.py","services/gateway/energy_monitoring.py"]},
     "repayment_schedule": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/digital_finance.py"]},
     "replayable": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/events/bus.py"]},
     "report_generation_run": {"execution_site_count": 2,"statement_kinds": ["INSERT","UPDATE"],"statement_groups": ["write_candidate"],"source_files": ["services/export/report_generator.py"]},
@@ -4631,6 +4631,8 @@
     {"id": "services/gateway/energy_monitoring.py:68:12","source": "services/gateway/energy_monitoring.py","line": 68,"column": 12,"scope": "get_location_energy_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["energy_reading","energy_source"],"static_sql_sha256": "effc519b53cd454c8774222909b6918243571413ec7d6d74700a4d0e65ed15fe","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/energy_monitoring.py:93:12","source": "services/gateway/energy_monitoring.py","line": 93,"column": 12,"scope": "get_location_energy_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["energy_reading","energy_source"],"static_sql_sha256": "7faabb7b882e8b70f26677a55c806f0dba093683e8274fad2909a63fb9defd3d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/energy_monitoring.py:115:12","source": "services/gateway/energy_monitoring.py","line": 115,"column": 12,"scope": "get_location_energy_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["energy_reading","energy_source"],"static_sql_sha256": "e0629a2637e962f9a30b3950b7bf05cf2208ec9d6c401c632ef40a43b443287e","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/energy_monitoring.py:135:12","source": "services/gateway/energy_monitoring.py","line": 135,"column": 12,"scope": "get_location_energy_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["energy_source","renewable_energy_source"],"static_sql_sha256": "12a933573c1f5a67a1653456100c03fdac2bafb2de0a3905f563195677efddc1","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/energy_monitoring.py:156:12","source": "services/gateway/energy_monitoring.py","line": 156,"column": 12,"scope": "get_location_energy_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["energy_reading","energy_source"],"static_sql_sha256": "615cbee5bcdddefb6f9b7653bde34e28d49a5c1f2e0a4309e773d45f92be7348","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/extension_learning_reads.py:87:12","source": "services/gateway/extension_learning_reads.py","line": 87,"column": 12,"scope": "list_location_extension_modules","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "2af4424f8a1dfa5f936e67d66123d29dbe99ae91a322dfeecc0b63ce818a8657","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/extension_learning_reads.py:88:12","source": "services/gateway/extension_learning_reads.py","line": 88,"column": 12,"scope": "list_location_extension_modules","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/extension_learning_reads.py:89:12","source": "services/gateway/extension_learning_reads.py","line": 89,"column": 12,"scope": "list_location_extension_modules","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

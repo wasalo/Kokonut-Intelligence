@@ -34,26 +34,40 @@ join:
   is not verified emissions, a lifecycle assessment, or a compliance result.
 - A seven-day daily consumption/production trend from the same
   verified/approved source rows.
+- A separate 365-day registered-renewables summary for active
+  `renewable_energy_source` rows. It aggregates row count, rated capacity,
+  annual generation, and recorded carbon-offset fields by the fixed renewable
+  type enum. Both registration and related energy-source rows must match the
+  requested location. These are stored asset declarations, not independently
+  verified production or offsets.
+- Indicative generation coverage, using the legacy formula
+  `min(annual_generation / annual_consumption * 100, 100)`. Its denominator is
+  consumption from verified/approved readings during the same 365-day window;
+  the legacy implementation also counted `recorded` readings, which the Kernel
+  intentionally excludes pending review.
 
 These calculations restore source-defined formulas under the Kernel's
 reviewed-evidence boundary; they do not establish populated-output parity.
-Registered renewable capacity, annual generation, and carbon offsets are not
-included. Cost totals remain withheld because `energy_reading.total_cost` has
-no currency field, so values cannot safely be combined or labeled. The
-projection also omits source names, equipment/device IDs, notes, and arbitrary
-metadata. Source rows are not changed and no schedule/device control is
-exposed. The console shows the aggregate only when the session provides the
-exact location grant; fields are allowlisted and rendered with `textContent`,
-with response location/unit checks, stale request suppression, and an explicit
-advisory label for the legacy carbon estimate.
+The registered-asset summary includes capacity, annual generation, and
+recorded offset values, but these stored inputs are not independently verified;
+populated data/reference parity remains open. Cost totals remain withheld
+because `energy_reading.total_cost` has no
+currency field, so values cannot safely be combined or labeled. The projection
+omits source names, equipment/device IDs, notes, and arbitrary metadata. Source
+rows are not changed and no schedule/device control is exposed. The console
+shows the aggregate only when the session provides the exact location grant;
+fields are allowlisted and rendered with `textContent`, with response
+location/unit checks, stale request suppression, and explicit advisory labels
+for fixed-factor emissions, registered offsets, and generation coverage.
 
 ## Verification and rollback
 
 Focused fake-connection and Gateway tests cover exact authorization, denied
 route preflight, signed context ordering, location join/filter, verified-state
-selection, the 30-day formulas, fixed-factor estimate, seven-day trend, empty
-denominators, response projection, connection cleanup, console grant gating,
-no-store behavior, and inline JavaScript syntax. The 59-test Gateway,
+selection, the 30-day formulas, fixed-factor estimate, seven-day trend,
+registered renewable metrics and location joins, empty denominators, response
+projection, connection cleanup, console grant gating, no-store behavior, and
+inline JavaScript syntax. The 59-test Gateway,
 console, energy-domain, and route-policy selection passes; Ruff, Python
 compilation, runtime SQL inventory, capability validation, and diff checks
 pass. No schema migration is required. Rollback is a source rollback: remove
@@ -62,8 +76,8 @@ runtime SQL inventory and capability records. No data rollback is necessary.
 
 ## Remaining acceptance
 
-This closes a code-defined energy calculation slice only. Populated farm
-output parity, registered-renewable capacity/generation/offset parity, currency
-classification, waste management, habitat/pollinator parity, runtime database
-ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open. Do not
-infer those capabilities from this route.
+This closes code-defined energy calculation and registered-renewables slices
+only. Populated farm output and asset-register parity, historical data review,
+currency classification, waste management, habitat/pollinator parity, runtime
+database ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open.
+Do not infer those capabilities from this route.

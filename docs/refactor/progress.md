@@ -1,3 +1,20 @@
+### Progress addendum — CAP-006 registered renewable metrics, 24 October 2026
+
+The scoped energy summary now includes a fixed-type aggregate of active
+renewable registry entries, capacity, annual generation, and stored offset
+values. Its 365-day generation-coverage percentage uses verified/approved
+consumption only, preserving the legacy capped formula while excluding legacy
+`recorded` readings pending review. The console labels stored offsets as
+advisory and coverage as indicative. The 59-test Gateway/console/energy-domain/
+route-policy selection passes; Ruff, Python compilation, inline JavaScript
+syntax, runtime SQL inventory, capability validation, and diff checks pass. No
+migration or database/provider access was needed. Populated asset-reference
+parity, independent validation of stored values, ACL/RLS, live OIDC/browser,
+and MAN-CAP-006 remain open. Checklist: 1,064 complete / 25 open (1,089 total);
+matrix: 26 baseline-retained, 7 deployed, and 34 prepared across 67 rows, with
+0/67 MAN-CAP checks accepted. [Contract](energy-monitoring-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-registered-renewable-parity.json).
+
 ### Progress addendum — CAP-006 energy dashboard calculations, 23 October 2026
 
 The signed energy summary now includes 30-day verified/approved consumption,

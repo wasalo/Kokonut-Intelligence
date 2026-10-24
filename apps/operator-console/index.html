@@ -1829,7 +1829,7 @@
         </section>
         <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
           <h2 id="energy-monitoring-heading">Farm energy</h2>
-          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon values use the legacy fixed-factor estimate and are advisory, not verified emissions.</p>
+          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; carbon and registered renewable-offset values are advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
           <div class="toolbar">
             <label for="energy-monitoring-location">Granted location</label>
             <select id="energy-monitoring-location"></select>
@@ -1841,6 +1841,13 @@
             <table>
               <thead><tr><th>Reading</th><th>Source type</th><th>Activity</th><th>Readings</th><th>Total (kWh)</th><th>First</th><th>Latest</th></tr></thead>
               <tbody id="energy-monitoring-rows"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
+            <h3>Active registered renewable assets</h3>
+            <table>
+              <thead><tr><th>Renewable type</th><th>Sources</th><th>Capacity (kW)</th><th>Annual generation (kWh)</th><th>Registered offset estimate (kg)</th></tr></thead>
+              <tbody id="energy-monitoring-renewable-rows"></tbody>
             </table>
           </div>
           <div class="table-wrap">
@@ -2962,6 +2969,7 @@
       const energyMonitoringStatus = document.querySelector("#energy-monitoring-status");
       const energyMonitoringOverview = document.querySelector("#energy-monitoring-overview");
       const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
+      const energyMonitoringRenewableRows = document.querySelector("#energy-monitoring-renewable-rows");
       const energyMonitoringTrendRows = document.querySelector("#energy-monitoring-trend-rows");
       let energyMonitoringLocations = new Set();
       let energyMonitoringRequestVersion = 0;
@@ -14004,6 +14012,7 @@
         const rows = Array.isArray(summary.groups) ? summary.groups : [];
         const calculations = summary.dashboard_calculations;
         const carbon = calculations.legacy_carbon_estimate;
+        const renewables = calculations.registered_renewables;
         if (rows.some((row) => !["consumption", "production"].includes(row?.reading_type)
             || !sourceTypes.has(row?.source_type) || !activities.has(row?.activity_type)
             || !Number.isSafeInteger(row?.reading_count) || row.reading_count < 0
@@ -14013,6 +14022,8 @@
         const finiteNumber = (value) => typeof value === "number" && Number.isFinite(value);
         const trend = calculations.trend_7d;
         const sourceEmissions = carbon.by_source_type;
+        const renewableTypes = new Set(["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]);
+        const renewableRows = renewables.by_type;
         if (calculations.period_days !== 30
             || !finiteNumber(calculations.total_consumption_kwh)
             || !finiteNumber(calculations.total_production_kwh)
@@ -14023,6 +14034,20 @@
             || !finiteNumber(carbon.total_emissions_kg_co2e)
             || !finiteNumber(carbon.intensity_kg_co2e_per_kwh)
             || !Array.isArray(sourceEmissions) || !Array.isArray(trend)
+            || renewables.period_days !== 365
+            || !Number.isSafeInteger(renewables.active_sources) || renewables.active_sources < 0
+            || !finiteNumber(renewables.total_capacity_kw)
+            || !finiteNumber(renewables.annual_generation_kwh)
+            || !finiteNumber(renewables.registered_carbon_offset_kg)
+            || !finiteNumber(renewables.annual_verified_consumption_kwh)
+            || !finiteNumber(renewables.legacy_generation_coverage_pct)
+            || renewables.legacy_generation_coverage_pct < 0 || renewables.legacy_generation_coverage_pct > 100
+            || !Array.isArray(renewableRows)
+            || renewableRows.some((row) => !renewableTypes.has(row?.renewable_type)
+              || !Number.isSafeInteger(row?.source_count) || row.source_count < 0
+              || !finiteNumber(row?.capacity_kw) || !finiteNumber(row?.annual_generation_kwh)
+              || !finiteNumber(row?.registered_carbon_offset_kg))
+            || new Set(renewableRows.map((row) => row.renewable_type)).size !== renewableRows.length
             || sourceEmissions.some((row) => !sourceTypes.has(row?.source_type)
               || !finiteNumber(row?.consumption_kwh)
               || !finiteNumber(row?.emission_factor_kg_co2e_per_kwh)
@@ -14041,7 +14066,13 @@
           ["Renewable-source consumption (kWh)", calculations.renewable_consumption_kwh],
           ["Renewable-source share (%)", calculations.renewable_share_pct],
           ["Legacy estimated emissions (kg CO₂e)", carbon.total_emissions_kg_co2e],
-          ["Legacy estimated carbon intensity (kg CO₂e/kWh)", carbon.intensity_kg_co2e_per_kwh]
+          ["Legacy estimated carbon intensity (kg CO₂e/kWh)", carbon.intensity_kg_co2e_per_kwh],
+          ["Active renewable registrations", renewables.active_sources],
+          ["Registered capacity (kW)", renewables.total_capacity_kw],
+          ["Registered annual generation (kWh)", renewables.annual_generation_kwh],
+          ["Annual verified consumption (kWh)", renewables.annual_verified_consumption_kwh],
+          ["Registered generation coverage (legacy capped %)", renewables.legacy_generation_coverage_pct],
+          ["Registered carbon offset estimate (kg)", renewables.registered_carbon_offset_kg]
         ];
         for (const [label, value] of overview) {
           const term = document.createElement("dt");
@@ -14051,6 +14082,7 @@
           energyMonitoringOverview.append(term, description);
         }
         energyMonitoringRows.replaceChildren();
+        energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
         if (!rows.length) {
           const row = document.createElement("tr");
@@ -14073,6 +14105,26 @@
             }
             energyMonitoringRows.append(row);
           }
+        }
+        for (const item of renewableRows) {
+          const row = document.createElement("tr");
+          for (const value of [
+            item.renewable_type, item.source_count, item.capacity_kw,
+            item.annual_generation_kwh, item.registered_carbon_offset_kg
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = energyMonitoringValue(value);
+            row.append(cell);
+          }
+          energyMonitoringRenewableRows.append(row);
+        }
+        if (!renewableRows.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 5;
+          cell.textContent = "No active registered renewable assets are available.";
+          row.append(cell);
+          energyMonitoringRenewableRows.append(row);
         }
         for (const item of trend) {
           const row = document.createElement("tr");
@@ -14099,6 +14151,7 @@
         if (!energyMonitoringLocations.has(locationId)) return;
         energyMonitoringOverview.replaceChildren();
         energyMonitoringRows.replaceChildren();
+        energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
         energyMonitoringStatus.textContent = "Loading verified and approved meter aggregates…";
         try {
@@ -14122,15 +14175,19 @@
               || !result.dashboard_calculations || typeof result.dashboard_calculations !== "object"
               || !result.dashboard_calculations.legacy_carbon_estimate
               || typeof result.dashboard_calculations.legacy_carbon_estimate !== "object"
+              || !result.dashboard_calculations.registered_renewables
+              || typeof result.dashboard_calculations.registered_renewables !== "object"
+              || !Array.isArray(result.dashboard_calculations.registered_renewables.by_type)
               || !Array.isArray(result.dashboard_calculations.trend_7d)) {
             throw new Error("The response did not match the selected location or energy contract.");
           }
           renderEnergyMonitoringSummary(result);
-          energyMonitoringStatus.textContent = "All meter-derived values use verified/approved readings. The carbon estimate uses fixed legacy factors and is advisory; cost totals stay withheld because the source schema does not classify currency.";
+          energyMonitoringStatus.textContent = "Meter-derived calculations use verified/approved readings. Carbon and registered renewable-offset figures are advisory estimates; registered generation coverage is indicative. Cost totals stay withheld because the source schema does not classify currency.";
         } catch (error) {
           if (requestVersion !== energyMonitoringRequestVersion) return;
           energyMonitoringOverview.replaceChildren();
           energyMonitoringRows.replaceChildren();
+          energyMonitoringRenewableRows.replaceChildren();
           energyMonitoringTrendRows.replaceChildren();
           energyMonitoringStatus.textContent = error.message;
         }
