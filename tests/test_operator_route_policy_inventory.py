@@ -710,6 +710,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plan-review-queue",
+    ): _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/my-resource-requests",
     ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
     (

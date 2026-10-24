@@ -1,3 +1,36 @@
+### Progress addendum — CAP-037 independent learning-plan review queue, 24 October 2026
+
+The operator console now has a read-only learning-plan review queue under the
+separate exact-location `operating_pilot:review` grant. `GET
+/operator/api/operating-pilot/{location_id}/learning-plan-review-queue` uses a
+read-only transaction with the signed operator/location context and bounded
+pagination. Migration 609 rechecks the live grant, exactly one active human
+binding, and the active Adelphi farm mapping. It selects only the latest
+receipt-backed submission for each plan that remains `submitted`, excludes the
+reviewer's own party, receiptless legacy plans, unsubmitted rows, and other
+farms, and returns plan content needed for review without party, submitter,
+scope, or receipt identifiers. Runtime can execute only the bounded function;
+Directus cannot execute it, and neither runtime role can read the plan or receipt
+tables directly. The console panel uses same-origin no-store reads, stale
+location checks, bounded paging, and text-node rendering; it adds no decision or
+activation action.
+
+The focused Gateway, route-policy, console, and migration-integrity selection
+passes 230 tests. Ruff, Python compilation, dependency-group alignment,
+provider boundaries, refreshed runtime SQL and repository inventories,
+capability validation, and diff checks pass. Network-disabled disposable
+PostgreSQL 16 applies/replays migration 609 and passes 240 grouped assertions on
+native AMD64 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-arm64-disposable.json)).
+QEMU is software portability evidence only, not Raspberry Pi hardware
+acceptance. Candidate and legacy databases remain untouched; migration 609 is
+not rolled out. Disable the route, exact policy, and panel to roll back while
+retaining the additive migration. Learning-plan review decisions, populated
+parity, live OIDC/browser, broader ACL/RLS, recovery, privacy review, and
+MAN-CAP-037 remain open. Checklist: 1,114 complete / 25 open (1,139 total);
+matrix: 24 baseline-retained, 7 deployed, 36 prepared across 67 rows; 0/67
+MAN-CAP checks accepted.
+
 ### Progress addendum — CAP-037 owner-only learning-plan draft submission, 24 October 2026
 
 Operators with the exact location `operating_pilot:submit_own` grant can now

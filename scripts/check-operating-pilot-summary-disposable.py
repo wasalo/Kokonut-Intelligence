@@ -48,6 +48,7 @@ LEARNING_PLAN_OWN_READ_MIGRATION = ROOT / "schemas/postgres/605_location_own_ope
 LEARNING_PLAN_DRAFT_MIGRATION = ROOT / "schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql"
 LEARNING_PLAN_REVISION_MIGRATION = ROOT / "schemas/postgres/607_location_operating_pilot_learning_plan_revision.sql"
 LEARNING_PLAN_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/608_location_operating_pilot_learning_plan_submission.sql"
+LEARNING_PLAN_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/609_location_operating_pilot_learning_plan_review_queue.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -83,6 +84,8 @@ LEARNING_PLAN_REVISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery
 LEARNING_PLAN_REVISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-revision-arm64-disposable.json"
 LEARNING_PLAN_SUBMISSION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-submission-disposable.json"
 LEARNING_PLAN_SUBMISSION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-submission-arm64-disposable.json"
+LEARNING_PLAN_REVIEW_QUEUE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-disposable.json"
+LEARNING_PLAN_REVIEW_QUEUE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -5516,6 +5519,218 @@ END $$;
 ROLLBACK;
 """
 
+LEARNING_PLAN_REVIEW_QUEUE_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_identity VALUES
+ ('a0000000-0000-4000-8000-000000000099', true);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000099', 'person', 'active', 'Synthetic reviewer');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000100',
+        'a0000000-0000-4000-8000-000000000099',
+        'd8000000-0000-4000-8000-000000000099', NULL);
+INSERT INTO public.operator_organization_membership
+VALUES ('a2000000-0000-4000-8000-000000000099',
+        'a0000000-0000-4000-8000-000000000099',
+        'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000009',
+        'a0000000-0000-4000-8000-000000000001',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000010',
+        'a0000000-0000-4000-8000-000000000099',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL);
+DO $$
+BEGIN
+    IF (SELECT count(*) FROM public.operator_governance_party_binding AS binding
+         JOIN public.operator_identity AS operator
+           ON operator.id = binding.operator_id AND operator.enabled
+         JOIN public.party AS reviewer
+           ON reviewer.id = binding.party_id
+          AND reviewer.party_type = 'person' AND reviewer.status = 'active'
+        WHERE binding.operator_id = 'a0000000-0000-4000-8000-000000000099'
+          AND binding.revoked_at IS NULL) <> 1 THEN
+        RAISE EXCEPTION 'synthetic learning-plan reviewer fixture must have exactly one active human binding';
+    END IF;
+END $$;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_plan jsonb; second_plan jsonb; first_submitted jsonb; second_submitted jsonb;
+BEGIN
+    first_plan := kokonut_security.create_location_operating_pilot_learning_plan_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9900000-0000-4000-8000-000000000151',
+        'First reviewed plan', '[{"goal":"soil cover"}]'::jsonb,
+        '["Field mentor"]'::jsonb, '2027-06-01');
+    second_plan := kokonut_security.create_location_operating_pilot_learning_plan_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9900000-0000-4000-8000-000000000152',
+        'Second reviewed plan', '[{"goal":"water monitoring"}]'::jsonb,
+        '["Sensor access"]'::jsonb, NULL);
+    first_submitted := kokonut_security.submit_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        (first_plan->>'learning_plan_id')::uuid,
+        'd9900000-0000-4000-8000-000000000153');
+    second_submitted := kokonut_security.submit_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        (second_plan->>'learning_plan_id')::uuid,
+        'd9900000-0000-4000-8000-000000000154');
+    PERFORM set_config('kokonut.test_learning_plan_review_first',
+        first_plan->>'learning_plan_id', true);
+    PERFORM set_config('kokonut.test_learning_plan_review_second',
+        second_plan->>'learning_plan_id', true);
+    IF first_submitted->>'status' <> 'submitted' OR second_submitted->>'status' <> 'submitted' THEN
+        RAISE EXCEPTION 'synthetic learning plans did not enter submitted lifecycle';
+    END IF;
+END $$;
+RESET ROLE;
+INSERT INTO public.operating_pilot_learning_plan_submission_receipt (
+    operator_id, request_id, location_id, learning_plan_id, created_at
+) VALUES (
+    'a0000000-0000-4000-8000-000000000001',
+    'd9900000-0000-4000-8000-000000000155',
+    'b0000000-0000-4000-8000-000000000001',
+    current_setting('kokonut.test_learning_plan_review_first')::uuid,
+    clock_timestamp() + interval '1 second'
+);
+INSERT INTO public.operating_learning_plan (
+    id, party_id, scope_type, scope_id, title, status, created_by_party_id
+) VALUES
+ ('f9750000-0000-4000-8000-000000000098',
+  'd8000000-0000-4000-8000-000000000003', 'adelphi',
+  'e9000000-0000-4000-8000-000000000001', 'Receiptless legacy plan', 'submitted',
+  'd8000000-0000-4000-8000-000000000003'),
+ ('f9750000-0000-4000-8000-000000000099',
+  'd8000000-0000-4000-8000-000000000001', 'adelphi',
+  'e9000000-0000-4000-8000-000000000002', 'Other farm plan', 'submitted',
+  'd8000000-0000-4000-8000-000000000001');
+INSERT INTO public.operating_pilot_learning_plan_draft_receipt (
+    operator_id, request_id, location_id, learning_plan_id, input_digest
+) VALUES (
+    'a0000000-0000-4000-8000-000000000001',
+    'd9900000-0000-4000-8000-000000000156',
+    'b0000000-0000-4000-8000-000000000002',
+    'f9750000-0000-4000-8000-000000000099', decode(repeat('99', 32), 'hex')
+);
+INSERT INTO public.operating_pilot_learning_plan_submission_receipt (
+    operator_id, request_id, location_id, learning_plan_id
+) VALUES (
+    'a0000000-0000-4000-8000-000000000001',
+    'd9900000-0000-4000-8000-000000000157',
+    'b0000000-0000-4000-8000-000000000002',
+    'f9750000-0000-4000-8000-000000000099'
+);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000099', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_page jsonb; second_page jsonb; self_page jsonb;
+        location_denied boolean := false; bounds_denied boolean := false;
+BEGIN
+    first_page := kokonut_security.location_operating_pilot_learning_plan_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 0);
+    second_page := kokonut_security.location_operating_pilot_learning_plan_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 1, 1);
+    IF first_page->>'total' <> '2'
+       OR first_page->>'has_more' <> 'true'
+       OR first_page->>'next_offset' <> '1'
+       OR second_page->>'total' <> '2'
+       OR second_page->>'has_more' <> 'false'
+       OR (SELECT count(*) FROM jsonb_array_elements(first_page->'items')) <> 1
+       OR (SELECT count(*) FROM jsonb_array_elements(second_page->'items')) <> 1
+       OR first_page::TEXT ~* '(Receiptless legacy|Other farm|party_id|scope_id|operator_id|request_id|created_by_party_id)'
+       OR second_page::TEXT ~* '(Receiptless legacy|Other farm|party_id|scope_id|operator_id|request_id|created_by_party_id)' THEN
+        RAISE EXCEPTION 'learning-plan review queue paging, receipt, location, or privacy contract failed: %, %', first_page, second_page;
+    END IF;
+    IF NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(first_page->'items') AS item(value)
+         WHERE value->>'title' = 'First reviewed plan'
+           AND value->'competency_goals'->0->>'goal' = 'soil cover'
+           AND value->'support_requested'->>0 = 'Field mentor'
+           AND value->>'status' = 'submitted'
+    ) AND NOT EXISTS (
+        SELECT 1 FROM jsonb_array_elements(second_page->'items') AS item(value)
+         WHERE value->>'title' = 'First reviewed plan'
+           AND value->'competency_goals'->0->>'goal' = 'soil cover'
+           AND value->'support_requested'->>0 = 'Field mentor'
+           AND value->>'status' = 'submitted'
+    ) THEN
+        RAISE EXCEPTION 'reviewer projection omitted required submitted plan content';
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    self_page := kokonut_security.location_operating_pilot_learning_plan_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 25, 0);
+    IF self_page->>'total' <> '0' OR self_page->'items' <> '[]'::jsonb THEN
+        RAISE EXCEPTION 'learning-plan review queue exposed the reviewer own plans: %', self_page;
+    END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_learning_plan_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0);
+    EXCEPTION WHEN insufficient_privilege THEN location_denied := true;
+    END;
+    IF NOT location_denied THEN RAISE EXCEPTION 'learning-plan review accepted a mismatched tenant location'; END IF;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_learning_plan_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 51, 0);
+    EXCEPTION WHEN invalid_parameter_value THEN bounds_denied := true;
+    END;
+    IF NOT bounds_denied THEN RAISE EXCEPTION 'learning-plan review accepted an oversized page'; END IF;
+END $$;
+RESET ROLE;
+DELETE FROM public.operator_scope_grant
+ WHERE operator_id = 'a0000000-0000-4000-8000-000000000001'
+   AND resource = 'operating_pilot' AND action = 'review'
+   AND location_id = 'b0000000-0000-4000-8000-000000000001';
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+DO $$
+DECLARE no_grant_denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_learning_plan_review_queue(
+            'b0000000-0000-4000-8000-000000000001', 25, 0);
+    EXCEPTION WHEN insufficient_privilege THEN no_grant_denied := true;
+    END;
+    IF NOT no_grant_denied THEN RAISE EXCEPTION 'learning-plan review accepted a missing review grant'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime',
+        'kokonut_security.location_operating_pilot_learning_plan_review_queue(uuid,integer,integer)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.location_operating_pilot_learning_plan_review_queue(uuid,integer,integer)', 'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_learning_plan', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_learning_plan', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_learning_plan', 'title', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_learning_plan', 'title', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_submission_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_submission_receipt', 'DELETE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader',
+            'public.operating_learning_plan', 'competency_goals', 'SELECT')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_submission_receipt', 'request_id', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_submission_receipt', 'request_id', 'SELECT') THEN
+        RAISE EXCEPTION 'learning-plan review queue function or least-privilege ACL is incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 COMPETENCY_LIFECYCLE_ACCEPTANCE = r"""
 BEGIN;
 SET LOCAL ROLE kokonut_runtime;
@@ -5971,7 +6186,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 608 and test owner-only learning-plan draft submission",
     )
+    parser.add_argument(
+        "--learning-plan-review-queue",
+        action="store_true",
+        help="Also apply/replay migration 609 and test the independent learning-plan review queue",
+    )
     args = parser.parse_args(argv)
+    if args.learning_plan_review_queue:
+        args.learning_plan_submission = True
     if args.learning_plan_submission:
         args.learning_plan_revision = True
     if args.learning_plan_revision:
@@ -6005,6 +6227,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (LEARNING_PLAN_REVIEW_QUEUE_ARM64_OUTPUT if args.platform == "linux/arm64" else LEARNING_PLAN_REVIEW_QUEUE_OUTPUT)
+        if args.learning_plan_review_queue
+        else
         (LEARNING_PLAN_SUBMISSION_ARM64_OUTPUT if args.platform == "linux/arm64" else LEARNING_PLAN_SUBMISSION_OUTPUT)
         if args.learning_plan_submission
         else
@@ -6084,7 +6309,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"operating-pilot migrations through {608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"operating-pilot migrations through {609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -6383,6 +6608,17 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 608 applies and replays without rewriting existing learning plans or prior receipts",
             ]
         )
+    if args.learning_plan_review_queue:
+        evidence["migrations"].append(LEARNING_PLAN_REVIEW_QUEUE_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "learning-plan review requires signed exact-location context, current review grant, one active human binding, and active Adelphi mapping",
+                "queue returns only the latest receipt-backed submitted plans, excludes self-review, legacy receiptless rows, unsubmitted rows, and other farms",
+                "review content is bounded and paginated; submitter IDs, party IDs, internal scope, and receipt identifiers stay private",
+                "runtime can execute only the bounded queue function; Directus cannot execute and neither runtime role can query the plan or receipt tables directly",
+                "migration 609 applies and replays, including stale privilege cleanup, without rewriting existing learning plans or submission receipts",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -6575,10 +6811,28 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, stale_plan_columns + stale_receipt_columns)
             psql(docker, container, learning_plan_submission_migration)
             psql(docker, container, LEARNING_PLAN_SUBMISSION_ACCEPTANCE)
+        if args.learning_plan_review_queue:
+            learning_plan_review_queue_migration = LEARNING_PLAN_REVIEW_QUEUE_MIGRATION.read_text(encoding="utf-8")
+            stale_learning_plan_review_columns = """
+                GRANT SELECT (title, competency_goals), UPDATE (status)
+                ON TABLE public.operating_learning_plan
+                TO kokonut_runtime, kokonut_directus_runtime;
+                GRANT SELECT (operator_id, request_id)
+                ON TABLE public.operating_pilot_learning_plan_draft_receipt,
+                         public.operating_pilot_learning_plan_submission_receipt
+                TO kokonut_runtime, kokonut_directus_runtime;
+            """
+            psql(docker, container, stale_learning_plan_review_columns)
+            psql(docker, container, learning_plan_review_queue_migration)
+            psql(docker, container, stale_learning_plan_review_columns)
+            psql(docker, container, learning_plan_review_queue_migration)
+            psql(docker, container, LEARNING_PLAN_REVIEW_QUEUE_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
+            240 if args.learning_plan_review_queue
+            else
             232 if args.learning_plan_submission
             else 224 if args.learning_plan_revision
             else 214 if args.learning_plan_draft
@@ -6604,6 +6858,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
+            609 if args.learning_plan_review_queue
+            else
             608 if args.learning_plan_submission
             else 607 if args.learning_plan_revision
             else 606 if args.learning_plan_draft

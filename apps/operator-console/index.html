@@ -718,6 +718,19 @@
             </div>
             <button id="operating-pilot-learning-plans-more" class="secondary" type="button" hidden>Load more of your plans</button>
           </section>
+          <section id="operating-pilot-learning-plan-review" hidden aria-labelledby="operating-pilot-learning-plan-review-heading">
+            <h3 id="operating-pilot-learning-plan-review-heading">Independent learning-plan review queue</h3>
+            <p class="muted">A separate exact-location review grant shows submitted, receipt-backed plans from other participants. This queue is read-only; approval, rejection, and activation are separate actions.</p>
+            <div class="toolbar"><button id="operating-pilot-learning-plan-review-refresh" type="button">Refresh learning-plan queue</button></div>
+            <p id="operating-pilot-learning-plan-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Submitted</th></tr></thead>
+                <tbody id="operating-pilot-learning-plan-review-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-learning-plan-review-more" class="secondary" type="button" hidden>Load more learning plans</button>
+          </section>
           <section id="operating-pilot-learning-plan-create" hidden aria-labelledby="operating-pilot-learning-plan-create-heading">
             <h3 id="operating-pilot-learning-plan-create-heading">Create a private learning-plan draft</h3>
             <p class="muted">An exact location create grant lets you save a private draft; separate edit_own and submit_own grants allow revising and submitting your draft for independent review. Each goal and support item is entered on a separate line. Submission does not activate or approve the plan.</p>
@@ -2541,6 +2554,10 @@
       const operatingPilotOwnLearningPlansStatus = document.querySelector("#operating-pilot-learning-plans-status");
       const operatingPilotOwnLearningPlansRows = document.querySelector("#operating-pilot-learning-plans-rows");
       const operatingPilotOwnLearningPlansMore = document.querySelector("#operating-pilot-learning-plans-more");
+      const operatingPilotLearningPlanReview = document.querySelector("#operating-pilot-learning-plan-review");
+      const operatingPilotLearningPlanReviewStatus = document.querySelector("#operating-pilot-learning-plan-review-status");
+      const operatingPilotLearningPlanReviewRows = document.querySelector("#operating-pilot-learning-plan-review-rows");
+      const operatingPilotLearningPlanReviewMore = document.querySelector("#operating-pilot-learning-plan-review-more");
       const operatingPilotLearningPlanCreate = document.querySelector("#operating-pilot-learning-plan-create");
       const operatingPilotLearningPlanCreateHeading = document.querySelector("#operating-pilot-learning-plan-create-heading");
       const operatingPilotLearningPlanCreateForm = document.querySelector("#operating-pilot-learning-plan-create-form");
@@ -2667,6 +2684,8 @@
       let operatingPilotCompetencyRequestVersion = 0;
       let operatingPilotOwnLearningPlanOffset = 0;
       let operatingPilotOwnLearningPlanRequestVersion = 0;
+      let operatingPilotLearningPlanReviewOffset = 0;
+      let operatingPilotLearningPlanReviewRequestVersion = 0;
       let operatingPilotCompetencyReviewOffset = 0;
       let operatingPilotCompetencyReviewRequestVersion = 0;
       let operatingPilotPendingResourceFulfillment = null;
@@ -4626,6 +4645,68 @@
         operatingPilotOwnLearningPlansRows.append(row);
       }
 
+      async function loadOperatingPilotLearningPlanReviewQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotLearningPlanReviewRequestVersion;
+        if (!operatingPilotCapacityReviewLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotLearningPlanReviewOffset = 0;
+          operatingPilotLearningPlanReviewRows.replaceChildren();
+          operatingPilotLearningPlanReviewMore.hidden = true;
+        }
+        const offset = append ? operatingPilotLearningPlanReviewOffset : 0;
+        operatingPilotLearningPlanReviewMore.disabled = true;
+        operatingPilotLearningPlanReviewStatus.textContent = "Loading submitted learning plans…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/learning-plan-review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotLearningPlanReviewRequestVersion
+              || locationId !== operatingPilotLocation.value
+              || !operatingPilotCapacityReviewLocations.has(locationId)) return;
+          for (const item of result.items || []) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.title,
+              item.competency_goals,
+              item.support_requested,
+              item.target_date,
+              item.updated_at
+            ]) {
+              const cell = document.createElement("td");
+              const displayValue = Array.isArray(value) || (value !== null && typeof value === "object")
+                ? JSON.stringify(value)
+                : operatingPilotDisplayValue(value);
+              cell.textContent = displayValue.length > 1200 ? `${displayValue.slice(0, 1200)}…` : displayValue;
+              row.append(cell);
+            }
+            operatingPilotLearningPlanReviewRows.append(row);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotLearningPlanReviewMore.hidden = !canContinue;
+          operatingPilotLearningPlanReviewOffset = canContinue ? nextOffset : 0;
+          operatingPilotLearningPlanReviewStatus.textContent = canContinue
+            ? "Showing a bounded page of submitted plans."
+            : operatingPilotLearningPlanReviewRows.childElementCount
+              ? "Submitted learning plans are loaded."
+              : "There are no submitted learning plans for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotLearningPlanReviewRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotLearningPlanReviewMore.hidden = true;
+          operatingPilotLearningPlanReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotLearningPlanReviewRequestVersion) {
+            operatingPilotLearningPlanReviewMore.disabled = false;
+          }
+        }
+      }
+
       async function submitOperatingPilotLearningPlan(item, locationId, button) {
         if (locationId !== operatingPilotLocation.value
             || !operatingPilotOwnLearningPlanLocations.has(locationId)
@@ -6291,6 +6372,7 @@
           && !operatingPilotCompetencyEditLocations.has(locationId)
           && !operatingPilotCompetencyReviewLocations.has(locationId);
         operatingPilotOwnLearningPlans.hidden = !operatingPilotOwnLearningPlanLocations.has(locationId);
+        operatingPilotLearningPlanReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotCompetencyForm.hidden = (!operatingPilotCompetencyCreateLocations.has(locationId)
           && !operatingPilotCompetencyEditLocations.has(locationId))
           || (operatingPilotPendingCompetencyWrite !== null
@@ -6362,6 +6444,7 @@
             await loadOperatingPilotResourceReviewQueue();
             await loadOperatingPilotWorkClaimReviewQueue();
             await loadOperatingPilotCompetencyReviewQueue();
+            await loadOperatingPilotLearningPlanReviewQueue();
           } else {
             operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotDemandReviewStatus.textContent = "A separate exact location review grant is required.";
@@ -6369,6 +6452,10 @@
             operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
             operatingPilotCompetencyReviewRows.replaceChildren();
             operatingPilotCompetencyReviewStatus.textContent = "A separate exact location review grant is required.";
+            operatingPilotLearningPlanReviewRequestVersion += 1;
+            operatingPilotLearningPlanReviewRows.replaceChildren();
+            operatingPilotLearningPlanReviewMore.hidden = true;
+            operatingPilotLearningPlanReviewStatus.textContent = "A separate exact location review grant is required.";
           }
           if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
             await loadOperatingPilotResourceFulfillmentQueue();
@@ -6401,6 +6488,7 @@
           reads.push(loadOperatingPilotResourceReviewQueue());
           reads.push(loadOperatingPilotWorkClaimReviewQueue());
           reads.push(loadOperatingPilotCompetencyReviewQueue());
+          reads.push(loadOperatingPilotLearningPlanReviewQueue());
         } else {
           operatingPilotCapacityReviewRows.replaceChildren();
           operatingPilotCapacityReviewStatus.textContent = "A separate exact location review grant is required.";
@@ -6412,6 +6500,10 @@
           operatingPilotWorkClaimReviewStatus.textContent = "A separate exact location review grant is required.";
           operatingPilotCompetencyReviewRows.replaceChildren();
           operatingPilotCompetencyReviewStatus.textContent = "A separate exact location review grant is required.";
+          operatingPilotLearningPlanReviewRequestVersion += 1;
+          operatingPilotLearningPlanReviewRows.replaceChildren();
+          operatingPilotLearningPlanReviewMore.hidden = true;
+          operatingPilotLearningPlanReviewStatus.textContent = "A separate exact location review grant is required.";
         }
         if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
           reads.push(loadOperatingPilotResourceFulfillmentQueue());
@@ -22462,6 +22554,12 @@
       operatingPilotCompetencyMore.addEventListener("click", () => loadOperatingPilotOwnCompetencyAssessments(true));
       operatingPilotOwnLearningPlansMore.addEventListener(
         "click", () => loadOperatingPilotOwnLearningPlans(true)
+      );
+      document.querySelector("#operating-pilot-learning-plan-review-refresh").addEventListener(
+        "click", () => loadOperatingPilotLearningPlanReviewQueue()
+      );
+      operatingPilotLearningPlanReviewMore.addEventListener(
+        "click", () => loadOperatingPilotLearningPlanReviewQueue(true)
       );
       operatingPilotLearningPlanCreateForm.addEventListener(
         "submit", createOperatingPilotLearningPlanDraft

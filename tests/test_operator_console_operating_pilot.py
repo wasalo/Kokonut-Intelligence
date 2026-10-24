@@ -120,6 +120,28 @@ def test_resource_request_draft_is_create_grant_gated_private_and_retry_safe():
     assert "saving a revised private resource-request draft" in submit.lower()
 
 
+def test_learning_plan_review_queue_is_review_grant_gated_read_only_and_text_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(source, 'id="operating-pilot-learning-plan-review"', 'id="operating-pilot-learning-plan-create"')
+    loader = _function(
+        source,
+        "async function loadOperatingPilotLearningPlanReviewQueue(append = false)",
+        "async function submitOperatingPilotLearningPlan(",
+    )
+    assert 'id="operating-pilot-learning-plan-review-rows"' in panel
+    assert "read-only" in panel
+    assert "operatingPilotLearningPlanReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in source
+    assert "/learning-plan-review-queue?${params}" in loader
+    assert 'credentials: "same-origin"' in loader
+    assert 'cache: "no-store"' in loader
+    assert "operatingPilotCapacityReviewLocations.has(locationId)" in loader
+    assert "operatingPilotLearningPlanReviewRequestVersion" in loader
+    assert "result.next_offset" in loader and "nextOffset <= 10000" in loader
+    assert "cell.textContent = displayValue" in loader
+    assert "innerHTML" not in panel + loader
+    assert 'type="submit"' not in panel
+
+
 def test_resource_revision_is_edit_own_gated_idempotent_and_keeps_submission_separate():
     source = CONSOLE.read_text(encoding="utf-8")
     submit = _function(
