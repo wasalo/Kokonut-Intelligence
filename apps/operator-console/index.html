@@ -1844,16 +1844,28 @@
           </div>
           <button id="geostatistics-sensor-design-more" class="secondary" type="button" hidden>Load more sensor designs</button>
           <h3>Kriging run summaries</h3>
-          <p class="muted">Saved aggregate surface summaries for the granted location. Individual predictions, uncertainty point records, coordinates, and model identifiers are omitted; values remain advisory.</p>
+          <p class="muted">Saved aggregate surface summaries for the granted location. Point details are available on demand; model identifiers and arbitrary metadata remain omitted, and outputs are advisory.</p>
           <button id="geostatistics-kriging-refresh" type="button">Refresh kriging summaries</button>
           <p id="geostatistics-kriging-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Property</th><th>Method</th><th>Grid resolution (m)</th><th>Stored points</th><th>Result points</th><th>Mean prediction</th><th>Mean variance</th><th>Mean standard deviation</th><th>Minimum</th><th>Maximum</th><th>Run time</th></tr></thead>
+              <thead><tr><th>Property</th><th>Method</th><th>Grid resolution (m)</th><th>Stored points</th><th>Result points</th><th>Mean prediction</th><th>Mean variance</th><th>Mean standard deviation</th><th>Minimum</th><th>Maximum</th><th>Run time</th><th>Points</th></tr></thead>
               <tbody id="geostatistics-kriging-rows"></tbody>
             </table>
           </div>
           <button id="geostatistics-kriging-more" class="secondary" type="button" hidden>Load more kriging summaries</button>
+          <section id="geostatistics-kriging-points" hidden aria-labelledby="geostatistics-kriging-points-heading">
+            <h4 id="geostatistics-kriging-points-heading">Saved kriging prediction points</h4>
+            <p class="muted">Advisory predicted values, uncertainty, and grid coordinates for the selected run.</p>
+            <p id="geostatistics-kriging-points-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Point</th><th>Longitude</th><th>Latitude</th><th>Predicted value</th><th>Variance</th><th>Standard deviation</th></tr></thead>
+                <tbody id="geostatistics-kriging-point-rows"></tbody>
+              </table>
+            </div>
+            <button id="geostatistics-kriging-points-more" class="secondary" type="button" hidden>Load more points</button>
+          </section>
           <h3>Geostatistical realization summaries</h3>
           <p class="muted">Saved sequential Gaussian, indicator, or turning-bands simulation aggregates for the granted location. Point pages are available on demand; seeds and model IDs remain omitted, and results are advisory.</p>
           <button id="geostatistics-realization-refresh" type="button">Refresh realization summaries</button>
@@ -3130,6 +3142,13 @@
       const geostatisticsKrigingMore = document.querySelector("#geostatistics-kriging-more");
       let geostatisticsKrigingRequestVersion = 0;
       let geostatisticsKrigingOffset = 0;
+      const geostatisticsKrigingPoints = document.querySelector("#geostatistics-kriging-points");
+      const geostatisticsKrigingPointsStatus = document.querySelector("#geostatistics-kriging-points-status");
+      const geostatisticsKrigingPointRows = document.querySelector("#geostatistics-kriging-point-rows");
+      const geostatisticsKrigingPointsMore = document.querySelector("#geostatistics-kriging-points-more");
+      let geostatisticsKrigingPointRequestVersion = 0;
+      let geostatisticsKrigingPointOffset = 0;
+      let geostatisticsSelectedKrigingPredictionId = null;
       const geostatisticsRealizationStatus = document.querySelector("#geostatistics-realization-status");
       const geostatisticsRealizationRows = document.querySelector("#geostatistics-realization-rows");
       const geostatisticsRealizationMore = document.querySelector("#geostatistics-realization-more");
@@ -15118,6 +15137,12 @@
           geostatisticsKrigingOffset = 0;
           geostatisticsKrigingRows.replaceChildren();
           geostatisticsKrigingMore.hidden = true;
+          geostatisticsKrigingPointRequestVersion += 1;
+          geostatisticsSelectedKrigingPredictionId = null;
+          geostatisticsKrigingPoints.hidden = true;
+          geostatisticsKrigingPointRows.replaceChildren();
+          geostatisticsKrigingPointsMore.hidden = true;
+          geostatisticsKrigingPointsStatus.textContent = "";
         }
         geostatisticsKrigingStatus.textContent = loadMore
           ? "Loading more kriging summaries…"
@@ -15145,6 +15170,8 @@
               || typeof result.has_more !== "boolean"
               || result.items.some((item) => typeof item.property_key !== "string"
                 || item.property_key.length > 100
+                || typeof item.prediction_id !== "string"
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.prediction_id)
                 || !methods.has(item.method)
                 || !Number.isInteger(item.n_points) || item.n_points < 0
                 || !Number.isInteger(item.result_point_count) || item.result_point_count < 0
@@ -15166,6 +15193,16 @@
                 : value === null || value === undefined ? "—" : String(value);
               row.append(cell);
             }
+            const pointsCell = document.createElement("td");
+            const pointsButton = document.createElement("button");
+            pointsButton.type = "button";
+            pointsButton.className = "secondary";
+            pointsButton.textContent = "View points";
+            pointsButton.addEventListener("click", () => {
+              loadGeostatisticsKrigingPoints(item.prediction_id);
+            });
+            pointsCell.append(pointsButton);
+            row.append(pointsCell);
             geostatisticsKrigingRows.append(row);
           }
           geostatisticsKrigingOffset = offset + result.items.length;
@@ -15179,6 +15216,97 @@
           if (!loadMore) geostatisticsKrigingRows.replaceChildren();
           geostatisticsKrigingMore.hidden = true;
           geostatisticsKrigingStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGeostatisticsKrigingPoints(predictionId, loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsKrigingPointRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)
+            || typeof predictionId !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(predictionId)) return;
+        if (loadMore && geostatisticsSelectedKrigingPredictionId !== predictionId) return;
+        const offset = loadMore ? geostatisticsKrigingPointOffset : 0;
+        if (!loadMore) {
+          geostatisticsSelectedKrigingPredictionId = predictionId;
+          geostatisticsKrigingPointOffset = 0;
+          geostatisticsKrigingPointRows.replaceChildren();
+          geostatisticsKrigingPointsMore.hidden = true;
+          geostatisticsKrigingPoints.hidden = false;
+        }
+        geostatisticsKrigingPointsStatus.textContent = loadMore
+          ? "Loading more kriging points…"
+          : "Loading saved kriging prediction points…";
+        try {
+          const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/kriging/${encodeURIComponent(predictionId)}/points?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("This kriging prediction is not available for the selected location.");
+            throw new Error("Saved kriging points could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsKrigingPointRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value
+              || predictionId !== geostatisticsSelectedKrigingPredictionId) return;
+          const methods = new Set(["ordinary", "simple", "indicator"]);
+          const validNullableNumber = (value) => value === null
+            || (typeof value === "number" && Number.isFinite(value));
+          if (result.location_id !== locationId || result.prediction_id !== predictionId
+              || !result.prediction
+              || typeof result.prediction.property_key !== "string"
+              || result.prediction.property_key.length > 100
+              || !methods.has(result.prediction.method)
+              || !Number.isInteger(result.prediction.n_points) || result.prediction.n_points < 0
+              || typeof result.prediction.created_at !== "string"
+              || !validNullableNumber(result.prediction.grid_resolution_m)
+              || !Array.isArray(result.items) || result.items.length > 50
+              || result.limit !== 50 || result.offset !== offset
+              || !Number.isInteger(result.total) || result.total < 0
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item, index) => !Number.isInteger(item.point_number)
+                || item.point_number !== offset + index + 1
+                || !validNullableNumber(item.longitude)
+                || !validNullableNumber(item.latitude)
+                || !validNullableNumber(item.predicted_value)
+                || !validNullableNumber(item.prediction_variance)
+                || !validNullableNumber(item.prediction_std)
+                || (item.longitude !== null && (item.longitude < -180 || item.longitude > 180))
+                || (item.latitude !== null && (item.latitude < -90 || item.latitude > 90))
+                || (item.prediction_variance !== null && item.prediction_variance < 0)
+                || (item.prediction_std !== null && item.prediction_std < 0))) {
+            throw new Error("The kriging-points response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.point_number, item.longitude, item.latitude, item.predicted_value,
+              item.prediction_variance, item.prediction_std,
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString(undefined, { maximumFractionDigits: 8 })
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsKrigingPointRows.append(row);
+          }
+          geostatisticsKrigingPointOffset = offset + result.items.length;
+          geostatisticsKrigingPointsMore.hidden = result.has_more !== true
+            || geostatisticsKrigingPointOffset > 10000;
+          geostatisticsKrigingPointsStatus.textContent = result.total
+            ? `${geostatisticsKrigingPointOffset.toLocaleString()} of ${result.total.toLocaleString()} saved points shown for ${result.prediction.property_key} (${result.prediction.method}). Values remain advisory.`
+            : "No saved points are available for this kriging prediction.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsKrigingPointRequestVersion) return;
+          if (!loadMore) geostatisticsKrigingPointRows.replaceChildren();
+          geostatisticsKrigingPointsMore.hidden = true;
+          geostatisticsKrigingPointsStatus.textContent = error.message;
         }
       }
 
@@ -22631,6 +22759,11 @@
       geostatisticsSensorDesignMore.addEventListener("click", () => loadGeostatisticsSensorDesigns(true));
       document.querySelector("#geostatistics-kriging-refresh").addEventListener("click", () => loadGeostatisticsKrigingSummaries());
       geostatisticsKrigingMore.addEventListener("click", () => loadGeostatisticsKrigingSummaries(true));
+      geostatisticsKrigingPointsMore.addEventListener("click", () => {
+        if (geostatisticsSelectedKrigingPredictionId) {
+          loadGeostatisticsKrigingPoints(geostatisticsSelectedKrigingPredictionId, true);
+        }
+      });
       document.querySelector("#geostatistics-realization-refresh").addEventListener("click", () => loadGeostatisticsRealizationSummaries());
       geostatisticsRealizationMore.addEventListener("click", () => loadGeostatisticsRealizationSummaries(true));
       geostatisticsRealizationPointsMore.addEventListener("click", () => {

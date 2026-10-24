@@ -10,8 +10,10 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.geostatistics_reads import (
+    GeostatisticalKrigingNotFound,
     _safe_spatial_fold_diagnostics,
     list_location_cross_validation,
+    list_location_kriging_points,
     list_location_kriging_summaries,
     list_location_realization_points,
     list_location_realization_summaries,
@@ -93,16 +95,39 @@ class _Cursor:
             )
         elif "FROM selected_runs AS run" in query and "kriging_point" in query:
             self.description = [(name,) for name in (
-                "property_key", "method", "grid_resolution_m", "n_points",
+                "prediction_id", "property_key", "method", "grid_resolution_m", "n_points",
                 "result_point_count", "mean_predicted", "mean_variance", "mean_std",
                 "min_predicted", "max_predicted", "created_at",
             )]
             self.rows = (
-                ("soil_moisture", "ordinary", 10.0, 100, 98, 0.4,
+                ("55555555-5555-4555-8555-555555555555", "soil_moisture", "ordinary", 10.0, 100, 98, 0.4,
                  float("nan"), 0.2, -0.5, 1.4, "2026-03-07"),
-                ("soil_carbon", "simple", 25.0, 40, 40, 0.8,
+                ("66666666-6666-4666-8666-666666666666", "soil_carbon", "simple", 25.0, 40, 40, 0.8,
                  0.3, 0.5, -0.2, 1.6, "2026-03-06"),
             )
+        elif "FROM kriging_prediction" in query and "kriging_point" not in query:
+            self.description = [(name,) for name in (
+                "id", "property_key", "method", "grid_resolution_m", "n_points", "created_at",
+            )]
+            self.rows = ((
+                "55555555-5555-4555-8555-555555555555", "soil_carbon", "ordinary",
+                10.0, 100, "2026-03-07",
+            ),)
+        elif "FROM kriging_point AS point" in query and "COUNT(*)" in query:
+            self.description = [("count",)]
+            self.rows = ((3,),)
+        elif "FROM kriging_point AS point" in query:
+            self.description = [(name,) for name in (
+                "longitude", "latitude", "predicted_value", "prediction_variance", "prediction_std",
+            )]
+            point_rows = (
+                (-69.9, 18.5, 2.25, 0.25, 0.5),
+                (-69.89, 18.51, float("inf"), -0.1, -1.0),
+            )
+            if params:
+                self.rows = point_rows[params[3]:params[3] + params[2]]
+            else:
+                self.rows = point_rows
         elif "FROM selected_runs AS run" in query and "geostat_realization_point" in query:
             self.description = [(name,) for name in (
                 "realization_id", "property_key", "realization_number", "method", "grid_resolution_m",
@@ -521,6 +546,7 @@ def test_kriging_read_aggregates_selected_location_runs_and_hides_points(monkeyp
     assert "point_geometry" not in query and "metadata" not in query
     assert "variogram_model_id" not in query and "threshold_value" not in query
     assert params == (LOCATION_ID, 2, 1)
+    assert result["items"][0]["prediction_id"] == "55555555-5555-4555-8555-555555555555"
     assert result["items"][0]["result_point_count"] == 98
     assert result["items"][0]["mean_variance"] is None
     assert result["has_more"] is True
@@ -539,6 +565,118 @@ def test_invalid_kriging_scope_fails_before_connecting():
     with pytest.raises(ValueError, match="Invalid operator identifier"):
         list_location_kriging_summaries("bad", LOCATION_ID, connection_factory=connect)
     assert not called
+
+
+def test_kriging_point_read_sets_signed_scope_and_returns_bounded_points(monkeypatch):
+    connection = _Connection()
+    prediction_id = "55555555-5555-4555-8555-555555555555"
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_kriging_points(
+        OPERATOR_ID,
+        LOCATION_ID,
+        prediction_id,
+        limit=1,
+        offset=1,
+        connection_factory=lambda: connection,
+    )
+
+    run_query, run_params = connection.queries[3]
+    count_query, count_params = connection.queries[4]
+    point_query, point_params = connection.queries[5]
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "FROM kriging_prediction" in run_query
+    assert "WHERE id = %s::uuid AND location_id = %s::uuid" in run_query
+    assert run_params == (prediction_id, LOCATION_ID)
+    assert "run.location_id = %s::uuid" in count_query
+    assert count_params == (prediction_id, LOCATION_ID)
+    assert "ST_X(point.point_geometry) AS longitude" in point_query
+    assert "ORDER BY ST_Y(point.point_geometry)" in point_query
+    for omitted in ("weight_sum", "n_neighbors", "search_radius_m", "threshold_value", "metadata"):
+        assert omitted not in point_query
+    assert point_params == (prediction_id, LOCATION_ID, 1, 1)
+    assert result["location_id"] == LOCATION_ID
+    assert result["prediction_id"] == prediction_id
+    assert result["prediction"]["method"] == "ordinary"
+    assert result["items"] == [{
+        "longitude": -69.89,
+        "latitude": 18.51,
+        "predicted_value": None,
+        "prediction_variance": None,
+        "prediction_std": None,
+        "point_number": 2,
+    }]
+    assert result["total"] == 3
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_invalid_kriging_point_scope_or_page_fails_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    prediction_id = "55555555-5555-4555-8555-555555555555"
+    with pytest.raises(ValueError, match="Invalid prediction identifier"):
+        list_location_kriging_points(OPERATOR_ID, LOCATION_ID, "bad", connection_factory=connect)
+    with pytest.raises(ValueError, match="Invalid location identifier"):
+        list_location_kriging_points(OPERATOR_ID, "bad", prediction_id, connection_factory=connect)
+    with pytest.raises(ValueError, match="limit"):
+        list_location_kriging_points(
+            OPERATOR_ID, LOCATION_ID, prediction_id, limit=51, connection_factory=connect
+        )
+    assert not called
+
+
+def test_unowned_kriging_prediction_is_not_found_after_signed_scope(monkeypatch):
+    connection = _Connection()
+    original_execute = _Cursor.execute
+    context_calls = []
+
+    def execute(self, query, params=None):
+        original_execute(self, query, params)
+        if "FROM kriging_prediction" in query and "kriging_point" not in query:
+            self.rows = ()
+
+    def set_context(conn, **kwargs):
+        context_calls.append((conn, kwargs))
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    with pytest.raises(GeostatisticalKrigingNotFound):
+        list_location_kriging_points(
+            OPERATOR_ID,
+            LOCATION_ID,
+            "55555555-5555-4555-8555-555555555555",
+            connection_factory=lambda: connection,
+        )
+    assert len(context_calls) == 1
+    assert connection.closed
 
 
 def test_realization_read_aggregates_selected_runs_and_hides_point_details(monkeypatch):
@@ -815,6 +953,10 @@ def _app(monkeypatch, reader):
         reader,
     )
     monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_kriging_points",
+        reader,
+    )
+    monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_realization_summaries",
         reader,
     )
@@ -990,6 +1132,50 @@ def test_kriging_http_route_is_no_store_and_passes_scope(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["offset"] == 4
+
+
+def test_kriging_points_http_route_is_no_store_and_location_scoped(monkeypatch):
+    prediction_id = "55555555-5555-4555-8555-555555555555"
+
+    def reader(operator_id, location_id, requested_prediction_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert requested_prediction_id == prediction_id
+        assert limit == 5
+        assert offset == 10
+        return {
+            "location_id": location_id,
+            "prediction_id": requested_prediction_id,
+            "prediction": {"method": "ordinary"},
+            "items": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/kriging/{prediction_id}/points?limit=5&offset=10"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["prediction_id"] == prediction_id
+
+
+def test_kriging_points_http_route_hides_unowned_run(monkeypatch):
+    def reader(*_args, **_kwargs):
+        raise GeostatisticalKrigingNotFound
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/kriging/55555555-5555-4555-8555-555555555555/points"
+        )
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_realization_http_route_is_no_store_and_passes_scope(monkeypatch):

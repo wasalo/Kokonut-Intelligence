@@ -18,6 +18,7 @@ _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 _PARAMETER_SAMPLES = {
     "location_id": _LOCATION_ID,
     "batch_id": "33333333-3333-4333-8333-333333333333",
+    "prediction_id": "55555555-5555-4555-8555-555555555555",
     "realization_id": "33333333-3333-4333-8333-333333333333",
     "run_id": "44444444-4444-4444-8444-444444444444",
     "canvas_id": "22222222-2222-4222-8222-222222222222",
@@ -257,6 +258,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     (
         "GET",
         "/operator/api/geostatistics/11111111-1111-4111-8111-111111111111/kriging-summaries",
+    ): _expected("geostatistics", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/geostatistics/11111111-1111-4111-8111-111111111111/kriging/55555555-5555-4555-8555-555555555555/points",
     ): _expected("geostatistics", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",

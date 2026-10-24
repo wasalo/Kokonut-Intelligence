@@ -74,6 +74,10 @@ class GeostatisticalRealizationNotFound(LookupError):
     """A requested realization is not visible inside the granted location."""
 
 
+class GeostatisticalKrigingNotFound(LookupError):
+    """A requested kriging run is not visible inside the granted location."""
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -497,7 +501,7 @@ def list_location_kriging_summaries(
                      ORDER BY created_at DESC, id DESC
                      LIMIT %s OFFSET %s
                 )
-                SELECT run.property_key, run.method, run.grid_resolution_m,
+                SELECT run.id AS prediction_id, run.property_key, run.method, run.grid_resolution_m,
                        run.n_points, COUNT(point.id) AS result_point_count,
                        AVG(point.predicted_value) AS mean_predicted,
                        AVG(point.prediction_variance) AS mean_variance,
@@ -527,6 +531,127 @@ def list_location_kriging_summaries(
             "limit": limit,
             "offset": offset,
             "has_more": len(rows) > limit,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_kriging_points(
+    operator_id: str,
+    location_id: str,
+    prediction_id: str,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read one bounded point page from a kriging run owned by this location."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    prediction_id = _uuid(prediction_id, "prediction")
+    limit, offset = _page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="geostatistics",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, property_key, method, grid_resolution_m,
+                       n_points, created_at
+                  FROM kriging_prediction
+                 WHERE id = %s::uuid AND location_id = %s::uuid
+                """,
+                (prediction_id, location_id),
+            )
+            run_columns = [column[0] for column in cursor.description]
+            run_rows = cursor.fetchall()
+            if not run_rows:
+                raise GeostatisticalKrigingNotFound
+            run = dict(zip(run_columns, run_rows[0]))
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                  FROM kriging_point AS point
+                  JOIN kriging_prediction AS run
+                    ON run.id = point.prediction_id
+                 WHERE point.prediction_id = %s::uuid
+                   AND run.location_id = %s::uuid
+                """,
+                (prediction_id, location_id),
+            )
+            count_rows = cursor.fetchall()
+            total = int(count_rows[0][0]) if count_rows else 0
+
+            cursor.execute(
+                """
+                SELECT ST_X(point.point_geometry) AS longitude,
+                       ST_Y(point.point_geometry) AS latitude,
+                       point.predicted_value,
+                       point.prediction_variance,
+                       point.prediction_std
+                  FROM kriging_point AS point
+                  JOIN kriging_prediction AS run
+                    ON run.id = point.prediction_id
+                 WHERE point.prediction_id = %s::uuid
+                   AND run.location_id = %s::uuid
+                 ORDER BY ST_Y(point.point_geometry),
+                          ST_X(point.point_geometry), point.id
+                 LIMIT %s OFFSET %s
+                """,
+                (prediction_id, location_id, limit, offset),
+            )
+            columns = [column[0] for column in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        for index, row in enumerate(rows, start=offset + 1):
+            row["point_number"] = index
+            for field in (
+                "longitude", "latitude", "predicted_value",
+                "prediction_variance", "prediction_std",
+            ):
+                value = row[field]
+                if value is not None:
+                    numeric = float(value)
+                    row[field] = numeric if math.isfinite(numeric) else None
+                    if field == "longitude" and not -180 <= numeric <= 180:
+                        row[field] = None
+                    elif field == "latitude" and not -90 <= numeric <= 90:
+                        row[field] = None
+                    elif field in ("prediction_variance", "prediction_std") and numeric < 0:
+                        row[field] = None
+
+        run.pop("id", None)
+        if run["grid_resolution_m"] is not None:
+            value = float(run["grid_resolution_m"])
+            run["grid_resolution_m"] = value if math.isfinite(value) else None
+        return {
+            "location_id": location_id,
+            "prediction_id": prediction_id,
+            "prediction": run,
+            "items": rows,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + len(rows) < total,
         }
     except Exception:
         connection.rollback()

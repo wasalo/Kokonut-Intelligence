@@ -8,8 +8,10 @@ def register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.geostatistics_reads import (
+        GeostatisticalKrigingNotFound,
         GeostatisticalRealizationNotFound,
         list_location_cross_validation,
+        list_location_kriging_points,
         list_location_kriging_summaries,
         list_location_realization_points,
         list_location_realization_summaries,
@@ -226,6 +228,58 @@ def register_geostatistics_routes(router, provider, run_in_threadpool, psycopg2)
             return JSONResponse(
                 status_code=503,
                 content={"error": "Kriging summaries unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/geostatistics/{location_id}/kriging/{prediction_id}/points"
+    )
+    async def kriging_points(
+        request: Request,
+        location_id: str,
+        prediction_id: str,
+        limit: int = 50,
+        offset: int = 0,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_kriging_points,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                prediction_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified geostatistics access is required"},
+                headers=headers,
+            )
+        except GeostatisticalKrigingNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Kriging prediction not found"},
+                headers=headers,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.geostatistics").warning(
+                "Kriging prediction points unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Kriging prediction points unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -117,10 +117,37 @@ same grant and signed, read-only transaction. It selects a bounded page of
 location-owned prediction runs first, then aggregates only those runs' point
 rows. The response contains property, method, grid resolution, stored and
 actual result-point counts, mean prediction/variance/standard deviation, min,
-max, and run time. It does not return per-point predictions, geometries,
-model IDs, thresholds, or metadata; non-finite numbers become `null`. The
-aggregation is bounded by the run page, with the transaction statement
-timeout retained. The console labels the saved output advisory.
+max, and run time. It omits per-point predictions, geometries, model IDs,
+thresholds, and metadata; non-finite numbers become `null`. `prediction_id` is
+included only as an undisplayed request handle for the optional point-detail
+route. The aggregation is bounded by the run page, with the transaction
+statement timeout retained. The console labels the saved output advisory.
+
+## Saved kriging prediction point read
+
+`GET /operator/api/geostatistics/{location_id}/kriging/{prediction_id}/points`
+requires the same exact `geostatistics:read` grant and signed tenant context.
+The handler uses a repeatable-read, read-only transaction with statement and
+lock timeouts. It selects the parent prediction by both UUID and requested
+location, then repeats the location predicate on the child-point count and
+page queries. Missing and foreign-location predictions return the same
+not-found response after authorization.
+
+Pages are ordered by latitude, longitude, and a private point-ID tie breaker.
+`limit` is bounded from 1 to 50 and `offset` from 0 to 10,000. The fixed
+projection includes point sequence, WGS84 longitude/latitude, predicted value,
+prediction variance, and prediction standard deviation. It omits point UUIDs,
+weights, neighbor counts, search radius, indicator threshold, model ID,
+metadata, and raw geometry. Non-finite values and negative uncertainty values
+become `null`. The prediction UUID is an opaque request handle and is never
+rendered. The console loads points on demand, checks location/run/page
+correlation and numeric bounds, discards stale responses, and renders advisory
+values as text only.
+
+Focused Gateway, route-policy, and console-contract checks cover context
+ordering, exact location predicates, deterministic bounded pagination,
+uncertainty sanitization, foreign-run concealment, no-store headers, exact
+route policy, and text-only rendering. No migration or database was used.
 
 ## Geostatistical realization summary route
 
@@ -230,8 +257,7 @@ database was used.
 
 ## Remaining work
 
-Other geostatistics outputs such as per-point kriging predictions/points,
-numerical/populated fixture parity, live OIDC and browser
+Numerical/populated fixture parity, live OIDC and browser
 behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008` remain
 open. Source property selection and explicit model scope now share one contract
 across all five legacy database runners; this source-level validation is not a

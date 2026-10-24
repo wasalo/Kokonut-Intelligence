@@ -1,3 +1,7 @@
+### Progress addendum — CAP-008 saved kriging prediction point pages, 24 October 2026
+
+The OIDC Gateway now exposes bounded pages of saved kriging predictions and uncertainty for one location-owned run. The parent run lookup and each child count/page query repeat the requested location predicate after signed tenant context is installed on the same repeatable-read, read-only connection. The response omits point IDs, model references, thresholds, weights, neighbor counts, search radius, and arbitrary metadata; uncertainty and non-finite values fail closed to null. A hidden-by-default console action validates request and response scope, discards stale results, and renders advisory values as text. The 45-test Gateway/route-policy/console selection passes with Ruff, compilation, inline JavaScript syntax, current SQL inventory, and matrix/diff checks. No migration or database was used. CAP-008 remains prepared pending scientific/populated parity, live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,093 complete / 25 open (1,118 total) ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-kriging-point-kernel-read.json)).
+
 ### Progress addendum — CAP-008 saved simulation point pages, 24 October 2026
 
 The OIDC Gateway now exposes one selected realization’s persisted points as
