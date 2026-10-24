@@ -1,3 +1,18 @@
+### Progress addendum — CAP-006 legacy pollution incident lifecycle schema alignment, 24 October 2026
+
+Incident report, resolution, and summary CLI operations now use canonical
+migration-153 fields. Reports record the required date and lifecycle state,
+preserve reporter identity and unsupported type labels in metadata, and map
+the explicit air-pollution alias to `air_emission`. Resolution sets the
+canonical `resolved` boolean and update timestamp. The summary includes open,
+investigating, and remediation records and uses deterministic date ordering.
+The 24-test waste-management module plus five invalid-window subtests passes;
+Ruff, compilation, SQL inventory, capability validation, and diff checks pass.
+No migration or database was used. Tenant scope and populated incident parity
+remain open. Checklist: 1,106 complete / 25 open (1,131 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-legacy-incident-lifecycle-schema-alignment.json)).
+
 ### Progress addendum — CAP-006 legacy recycling writer schema alignment, 24 October 2026
 
 The legacy recycling writer now targets canonical migration-153

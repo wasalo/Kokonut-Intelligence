@@ -160,14 +160,27 @@ class TestReportIncident(unittest.TestCase):
         self.assertEqual(result["severity"], "high")
         self.assertEqual(result["status"], "open")
         self.conn.commit.assert_called_once()
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("incident_date", query)
+        self.assertIn("'open'", query)
+        self.assertNotIn("reported_by,", query)
+        self.assertEqual(params[3], "chemical_spill")
+        self.assertEqual(json.loads(params[7]), {})
+        self.mock_cursor.close.assert_called_once()
 
     def test_report_incident_with_reported_by(self):
         result = report_incident(
-            self.conn, "loc-001", "water_contamination", "critical",
+            self.conn, "loc-001", "air_pollution", "critical",
             "Fertilizer runoff", "River bank",
             reported_by="field_worker_01",
         )
         self.assertEqual(result["affected_area"], "River bank")
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertEqual(params[3], "air_emission")
+        self.assertEqual(json.loads(params[7]), {
+            "reported_by": "field_worker_01",
+            "legacy_incident_type": "air_pollution",
+        })
 
 
 class TestResolveIncident(unittest.TestCase):
@@ -190,6 +203,12 @@ class TestResolveIncident(unittest.TestCase):
         self.assertEqual(result["remedial_action"], "Cleaned and neutralized soil")
         self.assertEqual(result["resolution_date"], "2026-07-10")
         self.conn.commit.assert_called_once()
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("resolved = TRUE", query)
+        self.assertIn("updated_at = NOW()", query)
+        self.assertNotIn("resolved_at", query)
+        self.assertEqual(params, ("Cleaned and neutralized soil", date(2026, 7, 10), "inc-001"))
+        self.mock_cursor.close.assert_called_once()
 
     def test_resolve_incident_not_found(self):
         self.mock_cursor.fetchone.return_value = None
@@ -373,6 +392,15 @@ class TestOpenIncidents(unittest.TestCase):
         self.assertEqual(result["open_count"], 1)
         self.assertEqual(result["resolved_count"], 5)
         self.assertEqual(result["severity_breakdown"]["high"], 1)
+        statements = self.mock_cursor.execute.call_args_list
+        self.assertEqual(len(statements), 3)
+        self.assertIn("metadata ->> 'reported_by'", statements[0].args[0])
+        self.assertNotIn("affected_area,\n               reported_by,", statements[0].args[0])
+        self.assertIn("'investigating'", statements[0].args[0])
+        self.assertIn("incident_date DESC", statements[0].args[0])
+        for call in statements:
+            self.assertEqual(call.args[1], ("loc-001",))
+        self.mock_cursor.close.assert_called_once()
 
     def test_get_open_incidents_empty(self):
         self.mock_cursor.description = [

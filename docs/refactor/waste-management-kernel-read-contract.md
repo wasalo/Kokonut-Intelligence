@@ -66,6 +66,17 @@ insert is still only recorded; the verified-only summary does not include it
 until separate human verification. This remains a trusted local CLI write path
 without tenant authorization.
 
+The legacy incident CLI now writes `incident_date` and schema-supported
+incident types to `pollution_incident`; `air_pollution` maps to `air_emission`,
+and unsupported labels map to `other` while the original type remains in
+metadata. `reported_by` is kept in metadata rather than assigned to the
+unrelated `reported_to` or UUID `created_by` columns. Resolution sets the
+canonical `resolved` boolean, status, remedial action, resolution date, and
+`updated_at`. The incident summary selects unresolved `open`, `investigating`,
+and `remediation` records, retrieves reporter attribution from metadata, and
+counts resolved rows using the lifecycle status/flag. These operations remain
+trusted CLI paths and do not establish tenant authorization.
+
 The legacy `get_composting_efficiency` read also uses schema-153 columns:
 `finished_volume_kg` supplies output values, per-batch yield is calculated
 from finished volume over positive feedstock, and `compost_date` supplies the

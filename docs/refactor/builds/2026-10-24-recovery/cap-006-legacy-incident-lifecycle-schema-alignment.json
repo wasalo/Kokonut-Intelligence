@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working tree based on 4d157f52",
+  "capability": "CAP-006",
+  "batch": "legacy pollution incident lifecycle schema alignment",
+  "implementation": {
+    "functions": [
+      "services.analytics.waste_management.report_incident",
+      "services.analytics.waste_management.resolve_incident",
+      "services.analytics.waste_management.get_open_incidents"
+    ],
+    "canonical_source": "schemas/postgres/153_waste_management.sql::pollution_incident",
+    "fields": [
+      "incident_date",
+      "incident_type",
+      "severity",
+      "description",
+      "affected_area",
+      "remedial_action",
+      "resolved",
+      "resolution_date",
+      "status",
+      "metadata",
+      "created_at",
+      "updated_at"
+    ],
+    "classification": "air_pollution maps to air_emission; unsupported labels map to other with original label preserved in metadata",
+    "reporter": "reported_by is kept in metadata; it is not conflated with reported_to or UUID created_by",
+    "unresolved_statuses": [
+      "open",
+      "investigating",
+      "remediation"
+    ],
+    "resolved_count": "status=resolved or resolved=true",
+    "resource_safety": "close cursor on successful reads/writes and query failures",
+    "compatibility": "existing CLI arguments, response shapes, and severity ordering remain"
+  },
+  "verification": {
+    "command": "python3 -m pytest -q tests/test_waste_management.py",
+    "result": "24 passed; five invalid-window subtests included",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "authorization_boundary": "Trusted local CLI paths only; no Gateway auth, signed tenant context, or RLS was added.",
+  "remaining_acceptance": [
+    "tenant isolation and least-privilege database boundary",
+    "populated pollution incident parity",
+    "MAN-CAP-006 human acceptance"
+  ],
+  "rollback": "Restore the prior incident SQL and regression assertions. Tests used mocked connections; no persistent database data was written."
+}

@@ -267,21 +267,39 @@ def report_incident(
     cur = conn.cursor()
     incident_id = str(uuid.uuid4())
 
-    cur.execute(
-        """
-        INSERT INTO pollution_incident
-            (id, location_id, incident_type, severity, description,
-             affected_area, reported_by, status, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'open', %s::jsonb)
-        RETURNING id
-        """,
-        (
-            incident_id, location_id, incident_type, severity, description,
-            affected_area, reported_by, json.dumps(metadata or {}),
-        ),
+    source_incident_type = incident_type.strip().lower().replace(" ", "_")
+    incident_type_aliases = {"air_pollution": "air_emission"}
+    canonical_incident_type = incident_type_aliases.get(
+        source_incident_type, source_incident_type,
     )
-    conn.commit()
-    cur.close()
+    if canonical_incident_type not in {
+        "chemical_spill", "runoff", "air_emission", "water_contamination",
+        "waste_dumping", "other",
+    }:
+        canonical_incident_type = "other"
+    record_metadata = dict(metadata or {})
+    if reported_by is not None:
+        record_metadata["reported_by"] = reported_by
+    if source_incident_type != canonical_incident_type:
+        record_metadata["legacy_incident_type"] = incident_type
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO pollution_incident
+                (id, location_id, incident_date, incident_type, severity,
+                 description, affected_area, status, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'open', %s::jsonb)
+            RETURNING id
+            """,
+            (
+                incident_id, location_id, date.today(), canonical_incident_type,
+                severity, description, affected_area, json.dumps(record_metadata),
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
 
     logger.warning("Pollution incident reported %s: %s [%s]", incident_id, incident_type, severity)
 
@@ -304,28 +322,29 @@ def resolve_incident(
     resolution_date: str = None,
 ) -> dict:
     """Mark a pollution incident as resolved."""
-    cur = conn.cursor()
     res_date = date.fromisoformat(resolution_date) if resolution_date else date.today()
+    cur = conn.cursor()
 
-    cur.execute(
-        """
-        UPDATE pollution_incident
-        SET status = 'resolved',
-            remedial_action = %s,
-            resolution_date = %s,
-            resolved_at = NOW()
-        WHERE id = %s
-        RETURNING id, incident_type, severity
-        """,
-        (remedial_action, res_date, incident_id),
-    )
-    row = cur.fetchone()
-    if not row:
+    try:
+        cur.execute(
+            """
+            UPDATE pollution_incident
+            SET status = 'resolved',
+                resolved = TRUE,
+                remedial_action = %s,
+                resolution_date = %s,
+                updated_at = NOW()
+            WHERE id = %s
+            RETURNING id, incident_type, severity
+            """,
+            (remedial_action, res_date, incident_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise ValueError(f"Incident {incident_id} not found")
+        conn.commit()
+    finally:
         cur.close()
-        raise ValueError(f"Incident {incident_id} not found")
-
-    conn.commit()
-    cur.close()
 
     logger.info("Incident %s resolved: %s", incident_id, remedial_action)
 
@@ -503,48 +522,53 @@ def get_open_incidents(conn, location_id: str) -> dict:
     """Get unresolved pollution incidents."""
     cur = conn.cursor()
 
-    cur.execute(
-        """
-        SELECT id, incident_type, severity, description, affected_area,
-               reported_by, created_at
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'open'
-        ORDER BY
-            CASE severity
-                WHEN 'critical' THEN 1
-                WHEN 'high' THEN 2
-                WHEN 'medium' THEN 3
-                WHEN 'low' THEN 4
-                ELSE 5
-            END,
-            created_at DESC
-        """,
-        (location_id,),
-    )
-    cols = [d[0] for d in cur.description]
-    open_incidents = [dict(zip(cols, row)) for row in cur.fetchall()]
+    try:
+        cur.execute(
+            """
+            SELECT id, incident_type, severity, description, affected_area,
+                   metadata ->> 'reported_by' AS reported_by, created_at
+            FROM pollution_incident
+            WHERE location_id = %s
+              AND status IN ('open', 'investigating', 'remediation')
+            ORDER BY
+                CASE severity
+                    WHEN 'critical' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'medium' THEN 3
+                    WHEN 'low' THEN 4
+                    ELSE 5
+                END,
+                incident_date DESC, created_at DESC, id DESC
+            """,
+            (location_id,),
+        )
+        cols = [d[0] for d in cur.description]
+        open_incidents = [dict(zip(cols, row)) for row in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT severity, COUNT(*)
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'open'
-        GROUP BY severity
-        """,
-        (location_id,),
-    )
-    severity_counts = {row[0]: int(row[1]) for row in cur.fetchall()}
+        cur.execute(
+            """
+            SELECT severity, COUNT(*)
+            FROM pollution_incident
+            WHERE location_id = %s
+              AND status IN ('open', 'investigating', 'remediation')
+            GROUP BY severity
+            """,
+            (location_id,),
+        )
+        severity_counts = {row[0]: int(row[1]) for row in cur.fetchall()}
 
-    cur.execute(
-        """
-        SELECT COUNT(*)
-        FROM pollution_incident
-        WHERE location_id = %s AND status = 'resolved'
-        """,
-        (location_id,),
-    )
-    resolved_row = cur.fetchone()
-    cur.close()
+        cur.execute(
+            """
+            SELECT COUNT(*)
+            FROM pollution_incident
+            WHERE location_id = %s
+              AND (status = 'resolved' OR resolved IS TRUE)
+            """,
+            (location_id,),
+        )
+        resolved_row = cur.fetchone()
+    finally:
+        cur.close()
 
     return {
         "location_id": location_id,
