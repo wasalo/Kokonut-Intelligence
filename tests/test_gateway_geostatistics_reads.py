@@ -13,6 +13,7 @@ from services.gateway.geostatistics_reads import (
     _safe_spatial_fold_diagnostics,
     list_location_cross_validation,
     list_location_kriging_summaries,
+    list_location_realization_points,
     list_location_realization_summaries,
     list_location_sensor_network_designs,
     list_location_spatial_autocorrelation,
@@ -104,17 +105,41 @@ class _Cursor:
             )
         elif "FROM selected_runs AS run" in query and "geostat_realization_point" in query:
             self.description = [(name,) for name in (
-                "property_key", "realization_number", "method", "grid_resolution_m",
+                "realization_id", "property_key", "realization_number", "method", "grid_resolution_m",
                 "n_points", "result_point_count", "mean_simulated_value",
                 "stddev_simulated_value", "min_simulated_value", "max_simulated_value",
                 "created_at",
             )]
             self.rows = (
-                ("soil_moisture", 2, "sgs", 10.0, 100, 99, 0.42,
+                ("33333333-3333-4333-8333-333333333333", "soil_moisture", 2, "sgs", 10.0, 100, 99, 0.42,
                  float("inf"), -0.2, 1.2, "2026-03-08"),
-                ("soil_moisture", 1, "sgs", 10.0, 100, 100, 0.4,
+                ("44444444-4444-4444-8444-444444444444", "soil_moisture", 1, "sgs", 10.0, 100, 100, 0.4,
                  0.18, -0.1, 1.1, "2026-03-07"),
             )
+        elif "FROM geostat_realization_point AS point" in query and "COUNT(*)" in query:
+            self.description = [("count",)]
+            self.rows = ((3,),)
+        elif "FROM geostat_realization_point AS point" in query:
+            self.description = [(name,) for name in (
+                "longitude", "latitude", "simulated_value",
+            )]
+            point_rows = (
+                (-69.9, 18.5, 1.25),
+                (-69.89, 18.51, float("nan")),
+            )
+            if params:
+                self.rows = point_rows[params[3]:params[3] + params[2]]
+            else:
+                self.rows = point_rows
+        elif "FROM geostat_realization" in query:
+            self.description = [(name,) for name in (
+                "id", "property_key", "realization_number", "method",
+                "grid_resolution_m", "n_points", "created_at",
+            )]
+            self.rows = ((
+                "33333333-3333-4333-8333-333333333333", "soil_carbon", 4,
+                "sgs", 10.0, 100, "2026-03-08",
+            ),)
 
     def fetchall(self):
         return self.rows
@@ -558,6 +583,7 @@ def test_realization_read_aggregates_selected_runs_and_hides_point_details(monke
     assert "variogram_model_id" not in query and "metadata" not in query
     assert params == (LOCATION_ID, 2, 2)
     assert result["items"][0]["realization_number"] == 2
+    assert result["items"][0]["realization_id"] == "33333333-3333-4333-8333-333333333333"
     assert result["items"][0]["stddev_simulated_value"] is None
     assert result["has_more"] is True
     assert connection.rollback_count == 1
@@ -575,6 +601,113 @@ def test_invalid_realization_scope_fails_before_connecting():
     with pytest.raises(ValueError, match="Invalid location identifier"):
         list_location_realization_summaries(OPERATOR_ID, "bad", connection_factory=connect)
     assert not called
+
+
+def test_realization_point_read_sets_signed_scope_and_returns_bounded_points(monkeypatch):
+    connection = _Connection()
+    order = []
+    original_execute = _Cursor.execute
+
+    def execute(self, query, params=None):
+        order.append("query")
+        original_execute(self, query, params)
+
+    def set_context(conn, **kwargs):
+        order.append("context")
+        assert conn is connection
+        assert kwargs == {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "geostatistics",
+            "action": "read",
+        }
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    result = list_location_realization_points(
+        OPERATOR_ID,
+        LOCATION_ID,
+        "33333333-3333-4333-8333-333333333333",
+        limit=1,
+        offset=1,
+        connection_factory=lambda: connection,
+    )
+
+    run_query, run_params = connection.queries[3]
+    count_query, count_params = connection.queries[4]
+    point_query, point_params = connection.queries[5]
+    assert order[:4] == ["query", "query", "query", "context"]
+    assert "WHERE id = %s::uuid AND location_id = %s::uuid" in run_query
+    assert run_params == ("33333333-3333-4333-8333-333333333333", LOCATION_ID)
+    assert "run.location_id = %s::uuid" in count_query
+    assert count_params == ("33333333-3333-4333-8333-333333333333", LOCATION_ID)
+    assert "ST_X(point.point_geometry) AS longitude" in point_query
+    assert "ORDER BY ST_Y(point.point_geometry)" in point_query
+    assert "seed" not in point_query and "metadata" not in point_query
+    assert point_params == ("33333333-3333-4333-8333-333333333333", LOCATION_ID, 1, 1)
+    assert result["location_id"] == LOCATION_ID
+    assert result["realization"]["realization_number"] == 4
+    assert result["items"] == [{
+        "longitude": -69.89,
+        "latitude": 18.51,
+        "simulated_value": None,
+        "point_number": 2,
+    }]
+    assert result["total"] == 3
+    assert result["has_more"] is True
+    assert connection.rollback_count == 1
+    assert connection.closed
+
+
+def test_realization_point_read_rejects_bad_scope_or_page_before_connecting():
+    called = False
+
+    def connect():
+        nonlocal called
+        called = True
+        raise AssertionError("database connection must not open")
+
+    with pytest.raises(ValueError, match="Invalid realization identifier"):
+        list_location_realization_points(OPERATOR_ID, LOCATION_ID, "bad", connection_factory=connect)
+    with pytest.raises(ValueError, match="limit must be between"):
+        list_location_realization_points(
+            OPERATOR_ID, LOCATION_ID,
+            "33333333-3333-4333-8333-333333333333", limit=51,
+            connection_factory=connect,
+        )
+    assert not called
+
+
+def test_unowned_realization_is_not_found_after_signed_scope(monkeypatch):
+    connection = _Connection()
+    original_execute = _Cursor.execute
+    context_calls = []
+
+    def execute(self, query, params=None):
+        original_execute(self, query, params)
+        if "FROM geostat_realization" in query and "FROM geostat_realization_point" not in query:
+            self.rows = ()
+
+    def set_context(conn, **kwargs):
+        context_calls.append((conn, kwargs))
+
+    monkeypatch.setattr(_Cursor, "execute", execute)
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.set_operator_tenant_context", set_context
+    )
+    from services.gateway.geostatistics_reads import GeostatisticalRealizationNotFound
+
+    with pytest.raises(GeostatisticalRealizationNotFound):
+        list_location_realization_points(
+            OPERATOR_ID,
+            LOCATION_ID,
+            "33333333-3333-4333-8333-333333333333",
+            connection_factory=lambda: connection,
+        )
+    assert len(context_calls) == 1
+    assert connection.closed
 
 
 def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
@@ -645,6 +778,18 @@ def test_geostatistics_route_policy_is_exact_location_scoped_read_only():
     }
     assert auth_route_policy("POST", realizations, enabled=True) is None
 
+    points = f"/operator/api/geostatistics/{LOCATION_ID}/realizations/33333333-3333-4333-8333-333333333333/points"
+    assert auth_route_policy("GET", points, enabled=True) == {
+        "resource": "geostatistics",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", points, enabled=True) is None
+    assert auth_route_policy("GET", points + "/extra", enabled=True) is None
+
 
 def _app(monkeypatch, reader):
     from services.gateway.geostatistics_routes import register_geostatistics_routes
@@ -671,6 +816,10 @@ def _app(monkeypatch, reader):
     )
     monkeypatch.setattr(
         "services.gateway.geostatistics_reads.list_location_realization_summaries",
+        reader,
+    )
+    monkeypatch.setattr(
+        "services.gateway.geostatistics_reads.list_location_realization_points",
         reader,
     )
     app = FastAPI()
@@ -866,3 +1015,49 @@ def test_realization_http_route_is_no_store_and_passes_scope(monkeypatch):
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["offset"] == 2
+
+
+def test_realization_points_http_route_is_no_store_and_location_scoped(monkeypatch):
+    realization_id = "33333333-3333-4333-8333-333333333333"
+
+    def reader(operator_id, location_id, requested_realization_id, *, limit, offset):
+        assert operator_id == OPERATOR_ID
+        assert location_id == LOCATION_ID
+        assert requested_realization_id == realization_id
+        assert limit == 5
+        assert offset == 10
+        return {
+            "location_id": location_id,
+            "realization_id": requested_realization_id,
+            "realization": {"realization_number": 4},
+            "items": [],
+            "total": 0,
+            "limit": limit,
+            "offset": offset,
+            "has_more": False,
+        }
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/realizations/{realization_id}/points?limit=5&offset=10"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["realization_id"] == realization_id
+
+
+def test_realization_points_http_route_hides_unowned_run(monkeypatch):
+    from services.gateway.geostatistics_reads import GeostatisticalRealizationNotFound
+
+    def reader(*_args, **_kwargs):
+        raise GeostatisticalRealizationNotFound
+
+    app = _app(monkeypatch, reader)
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/geostatistics/{LOCATION_ID}/realizations/33333333-3333-4333-8333-333333333333/points"
+        )
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"

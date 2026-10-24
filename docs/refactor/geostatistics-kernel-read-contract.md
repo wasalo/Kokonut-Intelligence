@@ -130,9 +130,39 @@ of location-owned simulation runs before aggregating their child points. The
 response contains property, realization number, method, grid resolution,
 stored and actual result-point counts, mean and population standard deviation,
 minimum, maximum, and run time. It omits simulated point values, geometries,
-seeds, IDs, variogram-model references, and metadata; non-finite values become
-`null`. Results are advisory and do not validate simulation assumptions or
-drive a lifecycle transition.
+seeds, point UUIDs, variogram-model references, and metadata; non-finite values
+become `null`. The summary includes `realization_id` only as a request handle
+for the optional point-detail route; the console does not display it. Results
+are advisory and do not validate simulation assumptions or drive a lifecycle
+transition.
+
+## Saved realization point read
+
+`GET /operator/api/geostatistics/{location_id}/realizations/{realization_id}/points`
+requires the same exact `geostatistics:read` grant and signed tenant context.
+The handler uses a repeatable-read, read-only transaction with statement and
+lock timeouts. It selects the parent realization by both UUID and requested
+location, then repeats the location predicate on the child-point count and page
+queries. A missing or foreign-location realization returns the same not-found
+response after authorization, without revealing its existence.
+
+The page is ordered deterministically by latitude, longitude, and a private
+point-ID tie breaker. `limit` is bounded from 1 to 50 and `offset` from 0 to
+10,000. The response includes fixed run metadata and point sequence, longitude,
+latitude, and finite simulated value fields. It omits point UUIDs, seed,
+variogram-model ID, metadata, and raw geometry objects. The realization UUID is
+used only as an opaque request handle and is not rendered in the console. The
+console loads a page only after the operator selects “View points,” validates
+location/run/page correlation and numeric bounds, suppresses stale responses,
+and renders advisory values through text nodes; it does not change simulation
+state or lifecycle.
+
+Thirty-nine focused Gateway, route-policy, and console-contract tests cover
+tenant-context ordering, location qualification, deterministic bounded pages,
+non-finite value handling, not-found behavior, no-store responses, exact route
+policy, and text-only console rendering. Ruff, Python compilation, inline
+JavaScript syntax, runtime SQL inventory, and capability-matrix checks pass.
+The tests use mocked connections; no migration or database was used.
 
 ## Kriging neighborhood and persisted geometry contract
 
@@ -200,8 +230,8 @@ database was used.
 
 ## Remaining work
 
-Other geostatistics outputs such as per-point kriging predictions/points and
-simulation point output, numerical/populated fixture parity, live OIDC and browser
+Other geostatistics outputs such as per-point kriging predictions/points,
+numerical/populated fixture parity, live OIDC and browser
 behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008` remain
 open. Source property selection and explicit model scope now share one contract
 across all five legacy database runners; this source-level validation is not a

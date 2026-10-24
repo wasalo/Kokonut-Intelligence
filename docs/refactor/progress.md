@@ -1,3 +1,21 @@
+### Progress addendum — CAP-008 saved simulation point pages, 24 October 2026
+
+The OIDC Gateway now exposes one selected realization’s persisted points as
+bounded pages under exact location `geostatistics:read`. A repeatable-read,
+read-only transaction establishes signed tenant context before the run lookup,
+count, and point page; the parent lookup and child queries all require the
+requested location. The API returns no point UUID, seed, variogram ID, or
+arbitrary metadata. The console offers a hidden-by-default “View points”
+action and renders the sequence, WGS84 coordinates, and advisory simulated
+value as text; stale location/run responses are discarded. Thirty-nine
+Gateway, route-policy, and console contract checks pass, along with Ruff,
+compilation, inline JavaScript parsing, refreshed/current SQL inventory,
+capability validation, and diff checks. No migration or database was used.
+CAP-008 remains prepared pending populated/scientific parity, live OIDC/browser,
+ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,092 complete / 25
+open (1,117 total) ([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-realization-point-kernel-read.json)).
+
 ### Progress addendum — CAP-008 bounded conditional field simulation, 24 October 2026
 
 The legacy simulation runner no longer builds a dense grid-by-grid covariance

@@ -70,6 +70,10 @@ _REALIZATION_NUMERIC_FIELDS = (
 )
 
 
+class GeostatisticalRealizationNotFound(LookupError):
+    """A requested realization is not visible inside the granted location."""
+
+
 def _connection_factory() -> Callable:
     from services.common.database import get_db
 
@@ -572,7 +576,8 @@ def list_location_realization_summaries(
                      ORDER BY created_at DESC, id DESC
                      LIMIT %s OFFSET %s
                 )
-                SELECT run.property_key, run.realization_number, run.method,
+                SELECT run.id AS realization_id, run.property_key,
+                       run.realization_number, run.method,
                        run.grid_resolution_m, run.n_points,
                        COUNT(point.id) AS result_point_count,
                        AVG(point.simulated_value) AS mean_simulated_value,
@@ -603,6 +608,120 @@ def list_location_realization_summaries(
             "limit": limit,
             "offset": offset,
             "has_more": len(rows) > limit,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_realization_points(
+    operator_id: str,
+    location_id: str,
+    realization_id: str,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read one bounded point page from a realization owned by this location."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    realization_id = _uuid(realization_id, "realization")
+    limit, offset = _page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '5s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="geostatistics",
+            action="read",
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id, property_key, realization_number, method,
+                       grid_resolution_m, n_points, created_at
+                  FROM geostat_realization
+                 WHERE id = %s::uuid AND location_id = %s::uuid
+                """,
+                (realization_id, location_id),
+            )
+            run_columns = [column[0] for column in cursor.description]
+            run_rows = cursor.fetchall()
+            if not run_rows:
+                raise GeostatisticalRealizationNotFound
+            run = dict(zip(run_columns, run_rows[0]))
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                  FROM geostat_realization_point AS point
+                  JOIN geostat_realization AS run
+                    ON run.id = point.realization_id
+                 WHERE point.realization_id = %s::uuid
+                   AND run.location_id = %s::uuid
+                """,
+                (realization_id, location_id),
+            )
+            count_rows = cursor.fetchall()
+            total = int(count_rows[0][0]) if count_rows else 0
+
+            cursor.execute(
+                """
+                SELECT ST_X(point.point_geometry) AS longitude,
+                       ST_Y(point.point_geometry) AS latitude,
+                       point.simulated_value
+                  FROM geostat_realization_point AS point
+                  JOIN geostat_realization AS run
+                    ON run.id = point.realization_id
+                 WHERE point.realization_id = %s::uuid
+                   AND run.location_id = %s::uuid
+                 ORDER BY ST_Y(point.point_geometry),
+                          ST_X(point.point_geometry), point.id
+                 LIMIT %s OFFSET %s
+                """,
+                (realization_id, location_id, limit, offset),
+            )
+            columns = [column[0] for column in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        for index, row in enumerate(rows, start=offset + 1):
+            row["point_number"] = index
+            for field in ("longitude", "latitude", "simulated_value"):
+                value = row[field]
+                if value is not None:
+                    numeric = float(value)
+                    row[field] = numeric if math.isfinite(numeric) else None
+                    if field == "longitude" and not -180 <= numeric <= 180:
+                        row[field] = None
+                    elif field == "latitude" and not -90 <= numeric <= 90:
+                        row[field] = None
+
+        run.pop("id", None)
+        if run["grid_resolution_m"] is not None:
+            value = float(run["grid_resolution_m"])
+            run["grid_resolution_m"] = value if math.isfinite(value) else None
+        return {
+            "location_id": location_id,
+            "realization_id": realization_id,
+            "realization": run,
+            "items": rows,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "has_more": offset + len(rows) < total,
         }
     except Exception:
         connection.rollback()

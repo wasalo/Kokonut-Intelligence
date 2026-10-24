@@ -1855,16 +1855,28 @@
           </div>
           <button id="geostatistics-kriging-more" class="secondary" type="button" hidden>Load more kriging summaries</button>
           <h3>Geostatistical realization summaries</h3>
-          <p class="muted">Saved sequential Gaussian, indicator, or turning-bands simulation aggregates for the granted location. Raw point values, geometries, seeds, and model IDs are omitted; results are advisory.</p>
+          <p class="muted">Saved sequential Gaussian, indicator, or turning-bands simulation aggregates for the granted location. Point pages are available on demand; seeds and model IDs remain omitted, and results are advisory.</p>
           <button id="geostatistics-realization-refresh" type="button">Refresh realization summaries</button>
           <p id="geostatistics-realization-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Property</th><th>Realization</th><th>Method</th><th>Grid resolution (m)</th><th>Stored points</th><th>Result points</th><th>Mean simulated value</th><th>Standard deviation</th><th>Minimum</th><th>Maximum</th><th>Run time</th></tr></thead>
+              <thead><tr><th>Property</th><th>Realization</th><th>Method</th><th>Grid resolution (m)</th><th>Stored points</th><th>Result points</th><th>Mean simulated value</th><th>Standard deviation</th><th>Minimum</th><th>Maximum</th><th>Run time</th><th>Points</th></tr></thead>
               <tbody id="geostatistics-realization-rows"></tbody>
             </table>
           </div>
           <button id="geostatistics-realization-more" class="secondary" type="button" hidden>Load more realizations</button>
+          <section id="geostatistics-realization-points" hidden aria-labelledby="geostatistics-realization-points-heading">
+            <h4 id="geostatistics-realization-points-heading">Saved realization points</h4>
+            <p class="muted">Advisory simulated values and grid coordinates for the selected realization.</p>
+            <p id="geostatistics-realization-points-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Point</th><th>Longitude</th><th>Latitude</th><th>Simulated value</th></tr></thead>
+                <tbody id="geostatistics-realization-point-rows"></tbody>
+              </table>
+            </div>
+            <button id="geostatistics-realization-points-more" class="secondary" type="button" hidden>Load more points</button>
+          </section>
         </section>
         <section id="traceability" hidden aria-labelledby="traceability-heading">
           <h2 id="traceability-heading">Produce traceability</h2>
@@ -3123,6 +3135,13 @@
       const geostatisticsRealizationMore = document.querySelector("#geostatistics-realization-more");
       let geostatisticsRealizationRequestVersion = 0;
       let geostatisticsRealizationOffset = 0;
+      const geostatisticsRealizationPoints = document.querySelector("#geostatistics-realization-points");
+      const geostatisticsRealizationPointsStatus = document.querySelector("#geostatistics-realization-points-status");
+      const geostatisticsRealizationPointRows = document.querySelector("#geostatistics-realization-point-rows");
+      const geostatisticsRealizationPointsMore = document.querySelector("#geostatistics-realization-points-more");
+      let geostatisticsRealizationPointRequestVersion = 0;
+      let geostatisticsRealizationPointOffset = 0;
+      let geostatisticsSelectedRealizationId = null;
       const yieldMonitoring = document.querySelector("#yield-monitoring");
       const yieldMonitoringLocation = document.querySelector("#yield-monitoring-location");
       const yieldMonitoringStatus = document.querySelector("#yield-monitoring-status");
@@ -15172,6 +15191,12 @@
           geostatisticsRealizationOffset = 0;
           geostatisticsRealizationRows.replaceChildren();
           geostatisticsRealizationMore.hidden = true;
+          geostatisticsRealizationPointRequestVersion += 1;
+          geostatisticsSelectedRealizationId = null;
+          geostatisticsRealizationPoints.hidden = true;
+          geostatisticsRealizationPointRows.replaceChildren();
+          geostatisticsRealizationPointsMore.hidden = true;
+          geostatisticsRealizationPointsStatus.textContent = "";
         }
         geostatisticsRealizationStatus.textContent = loadMore
           ? "Loading more realization summaries…"
@@ -15199,6 +15224,8 @@
               || typeof result.has_more !== "boolean"
               || result.items.some((item) => typeof item.property_key !== "string"
                 || item.property_key.length > 100
+                || typeof item.realization_id !== "string"
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.realization_id)
                 || !methods.has(item.method)
                 || !Number.isInteger(item.realization_number) || item.realization_number < 0
                 || !Number.isInteger(item.n_points) || item.n_points < 0
@@ -15222,6 +15249,16 @@
                 : value === null || value === undefined ? "—" : String(value);
               row.append(cell);
             }
+            const pointsCell = document.createElement("td");
+            const pointsButton = document.createElement("button");
+            pointsButton.type = "button";
+            pointsButton.className = "secondary";
+            pointsButton.textContent = "View points";
+            pointsButton.addEventListener("click", () => {
+              loadGeostatisticsRealizationPoints(item.realization_id);
+            });
+            pointsCell.append(pointsButton);
+            row.append(pointsCell);
             geostatisticsRealizationRows.append(row);
           }
           geostatisticsRealizationOffset = offset + result.items.length;
@@ -15235,6 +15272,87 @@
           if (!loadMore) geostatisticsRealizationRows.replaceChildren();
           geostatisticsRealizationMore.hidden = true;
           geostatisticsRealizationStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGeostatisticsRealizationPoints(realizationId, loadMore = false) {
+        const locationId = geostatisticsAutocorrelationLocation.value;
+        const requestVersion = ++geostatisticsRealizationPointRequestVersion;
+        if (!geostatisticsAutocorrelationLocations.has(locationId)
+            || typeof realizationId !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(realizationId)) return;
+        if (loadMore && geostatisticsSelectedRealizationId !== realizationId) return;
+        const offset = loadMore ? geostatisticsRealizationPointOffset : 0;
+        if (!loadMore) {
+          geostatisticsSelectedRealizationId = realizationId;
+          geostatisticsRealizationPointOffset = 0;
+          geostatisticsRealizationPointRows.replaceChildren();
+          geostatisticsRealizationPointsMore.hidden = true;
+          geostatisticsRealizationPoints.hidden = false;
+        }
+        geostatisticsRealizationPointsStatus.textContent = loadMore
+          ? "Loading more realization points…"
+          : "Loading saved realization points…";
+        try {
+          const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/geostatistics/${encodeURIComponent(locationId)}/realizations/${encodeURIComponent(realizationId)}/points?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location geostatistics-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("This realization is not available for the selected location.");
+            throw new Error("Saved realization points could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== geostatisticsRealizationPointRequestVersion
+              || locationId !== geostatisticsAutocorrelationLocation.value
+              || realizationId !== geostatisticsSelectedRealizationId) return;
+          const validNullableNumber = (value) => value === null
+            || (typeof value === "number" && Number.isFinite(value));
+          if (result.location_id !== locationId || result.realization_id !== realizationId
+              || !result.realization
+              || typeof result.realization.property_key !== "string"
+              || result.realization.property_key.length > 100
+              || !Number.isInteger(result.realization.realization_number)
+              || result.realization.realization_number < 0
+              || !Array.isArray(result.items) || result.items.length > 50
+              || result.limit !== 50 || result.offset !== offset
+              || !Number.isInteger(result.total) || result.total < 0
+              || typeof result.has_more !== "boolean"
+              || result.items.some((item, index) => !Number.isInteger(item.point_number)
+                || item.point_number !== offset + index + 1
+                || !validNullableNumber(item.longitude)
+                || !validNullableNumber(item.latitude)
+                || !validNullableNumber(item.simulated_value)
+                || (item.longitude !== null && (item.longitude < -180 || item.longitude > 180))
+                || (item.latitude !== null && (item.latitude < -90 || item.latitude > 90)))) {
+            throw new Error("The realization-points response did not match the requested location or page.");
+          }
+          for (const item of result.items) {
+            const row = document.createElement("tr");
+            for (const value of [item.point_number, item.longitude, item.latitude, item.simulated_value]) {
+              const cell = document.createElement("td");
+              cell.textContent = typeof value === "number" && Number.isFinite(value)
+                ? value.toLocaleString(undefined, { maximumFractionDigits: 8 })
+                : value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            geostatisticsRealizationPointRows.append(row);
+          }
+          geostatisticsRealizationPointOffset = offset + result.items.length;
+          geostatisticsRealizationPointsMore.hidden = result.has_more !== true
+            || geostatisticsRealizationPointOffset > 10000;
+          geostatisticsRealizationPointsStatus.textContent = result.total
+            ? `${geostatisticsRealizationPointOffset.toLocaleString()} of ${result.total.toLocaleString()} saved points shown for ${result.realization.property_key}, realization ${result.realization.realization_number}. Values remain advisory.`
+            : "No saved points are available for this realization.";
+        } catch (error) {
+          if (requestVersion !== geostatisticsRealizationPointRequestVersion) return;
+          if (!loadMore) geostatisticsRealizationPointRows.replaceChildren();
+          geostatisticsRealizationPointsMore.hidden = true;
+          geostatisticsRealizationPointsStatus.textContent = error.message;
         }
       }
 
@@ -22515,6 +22633,11 @@
       geostatisticsKrigingMore.addEventListener("click", () => loadGeostatisticsKrigingSummaries(true));
       document.querySelector("#geostatistics-realization-refresh").addEventListener("click", () => loadGeostatisticsRealizationSummaries());
       geostatisticsRealizationMore.addEventListener("click", () => loadGeostatisticsRealizationSummaries(true));
+      geostatisticsRealizationPointsMore.addEventListener("click", () => {
+        if (geostatisticsSelectedRealizationId) {
+          loadGeostatisticsRealizationPoints(geostatisticsSelectedRealizationId, true);
+        }
+      });
       document.querySelector("#yield-monitoring-refresh").addEventListener("click", loadYieldMonitoringSummary);
       yieldMonitoringLocation.addEventListener("change", loadYieldMonitoringSummary);
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);

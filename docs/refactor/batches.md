@@ -19,10 +19,14 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,091 checklist items complete and 25
-open (1,116 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,092 checklist items complete and 25
+open (1,117 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
-acceptance remains separate; none is marked accepted.
+
+### CAP-008 saved simulation point pages — 24 October 2026
+
+- [x] Add a private `GET /operator/api/geostatistics/{location_id}/realizations/{realization_id}/points` read under exact `geostatistics:read`. Signed tenant context is set on the same repeatable-read, read-only connection before lookup; the parent run lookup and every child count/page query bind the requested location, so a foreign or absent run returns the same not-found response. Pages are deterministic, at most 50 points, and bounded to offset 10,000. The response exposes only an internal realization request handle, fixed run metadata, point sequence, WGS84 coordinates, and finite simulated values; point UUIDs, seeds, variogram IDs, and arbitrary metadata are omitted. A hidden-by-default console detail renders the advisory values through text nodes and ignores stale location/run responses. The 39-test Gateway/route-policy/console-contract selection passes with Ruff, compilation, inline JavaScript syntax, current SQL inventory, matrix validation, and diff checks. No migration or database was used. Rollback is a source revert plus runtime SQL inventory regeneration ([contract](geostatistics-kernel-read-contract.md); [evidence](builds/2026-10-24-recovery/cap-008-realization-point-kernel-read.json)). CAP-008 remains prepared pending scientific/populated parity, live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,092 complete / 25 open (1,117 total).
+
 
 ### CAP-008 bounded conditional field simulation — 24 October 2026
 

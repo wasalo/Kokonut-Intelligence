@@ -151,7 +151,7 @@ def test_kriging_panel_is_grant_gated_bounded_and_aggregate_only():
 def test_realization_panel_is_grant_gated_bounded_and_aggregate_only():
     source = CONSOLE.read_text(encoding="utf-8")
     assert 'id="geostatistics-realization-rows"' in source
-    assert "Raw point values, geometries, seeds, and model IDs are omitted" in source
+    assert "Point pages are available on demand" in source
     start = source.index("async function loadGeostatisticsRealizationSummaries(")
     end = source.index("function yieldMonitoringValue(", start)
     reader = source[start:end]
@@ -171,5 +171,29 @@ def test_realization_panel_is_grant_gated_bounded_and_aggregate_only():
     ):
         assert field in reader
     assert "point_geometry" not in reader and "metadata" not in reader
+    assert "innerHTML" not in reader
+    assert "textContent" in reader
+
+
+def test_realization_point_reader_is_bounded_scoped_and_text_only():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="geostatistics-realization-points" hidden' in source
+    assert 'id="geostatistics-realization-points-more"' in source
+    assert 'pointsButton.textContent = "View points"' in source
+    start = source.index("async function loadGeostatisticsRealizationPoints(")
+    end = source.index("function yieldMonitoringValue(", start)
+    reader = source[start:end]
+    assert '`/operator/api/geostatistics/${encodeURIComponent(locationId)}/realizations/${encodeURIComponent(realizationId)}/points?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "50", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "geostatisticsAutocorrelationLocations.has(locationId)" in reader
+    assert "result.location_id !== locationId" in reader
+    assert "result.realization_id !== realizationId" in reader
+    assert "requestVersion !== geostatisticsRealizationPointRequestVersion" in reader
+    assert "locationId !== geostatisticsAutocorrelationLocation.value" in reader
+    assert "realizationId !== geostatisticsSelectedRealizationId" in reader
+    for field in ("point_number", "longitude", "latitude", "simulated_value"):
+        assert field in reader
     assert "innerHTML" not in reader
     assert "textContent" in reader
