@@ -19,10 +19,27 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,044 checklist items complete and 25
-open (1,069 total). The [capability matrix](capability-matrix.md) has 67 validated
-rows: 28 baseline-retained, 7 deployed, and 32 prepared. Named MAN-CAP
+**Current snapshot (23 October 2026):** 1,046 checklist items complete and 25
+open (1,071 total). The [capability matrix](capability-matrix.md) has 67 validated
+rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-004 aggregate extension-learning Kernel read — 23 October 2026
+
+- [x] Add a private OIDC summary at
+  `/operator/api/extension-learning/{location_id}/summary` under the exact
+  `extension_learning:read` location grant. The repeatable-read, read-only
+  connection installs signed tenant context before querying. Enrollment,
+  delivery, assessment, and peer-network results are grouped counts only; peer
+  members must match both the scoped network and location and remain active.
+  The projection omits participant names, individual progress/scores, notes,
+  contact details, device data, delivery errors, and arbitrary metadata. The
+  focused service/HTTP suite plus full registered-route policy inventory passes
+  8 tests; Ruff, compilation, and regenerated runtime SQL inventory pass. No
+  migration, provider, candidate, or legacy database was used. CAP-004 remains
+  prepared pending populated parity, audience/privacy review, live OIDC/browser,
+  direct-database ACL/RLS, and MAN-CAP-004 acceptance ([contract](extension-learning-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json)).
 
 ### CAP-003 initial traceability Kernel read slice — 23 October 2026
 

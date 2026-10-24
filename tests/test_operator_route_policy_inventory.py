@@ -17,6 +17,8 @@ from services.gateway.operator_auth import (  # noqa: E402
 _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 _PARAMETER_SAMPLES = {
     "location_id": _LOCATION_ID,
+    "batch_id": "33333333-3333-4333-8333-333333333333",
+    "run_id": "44444444-4444-4444-8444-444444444444",
     "canvas_id": "22222222-2222-4222-8222-222222222222",
     "block_name": "key_partners",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
@@ -199,6 +201,50 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/coordination/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("coordination", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/extension-learning/11111111-1111-4111-8111-111111111111/summary",
+    ): _expected("extension_learning", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/traceability/11111111-1111-4111-8111-111111111111/batches",
+    ): _expected("traceability", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/traceability/11111111-1111-4111-8111-111111111111/batches/33333333-3333-4333-8333-333333333333",
+    ): _expected("traceability", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/yield-monitoring/11111111-1111-4111-8111-111111111111/summary",
+    ): _expected("yield_monitoring", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/irrigation/11111111-1111-4111-8111-111111111111/status",
+    ): _expected("precision_irrigation", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/crop-simulations/11111111-1111-4111-8111-111111111111/runs",
+    ): _expected("digital_twin", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/crop-simulations/11111111-1111-4111-8111-111111111111/runs/44444444-4444-4444-8444-444444444444",
+    ): _expected("digital_twin", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/nutrients/11111111-1111-4111-8111-111111111111/balances",
+    ): _expected("nutrient_budget", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/nutrients/11111111-1111-4111-8111-111111111111/soil-tests",
+    ): _expected("nutrient_budget", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/nutrients/11111111-1111-4111-8111-111111111111/events/inputs",
+    ): _expected("nutrient_budget", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/nutrients/11111111-1111-4111-8111-111111111111/events/removals",
+    ): _expected("nutrient_budget", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/summary",
@@ -1020,6 +1066,8 @@ def _concrete_paths(route_path):
     )
     if "{action}" in path:
         return [path.replace("{action}", action) for action in _TRANSITION_ACTIONS]
+    if "{event_type}" in path:
+        return [path.replace("{event_type}", event_type) for event_type in ("inputs", "removals")]
     return [path]
 
 

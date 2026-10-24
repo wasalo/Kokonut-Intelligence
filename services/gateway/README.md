@@ -188,6 +188,15 @@ free text, GPS, evidence URLs, and arbitrary metadata are omitted. These routes
 are read-only and do not establish public/community visibility or populated-data
 parity; see the [Kernel read contract](../../docs/refactor/traceability-kernel-read-contract.md).
 
+Extension-learning activity is available at
+`GET /operator/api/extension-learning/{location_id}/summary` under the exact
+location `extension_learning:read` grant. The private read returns grouped
+enrollment, delivery, assessment-count, and peer-network/member-count data;
+learner identities, scores, notes, contact details, delivery errors, and
+arbitrary metadata are omitted. It does not perform enrollments, deliveries,
+assessments, or peer-network writes. See the
+[Kernel read contract](../../docs/refactor/extension-learning-kernel-read-contract.md).
+
 Completed crop-simulation run summaries are available at
 `GET /operator/api/crop-simulations/{location_id}/runs` with an exact
 location-scoped `digital_twin:read` grant. Results are paginated and include

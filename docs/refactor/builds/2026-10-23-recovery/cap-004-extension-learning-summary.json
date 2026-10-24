@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-004",
+  "route": "GET /operator/api/extension-learning/{location_id}/summary",
+  "scope": "exact location extension_learning:read grant with signed tenant context",
+  "verification": {
+    "pytest": "8 passed: aggregate service, preflight, HTTP behavior, exact route policy inventory",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "populated legacy parity",
+    "audience and privacy review",
+    "live OIDC and browser acceptance",
+    "direct-database ACL/RLS review",
+    "MAN-CAP-004 acceptance"
+  ]
+}

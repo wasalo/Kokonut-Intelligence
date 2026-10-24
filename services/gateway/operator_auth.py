@@ -510,6 +510,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    extension_learning_match = re.fullmatch(
+        r"/operator/api/extension-learning/([0-9a-fA-F-]{36})/summary", path
+    )
+    if extension_learning_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "extension_learning",
+            "action": "read",
+            "public": False,
+            "location_id": extension_learning_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     yield_summary_match = re.fullmatch(
         r"/operator/api/yield-monitoring/([0-9a-fA-F-]{36})/summary", path
     )
@@ -4349,6 +4362,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.emergency_response_routes import (
         register_emergency_response_routes,
     )
+    from services.gateway.extension_learning_routes import (
+        register_extension_learning_routes,
+    )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
     from services.gateway.irrigation_routes import register_irrigation_routes
@@ -4380,6 +4396,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_traceability_routes(router, provider, run_in_threadpool, psycopg2)
+    register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
     register_yield_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_irrigation_routes(router, provider, run_in_threadpool, psycopg2)
     register_crop_simulation_routes(router, provider, run_in_threadpool, psycopg2)

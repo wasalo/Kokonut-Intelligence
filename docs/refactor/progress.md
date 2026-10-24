@@ -15983,3 +15983,22 @@ The OIDC Gateway now exposes `/operator/api/nutrients/{location_id}/soil-tests` 
 ### Progress addendum — CAP-002 nutrient input/removal event reads, 23 October 2026
 
 The Gateway now exposes `/operator/api/nutrients/{location_id}/events/inputs` and `/events/removals` under the exact location `nutrient_budget:read` grant. The bounded reads join child events through the parent budget, enforce the requested parent location and `recorded`/`verified` event lifecycle, and return parent-budget status separately. Input records include product/type, application rate, and N/P/K quantities; removal records include harvest/crop/yield and N/P/K quantities. Plot IDs are returned only when the referenced plot belongs to the location. Budget IDs, costs, notes, metadata, and removal-factor source text are omitted. Cost remains open because the schema has no currency field or documented location-currency binding. The combined Gateway, nutrient-domain, and operator-auth selection passes 141 tests. Ruff, compilation, regenerated runtime SQL inventory, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-002 still needs cost/currency semantics, simulation detail/state and model parity, frozen-fixture/populated parity, live ZITADEL/browser and RLS checks, and MAN-CAP-002 acceptance. Checklist: 1,041 complete / 25 open (1,066 total); matrix: 28 baseline-retained, 7 deployed, and 32 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](nutrient-events-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-nutrient-events-kernel-read.json).
+### Progress addendum — CAP-004 extension-learning aggregate read, 23 October 2026
+
+The private OIDC Gateway now exposes
+`GET /operator/api/extension-learning/{location_id}/summary` under an exact
+`extension_learning:read` grant. It aggregates learning progress, content
+delivery, assessment, and peer-network counts for one location. Signed tenant
+context is set before the repeatable-read, read-only queries; peer counts
+require both group and member location matches. The response omits learner
+identities, individual scores/progress, notes, contact/device details,
+delivery errors, and arbitrary metadata. The focused service/HTTP and complete
+registered-route-policy selection passes 8 tests. Ruff, compilation, the
+regenerated runtime SQL inventory, capability-matrix validation, and diff
+checks pass. No migration, provider, candidate, or legacy database was used.
+CAP-004 remains prepared pending populated parity, audience/privacy review,
+live OIDC/browser behavior, direct-database ACL/RLS, and MAN-CAP-004 acceptance.
+Checklist: 1,046 complete / 25 open (1,071 total); matrix: 27
+baseline-retained, 7 deployed, and 33 prepared across 67 rows; 0/67 MAN-CAP
+checks accepted. [Contract](extension-learning-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-004-extension-learning-summary.json).
