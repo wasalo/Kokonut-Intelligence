@@ -35,6 +35,19 @@ scenario.
 - Responses use `Cache-Control: no-store` and `Vary: Cookie`.
 - No migration or additional runtime dependency is required.
 
+## Simulation repeatability boundary
+
+The legacy daily weather variation now uses process-independent SHA-256
+jitter keyed by an integer `weather_seed`; the default is `0`. The selected
+seed is recorded in each run's parameter overrides and included in the
+simulation command result. This replaces Python's process-salted `hash()`
+behavior, which made identical inputs vary between interpreter processes.
+The synthetic fixture in `tests/fixtures/crop_simulation_reference_v1.json`
+pins two 30-day seed cases. It is a regression oracle for the current model
+implementation, not a reference from populated legacy farm data or evidence of
+agronomic correctness. The private Gateway projection continues to omit raw
+parameters.
+
 ## Verification boundary
 
 Focused tests cover exact route policy, pre-connection validation, signed
@@ -43,9 +56,10 @@ filters, bounded run/state paging, output allowlisting, cleanup, authenticated
 HTTP behavior, and missing-grant denial. Existing digital-twin unit tests
 continue to pass.
 
-These checks do not run the model, establish deterministic simulation output,
-prove populated legacy parity, validate live OIDC or browser behavior, establish
-RLS/least-privilege grants, or close MAN-CAP-002.
+The regression fixture establishes repeatability only for its synthetic inputs.
+These checks do not establish agronomic correctness or populated legacy output
+parity, validate live OIDC or browser behavior, establish RLS/least-privilege
+grants, or close MAN-CAP-002.
 
 ## Rollback
 

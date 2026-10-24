@@ -1,0 +1,120 @@
+{
+  "fixture_version": 1,
+  "scope": "Synthetic deterministic engine regression fixture; not populated or legacy-output parity evidence.",
+  "inputs": {
+    "crop": "maize",
+    "start_date": "2026-01-01",
+    "time_horizon_days": 30,
+    "seed_cases": [0, 42]
+  },
+  "cases": {
+    "0": {
+      "summary": {
+        "status": "completed",
+        "weather_seed": 0,
+        "final_yield_kg_ha": 373.29,
+        "total_biomass_kg_ha": 829.54,
+        "total_water_mm": 36.93,
+        "total_nitrogen_used": 0.29,
+        "final_soil_carbon_pct": 1.5,
+        "final_soil_moisture_pct": 49.46,
+        "days_simulated": 30
+      },
+      "state_samples": [
+        {
+          "day_number": 1,
+          "state_date": "2026-01-01",
+          "soil_moisture_pct": 39.97,
+          "soil_nitrogen_ppm": 126.0,
+          "gdd_accumulated": 3.72,
+          "crop_biomass_kg_ha": 16.67,
+          "crop_stage": "emergence",
+          "rainfall_mm": 0.01,
+          "irrigation_mm": 0,
+          "temp_avg_c": 13.72,
+          "carbon_sequestered_kg_ha": 0.0275
+        },
+        {
+          "day_number": 15,
+          "state_date": "2026-01-15",
+          "soil_moisture_pct": 47.3,
+          "soil_nitrogen_ppm": 126.0,
+          "gdd_accumulated": 78.75,
+          "crop_biomass_kg_ha": 352.81,
+          "crop_stage": "emergence",
+          "rainfall_mm": 2.51,
+          "irrigation_mm": 0,
+          "temp_avg_c": 16.0,
+          "carbon_sequestered_kg_ha": 0.5827
+        },
+        {
+          "day_number": 30,
+          "state_date": "2026-01-30",
+          "soil_moisture_pct": 49.46,
+          "soil_nitrogen_ppm": 125.71,
+          "gdd_accumulated": 178.22,
+          "crop_biomass_kg_ha": 829.54,
+          "crop_stage": "vegetative",
+          "rainfall_mm": 0,
+          "irrigation_mm": 0,
+          "temp_avg_c": 18.02,
+          "carbon_sequestered_kg_ha": 1.37
+        }
+      ]
+    },
+    "42": {
+      "summary": {
+        "status": "completed",
+        "weather_seed": 42,
+        "final_yield_kg_ha": 368.37,
+        "total_biomass_kg_ha": 818.59,
+        "total_water_mm": 41.68,
+        "total_nitrogen_used": 0.33,
+        "final_soil_carbon_pct": 1.5,
+        "final_soil_moisture_pct": 50.85,
+        "days_simulated": 30
+      },
+      "state_samples": [
+        {
+          "day_number": 1,
+          "state_date": "2026-01-01",
+          "soil_moisture_pct": 40.57,
+          "soil_nitrogen_ppm": 126.0,
+          "gdd_accumulated": 5.52,
+          "crop_biomass_kg_ha": 24.74,
+          "crop_stage": "emergence",
+          "rainfall_mm": 2.01,
+          "irrigation_mm": 0,
+          "temp_avg_c": 15.52,
+          "carbon_sequestered_kg_ha": 0.0409
+        },
+        {
+          "day_number": 15,
+          "state_date": "2026-01-15",
+          "soil_moisture_pct": 45.2,
+          "soil_nitrogen_ppm": 126.0,
+          "gdd_accumulated": 83.55,
+          "crop_biomass_kg_ha": 374.32,
+          "crop_stage": "emergence",
+          "rainfall_mm": 3.01,
+          "irrigation_mm": 0,
+          "temp_avg_c": 14.8,
+          "carbon_sequestered_kg_ha": 0.6182
+        },
+        {
+          "day_number": 30,
+          "state_date": "2026-01-30",
+          "soil_moisture_pct": 50.85,
+          "soil_nitrogen_ppm": 125.67,
+          "gdd_accumulated": 182.72,
+          "crop_biomass_kg_ha": 818.59,
+          "crop_stage": "vegetative",
+          "rainfall_mm": 2.6,
+          "irrigation_mm": 0,
+          "temp_avg_c": 17.72,
+          "carbon_sequestered_kg_ha": 1.3519
+        }
+      ]
+    }
+  }
+}

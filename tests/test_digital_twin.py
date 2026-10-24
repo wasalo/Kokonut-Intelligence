@@ -3,29 +3,32 @@
 Tests for Digital Twin Simulation
 """
 
-import sys
+import json
 import os
+import sys
+from pathlib import Path
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date
 from unittest.mock import MagicMock, patch
-from datetime import date, timedelta
 
 from services.analytics.digital_twin import (
-    create_digital_twin,
-    configure_twin,
-    get_twin_config,
-    list_twins,
-    run_simulation,
-    create_scenario,
-    run_scenario,
-    compare_scenarios,
     CROP_PARAMS,
     DEFAULT_PARAMS,
-    _format_sim,
-    _format_scenario,
     _format_compare,
     _format_list,
+    _format_scenario,
+    _format_sim,
+    compare_scenarios,
+    configure_twin,
+    create_digital_twin,
+    create_scenario,
+    get_twin_config,
+    list_twins,
+    run_scenario,
+    run_simulation,
 )
 
 
@@ -170,6 +173,21 @@ class TestSimulationEngine(unittest.TestCase):
         result = run_simulation(self.conn, "nonexistent")
         self.assertIn("error", result)
 
+    def test_simulation_rejects_non_integer_weather_seed_before_run_insert(self):
+        self.mock_cursor.fetchone.return_value = (
+            "loc-001", date(2026, 1, 1), 30,
+        )
+        self.mock_cursor.fetchall.return_value = []
+
+        with self.assertRaisesRegex(ValueError, "weather_seed must be an integer"):
+            run_simulation(self.conn, "twin-001", parameters={"weather_seed": True})
+
+        self.assertFalse(
+            any("INSERT INTO simulation_run" in call.args[0]
+                for call in self.mock_cursor.execute.call_args_list)
+        )
+        self.conn.commit.assert_not_called()
+
     def test_simulation_zero_yield_no_rain(self):
         self.mock_cursor.fetchone.side_effect = [
             ("loc-001", date(2026, 1, 1), 30),
@@ -177,6 +195,61 @@ class TestSimulationEngine(unittest.TestCase):
         self.mock_cursor.fetchall.return_value = [("rainfall_multiplier", 0.0)]
         result = run_simulation(self.conn, "twin-001")
         self.assertIn("final_yield_kg_ha", result)
+
+
+class TestSimulationReferenceFixture(unittest.TestCase):
+
+    def test_seeded_simulation_matches_frozen_synthetic_fixture(self):
+        root = Path(__file__).resolve().parents[1]
+        fixture_path = root / "tests/fixtures/crop_simulation_reference_v1.json"
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        self.assertEqual(fixture["scope"], "Synthetic deterministic engine regression fixture; not populated or legacy-output parity evidence.")
+        inputs = fixture["inputs"]
+        summary_fields = (
+            "status", "weather_seed", "final_yield_kg_ha", "total_biomass_kg_ha",
+            "total_water_mm", "total_nitrogen_used", "final_soil_carbon_pct",
+            "final_soil_moisture_pct", "days_simulated",
+        )
+        state_fields = (
+            "day_number", "state_date", "soil_moisture_pct", "soil_nitrogen_ppm",
+            "gdd_accumulated", "crop_biomass_kg_ha", "crop_stage", "rainfall_mm",
+            "irrigation_mm", "temp_avg_c", "carbon_sequestered_kg_ha",
+        )
+
+        for seed_text, expected in fixture["cases"].items():
+            seed = int(seed_text)
+            conn = MagicMock()
+            cursor = MagicMock()
+            conn.cursor.return_value = cursor
+            cursor.fetchall.return_value = []
+            cursor.fetchone.return_value = (
+                "fixture-location",
+                date.fromisoformat(inputs["start_date"]),
+                inputs["time_horizon_days"],
+            )
+            stored_states = []
+            parameters = None if seed == 0 else {"weather_seed": seed}
+            with patch(
+                "services.analytics.digital_twin._store_states",
+                side_effect=lambda _conn, _run_id, states: stored_states.extend(states),
+            ):
+                result = run_simulation(conn, "fixture-twin", parameters=parameters)
+
+            actual_summary = {key: result[key] for key in summary_fields}
+            self.assertEqual(actual_summary, expected["summary"])
+            sampled_states = [
+                {key: stored_states[index][key] for key in state_fields}
+                for index in (0, 14, 29)
+            ]
+            self.assertEqual(sampled_states, expected["state_samples"])
+
+            run_insert = next(
+                call for call in cursor.execute.call_args_list
+                if "INSERT INTO simulation_run" in call.args[0]
+            )
+            self.assertEqual(
+                json.loads(run_insert.args[1][2])["weather_seed"], seed
+            )
 
 
 class TestScenarioManagement(unittest.TestCase):

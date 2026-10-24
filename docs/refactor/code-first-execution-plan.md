@@ -3,9 +3,11 @@
 **Updated:** 23 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Latest local batch — CAP-002 deterministic crop-simulation baseline (23 October 2026):** the legacy simulator now derives daily weather variation from stable SHA-256 buckets keyed by `weather_seed` (default 0) and persists/returns the selected seed. A synthetic 30-day maize fixture covers seeds 0 and 42; it passes under `PYTHONHASHSEED=1` and `98765`. The focused Gateway/digital-twin/operator-auth selection passes 114 tests, with Ruff, compilation, and diff checks. This pins repeatability only; legacy/populated output parity, agronomic correctness, live OIDC/browser, RLS, and MAN-CAP-002 remain open. No migration, candidate/legacy database, or provider was used ([fixture](../tests/fixtures/crop_simulation_reference_v1.json); [contract](crop-simulation-runs-kernel-read-contract.md)).
+
 **Latest pulled batch — Protocol execution bridge (23 October 2026):** branch head `7679b3ea` adds a governed KI-to-Protocol intent/outbox/reconciliation path and migration 600. The focused bridge/connector/safety selection passes 32 tests with 9 database-dependent skips; Ruff and Python compilation pass. A network-disabled disposable native PostgreSQL 16 replay applies all 591 schema files through migration 600 with zero pending/failed migrations, no seeds, and successful cleanup. The bridge and connector modules also pass 21 unit tests under linux/arm64 QEMU (`aarch64`) with the repository mounted read-only. The capability is tracked as prepared CAP-067; there is no live NEAR/EVM adapter, Gateway authorization surface, candidate rollout, external transaction, or named manual acceptance. Physical Raspberry Pi behavior remains unverified.
 
-**Latest local batch — CAP-003 traceability Kernel read path (23 October 2026):** the OIDC operator Gateway now has exact-location read-only batch list and detail endpoints. Signed tenant context is set before SQL, each child collection query repeats the requested-location constraint, and page/related-result limits are enforced. The response covers bounded custody, quality, certifications, food-safety, and provenance records while omitting actor names, free text, GPS, evidence URLs, and arbitrary metadata. The 76-test traceability/operator-auth selection passes, as do Ruff, compilation, and the regenerated runtime SQL inventory. No migration, candidate or legacy database, provider, or chain was used. Populated output parity, live ZITADEL/browser, direct-database RLS, report audience review, and MAN-CAP-003 remain open ([contract](traceability-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-003-traceability-kernel-read.json)).
+**Previous local batch — CAP-003 traceability Kernel read path (23 October 2026):** the OIDC operator Gateway now has exact-location read-only batch list and detail endpoints. Signed tenant context is set before SQL, each child collection query repeats the requested-location constraint, and page/related-result limits are enforced. The response covers bounded custody, quality, certifications, food-safety, and provenance records while omitting actor names, free text, GPS, evidence URLs, and arbitrary metadata. The 76-test traceability/operator-auth selection passes, as do Ruff, compilation, and the regenerated runtime SQL inventory. No migration, candidate or legacy database, provider, or chain was used. Populated output parity, live ZITADEL/browser, direct-database RLS, report audience review, and MAN-CAP-003 remain open ([contract](traceability-kernel-read-contract.md); [evidence](builds/2026-10-23-recovery/cap-003-traceability-kernel-read.json)).
 
 **Previous local batch — signed credit-adjustment checks and SMTP secret setup (23 October 2026):** migration 599 adds a default-off signed, location-scoped credit-adjustment worker; the Prefect compatibility path remains on the existing read-only command until worker identity/grants are provisioned. The 256-test focused suite, Ruff, six native disposable PostgreSQL 16 checks, and all 19 Compose-profile tests pass. The disposable runner supports explicit ARM64/QEMU selection; its 12-test runner/Compose contracts and six migration-599 checks pass on ARM64/QEMU (`aarch64`) and native PostGIS (`x86_64`). A separate full ARM64 schema replay through 599 failed at `000_extensions.sql` before applying any schema and captured no PostgreSQL diagnostic; the previous full replay through 598 remains the latest complete bootstrap evidence. Maileroo SMTP host/account and both supplied keys are configured/encrypted through SOPS; email stays disabled because the alert recipient and severity/on-call routing are not yet selected. The intended ZITADEL test operator is `hello@kokonut.network`; client ID and live identity setup remain open. No candidate or legacy database, live provider, or schedule was touched.
 
@@ -1559,13 +1561,17 @@ Work by domain family and keep each change narrow:
 
 CAP-002 now has tenant-scoped, read-only Gateway projections for
 verified/published yield summaries, active irrigation-zone status, completed
-crop-simulation run summaries, grouped N/P/K balances from the
+crop-simulation run summaries and paginated run/daily-state detail, grouped N/P/K balances from the
 verified/published latest-budget view, recorded/verified soil-test observations
 with advisory nutrient rates, and paginated input/removal records with explicit
 lifecycle status. Soil-test and event reads omit notes/metadata; the simulation
-endpoint reads stored outputs only and does not run or validate the model.
-Continue with nutrient input-cost currency semantics, simulation detail/state,
-and frozen-fixture/populated parity before requesting MAN-CAP-002 acceptance.
+endpoints read stored outputs only and do not run the model. The legacy model's
+weather jitter now uses a stable integer `weather_seed` (default 0) rather than
+process-salted Python hashing. A synthetic two-seed, 30-day fixture passes
+under two distinct `PYTHONHASHSEED` values; it is a model regression oracle,
+not legacy/populated output parity or agronomic validation. Continue with
+nutrient input-cost currency semantics and owner/populated reference-output
+parity before requesting MAN-CAP-002 acceptance.
 The endpoints and their limits are recorded in the [yield read
 contract](yield-monitoring-kernel-read-contract.md), [irrigation status
 contract](irrigation-status-kernel-read-contract.md), [crop-simulation run

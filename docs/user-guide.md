@@ -1255,6 +1255,10 @@ python3 -m services.analytics.digital_twin create \
 # Run crop growth simulation
 python3 -m services.analytics.digital_twin simulate --twin-id <twin-id>
 
+# Optional: use a repeatable weather sequence (default seed is 0)
+python3 -m services.analytics.digital_twin configure \
+  --twin-id <twin-id> --key weather_seed --value 42
+
 # What-if scenario comparison
 python3 -m services.analytics.digital_twin scenario \
   --twin-id <twin-id> --name "High Irrigation" \
