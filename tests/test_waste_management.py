@@ -3,12 +3,14 @@
 Tests for Waste Management
 """
 
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date
 from unittest.mock import MagicMock, patch
 
 from services.analytics.waste_management import (
@@ -235,13 +237,25 @@ class TestCompostingEfficiency(unittest.TestCase):
         self.conn.cursor.return_value = self.mock_cursor
 
     def test_get_composting_efficiency_returns_efficiency(self):
-        self.mock_cursor.description = [
+        method_columns = [
             ("compost_method",), ("batches",), ("avg_yield_pct",),
             ("avg_feedstock_kg",), ("avg_output_kg",), ("avg_duration_days",),
         ]
+        quality_columns = [
+            ("ph",), ("moisture_pct",), ("temperature_c",),
+            ("output_yield_pct",), ("recorded_at",),
+        ]
+
+        def set_description(query, _params):
+            if "GROUP BY compost_method" in query:
+                self.mock_cursor.description = method_columns
+            elif "ORDER BY compost_date DESC" in query:
+                self.mock_cursor.description = quality_columns
+
+        self.mock_cursor.execute.side_effect = set_description
         self.mock_cursor.fetchall.side_effect = [
             [("vermicomposting", 3, 45.0, 100.0, 45.0, 30.0)],
-            [],
+            [(6.5, 60.0, 55.0, 40.0, date(2026, 10, 24))],
         ]
         self.mock_cursor.fetchone.return_value = (3, 300.0, 135.0)
         result = get_composting_efficiency(self.conn, "loc-001")
@@ -250,6 +264,24 @@ class TestCompostingEfficiency(unittest.TestCase):
         self.assertEqual(result["total_feedstock_kg"], 300.0)
         self.assertEqual(result["total_output_kg"], 135.0)
         self.assertEqual(result["overall_yield_pct"], 45.0)
+        self.assertEqual(result["by_method"][0]["avg_yield_pct"], 45.0)
+        self.assertEqual(result["recent_quality"], [{
+            "ph": 6.5, "moisture_pct": 60.0, "temperature_c": 55.0,
+            "output_yield_pct": 40.0, "recorded_at": date(2026, 10, 24),
+        }])
+        statements = self.mock_cursor.execute.call_args_list
+        self.assertEqual(len(statements), 3)
+        for call in statements:
+            query, params = call.args
+            self.assertIn("FROM composting_record", query)
+            self.assertIn("location_id = %s", query)
+            self.assertIn("status = 'verified'", query)
+            self.assertNotIn("status IN ('verified', 'published')", query)
+            self.assertEqual(params, ("loc-001",))
+        self.assertIn("finished_volume_kg", statements[0].args[0])
+        self.assertIn("finished_volume_kg", statements[1].args[0])
+        self.assertNotIn("output_yield_pct", statements[0].args[0])
+        self.mock_cursor.close.assert_called_once()
 
     def test_get_composting_efficiency_zero_feedstock(self):
         self.mock_cursor.description = [
@@ -260,6 +292,37 @@ class TestCompostingEfficiency(unittest.TestCase):
         self.mock_cursor.fetchone.return_value = (0, None, None)
         result = get_composting_efficiency(self.conn, "loc-001")
         self.assertEqual(result["overall_yield_pct"], None)
+
+    def test_get_composting_efficiency_closes_cursor_when_query_fails(self):
+        self.mock_cursor.execute.side_effect = RuntimeError("synthetic query failure")
+        with self.assertRaisesRegex(RuntimeError, "synthetic query failure"):
+            get_composting_efficiency(self.conn, "loc-001")
+        self.mock_cursor.close.assert_called_once()
+
+    def test_record_composting_uses_canonical_schema_and_preserves_legacy_inputs(self):
+        record_composting(
+            self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
+            output_kg=45.0, ph=6.5, metadata={"source": "field"},
+        )
+
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("compost_date", query)
+        self.assertIn("finished_volume_kg", query)
+        self.assertIn("status", query)
+        for removed_column in ("output_kg", "output_yield_pct", " ph,"):
+            self.assertNotIn(removed_column, query)
+        self.assertEqual(params[3], "other")
+        self.assertEqual(params[5], "vermiculture")
+        self.assertEqual(params[9], 45.0)
+        saved_metadata = json.loads(params[11])
+        self.assertEqual(saved_metadata["ph"], 6.5)
+        self.assertEqual(saved_metadata["source"], "field")
+        self.assertEqual(saved_metadata["legacy_composting_inputs"], {
+            "feedstock_type": "Banana stems",
+            "compost_method": "vermicomposting",
+        })
+        self.conn.commit.assert_called_once()
+        self.mock_cursor.close.assert_called_once()
 
 
 class TestOpenIncidents(unittest.TestCase):

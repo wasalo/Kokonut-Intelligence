@@ -19,10 +19,31 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,101 checklist items complete and 25
-open (1,126 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,103 checklist items complete and 25
+open (1,128 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 legacy composting read/write schema alignment — 24 October 2026
+
+- [x] Align `get_composting_efficiency` to migration-153 canonical fields.
+  Compute per-batch yield from `finished_volume_kg` and positive feedstock,
+  use `compost_date` for the recent-measurement history, and restrict reads to
+  `verified` rows. Preserve the legacy response shape and read numeric pH from
+  the canonical JSONB metadata extension when present. Close the cursor on
+  errors.
+- [x] Align `record_composting` to the migration-153 columns and lifecycle.
+  Map supported categories/method aliases to constrained schema values while
+  preserving freeform legacy inputs in metadata; retain pH in metadata,
+  record the canonical date, and insert as `recorded`. The 24-test
+  waste-management suite passes with five invalid-window subtests; Ruff and
+  compilation pass. SQL inventory, matrix validation, and diff checks pass.
+  No migration or database was used. Other waste-table writers/reads, tenant
+  isolation, populated parity, and MAN-CAP-006 remain open. Rollback restores
+  the previous reader/writer and regressions
+  ([contract](waste-management-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-006-legacy-composting-efficiency-schema-alignment.json)).
+  Checklist: 1,103 complete / 25 open (1,128 total).
 
 ### CAP-006 legacy waste summary schema alignment — 24 October 2026
 

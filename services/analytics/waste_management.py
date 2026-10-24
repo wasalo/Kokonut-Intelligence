@@ -98,27 +98,60 @@ def record_composting(
     cur = conn.cursor()
     compost_id = str(uuid.uuid4())
 
+    canonical_feedstock_types = {
+        "crop_residue", "manure", "food_waste", "green_waste", "mixed", "other",
+    }
+    source_feedstock_type = feedstock_type.strip().lower().replace(" ", "_")
+    canonical_feedstock_type = (
+        source_feedstock_type
+        if source_feedstock_type in canonical_feedstock_types
+        else "other"
+    )
+
+    source_compost_method = compost_method.strip().lower()
+    method_aliases = {"vermicomposting": "vermiculture"}
+    canonical_compost_method = method_aliases.get(
+        source_compost_method, source_compost_method,
+    )
+    if canonical_compost_method not in {"heap", "pit", "vermiculture", "bokashi", "other"}:
+        canonical_compost_method = "other"
+
+    record_metadata = dict(metadata or {})
+    legacy_inputs = {}
+    if source_feedstock_type != canonical_feedstock_type:
+        legacy_inputs["feedstock_type"] = feedstock_type
+    if source_compost_method != canonical_compost_method:
+        legacy_inputs["compost_method"] = compost_method
+    if legacy_inputs:
+        record_metadata["legacy_composting_inputs"] = legacy_inputs
+    if ph is not None:
+        # The canonical table has no typed pH column. Preserve this legacy
+        # measurement in JSONB so it remains available to the summary read.
+        record_metadata["ph"] = ph
+
     output_yield_pct = None
     if output_kg is not None and feedstock_kg > 0:
         output_yield_pct = round(output_kg / feedstock_kg * 100, 1)
 
-    cur.execute(
-        """
-        INSERT INTO composting_record
-            (id, location_id, feedstock_type, feedstock_kg, compost_method,
-             duration_days, output_kg, output_yield_pct,
-             temperature_c, ph, moisture_pct, notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'draft')
-        RETURNING id
-        """,
-        (
-            compost_id, location_id, feedstock_type, feedstock_kg, compost_method,
-            duration_days, output_kg, output_yield_pct,
-            temperature_c, ph, moisture_pct, notes, json.dumps(metadata or {}),
-        ),
-    )
-    conn.commit()
-    cur.close()
+    try:
+        cur.execute(
+            """
+            INSERT INTO composting_record
+                (id, location_id, compost_date, feedstock_type, feedstock_kg,
+                 compost_method, temperature_c, moisture_pct, duration_days,
+                 finished_volume_kg, notes, metadata, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
+            RETURNING id
+            """,
+            (
+                compost_id, location_id, date.today(), canonical_feedstock_type,
+                feedstock_kg, canonical_compost_method, temperature_c, moisture_pct,
+                duration_days, output_kg, notes, json.dumps(record_metadata),
+            ),
+        )
+        conn.commit()
+    finally:
+        cur.close()
 
     logger.info("Recorded composting %s: %s %s kg via %s", compost_id, feedstock_type, feedstock_kg, compost_method)
 
@@ -345,54 +378,72 @@ def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
 # ============================================================
 
 def get_composting_efficiency(conn, location_id: str) -> dict:
-    """Get composting yield and quality trends."""
+    """Get verified composting yield and recorded process measurements."""
     cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT compost_method,
+                   COUNT(*) AS batches,
+                   ROUND(AVG(
+                       finished_volume_kg / NULLIF(feedstock_kg, 0) * 100
+                   ) FILTER (
+                       WHERE finished_volume_kg IS NOT NULL AND feedstock_kg > 0
+                   )::numeric, 1) AS avg_yield_pct,
+                   AVG(feedstock_kg) AS avg_feedstock_kg,
+                   AVG(finished_volume_kg) AS avg_output_kg,
+                   AVG(duration_days) AS avg_duration_days
+            FROM composting_record
+            WHERE location_id = %s
+              AND status = 'verified'
+              AND finished_volume_kg IS NOT NULL
+            GROUP BY compost_method
+            ORDER BY batches DESC, compost_method
+            """,
+            (location_id,),
+        )
+        cols = [d[0] for d in cur.description]
+        by_method = [dict(zip(cols, row)) for row in cur.fetchall()]
 
-    cur.execute(
-        """
-        SELECT compost_method,
-               COUNT(*) AS batches,
-               AVG(output_yield_pct) AS avg_yield_pct,
-               AVG(feedstock_kg) AS avg_feedstock_kg,
-               AVG(output_kg) AS avg_output_kg,
-               AVG(duration_days) AS avg_duration_days
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-          AND output_kg IS NOT NULL
-        GROUP BY compost_method
-        ORDER BY batches DESC
-        """,
-        (location_id,),
-    )
-    cols = [d[0] for d in cur.description]
-    by_method = [dict(zip(cols, row)) for row in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT CASE
+                       WHEN jsonb_typeof(metadata -> 'ph') = 'number'
+                       THEN (metadata ->> 'ph')::numeric
+                       ELSE NULL
+                   END AS ph,
+                   moisture_pct, temperature_c,
+                   CASE
+                       WHEN feedstock_kg > 0 AND finished_volume_kg IS NOT NULL
+                       THEN ROUND((finished_volume_kg / feedstock_kg * 100)::numeric, 1)
+                       ELSE NULL
+                   END AS output_yield_pct,
+                   compost_date AS recorded_at
+            FROM composting_record
+            WHERE location_id = %s
+              AND status = 'verified'
+            ORDER BY compost_date DESC, id DESC
+            LIMIT 10
+            """,
+            (location_id,),
+        )
+        cols = [d[0] for d in cur.description]
+        recent_quality = []
+        for row in cur.fetchall():
+            recent_quality.append(dict(zip(cols, row)))
 
-    cur.execute(
-        """
-        SELECT ph, moisture_pct, temperature_c, output_yield_pct,
-               recorded_at
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-        ORDER BY recorded_at DESC LIMIT 10
-        """,
-        (location_id,),
-    )
-    cols = [d[0] for d in cur.description]
-    recent_quality = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    cur.execute(
-        """
-        SELECT COUNT(*), SUM(feedstock_kg), SUM(output_kg)
-        FROM composting_record
-        WHERE location_id = %s
-          AND status IN ('verified', 'published')
-        """,
-        (location_id,),
-    )
-    total_row = cur.fetchone()
-    cur.close()
+        cur.execute(
+            """
+            SELECT COUNT(*), SUM(feedstock_kg), SUM(finished_volume_kg)
+            FROM composting_record
+            WHERE location_id = %s
+              AND status = 'verified'
+            """,
+            (location_id,),
+        )
+        total_row = cur.fetchone()
+    finally:
+        cur.close()
 
     overall_yield_pct = None
     if total_row[1] and total_row[2] and float(total_row[1]) > 0:

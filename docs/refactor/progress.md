@@ -1,3 +1,20 @@
+### Progress addendum — CAP-006 legacy composting efficiency schema alignment, 24 October 2026
+
+The legacy compost-efficiency read now uses canonical migration-153
+`finished_volume_kg` and `compost_date` fields and only selects verified rows.
+It calculates batch yields from finished volume and positive feedstock,
+preserves numeric pH through the schema's JSONB metadata extension, and closes
+its cursor after query failures. The writer now inserts into canonical fields
+in `recorded` state, maps valid category/method aliases to constrained values,
+preserves freeform labels and pH in metadata, and retains its prior CLI
+interface. The 24-test waste-management module passes with five invalid-window
+subtests; Ruff, compilation, current SQL inventory, capability validation, and
+diff checks pass. No migration or database was used. Other legacy waste writes
+and reads, tenant isolation, populated parity, and MAN-CAP-006 remain open.
+Checklist: 1,103 complete / 25 open (1,128 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-legacy-composting-efficiency-schema-alignment.json)).
+
 ### Progress addendum — CAP-006 legacy waste summary schema alignment, 24 October 2026
 
 The legacy waste CLI summary now queries the canonical `waste_stream` table

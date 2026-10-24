@@ -48,6 +48,20 @@ non-integer, and boolean windows fail before cursor acquisition. Its cursor
 closes on both success and query failure. This remains a trusted local CLI
 path; it does not add an authenticated API or tenant authorization boundary.
 
+The legacy `get_composting_efficiency` read also uses schema-153 columns:
+`finished_volume_kg` supplies output values, per-batch yield is calculated
+from finished volume over positive feedstock, and `compost_date` supplies the
+recent-row date. Method and recent-measurement reads require `verified` status;
+the overall totals include all verified batches so incomplete output continues
+to count toward feedstock totals as in the legacy formula. Its response keeps
+the existing recent-quality fields and reads numeric pH from the canonical
+JSONB metadata extension when present. The legacy `record_composting` writer
+uses migration-153 columns and the `recorded` state, maps accepted method and
+feedstock categories to the schema constraints, and preserves unsupported
+freeform labels plus pH in metadata. Its external function/CLI parameters and
+response remain compatible. These remain trusted local CLI operations, not
+authenticated tenant-scoped APIs.
+
 The console is hidden unless the session has an exact location grant. It uses
 same-origin/no-store requests, validates the response location and bounded
 schema categories, discards stale responses, and renders fixed fields with
