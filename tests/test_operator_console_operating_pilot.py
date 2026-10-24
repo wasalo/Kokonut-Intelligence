@@ -1007,6 +1007,33 @@ def test_learning_plan_revision_is_edit_own_gated_optimistic_and_draft_only():
     assert "innerHTML" not in row + begin + revise
 
 
+def test_learning_plan_submission_is_separately_grant_gated_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnLearningPlanRow(item)",
+        "function operatingPilotLearningPlanItemsFromEditor(value)",
+    )
+    submit = _function(
+        source,
+        "async function submitOperatingPilotLearningPlan(item, locationId, button)",
+        "function operatingPilotLearningPlanItemsFromEditor(value)",
+    )
+    assert 'item.status === "draft" && operatingPilotSubmitOwnLearningPlanLocations.has(operatingPilotLocation.value)' in row
+    assert '"Submit for review"' in row and '"Retry submission"' in row
+    assert "!operatingPilotOwnLearningPlanLocations.has(locationId)" in submit
+    assert "!operatingPilotSubmitOwnLearningPlanLocations.has(locationId)" in submit
+    assert 'window.confirm("Submit this learning plan for independent review?' in submit
+    assert "operatingPilotPendingLearningPlanSubmissions.get(item.learning_plan_id)" in submit
+    assert 'method: "POST"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit and 'credentials: "same-origin"' in submit
+    assert "/learning-plans/${encodeURIComponent(item.learning_plan_id)}/submit" in submit
+    assert 'learningPlanStates.has(result.status)' in submit
+    assert 'Current plan status: ${result.status}' in submit
+    assert "operatingPilotSubmitOwnLearningPlanLocations = new Set(operatingPilotSubmitOwnCapacityLocationIds)" in source
+    assert "innerHTML" not in row + submit
+
+
 def test_competency_review_console_is_grant_gated_private_and_retry_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(

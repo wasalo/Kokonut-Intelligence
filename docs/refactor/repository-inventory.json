@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "835fbb7e61cfaf0f9c4c4bd32060cf6cefb454ae",
+  "baseline_commit": "a240c260629089da518a1b68129e426e8906068e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1365,397 +1365,403 @@
       "source": "services/gateway/nutrient_balance_routes.py"
     },
     {
-      "line": 87,
+      "line": 88,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 164,
+      "line": 165,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claim-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 225,
+      "line": 226,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 315,
+      "line": 316,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claim-allocation-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 378,
+      "line": 379,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims/{claim_id}/allocate",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 461,
+      "line": 462,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 539,
+      "line": 540,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 617,
+      "line": 618,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 692,
+      "line": 693,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 769,
+      "line": 770,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/learning-plans",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 835,
+      "line": 836,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 906,
+      "line": 907,
+      "method": "POST",
+      "path": "/operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit",
+      "source": "services/gateway/operating_pilot_routes.py"
+    },
+    {
+      "line": 993,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 983,
+      "line": 1070,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1071,
+      "line": 1158,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1151,
+      "line": 1238,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1235,
+      "line": 1322,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1315,
+      "line": 1402,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/submit",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1395,
+      "line": 1482,
       "method": "PUT",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1479,
+      "line": 1566,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/summary",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1520,
+      "line": 1607,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1566,
+      "line": 1653,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-periods",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1614,
+      "line": 1701,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-capacity-profiles",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1675,
+      "line": 1762,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-competency-assessments",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1736,
+      "line": 1823,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-learning-plans",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1797,
+      "line": 1884,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-demand-signals",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1858,
+      "line": 1945,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/my-resource-requests",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1919,
+      "line": 2006,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 1980,
+      "line": 2067,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/competency-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2041,
+      "line": 2128,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/demand-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2102,
+      "line": 2189,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-review-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2163,
+      "line": 2250,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-fulfillment-queue",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2224,
+      "line": 2311,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2312,
+      "line": 2399,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/resource-requests/{resource_request_id}/fulfill",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2392,
+      "line": 2479,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/competency-assessments/{draft_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2480,
+      "line": 2567,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/capacity-profiles/{profile_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2568,
+      "line": 2655,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/demand-signals/{signal_id}/review",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2656,
+      "line": 2743,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-claims",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2704,
+      "line": 2791,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/resource-categories",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2752,
+      "line": 2839,
       "method": "GET",
       "path": "/operator/api/operating-pilot/{location_id}/work-opportunities",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2813,
+      "line": 2900,
       "method": "POST",
       "path": "/operator/api/operating-pilot/{location_id}/work-opportunities/{work_item_id}/claims",
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3447,
+      "line": 3461,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3462,
+      "line": 3476,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3471,
+      "line": 3485,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3529,
+      "line": 3543,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3557,
+      "line": 3571,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3597,
+      "line": 3611,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3648,
+      "line": 3662,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3688,
+      "line": 3702,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3741,
+      "line": 3755,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3801,
+      "line": 3815,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3856,
+      "line": 3870,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3900,
+      "line": 3914,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3961,
+      "line": 3975,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4044,
+      "line": 4058,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4137,
+      "line": 4151,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4185,
+      "line": 4199,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4237,
+      "line": 4251,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4295,
+      "line": 4309,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4349,
+      "line": 4363,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4438,
+      "line": 4452,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4458,
+      "line": 4472,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4478,
+      "line": 4492,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4514,
+      "line": 4528,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4542,
+      "line": 4556,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4570,
+      "line": 4584,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4613,
+      "line": 4627,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -3272,7 +3278,8 @@
       "schemas/postgres/604_energy_reading_cost_currency.sql",
       "schemas/postgres/605_location_own_operating_pilot_learning_plans.sql",
       "schemas/postgres/606_location_operating_pilot_learning_plan_draft.sql",
-      "schemas/postgres/607_location_operating_pilot_learning_plan_revision.sql"
+      "schemas/postgres/607_location_operating_pilot_learning_plan_revision.sql",
+      "schemas/postgres/608_location_operating_pilot_learning_plan_submission.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

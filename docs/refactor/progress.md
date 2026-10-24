@@ -1,3 +1,39 @@
+### Progress addendum — CAP-037 owner-only learning-plan draft submission, 24 October 2026
+
+Operators with the exact location `operating_pilot:submit_own` grant can now
+submit only their own receipt-backed learning-plan `draft` for independent
+review through `POST /operator/api/operating-pilot/{location_id}/learning-plans/{learning_plan_id}/submit`.
+Migration 608 rechecks signed location context, the active human-party binding,
+live grant, receipt ownership, and active Adelphi farm mapping, then changes
+only lifecycle state from `draft` to `submitted` and writes a private
+append-only idempotency receipt in the same transaction. Exact retries replay;
+changed request-ID reuse, receiptless legacy plans, mismatched locations,
+missing grants, and other-party plans fail closed. The bounded function owner
+can update status but cannot mutate receipts. Migration 608 also removes stale
+table- and column-level plan/receipt grants from PUBLIC, runtime, and Directus;
+the disposable replay seeds and verifies those stale column privileges are gone. The console requires both own-history
+and submit-own grants, explicit confirmation, a 32 KiB body cap, CSRF/no-store, and a stable
+request ID for uncertain retries. Review decisions and activation remain
+separate.
+
+The focused Gateway, route-policy, and console selection passes 202 tests;
+migration integrity passes 36 tests. Ruff, Python compilation,
+dependency-group alignment, provider boundaries, and capability-matrix
+validation pass. Network-disabled disposable PostgreSQL 16 applies/replays
+through migration 608 and passes 232 grouped assertions on native AMD64 and
+linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-24-recovery/cap-037-learning-plan-submission-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-037-learning-plan-submission-arm64-disposable.json)).
+QEMU verifies software portability only, not Raspberry Pi hardware acceptance.
+Candidate and legacy databases remain untouched; migration 608 is not rolled
+out. Roll back by disabling the submission route, exact policy, and console
+action while retaining the additive migration and immutable receipts if
+applied. CAP-037 remains prepared pending a separate learning-plan review
+queue/decision path, populated-data comparison, live OIDC/browser behavior,
+broader ACL/RLS, recovery, privacy review, and MAN-CAP-037 acceptance.
+Checklist: 1,113 complete / 25 open (1,138 total); the matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP
+checks are accepted.
+
 ### Progress addendum — CAP-037 private learning-plan draft revision, 24 October 2026
 
 Operators can now revise their own receipt-backed learning-plan `draft` through
