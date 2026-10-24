@@ -19,10 +19,28 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,115 checklist items complete and 25
-open (1,140 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,116 checklist items complete and 25
+open (1,141 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-037 retire unscoped coaching writes — 24 October 2026
+
+- [x] Disable `services.management.operating_support.record_coaching_session`
+  before database access. The legacy helper accepted caller-selected scope and
+  arbitrary coachee identity, then wrote private coaching and wellbeing content
+  directly to the shared table without signed tenant context. It now fails
+  closed like the legacy resource-request helpers. Three focused regressions
+  pass, including checks that cursor and commit are never called; Ruff,
+  compilation, and `git diff --check` pass. No migration, database, provider,
+  candidate, or legacy service was used. No rollback to the unscoped writer is
+  safe; keep it disabled until a purpose-built signed location-scoped coaching
+  workflow is implemented. This does not yet provide private coaching writes;
+  the aggregate-only summary remains the only Kernel coaching surface. Evidence:
+  [focused helper checks](builds/2026-10-24-recovery/cap-037-coaching-write-retirement.json).
+  Checklist: 1,116 complete / 25 open (1,141 total); capability classifications
+  remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; no
+  MAN-CAP checks are accepted.
 
 ### CAP-006 migration-153 disposable waste-management acceptance — 24 October 2026
 

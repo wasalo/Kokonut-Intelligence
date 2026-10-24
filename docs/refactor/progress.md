@@ -1,3 +1,22 @@
+### Progress addendum — CAP-037 retire unscoped coaching writes, 24 October 2026
+
+The legacy `services.management.operating_support.record_coaching_session`
+helper allowed a caller to choose the coaching scope and coachee party, then
+committed private coaching and wellbeing content directly to the shared table.
+It now fails before opening the supplied connection, matching the disabled
+legacy resource-request mutations. Three focused checks confirm all legacy
+mutation helpers fail closed without cursor access or commit. Ruff, Python
+compilation, and diff checks pass. No database, migration, provider, candidate,
+or legacy service was used.
+
+This is a protective boundary, not a replacement coaching workflow. CAP-037
+still exposes aggregate-only coaching counts; private session writes remain
+unavailable until an authenticated, signed location-scoped Gateway path is
+implemented. Re-enabling the old helper is not a safe rollback. Checklist:
+1,116 complete / 25 open (1,141 total); 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; 0/67 MAN-CAP checks accepted. Evidence:
+[focused checks](builds/2026-10-24-recovery/cap-037-coaching-write-retirement.json).
+
 ### Progress addendum — CAP-037 independent learning-plan review decisions, 24 October 2026
 
 The console now lets an operator with the exact location
