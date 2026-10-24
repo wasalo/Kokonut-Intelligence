@@ -1,3 +1,15 @@
+### Progress addendum — CAP-006 recycling material category fallback, 24 October 2026
+
+The recycling writer now normalizes supported material labels before insert
+and maps unknown labels to canonical `other`, retaining their original value
+in JSONB metadata. The regression uses a synthetic `steel_scrap` input and
+confirms the canonical value and preserved label. The 24-test
+waste-management module, five invalid-window subtests, Ruff, compilation,
+runtime SQL inventory, matrix validation, and diff checks pass. No migration
+or database was used. Checklist: 1,107 complete / 25 open (1,132 total)
+([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-recycling-material-fallback.json)).
+
 ### Progress addendum — CAP-006 legacy pollution incident lifecycle schema alignment, 24 October 2026
 
 Incident report, resolution, and summary CLI operations now use canonical

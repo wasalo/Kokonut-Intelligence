@@ -64,7 +64,9 @@ state. It preserves the existing CLI/function arguments and response fields,
 including destination, optional revenue, notes, and metadata. A successful
 insert is still only recorded; the verified-only summary does not include it
 until separate human verification. This remains a trusted local CLI write path
-without tenant authorization.
+without tenant authorization. Material labels outside the schema enum map to
+`other` and are preserved under `legacy_material_type` in metadata, avoiding a
+database constraint error while retaining the caller's value.
 
 The legacy incident CLI now writes `incident_date` and schema-supported
 incident types to `pollution_incident`; `air_pollution` maps to `air_emission`,

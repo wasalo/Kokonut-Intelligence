@@ -130,7 +130,7 @@ class TestRecordRecycling(unittest.TestCase):
 
     def test_record_recycling_with_revenue(self):
         result = record_recycling(
-            self.conn, "loc-001", "metal", 8.0, "Scrap yard", revenue=12.50,
+            self.conn, "loc-001", "steel_scrap", 8.0, "Scrap yard", revenue=12.50,
         )
         self.assertEqual(result["revenue"], 12.50)
         query, params = self.mock_cursor.execute.call_args.args
@@ -139,8 +139,9 @@ class TestRecordRecycling(unittest.TestCase):
         self.assertIn("'recorded'", query)
         self.assertNotIn("recycling_record", query)
         self.assertNotIn("'draft'", query)
-        self.assertEqual(params[3], "metal")
+        self.assertEqual(params[3], "other")
         self.assertEqual(params[6], 12.50)
+        self.assertEqual(json.loads(params[8]), {"legacy_material_type": "steel_scrap"})
 
 
 class TestReportIncident(unittest.TestCase):

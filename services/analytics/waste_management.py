@@ -217,6 +217,16 @@ def record_recycling(
     """Record a recycling activity."""
     cur = conn.cursor()
     recycle_id = str(uuid.uuid4())
+    source_material_type = material_type.strip().lower().replace(" ", "_")
+    allowed_material_types = {"plastic", "metal", "glass", "paper", "organic", "other"}
+    canonical_material_type = (
+        source_material_type
+        if source_material_type in allowed_material_types
+        else "other"
+    )
+    record_metadata = dict(metadata or {})
+    if source_material_type != canonical_material_type:
+        record_metadata["legacy_material_type"] = material_type
 
     try:
         cur.execute(
@@ -228,8 +238,8 @@ def record_recycling(
             RETURNING id
             """,
             (
-                recycle_id, location_id, date.today(), material_type, quantity_kg,
-                destination, revenue, notes, json.dumps(metadata or {}),
+                recycle_id, location_id, date.today(), canonical_material_type,
+                quantity_kg, destination, revenue, notes, json.dumps(record_metadata),
             ),
         )
         conn.commit()

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,106 checklist items complete and 25
-open (1,131 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,107 checklist items complete and 25
+open (1,132 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -72,7 +72,11 @@ acceptance remains separate; none is marked accepted.
   Rollback restores the previous insert and regression assertions
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-24-recovery/cap-006-legacy-recycling-write-schema-alignment.json)).
-  Checklist: 1,105 complete / 25 open (1,130 total).
+- [x] Map unsupported recycling material labels to schema-supported `other`
+  while preserving the original value in metadata. This prevents check-
+  constraint failures without losing caller input; the existing module test
+  covers a synthetic unsupported material. No schema or migration change is
+  needed. Checklist: 1,107 complete / 25 open (1,132 total).
 
 ### CAP-006 legacy pollution incident lifecycle schema alignment — 24 October 2026
 
