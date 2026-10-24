@@ -36,12 +36,12 @@ def get_location_energy_summary(
     *,
     connection_factory: Callable | None = None,
 ) -> dict:
-    """Return bounded kWh aggregates for verified/approved readings only.
+    """Return bounded, location-scoped energy aggregates for reviewed readings.
 
-    Costs, notes, source names, device identifiers, and arbitrary metadata are
-    deliberately excluded. The grouping dimensions are constrained by the
-    source schema's CHECK values, so result size is bounded independently of
-    farm history volume.
+    Costs are grouped only by recorded currency. Notes, source names, device
+    identifiers, and arbitrary metadata are deliberately excluded. The
+    grouping dimensions are constrained by schema enums, so response size is
+    bounded independently of farm history volume.
     """
     try:
         operator_id = str(UUID(str(operator_id)))
@@ -171,6 +171,48 @@ def get_location_energy_summary(
 
             cur.execute(
                 """
+                SELECT er.cost_currency_code,
+                       SUM(COALESCE(er.total_cost, er.kwh * er.cost_per_kwh))::numeric AS total_cost,
+                       SUM(er.kwh)::numeric AS costed_kwh,
+                       COUNT(*)::bigint AS reading_count
+                  FROM energy_reading AS er
+                  JOIN energy_source AS es
+                    ON es.id = er.source_id
+                   AND es.location_id = er.location_id
+                 WHERE er.location_id = %s::uuid
+                   AND er.reading_type = 'consumption'
+                   AND er.reading_date >= CURRENT_DATE - INTERVAL '30 days'
+                   AND er.status IN ('verified', 'approved')
+                   AND er.cost_currency_code IS NOT NULL
+                   AND COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+                 GROUP BY er.cost_currency_code
+                 ORDER BY er.cost_currency_code
+                """,
+                (location_id,),
+            )
+            energy_cost_columns = [column[0] for column in cur.description]
+            energy_cost_rows = [dict(zip(energy_cost_columns, row)) for row in cur.fetchall()]
+
+            cur.execute(
+                """
+                SELECT COUNT(*)::bigint AS unclassified_cost_reading_count
+                  FROM energy_reading AS er
+                  JOIN energy_source AS es
+                    ON es.id = er.source_id
+                   AND es.location_id = er.location_id
+                 WHERE er.location_id = %s::uuid
+                   AND er.reading_type = 'consumption'
+                   AND er.reading_date >= CURRENT_DATE - INTERVAL '30 days'
+                   AND er.status IN ('verified', 'approved')
+                   AND COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+                   AND er.cost_currency_code IS NULL
+                """,
+                (location_id,),
+            )
+            unclassified_cost_row = cur.fetchone()
+
+            cur.execute(
+                """
                 SELECT eel.log_date,
                        eel.period,
                        eel.total_consumption_kwh,
@@ -289,6 +331,23 @@ def get_location_energy_summary(
             if annual_consumption_kwh > 0
             else 0
         )
+        costs_by_currency = []
+        for row in energy_cost_rows:
+            total_cost = float(row["total_cost"] or 0)
+            costed_kwh = float(row["costed_kwh"] or 0)
+            costs_by_currency.append({
+                "currency_code": row["cost_currency_code"],
+                "total_cost": round(total_cost, 2),
+                "costed_kwh": round(costed_kwh, 2),
+                "effective_cost_per_kwh": round(total_cost / costed_kwh, 4) if costed_kwh > 0 else None,
+                "reading_count": int(row["reading_count"] or 0),
+            })
+        unclassified_cost_reading_count = int(
+            unclassified_cost_row[0] if unclassified_cost_row else 0
+        )
+        comparable_energy_cost = (
+            len(costs_by_currency) == 1 and unclassified_cost_reading_count == 0
+        )
         energy_calculations = {
             "period_days": 30,
             "total_consumption_kwh": round(consumption_kwh, 2),
@@ -364,6 +423,20 @@ def get_location_energy_summary(
                 }
                 for row in active_source_rows
             ],
+            "energy_costs": {
+                "period_days": 30,
+                "by_currency": costs_by_currency,
+                "unclassified_cost_reading_count": unclassified_cost_reading_count,
+                "comparable_total": (
+                    {
+                        "currency_code": costs_by_currency[0]["currency_code"],
+                        "total_cost": costs_by_currency[0]["total_cost"],
+                        "effective_cost_per_kwh": costs_by_currency[0]["effective_cost_per_kwh"],
+                    }
+                    if comparable_energy_cost
+                    else None
+                ),
+            },
         }
         return {
             "location_id": location_id,

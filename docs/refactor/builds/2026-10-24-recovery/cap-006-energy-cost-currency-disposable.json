@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "migration": "604_energy_reading_cost_currency.sql",
+  "database_target": "fresh disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "assertions": [
+    "migration applies and replays transactionally while preserving the energy view column contract",
+    "historic values remain unclassified and are not assigned an inferred currency",
+    "currency-specific totals remain separate for USD and DOP",
+    "new cost values and changed historical costs require a currency",
+    "unrelated historical-row edits remain possible",
+    "malformed currency codes are rejected",
+    "real legacy service writer and summary SQL execute against the migrated schema",
+    "service summaries preserve currency totals and withhold mixed/unclassified totals",
+    "a reviewed historic currency classification is accepted without being persisted by the checker"
+  ],
+  "assertions_passed": 9
+}

@@ -1,3 +1,25 @@
+### Progress addendum — CAP-006 currency-safe energy costs, 24 October 2026
+
+Migration 604 adds an optional recorded currency to energy costs without
+guessing currencies for historical rows. New or changed costs require a valid
+three-letter code, while unrelated historical edits remain possible. The
+legacy writer and CLI accept explicit currency, the old service summaries no
+longer combine unlike currencies, and the signed 30-day Gateway summary and
+operator console show reviewed totals by code plus a count of unclassified
+amounts. A single comparable total is withheld when multiple currencies or
+unclassified cost rows exist. The 64-test Gateway/console/domain/CLI selection
+passes, as do Ruff, compilation, inline JavaScript syntax, runtime SQL
+inventory, capability validation, and diff checks. Disposable PostgreSQL 16
+applies/replays migration 604 and passes nine grouped migration/service-query
+assertions. Candidate and legacy databases remain untouched, and 604 is not
+rolled out there. Populated cost reconciliation, ACL/RLS, live OIDC/browser,
+and MAN-CAP-006 remain open. Rollback reverts application use and retains the
+additive migration; no historic cost is changed. Checklist: 1,069 complete /
+25 open (1,094 total); matrix: 26 baseline-retained, 7 deployed, and 34
+prepared across 67 rows, with 0/67 MAN-CAP checks accepted. [Contract](energy-monitoring-kernel-read-contract.md);
+[checker](../../scripts/check-energy-reading-cost-currency-disposable.py);
+[evidence](builds/2026-10-24-recovery/cap-006-energy-cost-currency-disposable.json).
+
 ### Progress addendum — CAP-006 active energy source breakdown, 24 October 2026
 
 The scoped energy summary now restores the legacy dashboard's active energy

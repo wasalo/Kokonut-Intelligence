@@ -74,6 +74,16 @@ class _Cursor:
         elif "AS annual_consumption_kwh" in query:
             self.description = [("annual_consumption_kwh",)]
             self.one = getattr(self.conn, "annual_energy_row", (Decimal("20000"),))
+        elif "GROUP BY er.cost_currency_code" in query:
+            self.description = [(name,) for name in (
+                "cost_currency_code", "total_cost", "costed_kwh", "reading_count",
+            )]
+            self.rows = getattr(self.conn, "energy_cost_rows", [
+                ("USD", Decimal("15"), Decimal("100"), 1),
+            ])
+        elif "AS unclassified_cost_reading_count" in query:
+            self.description = [("unclassified_cost_reading_count",)]
+            self.one = getattr(self.conn, "unclassified_energy_cost_row", (0,))
         elif "FROM energy_efficiency_log AS eel" in query:
             self.description = [(name,) for name in (
                 "log_date", "period", "total_consumption_kwh",
@@ -154,7 +164,7 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
         )
 
     queries = [(query, params) for query, params in conn.queries if "FROM energy_reading AS er" in query]
-    assert len(queries) == 4
+    assert len(queries) == 6
     renewable_query = next(query for query, _ in conn.queries if "FROM renewable_energy_source AS res" in query)
     query, params = queries[0]
     assert "er.location_id = %s::uuid" in query
@@ -169,13 +179,16 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
     assert "CURRENT_DATE - INTERVAL '7 days'" in queries[2][0]
     assert "CURRENT_DATE - INTERVAL '365 days'" in queries[3][0]
     assert "er.reading_type = 'consumption'" in queries[3][0]
+    assert "GROUP BY er.cost_currency_code" in queries[4][0]
+    assert "er.cost_currency_code IS NOT NULL" in queries[4][0]
+    assert "er.cost_currency_code IS NULL" in queries[5][0]
     assert "res.location_id = %s::uuid" in renewable_query
     assert "es.location_id = res.location_id" in renewable_query
     assert "res.status = 'active'" in renewable_query
     assert "SELECT res.renewable_type," in renewable_query
     assert "source_name" not in renewable_query and "metadata" not in renewable_query
     assert "res.source_id," not in renewable_query
-    assert conn.events == ["query", "query", "query", "tenant_context", "query", "query", "query", "query", "query", "query", "query"]
+    assert conn.events == ["query", "query", "query", "tenant_context"] + ["query"] * 9
     source_query, source_params = next(
         (query, params) for query, params in conn.queries
         if "FROM energy_source AS es" in query
@@ -272,6 +285,19 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                 {"source_type": "grid", "source_count": 2, "capacity_kw": 80.0},
                 {"source_type": "solar", "source_count": 1, "capacity_kw": 15.5},
             ],
+            "energy_costs": {
+                "period_days": 30,
+                "by_currency": [{
+                    "currency_code": "USD", "total_cost": 15.0,
+                    "costed_kwh": 100.0, "effective_cost_per_kwh": 0.15,
+                    "reading_count": 1,
+                }],
+                "unclassified_cost_reading_count": 0,
+                "comparable_total": {
+                    "currency_code": "USD", "total_cost": 15.0,
+                    "effective_cost_per_kwh": 0.15,
+                },
+            },
         },
     }
     assert conn.rolled_back and conn.closed
@@ -301,6 +327,8 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
     conn.annual_energy_row = (Decimal("0"),)
     conn.daily_efficiency_rows = []
     conn.active_source_rows = []
+    conn.energy_cost_rows = []
+    conn.unclassified_energy_cost_row = (0,)
 
     with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
         result = get_location_energy_summary(
@@ -335,7 +363,34 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
         "trend_7d": [],
         "reviewed_efficiency_history": [],
         "active_sources_by_type": [],
+        "energy_costs": {
+            "period_days": 30,
+            "by_currency": [],
+            "unclassified_cost_reading_count": 0,
+            "comparable_total": None,
+        },
     }
+    assert conn.rolled_back and conn.closed
+
+
+def test_energy_cost_summary_keeps_currencies_separate_and_counts_unknown_rows():
+    operator_id, location_id = str(uuid4()), str(uuid4())
+    conn = _Connection()
+    conn.energy_cost_rows = [
+        ("DOP", Decimal("600"), Decimal("1000"), 5),
+        ("USD", Decimal("150"), Decimal("1000"), 4),
+    ]
+    conn.unclassified_energy_cost_row = (2,)
+
+    with patch("services.gateway.energy_monitoring.set_operator_tenant_context"):
+        result = get_location_energy_summary(
+            operator_id, location_id, connection_factory=lambda: conn
+        )
+
+    costs = result["dashboard_calculations"]["energy_costs"]
+    assert [row["currency_code"] for row in costs["by_currency"]] == ["DOP", "USD"]
+    assert costs["unclassified_cost_reading_count"] == 2
+    assert costs["comparable_total"] is None
     assert conn.rolled_back and conn.closed
 
 

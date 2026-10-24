@@ -57,18 +57,32 @@ join:
   historical values were entered or computed by the legacy system; reviewed
   status does not independently validate their formulas or reference data, so
   stored carbon intensity remains advisory.
+- Reviewed consumption costs in the last 30 days, grouped by an explicitly
+  recorded uppercase three-letter currency code. Each currency row reports
+  total amount, associated kWh, an effective amount per kWh, and reading count.
+  Historical amounts without a currency are counted separately and excluded
+  from classified totals. A comparable overall amount is returned only when
+  exactly one currency is present and no cost-bearing unclassified rows remain.
+
+Migration 604 adds the nullable currency field without assigning currencies to
+historic rows, guards new or changed costs at the database boundary, and appends
+the code to `v_energy_consumption`. The legacy writer requires a currency when
+a rate is supplied and correctly preserves a zero rate. Legacy consumption and
+cost-analysis summaries now keep currencies apart; human CLI output no longer
+assumes USD. The signed Gateway exposes the reviewed currency groups and
+unclassified count, and the console validates and renders only these fixed
+fields. Migration 604 must be applied before deploying the updated Gateway.
 
 These calculations restore source-defined formulas under the Kernel's
 reviewed-evidence boundary; they do not establish populated-output parity.
 The registered-asset summary includes capacity, annual generation, and
 recorded offset values, but these stored inputs are not independently verified;
 the daily efficiency history preserves reviewed rows without certifying their
-calculations. Populated data/reference parity remains open. Cost totals remain withheld
-because `energy_reading.total_cost` has no
-currency field, so values cannot safely be combined or labeled. The projection
-omits source names, equipment/device IDs, notes, and arbitrary metadata. Source
-rows are not changed and no schedule/device control is exposed. The console
-shows the aggregate only when the session provides the exact location grant;
+calculations. Populated data/reference parity remains open. The projection
+omits source names, equipment/device IDs, notes, and arbitrary
+metadata. Source rows are not changed and no schedule/device control is
+exposed. The console shows the aggregate only when the session provides the
+exact location grant;
 fields are allowlisted and rendered with `textContent`, with response
 location/unit checks, stale request suppression, and explicit advisory labels
 for fixed-factor emissions, registered offsets, and generation coverage.
@@ -79,19 +93,23 @@ Focused fake-connection and Gateway tests cover exact authorization, denied
 route preflight, signed context ordering, location join/filter, verified-state
 selection, the 30-day formulas, fixed-factor estimate, seven-day trend,
 registered renewable metrics and location joins, bounded latest-12 reviewed
-efficiency history with sensitive columns excluded, empty denominators,
-response projection, connection cleanup, console grant gating, history
-validation, no-store behavior, and inline JavaScript syntax. The 59-test Gateway,
-console, energy-domain, and route-policy selection passes; Ruff, Python
-compilation, runtime SQL inventory, capability validation, and diff checks
-pass. No schema migration is required. Rollback is a source rollback: remove
-the calculation queries/fields and their console renderers, then regenerate the
-runtime SQL inventory and capability records. No data rollback is necessary.
+efficiency history with sensitive columns excluded, currency-separated reviewed
+cost summaries, missing-currency counts, no mixed-currency total, response
+projection, connection cleanup, console grant gating, history validation,
+no-store behavior, and inline JavaScript syntax. Migration 604 is tested in a
+disposable PostgreSQL database, including replay, preservation of unclassified
+historic costs, and rejection of malformed or newly unclassified cost writes.
+The 64-test Gateway/console/domain/CLI selection passes; Ruff, compilation, inline
+JavaScript syntax, runtime SQL inventory, capability validation, and diff
+checks pass. The local candidate and legacy database are not included in this
+acceptance. Rollback is a source rollback for the reader/writer; the additive migration is
+retained if applied, and the API must be rolled back before removing its field.
+No historic data is rewritten.
 
 ## Remaining acceptance
 
-This closes code-defined energy calculation and registered-renewables slices
-only. Populated farm output and asset-register parity, historical data review,
-currency classification, waste management, habitat/pollinator parity, runtime
+This closes code-defined energy calculation, registered-renewables, and
+currency-safe cost slices only. Populated farm output and asset-register parity,
+historical currency review, waste management, habitat/pollinator parity, runtime
 database ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open.
 Do not infer those capabilities from this route.

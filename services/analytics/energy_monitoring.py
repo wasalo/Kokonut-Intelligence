@@ -18,6 +18,7 @@ Usage:
 """
 
 import json
+import re
 import uuid
 from datetime import date, timedelta
 
@@ -87,8 +88,18 @@ def record_reading(
     equipment_id: str = None,
     notes: str = None,
     metadata: dict = None,
+    cost_currency_code: str = None,
 ) -> dict:
-    """Record an energy reading for a source."""
+    """Record an energy reading, requiring a currency for supplied costs."""
+    if cost_per_kwh is None:
+        if cost_currency_code is not None:
+            raise ValueError("cost_currency_code requires cost_per_kwh")
+        normalized_currency = None
+    else:
+        normalized_currency = str(cost_currency_code or "").strip().upper()
+        if not re.fullmatch(r"[A-Z]{3}", normalized_currency):
+            raise ValueError("cost_currency_code must be three uppercase letters")
+
     cur = conn.cursor()
 
     cur.execute("SELECT location_id FROM energy_source WHERE id = %s", (source_id,))
@@ -98,21 +109,21 @@ def record_reading(
         raise ValueError(f"Energy source {source_id} not found")
     location_id = row[0]
 
-    total_cost = round(kwh * cost_per_kwh, 2) if cost_per_kwh else None
+    total_cost = round(kwh * cost_per_kwh, 2) if cost_per_kwh is not None else None
 
     reading_id = str(uuid.uuid4())
     cur.execute(
         """
         INSERT INTO energy_reading
             (id, location_id, source_id, reading_date, reading_type, kwh,
-             cost_per_kwh, total_cost, activity_type, equipment_id,
+             cost_per_kwh, total_cost, cost_currency_code, activity_type, equipment_id,
              notes, metadata, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'recorded')
         RETURNING id
         """,
         (
             reading_id, location_id, source_id, reading_date, reading_type, kwh,
-            cost_per_kwh, total_cost, activity_type, equipment_id,
+            cost_per_kwh, total_cost, normalized_currency, activity_type, equipment_id,
             notes, json.dumps(metadata or {}),
         ),
     )
@@ -130,6 +141,7 @@ def record_reading(
         "kwh": kwh,
         "cost_per_kwh": cost_per_kwh,
         "total_cost": total_cost,
+        "cost_currency_code": normalized_currency,
         "activity_type": activity_type,
     }
 
@@ -139,7 +151,7 @@ def record_reading(
 # ============================================================
 
 def get_consumption(conn, location_id: str, days: int = 30) -> dict:
-    """Get consumption breakdown by activity and source."""
+    """Get consumption totals without combining costs across currencies."""
     cur = conn.cursor()
     cutoff = date.today() - timedelta(days=days)
 
@@ -148,7 +160,16 @@ def get_consumption(conn, location_id: str, days: int = 30) -> dict:
         SELECT es.source_name, es.source_type,
                er.activity_type,
                SUM(er.kwh) AS total_kwh,
-               SUM(er.total_cost) AS total_cost,
+               SUM(COALESCE(er.total_cost, er.kwh * er.cost_per_kwh))
+                   FILTER (WHERE er.cost_currency_code IS NOT NULL) AS classified_cost,
+               COUNT(DISTINCT er.cost_currency_code)
+                   FILTER (WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL)
+                   AS cost_currency_count,
+               COUNT(*) FILTER (
+                   WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+                     AND er.cost_currency_code IS NULL
+               ) AS unclassified_cost_count,
+               MIN(er.cost_currency_code) AS cost_currency_code,
                COUNT(*) AS readings
         FROM energy_reading er
         JOIN energy_source es ON es.id = er.source_id
@@ -167,7 +188,20 @@ def get_consumption(conn, location_id: str, days: int = 30) -> dict:
     cur.execute(
         """
         SELECT SUM(er.kwh) AS total_kwh,
-               SUM(COALESCE(er.total_cost, 0)) AS total_cost,
+               SUM(COALESCE(er.total_cost, er.kwh * er.cost_per_kwh))
+                   FILTER (WHERE er.cost_currency_code IS NOT NULL) AS classified_cost,
+               COUNT(DISTINCT er.cost_currency_code)
+                   FILTER (WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL)
+                   AS cost_currency_count,
+               COUNT(*) FILTER (
+                   WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+                     AND er.cost_currency_code IS NULL
+               ) AS unclassified_cost_count,
+               MIN(er.cost_currency_code) AS cost_currency_code,
+               SUM(er.kwh) FILTER (
+                   WHERE er.cost_currency_code IS NOT NULL
+                     AND COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+               ) AS costed_kwh,
                COUNT(DISTINCT er.source_id) AS sources_used,
                COUNT(*) AS readings
         FROM energy_reading er
@@ -185,7 +219,16 @@ def get_consumption(conn, location_id: str, days: int = 30) -> dict:
         """
         SELECT es.source_type,
                SUM(er.kwh) AS total_kwh,
-               SUM(COALESCE(er.total_cost, 0)) AS total_cost
+               SUM(COALESCE(er.total_cost, er.kwh * er.cost_per_kwh))
+                   FILTER (WHERE er.cost_currency_code IS NOT NULL) AS classified_cost,
+               COUNT(DISTINCT er.cost_currency_code)
+                   FILTER (WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL)
+                   AS cost_currency_count,
+               COUNT(*) FILTER (
+                   WHERE COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+                     AND er.cost_currency_code IS NULL
+               ) AS unclassified_cost_count,
+               MIN(er.cost_currency_code) AS cost_currency_code
         FROM energy_reading er
         JOIN energy_source es ON es.id = er.source_id
         WHERE er.location_id = %s
@@ -200,16 +243,64 @@ def get_consumption(conn, location_id: str, days: int = 30) -> dict:
     cols = [d[0] for d in cur.description]
     by_source = [dict(zip(cols, row)) for row in cur.fetchall()]
 
+    cur.execute(
+        """
+        SELECT er.cost_currency_code,
+               SUM(COALESCE(er.total_cost, er.kwh * er.cost_per_kwh)) AS total_cost,
+               SUM(er.kwh) AS costed_kwh,
+               COUNT(*) AS cost_readings
+        FROM energy_reading er
+        WHERE er.location_id = %s
+          AND er.reading_type = 'consumption'
+          AND er.reading_date >= %s
+          AND er.status IN ('recorded', 'verified', 'approved')
+          AND er.cost_currency_code IS NOT NULL
+          AND COALESCE(er.total_cost, er.kwh * er.cost_per_kwh) IS NOT NULL
+        GROUP BY er.cost_currency_code
+        ORDER BY er.cost_currency_code
+        """,
+        (location_id, cutoff),
+    )
+    currency_costs = [
+        {
+            "cost_currency_code": row[0],
+            "total_cost": float(row[1]),
+            "costed_kwh": float(row[2]),
+            "cost_readings": int(row[3]),
+        }
+        for row in cur.fetchall()
+    ]
+
     cur.close()
+
+    for group in (*by_activity, *by_source):
+        currency_count = group.pop("cost_currency_count")
+        unclassified_count = group.pop("unclassified_cost_count")
+        classified_cost = group.pop("classified_cost")
+        if currency_count == 1 and unclassified_count == 0:
+            group["total_cost"] = float(classified_cost or 0)
+        else:
+            group["total_cost"] = None
+            group["cost_currency_code"] = None
+
+    cost_currency_count = int(agg[2] or 0)
+    unclassified_cost_count = int(agg[3] or 0)
+    comparable_cost = cost_currency_count == 1 and unclassified_cost_count == 0
+    total_cost = float(agg[1]) if comparable_cost and agg[1] is not None else None
+    costed_kwh = float(agg[5]) if agg[5] else 0
+    total_kwh = float(agg[0]) if agg[0] else 0
 
     return {
         "location_id": location_id,
         "period_days": days,
-        "total_kwh": float(agg[0]) if agg[0] else 0,
-        "total_cost": float(agg[1]) if agg[1] else 0,
-        "avg_cost_per_kwh": round(float(agg[1]) / float(agg[0]), 4) if agg[0] and agg[1] else None,
-        "sources_used": int(agg[2]) if agg[2] else 0,
-        "readings": int(agg[3]) if agg[3] else 0,
+        "total_kwh": total_kwh,
+        "total_cost": total_cost,
+        "cost_currency_code": agg[4] if comparable_cost else None,
+        "avg_cost_per_kwh": round(total_cost / costed_kwh, 4) if total_cost is not None and costed_kwh else None,
+        "unclassified_cost_readings": unclassified_cost_count,
+        "costs_by_currency": currency_costs,
+        "sources_used": int(agg[5]) if agg[5] else 0,
+        "readings": int(agg[6]) if agg[6] else 0,
         "by_activity": by_activity,
         "by_source_type": by_source,
     }
@@ -565,24 +656,26 @@ def compute_carbon_intensity(conn, location_id: str) -> dict:
 # ============================================================
 
 def get_cost_analysis(conn, location_id: str, days: int = 30) -> dict:
-    """Energy cost breakdown by activity."""
+    """Return energy costs grouped by currency without unsafe conversion."""
     cur = conn.cursor()
     cutoff = date.today() - timedelta(days=days)
+    cost_amount = "COALESCE(er.total_cost, er.kwh * er.cost_per_kwh)"
 
     cur.execute(
-        """
-        SELECT er.activity_type,
-               SUM(er.kwh) AS total_kwh,
-               SUM(COALESCE(er.total_cost, 0)) AS total_cost,
-               AVG(er.cost_per_kwh) AS avg_cost_per_kwh,
+        f"""
+        SELECT er.activity_type, er.cost_currency_code,
+               SUM({cost_amount}) AS total_cost,
+               SUM(er.kwh) AS costed_kwh,
                COUNT(*) AS readings
         FROM energy_reading er
         WHERE er.location_id = %s
           AND er.reading_type = 'consumption'
           AND er.reading_date >= %s
           AND er.status IN ('recorded', 'verified', 'approved')
-        GROUP BY er.activity_type
-        ORDER BY total_cost DESC
+          AND er.cost_currency_code IS NOT NULL
+          AND {cost_amount} IS NOT NULL
+        GROUP BY er.activity_type, er.cost_currency_code
+        ORDER BY er.cost_currency_code, total_cost DESC
         """,
         (location_id, cutoff),
     )
@@ -590,31 +683,66 @@ def get_cost_analysis(conn, location_id: str, days: int = 30) -> dict:
     by_activity = [dict(zip(cols, row)) for row in cur.fetchall()]
 
     cur.execute(
-        """
-        SELECT es.source_type,
-               SUM(er.kwh) AS total_kwh,
-               SUM(COALESCE(er.total_cost, 0)) AS total_cost,
-               AVG(er.cost_per_kwh) AS avg_cost_per_kwh
+        f"""
+        SELECT es.source_type, er.cost_currency_code,
+               SUM({cost_amount}) AS total_cost,
+               SUM(er.kwh) AS costed_kwh
         FROM energy_reading er
         JOIN energy_source es ON es.id = er.source_id
         WHERE er.location_id = %s
           AND er.reading_type = 'consumption'
           AND er.reading_date >= %s
           AND er.status IN ('recorded', 'verified', 'approved')
-        GROUP BY es.source_type
-        ORDER BY total_cost DESC
+          AND er.cost_currency_code IS NOT NULL
+          AND {cost_amount} IS NOT NULL
+        GROUP BY es.source_type, er.cost_currency_code
+        ORDER BY er.cost_currency_code, total_cost DESC
         """,
         (location_id, cutoff),
     )
     cols = [d[0] for d in cur.description]
     by_source = [dict(zip(cols, row)) for row in cur.fetchall()]
 
-    # Total
+    # Currency-specific totals, with a separate all-energy kWh and unclassified count.
+    cur.execute(
+        f"""
+        SELECT cost_currency_code,
+               SUM({cost_amount}) AS total_cost,
+               SUM(er.kwh) AS costed_kwh,
+               COUNT(*) AS readings
+        FROM energy_reading er
+        WHERE er.location_id = %s
+          AND er.reading_type = 'consumption'
+          AND er.reading_date >= %s
+          AND er.status IN ('recorded', 'verified', 'approved')
+          AND er.cost_currency_code IS NOT NULL
+          AND {cost_amount} IS NOT NULL
+        GROUP BY cost_currency_code
+        ORDER BY cost_currency_code
+        """,
+        (location_id, cutoff),
+    )
+    currency_costs = []
+    for currency_code, amount, costed_kwh, readings in cur.fetchall():
+        currency_total = float(amount)
+        currency_kwh = float(costed_kwh or 0)
+        effective_rate = currency_total / currency_kwh if currency_kwh > 0 else None
+        currency_costs.append({
+            "cost_currency_code": currency_code,
+            "total_cost": round(currency_total, 2),
+            "costed_kwh": round(currency_kwh, 2),
+            "avg_cost_per_kwh": round(effective_rate, 4) if effective_rate is not None else None,
+            "monthly_projected_cost": round(currency_total / days * 30, 2) if days > 0 else 0,
+            "readings": int(readings),
+        })
+
     cur.execute(
         """
-        SELECT SUM(COALESCE(total_cost, 0)),
-               SUM(kwh),
-               AVG(cost_per_kwh)
+        SELECT SUM(kwh),
+               COUNT(*) FILTER (
+                   WHERE COALESCE(total_cost, kwh * cost_per_kwh) IS NOT NULL
+                     AND cost_currency_code IS NULL
+               )
         FROM energy_reading
         WHERE location_id = %s
           AND reading_type = 'consumption'
@@ -623,22 +751,29 @@ def get_cost_analysis(conn, location_id: str, days: int = 30) -> dict:
         """,
         (location_id, cutoff),
     )
-    tot = cur.fetchone()
-    total_cost = float(tot[0]) if tot[0] else 0
-    total_kwh = float(tot[1]) if tot[1] else 0
-    avg_cost = float(tot[2]) if tot[2] else None
+    totals = cur.fetchone()
+    total_kwh = float(totals[0]) if totals and totals[0] else 0
+    unclassified_cost_count = int(totals[1] or 0) if totals else 0
+    comparable_cost = len(currency_costs) == 1 and unclassified_cost_count == 0
+    total_cost = currency_costs[0]["total_cost"] if comparable_cost else None
+    avg_cost = currency_costs[0]["avg_cost_per_kwh"] if comparable_cost else None
 
     # Monthly projection
-    monthly_projected = round(total_cost / days * 30, 2) if days > 0 else 0
+    monthly_projected = (
+        round(total_cost / days * 30, 2) if days > 0 else 0
+    ) if total_cost is not None else None
 
     cur.close()
 
     return {
         "location_id": location_id,
         "period_days": days,
-        "total_cost": round(total_cost, 2),
+        "total_cost": total_cost,
+        "cost_currency_code": currency_costs[0]["cost_currency_code"] if comparable_cost else None,
+        "costs_by_currency": currency_costs,
+        "unclassified_cost_readings": unclassified_cost_count,
         "total_kwh": round(total_kwh, 2),
-        "avg_cost_per_kwh": round(avg_cost, 4) if avg_cost else None,
+        "avg_cost_per_kwh": round(avg_cost, 4) if avg_cost is not None else None,
         "monthly_projected_cost": monthly_projected,
         "by_activity": by_activity,
         "by_source_type": by_source,

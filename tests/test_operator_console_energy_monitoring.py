@@ -14,7 +14,8 @@ def test_energy_panel_is_hidden_and_describes_excluded_reading_fields():
     assert panel
     assert 'id="energy-monitoring" hidden' in panel.group()
     assert "verified and approved meter readings" in panel.group()
-    assert "Costs, source names, device IDs, notes" in panel.group()
+    assert "Costs appear only with a recorded currency" in panel.group()
+    assert "historic unclassified amounts are counted but withheld" in panel.group()
     assert "legacy fixed-factor estimate" in panel.group()
     assert "registered renewable-offset values are historical/advisory" in panel.group()
     assert "Reviewed daily efficiency history" in panel.group()
@@ -22,6 +23,7 @@ def test_energy_panel_is_hidden_and_describes_excluded_reading_fields():
     assert 'id="energy-monitoring-trend-rows"' in panel.group()
     assert 'id="energy-monitoring-efficiency-rows"' in panel.group()
     assert 'id="energy-monitoring-source-rows"' in panel.group()
+    assert 'id="energy-monitoring-cost-rows"' in panel.group()
     assert "Active energy sources" in panel.group()
     assert 'id="energy-monitoring-rows"' in panel.group()
 
@@ -56,6 +58,9 @@ def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
     assert "legacy_generation_coverage_pct" in renderer.group()
     assert "calculations.reviewed_efficiency_history" in renderer.group()
     assert "calculations.active_sources_by_type" in renderer.group()
+    assert "calculations.energy_costs" in renderer.group()
+    assert "energyMonitoringCostRows.append(row)" in renderer.group()
+    assert "unclassified_cost_reading_count" in renderer.group()
     assert "activeSourceRows.length > sourceTypes.size" in renderer.group()
     assert "energyMonitoringSourceRows.append(row)" in renderer.group()
     assert "efficiencyHistory.length > 12" in renderer.group()
@@ -63,7 +68,7 @@ def test_energy_reader_renders_fixed_allowlisted_fields_with_text_content():
     assert "new Set(sourceEmissions.map" in renderer.group()
     assert "cell.textContent = energyMonitoringValue(value)" in renderer.group()
     assert ".innerHTML" not in renderer.group()
-    assert "cost_per_kwh" not in renderer.group()
+    assert "row.cost_per_kwh" not in renderer.group()
 
 
 def test_energy_panel_refresh_and_location_change_are_wired():

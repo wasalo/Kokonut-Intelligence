@@ -19,10 +19,39 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,066 checklist items complete and 25
-open (1,091 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,069 checklist items complete and 25
+open (1,094 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 currency-safe energy costs — 24 October 2026
+
+- [x] Add migration 604 with nullable `energy_reading.cost_currency_code`.
+  Historical amounts remain unclassified; database checks reject malformed
+  codes and require currency on new or changed cost values while allowing
+  unrelated edits to historic rows. The consumption view appends the new code
+  without changing its existing column order.
+- [x] Require an explicit currency when the legacy energy writer records a
+  rate, preserve zero-rate costs, and add `--cost-currency` to its CLI. Legacy
+  consumption and cost-analysis outputs aggregate only within one currency;
+  mixed or incomplete totals are withheld, with currency-specific summaries
+  and unclassified counts kept visible.
+- [x] Extend the signed, reviewed energy summary and operator console with
+  30-day currency-separated cost totals. A comparable total appears only if
+  exactly one currency is present and no classified-cost row lacks a code. The
+  projection remains location-scoped and omits source names, notes, and IDs.
+  Disposable PostgreSQL 16 applies/replays migration 604 and verifies legacy
+  preservation, USD/DOP separation, view compatibility, malformed/missing-code
+  rejection, historical update behavior, and safe unrelated edits. The 64-test
+  energy Gateway/console/domain/CLI selection, Ruff, Python compilation, inline
+  JavaScript syntax, runtime SQL inventory, capability validation, and diff
+  checks pass. Candidate and legacy databases remain untouched; migration 604
+  is not rolled out. Populated cost reconciliation, ACL/RLS, live OIDC/browser,
+  and MAN-CAP-006 remain open. Rollback restores prior application code and
+  retains the additive migration; no historical amount is rewritten
+  ([contract](energy-monitoring-kernel-read-contract.md);
+  [disposable checker](../../scripts/check-energy-reading-cost-currency-disposable.py);
+  [evidence](builds/2026-10-24-recovery/cap-006-energy-cost-currency-disposable.json)).
 
 ### CAP-006 farm-energy Kernel read path — 23 October 2026
 

@@ -1829,7 +1829,7 @@
         </section>
         <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
           <h2 id="energy-monitoring-heading">Farm energy</h2>
-          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs, source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; stored carbon intensity and registered renewable-offset values are historical/advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
+          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs appear only with a recorded currency; historic unclassified amounts are counted but withheld. Source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; stored carbon intensity and registered renewable-offset values are historical/advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
           <div class="toolbar">
             <label for="energy-monitoring-location">Granted location</label>
             <select id="energy-monitoring-location"></select>
@@ -1837,6 +1837,15 @@
           </div>
           <p id="energy-monitoring-status" class="muted" role="status" aria-live="polite"></p>
           <dl id="energy-monitoring-overview"></dl>
+          <div class="table-wrap">
+            <h3>30-day reviewed energy costs by recorded currency</h3>
+            <p class="muted">Currencies are kept separate. A comparable total is shown only when every recorded cost has the same known currency.</p>
+            <p id="energy-monitoring-cost-status" class="muted" role="status" aria-live="polite"></p>
+            <table>
+              <thead><tr><th>Currency</th><th>Total cost</th><th>Costed consumption (kWh)</th><th>Effective cost per kWh</th><th>Readings</th></tr></thead>
+              <tbody id="energy-monitoring-cost-rows"></tbody>
+            </table>
+          </div>
           <div class="table-wrap">
             <h3>Active energy sources</h3>
             <table>
@@ -2981,8 +2990,10 @@
       const energyMonitoring = document.querySelector("#energy-monitoring");
       const energyMonitoringLocation = document.querySelector("#energy-monitoring-location");
       const energyMonitoringStatus = document.querySelector("#energy-monitoring-status");
+      const energyMonitoringCostStatus = document.querySelector("#energy-monitoring-cost-status");
       const energyMonitoringOverview = document.querySelector("#energy-monitoring-overview");
       const energyMonitoringRows = document.querySelector("#energy-monitoring-rows");
+      const energyMonitoringCostRows = document.querySelector("#energy-monitoring-cost-rows");
       const energyMonitoringSourceRows = document.querySelector("#energy-monitoring-source-rows");
       const energyMonitoringRenewableRows = document.querySelector("#energy-monitoring-renewable-rows");
       const energyMonitoringTrendRows = document.querySelector("#energy-monitoring-trend-rows");
@@ -14029,6 +14040,7 @@
         const calculations = summary.dashboard_calculations;
         const carbon = calculations.legacy_carbon_estimate;
         const renewables = calculations.registered_renewables;
+        const energyCosts = calculations.energy_costs;
         if (rows.some((row) => !["consumption", "production"].includes(row?.reading_type)
             || !sourceTypes.has(row?.source_type) || !activities.has(row?.activity_type)
             || !Number.isSafeInteger(row?.reading_count) || row.reading_count < 0
@@ -14042,6 +14054,8 @@
         const renewableTypes = new Set(["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]);
         const renewableRows = renewables.by_type;
         const efficiencyHistory = calculations.reviewed_efficiency_history;
+        const energyCostRows = energyCosts.by_currency;
+        const maxEnergyCurrencyCodes = 26 * 26 * 26;
         const nullableFiniteNumber = (value) => value === null || finiteNumber(value);
         if (calculations.period_days !== 30
             || !finiteNumber(calculations.total_consumption_kwh)
@@ -14081,6 +14095,27 @@
               || !Number.isSafeInteger(row.source_count) || row.source_count < 0
               || !finiteNumber(row.capacity_kw))
             || new Set(activeSourceRows.map((row) => row.source_type)).size !== activeSourceRows.length
+            || energyCosts.period_days !== 30
+            || !Number.isSafeInteger(energyCosts.unclassified_cost_reading_count)
+            || energyCosts.unclassified_cost_reading_count < 0
+            || !Array.isArray(energyCostRows) || energyCostRows.length > maxEnergyCurrencyCodes
+            || !(energyCosts.comparable_total === null
+              || (typeof energyCosts.comparable_total === "object"
+                && !Array.isArray(energyCosts.comparable_total)))
+            || energyCostRows.some((row) => !/^[A-Z]{3}$/.test(row?.currency_code)
+              || !finiteNumber(row.total_cost) || !finiteNumber(row.costed_kwh)
+              || row.costed_kwh < 0
+              || !nullableFiniteNumber(row.effective_cost_per_kwh)
+              || !Number.isSafeInteger(row.reading_count) || row.reading_count < 0)
+            || new Set(energyCostRows.map((row) => row.currency_code)).size !== energyCostRows.length
+            || (energyCosts.comparable_total !== null
+              && (energyCostRows.length !== 1 || energyCosts.unclassified_cost_reading_count !== 0
+                || energyCosts.comparable_total.currency_code !== energyCostRows[0]?.currency_code
+                || !finiteNumber(energyCosts.comparable_total.total_cost)
+                || !nullableFiniteNumber(energyCosts.comparable_total.effective_cost_per_kwh)
+                || energyCosts.comparable_total.total_cost !== energyCostRows[0]?.total_cost
+                || energyCosts.comparable_total.effective_cost_per_kwh
+                  !== energyCostRows[0]?.effective_cost_per_kwh))
             || sourceEmissions.some((row) => !sourceTypes.has(row?.source_type)
               || !finiteNumber(row?.consumption_kwh)
               || !finiteNumber(row?.emission_factor_kg_co2e_per_kwh)
@@ -14114,6 +14149,32 @@
           description.textContent = energyMonitoringValue(value);
           energyMonitoringOverview.append(term, description);
         }
+        energyMonitoringCostRows.replaceChildren();
+        for (const item of energyCostRows) {
+          const row = document.createElement("tr");
+          for (const value of [
+            item.currency_code, item.total_cost, item.costed_kwh,
+            item.effective_cost_per_kwh, item.reading_count
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = energyMonitoringValue(value);
+            row.append(cell);
+          }
+          energyMonitoringCostRows.append(row);
+        }
+        if (!energyCostRows.length) {
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 5;
+          cell.textContent = "No reviewed energy costs with a recorded currency are available.";
+          row.append(cell);
+          energyMonitoringCostRows.append(row);
+        }
+        energyMonitoringCostStatus.textContent = energyCosts.unclassified_cost_reading_count
+          ? `${energyCosts.unclassified_cost_reading_count} reviewed cost reading(s) have no currency and are withheld.`
+          : energyCosts.comparable_total
+            ? `Comparable total: ${energyCosts.comparable_total.currency_code} ${energyMonitoringValue(energyCosts.comparable_total.total_cost)}.`
+            : "No unclassified costs were found; totals remain separate by currency.";
         energyMonitoringRows.replaceChildren();
         energyMonitoringSourceRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
@@ -14224,6 +14285,8 @@
         if (!energyMonitoringLocations.has(locationId)) return;
         energyMonitoringOverview.replaceChildren();
         energyMonitoringRows.replaceChildren();
+        energyMonitoringCostRows.replaceChildren();
+        energyMonitoringCostStatus.textContent = "";
         energyMonitoringSourceRows.replaceChildren();
         energyMonitoringRenewableRows.replaceChildren();
         energyMonitoringTrendRows.replaceChildren();
@@ -14255,15 +14318,19 @@
               || !Array.isArray(result.dashboard_calculations.registered_renewables.by_type)
               || !Array.isArray(result.dashboard_calculations.trend_7d)
               || !Array.isArray(result.dashboard_calculations.reviewed_efficiency_history)
-              || !Array.isArray(result.dashboard_calculations.active_sources_by_type)) {
+              || !Array.isArray(result.dashboard_calculations.active_sources_by_type)
+              || !result.dashboard_calculations.energy_costs
+              || typeof result.dashboard_calculations.energy_costs !== "object") {
             throw new Error("The response did not match the selected location or energy contract.");
           }
           renderEnergyMonitoringSummary(result);
-          energyMonitoringStatus.textContent = "Meter-derived calculations and daily history include reviewed records only. Stored daily efficiency values and carbon/renewable-offset estimates are advisory; registered generation coverage is indicative. Cost totals stay withheld because the source schema does not classify currency.";
+          energyMonitoringStatus.textContent = "Meter-derived calculations, cost aggregates, and daily history include reviewed records only. Costs stay grouped by recorded currency; unclassified historic amounts are withheld. Stored daily efficiency values and carbon/renewable-offset estimates are advisory; registered generation coverage is indicative.";
         } catch (error) {
           if (requestVersion !== energyMonitoringRequestVersion) return;
           energyMonitoringOverview.replaceChildren();
           energyMonitoringRows.replaceChildren();
+          energyMonitoringCostRows.replaceChildren();
+          energyMonitoringCostStatus.textContent = "";
           energyMonitoringSourceRows.replaceChildren();
           energyMonitoringRenewableRows.replaceChildren();
           energyMonitoringTrendRows.replaceChildren();
