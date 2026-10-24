@@ -239,6 +239,8 @@ def test_energy_summary_uses_signed_context_and_verified_aggregates_only():
                 "model": "legacy_source_type_factors_v1",
                 "total_emissions_kg_co2e": 52.5,
                 "intensity_kg_co2e_per_kwh": 0.375,
+                "monthly_carbon_offset_kg": 833.33,
+                "net_monthly_emissions_kg": -780.83,
                 "by_source_type": [
                     {"source_type": "biogas", "consumption_kwh": 10.0, "emission_factor_kg_co2e_per_kwh": 0.05, "estimated_emissions_kg_co2e": 0.5},
                     {"source_type": "diesel_generator", "consumption_kwh": 10.0, "emission_factor_kg_co2e_per_kwh": 0.7, "estimated_emissions_kg_co2e": 7.0},
@@ -348,6 +350,8 @@ def test_energy_dashboard_calculations_handle_empty_verified_readings():
             "model": "legacy_source_type_factors_v1",
             "total_emissions_kg_co2e": 0,
             "intensity_kg_co2e_per_kwh": 0,
+            "monthly_carbon_offset_kg": 0,
+            "net_monthly_emissions_kg": 0,
             "by_source_type": [],
         },
         "registered_renewables": {
@@ -451,6 +455,8 @@ def test_energy_route_requires_grant_and_returns_no_store_summary(monkeypatch, g
                 "model": "legacy_source_type_factors_v1",
                 "total_emissions_kg_co2e": 0,
                 "intensity_kg_co2e_per_kwh": 0,
+                "monthly_carbon_offset_kg": 0,
+                "net_monthly_emissions_kg": 0,
                 "by_source_type": [],
             },
             "registered_renewables": {

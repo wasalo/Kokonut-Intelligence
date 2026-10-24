@@ -32,6 +32,13 @@ join:
   and battery 0. The response names this model
   `legacy_source_type_factors_v1`. This fixed-factor estimate is advisory; it
   is not verified emissions, a lifecycle assessment, or a compliance result.
+- The legacy monthly offset estimate and net-emissions compatibility values.
+  The monthly estimate divides the sum of active registered renewable
+  `carbon_offset_kg` declarations by 12; net monthly emissions subtract that
+  estimate from the 30-day fixed-factor emissions estimate. The stored offset
+  declarations are not independently verified, so both outputs remain
+  advisory. The calculation intentionally preserves the legacy arithmetic and
+  does not clamp negative net values or claim certified net emissions.
 - A seven-day daily consumption/production trend from the same
   verified/approved source rows.
 - A separate 365-day registered-renewables summary for active
@@ -93,8 +100,9 @@ Focused fake-connection and Gateway tests cover exact authorization, denied
 route preflight, signed context ordering, location join/filter, verified-state
 selection, the 30-day formulas, fixed-factor estimate, seven-day trend,
 registered renewable metrics and location joins, bounded latest-12 reviewed
-efficiency history with sensitive columns excluded, currency-separated reviewed
-cost summaries, missing-currency counts, no mixed-currency total, response
+efficiency history with sensitive columns excluded, monthly offset and
+net-emissions compatibility arithmetic, currency-separated reviewed cost
+summaries, missing-currency counts, no mixed-currency total, response
 projection, connection cleanup, console grant gating, history validation,
 no-store behavior, and inline JavaScript syntax. Migration 604 is tested in a
 disposable PostgreSQL database, including replay, preservation of unclassified
@@ -108,8 +116,9 @@ No historic data is rewritten.
 
 ## Remaining acceptance
 
-This closes code-defined energy calculation, registered-renewables, and
-currency-safe cost slices only. Populated farm output and asset-register parity,
+This closes source-defined energy calculation, registered-renewables,
+monthly carbon-offset compatibility, and currency-safe cost slices only.
+Populated farm output and asset-register parity,
 historical currency review, waste management, habitat/pollinator parity, runtime
 database ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open.
 Do not infer those capabilities from this route.

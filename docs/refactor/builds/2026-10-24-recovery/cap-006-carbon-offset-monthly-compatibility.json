@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "working-tree based on 040ce4f5",
+  "capability": "CAP-006",
+  "scope": "Repository-defined legacy energy carbon-intensity compatibility fields in the location-scoped Kernel summary",
+  "implementation": {
+    "source": "services/analytics/energy_monitoring.py::compute_carbon_intensity",
+    "gateway": "services/gateway/energy_monitoring.py::get_location_energy_summary",
+    "console": "apps/operator-console/index.html",
+    "fields": [
+      "monthly_carbon_offset_kg",
+      "net_monthly_emissions_kg"
+    ],
+    "formula": "active registered carbon_offset_kg sum / 12; 30-day reviewed fixed-factor emissions minus that offset estimate",
+    "display_status": "advisory; stored offset declarations are not independently verified; negative net values are not clamped"
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_energy_monitoring.py tests/test_operator_console_energy_monitoring.py -q",
+    "result": "passed",
+    "tests_passed": 13,
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "inline_javascript_syntax": "passed via focused console test"
+  },
+  "synthetic_example": {
+    "thirty_day_emissions_kg_co2e": 52.5,
+    "registered_offset_declarations_kg": 10000,
+    "monthly_offset_estimate_kg": 833.33,
+    "net_monthly_emissions_estimate_kg_co2e": -780.83
+  },
+  "database_access": false,
+  "provider_calls": false,
+  "candidate_or_legacy_modified": false,
+  "migration_required": false,
+  "limitations": [
+    "Synthetic values verify compatibility arithmetic and response validation only; they do not establish populated farm-output parity.",
+    "The legacy estimate is not a verified carbon inventory, lifecycle assessment, or certification result."
+  ]
+}

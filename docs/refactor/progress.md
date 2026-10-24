@@ -1,3 +1,19 @@
+### Progress addendum — CAP-006 monthly carbon-offset compatibility, 24 October 2026
+
+The location-scoped energy summary now restores two values from the legacy
+carbon-intensity calculation: the monthly carbon-offset estimate
+(`active registered carbon_offset_kg / 12`) and net monthly emissions
+(`30-day fixed-factor emissions - monthly estimate`). The operator console
+validates and labels both as advisory; negative results are preserved and do
+not imply verified or certified net emissions. Thirteen focused Gateway and
+console tests pass, along with Ruff, Python compilation, and inline JavaScript
+syntax. No migration, database, provider, or candidate/legacy data was used.
+Populated output parity, ACL/RLS, live OIDC/browser, and MAN-CAP-006 remain
+open. Checklist: 1,069 complete / 25 open; capability matrix remains 26
+baseline-retained, 7 deployed, and 34 prepared across 67 rows, with no named
+MAN-CAP acceptance ([contract](energy-monitoring-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-carbon-offset-monthly-compatibility.json)).
+
 ### Progress addendum — current-source ARM64 application smoke, 24 October 2026
 
 The current committed source `8f5fd1eb` builds the default Kernel image for

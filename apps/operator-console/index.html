@@ -1829,7 +1829,7 @@
         </section>
         <section id="energy-monitoring" hidden aria-labelledby="energy-monitoring-heading">
           <h2 id="energy-monitoring-heading">Farm energy</h2>
-          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs appear only with a recorded currency; historic unclassified amounts are counted but withheld. Source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; stored carbon intensity and registered renewable-offset values are historical/advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
+          <p class="muted">Read-only energy summaries for verified and approved meter readings at a granted location. Costs appear only with a recorded currency; historic unclassified amounts are counted but withheld. Source names, device IDs, notes, and unreviewed readings are excluded. Carbon uses the legacy fixed-factor estimate; monthly offset prorates stored registered-offset values by 12, and net emissions subtract that estimate. Both are historical/advisory, not verified emissions or offsets. Registered generation coverage is indicative.</p>
           <div class="toolbar">
             <label for="energy-monitoring-location">Granted location</label>
             <select id="energy-monitoring-location"></select>
@@ -14066,6 +14066,8 @@
             || carbon.model !== "legacy_source_type_factors_v1"
             || !finiteNumber(carbon.total_emissions_kg_co2e)
             || !finiteNumber(carbon.intensity_kg_co2e_per_kwh)
+            || !finiteNumber(carbon.monthly_carbon_offset_kg)
+            || !finiteNumber(carbon.net_monthly_emissions_kg)
             || !Array.isArray(sourceEmissions) || !Array.isArray(trend)
             || renewables.period_days !== 365
             || !Number.isSafeInteger(renewables.active_sources) || renewables.active_sources < 0
@@ -14135,6 +14137,8 @@
           ["Renewable-source share (%)", calculations.renewable_share_pct],
           ["Legacy estimated emissions (kg CO₂e)", carbon.total_emissions_kg_co2e],
           ["Legacy estimated carbon intensity (kg CO₂e/kWh)", carbon.intensity_kg_co2e_per_kwh],
+          ["Legacy monthly carbon-offset estimate (kg; advisory)", carbon.monthly_carbon_offset_kg],
+          ["Legacy net monthly emissions estimate (kg CO₂e; advisory)", carbon.net_monthly_emissions_kg],
           ["Active renewable registrations", renewables.active_sources],
           ["Registered capacity (kW)", renewables.total_capacity_kw],
           ["Registered annual generation (kWh)", renewables.annual_generation_kwh],

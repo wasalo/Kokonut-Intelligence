@@ -348,6 +348,7 @@ def get_location_energy_summary(
         comparable_energy_cost = (
             len(costs_by_currency) == 1 and unclassified_cost_reading_count == 0
         )
+        monthly_carbon_offset_kg = round(registered_carbon_offset_kg / 12, 2)
         energy_calculations = {
             "period_days": 30,
             "total_consumption_kwh": round(consumption_kwh, 2),
@@ -362,6 +363,10 @@ def get_location_energy_summary(
                     round(estimated_emissions_kg / consumption_kwh, 4)
                     if consumption_kwh > 0
                     else 0
+                ),
+                "monthly_carbon_offset_kg": monthly_carbon_offset_kg,
+                "net_monthly_emissions_kg": round(
+                    estimated_emissions_kg - monthly_carbon_offset_kg, 2
                 ),
                 "by_source_type": emissions_by_source,
             },
