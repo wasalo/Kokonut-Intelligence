@@ -5,8 +5,7 @@ autocorrelation, cross-validation, sensor optimization, CLI, and SOC integration
 from __future__ import annotations
 
 import uuid
-from unittest.mock import MagicMock, patch, PropertyMock
-from contextlib import contextmanager
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -393,6 +392,55 @@ class TestSpatialCrossValidator:
         mock_conn = _make_mock_conn(mock_cursor)
         return SpatialCrossValidator(conn=mock_conn), mock_cursor
 
+    def test_cross_validation_requires_variogram_model_location_and_property_match(self):
+        cv, mock_cursor = self._make_cv()
+        mock_cursor.fetchone.return_value = None
+
+        result = cv.cross_validate_from_db(
+            "location-a", "soil_carbon", variogram_model_id="model-from-other-scope"
+        )
+
+        query, params = mock_cursor.execute.call_args.args
+        assert "WHERE id = %s" in query
+        assert "AND location_id = %s" in query
+        assert "AND property_key = %s" in query
+        assert params == ("model-from-other-scope", "location-a", "soil_carbon")
+        assert result == {
+            "error": "Variogram model not found for requested location and property"
+        }
+        assert mock_cursor.execute.call_count == 1
+        mock_cursor.close.assert_called_once()
+
+    def test_cross_validation_uses_matching_model_and_location_scoped_points(self):
+        cv, mock_cursor = self._make_cv()
+        mock_cursor.fetchone.return_value = {
+            "model_type": "exponential",
+            "sill": 2.5,
+            "range": 500.0,
+            "nugget": 0.1,
+        }
+        mock_cursor.fetchall.return_value = [
+            {"lat": 18.5 + index / 1000, "lon": -69.9 + index / 1000, "value": 1.0 + index}
+            for index in range(4)
+        ]
+        cv.spatial_block_cv = MagicMock(return_value={"cv_strategy": "spatial_block"})
+
+        result = cv.cross_validate_from_db(
+            "location-a", "soil_carbon", variogram_model_id="model-a"
+        )
+
+        calls = mock_cursor.execute.call_args_list
+        model_query, model_params = calls[0].args
+        point_query, point_params = calls[1].args
+        assert "AND location_id = %s" in model_query
+        assert model_params == ("model-a", "location-a", "soil_carbon")
+        assert "WHERE ss.location_id = %s" in point_query
+        assert point_params == ("location-a",)
+        assert result["location_id"] == "location-a"
+        assert result["property_key"] == "soil_carbon"
+        cv.spatial_block_cv.assert_called_once()
+        mock_cursor.close.assert_called_once()
+
     def test_spatial_block_cv_returns_metrics(self):
         cv, _ = self._make_cv()
         coords, values = _make_spatial_data(n=30)
@@ -521,7 +569,7 @@ class TestCLI:
         """CLI with no command should print help."""
         from services.geostatistics.cli import main
         with patch("sys.argv", ["geostatistics"]):
-            with patch("sys.stdout") as mock_stdout:
+            with patch("sys.stdout"):
                 main()
 
     def test_cli_variogram_parser(self):

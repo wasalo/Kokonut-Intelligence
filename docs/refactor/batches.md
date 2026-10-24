@@ -19,10 +19,22 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,083 checklist items complete and 25
-open (1,108 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,084 checklist items complete and 25
+open (1,109 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 cross-validation variogram scope — 24 October 2026
+
+- [x] Require a caller-selected variogram model to match the cross-validation
+  location and property before reading soil/remote-sensing samples. Return a
+  generic not-found response on mismatch so another location's model existence
+  is not disclosed; retain the exact requested-location filter on source
+  points. The full geostatistics test module passes 58 tests; Ruff, compilation,
+  runtime SQL inventory, and diff checks pass. No migration or database was
+  used. This closes the legacy selector's cross-location model reuse gap but
+  does not establish a tenant-safe database role/RLS boundary. Rollback is a
+  source revert plus runtime-SQL inventory regeneration ([evidence](builds/2026-10-24-recovery/cap-008-cross-validation-model-scope.json)).
 
 ### CAP-008 bounded spatial-block fold diagnostics — 24 October 2026
 

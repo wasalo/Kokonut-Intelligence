@@ -1,3 +1,19 @@
+### Progress addendum — CAP-008 cross-validation variogram scope, 24 October 2026
+
+The legacy cross-validation runner now selects an explicitly requested
+variogram only when its ID, location, and property all match the requested
+analysis. A mismatch returns a generic not-found result before source points
+are queried; the soil and remote-sensing sample reads remain location-filtered.
+This prevents reuse of another location's fitted model through the legacy
+runner, but it does not establish a least-privilege database role or RLS. The
+full geostatistics module passes 58 tests; Ruff, compilation, refreshed runtime
+SQL inventory, and diff checks pass. No database or migration was used. CAP-008
+still needs other geostatistics paths, numerical/populated fixture parity, live
+OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008. Checklist: 1,084
+complete / 25 open (1,109 total); capability matrix remains 24 baseline-
+retained, 7 deployed, and 36 prepared across 67 rows, with 0/67 MAN-CAP checks
+accepted ([evidence](builds/2026-10-24-recovery/cap-008-cross-validation-model-scope.json)).
+
 ### Progress addendum — CAP-008 bounded spatial-block fold diagnostics, 24 October 2026
 
 The saved cross-validation read now includes a strict spatial-block fold

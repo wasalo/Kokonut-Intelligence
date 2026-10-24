@@ -48,6 +48,13 @@ contain point-level values. Invalid, small-sample, oversized, or non-finite
 data fails closed or becomes `null`. The console renders the fixed projection
 as text and labels it advisory.
 
+The legacy `SpatialCrossValidator.cross_validate_from_db` runner also requires
+an explicitly selected variogram model to match the requested location and
+property before it reads source points. A mismatch returns a generic not-found
+result without disclosing whether the model exists elsewhere. Soil and remote-
+sensing source reads retain their exact location predicates. This source-level
+scope check does not replace a least-privilege database role or RLS policy.
+
 ## Fitted variogram route
 
 `GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same

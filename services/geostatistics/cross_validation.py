@@ -263,13 +263,19 @@ class SpatialCrossValidator:
         # Fetch or fit variogram
         if variogram_model_id:
             cur.execute(
-                "SELECT * FROM variogram_model WHERE id = %s",
-                (variogram_model_id,),
+                """
+                SELECT model_type, sill, range, nugget
+                  FROM variogram_model
+                 WHERE id = %s
+                   AND location_id = %s
+                   AND property_key = %s
+                """,
+                (variogram_model_id, location_id, property_key),
             )
             vm_row = cur.fetchone()
             if vm_row is None:
                 cur.close()
-                return {"error": f"Variogram model {variogram_model_id} not found"}
+                return {"error": "Variogram model not found for requested location and property"}
             variogram_model = {
                 "model_type": vm_row["model_type"],
                 "sill": float(vm_row["sill"]),
