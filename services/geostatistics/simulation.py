@@ -1,11 +1,12 @@
-"""Geostatistical Simulation — Sequential Gaussian Simulation (SGS).
+"""Geostatistical simulation with seeded conditional Gaussian fields.
 
-Generates multiple equiprobable spatial realizations for uncertainty
-quantification, enabling probabilistic forecasting of environmental outcomes.
+Generates multiple conditional spatial realizations for uncertainty
+quantification without materializing a dense grid covariance matrix.
 """
 
 from __future__ import annotations
 
+import math
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,12 +18,15 @@ from .config import (
     DEFAULT_SGS_GRID_SIZE_M,
     DEFAULT_SGS_REALIZATIONS,
     DEFAULT_SGS_SEED,
+    MAX_SGS_GRID_POINTS,
+    MAX_SGS_OUTPUT_VALUES,
+    MAX_SGS_REALIZATIONS,
 )
 from .data_sources import location_point_query, supports_database_property
 
 
 class GeostatSimulator:
-    """Sequential Gaussian Simulation for uncertainty quantification."""
+    """Seeded conditional Gaussian fields for uncertainty quantification."""
 
     def __init__(self, conn=None):
         self._conn = conn
@@ -49,7 +53,9 @@ class GeostatSimulator:
             "gaussian": Gaussian,
             "matern": Matern,
         }
-        ModelClass = model_map.get(model_type, Exponential)
+        ModelClass = model_map.get(model_type)
+        if ModelClass is None:
+            raise ValueError("Unsupported variogram model")
         return ModelClass(dim=2, var=sill - nugget, len_scale=range_m, nugget=nugget)
 
     def _build_grid(
@@ -58,15 +64,105 @@ class GeostatSimulator:
         resolution_m: float,
         padding_m: float = 100.0,
     ) -> np.ndarray:
-        """Build a regular prediction grid from point coordinates."""
-        coords = np.array(coordinates)
+        """Build a regular prediction grid while enforcing the kernel grid cap."""
+        coords = np.asarray(coordinates, dtype=float)
         x_min, y_min = coords.min(axis=0) - padding_m
         x_max, y_max = coords.max(axis=0) + padding_m
 
-        x_grid = np.arange(x_min, x_max, resolution_m)
-        y_grid = np.arange(y_min, y_max, resolution_m)
+        x_count = math.ceil((x_max - x_min) / resolution_m)
+        y_count = math.ceil((y_max - y_min) / resolution_m)
+        if x_count * y_count > MAX_SGS_GRID_POINTS:
+            raise ValueError(
+                f"Simulation grid exceeds the {MAX_SGS_GRID_POINTS}-point limit; "
+                "increase grid resolution"
+            )
+        x_grid = x_min + np.arange(x_count) * resolution_m
+        y_grid = y_min + np.arange(y_count) * resolution_m
         xx, yy = np.meshgrid(x_grid, y_grid)
         return np.column_stack([xx.ravel(), yy.ravel()])
+
+    @staticmethod
+    def _validate_inputs(
+        coordinates: List[Tuple[float, float]],
+        values: List[float],
+        variogram_model: Dict[str, Any],
+        n_realizations: int,
+        grid_resolution_m: float,
+        seed: int,
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, str]]]:
+        try:
+            coords = np.asarray(coordinates, dtype=float)
+            field = np.asarray(values, dtype=float)
+            model_type = variogram_model["model_type"]
+            sill = float(variogram_model["sill"])
+            range_m = float(variogram_model["range"])
+            nugget = float(variogram_model["nugget"])
+        except (KeyError, OverflowError, TypeError, ValueError):
+            return None, {"error": "Invalid simulation input"}
+
+        if field.ndim != 1 or len(field) < 3:
+            return None, {
+                "error": "Simulation requires at least three observations"
+            }
+        if coords.ndim != 2 or coords.shape != (len(field), 2):
+            return None, {
+                "error": "Coordinates and values must have matching 2D points"
+            }
+        if not np.isfinite(coords).all() or not np.isfinite(field).all():
+            return None, {
+                "error": "Coordinates and values must be finite"
+            }
+        settings, error = GeostatSimulator._validate_run_settings(
+            n_realizations, grid_resolution_m, seed
+        )
+        if error:
+            return None, error
+        if (
+            not isinstance(model_type, str)
+            or model_type not in {"spherical", "exponential", "gaussian", "matern"}
+            or not np.isfinite([sill, range_m, nugget]).all()
+            or sill <= 0
+            or range_m <= 0
+            or nugget < 0
+            or nugget >= sill
+        ):
+            return None, {"error": "Invalid variogram model"}
+        n_realizations, grid_resolution_m, seed = settings
+        return {
+            "coordinates": coords,
+            "values": field,
+            "model_type": model_type,
+            "sill": sill,
+            "range": range_m,
+            "nugget": nugget,
+            "n_realizations": n_realizations,
+            "grid_resolution_m": grid_resolution_m,
+            "seed": seed,
+        }, None
+
+    @staticmethod
+    def _validate_run_settings(n_realizations, grid_resolution_m, seed):
+        try:
+            resolution = float(grid_resolution_m)
+        except (OverflowError, TypeError, ValueError):
+            return None, {"error": "grid_resolution_m must be finite and greater than zero"}
+        if (
+            isinstance(n_realizations, bool)
+            or not isinstance(n_realizations, (int, np.integer))
+            or not 1 <= n_realizations <= MAX_SGS_REALIZATIONS
+        ):
+            return None, {
+                "error": f"n_realizations must be an integer from 1 to {MAX_SGS_REALIZATIONS}"
+            }
+        if not np.isfinite(resolution) or resolution <= 0:
+            return None, {"error": "grid_resolution_m must be finite and greater than zero"}
+        if (
+            isinstance(seed, bool)
+            or not isinstance(seed, (int, np.integer))
+            or not 0 <= seed <= 2**32 - 1
+        ):
+            return None, {"error": "seed must be an integer between 0 and 4294967295"}
+        return (int(n_realizations), resolution, int(seed)), None
 
     def sequential_gaussian_simulation(
         self,
@@ -77,7 +173,7 @@ class GeostatSimulator:
         grid_resolution_m: float = DEFAULT_SGS_GRID_SIZE_M,
         seed: int = DEFAULT_SGS_SEED,
     ) -> Dict[str, Any]:
-        """Generate multiple SGS realizations.
+        """Generate seeded conditional Gaussian field realizations.
 
         Args:
             coordinates: Observed (x, y) positions in meters.
@@ -90,67 +186,67 @@ class GeostatSimulator:
         Returns:
             Dict with realizations (list of arrays), grid, metadata.
         """
-        pos = np.array(coordinates).T
-        field = np.array(values, dtype=float)
-
-        grid = self._build_grid(coordinates, grid_resolution_m)
-
-        # Use gstools for conditional simulation via kriging + random field
-        from gstools import krige
-
-        realizations = []
-
-        pos = np.array(coordinates).T
-        field = np.array(values, dtype=float)
-
-        # Pre-compute kriging once (same conditioning for all realizations)
-        sk_model = self._build_gstools_variogram(
-            variogram_model["model_type"],
-            variogram_model["sill"],
-            variogram_model["range"],
-            variogram_model["nugget"],
+        inputs, error = self._validate_inputs(
+            coordinates, values, variogram_model, n_realizations, grid_resolution_m, seed
         )
-        sk = krige.Simple(sk_model, [pos[0].tolist(), pos[1].tolist()], field.tolist())
-        cond_mean, cond_var = sk(grid.T)
-        cond_std = np.sqrt(np.maximum(cond_var, 0))
+        if error:
+            return error
+        coords = inputs["coordinates"]
+        field = inputs["values"]
+        model_type = inputs["model_type"]
+        sill = inputs["sill"]
+        range_m = inputs["range"]
+        nugget = inputs["nugget"]
+        n_realizations = inputs["n_realizations"]
+        grid_resolution_m = inputs["grid_resolution_m"]
+        seed = inputs["seed"]
+        try:
+            grid = self._build_grid(coords, grid_resolution_m)
+        except ValueError as exc:
+            return {"error": str(exc)}
+        # Count the realization values, two coordinate values per grid point,
+        # and four returned summary maps in the same aggregate budget.
+        output_values = (n_realizations + 6) * len(grid)
+        if len(grid) == 0 or output_values > MAX_SGS_OUTPUT_VALUES:
+            return {
+                "error": (
+                    "Requested simulation output exceeds the "
+                    f"{MAX_SGS_OUTPUT_VALUES}-value limit; reduce realizations "
+                    "or increase grid resolution"
+                )
+            }
 
-        # Compute covariance matrix for unconditional field generation
-        from scipy.spatial.distance import pdist, squareform
-        dist_matrix = squareform(pdist(grid))
-        sill_total = variogram_model["sill"]
-        # Vectorized variogram evaluation
-        flat_dists = dist_matrix.ravel()
-        gamma_vals = sk_model.variogram(flat_dists)
-        cov_matrix = (sill_total - gamma_vals).reshape(dist_matrix.shape)
-        np.fill_diagonal(cov_matrix, sill_total)
+        import gstools as gs
 
-        for i in range(n_realizations):
-            rng_local = np.random.RandomState(seed + i)
+        sk_model = self._build_gstools_variogram(
+            model_type, sill, range_m, nugget
+        )
+        kriging = gs.krige.Ordinary(
+            sk_model, [coords[:, 0], coords[:, 1]], field
+        )
+        conditional_srf = gs.CondSRF(kriging)
+        conditional_srf.set_pos([grid[:, 0], grid[:, 1]])
+        seed_stream = gs.random.MasterRNG(seed)
+        real_arr = np.empty((n_realizations, len(grid)), dtype=float)
+        for index in range(n_realizations):
+            realization = np.asarray(
+                conditional_srf(
+                    seed=seed_stream(), store=False, krige_store=False
+                ),
+                dtype=float,
+            ).reshape(-1)
+            if realization.shape != (len(grid),) or not np.isfinite(realization).all():
+                return {"error": "Conditional simulation returned invalid values"}
+            real_arr[index] = realization
 
-            # Generate unconditional Gaussian field via Cholesky decomposition
-            try:
-                L = np.linalg.cholesky(cov_matrix + np.eye(len(grid)) * 1e-8)
-                uncond_field = L @ rng_local.normal(0, 1, len(grid))
-            except np.linalg.LinAlgError:
-                uncond_field = rng_local.normal(0, np.sqrt(sill_total), len(grid))
-
-            # Combine: conditional mean + scaled residual
-            residual = uncond_field - np.mean(uncond_field)
-            if np.std(residual) > 0:
-                residual = residual / np.std(residual)
-            combined = cond_mean + residual * cond_std
-
-            realizations.append(combined.tolist())
-
-        # Compute E-type (mean) and percentiles
-        real_arr = np.array(realizations)
+        # Compute E-type (mean) and percentiles.
         e_type = np.mean(real_arr, axis=0)
         p10 = np.percentile(real_arr, 10, axis=0)
         p50 = np.percentile(real_arr, 50, axis=0)
         p90 = np.percentile(real_arr, 90, axis=0)
 
         return {
-            "realizations": realizations,
+            "realizations": real_arr.tolist(),
             "n_realizations": n_realizations,
             "grid_points": grid.tolist(),
             "n_points": len(grid),
@@ -160,6 +256,7 @@ class GeostatSimulator:
             "p90": p90.tolist(),
             "grid_resolution_m": grid_resolution_m,
             "seed": seed,
+            "simulation_engine": "gstools_conditional_random_field",
             "variogram_model": variogram_model,
         }
 
@@ -188,9 +285,15 @@ class GeostatSimulator:
         seed: int = DEFAULT_SGS_SEED,
         variogram_model_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Run SGS pipeline from database queries."""
+        """Run conditional Gaussian field simulation from database sources."""
         if not supports_database_property(property_key):
             return {"error": f"Unsupported property_key: {property_key}"}
+        settings, error = self._validate_run_settings(
+            n_realizations, grid_resolution_m, seed
+        )
+        if error:
+            return error
+        n_realizations, grid_resolution_m, seed = settings
 
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -235,9 +338,22 @@ class GeostatSimulator:
         if len(rows) < 3:
             return {"error": f"Need >= 3 data points, got {len(rows)}"}
 
-        # Convert to meters
-        lats = np.array([float(r["lat"]) for r in rows])
-        lons = np.array([float(r["lon"]) for r in rows])
+        # Convert to meters around the mean source coordinate.
+        try:
+            lats = np.array([float(r["lat"]) for r in rows])
+            lons = np.array([float(r["lon"]) for r in rows])
+            values = np.array([float(r["value"]) for r in rows])
+        except (KeyError, OverflowError, TypeError, ValueError):
+            return {"error": "Simulation source contains invalid coordinates or values"}
+        if not np.isfinite([*lats, *lons, *values]).all():
+            return {"error": "Simulation source contains non-finite coordinates or values"}
+        if (
+            np.any((lats < -90) | (lats > 90))
+            or np.any((lons < -180) | (lons > 180))
+        ):
+            return {"error": "Simulation source contains out-of-range coordinates"}
+        if np.any(np.abs(lats) >= 89.9):
+            return {"error": "Simulation source is too close to a pole for local projection"}
         mean_lat, mean_lon = np.mean(lats), np.mean(lons)
         lat_to_m = 111320.0
         lon_to_m = 111320.0 * np.cos(np.radians(mean_lat))
@@ -246,16 +362,20 @@ class GeostatSimulator:
             (float(lon - mean_lon) * lon_to_m, float(lat - mean_lat) * lat_to_m)
             for lat, lon in zip(lats, lons)
         ]
-        values = [float(r["value"]) for r in rows]
-
         result = self.sequential_gaussian_simulation(
             coordinates, values, variogram_model,
             n_realizations=n_realizations,
             grid_resolution_m=grid_resolution_m,
             seed=seed,
         )
+        if "error" in result:
+            return result
         result["location_id"] = location_id
         result["property_key"] = property_key
+        result["coordinate_origin"] = {
+            "latitude": float(mean_lat),
+            "longitude": float(mean_lon),
+        }
         return result
 
     def persist_simulations(
@@ -275,20 +395,61 @@ class GeostatSimulator:
         if "error" in result:
             return None
 
+        origin = result.get("coordinate_origin")
+        try:
+            origin_lat = float(origin["latitude"])
+            origin_lon = float(origin["longitude"])
+            grid_pts = np.asarray(result["grid_points"], dtype=float)
+            realizations = np.asarray(result["realizations"], dtype=float)
+        except (KeyError, OverflowError, TypeError, ValueError):
+            return None
+        if (
+            not np.isfinite([origin_lat, origin_lon]).all()
+            or not -89.9 < origin_lat < 89.9
+            or not -180 <= origin_lon <= 180
+            or grid_pts.ndim != 2
+            or grid_pts.shape[1:] != (2,)
+            or realizations.ndim != 2
+            or realizations.shape[1:] != (len(grid_pts),)
+            or isinstance(max_points, bool)
+            or not isinstance(max_points, (int, np.integer))
+            or max_points < 1
+            or isinstance(max_realizations, bool)
+            or not isinstance(max_realizations, (int, np.integer))
+            or max_realizations < 1
+        ):
+            return None
+
+        realizations = realizations[:max_realizations]
+        if len(realizations) == 0:
+            return None
+        valid = np.isfinite(grid_pts).all(axis=1) & np.isfinite(realizations).all(axis=0)
+        grid_pts = grid_pts[valid]
+        realizations = realizations[:, valid]
+        if len(grid_pts) == 0:
+            return None
+
+        # The simulation grid uses local meters; convert it back to WGS84 for
+        # insertion into the schema's geometry(4326) column.
+        lon_to_m = 111320.0 * np.cos(np.radians(origin_lat))
+        grid_pts = np.column_stack(
+            [origin_lon + grid_pts[:, 0] / lon_to_m, origin_lat + grid_pts[:, 1] / 111320.0]
+        )
+        grid_pts[:, 0] = ((grid_pts[:, 0] + 180.0) % 360.0) - 180.0
+        valid_world = np.isfinite(grid_pts).all(axis=1) & (grid_pts[:, 1] >= -90) & (grid_pts[:, 1] <= 90)
+        grid_pts = grid_pts[valid_world]
+        realizations = realizations[:, valid_world]
+        if len(grid_pts) == 0:
+            return None
+
+        point_count = min(len(grid_pts), int(max_points))
+        point_indices = np.linspace(0, len(grid_pts) - 1, point_count, dtype=int)
+
         conn = self._get_conn()
         cur = conn.cursor()
 
-        grid_pts = np.array(result["grid_points"])
-        realizations = result["realizations"][:max_realizations]
-
-        # Subsample points if needed
-        if len(grid_pts) > max_points:
-            point_indices = np.random.choice(len(grid_pts), max_points, replace=False)
-        else:
-            point_indices = np.arange(len(grid_pts))
-
         realization_ids = []
-        for i, real in enumerate(realizations):
+        for i, real_arr in enumerate(realizations):
             real_id = str(uuid.uuid4())
             realization_ids.append(real_id)
 
@@ -310,7 +471,6 @@ class GeostatSimulator:
                 result.get("seed"),
             ))
 
-            real_arr = np.array(real)
             for idx in point_indices:
                 pt_id = str(uuid.uuid4())
                 pt = grid_pts[idx]

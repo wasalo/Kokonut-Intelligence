@@ -19,10 +19,31 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,090 checklist items complete and 25
-open (1,115 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,091 checklist items complete and 25
+open (1,116 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 bounded conditional field simulation — 24 October 2026
+
+- [x] Replace the dense grid covariance/Cholesky implementation with GSTools
+  `CondSRF` conditional random fields using ordinary kriging, seeded repeated
+  realizations, and unchanged realization/summary result fields. Reject invalid
+  inputs, unsupported/degenerate variograms, and source rows before generation;
+  cap each grid at 100,000 points before allocation, each run at 1,000
+  realizations, and the complete returned grid/realization/summary arrays at
+  1,000,000 numeric values before realization allocation. Persisted local-meter
+  coordinates are inverse-transformed into WGS84 for `geometry(4326)`, with
+  invalid/near-polar origins rejected before database access and deterministic
+  point sampling. The full geostatistics module passes 129 tests; Ruff,
+  compilation, refreshed/current runtime SQL inventory, capability validation,
+  and diff checks pass. No migration or database was used. The GSTools engine
+  choice changes numerical behavior from the former custom implementation, so
+  populated scientific parity remains an explicit review gate; CAP-008 stays
+  prepared pending that gate, live OIDC/browser, ACL/RLS, audience review, and
+  MAN-CAP-008. Rollback is a source revert plus runtime SQL inventory
+  regeneration ([contract](geostatistics-kernel-read-contract.md);
+  [evidence](builds/2026-10-24-recovery/cap-008-bounded-conditional-simulation.json)).
 
 ### CAP-008 local kriging neighborhoods and WGS84 persistence — 24 October 2026
 

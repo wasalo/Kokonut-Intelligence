@@ -1,3 +1,24 @@
+### Progress addendum — CAP-008 bounded conditional field simulation, 24 October 2026
+
+The legacy simulation runner no longer builds a dense grid-by-grid covariance
+matrix or Cholesky factor. It generates reproducible GSTools `CondSRF`
+conditional realizations from ordinary kriging, while retaining the existing
+result fields and CLI compatibility names. Input and fitted variogram values
+are checked before generation; grid points cap at 100,000, realizations at
+1,000, and the combined grid, realization, and summary arrays at 1,000,000
+numeric values. The grid cap is enforced before grid allocation, and the output
+cap before realization allocation. Persisting a run now inverse-transforms local-meter grid
+coordinates to WGS84, rejects invalid/near-polar origins before opening the
+database, and samples capped points deterministically. The full geostatistics
+module passes 129 tests; Ruff, compilation, refreshed/current runtime SQL
+inventory, capability validation, and diff checks pass. No migration or
+database was used. Because GSTools' conditional simulation replaces a custom
+algorithm, numerical/populated parity and scientific review remain open;
+CAP-008 also remains prepared pending live OIDC/browser, ACL/RLS, audience
+review, and MAN-CAP-008. Checklist: 1,091 complete / 25 open (1,116 total)
+([contract](geostatistics-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-008-bounded-conditional-simulation.json)).
+
 ### Progress addendum — CAP-008 bounded local kriging and WGS84 persistence, 24 October 2026
 
 Ordinary, simple, and indicator kriging now use the nearest observations inside

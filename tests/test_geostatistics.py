@@ -561,6 +561,86 @@ class TestGeostatSimulator:
         )
         assert r1["realizations"][0] == r2["realizations"][0]
 
+    def test_sgs_uses_conditional_random_fields_without_dense_grid_cholesky(self, monkeypatch):
+        simulator, _ = self._make_simulator()
+        coords, values = _make_spatial_data(n=15)
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1}
+
+        def forbid_dense_cholesky(*_args, **_kwargs):
+            raise AssertionError("dense grid covariance decomposition was called")
+
+        monkeypatch.setattr(np.linalg, "cholesky", forbid_dense_cholesky)
+        result = simulator.sequential_gaussian_simulation(
+            coords, values, variogram, n_realizations=2, grid_resolution_m=300.0
+        )
+
+        assert "error" not in result
+        assert result["simulation_engine"] == "gstools_conditional_random_field"
+        assert len(result["realizations"]) == 2
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"n_realizations": 0}, "n_realizations must be an integer from 1 to 1000"),
+            ({"n_realizations": 1001}, "n_realizations must be an integer from 1 to 1000"),
+            ({"grid_resolution_m": 0}, "grid_resolution_m must be finite and greater than zero"),
+            ({"seed": -1}, "seed must be an integer between 0 and 4294967295"),
+        ],
+    )
+    def test_sgs_rejects_invalid_settings(self, kwargs, message):
+        simulator, _ = self._make_simulator()
+        coords, values = _make_spatial_data(n=15)
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1}
+
+        result = simulator.sequential_gaussian_simulation(
+            coords, values, variogram, **kwargs
+        )
+
+        assert result == {"error": message}
+
+    def test_sgs_caps_grid_size_before_random_field_generation(self, monkeypatch):
+        import services.geostatistics.simulation as simulation_module
+
+        simulator, _ = self._make_simulator()
+        coords, values = _make_spatial_data(n=15)
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1}
+        monkeypatch.setattr(simulation_module, "MAX_SGS_GRID_POINTS", 1)
+
+        result = simulator.sequential_gaussian_simulation(
+            coords, values, variogram, n_realizations=1, grid_resolution_m=300.0
+        )
+
+        assert "grid exceeds the 1-point limit" in result["error"]
+
+    def test_sgs_caps_realization_output_size(self, monkeypatch):
+        import services.geostatistics.simulation as simulation_module
+
+        simulator, _ = self._make_simulator()
+        coords, values = _make_spatial_data(n=15)
+        variogram = {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1}
+        monkeypatch.setattr(simulation_module, "MAX_SGS_OUTPUT_VALUES", 1)
+
+        result = simulator.sequential_gaussian_simulation(
+            coords, values, variogram, n_realizations=1, grid_resolution_m=300.0
+        )
+
+        assert "output exceeds the 1-value limit" in result["error"]
+
+    @pytest.mark.parametrize(
+        "variogram",
+        [
+            {"model_type": "unknown", "sill": 2.5, "range": 500.0, "nugget": 0.1},
+            {"model_type": "exponential", "sill": 0.1, "range": 500.0, "nugget": 0.1},
+        ],
+    )
+    def test_sgs_rejects_unsupported_or_degenerate_variogram(self, variogram):
+        simulator, _ = self._make_simulator()
+        coords, values = _make_spatial_data(n=15)
+
+        result = simulator.sequential_gaussian_simulation(coords, values, variogram)
+
+        assert result == {"error": "Invalid variogram model"}
+
     def test_compute_e_type(self):
         simulator, _ = self._make_simulator()
         realizations = [[1.0, 2.0, 3.0], [2.0, 3.0, 4.0], [3.0, 4.0, 5.0]]
@@ -579,15 +659,54 @@ class TestGeostatSimulator:
         simulator, mock_cursor = self._make_simulator()
         mock_cursor.execute = MagicMock()
         result = {
-            "realizations": [[1.0, 2.0, 3.0]],
+            "realizations": [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
             "grid_points": [[0, 0], [100, 100], [200, 200]],
             "n_points": 3,
-            "n_realizations": 1,
+            "n_realizations": 2,
             "grid_resolution_m": 100.0,
             "seed": 42,
+            "coordinate_origin": {"latitude": 18.5, "longitude": -69.9},
         }
-        real_id = simulator.persist_simulations("loc1", "soil_carbon", "vm1", result)
+        real_id = simulator.persist_simulations(
+            "loc1", "soil_carbon", "vm1", result,
+            max_points=2, max_realizations=1,
+        )
         assert real_id is not None
+        run_inserts = [
+            call for call in mock_cursor.execute.call_args_list
+            if "INSERT INTO geostat_realization (" in call.args[0]
+        ]
+        point_inserts = [
+            call for call in mock_cursor.execute.call_args_list
+            if "ST_SetSRID" in call.args[0]
+        ]
+        assert len(run_inserts) == 1
+        assert len(point_inserts) == 2
+        assert point_inserts[0].args[1][2:4] == pytest.approx((-69.9, 18.5))
+        assert point_inserts[1].args[1][2:4] == pytest.approx(
+            (-69.9 + 200.0 / (111320.0 * np.cos(np.radians(18.5))), 18.5 + 200.0 / 111320.0)
+        )
+
+    def test_persist_simulations_requires_origin_before_database_access(self):
+        simulator, _ = self._make_simulator()
+        result = {
+            "realizations": [[1.0]],
+            "grid_points": [[0.0, 0.0]],
+        }
+
+        assert simulator.persist_simulations("loc1", "soil_carbon", "vm1", result) is None
+        simulator._conn.cursor.assert_not_called()
+
+    def test_persist_simulations_rejects_polar_projection_before_database_access(self):
+        simulator, _ = self._make_simulator()
+        result = {
+            "realizations": [[1.0]],
+            "grid_points": [[0.0, 0.0]],
+            "coordinate_origin": {"latitude": 89.95, "longitude": 0.0},
+        }
+
+        assert simulator.persist_simulations("loc1", "soil_carbon", "vm1", result) is None
+        simulator._conn.cursor.assert_not_called()
 
     def test_persist_simulations_error_returns_none(self):
         simulator, _ = self._make_simulator()
@@ -915,6 +1034,93 @@ def test_kriging_database_pipeline_forwards_neighborhood_settings():
     )
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"n_realizations": 0},
+        {"n_realizations": 1001},
+        {"grid_resolution_m": 0},
+        {"seed": -1},
+    ],
+)
+def test_simulation_database_pipeline_rejects_invalid_settings_before_connecting(kwargs):
+    from services.geostatistics.simulation import GeostatSimulator
+
+    connection = MagicMock()
+    result = GeostatSimulator(conn=connection).simulation_from_db(
+        "location-a", "soil_carbon", **kwargs
+    )
+
+    assert "error" in result
+    connection.cursor.assert_not_called()
+
+
+def test_simulation_database_pipeline_forwards_settings_and_geographic_origin():
+    from services.geostatistics.simulation import GeostatSimulator
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {
+        "model_type": "exponential", "sill": 2.5, "range": 100.0, "nugget": 0.1
+    }
+    cursor.fetchall.return_value = [
+        {"lat": 18.5, "lon": -69.9, "value": 1.0},
+        {"lat": 18.501, "lon": -69.901, "value": 2.0},
+        {"lat": 18.502, "lon": -69.902, "value": 3.0},
+    ]
+    simulator = GeostatSimulator(conn=connection)
+    simulator.sequential_gaussian_simulation = MagicMock(return_value={"n_points": 5})
+
+    result = simulator.simulation_from_db(
+        "location-a", "soil_carbon", variogram_model_id="model-a",
+        n_realizations=7, grid_resolution_m=125.5, seed=44,
+    )
+
+    simulator.sequential_gaussian_simulation.assert_called_once()
+    assert simulator.sequential_gaussian_simulation.call_args.kwargs == {
+        "n_realizations": 7, "grid_resolution_m": 125.5, "seed": 44,
+    }
+    assert result["coordinate_origin"] == pytest.approx(
+        {"latitude": 18.501, "longitude": -69.901}
+    )
+
+
+@pytest.mark.parametrize(
+    ("invalid_fields", "error"),
+    [
+        ({"value": "invalid"}, "Simulation source contains invalid coordinates or values"),
+        ({"lat": 90.1}, "Simulation source contains out-of-range coordinates"),
+        ({"lat": 89.95}, "Simulation source is too close to a pole for local projection"),
+    ],
+)
+def test_simulation_database_pipeline_rejects_invalid_source_before_simulation(
+    invalid_fields, error
+):
+    from services.geostatistics.simulation import GeostatSimulator
+
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = {
+        "model_type": "exponential", "sill": 2.5, "range": 100.0, "nugget": 0.1
+    }
+    source_rows = [
+        {"lat": 18.5, "lon": -69.9, "value": 1.0},
+        {"lat": 18.501, "lon": -69.901, "value": 2.0},
+        {"lat": 18.502, "lon": -69.902, "value": 3.0},
+    ]
+    source_rows[1].update(invalid_fields)
+    cursor.fetchall.return_value = source_rows
+    simulator = GeostatSimulator(conn=connection)
+    simulator.sequential_gaussian_simulation = MagicMock()
+
+    result = simulator.simulation_from_db(
+        "location-a", "soil_carbon", variogram_model_id="model-a"
+    )
+
+    assert result == {"error": error}
+    simulator.sequential_gaussian_simulation.assert_not_called()
+
+
 class TestSensorNetworkDesigner:
     def _make_designer(self):
         from services.geostatistics.sensor_optimization import SensorNetworkDesigner
@@ -1113,6 +1319,49 @@ class TestCLI:
                         main()
                     except Exception:
                         pass
+
+    def test_cli_simulation_forwards_resource_settings(self):
+        from services.geostatistics.cli import main
+        from services.geostatistics.simulation import GeostatSimulator
+
+        argv = [
+            "geostatistics", "--json", "simulate", "--location-id", "test-loc",
+            "--property", "soil_carbon", "--realizations", "7",
+            "--resolution", "125.5", "--seed", "44",
+        ]
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db", return_value=MagicMock()
+        ), patch.object(
+            GeostatSimulator, "simulation_from_db", return_value={"error": "synthetic"}
+        ) as run_simulation, patch("services.geostatistics.cli.print_json"):
+            main()
+
+        run_simulation.assert_called_once_with(
+            "test-loc", "soil_carbon", n_realizations=7,
+            grid_resolution_m=125.5, seed=44, variogram_model_id=None,
+        )
+
+    @pytest.mark.parametrize(
+        "argv",
+        [
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "0"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--realizations", "1001"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--resolution", "0"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_carbon", "--seed", "-1"],
+            ["geostatistics", "simulate", "--location-id", "test-loc", "--property", "soil_nitrogen"],
+        ],
+    )
+    def test_cli_simulation_rejects_invalid_settings_before_database(self, argv):
+        from services.geostatistics.cli import main
+
+        with patch("sys.argv", argv), patch(
+            "services.common.database.get_db"
+        ) as get_db:
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+
+        assert exc_info.value.code == 2
+        get_db.assert_not_called()
 
     def test_cli_autocorrelation_parser(self):
         """Autocorrelation subcommand should parse arguments."""

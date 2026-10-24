@@ -28,6 +28,10 @@ from .config import (
     DEFAULT_LAG_TOLERANCE,
     DEFAULT_MAX_NEIGHBORS,
     DEFAULT_SEARCH_RADIUS_M,
+    DEFAULT_SGS_GRID_SIZE_M,
+    DEFAULT_SGS_REALIZATIONS,
+    DEFAULT_SGS_SEED,
+    MAX_SGS_REALIZATIONS,
     PROPERTY_DEFAULTS,
 )
 
@@ -73,6 +77,16 @@ def _positive_integer(value: str) -> int:
         raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed
 
+
+def _nonnegative_integer(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if parsed < 0 or parsed > 2**32 - 1:
+        raise argparse.ArgumentTypeError("must be between 0 and 4294967295")
+    return parsed
+
 def main():
     parser = argparse.ArgumentParser(
         description="Kokonut Geostatistics Suite",
@@ -111,12 +125,12 @@ def main():
     kr.add_argument("--persist", action="store_true", help="Persist to database")
 
     # simulate
-    sim = sub.add_parser("simulate", help="Sequential Gaussian Simulation")
+    sim = sub.add_parser("simulate", help="Conditional Gaussian field simulation")
     sim.add_argument("--location-id", required=True, help="Location UUID")
     sim.add_argument("--property", required=True, dest="property_key")
-    sim.add_argument("--realizations", type=int, default=100, help="Number of realizations")
-    sim.add_argument("--resolution", type=float, default=10.0, help="Grid resolution in meters")
-    sim.add_argument("--seed", type=int, default=42, help="Random seed")
+    sim.add_argument("--realizations", type=_positive_integer, default=DEFAULT_SGS_REALIZATIONS, help="Number of realizations")
+    sim.add_argument("--resolution", type=_positive_finite_float, default=DEFAULT_SGS_GRID_SIZE_M, help="Grid resolution in meters")
+    sim.add_argument("--seed", type=_nonnegative_integer, default=DEFAULT_SGS_SEED, help="Random seed")
     sim.add_argument("--variogram-id", default=None, help="Variogram model UUID")
     sim.add_argument("--persist", action="store_true", help="Persist to database")
 
@@ -184,6 +198,16 @@ def main():
             parser.error(f"Unsupported property_key: {args.property_key}")
         if args.method == "indicator" and args.threshold is None:
             parser.error("indicator kriging requires --threshold")
+
+    if args.command == "simulate":
+        from .data_sources import supports_database_property
+
+        if not supports_database_property(args.property_key):
+            parser.error(f"Unsupported property_key: {args.property_key}")
+        if args.realizations > MAX_SGS_REALIZATIONS:
+            parser.error(
+                f"--realizations cannot exceed {MAX_SGS_REALIZATIONS}"
+            )
 
     from services.common.database import get_db
 
@@ -345,7 +369,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_prediction_id']}")
 
     elif command == "simulate":
-        print("Sequential Gaussian Simulation")
+        print("Conditional Gaussian Field Simulation")
         print(f"  Property:       {result.get('property_key', 'N/A')}")
         print(f"  Realizations:   {result.get('n_realizations', 'N/A')}")
         print(f"  Grid points:    {result.get('n_points', 'N/A')}")

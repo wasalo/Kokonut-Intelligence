@@ -162,10 +162,46 @@ exclusion, all three methods, database/CLI forwarding and preflight, WGS84
 persistence, and skipping unresolved cells. These are synthetic tests; no
 candidate/legacy database or provider was used.
 
+## Bounded conditional field simulation
+
+The legacy `sequential_gaussian_simulation` function and `simulate` CLI entry
+now use GSTools `CondSRF` conditioned through ordinary kriging. The seeded
+random stream makes repeated runs reproducible and preserves the legacy result
+fields (`realizations`, `grid_points`, E-type, and percentiles). The change
+removes the custom dense grid-covariance matrix and Cholesky factorization; it
+also changes numerical behavior, so populated-output parity and scientific
+review remain required before capability acceptance. GSTools documents
+conditioned ensembles through `CondSRF` and repeatable seeds ([conditioned
+realization example](https://geostat-framework.readthedocs.io/projects/gstools/en/v1.6.0/examples/06_conditioned_fields/00_condition_ensemble.html)).
+
+Validate coordinates, observations, model family, positive structured
+variance/range, nugget, seed, resolution, and realization count before the
+simulation engine runs. Reject unknown model names rather than substituting an
+exponential model. Resource bounds are 100,000 grid points, 1,000
+realizations, and 1,000,000 aggregate numeric values across the returned grid,
+realizations, and summary arrays. Calculate the grid size before allocating its
+axes, then check the aggregate output budget before allocating realization
+arrays. The DB pipeline rejects
+malformed/non-finite source rows before generation and only adds location and
+coordinate metadata to successful output.
+
+The local simulation grid uses meters relative to the mean input latitude and
+longitude. Persistence requires this origin, inverse-transforms positions to
+WGS84 before inserting `geometry(4326)`, rejects invalid and near-polar origins
+before opening PostgreSQL, drops non-finite/out-of-range cells, and samples
+the point cap deterministically. The projection remains a local equirectangular
+approximation; geographic parity remains part of scientific review.
+
+The 129-test geostatistics module now covers seeded reproducibility, the
+GSTools conditional-field path without dense Cholesky, resource bounds,
+invalid/degenerate models, DB source preflight, CLI settings, and WGS84
+persistence. These checks use synthetic data and mocks; no migration or
+database was used.
+
 ## Remaining work
 
 Other geostatistics outputs such as per-point kriging predictions/points and
-simulations, numerical/populated fixture parity, live OIDC and browser
+simulation point output, numerical/populated fixture parity, live OIDC and browser
 behavior, least-privilege ACL/RLS, audience review, and `MAN-CAP-008` remain
 open. Source property selection and explicit model scope now share one contract
 across all five legacy database runners; this source-level validation is not a
