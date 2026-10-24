@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-23",
+  "capability": "CAP-002",
+  "surface": "operator-console",
+  "routes": [
+    "GET /operator/api/crop-simulations/{location_id}/runs",
+    "GET /operator/api/crop-simulations/{location_id}/runs/{run_id}"
+  ],
+  "authorization": "Panel is exposed only for syntactically valid locations with the exact OIDC digital_twin:read grant; the Gateway independently enforces the grant and signed tenant context for list and detail reads.",
+  "privacy": "The console renders fixed completed-run and daily-state fields through text nodes. Run and state identifiers remain internal request inputs; parameters, metadata, errors, financial values, and state IDs are not rendered. Only persisted completed runs are read; no simulation is executed.",
+  "verification": {
+    "pytest": "106 passed: all three CAP-002 console contracts, crop-simulation Gateway and digital-twin checks, yield and irrigation Gateway/domain checks, and the complete registered-route policy inventory",
+    "ruff": "passed",
+    "inline_javascript_syntax": "passed with Node.js --check",
+    "capability_matrix": "passed: 67 rows; 27 baseline-retained, 7 deployed, 33 prepared; 0 MAN-CAP accepted",
+    "git_diff_check": "passed"
+  },
+  "database_migration": false,
+  "candidate_or_legacy_database_used": false,
+  "provider_or_chain_contacted": false,
+  "capability_status": "prepared",
+  "remaining": [
+    "model and populated legacy-output/frozen-fixture parity",
+    "live ZITADEL/browser acceptance",
+    "database ACL/RLS and broader runtime-role boundary",
+    "human MAN-CAP-002 acceptance"
+  ],
+  "rollback": "Remove the additive simulation panel, its exact-scope bootstrap and event bindings, and its console contract test. The existing read-only Gateway endpoints and legacy simulation behavior remain unchanged; no schema or data rollback is needed."
+}

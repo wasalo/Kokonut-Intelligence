@@ -61,8 +61,22 @@ These checks do not establish agronomic correctness or populated legacy output
 parity, validate live OIDC or browser behavior, establish RLS/least-privilege
 grants, or close MAN-CAP-002.
 
+## Operator console
+
+The console shows run summaries and persisted daily states only for a signed
+session with the exact `digital_twin:read` grant for a syntactically valid
+location. Same-origin/no-store requests use pages of at most 25 rows and check
+the response location, page offset, and selected run ID. Stale list or detail
+responses are discarded after a location or run change. Fixed run and state
+fields render through text nodes. Run/state IDs remain internal to requests;
+raw parameters, errors, metadata, and financial values are not displayed. The
+panel never starts or modifies a simulation. These source and DOM checks are
+not live browser or populated-model acceptance ([evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-console.json)).
+
 ## Rollback
 
-This additive read route can be rolled back by removing its route registration
-and exact `digital_twin:read` policy entry. No schema or data rollback is
-required; existing CLI simulation behavior is unchanged.
+To roll back only the console, remove its panel, exact-scope bootstrap, event
+bindings, and focused contract test; the existing read-only Gateway endpoints
+remain available. To roll back the full Kernel read slice as well, remove both
+routes and their exact `digital_twin:read` policy entries. Neither path needs a
+schema or data rollback; existing CLI simulation behavior is unchanged.

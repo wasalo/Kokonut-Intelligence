@@ -42,6 +42,7 @@ def test_status_request_is_grant_checked_private_bounded_and_stale_guarded():
     assert "requestVersion !== irrigationStatusRequestVersion" in reader
     assert "locationId !== irrigationStatusLocation.value" in reader
     assert "Previously loaded zones remain visible" in reader
+    assert "irrigationStatusMore.disabled = false" in reader
 
 
 def test_zone_renderer_uses_fixed_fields_as_text_and_never_exposes_controls():

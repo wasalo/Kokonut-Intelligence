@@ -1844,6 +1844,54 @@
           </div>
           <button id="irrigation-status-more" class="secondary" type="button" hidden>Load more zones</button>
         </section>
+        <section id="crop-simulations" hidden aria-labelledby="crop-simulations-heading">
+          <h2 id="crop-simulations-heading">Crop simulation runs</h2>
+          <p class="muted">Read-only summaries of completed runs and their persisted daily states for a granted location. This view does not run a model, change a run, or expose run parameters or errors.</p>
+          <div class="toolbar">
+            <label for="crop-simulations-location">Granted location</label>
+            <select id="crop-simulations-location"></select>
+            <button id="crop-simulations-refresh" type="button">Refresh runs</button>
+          </div>
+          <p id="crop-simulations-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Simulation</th><th>Completed</th><th>Final yield</th><th>Water (mm)</th><th>Nitrogen (kg)</th><th>Average soil carbon (%)</th><th></th></tr></thead>
+              <tbody id="crop-simulations-runs"></tbody>
+            </table>
+          </div>
+          <button id="crop-simulations-more" class="secondary" type="button" hidden>Load more runs</button>
+          <section id="crop-simulations-detail" hidden aria-labelledby="crop-simulations-detail-heading">
+            <h3 id="crop-simulations-detail-heading">Persisted daily states</h3>
+            <p id="crop-simulations-detail-status" class="muted" role="status" aria-live="polite"></p>
+            <dl id="crop-simulations-run-summary"></dl>
+            <div id="crop-simulations-states"></div>
+            <button id="crop-simulations-states-more" class="secondary" type="button" hidden>Load more daily states</button>
+          </section>
+        </section>
+        <section id="nutrient-operations" hidden aria-labelledby="nutrient-operations-heading">
+          <h2 id="nutrient-operations-heading">Nutrient records</h2>
+          <p class="muted">Read-only balances, soil tests, inputs, and harvest removals for a granted location. Currency is shown only when classified; values in different currencies are never combined.</p>
+          <div class="toolbar">
+            <label for="nutrient-operations-location">Granted location</label>
+            <select id="nutrient-operations-location"></select>
+            <label for="nutrient-operations-view">Records</label>
+            <select id="nutrient-operations-view">
+              <option value="balances">Nutrient balances</option>
+              <option value="soil-tests">Soil tests and recommendations</option>
+              <option value="inputs">Nutrient inputs</option>
+              <option value="removals">Harvest removals</option>
+            </select>
+            <button id="nutrient-operations-refresh" type="button">Refresh records</button>
+          </div>
+          <p id="nutrient-operations-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead id="nutrient-operations-head"></thead>
+              <tbody id="nutrient-operations-rows"></tbody>
+            </table>
+          </div>
+          <button id="nutrient-operations-more" class="secondary" type="button" hidden>Load more records</button>
+        </section>
         <section id="business-planning-canvases" hidden aria-labelledby="business-planning-canvases-heading">
           <h2 id="business-planning-canvases-heading">Business model canvases</h2>
           <p class="muted">Read-only canvases for locations with an active business-planning read grant. Content blocks are shown as text; this view does not edit, verify, submit, or publish a canvas. Raw imports, actor identities, and organization-level canvases are excluded.</p>
@@ -2844,6 +2892,33 @@
       let irrigationStatusRequestVersion = 0;
       let irrigationStatusOffset = 0;
       let irrigationStatusZones = [];
+      const cropSimulations = document.querySelector("#crop-simulations");
+      const cropSimulationsLocation = document.querySelector("#crop-simulations-location");
+      const cropSimulationsStatus = document.querySelector("#crop-simulations-status");
+      const cropSimulationsRuns = document.querySelector("#crop-simulations-runs");
+      const cropSimulationsMore = document.querySelector("#crop-simulations-more");
+      const cropSimulationsDetail = document.querySelector("#crop-simulations-detail");
+      const cropSimulationsDetailStatus = document.querySelector("#crop-simulations-detail-status");
+      const cropSimulationsRunSummary = document.querySelector("#crop-simulations-run-summary");
+      const cropSimulationsStates = document.querySelector("#crop-simulations-states");
+      const cropSimulationsStatesMore = document.querySelector("#crop-simulations-states-more");
+      let cropSimulationLocations = new Set();
+      let cropSimulationListRequestVersion = 0;
+      let cropSimulationDetailRequestVersion = 0;
+      let cropSimulationRunOffset = 0;
+      let cropSimulationStateOffset = 0;
+      let cropSimulationSelectedRunId = null;
+      const nutrientOperations = document.querySelector("#nutrient-operations");
+      const nutrientOperationsLocation = document.querySelector("#nutrient-operations-location");
+      const nutrientOperationsView = document.querySelector("#nutrient-operations-view");
+      const nutrientOperationsStatus = document.querySelector("#nutrient-operations-status");
+      const nutrientOperationsHead = document.querySelector("#nutrient-operations-head");
+      const nutrientOperationsRows = document.querySelector("#nutrient-operations-rows");
+      const nutrientOperationsMore = document.querySelector("#nutrient-operations-more");
+      let nutrientOperationsLocations = new Set();
+      let nutrientOperationsRequestVersion = 0;
+      let nutrientOperationsOffset = 0;
+      let nutrientOperationsTotal = 0;
       const traceability = document.querySelector("#traceability");
       const traceabilityLocation = document.querySelector("#traceability-location");
       const traceabilityRows = document.querySelector("#traceability-rows");
@@ -13853,6 +13928,7 @@
           irrigationStatusZones = [];
           irrigationStatusRows.replaceChildren();
           irrigationStatusMore.hidden = true;
+          irrigationStatusMore.disabled = false;
         } else {
           irrigationStatusMore.disabled = true;
         }
@@ -13895,6 +13971,349 @@
             : error.message;
         } finally {
           if (requestVersion === irrigationStatusRequestVersion) irrigationStatusMore.disabled = false;
+        }
+      }
+
+      function cropSimulationValue(value) {
+        if (value === null || value === undefined || value === "") return "—";
+        if (typeof value === "number" && Number.isFinite(value)) {
+          return new Intl.NumberFormat(undefined, { maximumFractionDigits: 8 }).format(value);
+        }
+        if (typeof value === "string" || typeof value === "boolean") return String(value);
+        return "—";
+      }
+
+      function renderCropSimulationRun(run) {
+        const row = document.createElement("tr");
+        const yieldValue = run.final_yield === null || run.final_yield === undefined
+          ? "—" : `${cropSimulationValue(run.final_yield)} ${cropSimulationValue(run.final_yield_unit)}`;
+        const values = [
+          run.twin_name, run.completed_at, yieldValue, run.total_water_mm,
+          run.total_nitrogen_kg, run.avg_soil_carbon_pct
+        ];
+        for (const value of values) {
+          const cell = document.createElement("td");
+          cell.textContent = cropSimulationValue(value);
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.className = "secondary";
+        button.type = "button";
+        button.textContent = "View daily states";
+        button.addEventListener("click", () => loadCropSimulationDetail(run.run_id));
+        actionCell.append(button);
+        row.append(actionCell);
+        return row;
+      }
+
+      function renderCropSimulationRunSummary(run) {
+        cropSimulationsRunSummary.replaceChildren();
+        for (const [label, value] of [
+          ["Simulation", run.twin_name], ["Started", run.started_at],
+          ["Completed", run.completed_at], ["Duration (ms)", run.duration_ms],
+          ["Final yield", run.final_yield === null || run.final_yield === undefined
+            ? null : `${cropSimulationValue(run.final_yield)} ${cropSimulationValue(run.final_yield_unit)}`],
+          ["Total water (mm)", run.total_water_mm], ["Total nitrogen (kg)", run.total_nitrogen_kg],
+          ["Average soil carbon (%)", run.avg_soil_carbon_pct]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = cropSimulationValue(value);
+          cropSimulationsRunSummary.append(term, description);
+        }
+      }
+
+      function renderCropSimulationState(state) {
+        const article = document.createElement("article");
+        const heading = document.createElement("h4");
+        heading.textContent = `Day ${cropSimulationValue(state.day_number)} · ${cropSimulationValue(state.state_date)}`;
+        article.append(heading);
+        const details = document.createElement("dl");
+        for (const [field, label] of [
+          ["crop_stage", "Crop stage"], ["soil_moisture_pct", "Soil moisture (%)"],
+          ["soil_nitrogen_ppm", "Soil nitrogen (ppm)"], ["soil_carbon_pct", "Soil carbon (%)"],
+          ["soil_temperature_c", "Soil temperature (°C)"], ["gdd_accumulated", "Growing degree days"],
+          ["crop_biomass_kg_ha", "Crop biomass (kg/ha)"], ["leaf_area_index", "Leaf area index"],
+          ["root_depth_cm", "Root depth (cm)"], ["rainfall_mm", "Rainfall (mm)"],
+          ["irrigation_mm", "Irrigation (mm)"], ["et_actual_mm", "Actual evapotranspiration (mm)"],
+          ["drainage_mm", "Drainage (mm)"], ["temp_avg_c", "Average air temperature (°C)"],
+          ["temp_min_c", "Minimum air temperature (°C)"], ["temp_max_c", "Maximum air temperature (°C)"],
+          ["solar_radiation_mj", "Solar radiation (MJ)"], ["humidity_pct", "Humidity (%)"],
+          ["wind_speed_kmh", "Wind speed (km/h)"], ["carbon_sequestered_kg_ha", "Carbon sequestered (kg/ha)"],
+          ["carbon_emitted_kg_ha", "Carbon emitted (kg/ha)"]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = cropSimulationValue(state[field]);
+          details.append(term, description);
+        }
+        article.append(details);
+        return article;
+      }
+
+      async function loadCropSimulationRuns(loadMore = false) {
+        const locationId = cropSimulationsLocation.value;
+        const requestVersion = ++cropSimulationListRequestVersion;
+        if (!cropSimulationLocations.has(locationId)) return;
+        const offset = loadMore ? cropSimulationRunOffset : 0;
+        if (!loadMore) {
+          cropSimulationRunOffset = 0;
+          cropSimulationsRuns.replaceChildren();
+          cropSimulationsMore.hidden = true;
+          cropSimulationsMore.disabled = false;
+          cropSimulationDetailRequestVersion += 1;
+          cropSimulationSelectedRunId = null;
+          cropSimulationsDetail.hidden = true;
+          cropSimulationsRunSummary.replaceChildren();
+          cropSimulationsStates.replaceChildren();
+          cropSimulationsDetailStatus.textContent = "";
+        } else {
+          cropSimulationsMore.disabled = true;
+        }
+        cropSimulationsStatus.textContent = loadMore ? "Loading more completed runs…" : "Loading completed crop-simulation runs…";
+        const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+        try {
+          const response = await fetch(
+            `/operator/api/crop-simulations/${encodeURIComponent(locationId)}/runs?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location simulation-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Completed crop-simulation runs are unavailable for this location.");
+            throw new Error("Crop-simulation runs could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== cropSimulationListRequestVersion
+              || locationId !== cropSimulationsLocation.value) return;
+          if (result.location_id !== locationId || result.offset !== offset) {
+            throw new Error("The simulation response did not match the selected location and page.");
+          }
+          const runs = Array.isArray(result.runs) ? result.runs : [];
+          for (const run of runs) cropSimulationsRuns.append(renderCropSimulationRun(run));
+          cropSimulationRunOffset = offset + runs.length;
+          cropSimulationsMore.hidden = result.has_more !== true || cropSimulationRunOffset > 10000;
+          cropSimulationsStatus.textContent = result.total_runs
+            ? `${cropSimulationRunOffset.toLocaleString()} of ${Number.isFinite(result.total_runs) ? result.total_runs.toLocaleString() : "—"} completed runs shown. This view reads persisted outputs only.`
+            : "No completed crop-simulation runs are available for this location.";
+        } catch (error) {
+          if (requestVersion !== cropSimulationListRequestVersion) return;
+          if (!loadMore) cropSimulationsRuns.replaceChildren();
+          cropSimulationsMore.hidden = true;
+          cropSimulationsStatus.textContent = loadMore
+            ? `${error.message} Previously loaded runs remain visible.`
+            : error.message;
+        } finally {
+          if (requestVersion === cropSimulationListRequestVersion) cropSimulationsMore.disabled = false;
+        }
+      }
+
+      async function loadCropSimulationDetail(runId, loadMore = false) {
+        const locationId = cropSimulationsLocation.value;
+        if (!cropSimulationLocations.has(locationId) || typeof runId !== "string" || !runId) return;
+        if (loadMore && runId !== cropSimulationSelectedRunId) return;
+        const requestVersion = ++cropSimulationDetailRequestVersion;
+        const offset = loadMore ? cropSimulationStateOffset : 0;
+        if (!loadMore) {
+          cropSimulationSelectedRunId = runId;
+          cropSimulationStateOffset = 0;
+          cropSimulationsDetail.hidden = false;
+          cropSimulationsRunSummary.replaceChildren();
+          cropSimulationsStates.replaceChildren();
+          cropSimulationsStatesMore.hidden = true;
+          cropSimulationsStatesMore.disabled = false;
+        } else {
+          cropSimulationsStatesMore.disabled = true;
+        }
+        cropSimulationsDetailStatus.textContent = loadMore ? "Loading more persisted daily states…" : "Loading completed run and persisted daily states…";
+        const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+        try {
+          const response = await fetch(
+            `/operator/api/crop-simulations/${encodeURIComponent(locationId)}/runs/${encodeURIComponent(runId)}?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location simulation-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("The completed crop-simulation run is not available for this location.");
+            throw new Error("Persisted simulation states could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== cropSimulationDetailRequestVersion
+              || locationId !== cropSimulationsLocation.value
+              || runId !== cropSimulationSelectedRunId) return;
+          if (result.location_id !== locationId || result.run?.run_id !== runId || result.offset !== offset) {
+            throw new Error("The simulation detail did not match the selected location, run, and page.");
+          }
+          renderCropSimulationRunSummary(result.run);
+          const states = Array.isArray(result.states) ? result.states : [];
+          for (const state of states) cropSimulationsStates.append(renderCropSimulationState(state));
+          cropSimulationStateOffset = offset + states.length;
+          cropSimulationsStatesMore.hidden = result.has_more !== true || cropSimulationStateOffset > 10000;
+          cropSimulationsDetailStatus.textContent = `${cropSimulationStateOffset.toLocaleString()} of ${Number.isFinite(result.total_states) ? result.total_states.toLocaleString() : "—"} persisted daily states shown. The simulation was not rerun.`;
+        } catch (error) {
+          if (requestVersion !== cropSimulationDetailRequestVersion) return;
+          if (!loadMore) {
+            cropSimulationsRunSummary.replaceChildren();
+            cropSimulationsStates.replaceChildren();
+          }
+          cropSimulationsStatesMore.hidden = true;
+          cropSimulationsDetailStatus.textContent = loadMore
+            ? `${error.message} Previously loaded states remain visible.`
+            : error.message;
+        } finally {
+          if (requestVersion === cropSimulationDetailRequestVersion) cropSimulationsStatesMore.disabled = false;
+        }
+      }
+
+      function nutrientViewConfig(view) {
+        const nutrientColumns = (prefix) => [
+          [`${prefix}.input_kg`, `${prefix[0].toUpperCase()}${prefix.slice(1)} in (kg)`],
+          [`${prefix}.removal_kg`, `${prefix[0].toUpperCase()}${prefix.slice(1)} out (kg)`],
+          [`${prefix}.surplus_kg`, `${prefix[0].toUpperCase()}${prefix.slice(1)} balance (kg)`]
+        ];
+        const configs = {
+          balances: {
+            route: "balances", rowsKey: "balances", totalKey: "total_summaries", label: "nutrient balance summaries",
+            columns: [["season", "Season"], ["crop_name", "Crop"], ["budget_count", "Budgets"], ["area_ha", "Area (ha)"],
+              ...nutrientColumns("nitrogen"), ...nutrientColumns("phosphorus"), ...nutrientColumns("potassium")]
+          },
+          "soil-tests": {
+            route: "soil-tests", rowsKey: "soil_tests", totalKey: "total_tests", label: "soil tests",
+            columns: [["test_date", "Test date"], ["status", "Status"], ["measurements.soil_ph", "Soil pH"],
+              ["measurements.organic_matter_pct", "Organic matter (%)"], ["measurements.nitrogen_ppm", "Nitrogen (ppm)"],
+              ["measurements.phosphorus_ppm", "Phosphorus (ppm)"], ["measurements.potassium_ppm", "Potassium (ppm)"],
+              ["measurements.cec", "CEC"], ["recommendations_kg_ha.nitrogen", "Recommended N (kg/ha)"],
+              ["recommendations_kg_ha.phosphorus", "Recommended P (kg/ha)"], ["recommendations_kg_ha.potassium", "Recommended K (kg/ha)"]]
+          },
+          inputs: {
+            route: "events/inputs", rowsKey: "events", totalKey: "total_events", label: "nutrient input events", eventType: "inputs",
+            columns: [["season", "Season"], ["budget_crop_name", "Budget crop"], ["budget_status", "Budget status"],
+              ["event_status", "Event status"], ["input_date", "Input date"], ["input_type", "Input type"],
+              ["product_name", "Product"], ["nutrients_kg.nitrogen", "Nitrogen (kg)"],
+              ["nutrients_kg.phosphorus", "Phosphorus (kg)"], ["nutrients_kg.potassium", "Potassium (kg)"],
+              ["application_rate", "Application rate"], ["rate_unit", "Rate unit"], ["cost", "Cost and currency"], ["cost_status", "Cost status"]]
+          },
+          removals: {
+            route: "events/removals", rowsKey: "events", totalKey: "total_events", label: "harvest removal events", eventType: "removals",
+            columns: [["season", "Season"], ["budget_crop_name", "Budget crop"], ["budget_status", "Budget status"],
+              ["event_status", "Event status"], ["harvest_date", "Harvest date"], ["crop_name", "Harvest crop"],
+              ["yield_amount", "Yield amount"], ["yield_unit", "Yield unit"], ["nutrients_kg.nitrogen", "Nitrogen (kg)"],
+              ["nutrients_kg.phosphorus", "Phosphorus (kg)"], ["nutrients_kg.potassium", "Potassium (kg)"]]
+          }
+        };
+        return Object.prototype.hasOwnProperty.call(configs, view) ? configs[view] : null;
+      }
+
+      function nutrientCellValue(row, key) {
+        if (key === "cost") {
+          if (row.cost && typeof row.cost === "object"
+              && Number.isFinite(row.cost.amount)
+              && typeof row.cost.currency_code === "string") {
+            return `${cropSimulationValue(row.cost.amount)} ${row.cost.currency_code}`;
+          }
+          if (row.cost_status === "currency_unclassified") return "Withheld: currency unclassified";
+          if (row.cost_status === "not_recorded") return "Not recorded";
+          return "—";
+        }
+        const value = key.split(".").reduce((current, part) => current?.[part], row);
+        return cropSimulationValue(value);
+      }
+
+      function renderNutrientHeaders(config) {
+        nutrientOperationsHead.replaceChildren();
+        const row = document.createElement("tr");
+        for (const [, label] of config.columns) {
+          const cell = document.createElement("th");
+          cell.scope = "col";
+          cell.textContent = label;
+          row.append(cell);
+        }
+        nutrientOperationsHead.append(row);
+      }
+
+      function renderNutrientRecord(record, config) {
+        const row = document.createElement("tr");
+        for (const [key] of config.columns) {
+          const cell = document.createElement("td");
+          cell.textContent = nutrientCellValue(record, key);
+          row.append(cell);
+        }
+        return row;
+      }
+
+      async function loadNutrientRecords(loadMore = false) {
+        const locationId = nutrientOperationsLocation.value;
+        const view = nutrientOperationsView.value;
+        const requestVersion = ++nutrientOperationsRequestVersion;
+        const config = nutrientViewConfig(view);
+        if (!nutrientOperationsLocations.has(locationId)) return;
+        if (!config) {
+          nutrientOperationsHead.replaceChildren();
+          nutrientOperationsRows.replaceChildren();
+          nutrientOperationsMore.hidden = true;
+          nutrientOperationsStatus.textContent = "Choose a supported nutrient record view.";
+          return;
+        }
+        const offset = loadMore ? nutrientOperationsOffset : 0;
+        if (!loadMore) {
+          nutrientOperationsOffset = 0;
+          nutrientOperationsTotal = 0;
+          nutrientOperationsHead.replaceChildren();
+          nutrientOperationsRows.replaceChildren();
+          nutrientOperationsMore.hidden = true;
+          nutrientOperationsMore.disabled = false;
+        } else {
+          nutrientOperationsMore.disabled = true;
+        }
+        nutrientOperationsStatus.textContent = loadMore ? "Loading more records…" : `Loading ${config.label}…`;
+        const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+        try {
+          const response = await fetch(
+            `/operator/api/nutrients/${encodeURIComponent(locationId)}/${config.route}?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location nutrient-read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Nutrient records are unavailable for this location.");
+            throw new Error("Nutrient records could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== nutrientOperationsRequestVersion
+              || locationId !== nutrientOperationsLocation.value
+              || view !== nutrientOperationsView.value) return;
+          if (result.location_id !== locationId || result.offset !== offset
+              || (config.eventType && result.event_type !== config.eventType)) {
+            throw new Error("The nutrient response did not match the selected location, record type, and page.");
+          }
+          if (offset === 0) renderNutrientHeaders(config);
+          const records = Array.isArray(result[config.rowsKey]) ? result[config.rowsKey] : [];
+          for (const record of records) nutrientOperationsRows.append(renderNutrientRecord(record, config));
+          nutrientOperationsOffset = offset + records.length;
+          nutrientOperationsTotal = Number.isFinite(result[config.totalKey]) ? result[config.totalKey] : nutrientOperationsOffset;
+          nutrientOperationsMore.hidden = result.has_more !== true || nutrientOperationsOffset > 10000;
+          nutrientOperationsStatus.textContent = nutrientOperationsTotal
+            ? `${nutrientOperationsOffset.toLocaleString()} of ${nutrientOperationsTotal.toLocaleString()} ${config.label} shown. Read-only; no budget, event, or recommendation was changed.`
+            : `No ${config.label} are recorded for this location.`;
+        } catch (error) {
+          if (requestVersion !== nutrientOperationsRequestVersion) return;
+          if (!loadMore) {
+            nutrientOperationsHead.replaceChildren();
+            nutrientOperationsRows.replaceChildren();
+          }
+          nutrientOperationsMore.hidden = true;
+          nutrientOperationsStatus.textContent = loadMore
+            ? `${error.message} Previously loaded records remain visible.`
+            : error.message;
+        } finally {
+          if (requestVersion === nutrientOperationsRequestVersion) nutrientOperationsMore.disabled = false;
         }
       }
 
@@ -15134,6 +15553,18 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           irrigationStatusLocations = new Set(irrigationStatusLocationIds);
+          const cropSimulationLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "digital_twin" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          cropSimulationLocations = new Set(cropSimulationLocationIds);
+          const nutrientOperationsLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "nutrient_budget" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          nutrientOperationsLocations = new Set(nutrientOperationsLocationIds);
           const traceabilityLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "traceability" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -15514,6 +15945,28 @@
             }
             irrigationStatus.hidden = false;
             await loadIrrigationStatus();
+            hasAuthorizedSurface = true;
+          }
+          if (cropSimulationLocationIds.length) {
+            for (const locationId of cropSimulationLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              cropSimulationsLocation.append(option);
+            }
+            cropSimulations.hidden = false;
+            await loadCropSimulationRuns();
+            hasAuthorizedSurface = true;
+          }
+          if (nutrientOperationsLocationIds.length) {
+            for (const locationId of nutrientOperationsLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              nutrientOperationsLocation.append(option);
+            }
+            nutrientOperations.hidden = false;
+            await loadNutrientRecords();
             hasAuthorizedSurface = true;
           }
           if (traceabilityLocationIds.length) {
@@ -19852,6 +20305,16 @@
       document.querySelector("#irrigation-status-refresh").addEventListener("click", () => loadIrrigationStatus());
       irrigationStatusLocation.addEventListener("change", () => loadIrrigationStatus());
       irrigationStatusMore.addEventListener("click", () => loadIrrigationStatus(true));
+      document.querySelector("#crop-simulations-refresh").addEventListener("click", () => loadCropSimulationRuns());
+      cropSimulationsLocation.addEventListener("change", () => loadCropSimulationRuns());
+      cropSimulationsMore.addEventListener("click", () => loadCropSimulationRuns(true));
+      cropSimulationsStatesMore.addEventListener("click", () => {
+        if (cropSimulationSelectedRunId) loadCropSimulationDetail(cropSimulationSelectedRunId, true);
+      });
+      document.querySelector("#nutrient-operations-refresh").addEventListener("click", () => loadNutrientRecords());
+      nutrientOperationsLocation.addEventListener("change", () => loadNutrientRecords());
+      nutrientOperationsView.addEventListener("change", () => loadNutrientRecords());
+      nutrientOperationsMore.addEventListener("click", () => loadNutrientRecords(true));
       document.querySelector("#traceability-refresh").addEventListener("click", () => loadTraceabilityBatches());
       traceabilityLocation.addEventListener("change", () => loadTraceabilityBatches());
       document.querySelector("#traceability-status-filter").addEventListener("change", () => loadTraceabilityBatches());

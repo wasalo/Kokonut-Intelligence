@@ -57,6 +57,8 @@ acceptance ([evidence](builds/2026-10-23-recovery/cap-002-yield-monitoring-conso
 
 ## Rollback
 
-This slice is additive and read-only. Roll back by removing the route
-registration and its `yield_monitoring:read` policy entry; no schema or data
-rollback is needed. The legacy yield CLI and analytics module remain available.
+To roll back only the console, remove its panel, exact-scope bootstrap, event
+bindings, and focused contract test; the existing read-only Gateway route stays
+available. To roll back the full Kernel read slice as well, remove the Gateway
+route and its `yield_monitoring:read` policy entry. Neither path needs schema or
+data rollback, and the legacy yield CLI and analytics module remain available.

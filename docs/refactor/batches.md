@@ -19,10 +19,44 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,051 checklist items complete and 25
-open (1,076 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,053 checklist items complete and 25
+open (1,078 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 27 baseline-retained, 7 deployed, and 33 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-002 nutrient operations operator-console reads — 23 October 2026
+
+- [x] Add one hidden-by-default nutrient console panel under the exact
+  `nutrient_budget:read` location grant, with allowlisted balance, soil-test,
+  input, and removal views. Each view uses same-origin/no-store bounded pages
+  and validates location, offset, event type, and stale-response state before
+  rendering fixed scalar fields as text. IDs, notes, and arbitrary metadata
+  are omitted. Input cost is shown only with a classified currency code;
+  unclassified historic amounts are withheld and currencies are never combined.
+  The combined CAP-002 console/Gateway/domain/route-policy selection passes 191
+  tests, including inline JavaScript syntax; Ruff, capability validation, and
+  diff checks pass. No migration, provider, candidate, or legacy database was
+  used. CAP-002 remains prepared pending historic cost reconciliation,
+  model/populated/frozen-fixture parity, live OIDC/browser acceptance, database
+  ACL/RLS, and MAN-CAP-002 acceptance ([contract](nutrient-operations-console-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-nutrient-console.json)).
+
+### CAP-002 crop-simulation operator-console reads — 23 October 2026
+
+- [x] Add a hidden-by-default completed-run list and persisted daily-state
+  detail gated by the exact `digital_twin:read` location grant. Same-origin,
+  no-store requests page 25 at a time, check response location/offset/run
+  correlation, and discard stale responses after a location or selected-run
+  change. Fixed run and daily-state fields render as text; IDs remain internal,
+  and parameters, errors, metadata, and financial values are omitted. The
+  console reads persisted results only and never runs a model. The combined
+  CAP-002 console/Gateway/domain/route-policy selection passes 106 tests,
+  including inline JavaScript syntax; Ruff, capability validation, and diff
+  checks pass. No migration, provider, candidate, or legacy database was used.
+  CAP-002 remains prepared pending model and populated/frozen-fixture parity,
+  live OIDC/browser acceptance, database ACL/RLS, and MAN-CAP-002 acceptance
+  ([contract](crop-simulation-runs-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-console.json)).
 
 ### CAP-002 harvest-yield operator-console read surface — 23 October 2026
 

@@ -58,6 +58,8 @@ populated-data, or physical-device acceptance ([evidence](builds/2026-10-23-reco
 
 ## Rollback
 
-This is an additive read-only route. Remove its route registration and exact
-`precision_irrigation:read` policy entry to roll back; no schema or data rollback
-is required. Legacy precision-irrigation CLI behavior remains available.
+To roll back only the console, remove its panel, exact-scope bootstrap, event
+bindings, and focused contract test; the read-only Gateway route remains
+available. To roll back the full Kernel slice as well, remove the route and its
+exact `precision_irrigation:read` policy entry. Neither path requires schema or
+data rollback, and legacy precision-irrigation CLI behavior remains available.

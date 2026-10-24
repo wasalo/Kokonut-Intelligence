@@ -1,3 +1,37 @@
+### Progress addendum — CAP-002 nutrient operations console, 23 October 2026
+
+The operator console now provides exact-grant, read-only views for nutrient
+balances, soil tests/recommendations, nutrient inputs, and harvest removals.
+Each uses an allowlisted route, same-origin/no-store 25-row pages, location/page
+correlation, stale-response guards, and text-only fixed fields. Classified input
+costs retain their currency; historic unclassified amounts are withheld and
+currencies are never combined. The combined CAP-002 console/Gateway/domain/
+route-policy suite passes 191 tests, including inline JavaScript syntax; Ruff,
+matrix validation, and diff checks pass. No migration, candidate/legacy
+database, provider, or chain was used. CAP-002 remains prepared pending historic
+cost reconciliation, model and populated/frozen-fixture parity, live
+OIDC/browser acceptance, ACL/RLS, and MAN-CAP-002. Checklist: 1,053 complete /
+25 open (1,078 total); matrix: 27 baseline-retained, 7 deployed, and 33
+prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](nutrient-operations-console-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-002-nutrient-console.json).
+
+### Progress addendum — CAP-002 crop-simulation console reads, 23 October 2026
+
+The operator console now displays completed crop-simulation runs and bounded
+pages of persisted daily states under the exact `digital_twin:read` location
+grant. Same-origin/no-store requests verify location, offset, and selected-run
+correlation; stale responses are discarded after a location or run change.
+Fixed fields render as text, run/state IDs stay internal, and the panel does not
+execute or modify simulations. The combined CAP-002 console/Gateway/domain/
+route-policy selection passes 106 tests, including inline JavaScript syntax;
+Ruff, capability validation, and diff checks pass. No migration,
+candidate/legacy database, provider, or chain was used. CAP-002 remains prepared
+pending model and populated/frozen-fixture parity, live OIDC/browser acceptance,
+database ACL/RLS, and MAN-CAP-002 acceptance. Checklist: 1,052 complete / 25
+open (1,077 total); matrix: 27 baseline-retained, 7 deployed, and 33 prepared
+across 67 rows; 0/67 MAN-CAP checks accepted. [Contract](crop-simulation-runs-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-002-crop-simulation-console.json).
+
 ### Progress addendum — CAP-002 irrigation-zone console status, 23 October 2026
 
 The operator console now exposes the active-zone status projection under a
