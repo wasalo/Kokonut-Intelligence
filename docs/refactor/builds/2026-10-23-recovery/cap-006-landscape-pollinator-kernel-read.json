@@ -1,0 +1,38 @@
+{
+  "capability": "CAP-006",
+  "date": "2026-10-23",
+  "change": "location-scoped landscape conservation and pollinator aggregate read surfaces",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/operator/api/landscape/{location_id}/summary",
+      "grant": "landscape_conservation:read"
+    },
+    {
+      "method": "GET",
+      "path": "/operator/api/pollinators/{location_id}/summary",
+      "grant": "pollinator_health:read"
+    }
+  ],
+  "verification": {
+    "focused_tests": "20 passed; combined CAP-006 selection: 42 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "inline_javascript_syntax": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "capability_matrix_validator": "passed",
+    "git_diff_check": "passed"
+  },
+  "data_access": {
+    "migration_applied": false,
+    "candidate_database_used": false,
+    "legacy_database_used": false,
+    "provider_contacted": false,
+    "pi_hardware_available": false
+  },
+  "limitations": [
+    "No populated output-parity fixture was available in this check.",
+    "No live OIDC/browser acceptance, RLS, or runtime-role least-privilege acceptance was performed.",
+    "The legacy pollinator analytics module uses column names that disagree with migration 155 and is not treated as the installed-schema contract."
+  ]
+}

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (23 October 2026):** 1,055 checklist items complete and 25
-open (1,079 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (23 October 2026):** 1,057 checklist items complete and 25
+open (1,082 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 26 baseline-retained, 7 deployed, and 34 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -60,6 +60,29 @@ acceptance remains separate; none is marked accepted.
   landscape/pollinator routes, RLS, live OIDC/browser behavior, and MAN-CAP-006
   ([contract](waste-management-kernel-read-contract.md);
   [evidence](builds/2026-10-23-recovery/cap-006-waste-kernel-read.json)).
+
+### CAP-006 landscape and pollinator Kernel reads — 23 October 2026
+
+- [x] Add a private `GET /operator/api/landscape/{location_id}/summary` route
+  under exact `landscape_conservation:read`. A signed-context, read-only
+  transaction aggregates habitat/corridor/hedgerow inventories and exposes
+  verified buffer checks plus verified/published biodiversity means. Units are
+  retained; names, geometry, notes, assessor identity, and metadata are omitted.
+- [x] Add a private `GET /operator/api/pollinators/{location_id}/summary` under
+  exact `pollinator_health:read`. Verified/reviewed observation and pesticide
+  records are separated from descriptive habitat and active-hive inventories.
+  Both use the actual migration-155 schema; the older analytics module's
+  mismatched column names are not assumed to exist. The hidden-by-default
+  console has independent grant-gated sections, no-store location checks,
+  allowlisted dimensions, stale-response suppression, and text-only rendering.
+  The combined CAP-006 Gateway, route-policy, console-contract, and JavaScript
+  selection passes 42 tests; Ruff, compilation, runtime SQL inventory, capability
+  matrix, and diff checks pass. No
+  migration, provider, candidate/legacy database, or Raspberry Pi was used.
+  Rollback is a source revert; no persistent state was written. CAP-006 remains
+  prepared pending calculation and populated-fixture parity, broader ACL/RLS,
+  live OIDC/browser acceptance, and MAN-CAP-006 ([contract](landscape-pollinator-kernel-read-contract.md);
+  [evidence](builds/2026-10-23-recovery/cap-006-landscape-pollinator-kernel-read.json)).
 
 ### CAP-002 nutrient operations operator-console reads — 23 October 2026
 

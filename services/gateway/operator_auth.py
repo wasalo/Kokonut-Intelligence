@@ -549,6 +549,32 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    landscape_summary_match = re.fullmatch(
+        r"/operator/api/landscape/([0-9a-fA-F-]{36})/summary", path
+    )
+    if landscape_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "landscape_conservation",
+            "action": "read",
+            "public": False,
+            "location_id": landscape_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    pollinator_summary_match = re.fullmatch(
+        r"/operator/api/pollinators/([0-9a-fA-F-]{36})/summary", path
+    )
+    if pollinator_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "read",
+            "public": False,
+            "location_id": pollinator_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     yield_summary_match = re.fullmatch(
         r"/operator/api/yield-monitoring/([0-9a-fA-F-]{36})/summary", path
     )
@@ -4395,12 +4421,16 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
     from services.gateway.irrigation_routes import register_irrigation_routes
+    from services.gateway.landscape_conservation_routes import (
+        register_landscape_conservation_routes,
+    )
     from services.gateway.management_work_routes import register_management_work_routes
     from services.gateway.nutrient_balance_routes import register_nutrient_balance_routes
     from services.gateway.operating_pilot_routes import (
         register_operating_pilot_routes,
     )
     from services.gateway.planning_budget_routes import register_planning_budget_routes
+    from services.gateway.pollinator_health_routes import register_pollinator_health_routes
     from services.gateway.sequential_decision_routes import (
         register_sequential_decision_routes,
     )
@@ -4427,6 +4457,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_extension_learning_routes(router, provider, run_in_threadpool, psycopg2)
     register_energy_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_waste_management_routes(router, provider, run_in_threadpool, psycopg2)
+    register_landscape_conservation_routes(router, provider, run_in_threadpool, psycopg2)
+    register_pollinator_health_routes(router, provider, run_in_threadpool, psycopg2)
     register_yield_monitoring_routes(router, provider, run_in_threadpool, psycopg2)
     register_irrigation_routes(router, provider, run_in_threadpool, psycopg2)
     register_crop_simulation_routes(router, provider, run_in_threadpool, psycopg2)

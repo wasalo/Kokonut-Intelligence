@@ -1,3 +1,25 @@
+### Progress addendum — CAP-006 landscape and pollinator Kernel reads, 23 October 2026
+
+CAP-006 now exposes separate private, exact-location `landscape_conservation:read`
+and `pollinator_health:read` aggregates. The landscape read separates
+descriptive habitat, corridor, and hedgerow inventories from verified buffer
+checks and verified/published biodiversity means. The pollinator read separates
+verified/reviewed observation and pesticide evidence from descriptive habitat
+and active-hive aggregates. Both follow migrations 154/155 directly, install
+signed tenant context before location-qualified queries, and omit names,
+geometry, plot/species/hive IDs, narratives, and arbitrary metadata. The
+hidden-by-default console gates each subsection independently, validates fixed
+dimensions and response location, uses no-store requests, suppresses stale
+responses, and renders text only. The focused Gateway, route-policy, console,
+and JavaScript selection passes 42 tests; Ruff and Python compilation pass;
+runtime SQL inventory, matrix validation, and diff checks pass. No migration, provider, candidate/legacy
+database, or Raspberry Pi was used. CAP-006 remains prepared pending populated
+parity, calculation review, ACL/RLS, live OIDC/browser, and MAN-CAP-006.
+Checklist: 1,057 complete / 25 open (1,082 total); matrix: 26 baseline-retained,
+7 deployed, and 34 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+[Contract](landscape-pollinator-kernel-read-contract.md);
+[evidence](builds/2026-10-23-recovery/cap-006-landscape-pollinator-kernel-read.json).
+
 ### Progress addendum — CAP-006 waste and pollution summary, 23 October 2026
 
 CAP-006 now also has an exact-location `waste_management:read` path for
