@@ -55,6 +55,11 @@ result without disclosing whether the model exists elsewhere. Soil and remote-
 sensing source reads retain their exact location predicates. This source-level
 scope check does not replace a least-privilege database role or RLS policy.
 
+The leave-one-out calculation keeps each prediction paired with the held-out
+observation that produced it. If a fold fails, aggregate error and R-squared
+metrics use only the remaining successful pairs; later folds are never
+compared to an earlier observation by array position.
+
 ## Fitted variogram route
 
 `GET /operator/api/geostatistics/{location_id}/variogram-models` uses the same

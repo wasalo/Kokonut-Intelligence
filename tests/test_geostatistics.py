@@ -465,6 +465,36 @@ class TestSpatialCrossValidator:
         assert "root_mean_squared_error" in result
         assert result["cv_strategy"] == "leave_one_out"
 
+    def test_leave_one_out_aggregates_only_successful_prediction_pairs(self, monkeypatch):
+        cv, _ = self._make_cv()
+        coords, values = _make_spatial_data(n=5)
+        coordinate_indexes = {tuple(coordinate): index for index, coordinate in enumerate(coords)}
+
+        def predict(_train_coords, _train_values, test_coords, _variogram):
+            index = coordinate_indexes[tuple(test_coords[0])]
+            if index == 2:
+                raise RuntimeError("synthetic middle-fold failure")
+            return np.array([values[index] + 1.0]), np.array([0.25])
+
+        monkeypatch.setattr(cv, "_kriging_predict", predict)
+        result = cv.leave_one_out_cv(
+            coords,
+            values,
+            {"model_type": "exponential", "sill": 2.5, "range": 500.0, "nugget": 0.1},
+        )
+
+        successful_actuals = np.array([value for index, value in enumerate(values) if index != 2])
+        expected_r_squared = 1 - 4 / np.sum((successful_actuals - successful_actuals.mean()) ** 2)
+        assert result["n_successful_folds"] == 4
+        assert result["mean_error"] == 1.0
+        assert result["mean_squared_error"] == 1.0
+        assert result["root_mean_squared_error"] == 1.0
+        assert result["mean_absolute_error"] == 1.0
+        assert result["r_squared"] == round(float(expected_r_squared), 4)
+        assert result["fold_results"][2]["error"] == (
+            "spatial cross-validation fold failed (RuntimeError)"
+        )
+
     def test_leave_one_out_cv_insufficient_samples(self):
         cv, _ = self._make_cv()
         coords, values = _make_spatial_data(n=3)

@@ -1,3 +1,16 @@
+### Progress addendum — CAP-008 leave-one-out metric pairing, 24 October 2026
+
+Leave-one-out CV previously compared successful predictions against the first
+N input values, which misaligned the data if a middle fold failed. It now keeps
+each predicted value paired with its held-out observation and computes all
+aggregate errors and R-squared from those successful pairs. A regression
+injects a middle-fold failure and verifies the error metrics and bounded
+failure detail. The full geostatistics suite passes 59 tests; Ruff, compilation,
+refreshed runtime SQL inventory, and diff checks pass. No database or migration
+was used. Checklist: 1,085 complete / 25 open (1,110 total); CAP-008 remains
+prepared pending scientific/populated parity, remaining Kernel output review,
+live OIDC/browser, ACL/RLS, audience review, and MAN-CAP-008 ([evidence](builds/2026-10-24-recovery/cap-008-loo-success-pairing.json)).
+
 ### Progress addendum — CAP-008 cross-validation variogram scope, 24 October 2026
 
 The legacy cross-validation runner now selects an explicitly requested

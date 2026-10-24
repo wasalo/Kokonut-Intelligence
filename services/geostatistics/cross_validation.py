@@ -196,6 +196,7 @@ class SpatialCrossValidator:
 
         fold_results = []
         all_predictions = []
+        all_actuals = []
 
         for i in range(n):
             test_coord = coords[i].tolist()
@@ -211,6 +212,7 @@ class SpatialCrossValidator:
                 )
                 error = float(pred[0] - test_val)
                 all_predictions.append(float(pred[0]))
+                all_actuals.append(test_val)
 
                 fold_results.append({
                     "fold": i + 1,
@@ -231,7 +233,8 @@ class SpatialCrossValidator:
             return {"error": "No successful folds", "fold_results": fold_results}
 
         all_pred = np.array(all_predictions)
-        errors = all_pred - vals[:len(all_predictions)]
+        all_act = np.array(all_actuals)
+        errors = all_pred - all_act
 
         return {
             "cv_strategy": "leave_one_out",
@@ -242,7 +245,7 @@ class SpatialCrossValidator:
             "mean_squared_error": round(float(np.mean(errors ** 2)), 4),
             "root_mean_squared_error": round(float(np.sqrt(np.mean(errors ** 2))), 4),
             "mean_absolute_error": round(float(np.mean(np.abs(errors))), 4),
-            "r_squared": round(float(1 - np.sum(errors ** 2) / np.sum((vals[:len(all_pred)] - np.mean(vals[:len(all_pred)])) ** 2)), 4) if np.sum((vals[:len(all_pred)] - np.mean(vals[:len(all_pred)])) ** 2) > 0 else 0.0,
+            "r_squared": round(float(1 - np.sum(errors ** 2) / np.sum((all_act - np.mean(all_act)) ** 2)), 4) if np.sum((all_act - np.mean(all_act)) ** 2) > 0 else 0.0,
         }
 
     def cross_validate_from_db(

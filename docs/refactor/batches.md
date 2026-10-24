@@ -19,10 +19,21 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,084 checklist items complete and 25
-open (1,109 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,085 checklist items complete and 25
+open (1,110 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-008 leave-one-out failure-pair alignment — 24 October 2026
+
+- [x] Keep each successful leave-one-out prediction paired with its held-out
+  observation when a different fold fails. Aggregate mean error, MSE, RMSE,
+  MAE, and R-squared now use only those matching successful pairs. A synthetic
+  middle-fold failure regression verifies the metrics and redacted failure
+  result; the full geostatistics module passes 59 tests. Ruff, compilation,
+  runtime SQL inventory, and diff checks pass. No migration or database was
+  used. Rollback is a source revert plus runtime-SQL inventory regeneration
+  ([evidence](builds/2026-10-24-recovery/cap-008-loo-success-pairing.json)).
 
 ### CAP-008 cross-validation variogram scope — 24 October 2026
 

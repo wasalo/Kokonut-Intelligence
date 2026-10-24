@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-24",
+  "capability": "CAP-008",
+  "batch": "leave-one-out successful prediction/observation alignment",
+  "classification": "prepared",
+  "implementation": {
+    "source": "services/geostatistics/cross_validation.py:SpatialCrossValidator.leave_one_out_cv",
+    "behavior": "append the held-out actual only when its prediction succeeds; compute aggregate errors and R-squared from aligned successful pairs",
+    "failure_behavior": "a failed fold remains redacted and does not shift subsequent observation alignment",
+    "no_schema_migration": true
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_geostatistics.py -q",
+    "result": "59 passed",
+    "regression": "synthetic middle-fold failure verifies matching pairs, all error measures, R-squared, and bounded failure text",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "runtime_sql_inventory": "regenerated and current",
+    "database_execution": "not run; calculation was exercised with synthetic in-memory arrays",
+    "git_diff_check": "passed"
+  },
+  "not_used": [
+    "candidate database",
+    "legacy database",
+    "provider",
+    "external service",
+    "Raspberry Pi hardware"
+  ],
+  "remaining_acceptance": [
+    "scientific and populated fixture parity",
+    "other geostatistics output review",
+    "live ZITADEL and browser acceptance",
+    "least-privilege database roles and RLS",
+    "audience and semantic review",
+    "MAN-CAP-008 human acceptance"
+  ],
+  "rollback": "Revert the successful-pair accumulation and regression. No persistent data was changed."
+}
