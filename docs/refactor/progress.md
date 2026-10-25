@@ -18195,3 +18195,8 @@ still open until the matching authenticated Gateway operations exist. Checklist:
 1,166 complete / 25 open (1,191 total); matrix remains 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-027-delphi-cli-study-panel-boundary.json).
+
+
+### Progress addendum — CAP-027 authenticated Delphi study drafts, 25 October 2026
+
+The Gateway can now create a location-scoped Delphi study in `draft` state. OIDC session identity, exact `delphi:draft` grant, signed transaction context, title/description and stopping-criteria bounds, and an immutable digest-only retry receipt are enforced before a draft is returned. Identical retries replay; changed request content, cross-location scope, malformed criteria, and read-only grants fail closed. Runtime and Directus cannot access the receipt table or invoke the bounded writer. The focused route/service and route-policy selection passes 29 tests. Disposable PostgreSQL 16 applies and replays migrations 449–451 and 630 with six grouped assertions; Ruff, compilation, and capability validation pass ([contract](delphi-consultation-kernel-contract.md); [migration](../../schemas/postgres/630_location_scoped_delphi_study_drafts.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-drafts-disposable.json)). No candidate or legacy database was touched and migration 630 is not rolled out. The study-creation console form and remaining Delphi lifecycle routes are still open; CAP-027 remains prepared, not accepted. Checklist: 1,167 complete / 25 open (1,192 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

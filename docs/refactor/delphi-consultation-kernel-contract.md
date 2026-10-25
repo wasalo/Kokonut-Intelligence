@@ -77,6 +77,31 @@ identical retry. Five focused console contract checks pass, including Node.js
 parsing of the inline application script. The console has not been accepted
 through live OIDC/browser use.
 
+## Study draft creation
+
+`POST /operator/api/delphi/{location_id}/studies` creates one private Delphi
+study in `draft` state. The request accepts exactly `request_id`, `title`,
+`description`, `variation`, `facilitator_type`, and `stopping_criteria`;
+`request_id` and title are required. Variations and facilitator types use
+explicit allowlists, title/description are bounded, and stopping criteria
+accept only the four supported fields with bounded numeric values. The
+operator identity comes from the authenticated OIDC session, and the route
+requires an exact location-scoped `delphi:draft` grant. The service sets signed
+tenant context before calling the bounded database function and returns
+no-store responses.
+
+Migration 630 rechecks signed operator/location context and the live grant in
+the database, inserts only `draft` state, and records an immutable private
+request receipt. The receipt stores a SHA-256 digest rather than duplicating
+the title or description. Identical retries return the original study;
+reusing a request ID with different content, a mismatched location, malformed
+criteria, or a read-only grant fails closed. Runtime and Directus cannot read
+the receipt table; only the Gateway runtime can execute the function, which is
+owned by a dedicated non-login role with column-limited study access. This
+route creates a study only; item, panel, open/close, contribution, and stopping
+operations remain separate lifecycle work. The operator console does not yet
+provide a study-creation form.
+
 ## Facilitator draft creation
 
 `GET /operator/api/delphi/{location_id}/draft-studies?limit=50&offset=0`
@@ -130,8 +155,9 @@ and MAN-CAP-027 acceptance remain separate gates.
 ## Verification and rollback
 
 Focused Gateway, exact route-policy, existing Delphi, and migration metadata
-checks pass (119 tests). Migration 449's disposable PostgreSQL 16 acceptance
-passed. Migration 450 applies and replays in a fresh disposable PostgreSQL 16
+checks pass (119 tests). The study draft route/service selection and route
+policy inventory pass 29 tests. Migration 449's disposable PostgreSQL 16
+acceptance passed. Migration 450 applies and replays in a fresh disposable PostgreSQL 16
 container and passes seven runtime assertions, including review scope, creator
 self-review denial, diversity/minority gates, exact retry/collision behavior,
 append-only audit, and runtime/Directus direct-table denial. A first run exposed
@@ -149,12 +175,21 @@ filtering, exact request retries and collision rejection, draft-only state,
 request payload bounds, private append-only ledger behavior, read-only grant
 denial, runtime/Directus privilege boundaries, and the drafter owner's narrow
 `UPDATE(id)` row-lock grant ([draft tests](../../tests/test_gateway_delphi_recommendation_drafts.py), [console tests](../../tests/test_operator_console_delphi_recommendation_drafts.py), [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json)).
-Migration 451 is not rolled out to candidate or legacy. The CAP-027 draft
+Migration 451 is not rolled out to candidate or legacy. Migration 630 applies
+and replays with migrations 449–451 on disposable PostgreSQL 16; six grouped
+assertions cover exact location/grant enforcement, draft-only creation, exact
+retry and changed-content rejection, malformed criteria, immutable digest-only
+receipts, runtime/Directus access denial, and the dedicated function owner
+([study draft tests](../../tests/test_gateway_delphi_study_drafts.py),
+[disposable check](../../scripts/check-delphi-study-drafts-disposable.py),
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-drafts-disposable.json)).
+No candidate or legacy database was touched; migration 630 is not rolled out.
+The CAP-027 draft
 source slice is implemented and verified, not accepted as a capability.
 Live OIDC/browser, broader Delphi parity, universal runtime ACL/RLS, and
 MAN-CAP-027 owner acceptance remain open.
 
-Before migrations 449–451 are applied, roll back by removing the routes,
+Before migrations 449–451 or 630 are applied, roll back by removing the routes,
 services, route policies, and migrations from the proposed deployment. After
 application, retain additive functions, roles, and ledgers as ordered
 migrations; disable the routes to roll back application behavior. No candidate
