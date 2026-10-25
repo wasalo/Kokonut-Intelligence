@@ -255,9 +255,11 @@
           <div class="toolbar">
             <button id="delphi-study-lifecycle-open" type="button" disabled>Open study</button>
             <button id="delphi-study-lifecycle-close" class="secondary" type="button" disabled>Close study</button>
+            <button id="delphi-study-stopping-evaluate" class="secondary" type="button" disabled>Evaluate stopping criteria</button>
           </div>
           <p id="delphi-study-lifecycle-readiness" class="muted" role="status" aria-live="polite"></p>
           <p id="delphi-study-lifecycle-status" class="muted" role="status" aria-live="polite"></p>
+          <p class="muted">Stopping evaluation uses currently consented responses and is advisory. It never closes or publishes a study.</p>
         </section>
         <section id="delphi-study-item-create" hidden aria-labelledby="delphi-study-item-create-heading">
           <h2 id="delphi-study-item-create-heading">Add a question to a Delphi study draft</h2>
@@ -3013,6 +3015,7 @@
       const delphiStudyLifecycleMore = document.querySelector("#delphi-study-lifecycle-more");
       const delphiStudyLifecycleOpen = document.querySelector("#delphi-study-lifecycle-open");
       const delphiStudyLifecycleClose = document.querySelector("#delphi-study-lifecycle-close");
+      const delphiStudyStoppingEvaluate = document.querySelector("#delphi-study-stopping-evaluate");
       const delphiStudyLifecycleReadiness = document.querySelector("#delphi-study-lifecycle-readiness");
       const delphiStudyLifecycleStatus = document.querySelector("#delphi-study-lifecycle-status");
       let delphiStudyLifecycleLocations = new Map();
@@ -3021,6 +3024,7 @@
       let delphiStudyLifecycleReadinessRequestVersion = 0;
       let delphiStudyLifecycleReadinessResult = null;
       let delphiStudyLifecycleRequestIds = new Map();
+      let delphiStudyStoppingRequestIds = new Map();
       const delphiStudyItemCreate = document.querySelector("#delphi-study-item-create");
       const delphiStudyItemLocation = document.querySelector("#delphi-study-item-location");
       const delphiStudyItemStudy = document.querySelector("#delphi-study-item-study");
@@ -21488,15 +21492,24 @@
             .filter((scope) => scope.resource === "delphi" && scope.action === "close")
             .map((scope) => scope.location_id)
             .filter(validDelphiReviewLocation));
+          const delphiStoppingLocationIds = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "evaluate_stopping")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation));
           const delphiStudyLifecycleLocationIds = [...delphiReadLocationIds]
             .filter((locationId) => delphiOpenLocationIds.has(locationId)
-              || delphiCloseLocationIds.has(locationId));
+              || delphiCloseLocationIds.has(locationId)
+              || delphiStoppingLocationIds.has(locationId));
           const delphiStudyItemLocationIds = [...delphiReadLocationIds]
             .filter((locationId) => delphiStudyDraftLocations.has(locationId));
           delphiStudyItemLocations = new Set(delphiStudyItemLocationIds);
           delphiStudyLifecycleLocations = new Map(delphiStudyLifecycleLocationIds.map((locationId) => [
             locationId,
-            { open: delphiOpenLocationIds.has(locationId), close: delphiCloseLocationIds.has(locationId) },
+            {
+              open: delphiOpenLocationIds.has(locationId),
+              close: delphiCloseLocationIds.has(locationId),
+              evaluateStopping: delphiStoppingLocationIds.has(locationId),
+            },
           ]));
           const governanceTensionLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_tension" && scope.action === "read")
@@ -22905,6 +22918,7 @@
         delphiStudyLifecycleOpen.disabled = !grants?.open || status !== "draft"
           || !readinessMatches || delphiStudyLifecycleReadinessResult?.eligible_to_open !== true;
         delphiStudyLifecycleClose.disabled = !grants?.close || status !== "open";
+        delphiStudyStoppingEvaluate.disabled = !grants?.evaluateStopping || status !== "open";
       }
 
       async function loadDelphiStudyLifecycleOpenReadiness() {
@@ -23106,6 +23120,79 @@
             : `Study ${action === "open" ? "opened" : "closed"}. Current status is ${result.status}.`;
         } catch (error) {
           delphiStudyLifecycleStatus.textContent = `${error.message} Retrying this action will reuse its request ID.`;
+          refreshDelphiStudyLifecycleControls();
+        }
+      }
+
+      async function evaluateDelphiStudyStopping() {
+        const locationId = delphiStudyLifecycleLocation.value;
+        const studyId = delphiStudyLifecycleStudy.value;
+        const grants = delphiStudyLifecycleLocations.get(locationId);
+        const selected = delphiStudyLifecycleStudy.selectedOptions[0];
+        if (!grants?.evaluateStopping || !studyId || selected?.dataset?.status !== "open") {
+          delphiStudyLifecycleStatus.textContent = "A location-scoped Delphi evaluate_stopping grant and an open study are required.";
+          return;
+        }
+        if (!window.confirm("Evaluate the current consented responses against this study's stopping criteria? This does not close the study.")) return;
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, studyId, "evaluate_stopping"]);
+        let requestId = delphiStudyStoppingRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiStudyStoppingRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiStudyLifecycleStatus.textContent = "Refresh in a secure browser session before evaluating Delphi stopping criteria.";
+          return;
+        }
+        delphiStudyStoppingEvaluate.disabled = true;
+        delphiStudyLifecycleStatus.textContent = "Evaluating current consented responses…";
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/stopping-evaluation`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi stopping grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error("The study is not open or the evaluation request conflicts.");
+          }
+          if (!response.ok) throw new Error("Delphi stopping evaluation is unavailable.");
+          const outcomes = new Set([
+            "continue", "consensus_reached", "stable_without_consensus",
+            "time_limit_with_consensus", "time_limit_without_consensus",
+            "insufficient_participation", "insufficient_stability_history",
+            "incomplete_items",
+          ]);
+          const validId = (value) => typeof value === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || typeof result.should_stop !== "boolean" || !outcomes.has(result.outcome)
+              || !Array.isArray(result.items)
+              || result.items.some((item) => !validId(item.item_id)
+                || typeof item.should_stop !== "boolean" || !outcomes.has(item.outcome))
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The stopping evaluation did not match the selected study.");
+          }
+          delphiStudyStoppingRequestIds.delete(requestKey);
+          delphiStudyLifecycleStatus.textContent = result.should_stop
+            ? `Evaluation outcome: ${result.outcome}. All ${result.items.length} questions meet at least one configured stop rule. The study remains open; close it separately after review.`
+            : `Stopping criteria are not met for every question (${result.outcome}). The study remains open.`;
+        } catch (error) {
+          delphiStudyLifecycleStatus.textContent = `${error.message} Retrying this evaluation reuses its request ID.`;
+        } finally {
           refreshDelphiStudyLifecycleControls();
         }
       }
@@ -26313,6 +26400,7 @@
       delphiStudyLifecycleMore.addEventListener("click", () => loadDelphiStudyLifecycleStudies(true));
       delphiStudyLifecycleOpen.addEventListener("click", () => submitDelphiStudyLifecycle("open"));
       delphiStudyLifecycleClose.addEventListener("click", () => submitDelphiStudyLifecycle("close"));
+      delphiStudyStoppingEvaluate.addEventListener("click", evaluateDelphiStudyStopping);
       document.querySelector("#governance-tension-refresh").addEventListener("click", () => loadGovernanceTensionQueue());
       governanceTensionLocation.addEventListener("change", () => loadGovernanceTensionQueue());
       governanceTensionStatusFilter.addEventListener("change", () => loadGovernanceTensionQueue());

@@ -25,11 +25,45 @@ def test_lifecycle_panel_requires_read_and_exact_location_action_grants():
     assert 'scope.resource === "delphi" && scope.action === "read"' in source
     assert 'scope.resource === "delphi" && scope.action === "open"' in source
     assert 'scope.resource === "delphi" && scope.action === "close"' in source
+    assert 'scope.resource === "delphi" && scope.action === "evaluate_stopping"' in source
     assert "delphiReadLocationIds" in source
     assert "delphiOpenLocationIds.has(locationId)" in source
     assert "delphiCloseLocationIds.has(locationId)" in source
     assert "delphiStudyLifecycleLocations.has(locationId)" in source
     assert "a closed study cannot be reopened" in panel
+
+
+def test_stopping_evaluation_is_grant_gated_advisory_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="delphi-study-lifecycle".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert 'id="delphi-study-stopping-evaluate"' in panel.group()
+    assert "is advisory" in panel.group()
+    controls = _function(
+        source,
+        "function refreshDelphiStudyLifecycleControls()",
+        "async function loadDelphiStudyLifecycleOpenReadiness()",
+    )
+    assert 'grants?.evaluateStopping || status !== "open"' in controls
+    evaluator = _function(
+        source,
+        "async function evaluateDelphiStudyStopping()",
+        "async function loadDelphiRecommendationDraftStudies(",
+    )
+    assert 'grants?.evaluateStopping' in evaluator
+    assert 'selected?.dataset?.status !== "open"' in evaluator
+    assert "window.confirm" in evaluator
+    assert "delphiStudyStoppingRequestIds.get(requestKey)" in evaluator
+    assert "delphiStudyStoppingRequestIds.set(requestKey, requestId)" in evaluator
+    assert "delphiStudyStoppingRequestIds.delete(requestKey)" in evaluator
+    assert "/stopping-evaluation" in evaluator
+    assert '"X-CSRF-Token": csrf' in evaluator
+    assert 'cache: "no-store"' in evaluator
+    assert 'credentials: "same-origin"' in evaluator
+    assert "body: JSON.stringify({ request_id: requestId })" in evaluator
+    assert "participant_count" not in evaluator
+    assert "The study remains open." in evaluator
+    assert "never closes or publishes" in panel.group()
 
 
 def test_study_list_is_location_scoped_no_store_and_bounded():
@@ -139,10 +173,12 @@ def test_lifecycle_controls_have_unique_ids_and_event_handlers():
         "delphi-study-lifecycle-close",
         "delphi-study-lifecycle-readiness",
         "delphi-study-lifecycle-status",
+        "delphi-study-stopping-evaluate",
     ):
         assert f'id="{element_id}"' in source
     assert 'delphiStudyLifecycleOpen.addEventListener("click", () => submitDelphiStudyLifecycle("open"))' in source
     assert 'delphiStudyLifecycleClose.addEventListener("click", () => submitDelphiStudyLifecycle("close"))' in source
+    assert 'delphiStudyStoppingEvaluate.addEventListener("click", evaluateDelphiStudyStopping)' in source
 
 
 def test_inline_javascript_parses_with_node(tmp_path):

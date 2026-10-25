@@ -494,6 +494,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    delphi_stopping_evaluation_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/stopping-evaluation",
+        path,
+    )
+    if delphi_stopping_evaluation_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "evaluate_stopping",
+            "public": False,
+            "location_id": delphi_stopping_evaluation_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_draft_studies_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/draft-studies", path
     )

@@ -95,10 +95,45 @@ rechecks prerequisites in its write transaction, so consent changes between
 the projection and the action cannot bypass the gate. The readiness result is
 advisory and can become stale immediately; it is not a reservation.
 
-The current repository still has no tenant-safe participant invitation flow,
-participant-authenticated consent receipt, or bounded panel-membership write
-path. This readiness projection does not grant consent and does not close those
-CAP-027 implementation gates.
+Migrations 635–637 now provide the notice-bound single-use invitation,
+participant-authenticated consent receipt, withdrawal, and bounded
+pseudonymous membership path. This readiness projection remains read-only; it
+does not grant consent or enroll a participant.
+
+## Stopping-criteria evaluation
+
+`POST
+/operator/api/delphi/{location_id}/studies/{study_id}/stopping-evaluation`
+requires the exact location-scoped `delphi:evaluate_stopping` grant and one
+`request_id`. The Gateway sets signed operator/location context on the same
+transaction before calling migration 639's bounded function. PostgreSQL checks
+the active grant again and permits evaluation only while that exact-location
+study remains open.
+
+The evaluator locks the study and its panel rows while it calculates from
+currently consented contributions. Participant answer changes and study
+closure use the same study lock, so they cannot interleave with an evaluation.
+Withdrawn and pending participants are excluded even if their old contribution
+rows remain. Consensus, minimum participation, stability, and elapsed duration
+use the study's validated stopping criteria. Stability compares only the last
+prior Kernel evaluation whose consent-filtered snapshot is not older than the
+latest consent event; legacy snapshots are never trusted for stability.
+
+The response contains the study/location, one fixed outcome per question,
+whether the study-level rule recommends stopping, evaluation time, and retry
+status. It omits participant counts, numeric scores/statistics, response text,
+panel identities, and consent details. Private append-only item/study records
+support stability and audit; a separate digest-backed request receipt makes
+exact retries replay and rejects request-ID reuse with changed scope. The
+operator must review the advisory result and separately use the exact
+`delphi:close` action. Evaluation never closes a study or publishes a
+recommendation.
+
+The first-party console enables the action only for an open study when the
+selected location has both `delphi:read` and `delphi:evaluate_stopping`. It
+requires confirmation, CSRF, no-store requests, and a retry-stable request ID.
+It renders fixed outcome codes as text and states that closing remains a
+separate human action.
 
 ## Study draft creation
 
@@ -120,15 +155,14 @@ the title or description. Identical retries return the original study;
 reusing a request ID with different content, a mismatched location, malformed
 criteria, or a read-only grant fails closed. Runtime and Directus cannot read
 the receipt table; only the Gateway runtime can execute the function, which is
-owned by a dedicated non-login role with column-limited study access. This
-route creates a study only; item, panel, open/close, contribution, and stopping
-operations remain separate lifecycle work. The operator console does not yet
-provide panel, item, open/close, contribution, or stopping controls. Its study
-creation panel appears only when the session has an exact location `delphi:draft`
-grant. The form uses bounded stopping-criteria inputs and sends CSRF-protected,
-no-store requests; an unchanged retry within the active page reuses its request
-ID. It confirms the returned location and `draft` lifecycle state and does not
-offer any open, review, or publish action.
+owned by a dedicated non-login role with column-limited study access. Study
+creation remains draft-only; questionnaire items, notice review, participant
+invites and consent, opening/closing, answer submission, and stopping
+evaluation use separate contracts and grants. The operator console provides
+the study-creation form only with an exact location `delphi:draft` grant. It
+uses bounded criteria, CSRF-protected no-store requests, and an unchanged retry
+ID in the active page; it confirms the returned location and `draft` state and
+does not offer open, review, or publish actions.
 
 ## Questionnaire item draft creation
 

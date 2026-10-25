@@ -128,11 +128,14 @@ The migration also adds `stakeholder_group`, `geography_code`,
 excluded from diversity participation counts, but the underlying identity
 reference remains available to authorized database users.
 
-The current Delphi service does not persist rows to
-`delphi_stopping_evaluation`, and there is no Delphi CLI command for configuring
-diversity targets, assessing diversity, creating or reviewing minority reports,
-or running expert calibration. These are schema and adjacent-service
-capabilities, not part of the core CLI surface.
+The legacy Delphi facilitator's `check_stopping` helper does not persist rows
+to `delphi_stopping_evaluation`; its unscoped CLI entry is retired before
+database access. Migration 639 adds the authenticated Kernel stopping
+evaluation path, which stores consent-filtered item/study results and a private
+retry receipt without closing or publishing the study. There is still no
+unscoped CLI command for configuring diversity targets, assessing diversity,
+creating or reviewing minority reports, or running expert calibration. These
+remain separate capabilities.
 
 ### Core Constraints And Defaults
 
@@ -260,9 +263,13 @@ Operational privacy controls should include restricted table access, minimum rep
 
 ## Limitations
 
+The points below describe the legacy Delphi service/schema behavior; the
+location-scoped Kernel paths are documented separately in
+[the CAP-027 contract](refactor/delphi-consultation-kernel-contract.md).
+
 - A contribution update overwrites the prior score and reasoning. Consensus history preserves aggregate snapshots, not the member's response history.
 - Consensus history is append-only by convention; the schema does not enforce immutability.
-- `check-stopping` returns an in-memory result; although migration 170 defines `delphi_stopping_evaluation`, the current service does not persist evaluations there.
+- The legacy `check-stopping` implementation returns an in-memory result and its CLI is retired before database access. The authenticated Kernel evaluator persists private, consent-filtered outcomes through migration 639 and never changes study lifecycle state.
 - The database does not constrain a contribution's score to the item's range; range validation occurs in the service method and can be bypassed by direct writes.
 - The schema does not enforce that `study_id`, `item_id`, and `panel_member_id` all refer to the same study; the service method performs those checks.
 - Opening, closing, adding members, and adding items have limited lifecycle guards. Items and panel members can be added regardless of study status through current service methods.

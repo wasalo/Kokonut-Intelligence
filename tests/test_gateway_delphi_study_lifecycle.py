@@ -215,6 +215,61 @@ def test_open_readiness_invalid_ids_fail_before_database(operator_id, location_i
         )
 
 
+def test_stopping_evaluation_sets_exact_context_and_returns_bounded_result():
+    expected = {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "should_stop": False,
+        "outcome": "insufficient_participation",
+        "items": [{"item_id": str(uuid4()), "should_stop": False,
+                   "outcome": "insufficient_participation"}],
+        "evaluated_at": "2026-10-25T12:00:00+00:00",
+        "replayed": False,
+    }
+    connection = _Connection(row=(expected,))
+    with patch.object(lifecycle, "set_operator_tenant_context", _set_context):
+        result = lifecycle.evaluate_location_delphi_stopping(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            request_id=REQUEST_ID,
+            connection_factory=lambda: connection,
+        )
+    query, params = connection.operations[-1]
+    assert "evaluate_location_delphi_stopping" in query
+    assert params == (LOCATION_ID, STUDY_ID, REQUEST_ID)
+    assert connection.events.index("SIGNED_CONTEXT") < len(connection.events) - 1
+    assert connection.context == {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "delphi",
+        "action": "evaluate_stopping",
+    }
+    assert result == expected
+    assert connection.committed and connection.rolled_back and connection.closed
+    assert "participant_count" not in result
+
+
+@pytest.mark.parametrize(
+    ("operator_id", "location_id", "study_id", "request_id"),
+    [("bad", LOCATION_ID, STUDY_ID, REQUEST_ID),
+     (OPERATOR_ID, "bad", STUDY_ID, REQUEST_ID),
+     (OPERATOR_ID, LOCATION_ID, "bad", REQUEST_ID),
+     (OPERATOR_ID, LOCATION_ID, STUDY_ID, "bad")],
+)
+def test_stopping_evaluation_invalid_ids_fail_before_database(
+    operator_id, location_id, study_id, request_id
+):
+    with pytest.raises(lifecycle.DelphiStudyLifecycleInvalid):
+        lifecycle.evaluate_location_delphi_stopping(
+            operator_id,
+            location_id,
+            study_id,
+            request_id=request_id,
+            connection_factory=lambda: pytest.fail("invalid IDs opened a database connection"),
+        )
+
+
 def _make_app(provider, run_in_threadpool, psycopg2_errors=None):
     from services.gateway.delphi_study_lifecycle_routes import (
         register_delphi_study_lifecycle_routes,
@@ -342,6 +397,50 @@ def test_open_readiness_route_fails_closed_when_oidc_is_disabled():
         f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open-readiness"
     )
     assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_stopping_route_uses_session_identity_and_no_store():
+    calls = []
+    expected = {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "should_stop": True,
+        "outcome": "consensus_reached",
+        "items": [{"item_id": str(uuid4()), "should_stop": True,
+                   "outcome": "consensus_reached"}],
+        "evaluated_at": "2026-10-25T12:00:00+00:00",
+        "replayed": False,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return expected
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/stopping-evaluation",
+        json={"request_id": REQUEST_ID},
+    )
+    assert response.status_code == 200 and response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert calls[0][1] == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
+    assert calls[0][2] == {"request_id": REQUEST_ID}
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{}, {"request_id": REQUEST_ID, "should_stop": True}],
+)
+def test_stopping_route_rejects_missing_or_extra_fields(payload):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("invalid stopping request must not reach the service")
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/stopping-evaluation",
+        json=payload,
+    )
+    assert response.status_code == 400
     assert response.headers["cache-control"] == "no-store"
 
 

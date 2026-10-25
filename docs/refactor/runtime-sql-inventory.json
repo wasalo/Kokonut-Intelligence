@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 956,
-    "execution_sites": 4876,
+    "execution_sites": 4879,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4534,
+    "sites_without_worker_operation_refs": 4537,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2831,
-      "SET": 650,
+      "SELECT": 2832,
+      "SET": 652,
       "UNKNOWN": 205,
       "UPDATE": 429,
       "WITH": 29
     },
     "statement_groups": {
-      "read_candidate": 2831,
+      "read_candidate": 2832,
       "schema_change": 1,
-      "transaction_or_session": 693,
+      "transaction_or_session": 695,
       "unknown_requires_manual_review": 205,
       "with_requires_manual_review": 29,
       "write_candidate": 1117
@@ -33,10 +33,10 @@
       "composed": 19,
       "composed_or_variable": 281,
       "fstring": 287,
-      "literal": 4289
+      "literal": 4292
     },
     "relation_candidates": 1215,
-    "sites_without_relation_candidates": 1192,
+    "sites_without_relation_candidates": 1195,
     "service_packages": 68
   },
   "service_packages": {
@@ -366,16 +366,16 @@
     },
     "gateway": {
       "source_files": 142,
-      "execution_sites": 1029,
+      "execution_sites": 1032,
       "statement_groups": {
-        "read_candidate": 386,
-        "transaction_or_session": 583,
+        "read_candidate": 387,
+        "transaction_or_session": 585,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 4,
         "write_candidate": 38
       },
       "candidate_relation_names": 253,
-      "sites_without_relation_candidates": 689,
+      "sites_without_relation_candidates": 692,
       "non_literal_sites": 16,
       "sites_with_worker_operation_refs": 0
     },
@@ -4657,6 +4657,9 @@
     {"id": "services/gateway/delphi_study_lifecycle.py:102:12","source": "services/gateway/delphi_study_lifecycle.py","line": 102,"column": 12,"scope": "get_location_delphi_study_open_readiness","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_study_lifecycle.py:103:12","source": "services/gateway/delphi_study_lifecycle.py","line": 103,"column": 12,"scope": "get_location_delphi_study_open_readiness","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_study_lifecycle.py:112:12","source": "services/gateway/delphi_study_lifecycle.py","line": 112,"column": 12,"scope": "get_location_delphi_study_open_readiness","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.get_location_delphi_study_open_readiness"],"static_sql_sha256": "5d34f37e6ee0982c78835ebbe124685758e2f9fb44a0eb4a39ef4a654e52cb66","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/delphi_study_lifecycle.py:159:12","source": "services/gateway/delphi_study_lifecycle.py","line": 159,"column": 12,"scope": "evaluate_location_delphi_stopping","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/delphi_study_lifecycle.py:160:12","source": "services/gateway/delphi_study_lifecycle.py","line": 160,"column": 12,"scope": "evaluate_location_delphi_stopping","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/delphi_study_lifecycle.py:169:12","source": "services/gateway/delphi_study_lifecycle.py","line": 169,"column": 12,"scope": "evaluate_location_delphi_stopping","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "6696b677eb182241641bb95c3e766e92e6a223801b4d81f315850ef38e4b5224","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/ecocredits.py:44:12","source": "services/gateway/ecocredits.py","line": 44,"column": 12,"scope": "list_location_ecocredit_batches","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/ecocredits.py:45:12","source": "services/gateway/ecocredits.py","line": 45,"column": 12,"scope": "list_location_ecocredit_batches","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/ecocredits.py:46:12","source": "services/gateway/ecocredits.py","line": 46,"column": 12,"scope": "list_location_ecocredit_batches","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

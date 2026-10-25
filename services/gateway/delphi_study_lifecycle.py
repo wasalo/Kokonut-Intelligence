@@ -137,3 +137,58 @@ def get_location_delphi_study_open_readiness(
             connection.rollback()
         finally:
             connection.close()
+
+
+def evaluate_location_delphi_stopping(
+    operator_id: str,
+    location_id: str,
+    study_id: str,
+    *,
+    request_id: str,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Evaluate current-consent stopping rules without changing study state."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    study_id = _normalize_uuid(study_id, "study")
+    request_id = _normalize_uuid(request_id, "request")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="delphi",
+            action="evaluate_stopping",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.evaluate_location_delphi_stopping(
+                           %s::uuid, %s::uuid, %s::uuid
+                       )""",
+                (location_id, study_id, request_id),
+            )
+            row = cursor.fetchone()
+        if row is None or row[0] is None:
+            raise RuntimeError("Delphi stopping function returned no evaluation")
+        result = row[0]
+        if isinstance(result, str):
+            import json
+
+            result = json.loads(result)
+        if not isinstance(result, dict):
+            raise RuntimeError("Delphi stopping function returned an invalid response")
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()

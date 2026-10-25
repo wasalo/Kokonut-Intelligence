@@ -18420,3 +18420,32 @@ Populated parity, universal ACL/RLS, and MAN-CAP-027 acceptance remain open.
 Checklist: 1,178 complete / 25 open (1,203 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence: [disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json).
+
+### Progress addendum — CAP-027 consent-aware stopping evaluation, 25 October 2026
+
+Migration 639 and the exact-location `delphi:evaluate_stopping` Gateway action
+replace the disabled, unscoped Delphi stopping CLI. The bounded evaluator
+locks the open study and panel consent rows, calculates from currently
+consented contributions, and compares stability only against prior
+consent-filtered Kernel evaluations. It persists private append-only item and
+study results plus a digest-backed retry receipt. Responses contain fixed
+outcomes and no panel counts, numeric statistics, answer text, or participant
+identities. The operator console requires same-location read/evaluate grants,
+CSRF, confirmation, no-store, and retry-stable requests. Evaluation is
+advisory; it never closes the study, which still requires a separate
+`delphi:close` action.
+
+The focused Gateway, route-policy, console, and migration selection passes 80
+tests; Ruff, Python compilation, JavaScript syntax, and migration integrity
+pass. Network-disabled disposable PostgreSQL 16 applies and replays migrations
+449–451 and 630–639, then passes seven grouped checks for consensus,
+insufficient participation, stability, consent withdrawal, exact retries,
+cross-location denial, and runtime/Directus boundaries. Candidate and legacy
+databases remain untouched; migration 639 is not rolled out. Roll back by
+disabling the route, exact policy, and console control while retaining the
+additive migration and immutable history. CAP-027 remains prepared pending
+live OIDC/browser, populated parity, universal ACL/RLS, SMTP delivery, and
+MAN-CAP-027 owner acceptance. Checklist: 1,179 complete / 25 open (1,204
+total); matrix classifications remain 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows. Evidence:
+[disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-stopping-evaluation-disposable.json).
