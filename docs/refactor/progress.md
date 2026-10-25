@@ -1,3 +1,15 @@
+### Progress addendum — current-source ARM64/QEMU schema replay through 618, 24 October 2026
+
+The clean network-disabled replay applied all 609 current schema files on the
+`linux/arm64` PostgreSQL/PostGIS image under QEMU, through migration 618. It
+finished with 609 applied, zero pending, zero failed, no seed records, no farm
+data, `aarch64` confirmed in the container, no published host ports, and
+successful removal of the temporary Compose project and volume. The harness
+recorded source revision `24ec5d94`; neither the local candidate nor legacy
+database was used. This verifies current-source schema portability under
+emulation only. It does not close physical Raspberry Pi, power-loss, thermal,
+endurance, or 24-hour recovery acceptance ([evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-618.json)).
+
 ### Progress addendum — CAP-006 waste-summary database reader boundary, 24 October 2026
 
 Migration 618 moves the Gateway's verified waste, composting, and recycling
