@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,173 checklist items complete and 25
-open (1,198 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,174 checklist items complete and 25
+open (1,199 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -4098,3 +4098,37 @@ The AST scope inventory now follows a location-filtered parent row into child re
   ACL/RLS, and MAN-CAP-027 remain open. Checklist: 1,173 complete / 25 open
   (1,198 total); matrix classifications remain 24 baseline-retained, 7 deployed,
   and 36 prepared across 67 rows.
+
+
+### CAP-027 versioned participant consent notice review — 25 October 2026
+
+- [x] Add migration 634 and a location-scoped Gateway API for immutable,
+  versioned Delphi consent notices. An operator with delphi:consent_draft
+  submits notice text only for a draft study; a different operator with
+  delphi:consent_review must approve or reject it using a fixed reason code.
+  Authors cannot review their own notice. Exact request retries replay,
+  changed-content reuse is rejected, only one notice per study can be approved,
+  and approval supersedes the prior approved version. Invitation issuance is
+  not yet enabled; its future single-use capability must bind to the approved
+  notice ID and digest and must not identify a canonical party.
+  The focused Gateway, exact route-policy, and migration suite passes 62 tests.
+  Network-disabled disposable PostgreSQL 16 applies/replays migrations
+  449–451 and 630–634 and passes nine grouped assertions covering scope,
+  reviewer separation, retries, immutable content, version replacement, and
+  runtime/Directus privileges. Ruff and Python compilation pass. Candidate and
+  legacy databases remain untouched; migration 634 is not rolled out.
+  Roll back application behavior by disabling the three exact routes/policies;
+  retain the additive migration and private audit rows if applied
+  ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/634_location_delphi_consent_notice_review.sql);
+  [Gateway](../../services/gateway/delphi_consent_notices.py);
+  [tests](../../tests/test_gateway_delphi_consent_notices.py);
+  [disposable runner](../../scripts/check-delphi-consent-notice-review-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-consent-notice-review-disposable.json)).
+  CAP-027 remains prepared, not accepted. Single-use invite issuance,
+  participant notice acceptance and withdrawal, panel membership and
+  contributions, stopping evaluation, console author/reviewer controls, live
+  OIDC/browser, populated parity, broader ACL/RLS, and MAN-CAP-027 acceptance
+  remain open. Checklist: 1,174 complete / 25 open (1,199 total); matrix
+  classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+  across 67 rows.

@@ -65,6 +65,7 @@ _PARAMETER_SAMPLES = {
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
     "summary_id": "99999999-9999-4999-8999-999999999996",
     "study_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    "notice_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeeb",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -110,6 +111,18 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/open-readiness",
     ): _expected("delphi", "open", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/consent-notices",
+    ): _expected("delphi", "consent_draft", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/consent-notices",
+    ): _expected("delphi", "consent_review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/consent-notices/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeeb/decision",
+    ): _expected("delphi", "consent_review", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/items",

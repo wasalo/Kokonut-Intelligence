@@ -396,6 +396,48 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    delphi_consent_notice_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/consent-notices",
+        path,
+    )
+    if delphi_consent_notice_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "consent_draft",
+            "public": False,
+            "location_id": delphi_consent_notice_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    delphi_consent_notice_queue_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/consent-notices",
+        path,
+    )
+    if delphi_consent_notice_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "consent_review",
+            "public": False,
+            "location_id": delphi_consent_notice_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    delphi_consent_notice_decision_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/consent-notices/([0-9a-fA-F-]{36})/decision",
+        path,
+    )
+    if delphi_consent_notice_decision_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "consent_review",
+            "public": False,
+            "location_id": delphi_consent_notice_decision_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_open_readiness_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/open-readiness",
         path,
@@ -5040,6 +5082,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.coordination_routes import register_coordination_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.crop_simulation_routes import register_crop_simulation_routes
+    from services.gateway.delphi_consent_notice_routes import (
+        register_delphi_consent_notice_routes,
+    )
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
     from services.gateway.delphi_recommendation_draft_routes import (
         register_delphi_recommendation_draft_routes,
@@ -5115,6 +5160,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_crop_simulation_routes(router, provider, run_in_threadpool, psycopg2)
     register_nutrient_balance_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_consent_notice_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_item_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)

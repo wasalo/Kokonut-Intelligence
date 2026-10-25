@@ -280,3 +280,56 @@ recommendation workflows where available. The blocked study/panel operations
 remain capability gaps until their matching authenticated Gateway contracts
 are implemented; this is an access-boundary hardening step, not a claim of full
 Delphi lifecycle parity. No candidate or legacy database change is implied.
+
+
+## Versioned participant consent and single-use invitation boundary
+
+Migration 634 adds an immutable, location-scoped notice for each Delphi study.
+An operator submits it only while the study is still in draft under
+delphi:consent_draft. A separate operator with delphi:consent_review must
+approve or reject using an allowlisted reason code. The author cannot review
+their own text. Exact request IDs replay only when all submitted content and
+scope match; each decision is recorded in a private append-only ledger. There
+can be only one approved version per study. Approving a replacement marks the
+previous approved version superseded.
+
+The three protected routes are:
+
+- POST /operator/api/delphi/{location_id}/studies/{study_id}/consent-notices
+  submits a version and notice text.
+- GET /operator/api/delphi/{location_id}/consent-notices?limit=50&offset=0
+  returns a bounded review queue and a fixed self-review blocker.
+- POST /operator/api/delphi/{location_id}/consent-notices/{notice_id}/decision
+  records an independent approval or rejection.
+
+All three require OIDC, exact location scope, same-transaction signed tenant
+context, and no-store responses. Runtime reaches private data through bounded
+functions only; Directus cannot read the notice ledger or invoke those
+functions. Notice versions are immutable, and invitation issuance must reject
+any version whose current state is not approved.
+
+The selected participant model is a study-scoped single-use invite. The
+upcoming invitation implementation must generate an unguessable token, store
+only its cryptographic digest, bind it to the exact study, location, approved
+notice ID/version/digest, and expiry, and consume it atomically once. It must
+not attach a participant to a canonical party identity. Acceptance records
+the notice version/digest and the minimum state required to prove consent;
+participant-facing data remains pseudonymous. A later approved notice version
+must prevent new invite issuance against the superseded version.
+
+Withdrawal will prevent future submissions and make affected contributions
+unavailable for future study operations. Existing records remain private until
+the configured retention/erasure policy determines their disposition; no fixed
+period or automatic deletion is introduced here. Human review of actual notice
+language and any applicable legal requirements remains necessary. Migration
+634 does not issue invites or accept participant consent, and CAP-027 remains
+prepared.
+
+Migration 634 has passed focused Gateway/route-policy/migration checks (62
+tests) and a network-disabled disposable PostgreSQL 16 apply/replay with nine
+grouped assertions, including reviewer separation, exact retries, immutable
+content, version supersession, and runtime/Directus privilege boundaries.
+Candidate and legacy databases were not touched; migration 634 is not rolled
+out. To roll back before migration deployment, remove the three routes and
+their exact policy entries. After migration application, disable the routes
+while retaining immutable notices and audit records.

@@ -18292,3 +18292,25 @@ open (1,198 total); matrix remains 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
 [migration](../schemas/postgres/633_location_delphi_study_open_readiness.sql);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-open-readiness-disposable.json)).
+
+
+### Progress addendum — CAP-027 versioned consent notices, 25 October 2026
+
+The selected participant model is a study-scoped single-use invite, with no
+canonical party linkage. Migration 634 and three exact-location OIDC routes
+allow an operator to submit immutable, digest-backed notice versions for draft
+studies and a different operator to approve/reject them with an allowlisted
+reason. Self-review is blocked; exact retries replay, changed payload reuse
+fails, and a replacement approval supersedes the previous approved notice.
+Invite issuance is not part of this slice. The focused Gateway, route-policy,
+and migration tests pass (62); Ruff and compilation pass. A network-disabled
+disposable PostgreSQL 16 replay through migration 634 passes nine grouped
+assertions for authorization, reviewer separation, idempotency, content
+immutability, supersession, and runtime/Directus boundaries. Candidate and
+legacy databases remain untouched; migration 634 is not rolled out. The next
+Delphi slice is the token-digest-only, notice-bound single-use invitation plus
+participant acceptance and withdrawal. Console notice controls, live
+OIDC/browser, populated parity, broader ACL/RLS, and MAN-CAP-027 acceptance
+remain open. Checklist: 1,174 complete / 25 open (1,199 total); matrix remains
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [migration acceptance](builds/2026-10-25-recovery/cap-027-delphi-consent-notice-review-disposable.json).
