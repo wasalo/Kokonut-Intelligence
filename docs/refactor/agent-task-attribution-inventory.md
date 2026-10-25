@@ -1,6 +1,6 @@
 # Agent Task Attribution Inventory
 
-Updated: 23 October 2026
+Updated: 25 October 2026
 
 This is a source-level inventory of the current human-authenticated Gateway
 surfaces related to agent-generated drafts. It is not a production request
@@ -19,3 +19,10 @@ the corresponding creator/request records and review boundary. This closes
 the current-source route inventory only. Authenticated runtime provisioning,
 other service/CLI attribution policy, worker/database least privilege,
 populated parity, live OIDC, and MAN-CAP-038 acceptance remain open.
+
+`tests/test_operator_route_policy_inventory.py` also keeps generic operator
+task execution routes absent until an immutable operator/request/task
+attribution contract is implemented. Its route-registration regression covers
+the conventional agent-task and agent-run path forms; exact route-policy
+coverage independently requires every new OIDC route to receive a reviewed
+policy entry. The regression passed four tests on 25 October 2026 ([evidence](builds/2026-10-25-recovery/cap-038-generic-agent-route-guard.json)).

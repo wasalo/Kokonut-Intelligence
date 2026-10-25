@@ -1,0 +1,27 @@
+{
+  "verified_at": "2026-10-25T06:39:31Z",
+  "baseline_commit": "eba77e4d",
+  "scope": "operator Gateway route-registration guard for generic agent-task execution",
+  "route_guard": {
+    "test": "test_generic_agent_task_execution_has_no_operator_gateway_route",
+    "blocked_path_forms": [
+      "/agent-task",
+      "/agent_task",
+      "/agents/tasks",
+      "/agents/{agent_id}/run",
+      "/agents/{agent_id}/execute"
+    ],
+    "prerequisite": "immutable operator/request/task attribution contract"
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_operator_route_policy_inventory.py -q",
+    "result": "4 passed in 2.59s",
+    "lint_command": "python3 -m ruff check tests/test_operator_route_policy_inventory.py",
+    "lint_result": "passed"
+  },
+  "limitations": [
+    "Does not attribute CLI, scheduled, or background agent runs.",
+    "Does not add a generic agent-task execution endpoint or close CAP-038.",
+    "No database, provider, candidate, legacy stack, or credentials were used."
+  ]
+}

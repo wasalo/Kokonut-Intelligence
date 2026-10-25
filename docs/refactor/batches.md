@@ -19,10 +19,24 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,135 checklist items complete and 23
-open (1,158 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,136 checklist items complete and 25
+open (1,161 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-038 generic agent-task route attribution guard — 25 October 2026
+
+- [x] Preserve the authenticated Gateway boundary while human/task attribution
+  is incomplete. A new route-registration regression rejects conventional
+  generic agent-task and agent-run route paths until an immutable
+  operator/request/task attribution contract exists. The existing exact OIDC
+  policy inventory continues to require reviewed policy coverage for every
+  registered route. The focused route-policy module passes four tests and Ruff;
+  no database, provider, candidate, legacy stack, or credentials were used
+  ([evidence](builds/2026-10-25-recovery/cap-038-generic-agent-route-guard.json);
+  [inventory](agent-task-attribution-inventory.md)). This does not attribute
+  CLI, scheduled, or background runs and does not close CAP-038. Checklist:
+  1,136 complete / 25 open (1,161 total); capability classifications unchanged.
 
 ### CAP-006 independent review of managed-hive inspections — 25 October 2026
 
@@ -48,7 +62,7 @@ acceptance remains separate; none is marked accepted.
   broader ACL/RLS, Directus parity, physical-device acceptance, and MAN-CAP-006
   remain open. Rollback disables the inspection review route, queue inclusion,
   exact policy path, and console affordance; preserve decisions if the additive
-  migration has been applied. Checklist: 1,135 complete / 23 open (1,158 total).
+  migration has been applied. Checklist: 1,136 complete / 25 open (1,161 total).
 
 ### CAP-006 location-scoped independent pollinator review — 25 October 2026
 

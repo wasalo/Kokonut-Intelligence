@@ -1,3 +1,20 @@
+### Progress addendum — CAP-038 generic agent-task route attribution guard, 25 October 2026
+
+The current OIDC Gateway route registry now has an explicit regression against
+generic agent-task and agent-run execution paths. This keeps future human-run
+execution unavailable until an immutable operator/request/task attribution
+contract is implemented; the exact route-policy inventory separately guards
+reviewed authorization for newly registered routes. The focused
+`tests/test_operator_route_policy_inventory.py` selection passes four tests,
+and Ruff passes ([evidence](builds/2026-10-25-recovery/cap-038-generic-agent-route-guard.json);
+[source inventory](agent-task-attribution-inventory.md)). No database,
+provider, candidate, legacy stack, or credentials were used. Existing AI-summary
+and Delphi draft routes retain their session-derived attribution. Background,
+CLI, and scheduled human initiators remain unattributed; CAP-038 stays prepared.
+The corrected checklist count is 1,136 complete / 25 open (1,161 total),
+matching the unchecked rows in `batches.md`; the 67 capability classifications
+are unchanged and no MAN-CAP check is accepted.
+
 ### Progress addendum — current-source ARM64/QEMU app and full-schema replay through migration 627, 25 October 2026
 
 The current branch built the default Kernel image for `linux/arm64`; a
@@ -12,7 +29,7 @@ failed, zero seeds, no farm data or host ports, and successful volume cleanup
 Both checks left candidate and legacy untouched and removed temporary resources.
 This is software portability evidence only; physical Raspberry Pi, power-loss,
 performance, thermal, storage, networking, and device-restart acceptance remain
-open. Checklist remains 1,135 complete / 23 open.
+open. Checklist remains 1,136 complete / 25 open.
 
 ### Progress addendum — CAP-006 independent hive-inspection review, 25 October 2026
 
@@ -36,7 +53,7 @@ native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollin
 Candidate and legacy remain untouched; migration 627 is not rolled out. QEMU
 is software portability evidence only. Populated parity, live OIDC/browser,
 broader ACL/RLS, Directus parity, physical-device acceptance, and MAN-CAP-006
-remain open. Checklist: 1,135 complete / 23 open (1,158 total).
+remain open. Checklist: 1,136 complete / 25 open (1,161 total).
 
 ### Progress addendum — CAP-006 independent pollinator review, 25 October 2026
 

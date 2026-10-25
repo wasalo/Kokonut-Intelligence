@@ -1312,6 +1312,30 @@ def test_registered_operator_routes_have_exact_reviewed_policy_coverage():
     assert actual == _EXPECTED_OPERATOR_POLICIES
 
 
+def test_generic_agent_task_execution_has_no_operator_gateway_route():
+    provider = SimpleNamespace(settings=SimpleNamespace(state_secret="test-state-secret-with-at-least-32-bytes"))
+    router = create_auth_router(provider)
+    registered_paths = {route.path.casefold() for route in router.routes}
+    generic_task_markers = (
+        "/agent-task",
+        "/agent_task",
+        "/agents/tasks",
+        "/agents/{agent_id}/run",
+        "/agents/{agent_id}/execute",
+    )
+
+    matches = sorted(
+        path
+        for path in registered_paths
+        if any(marker in path for marker in generic_task_markers)
+    )
+
+    assert not matches, (
+        "Generic agent-task execution needs an immutable operator/request/task "
+        f"attribution contract before it can be exposed: {matches}"
+    )
+
+
 def test_unknown_operator_path_and_method_are_protected(tmp_path, monkeypatch):
     monkeypatch.setenv("KOKONUT_GATEWAY_AUDIT_SPOOL_PATH", str(tmp_path / "gateway-audit.sqlite3"))
     monkeypatch.setenv("KOKONUT_API_KEYS", "")
