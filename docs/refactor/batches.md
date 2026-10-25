@@ -19,10 +19,30 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,123 checklist items complete and 25
-open (1,148 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,124 checklist items complete and 25
+open (1,149 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 retire unscoped incident-detail and dashboard CLI reads — 24 October 2026
+
+- [x] Disable the legacy `open-incidents` and combined `dashboard` helpers and
+  commands before cursor or database acquisition. They exposed narrative
+  incident content using a caller-selected location and shared database
+  credential, bypassing `waste_management:review`. The Gateway summary remains
+  the aggregate surface and the review queue remains available only under the
+  separate review grant. Add regressions proving both helpers and CLI commands
+  fail before database access; make the migration-153 disposable check inspect
+  only synthetic incident lifecycle fixtures directly. The focused waste,
+  incident Gateway, console, and route-policy selection passes 52 tests plus
+  five subtests; Ruff, compilation, and diff checks pass. Disposable PostgreSQL
+  16 apply/replay and migration-153 lifecycle acceptance pass; candidate and
+  legacy databases remain untouched. Rollback only after equivalent
+  location-scoped summary and review paths exist; do not restore a caller-
+  selected incident-detail CLI. The ignored implementation plan and CAP-006
+  contract/matrix now identify the remaining populated parity, live OIDC,
+  RLS/Directus, and MAN-CAP-006 gates. Checklist: 1,124 complete / 25 open
+  (1,149 total) ([evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
 
 ### CAP-006 location-scoped pollution incident capture and review — 24 October 2026
 
@@ -54,8 +74,7 @@ acceptance remains separate; none is marked accepted.
   out. Rollback disables the routes, policies and console controls; retain the
   additive migration and private receipts if applied. CAP-006 remains prepared
   pending populated parity, live OIDC/browser acceptance, remaining canonical
-  ACL/RLS and Directus parity, review/retirement of legacy incident-detail CLI
-  reads, provider/manual acceptance, and MAN-CAP-006.
+  ACL/RLS and Directus parity, provider/manual acceptance, and MAN-CAP-006.
   Checklist: 1,123 complete / 25 open (1,148 total).
 
 ### CAP-006 location-scoped recycling capture and legacy writer retirement — 24 October 2026

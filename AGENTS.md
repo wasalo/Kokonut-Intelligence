@@ -512,15 +512,10 @@ Commands:
 - Energy carbon intensity: `python3 -m services.analytics.energy_monitoring carbon-intensity --location-id UUID`
 - Energy cost analysis: `python3 -m services.analytics.energy_monitoring cost-analysis --location-id UUID --days 30`
 - Energy monitoring tests: `python3 -m tests.test_energy_monitoring`
-- Waste record waste: `python3 -m services.analytics.waste_management record-waste --location-id UUID --waste-type organic --waste-name "Crop residues" --quantity 50.0 --disposal-method composting`
-- Waste record composting: `python3 -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting`
-- Waste record recycling: `python3 -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00`
-- Waste report incident: `python3 -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"`
-- Waste resolve incident: `python3 -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10`
+- Waste capture: legacy `record-waste`, `record-composting`, and `record-recycling` CLI writers fail closed; use the authenticated operator console and location-scoped Gateway capture routes.
+- Waste incidents: legacy report/resolve helpers fail closed, and the unscoped `open-incidents` and `dashboard` readers are retired. Use `/operator/api/waste/{location_id}/incidents` with `waste_management:create` to report, `/operator/api/waste/{location_id}/incidents` with `waste_management:review` to review, and `/operator/api/waste/{location_id}/incidents/{incident_id}/resolve` with the review grant to resolve.
 - Waste summary: `python3 -m services.analytics.waste_management waste-summary --location-id UUID`
 - Waste composting efficiency: `python3 -m services.analytics.waste_management composting-efficiency --location-id UUID`
-- Waste open incidents: `python3 -m services.analytics.waste_management open-incidents --location-id UUID`
-- Waste dashboard: `python3 -m services.analytics.waste_management dashboard --location-id UUID`
 - Waste management tests: `python3 -m tests.test_waste_management`
 - Landscape create habitat: `python3 -m services.analytics.landscape_conservation create-habitat --location-id UUID --name "Riparian Buffer" --type riparian --area 0.5 --biodiversity high`
 - Landscape create corridor: `python3 -m services.analytics.landscape_conservation create-corridor --location-id UUID --name "Stream Link" --source UUID --target UUID --width 15 --length 200`

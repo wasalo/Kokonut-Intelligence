@@ -326,40 +326,22 @@ class TestOpenIncidents(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_get_open_incidents_returns_incidents(self):
-        self.mock_cursor.description = [
-            ("id",), ("incident_type",), ("severity",), ("description",),
-            ("affected_area",), ("reported_by",), ("created_at",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [
-            [("inc-001", "chemical_spill", "high", "Leak", "Stream", "user1", "2026-07-01")],
-            [("high", 1)],
-        ]
-        self.mock_cursor.fetchone.return_value = (5,)
-        result = get_open_incidents(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["open_count"], 1)
-        self.assertEqual(result["resolved_count"], 5)
-        self.assertEqual(result["severity_breakdown"]["high"], 1)
-        statements = self.mock_cursor.execute.call_args_list
-        self.assertEqual(len(statements), 3)
-        self.assertIn("metadata ->> 'reported_by'", statements[0].args[0])
-        self.assertNotIn("affected_area,\n               reported_by,", statements[0].args[0])
-        self.assertIn("'investigating'", statements[0].args[0])
-        self.assertIn("incident_date DESC", statements[0].args[0])
-        for call in statements:
-            self.assertEqual(call.args[1], ("loc-001",))
-        self.mock_cursor.close.assert_called_once()
+    def test_unscoped_incident_reader_fails_before_cursor_access(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            get_open_incidents(self.conn, "loc-001")
+        self.conn.cursor.assert_not_called()
 
-    def test_get_open_incidents_empty(self):
-        self.mock_cursor.description = [
-            ("id",), ("incident_type",), ("severity",), ("description",),
-            ("affected_area",), ("reported_by",), ("created_at",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (0,)
-        result = get_open_incidents(self.conn, "loc-001")
-        self.assertEqual(result["open_count"], 0)
+    def test_unscoped_incident_cli_fails_before_database_access(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "open-incidents", "--location-id", "loc-001",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway", stderr.getvalue())
 
 
 class TestWasteDashboard(unittest.TestCase):
@@ -367,81 +349,22 @@ class TestWasteDashboard(unittest.TestCase):
     def setUp(self):
         self.conn = MagicMock()
 
-    @patch("services.analytics.waste_management.get_open_incidents")
-    @patch("services.analytics.waste_management.get_composting_efficiency")
-    @patch("services.analytics.waste_management.get_waste_summary")
-    def test_get_waste_dashboard_returns_dashboard(self, mock_ws, mock_ce, mock_oi):
-        mock_ws.return_value = {
-            "location_id": "loc-001",
-            "total_waste_kg": 100.0,
-            "total_records": 5,
-            "by_type": [{"waste_type": "organic", "total_kg": 100.0, "record_count": 5}],
-            "by_disposal_method": [
-                {"disposal_method": "composting", "total_kg": 60.0, "record_count": 3},
-                {"disposal_method": "recycling", "total_kg": 30.0, "record_count": 2},
-                {"disposal_method": "landfill", "total_kg": 10.0, "record_count": 1},
-            ],
-        }
-        mock_ce.return_value = {
-            "location_id": "loc-001",
-            "total_batches": 3,
-            "total_feedstock_kg": 300.0,
-            "total_output_kg": 135.0,
-            "overall_yield_pct": 45.0,
-            "by_method": [],
-            "recent_quality": [],
-        }
-        mock_oi.return_value = {
-            "location_id": "loc-001",
-            "open_count": 1,
-            "resolved_count": 0,
-            "severity_breakdown": {"high": 1},
-            "incidents": [],
-        }
+    def test_unscoped_dashboard_fails_before_cursor_access(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            get_waste_dashboard(self.conn, "loc-001")
+        self.conn.cursor.assert_not_called()
 
-        result = get_waste_dashboard(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertIn("waste_summary", result)
-        self.assertIn("composting_efficiency", result)
-        self.assertIn("incidents", result)
-        self.assertIn("key_metrics", result)
-        self.assertEqual(result["key_metrics"]["total_waste_kg"], 100.0)
-        self.assertEqual(result["key_metrics"]["composted_kg"], 60.0)
-        self.assertEqual(result["key_metrics"]["recycled_kg"], 30.0)
-        self.assertEqual(result["key_metrics"]["landfill_kg"], 10.0)
-        self.assertEqual(result["key_metrics"]["diversion_rate_pct"], 90.0)
-
-    @patch("services.analytics.waste_management.get_open_incidents")
-    @patch("services.analytics.waste_management.get_composting_efficiency")
-    @patch("services.analytics.waste_management.get_waste_summary")
-    def test_get_waste_dashboard_zero_waste(self, mock_ws, mock_ce, mock_oi):
-        mock_ws.return_value = {
-            "location_id": "loc-001",
-            "total_waste_kg": 0,
-            "total_records": 0,
-            "by_type": [],
-            "by_disposal_method": [],
-        }
-        mock_ce.return_value = {
-            "location_id": "loc-001",
-            "total_batches": 0,
-            "total_feedstock_kg": 0,
-            "total_output_kg": 0,
-            "overall_yield_pct": None,
-            "by_method": [],
-            "recent_quality": [],
-        }
-        mock_oi.return_value = {
-            "location_id": "loc-001",
-            "open_count": 0,
-            "resolved_count": 0,
-            "severity_breakdown": {},
-            "incidents": [],
-        }
-
-        result = get_waste_dashboard(self.conn, "loc-001")
-        self.assertEqual(result["key_metrics"]["total_waste_kg"], 0)
-        self.assertEqual(result["key_metrics"]["diversion_rate_pct"], None)
+    def test_unscoped_dashboard_cli_fails_before_database_access(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "dashboard", "--location-id", "loc-001",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway", stderr.getvalue())
 
 
 if __name__ == "__main__":

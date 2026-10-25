@@ -1,6 +1,6 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-25T01:23:43.335139+00:00",
+  "checked_at": "2026-10-25T01:30:05.178557+00:00",
   "database": "PostgreSQL 16 disposable container",
   "migration": "153_waste_management.sql",
   "migration_replayed": true,
@@ -11,7 +11,7 @@
     "schema-constrained category mappings and JSONB compatibility fields persist",
     "verified waste summary excludes the second location",
     "compost efficiency reads canonical columns, verified rows, and numeric pH metadata",
-    "incident reads and resolution use canonical lifecycle fields"
+    "synthetic incident lifecycle fields retain reporter and resolution data"
   ],
   "candidate_database_touched": false,
   "legacy_database_touched": false,

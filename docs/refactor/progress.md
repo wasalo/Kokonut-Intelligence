@@ -1,3 +1,56 @@
+### Progress addendum — retire unscoped CAP-006 incident-detail CLI reads, 24 October 2026
+
+The legacy `open-incidents` and combined waste `dashboard` helper/CLI paths
+could return private incident narratives using a caller-selected location and
+shared database credential, bypassing the separate `waste_management:review`
+grant. Both helpers now fail before cursor access, and both CLI commands run
+without opening a database before returning the authenticated Gateway
+guidance. Aggregate reads remain available through the exact-grant Gateway
+summary; narrative queue and resolution remain behind the distinct review
+grant. The migration-153 disposable schema check now inspects only synthetic
+lifecycle fixtures directly.
+
+The focused waste, incident Gateway, console, and route-policy selection passes
+52 tests plus five subtests; Ruff, compilation, and diff checks pass. The
+updated disposable PostgreSQL 16 migration-153 apply/replay and lifecycle
+acceptance passes using synthetic records only. Candidate and legacy databases
+were not used. Checklist: 1,124 complete / 25 open (1,149 total). CAP-006
+remains prepared pending populated parity, live OIDC/browser acceptance,
+canonical ACL/RLS, Directus parity, and MAN-CAP-006 ([contract](waste-management-kernel-read-contract.md);
+[evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+
+### Progress addendum — CAP-006 location-scoped pollution incident capture and review, 24 October 2026
+
+Migration 616 and the Gateway now provide location-scoped pollution incident
+reporting and independent review. Exact `waste_management:create` grants can
+capture bounded reports; only a separate `waste_management:review` grant can
+read the narrative review queue or resolve an incident. Capture and resolution
+use separate least-privilege function owners and private append-only
+idempotency receipts. New reports begin `open`, unsupported incident labels
+are preserved as bounded metadata while the canonical enum remains valid, and
+resolution records the reviewing operator. Queue responses are location
+qualified, bounded to 100 rows, and omit reporter identity, notes, and arbitrary
+metadata. The console separates create and review grants and renders content as
+text. The unscoped analytics helpers and CLI writes now fail before database
+access.
+
+The focused Gateway, legacy analytics, console, route-policy, and migration
+selection passes 156 tests plus five subtests; Ruff and Python compilation
+pass. Disposable PostgreSQL 16 applies/replays migration 616 and verifies
+capture, review, lifecycle, retries, location denial, and runtime/Directus
+privilege boundaries on native AMD64 and linux/arm64 Docker/QEMU. The migration-153
+legacy checker also verifies incident writers fail closed while synthetic read
+fixtures retain their lifecycle coverage. QEMU is software portability
+evidence only. Candidate/legacy databases and live providers were not used;
+migration 616 is not rolled out. Rollback disables Gateway routes, exact
+policies, and console controls; preserve the additive migration and receipts
+if applied. Checklist: 1,123 complete / 25 open (1,148 total). CAP-006 remains
+prepared pending populated parity, live OIDC/browser acceptance, remaining
+ACL/RLS and Directus parity, review of legacy incident-detail CLI reads, and
+MAN-CAP-006 ([contract](waste-management-kernel-read-contract.md);
+[native](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).
+
 ### Progress addendum — CAP-006 location-scoped recycling capture, 24 October 2026
 
 Migration 615 and the Gateway add recorded-only recycling capture at
@@ -17340,34 +17393,3 @@ output parity, landscape dashboard-derived calculations, runtime role/RLS,
 live OIDC/browser behavior, historical link reconciliation, and MAN-CAP-006
 remain open ([contract](landscape-pollinator-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json)).
-### Progress addendum — CAP-006 location-scoped pollution incident capture and review, 24 October 2026
-
-Migration 616 and the Gateway now provide location-scoped pollution incident
-reporting and independent review. Exact `waste_management:create` grants can
-capture bounded reports; only a separate `waste_management:review` grant can
-read the narrative review queue or resolve an incident. Capture and resolution
-use separate least-privilege function owners and private append-only
-idempotency receipts. New reports begin `open`, unsupported incident labels
-are preserved as bounded metadata while the canonical enum remains valid, and
-resolution records the reviewing operator. Queue responses are location
-qualified, bounded to 100 rows, and omit reporter identity, notes, and arbitrary
-metadata. The console separates create and review grants and renders content as
-text. The unscoped analytics helpers and CLI writes now fail before database
-access.
-
-The focused Gateway, legacy analytics, console, route-policy, and migration
-selection passes 156 tests plus five subtests; Ruff and Python compilation
-pass. Disposable PostgreSQL 16 applies/replays migration 616 and verifies
-capture, review, lifecycle, retries, location denial, and runtime/Directus
-privilege boundaries on native AMD64 and linux/arm64 Docker/QEMU. The migration-153
-legacy checker also verifies incident writers fail closed while synthetic read
-fixtures retain their lifecycle coverage. QEMU is software portability
-evidence only. Candidate/legacy databases and live providers were not used;
-migration 616 is not rolled out. Rollback disables Gateway routes, exact
-policies, and console controls; preserve the additive migration and receipts
-if applied. Checklist: 1,123 complete / 25 open (1,148 total). CAP-006 remains
-prepared pending populated parity, live OIDC/browser acceptance, remaining
-ACL/RLS and Directus parity, review of legacy incident-detail CLI reads, and
-MAN-CAP-006 ([contract](waste-management-kernel-read-contract.md);
-[native](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
-[ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).

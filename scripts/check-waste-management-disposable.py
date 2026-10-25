@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply migration 153 and exercise waste-management CLI SQL in disposable PostgreSQL 16."""
+"""Apply migration 153 and exercise waste-management read contracts in disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -290,28 +290,31 @@ def main() -> int:
             raise AssertionError("compost summary lost verified output or metadata pH")
         checks.append("compost efficiency reads canonical columns, verified rows, and numeric pH metadata")
 
-        open_incidents = waste_management.get_open_incidents(conn, location_a)
-        if (
-            open_incidents["open_count"] != 1
-            or open_incidents["incidents"][0]["reported_by"] != "synthetic operator"
-        ):
-            raise AssertionError("incident summary lost active state or reporter attribution")
         with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*), MAX(metadata->>'reported_by') "
+                "FROM pollution_incident WHERE location_id = %s "
+                "AND status IN ('open', 'investigating', 'remediation')",
+                (location_a,),
+            )
+            open_count, reporter = cursor.fetchone()
+            if open_count != 1 or reporter != "synthetic operator":
+                raise AssertionError("synthetic incident fixture lost active state or attribution")
             cursor.execute(
                 "UPDATE pollution_incident SET status = 'resolved', resolved = TRUE, "
                 "remedial_action = 'Synthetic cleanup', resolution_date = DATE '2026-10-24' "
                 "WHERE id = %s",
                 (incident["incident_id"],),
             )
-        resolved = {"status": "resolved"}
-        after_resolution = waste_management.get_open_incidents(conn, location_a)
-        if (
-            resolved["status"] != "resolved"
-            or after_resolution["open_count"] != 0
-            or after_resolution["resolved_count"] != 1
-        ):
+            cursor.execute(
+                "SELECT status, resolved, remedial_action, resolution_date "
+                "FROM pollution_incident WHERE id = %s AND location_id = %s",
+                (incident["incident_id"], location_a),
+            )
+            resolved = cursor.fetchone()
+        if resolved != ("resolved", True, "Synthetic cleanup", date(2026, 10, 24)):
             raise AssertionError("incident resolution did not update its canonical lifecycle fields")
-        checks.append("incident reads and resolution use canonical lifecycle fields")
+        checks.append("synthetic incident lifecycle fields retain reporter and resolution data")
 
         evidence = {
             "result": "passed",

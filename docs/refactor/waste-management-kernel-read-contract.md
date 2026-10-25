@@ -134,11 +134,11 @@ helpers and CLI commands fail before database access. Directus has no access to
 the bounded functions; production Directus field/row parity and complete
 canonical ACL/RLS still require separate review.
 
-The historic local `open-incidents` and combined `dashboard` CLI can still read
-incident narratives through the shared database connection. They remain
-trusted local operations outside the Gateway tenant boundary and must not be
-exposed to users without database authorization; remaining legacy CLI review
-must decide whether to retire or replace these reads before broad operator use.
+The historic local `open-incidents` and combined `dashboard` helpers and CLI
+commands now fail before cursor or database access. They could return
+caller-selected incident narratives through the shared database connection,
+bypassing the review grant. The aggregate summary and narrative review queue
+remain available through the authenticated Gateway surfaces above.
 
 Migration 615 additionally removes runtime and Directus table/column write
 privileges on `recycling_log` while preserving SELECT, then grants a dedicated

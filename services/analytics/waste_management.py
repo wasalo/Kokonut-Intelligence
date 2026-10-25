@@ -13,12 +13,11 @@ Usage:
     python -m services.analytics.waste_management resolve-incident --incident-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management waste-summary --location-id UUID
     python -m services.analytics.waste_management composting-efficiency --location-id UUID
-    python -m services.analytics.waste_management open-incidents --location-id UUID
+    python -m services.analytics.waste_management open-incidents --location-id UUID (retired; use authenticated Gateway review)
     python -m services.analytics.waste_management dashboard --location-id UUID
 """
 
 import json
-from datetime import datetime, timezone
 
 from services.common.commands import CommandLine
 from services.common.tenant_context import TenantContextDenied
@@ -304,64 +303,11 @@ def get_composting_efficiency(conn, location_id: str) -> dict:
 # ============================================================
 
 def get_open_incidents(conn, location_id: str) -> dict:
-    """Get unresolved pollution incidents."""
-    cur = conn.cursor()
-
-    try:
-        cur.execute(
-            """
-            SELECT id, incident_type, severity, description, affected_area,
-                   metadata ->> 'reported_by' AS reported_by, created_at
-            FROM pollution_incident
-            WHERE location_id = %s
-              AND status IN ('open', 'investigating', 'remediation')
-            ORDER BY
-                CASE severity
-                    WHEN 'critical' THEN 1
-                    WHEN 'high' THEN 2
-                    WHEN 'medium' THEN 3
-                    WHEN 'low' THEN 4
-                    ELSE 5
-                END,
-                incident_date DESC, created_at DESC, id DESC
-            """,
-            (location_id,),
-        )
-        cols = [d[0] for d in cur.description]
-        open_incidents = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT severity, COUNT(*)
-            FROM pollution_incident
-            WHERE location_id = %s
-              AND status IN ('open', 'investigating', 'remediation')
-            GROUP BY severity
-            """,
-            (location_id,),
-        )
-        severity_counts = {row[0]: int(row[1]) for row in cur.fetchall()}
-
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM pollution_incident
-            WHERE location_id = %s
-              AND (status = 'resolved' OR resolved IS TRUE)
-            """,
-            (location_id,),
-        )
-        resolved_row = cur.fetchone()
-    finally:
-        cur.close()
-
-    return {
-        "location_id": location_id,
-        "open_count": len(open_incidents),
-        "resolved_count": int(resolved_row[0]) if resolved_row[0] else 0,
-        "severity_breakdown": severity_counts,
-        "incidents": open_incidents,
-    }
+    """Reject unscoped incident-detail reads before database access."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped incident review is disabled; use the authenticated operator Gateway"
+    )
 
 
 # ============================================================
@@ -369,48 +315,11 @@ def get_open_incidents(conn, location_id: str) -> dict:
 # ============================================================
 
 def get_waste_dashboard(conn, location_id: str) -> dict:
-    """Dashboard combining waste, composting, and incident data."""
-    waste = get_waste_summary(conn, location_id, days=30)
-    composting = get_composting_efficiency(conn, location_id)
-    incidents = get_open_incidents(conn, location_id)
-
-    total_waste = waste["total_waste_kg"]
-    recycled_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("recycling", "recycled")
+    """Reject the legacy mixed-scope dashboard before database access."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped waste dashboard is disabled; use the authenticated operator Gateway"
     )
-    composted_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("composting", "composted")
-    )
-    landfill_kg = sum(
-        d["total_kg"] for d in waste["by_disposal_method"]
-        if d.get("disposal_method") in ("landfill", "dump")
-    )
-
-    diversion_rate = None
-    if total_waste > 0:
-        diverted = recycled_kg + composted_kg
-        diversion_rate = round(diverted / total_waste * 100, 1)
-
-    return {
-        "location_id": location_id,
-        "waste_summary": waste,
-        "composting_efficiency": composting,
-        "incidents": incidents,
-        "key_metrics": {
-            "total_waste_kg": total_waste,
-            "recycled_kg": recycled_kg,
-            "composted_kg": composted_kg,
-            "landfill_kg": landfill_kg,
-            "diversion_rate_pct": diversion_rate,
-            "composting_batches": composting["total_batches"],
-            "composting_yield_pct": composting["overall_yield_pct"],
-            "open_incidents": incidents["open_count"],
-            "critical_incidents": incidents["severity_breakdown"].get("critical", 0),
-        },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -531,16 +440,16 @@ cli.subcommand("composting-efficiency", "Composting yield and quality") \
     .run(lambda db, a: get_composting_efficiency(db, a.location_id)) \
     .render_with(lambda r, a: _render(r, a, _format_composting_efficiency))
 
-cli.subcommand("open-incidents", "Unresolved pollution incidents") \
+cli.subcommand("open-incidents", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_open_incidents(db, a.location_id)) \
+    .run(lambda db, a: get_open_incidents(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_open_incidents))
 
-cli.subcommand("dashboard", "Waste management dashboard") \
+cli.subcommand("dashboard", "Retired unscoped dashboard; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_waste_dashboard(db, a.location_id)) \
+    .run(lambda db, a: get_waste_dashboard(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
 
