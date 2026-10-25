@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "surface": "Operator console Delphi study-draft form",
+  "checks": [
+    "exact delphi:draft grant gating and no lifecycle/publish controls",
+    "bounded fields and stopping-criteria payload contract",
+    "CSRF, same-origin credentials, and no-store POST",
+    "stable request ID for unchanged in-page retry and draft-only response validation",
+    "unique control IDs and click-handler wiring",
+    "Node.js syntax check of the inline operator-console application"
+  ],
+  "focused_tests_passed": 13,
+  "database_or_provider_used": false,
+  "candidate_or_legacy_modified": false,
+  "live_oidc_or_browser_acceptance": false
+}

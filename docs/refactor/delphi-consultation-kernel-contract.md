@@ -100,7 +100,12 @@ the receipt table; only the Gateway runtime can execute the function, which is
 owned by a dedicated non-login role with column-limited study access. This
 route creates a study only; item, panel, open/close, contribution, and stopping
 operations remain separate lifecycle work. The operator console does not yet
-provide a study-creation form.
+provide panel, item, open/close, contribution, or stopping controls. Its study
+creation panel appears only when the session has an exact location `delphi:draft`
+grant. The form uses bounded stopping-criteria inputs and sends CSRF-protected,
+no-store requests; an unchanged retry within the active page reuses its request
+ID. It confirms the returned location and `draft` lifecycle state and does not
+offer any open, review, or publish action.
 
 ## Facilitator draft creation
 
@@ -184,6 +189,12 @@ receipts, runtime/Directus access denial, and the dedicated function owner
 [disposable check](../../scripts/check-delphi-study-drafts-disposable.py),
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-drafts-disposable.json)).
 No candidate or legacy database was touched; migration 630 is not rolled out.
+The study-creation console panel has four focused contract checks and passes
+Node.js syntax validation; the three focused Delphi console suites pass 13
+tests total ([console tests](../../tests/test_operator_console_delphi_study_drafts.py),
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-draft-console.json)).
+This is source/contract verification; live browser and OIDC acceptance remain
+open.
 The CAP-027 draft
 source slice is implemented and verified, not accepted as a capability.
 Live OIDC/browser, broader Delphi parity, universal runtime ACL/RLS, and

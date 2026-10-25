@@ -201,6 +201,47 @@
             <button id="ai-summary-task-request-copy" class="secondary" type="button">Copy worker command</button>
           </section>
         </section>
+        <section id="delphi-study-draft-create" hidden aria-labelledby="delphi-study-draft-create-heading">
+          <h2 id="delphi-study-draft-create-heading">Create Delphi study</h2>
+          <p class="muted">Create a private study draft at a location explicitly granted to your account. Saving does not open participation, add panel members, or publish results.</p>
+          <div class="toolbar">
+            <label for="delphi-study-draft-location">Granted location</label>
+            <select id="delphi-study-draft-location"></select>
+            <label for="delphi-study-draft-variation">Study variation</label>
+            <select id="delphi-study-draft-variation">
+              <option value="real_time">Real-time</option>
+              <option value="classic">Classic</option>
+              <option value="policy">Policy</option>
+              <option value="argument">Argument</option>
+              <option value="disaggregative">Disaggregative</option>
+              <option value="fast_track">Fast track</option>
+            </select>
+          </div>
+          <label for="delphi-study-draft-title">Study title</label>
+          <input id="delphi-study-draft-title" type="text" maxlength="255" autocomplete="off" required>
+          <label for="delphi-study-draft-description">Description (optional)</label>
+          <textarea id="delphi-study-draft-description" rows="3" maxlength="4000"></textarea>
+          <div class="toolbar">
+            <label for="delphi-study-draft-facilitator">Facilitator type</label>
+            <select id="delphi-study-draft-facilitator">
+              <option value="agent">Agent</option>
+              <option value="human">Human</option>
+              <option value="hybrid">Hybrid</option>
+            </select>
+            <label for="delphi-study-draft-duration">Maximum hours</label>
+            <input id="delphi-study-draft-duration" type="number" min="1" max="8760" step="1" value="720">
+            <label for="delphi-study-draft-stability">Stability (%)</label>
+            <input id="delphi-study-draft-stability" type="number" min="0" max="100" step="0.1" value="5">
+          </div>
+          <div class="toolbar">
+            <label for="delphi-study-draft-participants">Minimum participants</label>
+            <input id="delphi-study-draft-participants" type="number" min="3" max="10000" step="1" value="3">
+            <label for="delphi-study-draft-iqr">IQR threshold</label>
+            <input id="delphi-study-draft-iqr" type="number" min="0" max="2" step="0.1" value="1">
+          </div>
+          <button id="delphi-study-draft-submit" type="button">Save study as draft</button>
+          <p id="delphi-study-draft-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
         <section id="delphi-recommendation-draft-create" hidden aria-labelledby="delphi-recommendation-draft-create-heading">
           <h2 id="delphi-recommendation-draft-create-heading">Create Delphi facilitator draft</h2>
           <p class="muted">Create a bounded recommendation draft for an open or closed study at a location explicitly granted to your account. Draft creation never approves or publishes the text; an independent reviewer must decide it.</p>
@@ -2864,6 +2905,20 @@
       const aiSummaryTaskRequestId = document.querySelector("#ai-summary-task-request-id");
       const aiSummaryTaskRequestCommand = document.querySelector("#ai-summary-task-request-command");
       let aiSummaryTaskRequestIds = new Map();
+      const delphiStudyDraftCreate = document.querySelector("#delphi-study-draft-create");
+      const delphiStudyDraftLocation = document.querySelector("#delphi-study-draft-location");
+      const delphiStudyDraftTitle = document.querySelector("#delphi-study-draft-title");
+      const delphiStudyDraftDescription = document.querySelector("#delphi-study-draft-description");
+      const delphiStudyDraftVariation = document.querySelector("#delphi-study-draft-variation");
+      const delphiStudyDraftFacilitator = document.querySelector("#delphi-study-draft-facilitator");
+      const delphiStudyDraftDuration = document.querySelector("#delphi-study-draft-duration");
+      const delphiStudyDraftStability = document.querySelector("#delphi-study-draft-stability");
+      const delphiStudyDraftParticipants = document.querySelector("#delphi-study-draft-participants");
+      const delphiStudyDraftIqr = document.querySelector("#delphi-study-draft-iqr");
+      const delphiStudyDraftSubmit = document.querySelector("#delphi-study-draft-submit");
+      const delphiStudyDraftStatus = document.querySelector("#delphi-study-draft-status");
+      let delphiStudyDraftLocations = new Set();
+      let delphiStudyDraftRequestIds = new Map();
       const delphiRecommendationDraftCreate = document.querySelector("#delphi-recommendation-draft-create");
       const delphiRecommendationDraftLocation = document.querySelector("#delphi-recommendation-draft-location");
       const delphiRecommendationDraftStudy = document.querySelector("#delphi-recommendation-draft-study");
@@ -5381,7 +5436,7 @@
             if (response.status < 500) operatingPilotPendingCoachingWrites.delete(locationId);
             throw new Error(result.error || "The coaching session could not be saved.");
           }
-          if (result.location_id !== locationId
+          if (String(result.location_id || "").toLowerCase() !== locationId.toLowerCase()
               || result.status !== "completed"
               || result.privacy_level !== "private"
               || typeof result.replayed !== "boolean"
@@ -21269,6 +21324,7 @@
             .map((scope) => scope.location_id)
             .filter(validDelphiReviewLocation))];
           delphiRecommendationDraftLocations = new Set(delphiDraftLocationIds);
+          delphiStudyDraftLocations = new Set(delphiDraftLocationIds);
           const governanceTensionLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_tension" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -21845,11 +21901,16 @@
           }
           if (delphiDraftLocationIds.length) {
             for (const locationId of delphiDraftLocationIds) {
+              const studyOption = document.createElement("option");
+              studyOption.value = locationId;
+              studyOption.textContent = locationId;
+              delphiStudyDraftLocation.append(studyOption);
               const option = document.createElement("option");
               option.value = locationId;
               option.textContent = locationId;
               delphiRecommendationDraftLocation.append(option);
             }
+            delphiStudyDraftCreate.hidden = false;
             delphiRecommendationDraftCreate.hidden = false;
             await loadDelphiRecommendationDraftStudies();
             hasAuthorizedSurface = true;
@@ -22066,6 +22127,96 @@
           if (requestVersion === delphiRecommendationReviewRequestVersion) {
             delphiRecommendationReviewStatus.textContent = error.message;
           }
+        }
+      }
+
+      async function submitDelphiStudyDraft() {
+        const locationId = delphiStudyDraftLocation.value;
+        const boundedInputs = [
+          delphiStudyDraftDuration,
+          delphiStudyDraftStability,
+          delphiStudyDraftParticipants,
+          delphiStudyDraftIqr,
+        ];
+        if (!delphiStudyDraftLocations.has(locationId)) {
+          delphiStudyDraftStatus.textContent = "A location-scoped Delphi draft grant is required.";
+          return;
+        }
+        if (!delphiStudyDraftTitle.value.trim()) {
+          delphiStudyDraftStatus.textContent = "Enter a title for the study draft.";
+          delphiStudyDraftTitle.focus();
+          return;
+        }
+        const invalidInput = boundedInputs.find((input) => !input.checkValidity());
+        if (invalidInput) {
+          delphiStudyDraftStatus.textContent = "Review the stopping-criteria bounds before saving.";
+          invalidInput.reportValidity();
+          return;
+        }
+        const payload = {
+          title: delphiStudyDraftTitle.value.trim(),
+          description: delphiStudyDraftDescription.value.trim() || null,
+          variation: delphiStudyDraftVariation.value,
+          facilitator_type: delphiStudyDraftFacilitator.value,
+          stopping_criteria: {
+            max_duration_hours: Number(delphiStudyDraftDuration.value),
+            stability_pct: Number(delphiStudyDraftStability.value),
+            min_participants: Number(delphiStudyDraftParticipants.value),
+            iqr_threshold: Number(delphiStudyDraftIqr.value),
+          },
+        };
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, payload]);
+        let requestId = delphiStudyDraftRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiStudyDraftRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiStudyDraftStatus.textContent = "Refresh in a secure browser session before saving a study draft.";
+          return;
+        }
+        delphiStudyDraftSubmit.disabled = true;
+        delphiStudyDraftStatus.textContent = "Saving a private Delphi study draft…";
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId, ...payload }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi draft grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error(result.error || "This request ID conflicts with a different study draft.");
+          }
+          if (!response.ok) throw new Error(result.error || "The Delphi study draft could not be saved.");
+          if (result.location_id !== locationId
+              || result.status !== "draft"
+              || typeof result.study_id !== "string"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not confirm a private draft at the selected location.");
+          }
+          delphiStudyDraftRequestIds.delete(requestKey);
+          delphiStudyDraftTitle.value = "";
+          delphiStudyDraftDescription.value = "";
+          delphiStudyDraftStatus.textContent = result.replayed
+            ? `Existing private study draft confirmed (${result.study_id}). It remains closed and unpublished.`
+            : `Study draft saved (${result.study_id}). It remains closed and unpublished.`;
+        } catch (error) {
+          delphiStudyDraftStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          delphiStudyDraftSubmit.disabled = false;
         }
       }
 
@@ -25233,6 +25384,7 @@
       delphiRecommendationDraftLocation.addEventListener("change", () => loadDelphiRecommendationDraftStudies());
       delphiRecommendationDraftStudiesMore.addEventListener("click", () => loadDelphiRecommendationDraftStudies(true));
       delphiRecommendationDraftSubmit.addEventListener("click", submitDelphiRecommendationDraft);
+      delphiStudyDraftSubmit.addEventListener("click", submitDelphiStudyDraft);
       document.querySelector("#governance-tension-refresh").addEventListener("click", () => loadGovernanceTensionQueue());
       governanceTensionLocation.addEventListener("change", () => loadGovernanceTensionQueue());
       governanceTensionStatusFilter.addEventListener("change", () => loadGovernanceTensionQueue());
