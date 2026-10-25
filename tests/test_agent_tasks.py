@@ -165,6 +165,34 @@ def test_cids_output_rejects_inconsistent_document_envelope() -> None:
         errors = validate_output("cids_export", {**valid, field: value})
         assert expected_error in errors
 
+    unsupported_version_document = {
+        **document,
+        "kokonut:cidsVersion": "3.3.0",
+    }
+    unsupported_version = {
+        **valid,
+        "document": unsupported_version_document,
+        "cids_version": "3.3.0",
+        "source_scope": _cids_source_scope(unsupported_version_document, lineage),
+    }
+    assert "Unsupported CIDS version" in validate_output(
+        "cids_export", unsupported_version
+    )
+
+    unsupported_tier_document = {
+        **document,
+        "kokonut:alignmentTier": "comprehensive",
+    }
+    unsupported_tier = {
+        **valid,
+        "document": unsupported_tier_document,
+        "alignment_tier": "comprehensive",
+        "source_scope": _cids_source_scope(unsupported_tier_document, lineage),
+    }
+    assert "Unsupported CIDS alignment tier" in validate_output(
+        "cids_export", unsupported_tier
+    )
+
 
 def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() -> None:
     node = {

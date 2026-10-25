@@ -15,11 +15,12 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
+from services.registry.cids_contract import CIDS_ALIGNMENT_TIER, CIDS_VERSION
+
 CIDS_CONTEXTS = [
     "https://ontology.commonapproach.org/contexts/cidsContext.jsonld",
     "https://ontology.commonapproach.org/contexts/sffContext.jsonld",
 ]
-CIDS_VERSION = "3.2.0"
 CIDS_BASE_URL = os.environ.get("KOKONUT_CIDS_BASE_URL", "https://kokonut.network/cids")
 SDG_BASE_URL = "https://metadata.un.org/sdg"
 
@@ -848,7 +849,7 @@ def export_location(
         "@context": CIDS_CONTEXTS,
         "@graph": build_cids_graph(source, source_schema=source_schema),
         "kokonut:cidsVersion": CIDS_VERSION,
-        "kokonut:alignmentTier": "essential",
+        "kokonut:alignmentTier": CIDS_ALIGNMENT_TIER,
     }
 
 
@@ -862,7 +863,7 @@ def export_location_with_lineage(
         "@context": CIDS_CONTEXTS,
         "@graph": graph,
         "kokonut:cidsVersion": CIDS_VERSION,
-        "kokonut:alignmentTier": "essential",
+        "kokonut:alignmentTier": CIDS_ALIGNMENT_TIER,
     }
     lineage = build_cids_property_row_lineage(
         source, graph, source_schema=source_schema

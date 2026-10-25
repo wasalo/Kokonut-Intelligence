@@ -13,6 +13,8 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from services.registry.cids_contract import CIDS_ALIGNMENT_TIER, CIDS_VERSION
+
 CIDS_SOURCE_VIEWS = (
     "kokonut_agent_source.cids_location",
     "kokonut_agent_source.cids_stakeholder_outcome",
@@ -553,8 +555,12 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                     errors.append("Invalid CIDS graph count")
                 if output.get("alignment_tier") != document.get("kokonut:alignmentTier"):
                     errors.append("Invalid CIDS alignment tier")
+                if document.get("kokonut:alignmentTier") != CIDS_ALIGNMENT_TIER:
+                    errors.append("Unsupported CIDS alignment tier")
                 if output.get("cids_version") != document.get("kokonut:cidsVersion"):
                     errors.append("Invalid CIDS version")
+                if document.get("kokonut:cidsVersion") != CIDS_VERSION:
+                    errors.append("Unsupported CIDS version")
                 if any(
                     not isinstance(node, dict)
                     or not isinstance(node.get("@id"), str)

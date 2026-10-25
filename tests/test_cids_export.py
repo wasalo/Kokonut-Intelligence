@@ -8,6 +8,7 @@ import sys
 from datetime import date
 from decimal import Decimal
 
+from services.registry.cids_contract import CIDS_ALIGNMENT_TIER, CIDS_VERSION
 from services.registry.cids_export import (
     build_cids_graph,
     build_cids_property_row_lineage,
@@ -416,8 +417,10 @@ def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:
     )
     exported = export_location(Conn(), "a0000000-0000-0000-0000-000000000001")
 
-    assert exported["kokonut:alignmentTier"] == "essential"
-    assert exported["kokonut:cidsVersion"] == "3.2.0"
+    assert exported["kokonut:alignmentTier"] == CIDS_ALIGNMENT_TIER
+    assert exported["kokonut:cidsVersion"] == CIDS_VERSION
+    assert CIDS_ALIGNMENT_TIER == "essential"
+    assert CIDS_VERSION == "3.2.0"
     assert exported["@graph"]
     assert exported["@graph"][0]["kokonut:sourceViews"] == [
         "public.farm",

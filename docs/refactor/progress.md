@@ -18515,3 +18515,18 @@ credentials/grants, and MAN-CAP-038 remain open. Checklist: 1,183 complete /
 25 open (1,208 total); matrix classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 [envelope consistency](builds/2026-10-25-recovery/cap-038-cids-envelope-consistency.json).
+
+### Progress addendum — CAP-038 pinned CIDS profile, 25 October 2026
+
+The CIDS exporter and task validator now share a dependency-light profile
+contract that pins the supported export to version 3.2.0 and Essential tier.
+The validator rejects an unsupported version or tier even when the JSON-LD
+document and its envelope agree. The focused CIDS export/task/worker selection
+passes 110 tests; Ruff, Python compilation, capability-matrix validation,
+migration integrity (752 files), runtime SQL inventory, and diff checks pass.
+No migration, database, provider, candidate, or legacy service was used. This
+does not validate every external JSON-LD term or live context. Source snapshots,
+populated parity, runtime credentials/grants, and MAN-CAP-038 remain open.
+Checklist: 1,184 complete / 25 open (1,209 total); matrix classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [pinned profile](builds/2026-10-25-recovery/cap-038-cids-profile-contract.json).
