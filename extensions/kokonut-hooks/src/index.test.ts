@@ -32,6 +32,75 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('stakeholder_feedback_review.items.create');
   });
 
+  it('binds feedback-review creation and reviewer validation to the request transaction', async () => {
+    const locationA = '11111111-1111-4111-8111-111111111111';
+    const locationB = '22222222-2222-4222-8222-222222222222';
+    const feedbackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const staffId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const operatorId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const issuer = 'https://identity.example.test';
+    const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const globalDatabase = vi.fn();
+    const createRequestDatabase = (parentLocationId: string) => vi.fn((table: string) => {
+      const builder: any = {};
+      for (const method of [
+        'select', 'distinct', 'whereNull', 'whereNotNull', 'whereRaw', 'whereIn',
+      ]) {
+        builder[method] = vi.fn(() => builder);
+      }
+      builder.where = vi.fn(() => builder);
+      builder.first = vi.fn(async () => {
+        if (table === 'public.directus_users') return { external_identifier: 'test-subject' };
+        if (table === 'public.operator_identity') return { id: operatorId };
+        if (table === 'public.operator_scope_grant as grant_row') return { location_id: locationA };
+        if (table === 'staff') return { id: staffId };
+        return undefined;
+      });
+      builder.then = (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => {
+        const rows = table === 'public.operator_scope_grant as grant_row'
+          ? [{ location_id: locationA }]
+          : table === 'public.stakeholder_feedback'
+            ? [{ id: feedbackId, location_id: parentLocationId }]
+            : [];
+        return Promise.resolve(rows).then(resolve, reject);
+      };
+      return builder;
+    });
+    const filters = new Map<string, (...args: any[]) => Promise<any>>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          filters.set(event, callback);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: { KOKONUT_OPERATOR_OIDC_ISSUER: issuer } },
+    );
+
+    const createReview = filters.get('stakeholder_feedback_review.items.create');
+    expect(createReview).toBeDefined();
+    const ownRequestDatabase = createRequestDatabase(locationA);
+    const payload = { feedback_id: feedbackId, reviewer_id: staffId };
+    await expect(createReview!(payload, {}, {
+      database: ownRequestDatabase,
+      accountability: { user: userId },
+    })).resolves.toBe(payload);
+    expect(ownRequestDatabase).toHaveBeenCalledWith('public.stakeholder_feedback');
+    expect(ownRequestDatabase).toHaveBeenCalledWith('staff');
+    expect(ownRequestDatabase).toHaveBeenCalledWith('public.operator_scope_grant as grant_row');
+    expect(globalDatabase).not.toHaveBeenCalled();
+
+    const foreignRequestDatabase = createRequestDatabase(locationB);
+    await expect(createReview!(payload, {}, {
+      database: foreignRequestDatabase,
+      accountability: { user: userId },
+    })).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    expect(foreignRequestDatabase).not.toHaveBeenCalledWith('staff');
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
   it('does not register Directus schedules unless explicitly enabled', () => {
     const schedules: string[] = [];
     (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(

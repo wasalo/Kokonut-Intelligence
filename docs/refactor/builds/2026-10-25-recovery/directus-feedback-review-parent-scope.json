@@ -6,7 +6,7 @@
     {
       "command": "cd extensions/kokonut-hooks && npm test",
       "result": "passed",
-      "summary": "7 test files; 83 tests passed"
+      "summary": "7 test files; 84 tests passed"
     },
     {
       "command": "cd extensions/kokonut-hooks && npm run build",
@@ -25,7 +25,8 @@
     "grant_resource": "stakeholder_feedback_review",
     "grant_action": "create",
     "grant_location": "Resolved from parent feedback location_id using the request database context",
-    "reviewer_scope": "Optional reviewer_id must be staff directly assigned to the same location or linked to a farm at that location"
+    "reviewer_scope": "Optional reviewer_id must be staff directly assigned to the same location or linked to a farm at that location",
+    "request_transaction_regression": "The registered hook uses the request database for parent lookup, grant checks, and reviewer validation; a foreign parent is denied before reviewer lookup."
   },
   "limitations": [
     "The repository-managed Directus permission grants create only; this change does not add review read, update, or delete operations.",
