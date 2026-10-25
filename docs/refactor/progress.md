@@ -18640,3 +18640,12 @@ parity, universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance remain open.
 CAP-027 remains prepared, not accepted. Checklist: 1,186 complete / 25 open
 (1,211 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows.
+
+### Progress addendum — Kernel release-input lock repair, 25 October 2026
+
+CI on pushed commit `4682069a` failed before tests because the SHA-256 lock for
+`Dockerfile.kernel` still described its prior contents. Commit `d5f0e2a4` had
+added the first-party Delphi participant app to the image, leaving the release
+lock stale. The lock now records the SHA-256 of the reviewed current Dockerfile;
+`python3 scripts/check-kernel-release-inputs.py` passes locally. This repair is
+not yet pushed, so the CI and Security checks for the repair head remain open.
