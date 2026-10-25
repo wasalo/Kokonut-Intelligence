@@ -1,0 +1,38 @@
+{
+  "slice": "CAP-038 one-shot agent worker CLI write boundary",
+  "date": "2026-10-25",
+  "status": "passed",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_agent_worker_cli.py tests/test_agents_base.py tests/test_agent_summary_worker_profile.py -q",
+      "result": "98 passed"
+    },
+    "ruff": {
+      "command": "ruff check services/agents/worker_cli.py tests/test_agent_worker_cli.py tests/test_agent_summary_worker_profile.py",
+      "result": "passed"
+    },
+    "python_compile": {
+      "command": "python3 -m compileall -q services/agents/worker_cli.py",
+      "result": "passed"
+    },
+    "capability_matrix": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "valid; 67 rows; 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "verified_behavior": [
+    "The one-shot CLI rejects draft persistence before resolving a registered task.",
+    "Read-only deterministic and synthesis CLI paths call the worker with persist_draft=false and no request ID.",
+    "CLI output excludes generated content, source references, and location IDs.",
+    "All Compose one-shot worker profiles pin --read-only."
+  ],
+  "scope_limits": [
+    "No database, provider, candidate, or legacy service was accessed.",
+    "The programmatic worker writer still does not authenticate the initiating human; CAP-038 remains open.",
+    "No candidate rollout or MAN-CAP-038 acceptance is claimed."
+  ]
+}

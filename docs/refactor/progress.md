@@ -17741,3 +17741,8 @@ output parity, landscape dashboard-derived calculations, runtime role/RLS,
 live OIDC/browser behavior, historical link reconciliation, and MAN-CAP-006
 remain open ([contract](landscape-pollinator-kernel-read-contract.md);
 [evidence](builds/2026-10-23-recovery/cap-006-pollinator-calculation-parity.json)).
+
+
+### Progress addendum — CAP-038 one-shot agent worker write boundary, 25 October 2026
+
+The manually invoked `services.agents.worker_cli` now requires `--read-only`; default invocations fail before task resolution, and read-only results disclose neither generated summary content nor location IDs. All optional one-shot Compose worker profiles pin this mode, and the documented examples now match. The focused worker, agent-base, and Compose-profile selection passes 98 tests; Ruff, Python compilation, and capability-matrix validation pass. No database, provider, candidate, or legacy service was accessed. This closes the exposed one-shot CLI draft-write path only: programmatic worker persistence still has task and worker attribution but no authenticated operator receipt, so CAP-038 and MAN-CAP-038 remain open. Checklist: 1,138 complete / 25 open (1,163 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Evidence](builds/2026-10-25-recovery/cap-038-worker-cli-read-only-boundary.json).

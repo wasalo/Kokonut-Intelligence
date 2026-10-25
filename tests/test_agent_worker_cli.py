@@ -1728,30 +1728,23 @@ def test_worker_cli_dispatches_registered_synthesis_task_without_content_output(
             "--task-key",
             agent.task_key,
             "--source-only",
-            "--request-id",
-            REQUEST_ID,
+            "--read-only",
         ],
     )
     monkeypatch.setattr(worker_cli, "resolve_synthesis_agent", lambda _task: agent)
-    monkeypatch.setattr(
-        worker_cli,
-        "run_worker_synthesis",
-        lambda *_args: {
-            "ai_summary_id": "saved-id",
-            "request_id": REQUEST_ID,
-            "replayed": False,
-            "summary": {"synthesis": "private generated content"},
-        },
+    run = MagicMock(
+        return_value={"summary": {"synthesis": "private generated content"}}
     )
+    monkeypatch.setattr(worker_cli, "run_worker_synthesis", run)
 
     worker_cli.main()
 
     output = capsys.readouterr().out
+    run.assert_called_once_with(agent, LOCATION_ID, None, persist_draft=False)
     assert json.loads(output) == {
-        "summary_id": "saved-id",
-        "resulting_status": "draft",
-        "request_id": REQUEST_ID,
-        "replayed": False,
+        "task_key": agent.task_key,
+        "summary_type": agent.summary_type,
+        "resulting_status": "computed_not_persisted",
     }
     assert "private generated content" not in output
 
@@ -2068,30 +2061,73 @@ def test_cli_output_does_not_print_summary_content_or_source_references(monkeypa
             LOCATION_ID,
             "--summary-type",
             "operations",
-            "--request-id",
-            REQUEST_ID,
+            "--read-only",
         ],
     )
-    monkeypatch.setattr(
-        worker_cli,
-        "run_worker_summary",
-        lambda *_args: {
-            "summary_id": "saved-id",
-            "resulting_status": "draft",
-            "replayed": False,
-            "content": "private farm summary",
-            "source_references": {"harvest_event": {"record_ids": [LOCATION_ID]}},
-        },
+    run = MagicMock(
+        return_value={
+            "summary": {
+                "content": "private farm summary",
+                "source_references": {"harvest_event": {"record_ids": [LOCATION_ID]}},
+            }
+        }
     )
+    monkeypatch.setattr(worker_cli, "run_worker_summary", run)
 
     worker_cli.main()
 
     output = capsys.readouterr().out
+    run.assert_called_once_with(
+        LOCATION_ID, "operations", None, persist_draft=False
+    )
     assert json.loads(output) == {
-        "summary_id": "saved-id",
-        "resulting_status": "draft",
-        "request_id": REQUEST_ID,
-        "replayed": False,
+        "task_key": "ai_summary_synthesis",
+        "summary_type": "operations",
+        "resulting_status": "computed_not_persisted",
     }
     assert "private farm summary" not in output
     assert LOCATION_ID not in output
+
+
+def test_worker_cli_rejects_draft_persistence_before_task_resolution(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["worker_cli", "--location-id", LOCATION_ID, "--task-key", "feedback_synthesis"],
+    )
+    resolver = MagicMock(side_effect=AssertionError("task must not resolve"))
+    runner = MagicMock(side_effect=AssertionError("worker must not run"))
+    monkeypatch.setattr(worker_cli, "resolve_synthesis_agent", resolver)
+    monkeypatch.setattr(worker_cli, "run_worker_synthesis", runner)
+
+    with pytest.raises(SystemExit) as error:
+        worker_cli.main()
+
+    assert error.value.code == 2
+    resolver.assert_not_called()
+    runner.assert_not_called()
+
+
+def test_worker_cli_read_only_rejects_request_id_before_task_resolution(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "worker_cli",
+            "--location-id",
+            LOCATION_ID,
+            "--task-key",
+            "feedback_synthesis",
+            "--read-only",
+            "--request-id",
+            REQUEST_ID,
+        ],
+    )
+    resolver = MagicMock(side_effect=AssertionError("task must not resolve"))
+    monkeypatch.setattr(worker_cli, "resolve_synthesis_agent", resolver)
+
+    with pytest.raises(SystemExit) as error:
+        worker_cli.main()
+
+    assert error.value.code == 2
+    resolver.assert_not_called()

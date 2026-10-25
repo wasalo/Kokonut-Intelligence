@@ -203,8 +203,10 @@ worker adapter; legacy/background writers still lack row-level manifests.
 
 The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
 role that may switch only to the bounded worker execution role. A one-shot
-`services.agents.worker_cli` exercises this path for the four deterministic
-AI-summary types and the twelve registered synthesis tasks. Shared
+`services.agents.worker_cli` historically exercised this path for the four
+deterministic AI-summary types and the twelve registered synthesis tasks. It
+now requires `--read-only` and refuses draft persistence before resolving a
+task; Compose worker profiles also set that mode. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
 `ai_summary` directly. The worker resolves every synthesis task through its explicit twelve-module
 registry, checks the registered class and class-declared metadata before any
@@ -213,9 +215,10 @@ collector reads the class-registered query and view map rather than an
 instance-shadowed value. Focused regressions prove a query override is ignored
 by collection and rejected before receipt lookup. This protects the reviewed
 in-process provenance contract; it does not authenticate Python code or replace
-the worker's signed database scope. The worker checks the stable request
-receipt before source queries and runs reads inside a bounded repeatable-read,
-read-only transaction. Migrations 580–593 give each registered synthesis task
+the worker's signed database scope. The programmatic draft path checks the
+stable worker retry receipt before source queries and runs reads inside a
+bounded repeatable-read, read-only transaction. That receipt proves task
+idempotency, not a human initiator. Migrations 580–593 give each registered synthesis task
 its own signed source login and reader role, with an exact `ai_summary/read`
 grant before querying. The task reader's approved security-barrier wrappers call the database-signed
 `current_worker_scope` function on every view read: location views expose only
@@ -328,6 +331,17 @@ worker identities, and a database trigger enforces that rule while still
 allowing a human to reject an unregistered legacy draft. No generic shared
 synthesis profile remains.
 
+The manually invoked `services.agents.worker_cli` and its optional Compose
+profiles now require `--read-only`. Their default mode refuses draft
+persistence before task resolution; the read-only command reports only task
+metadata and omits summary content and location IDs. This closes the
+unattributed one-shot CLI entry point without removing the signed worker
+library. The worker write function still proves task identity and exact
+location scope, not the initiating operator. A future human-triggered runner
+must check an immutable Gateway operator/request/task receipt before source
+generation and draft creation; the synthesis-task Gateway route is not yet
+implemented.
+
 Migration 596 adds `list_location_ai_summary_reviews_with_worker_run` as the
 review-facing wrapper. It calls the existing signed, bounded task-review
 function, then joins the request receipt only by the returned summary ID and
@@ -354,12 +368,14 @@ each location grant at the database view boundary, and deterministic summaries
 use a separate signed, location-filtered view boundary. The remaining
 runtime/RLS review is open. An operator still needs to provision the runtime
 password, task source login/password pairs, worker credentials, separate
-  location grants, and service DSNs; migrations 529–596 are not rolled out to
-the candidate. Stored agent CLI output is reduced to the
-draft ID, request ID, status, and replay flag. For example, run a task through
-the isolated profile with
-`--task-key feedback_synthesis --location-id UUID --request-id UUID`. The database acceptance
-uses a synthetic operator-context stub for its review step; production worker
+location grants, and service DSNs; migrations 529–596 are not rolled out to
+the candidate. The human-invoked CLI now computes without persisting, for
+example with `--task-key feedback_synthesis --location-id UUID --read-only`.
+The programmatic worker draft path still uses a stable worker retry receipt
+and exact signed scope, but it does not identify a human initiator. A task-run
+Gateway route and authenticated request receipt remain required before
+human-triggered synthesis drafts can be stored. The database acceptance uses
+a synthetic operator-context stub for its review step; production worker
 identity is exercised with migration 405's signed worker context. See the
 [worker adapter](../../services/agents/worker_draft.py),
 [migration 529](../../schemas/postgres/529_signed_agent_ai_summary_drafts.sql),

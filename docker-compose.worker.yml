@@ -96,13 +96,13 @@ services:
   # Shared synthesis reads use a separate public-view-only database login below.
   # After sourcing secrets: docker compose -f docker-compose.yml -f docker-compose.worker.yml
   #   --profile agent-summary-worker run --rm agent-summary-worker --location-id UUID \
-  #     --summary-type combined --request-id UUID
+  #     --summary-type combined --read-only
   agent-summary-worker:
     build:
       context: .
       dockerfile: Dockerfile.worker
     entrypoint:
-      ["python3", "-m", "services.agents.worker_cli", "--deterministic-only"]
+      ["python3", "-m", "services.agents.worker_cli", "--read-only", "--deterministic-only"]
     restart: "no"
     depends_on:
       database:
@@ -126,7 +126,7 @@ services:
   # After sourcing secrets:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile organic-readiness-worker run --rm agent-organic-readiness-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-organic-readiness-worker:
     build:
       context: .
@@ -134,6 +134,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "organic_readiness_synthesis"
       ]
     restart: "no"
@@ -159,7 +160,7 @@ services:
   # After sourcing secrets:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile ecological-modeling-worker run --rm agent-ecological-modeling-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-ecological-modeling-worker:
     build:
       context: .
@@ -167,6 +168,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "ecological_modeling_synthesis"
       ]
     restart: "no"
@@ -192,7 +194,7 @@ services:
   # After sourcing secrets:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile holistic-wellbeing-worker run --rm agent-holistic-wellbeing-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-holistic-wellbeing-worker:
     build:
       context: .
@@ -200,6 +202,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "holistic_wellbeing_synthesis"
       ]
     restart: "no"
@@ -225,7 +228,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile feedback-worker run --rm agent-feedback-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-feedback-worker:
     build:
       context: .
@@ -233,6 +236,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "feedback_synthesis"
       ]
     restart: "no"
@@ -258,7 +262,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile commons-liberation-worker run --rm agent-commons-liberation-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-commons-liberation-worker:
     build:
       context: .
@@ -266,6 +270,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "commons_liberation_synthesis"
       ]
     restart: "no"
@@ -291,7 +296,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile gnh-alignment-worker run --rm agent-gnh-alignment-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-gnh-alignment-worker:
     build:
       context: .
@@ -299,6 +304,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "gnh_alignment_synthesis"
       ]
     restart: "no"
@@ -324,7 +330,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile regenerator-worker run --rm agent-regenerator-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-regenerator-worker:
     build:
       context: .
@@ -332,6 +338,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "regenerator_synthesis"
       ]
     restart: "no"
@@ -357,7 +364,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile capital-efficiency-worker run --rm agent-capital-efficiency-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-capital-efficiency-worker:
     build:
       context: .
@@ -365,6 +372,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "capital_efficiency_synthesis"
       ]
     restart: "no"
@@ -390,7 +398,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile financial-resilience-worker run --rm agent-financial-resilience-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-financial-resilience-worker:
     build:
       context: .
@@ -398,6 +406,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "financial_resilience_synthesis"
       ]
     restart: "no"
@@ -423,7 +432,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile bio-factory-worker run --rm agent-bio-factory-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-bio-factory-worker:
     build:
       context: .
@@ -431,6 +440,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "bio_factory_synthesis"
       ]
     restart: "no"
@@ -456,7 +466,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile open-source-capitalist-worker run --rm agent-open-source-capitalist-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-open-source-capitalist-worker:
     build:
       context: .
@@ -464,6 +474,7 @@ services:
     entrypoint:
       [
         "python3", "-m", "services.agents.worker_cli",
+        "--read-only",
         "--source-only", "--task-key", "open_source_capitalist_synthesis"
       ]
     restart: "no"
@@ -518,7 +529,7 @@ services:
   # Example:
   #   docker compose -f docker-compose.yml -f docker-compose.worker.yml \
   #     --profile kokonut-commons-worker run --rm agent-kokonut-commons-worker \
-  #     --location-id UUID --request-id UUID
+  #     --location-id UUID --read-only
   agent-kokonut-commons-worker:
     build:
       context: .
@@ -528,6 +539,7 @@ services:
         "python3",
         "-m",
         "services.agents.worker_cli",
+        "--read-only",
         "--source-only",
         "--task-key",
         "kokonut_commons_synthesis",

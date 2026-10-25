@@ -1,4 +1,4 @@
-"""One-shot signed worker entry point for AI-summary and synthesis drafts."""
+"""One-shot signed worker entry point for read-only AI-summary and synthesis runs."""
 
 from __future__ import annotations
 
@@ -655,7 +655,7 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate one location-scoped agent draft using the signed worker identity"
+        description="Run a location-scoped agent task without persisting its output"
     )
     parser.add_argument("--location-id", required=True, help="Location UUID")
     parser.add_argument(
@@ -666,7 +666,13 @@ def main() -> None:
         "--summary-type", choices=_SUMMARY_TYPES, help="Built-in deterministic summary generator"
     )
     parser.add_argument(
-        "--request-id", required=True, help="Stable UUID reused when retrying this operation"
+        "--request-id",
+        help="Reserved for authenticated operator task requests; direct CLI writes are disabled",
+    )
+    parser.add_argument(
+        "--read-only",
+        action="store_true",
+        help="Compute the result without creating an AI-summary draft",
     )
     parser.add_argument(
         "--source-only",
@@ -689,20 +695,33 @@ def main() -> None:
         parser.error("--source-only and --deterministic-only cannot be combined")
     if args.task_key and args.summary_type:
         parser.error("choose either --task-key or --summary-type")
+    if not args.read_only:
+        parser.error(
+            "draft persistence through this one-shot CLI is disabled until an "
+            "authenticated operator task receipt is available; pass --read-only "
+            "to compute without storing a draft"
+        )
+    if args.request_id:
+        parser.error("--request-id cannot be used with --read-only")
+
     if args.task_key:
         agent = resolve_synthesis_agent(args.task_key)
-        result = run_worker_synthesis(agent, args.location_id, args.request_id)
-    else:
-        result = run_worker_summary(
-            args.location_id, args.summary_type or "combined", args.request_id
+        summary_type = agent.summary_type
+        run_worker_synthesis(
+            agent, args.location_id, None, persist_draft=False
         )
+    else:
+        summary_type = args.summary_type or "combined"
+        run_worker_summary(
+            args.location_id, summary_type, None, persist_draft=False
+        )
+
     print(
         json.dumps(
             {
-                "summary_id": result.get("ai_summary_id", result.get("summary_id")),
-                "resulting_status": result.get("resulting_status", "draft"),
-                "request_id": result.get("request_id", args.request_id),
-                "replayed": bool(result.get("replayed")),
+                "task_key": args.task_key or "ai_summary_synthesis",
+                "summary_type": summary_type,
+                "resulting_status": "computed_not_persisted",
             },
             sort_keys=True,
         )

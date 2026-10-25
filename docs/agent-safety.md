@@ -287,13 +287,20 @@ python3 -m services.agents.regenerator_agent --location-id <uuid>
 python3 -m services.agents.open_source_capitalist_agent --location-id <uuid>
 python3 -m services.agents.kokonut_commons_agent --location-id <uuid>
 python3 -m services.agents.bio_factory_agent --location-id <uuid>
-python3 -m services.agents.worker_cli --task-key organic_readiness_synthesis --location-id <uuid> --request-id <uuid>
-python3 -m services.agents.worker_cli --task-key ecological_modeling_synthesis --location-id <uuid> --request-id <uuid>
+python3 -m services.agents.worker_cli --task-key organic_readiness_synthesis --location-id <uuid> --read-only
+python3 -m services.agents.worker_cli --task-key ecological_modeling_synthesis --location-id <uuid> --read-only
 python3 -m services.agents.ebf_scorecard_agent --help
 python3 -m services.agents.ebf_evidence_gap_agent --help
 python3 -m services.agents.ebf_calibration_agent --help
 python3 -m services.agents.delphi_facilitator_agent --study-id <uuid> --draft
 ```
+
+The one-shot worker CLI is read-only. It refuses draft persistence before
+resolving a task or opening a database because a worker credential does not
+identify the operator who initiated the run. Deterministic AI-summary draft
+creation remains available through its authenticated Gateway route; synthesis
+task execution routes need an immutable operator/request/task receipt before
+they can use the worker writer.
 
 ## Reviewer Responsibility
 
