@@ -1,3 +1,19 @@
+### Progress addendum — Directus update references stay within tenant scope, 25 October 2026
+
+Scoped Directus create and update hooks now validate the supported scalar
+`plot_id`, `crop_cycle_id`, and `harvest_id` references against the record's
+location. For updates, authorized target-row locations come from the same
+request database context used for reference lookup; mixed-location bulk edits
+fail if one supplied reference cannot match every target. The full hook suite
+passes 78 tests, the extension build and TypeScript check pass, and 10 Python
+tenant/Compose checks pass ([evidence](builds/2026-10-25-recovery/directus-update-reference-scope.json)).
+No database, provider, candidate, legacy stack, or live Directus service was
+accessed. This closes only the known scalar reference checks on update; the
+remaining Directus field/relation and runtime parity gates stay open. Checklist:
+1,146 complete / 25 open (1,171 total); matrix classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared, with 0/67 named acceptance
+checks accepted.
+
 ### Progress addendum — Directus schedules are explicit opt-ins, 25 October 2026
 
 The optional Directus extension now registers daily NOI reconciliation and

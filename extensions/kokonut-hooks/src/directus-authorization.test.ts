@@ -187,7 +187,7 @@ describe('Directus tenant authorization', () => {
     await expect(authorizeDirectusRows(
       store, accountability, issuer, 'farm_activity', 'update', [rowA],
       { description: 'updated' },
-    )).resolves.toBeUndefined();
+    )).resolves.toEqual([{ id: rowA, location_id: locationA }]);
 
     await expect(authorizeDirectusRows(
       store, accountability, issuer, 'farm_activity', 'update', [rowA, rowB], {},

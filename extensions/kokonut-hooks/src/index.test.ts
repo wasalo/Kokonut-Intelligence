@@ -65,6 +65,66 @@ describe('Directus hook event registration', () => {
     expect(schedules).toEqual(['0 2 * * *']);
   });
 
+  it('rejects cross-location references on scoped updates using the request transaction', async () => {
+    const locationA = '11111111-1111-4111-8111-111111111111';
+    const locationB = '22222222-2222-4222-8222-222222222222';
+    const rowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const cropCycleId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const operatorId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const issuer = 'https://identity.example.test';
+    const userId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const globalDatabase = vi.fn();
+    const requestDatabase = vi.fn((table: string) => {
+      const builder: any = {
+        select: vi.fn(() => builder),
+        distinct: vi.fn(() => builder),
+        where: vi.fn(() => builder),
+        whereIn: vi.fn(() => builder),
+        whereNull: vi.fn(() => builder),
+        whereNotNull: vi.fn(() => builder),
+        whereRaw: vi.fn(() => builder),
+        first: vi.fn(async () => {
+          if (table === 'public.directus_users') return { external_identifier: 'test-subject' };
+          if (table === 'public.operator_identity') return { id: operatorId };
+          if (table === 'public.operator_scope_grant as grant_row') return { location_id: locationA };
+          if (table === 'crop_cycle') return { location_id: locationB };
+          return undefined;
+        }),
+        then: (resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) => (
+          Promise.resolve(table === 'public.expense_event'
+            ? [{ id: rowId, location_id: locationA }]
+            : []).then(resolve, reject)
+        ),
+      };
+      return builder;
+    });
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) || [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: { KOKONUT_OPERATOR_OIDC_ISSUER: issuer } },
+    );
+
+    const authorizeAndValidateUpdate = filters.get('expense_event.items.update')?.[0];
+    expect(authorizeAndValidateUpdate).toBeDefined();
+    await expect(authorizeAndValidateUpdate!(
+      { crop_cycle_id: cropCycleId },
+      { keys: [rowId] },
+      { database: requestDatabase, accountability: { user: userId } },
+    )).rejects.toMatchObject({ code: 'INVALID_PAYLOAD', status: 400 });
+
+    expect(requestDatabase).toHaveBeenCalledWith('crop_cycle');
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
   it('keeps financial ClickHouse delivery in the transactional PostgreSQL outbox', async () => {
     const actions = new Map<string, (...args: any[]) => Promise<void>>();
     const fetch = vi.fn();

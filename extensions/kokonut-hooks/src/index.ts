@@ -44,7 +44,10 @@ import {
   prepareAgentActionLog,
   STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
-import { validateTenantReferences } from './tenant-validation.js';
+import {
+  validateTenantReferences,
+  validateTenantReferencesForRows,
+} from './tenant-validation.js';
 import { errorClass } from './error-safety.js';
 import {
   authorizeDirectusCreate,
@@ -162,14 +165,21 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       meta: Record<string, any>,
       context: Record<string, any>,
     ) => {
-      await authorizeDirectusRows(
-        createDirectusTenantStore(context?.database || database),
+      const requestDatabase = context?.database || database;
+      const authorizedRows = await authorizeDirectusRows(
+        createDirectusTenantStore(requestDatabase),
         context?.accountability,
         env.KOKONUT_OPERATOR_OIDC_ISSUER,
         collection,
         'update',
         meta?.keys,
         payload,
+      );
+      await validateTenantReferencesForRows(
+        requestDatabase,
+        collection,
+        payload,
+        authorizedRows,
       );
       return payload;
     });

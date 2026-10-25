@@ -22,6 +22,28 @@ function isUuid(value: unknown): value is string {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+async function validateReferencesAtLocation(
+  database: any,
+  locationId: string,
+  payload: Record<string, any>,
+): Promise<void> {
+  for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
+    const referenceId = payload[field];
+    if (referenceId === undefined || referenceId === null) continue;
+    if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
+
+    let reference: any;
+    for (const table of tables) {
+      reference = await database(table).where('id', referenceId).first('location_id');
+      if (reference) break;
+    }
+    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
+    if (reference.location_id !== locationId) {
+      throw invalidTenantPayload(`${field} belongs to a different location`);
+    }
+  }
+}
+
 /** Validate foreign references against the record's explicit location. */
 export async function validateTenantReferences(
   database: any,
@@ -39,20 +61,35 @@ export async function validateTenantReferences(
   }
   if (locationId === undefined || locationId === null) return payload;
 
-  for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
-    const referenceId = payload[field];
-    if (referenceId === undefined || referenceId === null) continue;
-    if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
+  await validateReferencesAtLocation(database, locationId, payload);
 
-    let reference: any;
-    for (const table of tables) {
-      reference = await database(table).where('id', referenceId).first('location_id');
-      if (reference) break;
+  return payload;
+}
+
+/** Validate changed references against every authorized target row's location. */
+export async function validateTenantReferencesForRows(
+  database: any,
+  collection: string,
+  payload: Record<string, any>,
+  rows: ReadonlyArray<{ location_id: string | null }>,
+): Promise<Record<string, any>> {
+  if (!(TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) return payload;
+  if (rows.length === 0) throw invalidTenantPayload('No tenant rows to validate');
+  if (payload.location_id !== undefined && payload.location_id !== null && !isUuid(payload.location_id)) {
+    throw invalidTenantPayload('Invalid location_id');
+  }
+
+  const locationIds = new Set<string>();
+  for (const row of rows) {
+    if (!isUuid(row.location_id)) throw invalidTenantPayload('Invalid location_id');
+    if (payload.location_id !== undefined && payload.location_id !== row.location_id) {
+      throw invalidTenantPayload('location_id cannot be changed');
     }
-    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
-    if (reference.location_id !== locationId) {
-      throw invalidTenantPayload(`${field} belongs to a different location`);
-    }
+    locationIds.add(row.location_id);
+  }
+
+  for (const locationId of locationIds) {
+    await validateReferencesAtLocation(database, locationId, payload);
   }
 
   return payload;

@@ -213,8 +213,8 @@ export async function authorizeDirectusRows(
   action: Exclude<DirectusAction, 'read' | 'create'>,
   requestedIds: unknown,
   payload?: Record<string, any>,
-): Promise<void> {
-  if (!isTenantCollection(collection)) return;
+): Promise<TenantRow[]> {
+  if (!isTenantCollection(collection)) return [];
   const operatorId = await resolveOperator(store, accountability, issuer);
   const ids = Array.isArray(requestedIds)
     ? requestedIds
@@ -233,6 +233,8 @@ export async function authorizeDirectusRows(
     if (payload?.location_id !== undefined && payload.location_id !== row.location_id) throw deny();
     if (!await store.canAccessLocation(operatorId, collection, action, row.location_id)) throw deny();
   }
+
+  return [...new Set(ids)].map((id) => byId.get(id)!);
 }
 
 /** Check the assigned location before a create; tenant rows cannot be global. */
