@@ -172,35 +172,48 @@ def list_location_pollution_incidents(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT id::text, incident_date::text, incident_type, severity, "
-                "description, affected_area, status "
-                "FROM public.pollution_incident "
-                "WHERE location_id = %s::uuid "
-                "AND status IN ('open', 'investigating', 'remediation') "
-                "ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 "
-                "WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END, "
-                "incident_date DESC, created_at DESC, id DESC LIMIT 101 OFFSET %s",
+                "SELECT kokonut_security.list_location_pollution_incident_review_queue("
+                "%s::uuid, %s::integer)",
                 (location_id, offset),
             )
-            rows = cursor.fetchall()
-            incidents = [
-                {
-                    "incident_id": row[0],
-                    "incident_date": row[1],
-                    "incident_type": row[2],
-                    "severity": row[3],
-                    "description": row[4],
-                    "affected_area": row[5],
-                    "status": row[6],
-                }
-                for row in rows[:100]
-            ]
-        return {
-            "location_id": location_id,
-            "offset": offset,
-            "incidents": incidents,
-            "has_more": len(rows) > 100,
-        }
+            row = cursor.fetchone()
+            result = row[0] if row else None
+            if isinstance(result, str):
+                result = json.loads(result)
+            expected = {"location_id", "offset", "incidents", "has_more"}
+            if (
+                not isinstance(result, dict)
+                or set(result) != expected
+                or result.get("location_id") != location_id
+                or result.get("offset") != offset
+                or not isinstance(result.get("incidents"), list)
+                or len(result["incidents"]) > 100
+                or not isinstance(result.get("has_more"), bool)
+            ):
+                raise RuntimeError("Incident review queue returned an invalid result")
+            expected_incident = {
+                "incident_id", "incident_date", "incident_type", "severity",
+                "description", "affected_area", "status",
+            }
+            for incident in result["incidents"]:
+                if (
+                    not isinstance(incident, dict)
+                    or set(incident) != expected_incident
+                    or not isinstance(incident.get("incident_id"), str)
+                    or not isinstance(incident.get("incident_date"), str)
+                    or not isinstance(incident.get("incident_type"), str)
+                    or not isinstance(incident.get("severity"), str)
+                    or incident.get("severity") not in _INCIDENT_SEVERITIES
+                    or not isinstance(incident.get("description"), str)
+                    or not isinstance(incident.get("status"), str)
+                    or incident.get("status") not in {
+                        "open", "investigating", "remediation",
+                    }
+                    or incident.get("affected_area") is not None
+                    and not isinstance(incident.get("affected_area"), str)
+                ):
+                    raise RuntimeError("Incident review queue returned an invalid incident")
+        return result
     finally:
         try:
             connection.rollback()

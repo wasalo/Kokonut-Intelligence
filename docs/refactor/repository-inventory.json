@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "5ea2d1c31005025002ef9d8c5f917cbbfec281f8",
+  "baseline_commit": "46c800e7a4f9f8a6d7b9e073d4812484895db841",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3353,7 +3353,8 @@
       "schemas/postgres/613_location_waste_stream_capture.sql",
       "schemas/postgres/614_location_composting_capture.sql",
       "schemas/postgres/615_location_recycling_capture.sql",
-      "schemas/postgres/616_location_pollution_incident_gateway.sql"
+      "schemas/postgres/616_location_pollution_incident_gateway.sql",
+      "schemas/postgres/617_location_scoped_pollution_incident_reads.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

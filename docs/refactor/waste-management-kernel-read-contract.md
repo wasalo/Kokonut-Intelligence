@@ -232,3 +232,20 @@ Compost quality scoring and certification, waste calculation parity,
 landscape habitat and pollinator workflows, populated legacy output parity,
 remaining canonical-table ACL/RLS and Directus parity, live ZITADEL/browser
 behavior, and MAN-CAP-006 remain open.
+
+## Pollution incident reader isolation
+
+Migration 617 gives narrative review and aggregate incident summaries a
+separate, no-login database function owner. The queue function validates the
+active operator/location context and exact `waste_management:review` grant;
+the aggregate function independently requires `waste_management:read`. Both
+queries qualify by the requested location. Runtime and Directus roles have no
+table- or column-level `SELECT` on `pollution_incident`, and the legacy
+`v_pollution_incidents` view is unavailable to those roles. The Gateway uses
+only these bounded functions for incident rows. Disposable PostgreSQL 16
+acceptance verifies distinct read/review grants, wrong-location rejection,
+direct table/view denial, migration apply/replay, and existing capture/resolution
+behavior ([evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-disposable.json)). Migration 617 is not applied to candidate or
+legacy databases. This boundary covers pollution incidents only; it does not
+close ACL/RLS requirements for the other waste-management tables or broader
+Directus parity.

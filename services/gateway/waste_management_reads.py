@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -164,20 +165,40 @@ def get_location_waste_summary(
             recycling = _date_groups(_rows(cur), "record_count", "quantity_kg")
 
             cur.execute(
-                """
-                SELECT severity, status,
-                       COUNT(*)::bigint AS record_count,
-                       MIN(incident_date) AS first_date,
-                       MAX(incident_date) AS last_date
-                  FROM pollution_incident
-                 WHERE location_id = %s::uuid
-                   AND status IN ('open', 'investigating', 'remediation', 'resolved', 'closed')
-                 GROUP BY severity, status
-                 ORDER BY severity, status
-                """,
+                "SELECT kokonut_security.summarize_location_pollution_incidents(%s::uuid)",
                 (location_id,),
             )
-            incidents = _date_groups(_rows(cur), "record_count")
+            row = cur.fetchone()
+            incidents = row[0] if row else None
+            if isinstance(incidents, str):
+                incidents = json.loads(incidents)
+            incident_fields = {
+                "severity", "status", "record_count", "first_date", "last_date",
+            }
+            if (
+                not isinstance(incidents, list)
+                or any(
+                    not isinstance(item, dict)
+                    or set(item) != incident_fields
+                    or not isinstance(item.get("severity"), str)
+                    or item.get("severity") not in {
+                        "low", "medium", "high", "critical",
+                    }
+                    or not isinstance(item.get("status"), str)
+                    or item.get("status") not in {
+                        "open", "investigating", "remediation", "resolved", "closed",
+                    }
+                    or isinstance(item.get("record_count"), bool)
+                    or not isinstance(item.get("record_count"), int)
+                    or item["record_count"] < 1
+                    or item.get("first_date") is not None
+                    and not isinstance(item.get("first_date"), str)
+                    or item.get("last_date") is not None
+                    and not isinstance(item.get("last_date"), str)
+                    for item in incidents
+                )
+            ):
+                raise RuntimeError("Incident summary returned an invalid result")
 
         return {
             "location_id": location_id,

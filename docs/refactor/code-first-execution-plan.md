@@ -1,3 +1,20 @@
+### Current CAP-006 implementation slice — isolate pollution incident reads, 24 October 2026
+
+Migration 617 moves the bounded narrative review queue and aggregate incident
+summary behind separate no-login database owners. Each function checks current
+operator/location context plus the precise `waste_management:review` or
+`waste_management:read` grant. Runtime and Directus lose direct table/column
+reads and legacy narrative-view access; the Gateway invokes only the bounded
+functions. The read-only and review-only grant paths are exercised separately,
+wrong-location queries and direct reads are denied, and migrations 153 and
+613–617 apply/replay in disposable PostgreSQL 16. The focused selection passes
+27 tests with Ruff and Python compilation. Candidate and legacy remain
+untouched; migration 617 is not rolled out. Broader waste-table ACL/RLS,
+populated parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain
+open ([contract](waste-management-kernel-read-contract.md);
+[native evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-arm64-disposable.json)). A separate clean ARM64/QEMU replay applies all 607 schema files through migration 616 with zero pending or failed and successful cleanup ([full-schema evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-616.json)); it predates migration 617 and does not prove physical Raspberry Pi behavior.
+
 ### Current CAP-006 implementation slice — retire unscoped incident-detail CLI reads, 24 October 2026
 
 The legacy `open-incidents` and mixed `dashboard` read paths could expose

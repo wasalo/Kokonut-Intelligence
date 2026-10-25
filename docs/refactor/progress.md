@@ -1,3 +1,23 @@
+### Progress addendum — CAP-006 database-isolated pollution incident reads, 24 October 2026
+
+Migration 617 gives the pollution-incident review reader its own no-login,
+non-inheriting owner. The narrative queue and aggregate summary are now
+security-definer functions that independently validate the active
+operator/location context and exact review/read grant. The Gateway no longer
+queries the incident table directly. Runtime and Directus lose table- and
+column-level `SELECT` and access to the legacy narrative view; capture and
+resolution retain their existing isolated owners.
+
+Synthetic PostgreSQL acceptance proves read-only and review-only grants remain
+separate, wrong-location calls fail, direct runtime reads fail, the legacy view
+is unavailable, and migrations 153 and 613–617 apply and replay. The Gateway
+selection passes 27 tests; Ruff and Python compilation pass. Candidate/legacy
+databases remain untouched and migration 617 is not rolled out. Checklist:
+1,125 complete / 25 open (1,150 total). Broader waste-table ACL/RLS, populated
+parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain open
+([native evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-disposable.json);
+[ARM64/QEMU focused evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-arm64-disposable.json)). A clean network-disabled ARM64/QEMU replay separately applies all 607 schema files through migration 616 with no pending or failed entries and successful cleanup ([full-schema evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-616.json)). The full replay predates migration 617; its focused ARM64 acceptance covers 617. Neither QEMU run substitutes for physical Raspberry Pi, power-loss, thermal, or endurance acceptance.
+
 ### Progress addendum — retire unscoped CAP-006 incident-detail CLI reads, 24 October 2026
 
 The legacy `open-incidents` and combined waste `dashboard` helper/CLI paths

@@ -146,10 +146,21 @@ def test_invalid_capture_fails_before_database_access(changes):
 
 
 def test_review_queue_uses_exact_review_context_and_returns_bounded_projection(monkeypatch):
-    connection = Connection(rows=[(
-        _INCIDENT, date.today().isoformat(), "air_emission", "high",
-        "Synthetic report", "North plot", "open",
-    )])
+    queue = {
+        "location_id": _LOCATION,
+        "offset": 0,
+        "incidents": [{
+            "incident_id": _INCIDENT,
+            "incident_date": date.today().isoformat(),
+            "incident_type": "air_emission",
+            "severity": "high",
+            "description": "Synthetic report",
+            "affected_area": "North plot",
+            "status": "open",
+        }],
+        "has_more": False,
+    }
+    connection = Connection(row=(queue,))
     contexts = []
     monkeypatch.setattr(
         incidents,
@@ -162,8 +173,7 @@ def test_review_queue_uses_exact_review_context_and_returns_bounded_projection(m
     )
 
     assert contexts[-1][1]["action"] == "review"
-    assert "WHERE location_id = %s::uuid" in connection.operations[-1][0]
-    assert "LIMIT 101 OFFSET %s" in connection.operations[-1][0]
+    assert "list_location_pollution_incident_review_queue" in connection.operations[-1][0]
     assert connection.operations[-1][1] == (_LOCATION, 0)
     assert result["incidents"][0]["incident_id"] == _INCIDENT
     assert "reported_by" not in result["incidents"][0]

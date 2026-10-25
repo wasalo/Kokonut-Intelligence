@@ -21,6 +21,7 @@ class _Cursor:
         self.connection = connection
         self.description = []
         self.rows = []
+        self.row = None
 
     def __enter__(self):
         return self
@@ -49,9 +50,12 @@ class _Cursor:
         elif "FROM recycling_log" in query:
             columns = ("material_type", "record_count", "total_quantity", "first_date", "last_date")
             rows = [("plastic", 1, Decimal("1.5"), date(2026, 1, 7), date(2026, 1, 7))]
-        elif "FROM pollution_incident" in query:
-            columns = ("severity", "status", "record_count", "first_date", "last_date")
-            rows = [("low", "open", 1, date(2026, 1, 8), date(2026, 1, 8))]
+        elif "summarize_location_pollution_incidents" in query:
+            self.row = ([{
+                "severity": "low", "status": "open", "record_count": 1,
+                "first_date": "2026-01-08", "last_date": "2026-01-08",
+            }],)
+            columns, rows = (), []
         else:
             columns, rows = (), []
         self.description = [(column,) for column in columns]
@@ -59,6 +63,9 @@ class _Cursor:
 
     def fetchall(self):
         return self.rows
+
+    def fetchone(self):
+        return self.row
 
 
 class _Connection:
@@ -121,13 +128,19 @@ def test_waste_summary_sets_signed_context_before_four_location_queries():
         )
 
     queries = [(query, params) for query, params in connection.queries if "FROM " in query]
-    assert len(queries) == 4
+    assert len(queries) == 3
     assert all("location_id = %s::uuid" in query for query, _ in queries)
     assert all(params == (location_id,) for _, params in queries)
     assert "status = 'verified'" in queries[0][0]
     assert "status = 'verified'" in queries[1][0]
     assert "status = 'verified'" in queries[2][0]
-    assert "status IN ('open', 'investigating', 'remediation', 'resolved', 'closed')" in queries[3][0]
+    incident_query = next(
+        (query, params) for query, params in connection.queries
+        if "summarize_location_pollution_incidents" in query
+    )
+    assert incident_query[1] == (location_id,)
+    assert "summarize_location_pollution_incidents" in incident_query[0]
+    assert "FROM public.pollution_incident" not in incident_query[0]
     for query, _ in queries:
         for private_field in (
             "description", "affected_area", "remedial_action", "reported_to",
