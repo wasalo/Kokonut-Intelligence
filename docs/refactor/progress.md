@@ -1,3 +1,17 @@
+### Progress addendum — Directus update filters use request database context, 25 October 2026
+
+All registered Directus update filters now pass the request database into
+pre-write role, existing-row, tenant-reference, and workflow checks. The sales
+update's current-value read and the agent/stakeholder role checks use the same
+request context; the configured database remains a fallback for hosts without
+one. A registered-hook regression covers feedback, metric proposal, impact
+claim, farm activity, and sales paths, confirming the global database handle
+is unused. The extension suite passes 90 tests; the Directus build/type check,
+capability-matrix validation, and diff checks pass ([evidence](builds/2026-10-25-recovery/directus-update-filter-request-database.json)).
+No live Directus or PostgreSQL transaction was exercised and no migration was
+needed. Checklist: 1,153 complete / 25 open (1,178 total); matrix remains 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
 ### Progress addendum — Directus reference locations follow the current schema, 25 October 2026
 
 The tenant reference validator now resolves `plot_id` through `plot.farm_id`

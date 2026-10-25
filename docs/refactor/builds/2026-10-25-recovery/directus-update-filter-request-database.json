@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus update-filter request database propagation",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 90 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and TypeScript no-emit check"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "67 valid rows: 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "request_database_propagation": "Registered item-update filters pass context.database into pre-write role, existing-row, tenant-reference, sales recomputation, and lifecycle checks; configured database is retained as a fallback.",
+  "regression": "The registered hooks were invoked with separate request and global database fakes for feedback, metric proposal, impact claim, farm-activity lifecycle, and sales recomputation. The global handle was not called.",
+  "limitations": [
+    "This is mocked/source verification, not pinned Directus runtime transaction acceptance.",
+    "Post-write action hooks and scheduled callbacks intentionally remain on the configured service database handle.",
+    "No database, provider, candidate, legacy stack, live Directus service, or migration was used."
+  ],
+  "rollback": "If the pinned Directus runtime does not provide a compatible request database context, the handlers fall back to the configured database. Revert context propagation only with isolated runtime evidence that establishes the host transaction contract."
+}

@@ -37,6 +37,16 @@ impact-claim, feedback-review attribution, and request-database use, passes with
 and TypeScript check. A reviewed operator-to-staff binding contract remains
 open.
 
+All registered update filters now choose `context.database` when Directus
+provides it and pass that handle to pre-write role, existing-row,
+tenant-reference, and workflow checks. Sales recomputation also reads through
+the request handle. The regression covers stakeholder feedback, metric
+proposals, impact claims, farm activity, and sales with separate request/global
+fakes; the global handle is unused in these paths. The remaining direct
+`database()` call in the hook module is the optional scheduled weekly activity
+read. This is mocked source evidence and does not prove pinned-runtime
+transaction semantics.
+
 The two legacy Directus schedules are now independent explicit opt-ins in the
 extension. The legacy root Compose stack keeps both enabled by default for
 compatibility; the optional Kernel Directus profile defaults both off. Daily

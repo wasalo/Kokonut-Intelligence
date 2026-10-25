@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,152 checklist items complete and 25
-open (1,177 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,153 checklist items complete and 25
+open (1,178 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -41,6 +41,18 @@ acceptance remains separate; none is marked accepted.
   the operator-to-staff binding contract and broader Directus parity remain
   open. Roll back only with a reviewed attribution contract; do not restore
   copying Directus user IDs into staff references.
+
+### Directus update filter request-database propagation — 25 October 2026
+
+- [x] Propagate Directus's request database through all registered update
+  filters and their pre-write role, existing-row, reference, and lifecycle
+  checks; the configured database remains a fallback when request context is
+  unavailable. The registered-hook regression exercises feedback, metric
+  proposal, impact claim, farm-activity lifecycle, and sales recomputation
+  paths, and confirms the global handle is unused. The full extension suite
+  passes 90 tests; the Directus build/type check and capability-matrix
+  validation pass ([evidence](builds/2026-10-25-recovery/directus-update-filter-request-database.json)).
+  This is mocked/source verification, not live Directus transaction acceptance.
 
 ### Directus review update request-transaction scope — 25 October 2026
 

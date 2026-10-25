@@ -261,8 +261,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
 
   // Register workflow-only filter hooks
   for (const collection of WORKFLOW_ONLY_COLLECTIONS) {
-    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      return await applyWorkflow(collection, payload, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      return await applyWorkflow(collection, payload, meta, context?.database || database);
     });
   }
 
@@ -275,8 +279,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       }
       return payload;
     });
-    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      return await applyWorkflow(collection, payload, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      return await applyWorkflow(collection, payload, meta, context?.database || database);
     });
   }
 
@@ -312,7 +320,11 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return validated;
   });
 
-  filter('expense_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('expense_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateExpenseEventUpdate, payload);
     // Re-run auto-categorization if category was cleared
     if (!validated.category || validated.category === '') {
@@ -326,7 +338,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       }
     }
 
-    return await applyWorkflow('expense_event', validated, meta);
+    return await applyWorkflow('expense_event', validated, meta, context?.database || database);
   });
 
   filter('sales_event.items.create', (payload: Record<string, any>) => {
@@ -363,11 +375,16 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return validated;
   });
 
-  filter('sales_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('sales_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = context?.database || database;
     const validated = parseOrThrow(validateSalesEventUpdate, payload);
     const recordId = meta.keys?.[0];
     if (recordId && (validated.total_amount !== undefined || validated.return_amount !== undefined || validated.discount_amount !== undefined)) {
-      const current = await database('sales_event')
+      const current = await requestDatabase('sales_event')
         .where('id', recordId)
         .first();
 
@@ -377,7 +394,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       validated.net_amount = calculateNetAmount(total, returns, discount);
     }
 
-    return await applyWorkflow('sales_event', validated, meta);
+    return await applyWorkflow('sales_event', validated, meta, requestDatabase);
   });
 
   filter('harvest_event.items.create', (payload: Record<string, any>) => {
@@ -417,8 +434,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return payload;
   });
 
-  filter('harvest_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('harvest_event', payload, meta);
+  filter('harvest_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('harvest_event', payload, meta, context?.database || database);
   });
 
   filter('farm_activity.items.create', (payload: Record<string, any>) => {
@@ -436,8 +457,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return payload;
   });
 
-  filter('farm_activity.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('farm_activity', payload, meta);
+  filter('farm_activity.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('farm_activity', payload, meta, context?.database || database);
   });
 
   filter('loss_event.items.create', (payload: Record<string, any>) => {
@@ -458,8 +483,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return payload;
   });
 
-  filter('loss_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('loss_event', payload, meta);
+  filter('loss_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('loss_event', payload, meta, context?.database || database);
   });
 
   filter('labor_event.items.create', (payload: Record<string, any>) => {
@@ -477,8 +506,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return payload;
   });
 
-  filter('labor_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('labor_event', payload, meta);
+  filter('labor_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('labor_event', payload, meta, context?.database || database);
   });
 
   filter('field_note.items.create', (payload: Record<string, any>) => {
@@ -501,8 +534,12 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return payload;
   });
 
-  filter('field_note.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await applyWorkflow('field_note', payload, meta);
+  filter('field_note.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await applyWorkflow('field_note', payload, meta, context?.database || database);
   });
 
   filter('stakeholder_feedback.items.create', (payload: Record<string, any>) => {
@@ -556,44 +593,73 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return await applyWorkflow('impact_claim', validated, meta, requestDatabase);
   });
 
-  filter('agent_task.items.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.create', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAgentTaskCreate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(context?.database || database, meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('agent_task.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAgentTaskUpdate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(context?.database || database, meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('ai_summary.items.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.create', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAiSummaryCreate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const roles = await resolveUserRoles(context?.database || database, meta);
     return enforceAiSummarySafety(validated, roles);
   });
-  filter('ai_summary.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateAiSummaryUpdate, payload);
-    const roles = await resolveUserRoles(database, meta);
+    const requestDatabase = context?.database || database;
+    const roles = await resolveUserRoles(requestDatabase, meta);
     enforceAiSummarySafety(validated, roles);
-    return await applyWorkflow('ai_summary', validated, meta);
+    return await applyWorkflow('ai_summary', validated, meta, requestDatabase);
   });
   filter('agent_action_log.items.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
 
   filter('revenue_event.items.create', (payload: Record<string, any>) => {
     return parseOrThrow(validateRevenueEventCreate, payload);
   });
-  filter('revenue_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('revenue_event.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
     const validated = parseOrThrow(validateRevenueEventUpdate, payload);
-    return await applyWorkflow('revenue_event', validated, meta);
+    return await applyWorkflow('revenue_event', validated, meta, context?.database || database);
   });
 
   for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
-    filter(`${collection}.items.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      const roles = await resolveUserRoles(database, meta);
+    filter(`${collection}.items.create`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const roles = await resolveUserRoles(context?.database || database, meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
-    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
-      const roles = await resolveUserRoles(database, meta);
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const roles = await resolveUserRoles(context?.database || database, meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
   }

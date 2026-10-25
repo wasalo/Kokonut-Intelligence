@@ -159,7 +159,7 @@ describe('Directus hook event registration', () => {
     }]);
   });
 
-  it('binds feedback, metric-proposal, and impact-claim update reads to the request database', async () => {
+  it('binds Directus update reads and workflow checks to the request database', async () => {
     const globalDatabase = vi.fn();
     const requestTables: string[] = [];
     const requestDatabase = vi.fn((table: string) => {
@@ -175,6 +175,10 @@ describe('Directus hook event registration', () => {
           }
           if (table === 'impact_claim') {
             return { status: 'submitted', public_claim: false };
+          }
+          if (table === 'farm_activity') return { status: 'submitted' };
+          if (table === 'sales_event') {
+            return { total_amount: 100, return_amount: 0, discount_amount: 0 };
           }
           return undefined;
         }),
@@ -212,11 +216,23 @@ describe('Directus hook event registration', () => {
       { keys: ['claim-1'], accountability: { admin: true } },
       context,
     );
+    await filters.get('farm_activity.items.update')?.at(-1)?.(
+      { status: 'verified' },
+      { keys: ['activity-1'], accountability: { admin: true } },
+      context,
+    );
+    await filters.get('sales_event.items.update')?.at(-1)?.(
+      { total_amount: 100 },
+      { keys: ['sale-1'], accountability: { admin: true } },
+      context,
+    );
 
     expect(requestTables).toEqual(expect.arrayContaining([
       'stakeholder_feedback',
       'metric_proposal',
       'impact_claim',
+      'farm_activity',
+      'sales_event',
     ]));
     expect(globalDatabase).not.toHaveBeenCalled();
   });
