@@ -18647,5 +18647,24 @@ CI on pushed commit `4682069a` failed before tests because the SHA-256 lock for
 `Dockerfile.kernel` still described its prior contents. Commit `d5f0e2a4` had
 added the first-party Delphi participant app to the image, leaving the release
 lock stale. The lock now records the SHA-256 of the reviewed current Dockerfile;
-`python3 scripts/check-kernel-release-inputs.py` passes locally. This repair is
-not yet pushed, so the CI and Security checks for the repair head remain open.
+`python3 scripts/check-kernel-release-inputs.py` passes locally. Repair commit
+`6b9bb0dc` is pushed; Security passes on that exact head and CI is still
+running.
+
+### Progress addendum — CAP-027 consent notice console controls, 25 October 2026
+
+The first-party operator console now supports immutable Delphi notice drafting
+and independent review. Drafting requires same-location `delphi:read` and
+`delphi:consent_draft`; the review queue and decision controls require
+`delphi:consent_review`, while PostgreSQL continues to enforce author
+self-review denial. The UI bounds study and queue paging, uses no-store and
+CSRF-protected writes with stable request IDs, renders notice text with
+`textContent`, and requires confirmation for submission and review. Approval
+only selects the notice for future invites; it neither opens the study nor
+issues invites. The focused consent, invite, route-policy, and console
+selection passes 36 tests, and inline JavaScript syntax and diff checks pass.
+No migration, database, provider, or participant invite was used. CAP-027
+remains prepared pending participant minority-report submission, live
+OIDC/browser, populated parity, universal ACL/RLS, SMTP, and owner acceptance.
+Checklist: 1,187 complete / 25 open (1,212 total); classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared.

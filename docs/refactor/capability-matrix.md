@@ -1,5 +1,22 @@
 # Capability preservation matrix
 
+**Latest CAP-027 consent notice author/reviewer console controls (25 October 2026):**
+The operator console now provides immutable notice drafting for an exact-location
+operator with same-location `delphi:read` plus `delphi:consent_draft`, and a
+separate review queue for `delphi:consent_review`. It displays the submitted
+notice text as text, blocks author self-review, uses CSRF/no-store requests,
+bounded paging, reason-code allowlists, confirmation, and retry-stable request
+IDs. Approval only selects the notice for future invites; it does not open the
+study or distribute invites. The focused consent, invite, route-policy, and
+console selection passes 36 tests; inline JavaScript syntax and diff checks
+pass. No database or provider was used. CAP-027 remains prepared pending
+participant minority-report submission, live OIDC/browser, populated parity,
+universal ACL/RLS, SMTP, and owner acceptance. Checklist: 1,187 complete / 25
+open (1,212 total); classifications remain 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
+[console](../apps/operator-console/index.html);
+[tests](../tests/test_operator_console_delphi_consent_notices.py)).
+
 **Latest CAP-027 existing minority-report review slice (25 October 2026):**
 Migration 640 and two exact-location Gateway endpoints provide a private,
 bounded review queue for submitted reports whose linked participant still has

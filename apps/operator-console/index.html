@@ -316,6 +316,42 @@
           <button id="delphi-study-item-submit" type="button" disabled>Add question to draft</button>
           <p id="delphi-study-item-status" class="muted" role="status" aria-live="polite"></p>
         </section>
+        <section id="delphi-consent-notice-draft" hidden aria-labelledby="delphi-consent-notice-draft-heading">
+          <h2 id="delphi-consent-notice-draft-heading">Draft a versioned Delphi participant notice</h2>
+          <p class="muted">Write the notice for participants in plain language, including the study purpose, information collected, how contributions are reviewed, withdrawal, and the applicable retention or erasure process. The notice is immutable after submission and must be approved by a different operator. Drafting it does not issue invites or open the study.</p>
+          <div class="toolbar">
+            <label for="delphi-consent-notice-draft-location">Read and consent-draft authorized location</label>
+            <select id="delphi-consent-notice-draft-location"></select>
+            <label for="delphi-consent-notice-draft-study">Draft study</label>
+            <select id="delphi-consent-notice-draft-study"></select>
+            <button id="delphi-consent-notice-draft-studies-more" class="secondary" type="button" hidden>Load more studies</button>
+          </div>
+          <div class="toolbar">
+            <label for="delphi-consent-notice-draft-version">Notice version</label>
+            <input id="delphi-consent-notice-draft-version" type="text" maxlength="40" autocomplete="off" placeholder="e.g. 1.0.0">
+          </div>
+          <label for="delphi-consent-notice-draft-text">Participant notice text</label>
+          <textarea id="delphi-consent-notice-draft-text" rows="8" maxlength="12000" required></textarea>
+          <button id="delphi-consent-notice-draft-submit" type="button" disabled>Submit notice for independent review</button>
+          <p id="delphi-consent-notice-draft-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
+        <section id="delphi-consent-notice-review" hidden aria-labelledby="delphi-consent-notice-review-heading">
+          <h2 id="delphi-consent-notice-review-heading">Review Delphi participant notices</h2>
+          <p class="muted">Review the complete notice text for clear purpose, privacy scope, withdrawal terms, and retention or erasure language. Authors cannot review their own notices. Approval makes this the version used for future invites; it does not open the study or issue an invite.</p>
+          <div class="toolbar">
+            <label for="delphi-consent-notice-review-location">Notice-review authorized location</label>
+            <select id="delphi-consent-notice-review-location"></select>
+            <button id="delphi-consent-notice-review-refresh" class="secondary" type="button">Refresh review queue</button>
+          </div>
+          <p id="delphi-consent-notice-review-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Study / version</th><th>Notice text</th><th>Submitted</th><th>Review</th></tr></thead>
+              <tbody id="delphi-consent-notice-review-rows"></tbody>
+            </table>
+          </div>
+          <button id="delphi-consent-notice-review-more" class="secondary" type="button" hidden>Load more notices</button>
+        </section>
         <section id="delphi-participant-invites" hidden aria-labelledby="delphi-participant-invites-heading">
           <h2 id="delphi-participant-invites-heading">Delphi participant invites</h2>
           <p class="muted">Issue a single-use link only for a draft study with an independently approved notice. The link is shown once and is not recoverable from the server. Copy it directly to the participant using your approved channel; this panel does not send email or retain participant contact details. Revoke a pending invite if its link is exposed or sent to the wrong person.</p>
@@ -3087,6 +3123,28 @@
       let delphiParticipantInviteRequestVersion = 0;
       const delphiParticipantInviteIssueRequestIds = new Map();
       const delphiParticipantInviteRevokeRequestIds = new Map();
+      const delphiConsentNoticeDraft = document.querySelector("#delphi-consent-notice-draft");
+      const delphiConsentNoticeDraftLocation = document.querySelector("#delphi-consent-notice-draft-location");
+      const delphiConsentNoticeDraftStudy = document.querySelector("#delphi-consent-notice-draft-study");
+      const delphiConsentNoticeDraftStudiesMore = document.querySelector("#delphi-consent-notice-draft-studies-more");
+      const delphiConsentNoticeDraftVersion = document.querySelector("#delphi-consent-notice-draft-version");
+      const delphiConsentNoticeDraftText = document.querySelector("#delphi-consent-notice-draft-text");
+      const delphiConsentNoticeDraftSubmit = document.querySelector("#delphi-consent-notice-draft-submit");
+      const delphiConsentNoticeDraftStatus = document.querySelector("#delphi-consent-notice-draft-status");
+      const delphiConsentNoticeReview = document.querySelector("#delphi-consent-notice-review");
+      const delphiConsentNoticeReviewLocation = document.querySelector("#delphi-consent-notice-review-location");
+      const delphiConsentNoticeReviewRefresh = document.querySelector("#delphi-consent-notice-review-refresh");
+      const delphiConsentNoticeReviewRows = document.querySelector("#delphi-consent-notice-review-rows");
+      const delphiConsentNoticeReviewStatus = document.querySelector("#delphi-consent-notice-review-status");
+      const delphiConsentNoticeReviewMore = document.querySelector("#delphi-consent-notice-review-more");
+      let delphiConsentNoticeDraftLocations = new Set();
+      let delphiConsentNoticeReviewLocations = new Set();
+      let delphiConsentNoticeDraftStudyOffset = 0;
+      let delphiConsentNoticeReviewOffset = 0;
+      let delphiConsentNoticeDraftRequestVersion = 0;
+      let delphiConsentNoticeReviewRequestVersion = 0;
+      const delphiConsentNoticeDraftRequestIds = new Map();
+      const delphiConsentNoticeDecisionRequestIds = new Map();
       const delphiRecommendationDraftCreate = document.querySelector("#delphi-recommendation-draft-create");
       const delphiRecommendationDraftLocation = document.querySelector("#delphi-recommendation-draft-location");
       const delphiRecommendationDraftStudy = document.querySelector("#delphi-recommendation-draft-study");
@@ -21498,6 +21556,18 @@
             .filter((scope) => scope.resource === "delphi" && scope.action === "read")
             .map((scope) => scope.location_id)
             .filter(validDelphiReviewLocation));
+          const delphiConsentDraftGrantLocationIds = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "consent_draft")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation));
+          const delphiConsentDraftLocationIds = [...delphiConsentDraftGrantLocationIds]
+            .filter((locationId) => delphiReadLocationIds.has(locationId));
+          delphiConsentNoticeDraftLocations = new Set(delphiConsentDraftLocationIds);
+          const delphiConsentReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "consent_review")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation))];
+          delphiConsentNoticeReviewLocations = new Set(delphiConsentReviewLocationIds);
           const delphiInviteGrantLocationIds = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "delphi" && scope.action === "invite")
             .map((scope) => scope.location_id)
@@ -22158,6 +22228,28 @@
             await loadDelphiStudyItemStudies();
             hasAuthorizedSurface = true;
           }
+          if (delphiConsentDraftLocationIds.length) {
+            for (const locationId of delphiConsentDraftLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              delphiConsentNoticeDraftLocation.append(option);
+            }
+            delphiConsentNoticeDraft.hidden = false;
+            await loadDelphiConsentNoticeDraftStudies();
+            hasAuthorizedSurface = true;
+          }
+          if (delphiConsentReviewLocationIds.length) {
+            for (const locationId of delphiConsentReviewLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              delphiConsentNoticeReviewLocation.append(option);
+            }
+            delphiConsentNoticeReview.hidden = false;
+            await loadDelphiConsentNoticeReviewQueue();
+            hasAuthorizedSurface = true;
+          }
           if (delphiParticipantInviteLocationIds.length) {
             for (const locationId of delphiParticipantInviteLocationIds) {
               const option = document.createElement("option");
@@ -22625,6 +22717,301 @@
           delphiStudyDraftStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
           delphiStudyDraftSubmit.disabled = false;
+        }
+      }
+
+      function refreshDelphiConsentNoticeDraftControls() {
+        const locationId = delphiConsentNoticeDraftLocation.value;
+        const studyId = delphiConsentNoticeDraftStudy.value;
+        const selected = delphiConsentNoticeDraftStudy.selectedOptions[0];
+        const validVersion = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$/.test(
+          delphiConsentNoticeDraftVersion.value
+        );
+        const validText = delphiConsentNoticeDraftText.value.trim().length > 0
+          && delphiConsentNoticeDraftText.value.length <= 12000;
+        delphiConsentNoticeDraftSubmit.disabled = !delphiConsentNoticeDraftLocations.has(locationId)
+          || !studyId || selected?.dataset?.status !== "draft" || !validVersion || !validText;
+      }
+
+      async function loadDelphiConsentNoticeDraftStudies(append = false) {
+        const locationId = delphiConsentNoticeDraftLocation.value;
+        const requestVersion = ++delphiConsentNoticeDraftRequestVersion;
+        const previousStudyId = delphiConsentNoticeDraftStudy.value;
+        if (!append) {
+          delphiConsentNoticeDraftStudy.replaceChildren();
+          delphiConsentNoticeDraftStudyOffset = 0;
+        }
+        delphiConsentNoticeDraftStudiesMore.hidden = true;
+        refreshDelphiConsentNoticeDraftControls();
+        if (!delphiConsentNoticeDraftLocations.has(locationId)) {
+          delphiConsentNoticeDraftStatus.textContent = "Read and consent-draft grants for the same location are required.";
+          return;
+        }
+        delphiConsentNoticeDraftStatus.textContent = "Loading draft Delphi studies…";
+        const params = new URLSearchParams({ limit: "50", offset: String(delphiConsentNoticeDraftStudyOffset) });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiConsentNoticeDraftRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or same-location Delphi read and consent-draft grants are not valid.");
+          }
+          if (!response.ok) throw new Error("Draft Delphi studies are unavailable.");
+          const result = await response.json();
+          if (result.location_id !== locationId || !Array.isArray(result.studies)) {
+            throw new Error("The Delphi study response did not match the selected location.");
+          }
+          const existingIds = new Set([...delphiConsentNoticeDraftStudy.options].map((option) => option.value));
+          for (const study of result.studies) {
+            const studyId = String(study.study_id || "");
+            if (!studyId || study.status !== "draft" || existingIds.has(studyId)) continue;
+            const option = document.createElement("option");
+            option.value = studyId;
+            option.dataset.status = study.status;
+            option.textContent = `${String(study.title || "Untitled study")} (draft)`;
+            delphiConsentNoticeDraftStudy.append(option);
+            existingIds.add(studyId);
+          }
+          delphiConsentNoticeDraftStudyOffset += result.studies.length;
+          delphiConsentNoticeDraftStudiesMore.hidden = result.has_more !== true;
+          if (previousStudyId
+              && [...delphiConsentNoticeDraftStudy.options].some((option) => option.value === previousStudyId)) {
+            delphiConsentNoticeDraftStudy.value = previousStudyId;
+          }
+          refreshDelphiConsentNoticeDraftControls();
+          delphiConsentNoticeDraftStatus.textContent = delphiConsentNoticeDraftStudy.options.length
+            ? "Only draft studies can receive a new immutable notice version."
+            : "No draft Delphi studies are available for this location.";
+        } catch (error) {
+          if (requestVersion === delphiConsentNoticeDraftRequestVersion) {
+            delphiConsentNoticeDraftStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitDelphiConsentNoticeDraft() {
+        const locationId = delphiConsentNoticeDraftLocation.value;
+        const studyId = delphiConsentNoticeDraftStudy.value;
+        const version = delphiConsentNoticeDraftVersion.value;
+        const noticeText = delphiConsentNoticeDraftText.value;
+        if (!delphiConsentNoticeDraftLocations.has(locationId) || !studyId
+            || delphiConsentNoticeDraftStudy.selectedOptions[0]?.dataset?.status !== "draft"
+            || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$/.test(version)
+            || !noticeText.trim() || noticeText.length > 12000) {
+          delphiConsentNoticeDraftStatus.textContent = "Choose a draft study and provide a valid version and notice text.";
+          return;
+        }
+        if (!window.confirm("Submit this immutable participant notice for independent review? It will not issue invites or open the study.")) {
+          return;
+        }
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, studyId, version, noticeText]);
+        let requestId = delphiConsentNoticeDraftRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiConsentNoticeDraftRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiConsentNoticeDraftStatus.textContent = "Refresh this secure console before submitting a notice.";
+          return;
+        }
+        delphiConsentNoticeDraftSubmit.disabled = true;
+        delphiConsentNoticeDraftStatus.textContent = "Submitting the notice for independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/consent-notices`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId, version, notice_text: noticeText }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or exact-location Delphi consent-draft grant is not valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The consent notice could not be submitted.");
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || typeof result.notice_id !== "string" || result.status !== "submitted"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The notice response did not match the selected study.");
+          }
+          delphiConsentNoticeDraftRequestIds.delete(requestKey);
+          const successMessage = result.replayed
+            ? `Existing notice ${result.version} was confirmed for independent review.`
+            : `Notice ${result.version} was submitted for independent review.`;
+          delphiConsentNoticeDraftVersion.value = "";
+          delphiConsentNoticeDraftText.value = "";
+          await loadDelphiConsentNoticeDraftStudies();
+          delphiConsentNoticeDraftStatus.textContent = successMessage;
+        } catch (error) {
+          delphiConsentNoticeDraftStatus.textContent = `${error.message} Retrying unchanged values reuses the request ID.`;
+        } finally {
+          refreshDelphiConsentNoticeDraftControls();
+        }
+      }
+
+      async function loadDelphiConsentNoticeReviewQueue(append = false) {
+        const locationId = delphiConsentNoticeReviewLocation.value;
+        const requestVersion = ++delphiConsentNoticeReviewRequestVersion;
+        if (!append) {
+          delphiConsentNoticeReviewRows.replaceChildren();
+          delphiConsentNoticeReviewOffset = 0;
+        }
+        delphiConsentNoticeReviewMore.hidden = true;
+        if (!delphiConsentNoticeReviewLocations.has(locationId)) {
+          delphiConsentNoticeReviewStatus.textContent = "A location-scoped Delphi consent-review grant is required.";
+          return;
+        }
+        delphiConsentNoticeReviewStatus.textContent = "Loading submitted participant notices…";
+        const params = new URLSearchParams({ limit: "50", offset: String(delphiConsentNoticeReviewOffset) });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/consent-notices?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiConsentNoticeReviewRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi consent-review grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The Delphi consent-notice queue is unavailable.");
+          const result = await response.json();
+          if (result.location_id !== locationId || !Array.isArray(result.notices)) {
+            throw new Error("The notice response did not match the selected location.");
+          }
+          const reasons = [
+            ["privacy_scope_incomplete", "Privacy scope incomplete"],
+            ["purpose_unclear", "Purpose unclear"],
+            ["withdrawal_terms_incomplete", "Withdrawal terms incomplete"],
+            ["other", "Other reviewed reason"],
+          ];
+          for (const notice of result.notices) {
+            if (typeof notice.notice_id !== "string" || notice.location_id && notice.location_id !== locationId) continue;
+            const row = document.createElement("tr");
+            const studyCell = document.createElement("td");
+            const studyTitle = document.createElement("strong");
+            studyTitle.textContent = String(notice.study_title || "Untitled study");
+            const version = document.createElement("p");
+            version.className = "muted";
+            version.textContent = `Version ${String(notice.version || "—")}`;
+            studyCell.append(studyTitle, version);
+            const textCell = document.createElement("td");
+            const details = document.createElement("details");
+            const summary = document.createElement("summary");
+            summary.textContent = "Read submitted participant notice";
+            const body = document.createElement("p");
+            body.textContent = String(notice.notice_text || "");
+            details.append(summary, body);
+            textCell.append(details);
+            const submittedCell = document.createElement("td");
+            submittedCell.textContent = notice.created_at ? new Date(notice.created_at).toLocaleString() : "—";
+            const reviewCell = document.createElement("td");
+            if (notice.review_ready !== true) {
+              reviewCell.textContent = "Independent reviewer required; authors cannot review their own notice.";
+            } else {
+              const approve = document.createElement("button");
+              approve.type = "button";
+              approve.textContent = "Approve notice";
+              approve.addEventListener("click", () => submitDelphiConsentNoticeDecision(
+                notice, "approve", "approved_after_independent_review", approve
+              ));
+              const reasonSelect = document.createElement("select");
+              reasonSelect.setAttribute("aria-label", `Rejection reason for notice ${String(notice.version || "")}`);
+              for (const [value, label] of reasons) {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                reasonSelect.append(option);
+              }
+              const reject = document.createElement("button");
+              reject.type = "button";
+              reject.className = "secondary";
+              reject.textContent = "Reject notice";
+              reject.addEventListener("click", () => submitDelphiConsentNoticeDecision(
+                notice, "reject", reasonSelect.value, reject
+              ));
+              reviewCell.append(approve, reasonSelect, reject);
+            }
+            row.append(studyCell, textCell, submittedCell, reviewCell);
+            delphiConsentNoticeReviewRows.append(row);
+          }
+          delphiConsentNoticeReviewOffset += result.notices.length;
+          delphiConsentNoticeReviewMore.hidden = result.has_more !== true;
+          delphiConsentNoticeReviewStatus.textContent = result.notices.length
+            ? "Review the complete notice. Approval enables future invites; it does not enroll participants or open the study."
+            : "No submitted consent notices are awaiting review.";
+        } catch (error) {
+          if (requestVersion === delphiConsentNoticeReviewRequestVersion) {
+            delphiConsentNoticeReviewStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitDelphiConsentNoticeDecision(notice, decision, reasonCode, button) {
+        const locationId = delphiConsentNoticeReviewLocation.value;
+        if (!delphiConsentNoticeReviewLocations.has(locationId)
+            || notice.review_ready !== true
+            || !["approve", "reject"].includes(decision)
+            || (decision === "approve" && reasonCode !== "approved_after_independent_review")
+            || (decision === "reject" && !["privacy_scope_incomplete", "purpose_unclear", "withdrawal_terms_incomplete", "other"].includes(reasonCode))) {
+          delphiConsentNoticeReviewStatus.textContent = "An independent same-location consent-review grant and supported decision are required.";
+          return;
+        }
+        const action = decision === "approve" ? "approve this notice for future participant invites" : "reject this notice";
+        if (!window.confirm(`Independently ${action}? This does not open the study or send invites.`)) return;
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, notice.notice_id, decision, reasonCode]);
+        let requestId = delphiConsentNoticeDecisionRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiConsentNoticeDecisionRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiConsentNoticeReviewStatus.textContent = "Refresh this secure console before reviewing a notice.";
+          return;
+        }
+        button.disabled = true;
+        delphiConsentNoticeReviewStatus.textContent = `Submitting independent ${decision} decision…`;
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/consent-notices/${encodeURIComponent(notice.notice_id)}/decision`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ decision, request_id: requestId, reason_code: reasonCode }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or exact-location Delphi consent-review grant is not valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The consent decision could not be recorded.");
+          if (result.notice_id !== notice.notice_id || result.decision !== decision
+              || !["approved", "rejected"].includes(result.status)) {
+            throw new Error("The decision response did not match the selected notice.");
+          }
+          delphiConsentNoticeDecisionRequestIds.delete(requestKey);
+          delphiConsentNoticeReviewStatus.textContent = result.replayed
+            ? `Existing ${result.status} decision was confirmed.`
+            : `Notice ${result.status}. This does not open the study or issue an invite.`;
+          await loadDelphiConsentNoticeReviewQueue();
+        } catch (error) {
+          delphiConsentNoticeReviewStatus.textContent = `${error.message} Retrying the unchanged decision reuses the request ID.`;
+          button.disabled = false;
         }
       }
 
@@ -26558,6 +26945,15 @@
       delphiStudyItemStudy.addEventListener("change", refreshDelphiStudyItemControls);
       delphiStudyItemMore.addEventListener("click", () => loadDelphiStudyItemStudies(true));
       delphiStudyItemSubmit.addEventListener("click", submitDelphiStudyItem);
+      delphiConsentNoticeDraftLocation.addEventListener("change", () => loadDelphiConsentNoticeDraftStudies());
+      delphiConsentNoticeDraftStudy.addEventListener("change", refreshDelphiConsentNoticeDraftControls);
+      delphiConsentNoticeDraftVersion.addEventListener("input", refreshDelphiConsentNoticeDraftControls);
+      delphiConsentNoticeDraftText.addEventListener("input", refreshDelphiConsentNoticeDraftControls);
+      delphiConsentNoticeDraftStudiesMore.addEventListener("click", () => loadDelphiConsentNoticeDraftStudies(true));
+      delphiConsentNoticeDraftSubmit.addEventListener("click", submitDelphiConsentNoticeDraft);
+      delphiConsentNoticeReviewLocation.addEventListener("change", () => loadDelphiConsentNoticeReviewQueue());
+      delphiConsentNoticeReviewRefresh.addEventListener("click", () => loadDelphiConsentNoticeReviewQueue());
+      delphiConsentNoticeReviewMore.addEventListener("click", () => loadDelphiConsentNoticeReviewQueue(true));
       delphiParticipantInviteLocation.addEventListener("change", () => loadDelphiParticipantInviteStudies());
       delphiParticipantInviteStudy.addEventListener("change", () => {
         clearDelphiParticipantInviteLink();
