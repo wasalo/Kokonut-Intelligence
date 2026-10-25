@@ -20,11 +20,15 @@ from services.agents.worker_draft import (
     create_worker_ai_summary_draft,
     get_worker_ai_summary_draft,
 )
+from services.common.errors import safe_exception_class
+from services.common.logging import get_logger
 from services.common.tenant_context import (
     set_agent_source_tenant_context,
     set_agent_summary_source_tenant_context,
 )
 from services.common.worker_database import get_worker_credential, get_worker_db
+
+logger = get_logger("agents.worker_cli")
 
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
 _SUMMARY_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
@@ -751,35 +755,39 @@ def main() -> None:
         except (TypeError, ValueError, AttributeError):
             parser.error("--request-id must be a UUID")
 
-    if args.task_key:
-        agent = resolve_synthesis_agent(args.task_key)
-        summary_type = agent.summary_type
-        run_worker_synthesis(
-            agent,
-            args.location_id,
-            args.request_id if args.persist_draft else None,
-            persist_draft=args.persist_draft,
-        )
-    else:
-        summary_type = args.summary_type or "combined"
-        run_worker_summary(
-            args.location_id,
-            summary_type,
-            args.request_id if args.persist_draft else None,
-            persist_draft=args.persist_draft,
-        )
+    try:
+        if args.task_key:
+            agent = resolve_synthesis_agent(args.task_key)
+            summary_type = agent.summary_type
+            run_worker_synthesis(
+                agent,
+                args.location_id,
+                args.request_id if args.persist_draft else None,
+                persist_draft=args.persist_draft,
+            )
+        else:
+            summary_type = args.summary_type or "combined"
+            run_worker_summary(
+                args.location_id,
+                summary_type,
+                args.request_id if args.persist_draft else None,
+                persist_draft=args.persist_draft,
+            )
 
-    print(
-        json.dumps(
-            {
-                "task_key": args.task_key or "ai_summary_synthesis",
-                "summary_type": summary_type,
-                "resulting_status": "draft" if args.persist_draft else "computed_not_persisted",
-                **({"request_id": args.request_id} if args.persist_draft else {}),
-            },
-            sort_keys=True,
+        print(
+            json.dumps(
+                {
+                    "task_key": args.task_key or "ai_summary_synthesis",
+                    "summary_type": summary_type,
+                    "resulting_status": "draft" if args.persist_draft else "computed_not_persisted",
+                    **({"request_id": args.request_id} if args.persist_draft else {}),
+                },
+                sort_keys=True,
+            )
         )
-    )
+    except Exception as exc:
+        logger.error("Agent worker execution failed (%s)", safe_exception_class(exc))
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

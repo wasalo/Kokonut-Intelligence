@@ -1758,6 +1758,39 @@ def test_worker_cli_dispatches_registered_synthesis_task_without_content_output(
     assert "private generated content" not in output
 
 
+def test_worker_cli_redacts_execution_exception_details(monkeypatch, caplog, capsys):
+    private_detail = "private source row and connection detail"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "worker_cli",
+            "--location-id",
+            LOCATION_ID,
+            "--summary-type",
+            "combined",
+            "--persist-draft",
+            "--request-id",
+            REQUEST_ID,
+        ],
+    )
+    monkeypatch.setattr(
+        worker_cli,
+        "run_worker_summary",
+        MagicMock(side_effect=RuntimeError(private_detail)),
+    )
+
+    with pytest.raises(SystemExit) as error:
+        worker_cli.main()
+
+    captured = capsys.readouterr()
+    assert error.value.code == 1
+    assert "RuntimeError" in caplog.text
+    assert private_detail not in caplog.text
+    assert private_detail not in captured.out + captured.err
+    assert "Traceback" not in captured.err
+
+
 def test_source_only_cli_rejects_deterministic_summary_before_dispatch(monkeypatch):
     monkeypatch.setattr(
         sys,

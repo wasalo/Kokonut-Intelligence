@@ -17980,3 +17980,18 @@ parity, live OIDC, automatic dispatch, and MAN-CAP-038 acceptance remain open.
 Checklist: 1,154 complete / 25 open (1,179 total); matrix classifications stay
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with 0/67
 named MAN-CAP checks accepted ([evidence](builds/2026-10-25-recovery/cap-038-single-worker-registry.json)).
+
+
+### Progress addendum — CAP-038 worker CLI failure redaction, 25 October 2026
+
+The signed worker CLI now catches execution errors, emits only the validated
+exception class through the shared logger, and exits nonzero without printing
+the exception message or traceback. A regression injects synthetic private
+source/connection details and confirms they are absent from captured terminal
+output and logs. The focused worker, source-reference, database-boundary, and
+Compose profile selection passes 220 tests; Ruff, Python compilation, matrix
+validation, and diff checks pass. No database, provider, candidate, legacy
+stack, or credentials were used. This protects local operator logs only; it
+does not establish live-provider behavior or close CAP-038. Checklist: 1,155
+complete / 25 open (1,180 total); classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows ([evidence](builds/2026-10-25-recovery/cap-038-worker-cli-error-redaction.json)).

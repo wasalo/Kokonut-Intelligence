@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,154 checklist items complete and 25
-open (1,179 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,155 checklist items complete and 25
+open (1,180 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -149,6 +149,22 @@ acceptance remains separate; none is marked accepted.
   ([implementation](../../services/agents/worker_cli.py);
   [tests](../../tests/test_agent_worker_cli.py);
   [evidence](builds/2026-10-25-recovery/cap-038-single-worker-registry.json)).
+
+### CAP-038 worker CLI failure redaction — 25 October 2026
+
+- [x] Keep database/provider exception text and traceback details out of
+  one-shot agent-worker terminal output. Execution failures now emit only a
+  validated exception class through the shared logger and exit with status 1;
+  CLI preflight validation remains unchanged. The focused worker,
+  source-reference, database-boundary, and Compose profile selection passes
+  220 tests, including a synthetic private-detail redaction regression. Ruff,
+  Python compilation, capability-matrix validation, and diff checks pass. No
+  database, provider, candidate, legacy stack, or credentials were used. This
+  improves terminal-log privacy but does not close CAP-038. Checklist: 1,155
+  complete / 25 open (1,180 total)
+  ([implementation](../../services/agents/worker_cli.py);
+  [tests](../../tests/test_agent_worker_cli.py);
+  [evidence](builds/2026-10-25-recovery/cap-038-worker-cli-error-redaction.json)).
 
 ### CAP-006 independent review of managed-hive inspections — 25 October 2026
 
