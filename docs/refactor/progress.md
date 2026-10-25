@@ -18204,4 +18204,24 @@ The Gateway can now create a location-scoped Delphi study in `draft` state. OIDC
 
 ### Progress addendum — CAP-027 study-draft console, 25 October 2026
 
-The operator console now provides a Delphi study-creation form only for locations with the exact `delphi:draft` grant. It sends bounded fields and stopping criteria through CSRF-protected, no-store requests, retains the request ID for unchanged in-page retries, and confirms only a private `draft` response. The form does not open participation, add panel members, review, or publish. Four focused form-contract checks pass; the three focused Delphi console suites pass 13 tests including Node.js inline-script parsing. No database or provider was used ([contract](delphi-consultation-kernel-contract.md); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-draft-console.json)). Live OIDC/browser acceptance and the remaining panel/item/study lifecycle operations remain open. CAP-027 stays prepared. Checklist: 1,168 complete / 25 open (1,193 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+The operator console now provides a Delphi study-creation form only for locations with the exact `delphi:draft` grant. It sends bounded fields and stopping criteria through CSRF-protected, no-store requests, retains the request ID for unchanged in-page retries, and confirms only a private `draft` response. The form does not open participation, add panel members, review, or publish. Four focused form-contract checks pass; the three focused Delphi console suites pass 13 tests including Node.js inline-script parsing. No database or provider was used ([contract](delphi-consultation-kernel-contract.md); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-draft-console.json)). Live OIDC/browser acceptance and panel/item/contribution/stopping operations remain open. CAP-027 stays prepared. Checklist: 1,168 complete / 25 open (1,193 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+### Progress addendum — CAP-027 authenticated Delphi study transitions, 25 October 2026
+
+Migration 631 and the Gateway now expose separately granted, exact-location
+study opening and closure operations. Opening requires a draft with at least
+one questionnaire item and the configured minimum number of consented panel
+members. Closing is allowed only from `open`; closed studies cannot reopen.
+Signed tenant context, current grant checks, lifecycle timestamps, serialized
+request IDs, immutable private receipts, and runtime/Directus boundaries are
+covered by the focused service and route-policy tests (47 tests across the
+selected lifecycle, routing, and draft files) and a disposable PostgreSQL 16
+replay of migrations 449–451, 630, and 631 with six grouped assertions. Ruff,
+compilation, migration integrity, dependency-group alignment, provider
+boundaries, and diff checks pass. Candidate and legacy remain untouched;
+migration 631 is not rolled out. The operator-console controls, item/panel
+authoring, contribution, stopping evaluation, live OIDC/browser acceptance,
+populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
+prepared. Checklist: 1,169 complete / 25 open (1,194 total); matrix remains
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
+([contract](delphi-consultation-kernel-contract.md); [migration](../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).

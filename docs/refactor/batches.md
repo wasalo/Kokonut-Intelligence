@@ -19,7 +19,7 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,165 checklist items complete and 25
+**Current snapshot (25 October 2026):** 1,169 checklist items complete and 25
 open (1,190 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -3983,3 +3983,31 @@ The AST scope inventory now follows a location-filtered parent row into child re
 ### CAP-027 console study draft creation — 25 October 2026
 
 - [x] Add a study-creation panel gated by the session's exact location `delphi:draft` grant. It bounds title/description and stopping-criteria inputs, sends CSRF-protected no-store requests, reuses a request ID for unchanged retries in the active page, and confirms the returned location plus `draft` status. The panel states that study creation does not open participation, add panel members, or publish results and offers no lifecycle/review action. Four focused study-console contract checks pass; all three focused Delphi console suites pass 13 tests total, including Node.js parsing of the inline JavaScript. No database or provider was used. Live OIDC/browser use and the remaining panel/item/open/close/contribution/stopping workflows remain open; CAP-027 stays prepared, not accepted. Checklist: 1,168 complete / 25 open (1,193 total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md); [console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_delphi_study_drafts.py); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-draft-console.json)).
+
+### CAP-027 authenticated study open/close transitions — 25 October 2026
+
+- [x] Add exact location-scoped `POST` actions for `delphi:open` and
+  `delphi:close`. Opening transitions only `draft` to `open` after confirming
+  at least one questionnaire item and the configured minimum number of
+  currently consented panel members. Closing transitions only `open` to
+  `closed`; closed studies cannot reopen. The bounded migration-631 function
+  checks current signed context and grants, serializes retries, preserves
+  lifecycle timestamps, and records an immutable private receipt. Runtime can
+  call the function but cannot read the receipt; Directus cannot call it or
+  access the receipt. The focused API/route-policy/previous-draft selection
+  passes 47 tests. Disposable PostgreSQL 16 applies and replays migrations
+  449–451, 630, and 631, then passes six grouped assertions; Ruff, compilation,
+  migration integrity, dependency alignment, provider boundaries, and diff
+  checks pass. The old CLI remains disabled, CAP-027 remains prepared, and no
+  candidate or legacy database was changed. The operator-console transition
+  controls, panel/item authoring, contributions, stopping evaluation, live
+  OIDC/browser acceptance, populated parity, universal ACL/RLS, and
+  MAN-CAP-027 acceptance remain open. Roll back application behavior by
+  removing the two routes and exact policies; retain the additive migration
+  and immutable receipts if deployed. Checklist: 1,169 complete / 25 open
+  (1,194 total); classifications remain 24 baseline-retained, 7 deployed, and
+  36 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql);
+  [tests](../../tests/test_gateway_delphi_study_lifecycle.py);
+  [disposable check](../../scripts/check-delphi-study-lifecycle-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).

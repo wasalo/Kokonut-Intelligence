@@ -200,7 +200,9 @@ source slice is implemented and verified, not accepted as a capability.
 Live OIDC/browser, broader Delphi parity, universal runtime ACL/RLS, and
 MAN-CAP-027 owner acceptance remain open.
 
-Before migrations 449–451 or 630 are applied, roll back by removing the routes,
+Migration 631 adds authenticated `POST /operator/api/delphi/{location_id}/studies/{study_id}/open` and `/close` actions with separate `delphi:open` and `delphi:close` grants. Opening is allowed only from `draft`, and requires at least one question plus the configured minimum number of panel members whose `consent_status` is currently `granted`. Closing is allowed only from `open`; it preserves `opened_at`, stamps `closed_at`, and a closed study cannot be reopened. Each transition uses signed location context, a serialized request ID, and a private append-only receipt. Exact retries return the original transition result; changed action/scope reuse fails closed. The lifecycle function owner has only the required study/item/panel/grant reads and lifecycle-column updates. Runtime can execute the bounded function but cannot read receipts; Directus cannot execute it or access receipts. The focused lifecycle and route-policy selection passes 47 tests, and disposable PostgreSQL 16 applies/replays migrations 449–451, 630, and 631 before six grouped lifecycle assertions. No candidate or legacy database was touched; migration 631 is not rolled out. The transitions have no operator-console controls yet, and the questionnaire/panel-authoring paths are still required to prepare studies without legacy SQL.
+
+Before migrations 449–451, 630, or 631 are applied, roll back by removing the routes,
 services, route policies, and migrations from the proposed deployment. After
 application, retain additive functions, roles, and ledgers as ordered
 migrations; disable the routes to roll back application behavior. No candidate
