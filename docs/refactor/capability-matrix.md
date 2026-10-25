@@ -1,5 +1,15 @@
 # Capability preservation matrix
 
+**CAP-038 EBF evidence-gap output scope (25 October 2026):** the signed,
+read-only worker now returns the exact safe summary view and normalized
+scorecard/location query scope, and its task contract requires that metadata.
+The focused worker/task selection passes 91 tests; Ruff, compilation, matrix
+validation, and diff checks pass. These checks use mocks only. This describes
+query scope, not source-row snapshots, and does not close live OIDC, deployed
+credentials/grants, runtime recovery, or MAN-CAP-038 acceptance. The matrix
+remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [worker scope](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json).
+
 **Directus tenant-reference location resolution (25 October 2026):** the hook
 derives a plot's location through its owning farm, validates writable
 `stakeholder_feedback.farm_id`, scopes editable staff references to staff

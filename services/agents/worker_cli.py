@@ -563,6 +563,15 @@ def run_worker_ebf_evidence_gap(scorecard_id: str, location_id: str) -> dict[str
         from services.agents.ebf_evidence_gap_agent import analyze_evidence_gaps
 
         result = analyze_evidence_gaps(connection, scorecard_id, location_id)
+        if isinstance(result, dict):
+            result = {
+                **result,
+                "source_scope": {
+                    "view": "kokonut_agent_source.v_ebf_evidence_gap_summary",
+                    "scorecard_id": scorecard_id,
+                    "location_id": location_id,
+                },
+            }
         output_errors = validate_output("ebf_evidence_gap", result)
         if output_errors:
             raise ValueError("; ".join(output_errors))

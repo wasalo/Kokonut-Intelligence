@@ -220,6 +220,7 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "outputs": {
             "evidence_gaps": {"type": "array", "required": True},
             "recommendations": {"type": "array", "required": True},
+            "source_scope": {"type": "object", "required": True},
         },
         "writes": [],
         "high_risk": False,

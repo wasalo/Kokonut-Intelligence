@@ -38,6 +38,12 @@ def test_output_validation_checks_required_fields() -> None:
     errors = validate_output("cids_export", {"graph_count": 1})
     assert "Missing required output field: document" in errors
 
+    ebf_errors = validate_output(
+        "ebf_evidence_gap",
+        {"evidence_gaps": [], "recommendations": []},
+    )
+    assert "Missing required output field: source_scope" in ebf_errors
+
 
 def test_output_validation_checks_declared_top_level_types_and_formats() -> None:
     valid = {

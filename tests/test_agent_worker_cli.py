@@ -1971,7 +1971,7 @@ def test_ebf_worker_uses_its_task_specific_source_identity(monkeypatch):
         "services.agents.ebf_evidence_gap_agent.analyze_evidence_gaps", analyzer
     )
 
-    output = worker_cli.run_worker_ebf_evidence_gap(scorecard_id, LOCATION_ID)
+    output = worker_cli.run_worker_ebf_evidence_gap(scorecard_id.upper(), LOCATION_ID)
 
     statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
     assert statements == [
@@ -1991,7 +1991,14 @@ def test_ebf_worker_uses_its_task_specific_source_identity(monkeypatch):
         action="read",
     )
     analyzer.assert_called_once_with(connection, scorecard_id, LOCATION_ID)
-    assert output == result
+    assert output == {
+        **result,
+        "source_scope": {
+            "view": "kokonut_agent_source.v_ebf_evidence_gap_summary",
+            "scorecard_id": scorecard_id,
+            "location_id": LOCATION_ID,
+        },
+    }
     connection.close.assert_called_once_with()
 
 

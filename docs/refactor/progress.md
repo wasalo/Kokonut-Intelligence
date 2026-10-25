@@ -18039,3 +18039,17 @@ zero-count entries, so no migration was needed. Checklist: 1,158 complete /
 25 open (1,183 total); matrix classifications remain 24 baseline-retained, 7
 deployed, and 36 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-empty-synthesis-source-references.json).
+
+### Progress addendum — CAP-038 EBF evidence-gap output source scope, 25 October 2026
+
+The signed, read-only EBF worker now includes the canonical safe summary view
+and normalized scorecard/location query scope in its output. The task catalogue
+requires this metadata. The focused worker/task selection passes 91 tests;
+Ruff, Python compilation, capability-matrix validation, and diff checks pass.
+All tests are mocked; no database or provider was touched. This records query
+scope only, not a snapshot or identities of returned source rows. Live OIDC,
+provisioned worker credentials/grants, runtime recovery, and MAN-CAP-038 owner
+acceptance remain open. Checklist: 1,159 complete / 25 open (1,184 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json).

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,158 checklist items complete and 25
-open (1,183 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,159 checklist items complete and 25
+open (1,184 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3423,6 +3423,10 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-038 empty synthesis source references — 25 October 2026
 
 - [x] Preserve every mapped source in a synthesis manifest when its view has no rows. Empty sources now produce an explicit zero-count, empty-ID entry with the correct network/location scope; the signed worker rejects incomplete view maps before draft writes. The focused source-reference/worker selection passes 169 tests, with Ruff, compilation, capability-matrix validation, and diff checks passing. Mocks only; no database or provider was accessed. The existing receipt contract already accepts zero-count entries, so no migration was needed ([collector](../../services/agents/base.py); [worker](../../services/agents/worker_cli.py); [tests](../../tests/test_synthesis_source_references.py); [evidence](builds/2026-10-25-recovery/cap-038-empty-synthesis-source-references.json)).
+
+### CAP-038 EBF evidence-gap output source scope — 25 October 2026
+
+- [x] Include the canonical safe summary view and normalized scorecard/location query scope in the read-only EBF worker output, and require the field in its task contract. The focused worker/task selection passes 91 tests; Ruff, compilation, capability-matrix validation, and diff checks pass. Mocked checks only; no database or provider was accessed ([worker](../../services/agents/worker_cli.py); [task contract](../../services/agents/tasks.py); [tests](../../tests/test_agent_worker_cli.py); [evidence](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json)). This is query-scope metadata, not a row-level source snapshot, and does not close CAP-038 or MAN-CAP-038.
 
 ### CAP-039 unified CLI forwarding contract — 19 October 2026
 
