@@ -2,11 +2,17 @@
 
 **CAP-038 synthesis receipt console (25 October 2026):** the operator console
 now exposes a grant-gated form for creating receipts for the 12 registered
-synthesis workers. It validates task/type pairs against the Gateway registry,
-preserves a request ID across uncertain retries, and displays a manual worker
-command only after validating the matching authorized response. The UI states
-that it does not start a worker. The focused console/Gateway selection passes
-22 tests, including JavaScript syntax; Ruff, compilation, and diff checks pass
+synthesis workers. It validates task/type and isolated Compose service/profile
+pairs against the Gateway and Compose registries, persists a non-secret request
+ID in tab-scoped storage across reloads and uncertain retries, and displays a
+task-specific command only after validating
+the matching authorized response. A source regression verifies each profile
+exposes only that task's source DSN/credential pair plus non-secret runtime
+settings. The command runs the selected profile with its dedicated credentials
+while the profile's default remains read-only. The
+UI states that it does not start a worker. The focused console/Gateway selection
+passes 22 tests, including JavaScript syntax; Compose renders all 12 worker
+profiles with placeholders; Ruff, compilation, and diff checks pass
 ([console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_ai_summary_task_requests.py);
 [evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json)).
 No database, provider, candidate, legacy service, or credential was used.

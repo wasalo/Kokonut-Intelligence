@@ -10,18 +10,25 @@
     "ruff": "passed",
     "python_compilation": "passed",
     "inline_javascript_syntax": "passed through the focused console test",
+    "compose_profile_render": {
+      "command": "docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile PROFILE config --services",
+      "result": "12/12 expected isolated worker services rendered using non-secret required-variable placeholders"
+    },
     "git_diff_check": "passed"
   },
   "behavior": [
     "The console shows synthesis receipt creation only to operators with an exact-location ai_summary:draft grant.",
-    "The selectable task and summary-type pairs match the Gateway receipt registry.",
+    "The selectable task/type/service/profile pairs match the Gateway receipt registry and read-only Compose worker services.",
+    "Each selected Compose worker exposes only its own source database URL and worker credential variables (plus non-secret runtime settings); it has no shared runtime database password or another task's credentials.",
+    "An uncertain request reuses its non-secret idempotency UUID from tab-scoped session storage after reload; confirmed results and definitive client errors clear it.",
     "A successful response must match the request, location, task, summary type, and authorized status before a manual worker command is displayed.",
-    "The command uses the stable request receipt and does not launch a worker from the Gateway."
+    "The displayed command loads local SOPS secrets, runs the selected isolated Compose profile, and passes the stable request receipt to the worker CLI.",
+    "The request route itself does not launch a worker; dispatch occurs only when the operator runs the displayed command."
   ],
   "database_touched": false,
   "provider_touched": false,
   "candidate_or_legacy_touched": false,
   "limitations": [
-    "Automatic dispatch, worker credential provisioning, live OIDC, populated output parity, and MAN-CAP-038 acceptance remain open."
+    "Automatic dispatch, provisioned worker credentials, live OIDC, populated output parity, and MAN-CAP-038 acceptance remain open."
   ]
 }

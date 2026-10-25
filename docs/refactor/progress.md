@@ -2,11 +2,20 @@
 
 The operator console now exposes a grant-gated request form for the 12
 registered synthesis tasks. Its task/type pairs track the Gateway allowlist;
-an uncertain POST reuses its request UUID, and the UI verifies the full receipt
-response before showing the `worker_cli` command. The form states that a receipt
-does not dispatch a worker. The focused console/Gateway selection passes 22
-tests, including its inline JavaScript parse check; Ruff, Python compilation,
-and `git diff --check` pass ([evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json);
+an uncertain POST reuses its non-secret UUID from tab-scoped session storage,
+including after reload, and the UI verifies the full receipt response before
+showing the task's dedicated Compose profile command. The
+contract test cross-checks all 12 task/type/service/profile pairs against the
+Gateway allowlist and read-only worker definitions; each profile exposes only
+its task-specific source DSN/credential pair plus non-secret runtime settings.
+The displayed command loads
+local SOPS secrets, overrides the selected service entrypoint, and passes the
+receipt to the worker CLI; the form states that it does not dispatch a worker.
+The focused console/Gateway selection passes 22 tests, including its inline
+JavaScript parse check. Compose config renders all 12 exact task profiles with
+non-secret required-variable placeholders; no containers started or actual
+credentials loaded. Ruff, Python compilation, and `git diff --check` pass
+([evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json);
 [attribution inventory](agent-task-attribution-inventory.md)). No database,
 provider, candidate, legacy stack, or credentials were accessed. Automatic
 dispatch, provisioned task identities, live OIDC, populated parity, and

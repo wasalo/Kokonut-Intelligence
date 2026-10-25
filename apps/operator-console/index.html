@@ -169,24 +169,24 @@
         </section>
         <section id="ai-summary-task-request" hidden aria-labelledby="ai-summary-task-request-heading">
           <h2 id="ai-summary-task-request-heading">Authorize a synthesis worker run</h2>
-          <p class="muted">Create an immutable, location-scoped request receipt for a registered synthesis task. This records who requested the work; it does not start a worker. Run the displayed command in an environment with that task’s configured worker identity. The worker verifies this receipt before source reads and draft creation. A different operator must review the resulting draft; it is never published here.</p>
+          <p class="muted">Create an immutable, location-scoped request receipt for a registered synthesis task. This records who requested the work; it does not start a worker. The displayed command loads encrypted local secrets and runs that task’s existing isolated Compose profile with its dedicated worker identity. Run it from the repository root. The worker verifies this receipt before source reads and draft creation. A different operator must review the resulting draft; it is never published here.</p>
           <div class="toolbar">
             <label for="ai-summary-task-request-location">Granted location</label>
             <select id="ai-summary-task-request-location"></select>
             <label for="ai-summary-task-request-key">Registered synthesis task</label>
             <select id="ai-summary-task-request-key">
-              <option value="organic_readiness_synthesis" data-summary-type="organic_readiness">Organic readiness</option>
-              <option value="ecological_modeling_synthesis" data-summary-type="ecological_modeling">Ecological modeling</option>
-              <option value="holistic_wellbeing_synthesis" data-summary-type="holistic_wellbeing">Holistic wellbeing</option>
-              <option value="feedback_synthesis" data-summary-type="stakeholder_feedback">Stakeholder feedback</option>
-              <option value="commons_liberation_synthesis" data-summary-type="commons_liberation">Commons liberation</option>
-              <option value="gnh_alignment_synthesis" data-summary-type="gnh_alignment">GNH alignment</option>
-              <option value="regenerator_synthesis" data-summary-type="regenerative_outcomes">Regenerative outcomes</option>
-              <option value="capital_efficiency_synthesis" data-summary-type="capital_efficiency">Capital efficiency</option>
-              <option value="financial_resilience_synthesis" data-summary-type="financial_resilience">Financial resilience</option>
-              <option value="bio_factory_synthesis" data-summary-type="bio_factory">Bio factory</option>
-              <option value="open_source_capitalist_synthesis" data-summary-type="open_source_capitalist">Open source capitalist</option>
-              <option value="kokonut_commons_synthesis" data-summary-type="kokonut_commons">Kokonut commons</option>
+              <option value="organic_readiness_synthesis" data-summary-type="organic_readiness" data-worker-service="agent-organic-readiness-worker" data-worker-profile="organic-readiness-worker">Organic readiness</option>
+              <option value="ecological_modeling_synthesis" data-summary-type="ecological_modeling" data-worker-service="agent-ecological-modeling-worker" data-worker-profile="ecological-modeling-worker">Ecological modeling</option>
+              <option value="holistic_wellbeing_synthesis" data-summary-type="holistic_wellbeing" data-worker-service="agent-holistic-wellbeing-worker" data-worker-profile="holistic-wellbeing-worker">Holistic wellbeing</option>
+              <option value="feedback_synthesis" data-summary-type="stakeholder_feedback" data-worker-service="agent-feedback-worker" data-worker-profile="feedback-worker">Stakeholder feedback</option>
+              <option value="commons_liberation_synthesis" data-summary-type="commons_liberation" data-worker-service="agent-commons-liberation-worker" data-worker-profile="commons-liberation-worker">Commons liberation</option>
+              <option value="gnh_alignment_synthesis" data-summary-type="gnh_alignment" data-worker-service="agent-gnh-alignment-worker" data-worker-profile="gnh-alignment-worker">GNH alignment</option>
+              <option value="regenerator_synthesis" data-summary-type="regenerative_outcomes" data-worker-service="agent-regenerator-worker" data-worker-profile="regenerator-worker">Regenerative outcomes</option>
+              <option value="capital_efficiency_synthesis" data-summary-type="capital_efficiency" data-worker-service="agent-capital-efficiency-worker" data-worker-profile="capital-efficiency-worker">Capital efficiency</option>
+              <option value="financial_resilience_synthesis" data-summary-type="financial_resilience" data-worker-service="agent-financial-resilience-worker" data-worker-profile="financial-resilience-worker">Financial resilience</option>
+              <option value="bio_factory_synthesis" data-summary-type="bio_factory" data-worker-service="agent-bio-factory-worker" data-worker-profile="bio-factory-worker">Bio factory</option>
+              <option value="open_source_capitalist_synthesis" data-summary-type="open_source_capitalist" data-worker-service="agent-open-source-capitalist-worker" data-worker-profile="open-source-capitalist-worker">Open source capitalist</option>
+              <option value="kokonut_commons_synthesis" data-summary-type="kokonut_commons" data-worker-service="agent-kokonut-commons-worker" data-worker-profile="kokonut-commons-worker">Kokonut commons</option>
             </select>
             <button id="ai-summary-task-request-submit" type="button">Create request receipt</button>
           </div>
@@ -22389,26 +22389,54 @@
         const selectedTask = aiSummaryTaskRequestKey.selectedOptions[0];
         const taskKey = selectedTask?.value || "";
         const summaryType = selectedTask?.dataset.summaryType || "";
+        const workerService = selectedTask?.dataset.workerService || "";
+        const workerProfile = selectedTask?.dataset.workerProfile || "";
         if (!aiSummaryDraftLocations.has(locationId)) {
           aiSummaryTaskRequestStatus.textContent = "A location-scoped ai_summary:draft grant is required.";
           return;
         }
         if (!/^[a-z][a-z0-9_]{0,99}$/.test(taskKey)
-            || !/^[a-z][a-z0-9_]{0,99}$/.test(summaryType)) {
+            || !/^[a-z][a-z0-9_]{0,99}$/.test(summaryType)
+            || !/^agent-[a-z0-9-]+-worker$/.test(workerService)
+            || !/^[a-z0-9-]+-worker$/.test(workerProfile)) {
           aiSummaryTaskRequestStatus.textContent = "Choose a registered synthesis task.";
           return;
         }
         const csrf = csrfToken();
         const requestKey = JSON.stringify([locationId, taskKey, summaryType]);
+        const storageKey = `kokonut.ai-summary-task-request.v1:${requestKey}`;
         let requestId = aiSummaryTaskRequestIds.get(requestKey);
         if (!requestId) {
+          try {
+            const storedRequestId = sessionStorage.getItem(storageKey);
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(storedRequestId || "")) {
+              requestId = storedRequestId;
+            }
+          } catch {
+            // Storage can be disabled; keep retries stable for this page lifetime.
+          }
+        }
+        if (!requestId) {
           requestId = globalThis.crypto?.randomUUID?.();
-          if (requestId) aiSummaryTaskRequestIds.set(requestKey, requestId);
         }
         if (!csrf || !requestId) {
           aiSummaryTaskRequestStatus.textContent = "Refresh in a secure browser session before authorizing a worker request.";
           return;
         }
+        aiSummaryTaskRequestIds.set(requestKey, requestId);
+        try {
+          sessionStorage.setItem(storageKey, requestId);
+        } catch {
+          // Storage can be disabled; keep retries stable for this page lifetime.
+        }
+        const clearPendingRequest = () => {
+          aiSummaryTaskRequestIds.delete(requestKey);
+          try {
+            sessionStorage.removeItem(storageKey);
+          } catch {
+            // Storage can be disabled; the in-memory retry entry is still cleared.
+          }
+        };
         aiSummaryTaskRequestSubmit.disabled = true;
         aiSummaryTaskRequestResult.hidden = true;
         aiSummaryTaskRequestStatus.textContent = "Recording the operator-authorized task request…";
@@ -22429,10 +22457,11 @@
           );
           const result = await response.json().catch(() => ({}));
           if (response.status === 401 || response.status === 403) {
+            clearPendingRequest();
             throw new Error("Your session or location-specific AI summary draft grant is not valid.");
           }
           if (!response.ok) {
-            if (response.status < 500) aiSummaryTaskRequestIds.delete(requestKey);
+            if (response.status < 500) clearPendingRequest();
             throw new Error(result.error || "The synthesis request could not be authorized.");
           }
           if (result.request_id !== requestId
@@ -22443,10 +22472,13 @@
               || typeof result.replayed !== "boolean") {
             throw new Error("The receipt response did not match this request. Retry to confirm the same request ID.");
           }
-          aiSummaryTaskRequestIds.delete(requestKey);
+          clearPendingRequest();
           aiSummaryTaskRequestId.value = requestId;
           aiSummaryTaskRequestCommand.value = [
-            "python3 -m services.agents.worker_cli",
+            "source scripts/load-secrets.sh && docker compose -f docker-compose.yml -f docker-compose.worker.yml",
+            `--profile ${workerProfile}`,
+            `run --build --rm --entrypoint python3 ${workerService}`,
+            "-m services.agents.worker_cli",
             `--task-key ${taskKey}`,
             `--location-id ${locationId}`,
             `--request-id ${requestId}`,
@@ -22455,7 +22487,7 @@
           aiSummaryTaskRequestResult.hidden = false;
           aiSummaryTaskRequestStatus.textContent = result.replayed === true
             ? "The existing operator request receipt was confirmed. No worker was started."
-            : "Operator request receipt created. No worker was started; run the command in the configured worker environment.";
+            : "Operator request receipt created. No worker was started; run the displayed command from the repository root.";
         } catch (error) {
           aiSummaryTaskRequestStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {

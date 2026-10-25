@@ -28,19 +28,28 @@ acceptance remains separate; none is marked accepted.
 
 - [x] Expose the registered synthesis receipt workflow in the operator console.
   Only operators with an exact-location `ai_summary:draft` grant see the form.
-  Task/type choices match the Gateway registry; the console preserves a stable
-  retry UUID and validates the returned receipt before showing the manual
-  `worker_cli` command. It explicitly reports that creating a receipt does not
-  dispatch a worker. The focused console/Gateway selection passes 22 tests,
-  including the inline JavaScript syntax check; Ruff, Python compilation, and
-  `git diff --check` pass ([console](../../apps/operator-console/index.html);
+  Task/type choices match the Gateway registry; a non-secret retry UUID is
+  retained in tab-scoped session storage across reloads and cleared after a
+  confirmed result or definitive client error. The console validates the
+  returned receipt before showing a command for
+  the exact task's existing isolated Compose profile. The command loads local
+  SOPS secrets and uses that profile's dedicated worker credentials; a source
+  contract checks that each service exposes only its own task DSN/credential
+  pair plus non-secret runtime settings. Compose workers remain read-only by
+  default, and the receipt does not dispatch a
+  worker until the operator runs the command. The focused console/Gateway
+  selection passes 22 tests, including task/profile parity and inline
+  JavaScript syntax. Docker Compose configuration renders the selected worker
+  service for all 12 profiles using non-secret placeholders; Ruff, Python
+  compilation, and `git diff --check` pass
+  ([console](../../apps/operator-console/index.html);
   [tests](../../tests/test_operator_console_ai_summary_task_requests.py);
   [evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json);
   [attribution inventory](agent-task-attribution-inventory.md)). No migration,
   database, provider, candidate, legacy service, or credential was used.
   Rollback by removing the console panel and its tests; issued immutable request
   receipts remain auditable and worker code continues to require them.
-  Automatic dispatch, live OIDC, task credential provisioning, populated parity,
+  Automatic dispatch, live OIDC, provisioned task credentials, populated parity,
   and MAN-CAP-038 remain open. Checklist: 1,142 complete / 25 open (1,167 total).
 
 ### CAP-038 generic agent-task route attribution guard — 25 October 2026
