@@ -32,8 +32,8 @@ null unless a real staff ID is supplied. Impact-claim review dates are stamped
 without inventing a staff reviewer. Explicit
 staff references remain location-validated. This avoids false staff attribution
 but does not establish that an authenticated operator is the staff member named
-in an explicit reference. The 89-test extension suite, including regressions for metric-proposal,
-impact-claim, and feedback-review attribution, passes with the extension build
+in an explicit reference. The 90-test extension suite, including regressions for metric-proposal,
+impact-claim, feedback-review attribution, and request-database use, passes with the extension build
 and TypeScript check. A reviewed operator-to-staff binding contract remains
 open.
 

@@ -159,6 +159,68 @@ describe('Directus hook event registration', () => {
     }]);
   });
 
+  it('binds feedback, metric-proposal, and impact-claim update reads to the request database', async () => {
+    const globalDatabase = vi.fn();
+    const requestTables: string[] = [];
+    const requestDatabase = vi.fn((table: string) => {
+      requestTables.push(table);
+      const builder: any = {
+        where: vi.fn(() => builder),
+        first: vi.fn(async () => {
+          if (table === 'stakeholder_feedback') {
+            return { status: 'submitted', is_public: false };
+          }
+          if (table === 'metric_proposal') {
+            return { status: 'proposed', proposal_date: '2020-01-01' };
+          }
+          if (table === 'impact_claim') {
+            return { status: 'submitted', public_claim: false };
+          }
+          return undefined;
+        }),
+      };
+      return builder;
+    });
+    const filters = new Map<string, Array<(...args: any[]) => Promise<any>>>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: (event: string, callback: (...args: any[]) => Promise<any>) => {
+          const callbacks = filters.get(event) || [];
+          callbacks.push(callback);
+          filters.set(event, callbacks);
+        },
+        action: () => undefined,
+        schedule: () => undefined,
+      },
+      { database: globalDatabase, env: {} },
+    );
+
+    const context = { database: requestDatabase };
+    await filters.get('stakeholder_feedback.items.update')?.at(-1)?.(
+      { consent_notes: 'reviewed' },
+      { keys: ['feedback-1'], accountability: { admin: true } },
+      context,
+    );
+    await filters.get('metric_proposal.items.update')?.at(-1)?.(
+      { status: 'discussed' },
+      { keys: ['proposal-1'] },
+      context,
+    );
+    await filters.get('impact_claim.items.update')?.at(-1)?.(
+      { status: 'verified' },
+      { keys: ['claim-1'], accountability: { admin: true } },
+      context,
+    );
+
+    expect(requestTables).toEqual(expect.arrayContaining([
+      'stakeholder_feedback',
+      'metric_proposal',
+      'impact_claim',
+    ]));
+    expect(globalDatabase).not.toHaveBeenCalled();
+  });
+
   it('does not register Directus schedules unless explicitly enabled', () => {
     const schedules: string[] = [];
     (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(

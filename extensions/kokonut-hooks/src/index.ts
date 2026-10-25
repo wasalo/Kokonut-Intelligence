@@ -249,12 +249,13 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   async function applyWorkflow(
     collection: string,
     payload: Record<string, any>,
-    meta: Record<string, any>
+    meta: Record<string, any>,
+    requestDatabase: any = database,
   ) {
-    const userRoles = await resolveUserRoles(database, meta);
+    const userRoles = await resolveUserRoles(requestDatabase, meta);
     const accountability = meta?.accountability;
     return await handleWorkflowTransition(
-      collection, payload, meta.keys || {}, userRoles, database, accountability
+      collection, payload, meta.keys || {}, userRoles, requestDatabase, accountability
     );
   }
 
@@ -510,16 +511,27 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return parseOrThrow(validateStakeholderFeedbackCreate, payload);
   });
 
-  filter('stakeholder_feedback.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('stakeholder_feedback.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = context?.database || database;
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const current = recordId ? await database('stakeholder_feedback').where('id', recordId).first() : {};
+    const current = recordId
+      ? await requestDatabase('stakeholder_feedback').where('id', recordId).first()
+      : {};
     validateStakeholderFeedback({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateStakeholderFeedbackUpdate, payload);
-    return await applyWorkflow('stakeholder_feedback', validated, meta);
+    return await applyWorkflow('stakeholder_feedback', validated, meta, requestDatabase);
   });
 
-  filter('metric_proposal.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleMetricProposalUpdate(payload, meta, database);
+  filter('metric_proposal.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    return await handleMetricProposalUpdate(payload, meta, context?.database || database);
   });
 
   filter('impact_claim.items.create', (payload: Record<string, any>) => {
@@ -528,13 +540,20 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     return parseOrThrow(validateImpactClaimCreate, payload);
   });
 
-  filter('impact_claim.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('impact_claim.items.update', async (
+    payload: Record<string, any>,
+    meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = context?.database || database;
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
-    const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
+    const current = recordId
+      ? await requestDatabase('impact_claim').where('id', recordId).first()
+      : {};
     validateImpactClaim({ ...(current || {}), ...payload });
     const validated = parseOrThrow(validateImpactClaimUpdate, payload);
     await stampImpactClaimReview(validated);
-    return await applyWorkflow('impact_claim', validated, meta);
+    return await applyWorkflow('impact_claim', validated, meta, requestDatabase);
   });
 
   filter('agent_task.items.create', async (payload: Record<string, any>, meta: Record<string, any>) => {

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,151 checklist items complete and 25
-open (1,176 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,152 checklist items complete and 25
+open (1,177 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -41,6 +41,18 @@ acceptance remains separate; none is marked accepted.
   the operator-to-staff binding contract and broader Directus parity remain
   open. Roll back only with a reviewed attribution contract; do not restore
   copying Directus user IDs into staff references.
+
+### Directus review update request-transaction scope — 25 October 2026
+
+- [x] Use Directus's request database for the current-row read and workflow
+  status/role checks on stakeholder-feedback and impact-claim updates, and for
+  metric-proposal review-state checks. This keeps those decisions on the same
+  request connection as the tenant authorization filters. A registered-hook
+  regression invokes all three with separate request/global database fakes and
+  confirms the global handle is unused. The full extension suite passes 90
+  tests and the Directus build/type check pass ([evidence](builds/2026-10-25-recovery/directus-review-update-request-transaction.json)).
+  No database, provider, candidate, legacy stack, or migration was used. This
+  does not prove PostgreSQL transaction semantics in a live Directus runtime.
 
 ### Directus impact-claim reviewer attribution — 25 October 2026
 
