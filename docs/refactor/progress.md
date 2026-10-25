@@ -18530,3 +18530,25 @@ populated parity, runtime credentials/grants, and MAN-CAP-038 remain open.
 Checklist: 1,184 complete / 25 open (1,209 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence: [pinned profile](builds/2026-10-25-recovery/cap-038-cids-profile-contract.json).
+
+### Progress addendum — retention and Delphi status reconciliation, 25 October 2026
+
+Reviewed the dynamic retention implementation against the owner's direction:
+retention windows, jurisdiction/purpose codes, and legal holds are persisted
+policy data rather than hardcoded periods. The generic sweeper rejects
+unresolved jurisdiction/purpose scopes, and event cleanup remains separately
+gated; no schedules or periods were configured and no cleanup ran. Future
+USA/Dominican Republic schedules can be entered as owner-approved runtime
+policy data when needed.
+
+Updated the agent-attribution inventory and CAP-038 checklist wording to remove
+the stale claim that Delphi Gateway lifecycle parity is still wholly open.
+Signed Gateway flows through migration 639 now provide the core study,
+participant, contribution, and stopping-evaluation path; legacy Delphi CLI
+database operations still fail closed, while direct panel administration and
+calibration remain unavailable. CAP-027 remains prepared pending live OIDC and
+browser use, SMTP delivery, populated parity, broad ACL/RLS, and owner
+acceptance. The checklist remains 1,184 complete / 25 open (1,209 total), and
+the matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67
+rows. This was a source/documentation reconciliation; no tests, database,
+candidate, legacy service, or provider were used.
