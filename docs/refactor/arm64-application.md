@@ -1,5 +1,20 @@
 # ARM64 Kernel application build evidence
 
+## Current-source software refresh — 25 October 2026
+
+Source revision `829376b4e0af8f143003ba8917374c4f6a2e0394` built the default
+Kernel image for `linux/arm64`. Docker confirmed image user `appuser`. A
+network-disabled QEMU container with a read-only root and 64 MiB temporary
+`/tmp` reported `aarch64`, created a 15-route Gateway, imported both Python
+SDK clients from a read-only mount, loaded all 18 `JobSpec` entries, displayed
+migration CLI help without database credentials, and constructed a synthetic
+RPC balance snapshot. The temporary container and image were removed; no
+database, provider, credentials, published port, candidate service, legacy
+stack, or persistent volume was accessed. This is software-emulation evidence
+only, not physical Raspberry Pi, power-loss, thermal, performance, or
+storage-endurance acceptance
+([evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-829376b4.json)).
+
 ## Current-source software refresh — 24 October 2026
 
 The current source revision `8f5fd1eb` built the default Kernel target for

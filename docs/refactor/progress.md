@@ -1,14 +1,18 @@
-### Progress addendum — full current-schema ARM64/QEMU replay through migration 627, 25 October 2026
+### Progress addendum — current-source ARM64/QEMU app and full-schema replay through migration 627, 25 October 2026
 
-A fresh network-disabled PostgreSQL 16 ARM64/QEMU project applied and verified
-all 618 current schema files through migration 627: 618 applied, zero pending,
-zero failed, zero seeds, no farm data, no host ports, confirmed `aarch64`, and
-successful volume cleanup. The replay used the current clean source revision
-`1d780da9`; the candidate and legacy databases were not accessed
-([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-627.json)).
-This refreshes software portability evidence only; physical Raspberry Pi,
-power-failure, performance, thermal, storage, networking, and device-restart
-acceptance remain open. Checklist remains 1,135 complete / 23 open.
+The current branch built the default Kernel image for `linux/arm64`; a
+network-disabled, read-only QEMU container reported `aarch64`, created the
+Gateway, imported both Python SDK clients, loaded all 18 JobSpecs, displayed
+migration CLI help without database credentials, and constructed a synthetic
+RPC balance snapshot ([app evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-829376b4.json)).
+A fresh network-disabled PostgreSQL 16 ARM64/QEMU project also applied and
+verified all 618 current schema files through migration 627: zero pending or
+failed, zero seeds, no farm data or host ports, and successful volume cleanup
+([schema evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-627.json)).
+Both checks left candidate and legacy untouched and removed temporary resources.
+This is software portability evidence only; physical Raspberry Pi, power-loss,
+performance, thermal, storage, networking, and device-restart acceptance remain
+open. Checklist remains 1,135 complete / 23 open.
 
 ### Progress addendum — CAP-006 independent hive-inspection review, 25 October 2026
 
