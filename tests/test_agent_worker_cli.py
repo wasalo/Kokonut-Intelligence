@@ -2089,6 +2089,74 @@ def test_cli_output_does_not_print_summary_content_or_source_references(monkeypa
     assert LOCATION_ID not in output
 
 
+def test_worker_cli_persists_only_with_the_exact_gateway_request(monkeypatch, capsys):
+    agent = MagicMock(task_key="feedback_synthesis", summary_type="stakeholder_feedback")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "worker_cli",
+            "--location-id",
+            LOCATION_ID,
+            "--task-key",
+            "feedback_synthesis",
+            "--persist-draft",
+            "--request-id",
+            REQUEST_ID.upper(),
+        ],
+    )
+    monkeypatch.setattr(worker_cli, "resolve_synthesis_agent", lambda _task: agent)
+    run = MagicMock(
+        return_value={
+            "summary": {"synthesis": "private farm summary"},
+            "ai_summary_id": SUMMARY_ID,
+            "request_id": REQUEST_ID,
+            "replayed": False,
+        }
+    )
+    monkeypatch.setattr(worker_cli, "run_worker_synthesis", run)
+
+    worker_cli.main()
+
+    run.assert_called_once_with(
+        agent, LOCATION_ID, REQUEST_ID, persist_draft=True
+    )
+    output = capsys.readouterr().out
+    assert json.loads(output) == {
+        "task_key": "feedback_synthesis",
+        "summary_type": "stakeholder_feedback",
+        "resulting_status": "draft",
+        "request_id": REQUEST_ID,
+    }
+    assert "private farm summary" not in output
+    assert LOCATION_ID not in output
+
+
+def test_worker_cli_persist_mode_rejects_invalid_request_before_task_resolution(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "worker_cli",
+            "--location-id",
+            LOCATION_ID,
+            "--task-key",
+            "feedback_synthesis",
+            "--persist-draft",
+            "--request-id",
+            "not-a-uuid",
+        ],
+    )
+    resolver = MagicMock(side_effect=AssertionError("task must not resolve"))
+    monkeypatch.setattr(worker_cli, "resolve_synthesis_agent", resolver)
+
+    with pytest.raises(SystemExit) as error:
+        worker_cli.main()
+
+    assert error.value.code == 2
+    resolver.assert_not_called()
+
+
 def test_worker_cli_rejects_draft_persistence_before_task_resolution(monkeypatch):
     monkeypatch.setattr(
         sys,

@@ -119,6 +119,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/ai-summaries/11111111-1111-4111-8111-111111111111/drafts",
     ): _expected("ai_summary", "draft", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/ai-summaries/11111111-1111-4111-8111-111111111111/synthesis-requests",
+    ): _expected("ai_summary", "draft", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/draft-studies",
     ): _expected("delphi", "draft", scoped=True, location_id=_LOCATION_ID),

@@ -15,28 +15,9 @@ from uuid import UUID
 
 from services.common.tenant_context import (
     set_agent_summary_draft_tenant_context,
-    set_worker_tenant_context,
 )
 from services.common.worker_database import get_worker_credential, get_worker_db
 
-_WORKER_KEY = "agent_summary_draft"
-_TASK_WRITER_KEYS = frozenset(
-    {
-        "agent_summary_deterministic_source",
-        "agent_organic_readiness_source",
-        "agent_ecological_modeling_source",
-        "agent_holistic_wellbeing_source",
-        "agent_feedback_source",
-        "agent_commons_liberation_source",
-        "agent_gnh_alignment_source",
-        "agent_regenerator_source",
-        "agent_capital_efficiency_source",
-        "agent_financial_resilience_source",
-        "agent_bio_factory_source",
-        "agent_open_source_capitalist_source",
-        "agent_kokonut_commons_source",
-    }
-)
 _SUMMARY_TYPE = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
 DETERMINISTIC_SUMMARY_TYPES = ("operations", "financial", "environmental", "combined")
 SYNTHESIS_SUMMARY_TYPES = frozenset(
@@ -58,6 +39,22 @@ SYNTHESIS_SUMMARY_TYPES = frozenset(
 SUPPORTED_WORKER_SUMMARY_TYPES = frozenset(
     (*DETERMINISTIC_SUMMARY_TYPES, *SYNTHESIS_SUMMARY_TYPES)
 )
+_TASK_SUMMARY_TYPES = {
+    "agent_summary_deterministic_source": frozenset(DETERMINISTIC_SUMMARY_TYPES),
+    "agent_organic_readiness_source": frozenset({"organic_readiness"}),
+    "agent_ecological_modeling_source": frozenset({"ecological_modeling"}),
+    "agent_holistic_wellbeing_source": frozenset({"holistic_wellbeing"}),
+    "agent_feedback_source": frozenset({"stakeholder_feedback"}),
+    "agent_commons_liberation_source": frozenset({"commons_liberation"}),
+    "agent_gnh_alignment_source": frozenset({"gnh_alignment"}),
+    "agent_regenerator_source": frozenset({"regenerative_outcomes"}),
+    "agent_capital_efficiency_source": frozenset({"capital_efficiency"}),
+    "agent_financial_resilience_source": frozenset({"financial_resilience"}),
+    "agent_bio_factory_source": frozenset({"bio_factory"}),
+    "agent_open_source_capitalist_source": frozenset({"open_source_capitalist"}),
+    "agent_kokonut_commons_source": frozenset({"kokonut_commons"}),
+}
+_TASK_WRITER_KEYS = frozenset(_TASK_SUMMARY_TYPES)
 _SOURCE_TABLE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 _WORKER_RESULT_MAX_BYTES = 131072
 _SOURCE_REFERENCE_TABLES = frozenset(
@@ -283,31 +280,50 @@ def _set_context(
     *,
     credential: str,
     location_id: str,
-    worker_key: str,
 ) -> None:
     with connection.cursor() as cursor:
         cursor.execute("SET LOCAL statement_timeout = '15s'")
         cursor.execute("SET LOCAL lock_timeout = '3s'")
-    if worker_key in _TASK_WRITER_KEYS:
-        set_agent_summary_draft_tenant_context(
-            connection, credential=credential, location_id=location_id
-        )
-    else:
-        set_worker_tenant_context(
-            connection,
-            credential=credential,
-            location_id=location_id,
-            resource="ai_summary",
-            action="draft",
-        )
+    set_agent_summary_draft_tenant_context(
+        connection, credential=credential, location_id=location_id
+    )
 
 
 def _resolve_worker_key(worker_key: str | None) -> str:
     if worker_key is None:
-        return _WORKER_KEY
+        raise AgentDraftInvalid(
+            "worker_key must be an explicitly registered task draft identity"
+        )
     if not isinstance(worker_key, str) or worker_key not in _TASK_WRITER_KEYS:
         raise AgentDraftInvalid("worker_key is not a registered task draft identity")
     return worker_key
+
+
+def _validate_task_summary_type(worker_key: str, summary_type: str) -> None:
+    if summary_type not in _TASK_SUMMARY_TYPES[worker_key]:
+        raise AgentDraftInvalid(
+            "summary_type is not allowed for the registered worker task"
+        )
+
+
+def _verify_operator_task_request(
+    connection: Any,
+    *,
+    location_id: str,
+    summary_type: str,
+    request_id: str,
+) -> None:
+    """Require the signed worker scope to match an immutable operator receipt."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """SELECT task_key, operator_id
+                 FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+                      %s::uuid, %s::text, %s::uuid
+                 )""",
+            (location_id, summary_type, request_id),
+        )
+        if cursor.fetchone() is None:
+            raise PermissionError("authenticated operator task request is required")
 
 
 def _read_row(row: tuple[Any, ...] | None, *, replayed: bool) -> dict[str, Any] | None:
@@ -356,6 +372,7 @@ def get_worker_ai_summary_draft(
     if not isinstance(summary_type, str) or not _SUMMARY_TYPE.fullmatch(summary_type):
         raise AgentDraftInvalid("summary_type is invalid")
     worker_key = _resolve_worker_key(worker_key)
+    _validate_task_summary_type(worker_key, summary_type)
     credential = get_worker_credential(worker_key)
     connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
     try:
@@ -363,7 +380,12 @@ def get_worker_ai_summary_draft(
             connection,
             credential=credential,
             location_id=location_id,
-            worker_key=worker_key,
+        )
+        _verify_operator_task_request(
+            connection,
+            location_id=location_id,
+            summary_type=summary_type,
+            request_id=request_id,
         )
         with connection.cursor() as cursor:
             cursor.execute(
@@ -415,6 +437,7 @@ def create_worker_ai_summary_draft(
     ) = _validate_payload(summary_type, summary)
     worker_result_json = _serialize_worker_result(summary, content=content)
     worker_key = _resolve_worker_key(worker_key)
+    _validate_task_summary_type(worker_key, summary_type)
     credential = get_worker_credential(worker_key)
     connection = (connection_factory or (lambda: get_worker_db(worker_key)))()
     try:
@@ -422,7 +445,12 @@ def create_worker_ai_summary_draft(
             connection,
             credential=credential,
             location_id=location_id,
-            worker_key=worker_key,
+        )
+        _verify_operator_task_request(
+            connection,
+            location_id=location_id,
+            summary_type=summary_type,
+            request_id=request_id,
         )
         with connection.cursor() as cursor:
             if worker_result_json is not None:

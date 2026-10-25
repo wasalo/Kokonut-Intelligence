@@ -10,16 +10,18 @@ initiator.
 | Surface | What it does | Authenticated operator attribution | Boundary |
 | --- | --- | --- | --- |
 | `POST /operator/api/ai-summaries/{location_id}/drafts` | Runs deterministic AI-summary generation and creates a private draft. | The route takes `operator_id` from the authenticated Gateway session. Migrations 522 and 597 bind the draft to an immutable request receipt; the review projection returns the operator UUID only when the receipt matches the summary's `created_by`. | The worker's database identity/task key remains separate from the operator who requested the run. No provider output or human review is implied. |
+| `POST /operator/api/ai-summaries/{location_id}/synthesis-requests` | Creates or replays an immutable authorization receipt for one registered synthesis task and summary type. It does not dispatch or execute that task. | The route takes `operator_id` from the authenticated Gateway session and sets signed exact-location `ai_summary:draft` context. Migration 628 records the operator, location, task, summary type, intent digest, and request UUID; the task worker verifies the exact receipt before retry lookup, source reads, and draft creation. | A manually invoked worker may consume the returned request UUID. Automatic scheduler dispatch and an operator-console synthesis form are not implemented. The review queue identifies the operator and request UUID without exposing the receipt digest. |
 | `POST /operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts` | Stores facilitator recommendation text as a private Delphi draft; it does not launch the facilitator. | The route takes the operator UUID from the authenticated Gateway session. Migration 451 writes it to both `delphi_recommendation.created_by` and the append-only request receipt. | The standalone `draft-recommendation` CLI returns an in-memory suggestion only; its legacy `--created-by` argument is ignored. The persisted Gateway draft records the submitting operator, not a separately executed model run. |
-| Generic `agent_task` execution | No OIDC-protected Gateway route invoking the generic task catalogue or `agent_task` creation was found in the current route registrations. | No current authenticated human-run request exists to attribute through that surface. | CLI, scheduler, and signed worker identity are service execution identities. Do not infer a human operator from a worker credential, free-form CLI flag, or legacy nullable `agent_task.requested_by`. A future human-run endpoint must create an immutable operator/request/task link before execution. |
-| Per-agent synthesis CLI draft storage | `services.agents.agent_cli --store` and `SynthesisAgent.run(store=True)` fail before synthesis or worker/database access unless an authenticated operator/request/task path is added. The one-shot `services.agents.worker_cli` now requires `--read-only`; its default mode rejects persistence before resolving the task, and read-only output omits generated content and location identifiers. | The direct command does not persist drafts. Existing worker writer functions still authenticate the worker/task and exact location, but not a human initiator; do not expose them through human-triggered entry points until a Gateway receipt is checked before generation and persistence. | Compose worker profiles are retained for source-only computation and now hard-code `--read-only`. Authenticated deterministic Gateway draft creation remains available; registered synthesis tasks still lack an operator-triggered execution route. |
+| Generic `agent_task` execution | No OIDC-protected Gateway route invoking the unrestricted task catalogue or generic `agent_task` creation was found. The synthesis request route is limited to the registered summary-task map and only mints an authorization receipt. | That bounded route records the session operator before execution. It does not claim that CLI, scheduled, or background runs have human initiators. | Do not infer a human operator from a worker credential, free-form CLI flag, or legacy nullable `agent_task.requested_by`. Automatic task dispatch remains open. |
+| Per-agent synthesis CLI draft storage | `services.agents.agent_cli --store` and `SynthesisAgent.run(store=True)` fail before synthesis or worker/database access. The one-shot `services.agents.worker_cli` accepts either `--read-only` or `--persist-draft --request-id`; default/ambiguous use, missing IDs, and malformed IDs fail before task resolution. | Worker lookup, source generation, and persistence require a matching immutable Gateway receipt under signed worker/task/location scope, including a currently active operator draft grant. Migration 628 enforces the match again at the database write boundary and the review queue exposes operator/request attribution. | Compose worker profiles remain `--read-only`. The task receipt endpoint does not dispatch jobs, and there is no operator-console task form; live OIDC and real task grants/credentials remain unverified. |
 
 The Gateway route tests verify session-derived operator identity is forwarded
-for both draft surfaces. Source review of migrations 451, 522, and 597 confirms
-the corresponding creator/request records and review boundary. This closes
-the current-source route inventory only. Authenticated runtime provisioning,
-other service/CLI attribution policy, worker/database least privilege,
-populated parity, live OIDC, and MAN-CAP-038 acceptance remain open.
+for all three draft/request surfaces. Source review of migrations 451, 522,
+597, and 628 confirms the corresponding creator/request records and review
+boundary. This closes the code-level attribution check for manually invoked
+registered synthesis workers only. Authenticated runtime provisioning,
+automatic dispatch, other service/CLI attribution policy, worker/database least
+privilege, populated parity, live OIDC, and MAN-CAP-038 acceptance remain open.
 
 `tests/test_operator_route_policy_inventory.py` also keeps generic operator
 task execution routes absent until an immutable operator/request/task
@@ -28,10 +30,10 @@ the conventional agent-task and agent-run path forms; exact route-policy
 coverage independently requires every new OIDC route to receive a reviewed
 policy entry. The regression passed four tests on 25 October 2026 ([evidence](builds/2026-10-25-recovery/cap-038-generic-agent-route-guard.json)).
 
-The unauthenticated per-agent CLI and library persistence path now also fails
-closed before worker or database access; its read-only path and the registered
-service worker implementation remain. The focused agent-base and worker CLI
-selection passes 79 tests with Ruff and Python compilation. The Compose worker
-profiles are one-shot manual commands, so they remain an unattributed entry
-point until an authenticated request receipt is verified before persistence
-([evidence](builds/2026-10-25-recovery/cap-038-human-cli-agent-draft-disable.json)).
+The unauthenticated per-agent CLI and library persistence path fails closed
+before worker or database access. The worker CLI's only write mode requires an
+authenticated Gateway request UUID and the database verifies the exact task,
+location, summary type, worker login, and current initiating-operator grant.
+The Compose worker profiles stay read-only; a request receipt alone does not
+launch a worker. See the current progress record for focused and disposable
+acceptance evidence.

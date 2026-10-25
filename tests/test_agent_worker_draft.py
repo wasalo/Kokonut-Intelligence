@@ -34,6 +34,8 @@ class FakeCursor:
     def fetchone(self) -> tuple[Any, ...] | None:
         if "get_location_ai_summary_worker_result" in self.query:
             return self.connection.lookup_result
+        if "verify_current_ai_summary_operator_task_request" in self.query:
+            return ("holistic_wellbeing_synthesis", "a0000000-0000-0000-0000-000000000902")
         if "create_location_ai_summary_worker_draft" in self.query:
             if self.connection.create_result is not None and "_with_result" not in self.query:
                 return self.connection.create_result[:7]
@@ -156,7 +158,7 @@ def test_legacy_worker_result_row_keeps_content_only_fallback() -> None:
 def _install_worker_mocks(monkeypatch: pytest.MonkeyPatch) -> list[tuple[Any, ...]]:
     events: list[tuple[Any, ...]] = []
     monkeypatch.setattr(worker_draft, "get_worker_credential", lambda key: "s" * 40)
-    monkeypatch.setattr(worker_draft, "set_worker_tenant_context", lambda conn, **kwargs: events.append(("context", conn, kwargs)))
+    monkeypatch.setattr(worker_draft, "set_agent_summary_draft_tenant_context", lambda conn, **kwargs: events.append(("task_context", conn, kwargs)))
     return events
 
 
@@ -177,24 +179,24 @@ def test_worker_store_sets_exact_signed_scope_before_bounded_function(monkeypatc
             "source_tables": ["harvest_event"],
             "model_version": "agent-v2",
         },
+        worker_key="agent_holistic_wellbeing_source",
         connection_factory=lambda: connection,
     )
 
-    assert [event[0] for event in events] == ["context"]
+    assert [event[0] for event in events] == ["task_context"]
     assert events[0][2] == {
         "credential": "s" * 40,
         "location_id": LOCATION_ID,
-        "resource": "ai_summary",
-        "action": "draft",
     }
     sql = [query for query, _ in connection.calls]
     assert sql[:2] == ["SET LOCAL statement_timeout = '15s'", "SET LOCAL lock_timeout = '3s'"]
-    assert "create_location_ai_summary_worker_draft_with_result" in sql[2]
+    assert "verify_current_ai_summary_operator_task_request" in sql[2]
+    assert "create_location_ai_summary_worker_draft_with_result" in sql[3]
     assert result["summary_id"] == "c0000000-0000-4000-8000-000000000001"
     assert result["resulting_status"] == "draft"
     assert result["replayed"] is False
     assert result["worker_result"]["confidence"] == 0.9
-    assert json.loads(connection.calls[2][1][6])["confidence"] == 0.9
+    assert json.loads(connection.calls[3][1][6])["confidence"] == 0.9
     assert connection.commits == 1
     assert connection.rollbacks == 0
     assert connection.closed
@@ -221,12 +223,6 @@ def test_registered_task_writer_uses_its_own_credential_and_narrow_role(
         "set_agent_summary_draft_tenant_context",
         lambda conn, **kwargs: context_calls.append((conn, kwargs)),
     )
-    monkeypatch.setattr(
-        worker_draft,
-        "set_worker_tenant_context",
-        lambda *_args, **_kwargs: pytest.fail("task writer used shared execution context"),
-    )
-
     result = worker_draft.create_worker_ai_summary_draft(
         LOCATION_ID,
         "holistic_wellbeing",
@@ -267,6 +263,43 @@ def test_task_writer_rejects_unregistered_identity_before_secret_access(
         )
 
 
+def test_worker_write_requires_explicit_registered_task_before_secret_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        worker_draft,
+        "get_worker_credential",
+        lambda *_args: pytest.fail("unattributed write reached secret lookup"),
+    )
+    with pytest.raises(AgentDraftInvalid, match="explicitly registered task draft identity"):
+        worker_draft.create_worker_ai_summary_draft(
+            LOCATION_ID,
+            "holistic_wellbeing",
+            REQUEST_ID,
+            {"content": "Draft", "source_tables": ["harvest_event"]},
+            connection_factory=lambda: pytest.fail("unattributed write opened DB"),
+        )
+
+
+def test_task_writer_rejects_summary_type_outside_its_registered_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        worker_draft,
+        "get_worker_credential",
+        lambda *_args: pytest.fail("mismatched task reached secret lookup"),
+    )
+    with pytest.raises(AgentDraftInvalid, match="not allowed for the registered worker task"):
+        worker_draft.create_worker_ai_summary_draft(
+            LOCATION_ID,
+            "holistic_wellbeing",
+            REQUEST_ID,
+            {"content": "Draft", "source_tables": ["harvest_event"]},
+            worker_key="agent_feedback_source",
+            connection_factory=lambda: pytest.fail("mismatched task opened DB"),
+        )
+
+
 def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch: pytest.MonkeyPatch) -> None:
     connection = FakeConnection()
     connection.lookup_result = (
@@ -282,17 +315,19 @@ def test_worker_lookup_returns_existing_request_before_regeneration(monkeypatch:
 
     result = worker_draft.get_worker_ai_summary_draft(
         LOCATION_ID,
-        "soil_health",
+        "holistic_wellbeing",
         REQUEST_ID,
+        worker_key="agent_holistic_wellbeing_source",
         connection_factory=lambda: connection,
     )
 
     assert result is not None
     assert result["summary_id"] == "c0000000-0000-4000-8000-000000000002"
     assert result["replayed"] is True
-    assert len(connection.calls) == 4
-    assert "get_location_ai_summary_worker_result" in connection.calls[2][0]
-    assert "get_location_ai_summary_worker_source_references" in connection.calls[3][0]
+    assert len(connection.calls) == 5
+    assert "verify_current_ai_summary_operator_task_request" in connection.calls[2][0]
+    assert "get_location_ai_summary_worker_result" in connection.calls[3][0]
+    assert "get_location_ai_summary_worker_source_references" in connection.calls[4][0]
     assert result["worker_result"] == {
         "content": "Original structured response",
         "confidence": 0.75,
@@ -344,6 +379,7 @@ def test_worker_write_rolls_back_and_closes_on_function_failure(monkeypatch: pyt
             "operations",
             REQUEST_ID,
             {"content": "x", "source_tables": ["harvest_event"]},
+            worker_key="agent_summary_deterministic_source",
             connection_factory=lambda: connection,
         )
 
@@ -375,6 +411,7 @@ def test_worker_write_rolls_back_draft_when_source_attachment_fails(
                     }
                 },
             },
+            worker_key="agent_summary_deterministic_source",
             connection_factory=lambda: connection,
         )
 
@@ -445,16 +482,17 @@ def test_worker_write_attaches_source_references_and_returns_stored_manifest(
             "source_tables": list(source_references),
             "source_references": source_references,
         },
+        worker_key="agent_holistic_wellbeing_source",
         connection_factory=lambda: connection,
     )
 
     assert result["source_references"] == source_references
-    assert [query.split("(", 1)[0] for query, _ in connection.calls[2:]] == [
+    assert [query.split("(", 1)[0] for query, _ in connection.calls[3:]] == [
         "SELECT * FROM kokonut_security.create_location_ai_summary_worker_draft",
         "SELECT kokonut_security.set_location_ai_summary_source_references",
         "SELECT kokonut_security.get_location_ai_summary_worker_source_references",
     ]
-    assert json.loads(connection.calls[3][1][3]) == source_references
+    assert json.loads(connection.calls[4][1][3]) == source_references
     assert connection.commits == 1
     assert connection.rollbacks == 0
 
@@ -488,11 +526,12 @@ def test_worker_write_accepts_regenerator_source_references(
             "source_tables": source_tables,
             "source_references": source_references,
         },
+        worker_key="agent_regenerator_source",
         connection_factory=lambda: connection,
     )
 
     assert result["source_references"] == source_references
-    assert json.loads(connection.calls[3][1][3]) == source_references
+    assert json.loads(connection.calls[4][1][3]) == source_references
     assert connection.commits == 1
     assert connection.rollbacks == 0
 

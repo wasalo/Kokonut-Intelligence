@@ -62,6 +62,7 @@ MIGRATIONS = [
     ROOT / "schemas/postgres/595_agent_task_draft_attribution.sql",
     ROOT / "schemas/postgres/596_agent_task_run_review_attribution.sql",
     ROOT / "schemas/postgres/597_ai_summary_operator_run_review_attribution.sql",
+    ROOT / "schemas/postgres/628_authenticated_agent_task_requests.sql",
 ]
 OUTPUT = Path(os.environ.get(
     "KOKONUT_AGENT_WORKER_TEST_OUTPUT",
@@ -3803,6 +3804,33 @@ def _task_writer_acceptance() -> str:
     );
     SET LOCAL ROLE kokonut_agent_task_summary_writer;
     SELECT kokonut_security.register_current_ai_summary_worker_task();
+    SELECT * FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+        '{LOCATION_ID}', 'holistic_wellbeing', '{request_id}'
+    );
+    DO $$
+    DECLARE denied BOOLEAN := FALSE;
+    BEGIN
+        BEGIN
+            PERFORM * FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+                '{LOCATION_ID}', 'stakeholder_feedback', '{request_id}'
+            );
+        EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'task writer accepted a receipt for another summary type';
+        END IF;
+        denied := FALSE;
+        BEGIN
+            PERFORM * FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+                '{OTHER_LOCATION_ID}', 'holistic_wellbeing', '{request_id}'
+            );
+        EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'task writer accepted a receipt outside signed location scope';
+        END IF;
+    END;
+    $$;
     DO $$
     BEGIN
         IF current_user <> 'kokonut_agent_task_summary_writer'
@@ -3850,6 +3878,217 @@ def _task_writer_acceptance() -> str:
         END IF;
     END;
     $$;
+
+    SET SESSION AUTHORIZATION kokonut_agent_holistic_wellbeing_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{HOLISTIC_WELLBEING_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        'ai_summary', 'draft'
+    );
+    SET LOCAL ROLE kokonut_agent_task_summary_writer;
+    SELECT kokonut_security.register_current_ai_summary_worker_task();
+    DO $$
+    DECLARE denied BOOLEAN := FALSE;
+    BEGIN
+        BEGIN
+            PERFORM * FROM kokonut_security.create_location_ai_summary_worker_draft_with_result(
+                '{LOCATION_ID}', 'holistic_wellbeing', 'No operator request.',
+                ARRAY['harvest_event'], 'agent-v2',
+                'd0000000-0000-4000-8000-000000009098',
+                '{{"synthesis":"No operator request."}}'::jsonb
+            );
+        EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'task writer accepted a draft without an operator request receipt';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+    RESET ROLE;
+    RESET SESSION AUTHORIZATION;
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM public.ai_summary_agent_draft_request
+             WHERE request_id = 'd0000000-0000-4000-8000-000000009098'
+        ) THEN
+            RAISE EXCEPTION 'denied operator request left a worker draft receipt';
+        END IF;
+    END;
+    $$;
+    """
+
+
+def _operator_task_request_acceptance() -> str:
+    return f"""
+    INSERT INTO public.operator_scope_grant (operator_id, location_id, resource, action)
+    VALUES (
+        'a0000000-0000-0000-0000-000000000902', '{LOCATION_ID}', 'ai_summary', 'draft'
+    );
+
+    SET ROLE kokonut_runtime;
+    BEGIN;
+    SELECT set_config('kokonut.tenant_id', '{TENANT_ID}', TRUE);
+    SELECT set_config('kokonut.location_id', '{LOCATION_ID}', TRUE);
+    SELECT set_config('kokonut.actor_id', 'a0000000-0000-0000-0000-000000000902', TRUE);
+    SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+    DO $$
+    DECLARE created RECORD;
+            replayed RECORD;
+            denied BOOLEAN := FALSE;
+    BEGIN
+        SELECT * INTO STRICT created
+          FROM kokonut_security.create_location_ai_summary_operator_task_request(
+              '{LOCATION_ID}', 'holistic_wellbeing_synthesis', 'holistic_wellbeing',
+              '{TASK_REQUEST_ID}'
+          );
+        IF created.replayed OR created.task_key <> 'holistic_wellbeing_synthesis'
+           OR created.summary_type <> 'holistic_wellbeing'
+           OR created.location_id <> '{LOCATION_ID}' THEN
+            RAISE EXCEPTION 'operator task receipt did not preserve exact task intent';
+        END IF;
+        SELECT * INTO STRICT replayed
+          FROM kokonut_security.create_location_ai_summary_operator_task_request(
+              '{LOCATION_ID}', 'holistic_wellbeing_synthesis', 'holistic_wellbeing',
+              '{TASK_REQUEST_ID}'
+          );
+        IF NOT replayed.replayed OR replayed.request_id <> created.request_id THEN
+            RAISE EXCEPTION 'operator task receipt retry was not idempotent';
+        END IF;
+        BEGIN
+            PERFORM * FROM kokonut_security.create_location_ai_summary_operator_task_request(
+                '{LOCATION_ID}', 'feedback_synthesis', 'holistic_wellbeing',
+                '{TASK_REQUEST_ID}'
+            );
+        EXCEPTION WHEN SQLSTATE '22023' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'operator task request ID collision changed task intent';
+        END IF;
+        denied := FALSE;
+        BEGIN
+            PERFORM count(*) FROM kokonut_security.ai_summary_operator_task_request;
+        EXCEPTION WHEN insufficient_privilege THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'Gateway runtime can read immutable task request receipts directly';
+        END IF;
+    END;
+    $$;
+    COMMIT;
+    RESET ROLE;
+    DO $$
+    DECLARE update_denied BOOLEAN := FALSE;
+            delete_denied BOOLEAN := FALSE;
+    BEGIN
+        BEGIN
+            UPDATE kokonut_security.ai_summary_operator_task_request
+               SET summary_type = 'stakeholder_feedback'
+             WHERE request_id = '{TASK_REQUEST_ID}';
+        EXCEPTION WHEN raise_exception THEN update_denied := TRUE;
+        END;
+        BEGIN
+            DELETE FROM kokonut_security.ai_summary_operator_task_request
+             WHERE request_id = '{TASK_REQUEST_ID}';
+        EXCEPTION WHEN raise_exception THEN delete_denied := TRUE;
+        END;
+        IF NOT update_denied OR NOT delete_denied THEN
+            RAISE EXCEPTION 'operator task receipts allowed mutation or deletion';
+        END IF;
+    END;
+    $$;
+    DO $$
+    BEGIN
+        IF has_table_privilege(
+               'kokonut_agent_task_summary_writer',
+               'kokonut_security.ai_summary_operator_task_request', 'SELECT'
+           )
+           OR has_table_privilege(
+               'kokonut_runtime',
+               'kokonut_security.ai_summary_operator_task_request', 'SELECT'
+           )
+           OR has_function_privilege(
+               'directus',
+               'kokonut_security.create_location_ai_summary_operator_task_request(uuid,text,text,uuid)',
+               'EXECUTE'
+           ) THEN
+            RAISE EXCEPTION 'agent task request role boundary is broader than intended';
+        END IF;
+    END;
+    $$;
+    """
+
+
+def _operator_task_request_stale_grants() -> str:
+    return """
+    GRANT SELECT ON TABLE kokonut_security.ai_summary_operator_task_request
+        TO kokonut_runtime, directus, kokonut_agent_task_summary_writer,
+           kokonut_ai_summary_reviewer;
+    GRANT SELECT (request_hash)
+        ON TABLE kokonut_security.ai_summary_operator_task_request
+        TO kokonut_ai_summary_reviewer;
+    GRANT EXECUTE ON FUNCTION
+        kokonut_security.create_location_ai_summary_operator_task_request(
+            UUID, TEXT, TEXT, UUID
+        ) TO directus;
+    """
+
+
+def _operator_task_grant_revocation_acceptance() -> str:
+    return f"""
+    DO $$
+    DECLARE changed_rows INTEGER;
+    BEGIN
+        UPDATE public.operator_scope_grant
+           SET revoked_at = pg_catalog.clock_timestamp()
+         WHERE operator_id = 'a0000000-0000-0000-0000-000000000902'
+           AND location_id = '{LOCATION_ID}'
+           AND resource = 'ai_summary'
+           AND action = 'draft'
+           AND revoked_at IS NULL;
+        GET DIAGNOSTICS changed_rows = ROW_COUNT;
+        IF changed_rows <> 1 THEN
+            RAISE EXCEPTION 'synthetic operator draft grant was not revoked for the test';
+        END IF;
+    END;
+    $$;
+
+    ALTER ROLE kokonut_agent_holistic_wellbeing_login LOGIN;
+    SET SESSION AUTHORIZATION kokonut_agent_holistic_wellbeing_login;
+    BEGIN;
+    SELECT * FROM kokonut_security.set_worker_tenant_context(
+        '{HOLISTIC_WELLBEING_SOURCE_CREDENTIAL_HASH}', '{LOCATION_ID}',
+        'ai_summary', 'draft'
+    );
+    SET LOCAL ROLE kokonut_agent_task_summary_writer;
+    SELECT kokonut_security.register_current_ai_summary_worker_task();
+    DO $$
+    DECLARE denied BOOLEAN := FALSE;
+    BEGIN
+        BEGIN
+            PERFORM * FROM kokonut_security.verify_current_ai_summary_operator_task_request(
+                '{LOCATION_ID}', 'holistic_wellbeing', '{TASK_REQUEST_ID}'
+            );
+        EXCEPTION WHEN SQLSTATE '42501' THEN denied := TRUE;
+        END;
+        IF NOT denied THEN
+            RAISE EXCEPTION 'worker accepted a receipt after the initiating operator grant was revoked';
+        END IF;
+    END;
+    $$;
+    ROLLBACK;
+    RESET ROLE;
+    RESET SESSION AUTHORIZATION;
+    ALTER ROLE kokonut_agent_holistic_wellbeing_login NOLOGIN;
+
+    UPDATE public.operator_scope_grant
+       SET revoked_at = NULL
+     WHERE operator_id = 'a0000000-0000-0000-0000-000000000902'
+       AND location_id = '{LOCATION_ID}'
+       AND resource = 'ai_summary'
+       AND action = 'draft'
+       AND revoked_at IS NOT NULL;
     """
 
 
@@ -4508,14 +4747,15 @@ def _review_acceptance() -> str:
         IF NOT FOUND OR NOT queue_row.review_ready
            OR queue_row.creator_task_key <> 'holistic_wellbeing_synthesis'
            OR queue_row.creator_run_id <> '{TASK_REQUEST_ID}'
-           OR queue_row.creator_kind <> 'registered_worker'
-           OR queue_row.creator_operator_id IS NOT NULL
-           OR queue_row.creator_request_id IS NOT NULL
+           OR queue_row.creator_kind <> 'operator_task'
+           OR queue_row.creator_operator_id <> 'a0000000-0000-0000-0000-000000000902'
+           OR queue_row.creator_request_id <> '{TASK_REQUEST_ID}'
            OR 'worker_task_unregistered' = ANY(queue_row.blocked_reasons) THEN
             RAISE EXCEPTION
-                'review queue did not expose authenticated task/run identity (found=%, ready=%, task=%, run=%, kind=%, blockers=%)',
+                'review queue did not expose authenticated task/operator/run identity (found=%, ready=%, task=%, run=%, kind=%, operator=%, request=%, blockers=%)',
                 FOUND, queue_row.review_ready, queue_row.creator_task_key,
                 queue_row.creator_run_id, queue_row.creator_kind,
+                queue_row.creator_operator_id, queue_row.creator_request_id,
                 queue_row.blocked_reasons;
         END IF;
 
@@ -4737,7 +4977,7 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-agent-summary-worker-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 405, 419, 521-524, 529-537, 539-548, 580-597 apply; migrations 530-537, 539-548, 580-597 replay",
+        "migrations 405, 419, 521-524, 529-537, 539-548, 580-597, and 628 apply; migrations 530-537, 539-548, 580-597 replay",
         "the original structured worker result is stored atomically with its draft and replayed without source reads",
         "pre-result worker receipts retain their content-only lookup fallback",
         "same-key summary-type collisions fail with 22023 before worker source reads, while cross-location result lookups fail with 42501",
@@ -4768,6 +5008,11 @@ def main() -> int:
         "review queue returns a human-created draft's operator UUID and matching opaque request ID without exposing the request payload",
         "run attribution is backed by column-only reviewer access; runtime, Directus, and task writers cannot read request receipts directly",
         "operator request attribution remains column-only and unavailable to runtime, Directus, task writers, and PUBLIC",
+        "migration 628 replay revokes stale runtime/Directus/task-writer receipt reads and restores reviewer column-only attribution",
+        "operator task receipts are immutable and request UUID reuse cannot change task, location, or operator intent",
+        "task draft writes require the matching current operator receipt, registered task login, and active operator draft grant",
+        "task receipt verification rejects mismatched summary type and location before draft persistence",
+        "task worker verification fails after the initiating operator draft grant is revoked",
         "independent operator review sees authenticated task attribution and can verify only to verified",
         "worker and signed reviewer reads preserve network/mixed provenance labels and the operator setter remains compatible",
         "the legacy shared synthesis login and reader are NOLOGIN, have no role memberships or direct grants, and remain inert after stale-grant replay",
@@ -5555,8 +5800,17 @@ def main() -> int:
         base.psql(docker, container, _retired_shared_source_identity_acceptance())
         stage = "signed_worker_acceptance"
         base.psql(docker, container, _worker_acceptance())
+        base.psql(docker, container, _review_context_fixture())
+        stage = "authenticated_operator_task_request_acceptance"
+        base.psql(docker, container, _operator_task_request_acceptance())
+        stage = "authenticated_operator_task_request_stale_grant_replay"
+        base.psql(docker, container, _operator_task_request_stale_grants())
+        migration_628 = next(path for path in MIGRATIONS if path.name.startswith("628_"))
+        base.psql(docker, container, migration_628.read_text(encoding="utf-8"))
         stage = "task_identity_draft_acceptance"
         base.psql(docker, container, _task_writer_acceptance())
+        stage = "operator_task_grant_revocation_acceptance"
+        base.psql(docker, container, _operator_task_grant_revocation_acceptance())
         stage = "structured_worker_result_first_write_acceptance"
         base.psql(docker, container, _worker_result_create_acceptance())
         stage = "structured_worker_result_exact_retry_acceptance"
@@ -5583,7 +5837,6 @@ def main() -> int:
         base.psql(docker, container, _consent_safe_feedback_acceptance())
         stage = "kokonut_commons_source_acceptance"
         base.psql(docker, container, _kokonut_commons_source_acceptance())
-        base.psql(docker, container, _review_context_fixture())
         stage = "synthetic_operator_source_reference_acceptance"
         base.psql(docker, container, _operator_source_acceptance())
         stage = "synthetic_operator_review_acceptance"

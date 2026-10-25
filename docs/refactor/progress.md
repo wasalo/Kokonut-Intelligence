@@ -17746,3 +17746,27 @@ remain open ([contract](landscape-pollinator-kernel-read-contract.md);
 ### Progress addendum — CAP-038 one-shot agent worker write boundary, 25 October 2026
 
 The manually invoked `services.agents.worker_cli` now requires `--read-only`; default invocations fail before task resolution, and read-only results disclose neither generated summary content nor location IDs. All optional one-shot Compose worker profiles pin this mode, and the documented examples now match. The focused worker, agent-base, and Compose-profile selection passes 98 tests; Ruff, Python compilation, and capability-matrix validation pass. No database, provider, candidate, or legacy service was accessed. This closes the exposed one-shot CLI draft-write path only: programmatic worker persistence still has task and worker attribution but no authenticated operator receipt, so CAP-038 and MAN-CAP-038 remain open. Checklist: 1,138 complete / 25 open (1,163 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted. [Evidence](builds/2026-10-25-recovery/cap-038-worker-cli-read-only-boundary.json).
+
+### Progress addendum — CAP-038 authenticated synthesis request receipt, 25 October 2026
+
+Migration 628 and the Gateway/worker path now bind manually invoked deterministic
+and registered-synthesis drafts to an immutable operator receipt. The worker
+rechecks the exact location, registered task, summary type, worker login, signed
+tenant context, and current operator draft grant before generation or write; a
+database trigger enforces the receipt at the draft boundary, and the location
+review queue exposes operator/task/request attribution without the receipt
+digest. The OIDC route authorizes a request but does not dispatch work. The
+focused Python/Gateway/console/migration selection passes 208 tests. A
+network-disabled PostgreSQL 16 migration apply/replay passes 91 grouped
+assertions on native AMD64 and ARM64/QEMU (`aarch64`); QEMU is software
+portability evidence only, not Raspberry Pi hardware acceptance. Ruff,
+compilation, runtime SQL inventory, worker inventories, capability-matrix
+validation, and diff checks pass. Candidate and legacy databases remain
+untouched; migration 628 and production credentials/grants are not deployed.
+CAP-038 remains prepared pending a real OIDC/dispatcher path, exact production
+grants, populated output parity, broader runtime least privilege, recovery
+acceptance, and MAN-CAP-038 owner review. Checklist: 1,139 complete / 25 open
+(1,164 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows; 0/67 MAN-CAP checks accepted ([migration](../../schemas/postgres/628_authenticated_agent_task_requests.sql);
+[native evidence](builds/2026-10-25-recovery/cap-038-authenticated-task-request-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-038-authenticated-task-request-arm64-disposable.json)).

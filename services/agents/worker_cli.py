@@ -1,4 +1,4 @@
-"""One-shot signed worker entry point for read-only AI-summary and synthesis runs."""
+"""One-shot signed worker for read-only runs or receipt-gated draft requests."""
 
 from __future__ import annotations
 
@@ -655,7 +655,10 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run a location-scoped agent task without persisting its output"
+        description=(
+            "Run a location-scoped agent task read-only or persist a draft "
+            "against an authenticated operator request"
+        )
     )
     parser.add_argument("--location-id", required=True, help="Location UUID")
     parser.add_argument(
@@ -667,12 +670,17 @@ def main() -> None:
     )
     parser.add_argument(
         "--request-id",
-        help="Reserved for authenticated operator task requests; direct CLI writes are disabled",
+        help="Immutable authenticated operator task request UUID required for draft persistence",
     )
     parser.add_argument(
         "--read-only",
         action="store_true",
         help="Compute the result without creating an AI-summary draft",
+    )
+    parser.add_argument(
+        "--persist-draft",
+        action="store_true",
+        help="Persist only when the database verifies the matching operator task receipt",
     )
     parser.add_argument(
         "--source-only",
@@ -695,25 +703,38 @@ def main() -> None:
         parser.error("--source-only and --deterministic-only cannot be combined")
     if args.task_key and args.summary_type:
         parser.error("choose either --task-key or --summary-type")
-    if not args.read_only:
+    if args.read_only and args.persist_draft:
+        parser.error("--read-only and --persist-draft cannot be combined")
+    if not args.read_only and not args.persist_draft:
         parser.error(
-            "draft persistence through this one-shot CLI is disabled until an "
-            "authenticated operator task receipt is available; pass --read-only "
-            "to compute without storing a draft"
+            "choose --read-only or --persist-draft with an authenticated operator request"
         )
-    if args.request_id:
+    if args.persist_draft and not args.request_id:
+        parser.error("--persist-draft requires --request-id from the authenticated Gateway")
+    if args.read_only and args.request_id:
         parser.error("--request-id cannot be used with --read-only")
+    if args.persist_draft:
+        try:
+            args.request_id = str(UUID(str(args.request_id)))
+        except (TypeError, ValueError, AttributeError):
+            parser.error("--request-id must be a UUID")
 
     if args.task_key:
         agent = resolve_synthesis_agent(args.task_key)
         summary_type = agent.summary_type
         run_worker_synthesis(
-            agent, args.location_id, None, persist_draft=False
+            agent,
+            args.location_id,
+            args.request_id if args.persist_draft else None,
+            persist_draft=args.persist_draft,
         )
     else:
         summary_type = args.summary_type or "combined"
         run_worker_summary(
-            args.location_id, summary_type, None, persist_draft=False
+            args.location_id,
+            summary_type,
+            args.request_id if args.persist_draft else None,
+            persist_draft=args.persist_draft,
         )
 
     print(
@@ -721,7 +742,8 @@ def main() -> None:
             {
                 "task_key": args.task_key or "ai_summary_synthesis",
                 "summary_type": summary_type,
-                "resulting_status": "computed_not_persisted",
+                "resulting_status": "draft" if args.persist_draft else "computed_not_persisted",
+                **({"request_id": args.request_id} if args.persist_draft else {}),
             },
             sort_keys=True,
         )

@@ -201,12 +201,12 @@ attachment rolls back both draft and receipt. The existing reviewer queue includ
 operator setter behavior remains covered. This applies only to the new signed
 worker adapter; legacy/background writers still lack row-level manifests.
 
-The database creates a locked, dedicated `kokonut_agent_summary_draft_login`
-role that may switch only to the bounded worker execution role. A one-shot
-`services.agents.worker_cli` historically exercised this path for the four
-deterministic AI-summary types and the twelve registered synthesis tasks. It
-now requires `--read-only` and refuses draft persistence before resolving a
-task; Compose worker profiles also set that mode. Shared
+The database creates locked, dedicated source logins for the four deterministic
+AI-summary types and twelve registered synthesis tasks. A one-shot
+`services.agents.worker_cli` can compute read-only by default policy, or persist
+only when invoked with `--persist-draft` and an immutable request ID issued by
+the authenticated Gateway. Compose worker profiles continue to pin
+`--read-only`. Shared
 `SynthesisAgent` storage delegates to the signed adapter instead of writing
 `ai_summary` directly. The worker resolves every synthesis task through its explicit twelve-module
 registry, checks the registered class and class-declared metadata before any
@@ -239,6 +239,25 @@ generation; unregistered source contracts fail closed before connecting.
 Migration 594 disables the historical shared synthesis login, removes its
 reader membership and direct privileges, and verifies that the retained
 compatibility roles are inert.
+
+Migration 628 binds a human-triggered synthesis task to an immutable operator
+receipt before a worker can read the retry receipt, query source data, or write
+a draft. The private receipt records only operator ID, exact location, task key,
+summary type, a canonical intent digest, and creation time. The OIDC-only
+`POST /operator/api/ai-summaries/{location_id}/synthesis-requests` route mints
+or replays that receipt under the operator's exact `ai_summary:draft` grant;
+it returns an authorization receipt and does not itself dispatch or run a task.
+The worker must present the request UUID under its signed task/location scope.
+PostgreSQL matches it to the registered database login, task, summary type, and
+current operator grant, and a trigger enforces the receipt at the draft-receipt
+insert boundary. The review queue adds `creator_kind=operator_task` and returns
+only the operator and request UUIDs. Request hashes, payloads, and profile data
+remain private. The one-shot worker CLI rejects ambiguous/default mode, checks
+request UUID syntax before task resolution, and prints only task/status/request
+metadata. This creates a safe manually invoked worker path; automatic scheduler
+dispatch, console controls for synthesis tasks, live OIDC, and provisioned
+worker credentials/grants remain separate gates.
+
 Listing and digest-inspection CLI operations remain separate read paths and
 need their own operator authorization review. These are scoped source
 boundaries for the deterministic and task-specific worker profiles, not a

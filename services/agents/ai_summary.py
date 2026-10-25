@@ -541,7 +541,11 @@ def run_ai_summary(
     if store:
         from services.agents.worker_cli import run_worker_summary
 
-        normalized_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
+        if not request_id:
+            raise ValueError(
+                "Persisting an AI summary requires the request_id issued by the authenticated Gateway"
+            )
+        normalized_request_id = str(uuid.UUID(request_id))
         saved = run_worker_summary(location_id, summary_type, normalized_request_id)
         summary = {
             "content": saved["content"],
