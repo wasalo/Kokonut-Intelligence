@@ -1,20 +1,23 @@
 # ARM64 Kernel application build evidence
 
-## Current-source software refresh — 25 October 2026 (commit e9d68670)
+## Current-source software refresh — 25 October 2026 (worktree based on 9385eeb9)
 
-The exact pushed source revision `e9d68670ccd809c4b8e8a33cc8b1c8f63e99f476`
-built the default Kernel target for `linux/arm64` with the pinned runtime lock.
-Docker reported image `sha256:7c2405074026db2bee901012325926368fcc9ff059b60ef0f1cd80a7e9477e29`,
-configured user `appuser`, and image size 544,833,127 bytes. A disposable
+The working tree based on source revision
+`9385eeb927613abc9a86471f6041ea2408726f38`, including the legacy Delphi
+service boundary changes, built the default Kernel target for `linux/arm64`
+with the pinned runtime lock. Docker reported image
+`sha256:c302d6b1d45613650fa7cb16a4441e6b41e369fc7aede8dc220e0b124ae88633`,
+configured user `appuser`, and image size 546,089,863 bytes. A disposable
 network-disabled QEMU container with a read-only root and 64 MiB temporary
-`/tmp` reported `aarch64`, constructed the 15-route Gateway, loaded all 18 job
-specs, and imported both Python SDK clients plus the worker CLI and Delphi
+`/tmp` reported `aarch64`, constructed the Gateway with 347 recursively
+registered route templates across four included router groups, loaded all 18
+job specs, and imported both Python SDK clients plus the worker CLI and Delphi
 facilitator modules. Only a read-only SDK source mount was added. The candidate,
 legacy stack, database, providers, credentials, host ports, and persistent
-Compose resources were not touched. The temporary image is removed after the
+Compose resources were not touched. The temporary image was removed after the
 smoke. This refreshes software portability evidence only; physical Raspberry
 Pi, power-loss, thermal, measured resource, and storage-endurance acceptance
-remain open ([evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-e9d68670.json)).
+remain open ([evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-9385eeb9.json)).
 
 ## Current-source software refresh — 25 October 2026
 

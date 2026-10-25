@@ -13,6 +13,13 @@ current-schema replay under ARM64 software emulation only. Raspberry Pi
 hardware, resource endurance, power-loss, performance, and 24-hour recovery
 acceptance remain open ([ARM64/QEMU evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)).
 
+The current Kernel image from commit `9385eeb9` also builds for `linux/arm64`.
+A no-network, read-only QEMU container reports `aarch64`, registers 347 route
+templates across the direct and lazily included FastAPI router groups, imports
+both Python SDK clients and Delphi/worker modules, and loads all 18 JobSpecs.
+No request, database connection, or provider call is made. The temporary image
+was removed after the smoke ([application evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-9385eeb9.json)).
+
 ## Current-source checks — 20 October 2026
 
 For a clean ordered replay without consuming a Docker address pool, use

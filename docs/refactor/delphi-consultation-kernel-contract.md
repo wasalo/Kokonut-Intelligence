@@ -315,14 +315,20 @@ remain capability gaps until their matching authenticated Gateway contracts
 are implemented; this is an access-boundary hardening step, not a claim of full
 Delphi lifecycle parity. No candidate or legacy database change is implied.
 
-The legacy `Facilitator.calibrate_panel()` service method also fails before
-opening a database connection. Its former consensus-distance weighting rule
-treated agreement with the current group median as expertise, then changed
-weights that affect later consensus. That is circular and is not evidence of
-forecast accuracy. No calibration mutation is currently available. A future
-capability needs a location-scoped evidence contract, a documented scoring
-window, an advisory proposal, and independent human approval through a signed
-Gateway action; until then, preserve existing participant weights.
+The legacy Delphi service facades `Facilitator`, `PanelManager`, and
+`MinorityReportManager` now fail before using an injected/shared connection or
+cursor for every database-backed operation. This closes unscoped service
+reads and writes in addition to the legacy CLI. The authenticated Gateway is
+the only supported persistence path for implemented location-scoped study and
+participant workflows. Direct panel administration, diversity assessment,
+minority-report workflow, and calibration are unavailable until their own
+location-scoped Gateway contracts, consent/privacy rules, and independent
+review boundaries are implemented. The former calibration rule treated
+agreement with the current group median as expertise, then changed weights
+that affect later consensus; that is circular and not evidence of forecast
+accuracy. Any future calibration capability needs a documented scoring window,
+an advisory proposal, and independent human approval through a signed Gateway
+action; existing participant weights must remain unchanged.
 
 
 ## Versioned participant consent and single-use invitation boundary

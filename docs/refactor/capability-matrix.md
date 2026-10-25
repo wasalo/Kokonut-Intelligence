@@ -1,19 +1,22 @@
 # Capability preservation matrix
 
-**CAP-027 legacy panel calibration boundary (25 October 2026):** the
-unscoped `Facilitator.calibrate_panel()` mutation now fails before opening a
-database connection. Its prior algorithm treated distance from the current
-group consensus as expertise and changed weights used by later consensus; no
-forecast-accuracy evidence or independent-review contract supported it. No
-calibration capability is claimed. The 68-test Delphi suite, Ruff, and Python
-compilation pass; no database, migration, provider, candidate, legacy service,
-or participant weights were changed ([contract](delphi-consultation-kernel-contract.md);
-[evidence](builds/2026-10-25-recovery/cap-027-legacy-panel-calibration-boundary.json)).
-CAP-027 remains prepared pending a reviewed, location-scoped calibration
-proposal, live OIDC/browser acceptance, populated parity, broad ACL/RLS, SMTP,
-and owner acceptance. Checklist: 1,185 complete / 25 open (1,210 total);
-classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
-67 rows.
+**CAP-027 legacy Delphi service database boundary (25 October 2026):**
+`Facilitator`, `PanelManager`, and `MinorityReportManager` now fail closed for
+all legacy database-backed methods before opening an injected/shared
+connection or using a cursor. Authenticated, location-scoped Gateway paths
+remain the supported route for the implemented study and participant
+lifecycle. Direct panel administration, diversity assessment, minority-report
+workflow, and calibration remain unavailable until their scoped contracts are
+implemented. The former calibration algorithm treated distance from current
+group consensus as expertise and changed later consensus weights; no
+forecast-accuracy evidence supported it. The 79-test Delphi suite, Ruff, and
+Python compilation pass; no database, migration, provider, candidate, legacy
+service, or participant weights were changed ([contract](delphi-consultation-kernel-contract.md);
+[evidence](builds/2026-10-25-recovery/cap-027-legacy-delphi-service-boundary.json)).
+CAP-027 remains prepared pending reviewed scoped capabilities, live
+OIDC/browser acceptance, populated parity, broad ACL/RLS, SMTP, and owner
+acceptance. Checklist: 1,185 complete / 25 open (1,210 total); classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 
 **Latest CAP-027 consent-aware stopping evaluation (25 October 2026):**
 Migration 639 adds a location-scoped evaluator that recomputes from currently
@@ -40,8 +43,9 @@ MAN-CAP-027 owner acceptance remain open. Checklist: 1,179 complete / 25 open
 versioned consent notices, pseudonymous single-use invites, participant
 acceptance/withdrawal and answer submission, advisory stopping evaluation,
 facilitator draft creation, and independent recommendation review. The legacy
-CLI remains disabled before database access; direct panel administration and
-calibration remain unavailable. This corrects older cumulative notes that
+CLI and all three legacy Delphi service facades remain disabled before database
+access; direct panel administration, diversity assessment, minority-report
+workflow, and calibration remain unavailable. This corrects older cumulative notes that
 described Gateway lifecycle parity as wholly open. Live OIDC/browser, SMTP
 delivery, populated legacy parity, universal ACL/RLS, and MAN-CAP-027 owner
 acceptance remain open; CAP-027 stays prepared. Retention periods and scope
@@ -49,14 +53,11 @@ codes remain runtime policy data: no durations are hardcoded, unresolved
 jurisdiction/purpose scopes fail closed, and cleanup stays disabled until
 approved policy data and target-specific hold controls exist.
 
-**Current-source ARM64 Kernel software smoke (25 October 2026):** the pushed
-`e9d68670` source builds as `linux/arm64`; isolated QEMU execution reports
-`aarch64`, creates the Gateway, loads 18 job specs, and imports the Python SDK
-and two agent modules. This is code-level portability evidence only; physical
-Pi, power-loss, thermal, measured-resource, and storage-endurance gates remain
-open. No capability classification changes: 24 baseline-retained, 7 deployed,
-and 36 prepared across 67 rows.
-Evidence: [ARM64 smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-e9d68670.json).
+**Earlier ARM64 Kernel smoke (25 October 2026):** commit `e9d68670` built as
+`linux/arm64` and passed the SDK, worker, and JobSpec import checks. It is
+superseded by the refreshed current-source smoke for `9385eeb9` below, which
+also inspects the lazy route groups. Both are software-emulation evidence;
+physical Pi and power/resource acceptance remain open ([earlier evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-e9d68670.json)).
 
 **CAP-038 signed agent output provenance inventory (25 October 2026):** the
 current database-backed worker outputs are classified by row-level references,
@@ -264,7 +265,7 @@ and waste regression pass. Disposable PostgreSQL 16 applies/replays migrations 1
 **Latest local CAP-006 managed-hive inspection capture (25 October 2026):** migration 623 appends `recorded` inspection rows under exact location `pollinator_health:create`, checks signed operator context and a unique active hive at that location, attributes the inspector, and records digest-only retries. The function updates the hive snapshot in the same transaction. Runtime and Directus cannot directly mutate inspections or those snapshot fields; legacy `record-inspection` fails before database access. The 103-test focused selection and 277-test combined CAP-006 regression pass. Disposable PostgreSQL 16 migration apply/replay passes 14 groups on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-inspection-capture-disposable.json); [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-inspection-capture-arm64-disposable.json)). Candidate and legacy remain untouched; migration 623 is not rolled out. QEMU is software evidence only. Hive status/maintenance, habitat status/maintenance, populated parity, live OIDC/browser, independent review, broader ACL/RLS, Directus parity, and MAN-CAP-006 remain open. Checklist: 1,131 complete / 25 open (1,156 total).
 **Latest local CAP-006 managed-hive registration batch (25 October 2026):** migration 622 registers hives through exact `pollinator_health:create`, validates signed location context and bounded fields, prevents case-insensitive duplicate hive IDs within a location, attributes the operator, and stores digest-only retries. Runtime and Directus cannot directly insert hives or read receipts; existing update/inspection paths remain for the next slice. The `active` state is operational inventory only and colony strength remains self-reported. The legacy `add-hive` CLI fails before database access. A 116-test selection passes within the 254-test combined CAP-006 regression, with Ruff, compilation, Node syntax and diff checks; disposable PostgreSQL 16 apply/replay passes eight groups on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-capture-disposable.json); [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-capture-arm64-disposable.json)). Candidate and legacy are untouched; migration 622 is not rolled out. Habitat status/maintenance, hive inspections/status maintenance, populated parity, live OIDC/browser, independent review, broader ACL/RLS, Directus parity, and MAN-CAP-006 remain open. QEMU is software evidence only. Checklist: 1,130 complete / 25 open (1,155 total).
 **Latest local CAP-006 pollinator-habitat capture batch (25 October 2026):** migration 621 adds self-reported active habitat inventory capture under exact `pollinator_health:create`, with operator attribution, a separate function owner, bounded species/features and digest-only retries. Active is the legacy domain inventory state, not ecological review or outcome verification; runtime and Directus cannot write directly or read receipts. The legacy habitat-create CLI fails before database access. The 235-test combined CAP-006 selection passes. Disposable PostgreSQL 16 apply/replay passes ten authorization, retry, domain-state and ACL groups on native AMD64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-habitat-capture-disposable.json); [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-habitat-capture-arm64-disposable.json)). Candidate and legacy remain untouched; migration 621 is not rolled out. Habitat status/maintenance and hive inspection writers, populated parity, live OIDC/browser, independent review, broader ACL/RLS, Directus parity and MAN-CAP-006 remain open. QEMU is software evidence only. Checklist: 1,129 complete / 25 open (1,154 total).
-**ARM64/QEMU portability evidence (25 October 2026):** the application smoke from commit `829376b4` reports `aarch64`, creates the Gateway, imports both Python SDK clients, loads all 18 JobSpecs, displays migration CLI help without database credentials, and constructs a synthetic RPC balance snapshot ([app smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-829376b4.json)). A separate clean, network-disabled PostgreSQL 16 ARM64/QEMU replay applies all 630 current schema files through migration 639 with zero pending/failed, no seeds or farm data, no host ports, and successful cleanup; the database reports `aarch64` ([full schema replay](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)). Candidate and legacy are untouched. This is software-emulation evidence only, not physical Raspberry Pi, power-failure, thermal, or endurance acceptance.
+**ARM64/QEMU portability evidence (25 October 2026):** the current working-tree image based on `9385eeb9`, including the Delphi service boundary changes, reports `aarch64`, creates the Gateway, recursively inspects 347 route templates across four included router groups, imports both Python SDK clients plus worker/Delphi modules, and loads all 18 JobSpecs. The no-network container used a read-only root and read-only SDK source mount ([app smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-9385eeb9.json)). A separate clean, network-disabled PostgreSQL 16 ARM64/QEMU replay applies all 630 current schema files through migration 639 with zero pending/failed, no seeds or farm data, no host ports, and successful cleanup; the database reports `aarch64` ([full schema replay](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)). Candidate and legacy are untouched. This is software-emulation evidence only, not physical Raspberry Pi, power-failure, thermal, or endurance acceptance.
 **Latest local CAP-006 waste-summary reader batch (24 October 2026):** Migration 618 routes verified waste, composting, and recycling aggregates through a no-login function owner that checks signed location context and the exact `waste_management:read` grant. Runtime and Directus lose direct reads on all three tables and both legacy summary views; only Gateway runtime can execute the function. The two unscoped analytics summary CLI paths fail before database access. Authenticated Gateway output preserves the legacy 1–3650-day verified waste totals by type/disposal and compost totals, method averages, and latest-ten numeric quality readings; the console offers 7/30/90/365-day windows. Thirty-eight focused Gateway, analytics, and console tests pass. Ruff, Python compilation, JavaScript syntax, dependency boundaries, requirements alignment, matrix, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL 16 applies/replays migrations 153 and 613–618, verifies selected-window behavior and synthetic output parity, and denies direct table/view access on native AMD64 and ARM64/QEMU ([native](builds/2026-10-24-recovery/cap-006-waste-summary-reader-disposable.json); [ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-summary-reader-arm64-disposable.json)). Candidate and legacy remain untouched; migration 618 is not rolled out. QEMU does not prove physical Pi behavior. Broader waste ACL/RLS, populated-data parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain open. Checklist: 1,126 complete / 25 open (1,151 total).
 **Latest local CAP-006 incident reader-boundary batch (24 October 2026):** Migration 617 routes both narrative review and aggregate incident summaries through separate least-privilege database functions. Each function checks active operator/location context and the exact `waste_management:review` or `waste_management:read` grant; shared runtime and Directus roles lose table- and column-level incident reads and access to the legacy narrative view. The review-only and read-only synthetic grants are tested independently, along with wrong-location denials and direct-read rejection. Twenty-seven focused Gateway tests pass with Ruff and compilation, and disposable PostgreSQL 16 migration apply/replay and ACL acceptance passes on native AMD64 and linux/arm64 Docker/QEMU ([native evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-disposable.json); [ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-reader-arm64-disposable.json)). A separate clean network-disabled ARM64/QEMU replay applied all 607 schema files through migration 616 with zero pending or failed and successful cleanup ([full-schema evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-616.json)); its source predates migration 617. QEMU demonstrates software portability, not physical Raspberry Pi, power, thermal, or endurance acceptance. Candidate and legacy databases are untouched; migration 617 is not rolled out. This closes the direct incident-read path only; broader waste-table ACL/RLS, populated parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain open. Checklist: 1,125 complete / 25 open (1,150 total).
 **Latest local CAP-006 incident-detail CLI retirement (24 October 2026):** The unscoped `open-incidents` and mixed waste `dashboard` helper/CLI paths now fail before database access, closing the local shared-credential bypass of the incident review grant. The aggregate summary remains on the Gateway `waste_management:read` route and narrative queue/resolution require `waste_management:review`. The focused waste/Gateway/console/route-policy selection passes 52 tests plus five subtests; Ruff, compilation, migration-153 disposable PostgreSQL acceptance, matrix validation, SQL inventory, and diff checks pass. Candidate and legacy databases remain untouched. Incident source/populated parity, live OIDC/browser, canonical ACL/RLS, Directus parity, and MAN-CAP-006 remain open. Checklist: 1,124 complete / 25 open (1,149 total).

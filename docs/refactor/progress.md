@@ -18583,3 +18583,35 @@ boundary evidence above. Checklist remains 1,185 complete / 25 open (1,210
 total), with 24 baseline-retained, 7 deployed, and 36 prepared rows across 67
 capabilities. Evidence:
 [ARM64/QEMU replay](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json).
+
+### Progress addendum — current Kernel ARM64 application smoke, 25 October 2026
+
+The current default Kernel image from the working tree based on commit
+`9385eeb9`, including the Delphi service boundary change, builds for
+`linux/arm64`. A read-only, network-disabled QEMU container reports
+`aarch64`, registers 347 route templates across four lazily included router
+groups, imports both Python SDK clients and the worker/Delphi modules, and
+loads all 18 JobSpecs. No HTTP request, database connection, or provider call
+was made. The temporary image was removed after capture. This supplements the
+full schema replay through migration 639; neither check substitutes for
+physical Raspberry Pi, power-loss, resource-endurance, or 24-hour recovery
+acceptance. Checklist remains 1,185 complete / 25 open (1,210 total), with 24
+baseline-retained, 7 deployed, and 36 prepared rows across 67 capabilities.
+Evidence:
+[ARM64 application smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-9385eeb9.json).
+
+### Progress addendum — CAP-027 legacy Delphi direct-service boundary, 25 October 2026
+
+The database-backed methods on `Facilitator`, `PanelManager`, and
+`MinorityReportManager` now fail before using an injected/shared connection or
+cursor. This extends the existing CLI boundary to direct library callers and
+also covers helper reads and mutations. The 79-test Delphi suite passes, as do
+Ruff and Python compilation. No database, migration, provider, candidate, or
+legacy service was used. Study and participant operations remain available
+through the implemented authenticated, location-scoped Gateway. Direct panel
+administration, diversity assessment, minority reports, and calibration are
+still unavailable pending their own Gateway authorization, privacy, and review
+contracts. CAP-027 remains prepared. Checklist remains 1,185 complete / 25 open
+(1,210 total), with 24 baseline-retained, 7 deployed, and 36 prepared rows
+across 67 capabilities. Evidence:
+[Delphi service boundary](builds/2026-10-25-recovery/cap-027-legacy-delphi-service-boundary.json).

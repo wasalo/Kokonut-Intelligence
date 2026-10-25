@@ -193,155 +193,65 @@ class TestConsensusMath:
 # ---------------------------------------------------------------------------
 
 class TestFacilitatorFlow:
-    def _make(self):
-        from services.delphi.facilitator import Facilitator
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        return Facilitator(conn=mock_conn), mock_conn, mock_cursor
-
-    def _seed_study(self, cur):
-        cur.fetchone.side_effect = [
-            {"id": "study-1", "location_id": "loc-1", "title": "Drought",
-             "description": None, "variation": "real_time", "status": "open",
-             "facilitator_type": "agent",
-             "stopping_criteria": json.dumps({
-                 "max_duration_hours": 720, "stability_pct": 5.0,
-                 "min_participants": 3, "iqr_threshold": 1.0}),
-             "created_by": None, "opened_at": None, "closed_at": None,
-             "metadata": {}, "created_at": "2026-01-01", "updated_at": "2026-01-01"},
-        ]
-
-    def test_create_study(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "study-1", "status": "draft"}
-        study = f.create_study(title="Test")
-        assert study["status"] == "draft"
-        mock_conn.commit.assert_called_once()
-
-    def test_direct_panel_calibration_fails_before_connection(self):
-        from services.delphi.facilitator import Facilitator
-
-        get_connection = MagicMock(
-            side_effect=AssertionError("unscoped Delphi calibration must stay closed")
-        )
-        facilitator = Facilitator()
-        facilitator._get_conn = get_connection
-
-        with pytest.raises(RuntimeError, match="reviewed, location-scoped"):
-            facilitator.calibrate_panel("study-1")
-
-        get_connection.assert_not_called()
-
-    def test_open_study(self):
-        f, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "study-1", "status": "open"}
-        study = f.open_study("study-1")
-        assert study["status"] == "open"
-
-    def test_submit_contribution_recomputes(self):
-        f, mock_conn, mock_cursor = self._make()
-        # item exists check, member exists check, contrib insert,
-        # get_study inside recompute, snapshot upsert
-        mock_cursor.fetchone.side_effect = [
-            {"id": "item-1", "min_value": -1.0, "max_value": 1.0, "status": "open"},
-            {"id": "member-1"},  # member belongs to study
-            {"id": "contrib-1"},  # inserted contribution
-            {"id": "study-1", "stopping_criteria": {
-                "max_duration_hours": 720, "stability_pct": 5.0,
-                "min_participants": 3, "iqr_threshold": 1.0}},
-            {"id": "cons-1", "median": 0.5, "iqr": 0.0, "consensus_reached": False},
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [{"score": 0.5, "expert_weight": 1.0}],  # scores+weights
-        ]
-        result = f.submit_contribution("study-1", "item-1", "member-1", 0.5, "reason")
-        assert "consensus" in result
-        assert result["consensus"]["median"] == 0.5
-
-    def test_submit_rejects_unknown_item(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = None  # item not found
-        with pytest.raises(ValueError, match="does not belong to study"):
-            f.submit_contribution("study-1", "item-x", "member-1", 0.5)
-
-    def test_submit_rejects_closed_study(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {
-            "id": "item-1", "min_value": -1.0, "max_value": 1.0, "status": "closed"
-        }
-        with pytest.raises(ValueError, match="not open"):
-            f.submit_contribution("study-1", "item-1", "member-1", 0.5)
-
-    def test_submit_rejects_score_outside_range(self):
-        f, _, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {
-            "id": "item-1", "min_value": 0.0, "max_value": 1.0, "status": "open"
-        }
-        with pytest.raises(ValueError, match="outside"):
-            f.submit_contribution("study-1", "item-1", "member-1", 2.0)
-
-    def test_live_summary(self):
-        f, _, mock_cursor = self._make()
-        # get_study returns study; items query; panel size; conflicting query
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
-        item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
-                     "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
-                     "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
-        conflicting_rows = [
-            {"display_token": "P-AAA", "score": 0.2, "reasoning": "low"},
-            {"display_token": "P-BBB", "score": 0.8, "reasoning": "high"},
-        ]
-        mock_cursor.fetchone.side_effect = [
-            study_dict,       # get_study
-            {"n": 2},         # panel_size
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [item_dict],      # items list
-            conflicting_rows,  # conflicting contributions
-        ]
-        summary = f.get_live_summary("study-1")
-        assert summary["title"] == "Drought"
-        assert len(summary["items"]) == 1
-        assert "conflicting_viewpoints" in summary
-
-    def test_check_stopping(self):
-        f, _, mock_cursor = self._make()
-        study_dict = {"id": "study-1", "title": "D", "status": "open",
-                      "stopping_criteria": json.dumps({
-                          "max_duration_hours": 720, "stability_pct": 5.0,
-                          "min_participants": 3, "iqr_threshold": 1.0}),
-                      "opened_at": None}
-        snap = {"item_id": "item-1", "median": 0.7, "iqr": 0.3, "participant_count": 5}
-        mock_cursor.fetchone.side_effect = [
-            study_dict,  # get_study
-            None,        # previous history per item
-        ]
-        mock_cursor.fetchall.side_effect = [
-            [snap],  # snapshots
-        ]
-        result = f.check_stopping("study-1")
-        assert "should_stop" in result
-        assert result["items"]
-
     @pytest.mark.parametrize(
-        ("method_name", "args", "message"),
+        ("method_name", "args"),
         [
-            ("draft_recommendation", ("study-1", "Adopt medians"), "Gateway draft route"),
-            ("approve_recommendation", ("rec-1", "caller-supplied-actor"), "Gateway review route"),
-            ("reject_recommendation", ("rec-1", "caller-supplied-actor", "reason"), "Gateway review route"),
-            ("list_recommendations", ("study-1",), "Gateway review route"),
+            ("create_study", ("Test study",)),
+            ("open_study", ("study-1",)),
+            ("close_study", ("study-1",)),
+            ("get_study", ("study-1",)),
+            ("add_item", ("study-1", "Question")),
+            ("submit_contribution", ("study-1", "item-1", "member-1", 0.5)),
+            ("get_live_summary", ("study-1",)),
+            ("check_stopping", ("study-1",)),
+            ("draft_recommendation", ("study-1", "Suggestion")),
+            ("approve_recommendation", ("recommendation-1", "operator-1")),
+            ("reject_recommendation", ("recommendation-1", "operator-1", "reason")),
+            ("list_recommendations", ("study-1",)),
+            ("calibrate_panel", ("study-1",)),
         ],
     )
-    def test_legacy_recommendation_paths_fail_before_database_access(
-        self, method_name, args, message
+    def test_legacy_facilitator_database_operations_fail_before_connection(
+        self, method_name, args
     ):
-        f, mock_conn, _mock_cursor = self._make()
+        from services.delphi.facilitator import Facilitator
 
-        with pytest.raises(RuntimeError, match=message):
-            getattr(f, method_name)(*args)
+        connection = MagicMock()
+        facilitator = Facilitator(connection)
+        get_connection = MagicMock(
+            side_effect=AssertionError("legacy Delphi access must stay closed")
+        )
+        facilitator._get_conn = get_connection
 
-        mock_conn.cursor.assert_not_called()
-        mock_conn.commit.assert_not_called()
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(facilitator, method_name)(*args)
+
+        get_connection.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
+
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("_recompute_consensus", ("study-1", "item-1")),
+            ("_panel_size", ("study-1",)),
+            ("_get_conn", ()),
+        ],
+    )
+    def test_legacy_facilitator_helpers_fail_before_cursor_use(self, method_name, args):
+        from services.delphi.facilitator import Facilitator
+
+        connection = MagicMock()
+        facilitator = Facilitator(connection)
+        cursor = MagicMock()
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            if method_name in {"_recompute_consensus", "_panel_size"}:
+                getattr(facilitator, method_name)(cursor, *args)
+            else:
+                getattr(facilitator, method_name)(*args)
+        cursor.execute.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -349,38 +259,61 @@ class TestFacilitatorFlow:
 # ---------------------------------------------------------------------------
 
 class TestPanelManager:
-    def _make(self):
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("add_member", ("study-1",)),
+            ("list_members", ("study-1",)),
+            ("get_member", ("member-1",)),
+            ("remove_member", ("member-1",)),
+            ("_derive_weight", (None, "farmer_identity", "party-1", "expert")),
+            ("member_weights", ("study-1",)),
+            ("assess_diversity", ("study-1",)),
+        ],
+    )
+    def test_legacy_panel_operations_fail_before_connection(self, method_name, args):
         from services.delphi.panel import PanelManager
-        mock_cursor = MagicMock()
-        mock_conn = _make_mock_conn(mock_cursor)
-        return PanelManager(conn=mock_conn), mock_conn, mock_cursor
 
-    def test_add_member_generates_token(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "m-1", "display_token": "P-XXXX"}
-        member = pm.add_member("study-1", role="expert")
-        assert member["display_token"].startswith("P-")
-        mock_conn.commit.assert_called_once()
+        connection = MagicMock()
+        manager = PanelManager(connection)
+        get_connection = MagicMock(
+            side_effect=AssertionError("legacy Delphi panel access must stay closed")
+        )
+        manager._get_conn = get_connection
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(manager, method_name)(*args)
+        get_connection.assert_not_called()
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
-    def test_add_member_explicit_weight(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.fetchone.return_value = {"id": "m-1", "display_token": "P-XXXX", "expert_weight": 2.0}
-        member = pm.add_member("study-1", role="expert", expert_weight=2.0)
-        assert member["expert_weight"] == 2.0
+    def test_legacy_panel_connection_helper_fails_closed(self):
+        from services.delphi.panel import PanelManager
 
-    def test_list_members(self):
-        pm, _, mock_cursor = self._make()
-        mock_cursor.fetchall.return_value = [
-            {"id": "m-1", "display_token": "P-A", "is_anonymous": True,
-             "expert_weight": 1.5, "role": "expert", "joined_at": "2026-01-01"},
-        ]
-        members = pm.list_members("study-1")
-        assert len(members) == 1
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            PanelManager()._get_conn()
 
-    def test_remove_member(self):
-        pm, mock_conn, mock_cursor = self._make()
-        mock_cursor.rowcount = 1
-        assert pm.remove_member("m-1") is True
+
+class TestMinorityReportManager:
+    @pytest.mark.parametrize(
+        ("method_name", "args"),
+        [
+            ("create", ("study-1", "Title", "Position", "Rationale")),
+            ("submit", ("report-1",)),
+            ("review", ("report-1", "verified", "operator-1", "Reviewed")),
+            ("_transition", ("report-1", "draft", "submitted", None, None)),
+        ],
+    )
+    def test_legacy_minority_report_operations_fail_before_cursor_use(
+        self, method_name, args
+    ):
+        from services.delphi.minority import MinorityReportManager
+
+        connection = MagicMock()
+        manager = MinorityReportManager(connection)
+        with pytest.raises(RuntimeError, match="location-scoped Gateway"):
+            getattr(manager, method_name)(*args)
+        connection.cursor.assert_not_called()
+        connection.commit.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
