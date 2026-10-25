@@ -440,3 +440,107 @@ def create_location_pollinator_habitat(
         raise
     finally:
         connection.close()
+
+
+def _normalize_hive_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Managed hive body must be an object")
+    allowed = {
+        "request_id", "hive_id", "hive_type", "colony_strength",
+        "colony_strength_score", "queen_status", "frame_count", "queen_year", "notes",
+    }
+    if set(payload) != allowed:
+        raise PollinatorObservationInvalid("Managed hive fields do not match the supported contract")
+    request_id = _identifier(payload["request_id"], "request")
+    hive_id = _text(payload["hive_id"], "hive identifier", 100)
+    hive_type = _text(payload["hive_type"], "hive type", 50)
+    if not hive_id or not hive_type:
+        raise PollinatorObservationInvalid("Hive identifier and type are required")
+
+    strength = payload["colony_strength"]
+    score = payload["colony_strength_score"]
+    if (strength is None) == (score is None):
+        raise PollinatorObservationInvalid("Provide either colony strength category or score")
+    if strength is not None and (
+        not isinstance(strength, str)
+        or strength not in {"strong", "moderate", "weak", "dead"}
+    ):
+        raise PollinatorObservationInvalid("Unsupported colony strength category")
+    if score is not None and (
+        isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 10
+    ):
+        raise PollinatorObservationInvalid("Colony strength score must be between 0 and 10")
+
+    queen_status = payload["queen_status"]
+    if not isinstance(queen_status, str) or queen_status not in {
+        "present", "absent", "replaced", "unknown",
+    }:
+        raise PollinatorObservationInvalid("Unsupported queen status")
+    frame_count = payload["frame_count"]
+    if isinstance(frame_count, bool) or not isinstance(frame_count, int) or not 0 <= frame_count <= 500:
+        raise PollinatorObservationInvalid("Frame count must be between 0 and 500")
+    queen_year = payload["queen_year"]
+    if queen_year is not None and (
+        isinstance(queen_year, bool)
+        or not isinstance(queen_year, int)
+        or not 1800 <= queen_year <= date.today().year
+    ):
+        raise PollinatorObservationInvalid("Queen year is outside the supported range")
+    return (
+        request_id, hive_id, hive_type, strength, score, queen_status, frame_count,
+        queen_year, _text(payload["notes"], "notes", 2000, optional=True),
+    )
+
+
+def create_location_pollinator_hive(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an active managed-hive inventory entry under exact location grant."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_hive_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_pollinator_hive("
+                "%s::uuid, %s::uuid, %s::text, %s::text, %s::text, "
+                "%s::smallint, %s::text, %s::integer, %s::smallint, %s::text)",
+                (location_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Managed-hive capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("hive_id") != normalized[1]
+                or result.get("hive_type") != normalized[2]
+                or result.get("queen_status") != normalized[5]
+                or result.get("frame_count") != normalized[6]
+                or result.get("status") != "active"
+                or not isinstance(result.get("hive_record_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Managed-hive capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

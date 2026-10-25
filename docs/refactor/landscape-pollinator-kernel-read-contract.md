@@ -8,7 +8,9 @@ Updated: 25 October 2026
   location grant `landscape_conservation:read`.
 - `GET /operator/api/pollinators/{location_id}/summary` requires the exact
   location grant `pollinator_health:read`.
-- Both routes are private, same-origin operator endpoints. Responses use
+- `POST /operator/api/pollinators/{location_id}/hives` requires the exact
+  location grant `pollinator_health:create`.
+- These endpoints are private, same-origin operator routes. Responses use
   `Cache-Control: no-store` and `Vary: Cookie`; invalid identifiers fail before
   opening a database connection.
 - Each read uses a single repeatable-read, read-only PostgreSQL transaction,
@@ -62,6 +64,13 @@ type, condition, and source status. Active-hive summaries retain kg for honey
 yield and counts for varroa observations; they are not a health certification.
 The reference species catalog is network-wide and is not joined into a
 location response.
+
+Migration 622 adds managed-hive registration through a security-definer
+function under signed exact-location create authorization. It stores the legacy
+`active` inventory state, the creator, and a private digest-only retry receipt;
+it does not make health or strength verified. Runtime and Directus cannot insert
+hive rows or read receipts. Existing direct hive update/inspection writers are
+not migrated by 622 and remain a separate gate.
 
 The scoped pollinator response also preserves three legacy calculations using
 aggregates only. Observation trends use the last 30 days and compare equal

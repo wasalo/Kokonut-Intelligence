@@ -8,7 +8,6 @@ queries/business logic. Reachable via:
 
 from ..common.commands import CommandLine
 from .pollinator_health import (
-    add_hive,
     get_habitat_inventory,
     get_hive_status,
     get_pesticide_risk,
@@ -45,15 +44,10 @@ def _cmd_retired_record_pesticide(_db, _a):
     )
 
 
-def _cmd_add_hive(db, a):
-    return add_hive(
-        db, a.location_id, a.hive_id,
-        colony_strength=a.colony_strength,
-        queen_status=a.queen_status,
-        hive_type=a.hive_type,
-        frame_count=a.frame_count,
-        queen_year=a.queen_year,
-        notes=a.notes,
+def _cmd_add_hive(_db, _a):
+    raise RuntimeError(
+        "Unscoped managed-hive writes are retired; use the authenticated "
+        "Kokonut Gateway hive form with a location create grant."
     )
 
 
@@ -134,7 +128,7 @@ cli.subcommand("add-hive", "Add managed hive") \
     .add("--queen-year", type=int) \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_add_hive)
+    .run(_cmd_add_hive, needs_db=False)
 
 cli.subcommand("record-inspection", "Record hive inspection") \
     .add("--location-id", required=True) \

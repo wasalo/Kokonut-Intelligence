@@ -1,0 +1,25 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-25T04:17:52.672833+00:00",
+  "database": "PostgreSQL 16 disposable container",
+  "architecture": "x86_64",
+  "migrations": [
+    "155_pollinator_health.sql",
+    "602_pollinator_health_kernel_alignment.sql",
+    "622_location_pollinator_hive_capture.sql"
+  ],
+  "migration_622_replayed": true,
+  "checks": [
+    "migrations 155/602 and migration 622 apply; migration 622 replays",
+    "exact signed location create grant creates an active attributed hive inventory entry",
+    "exact retries are idempotent; changed-input reuse and duplicate location hive IDs are rejected",
+    "ungranted actors, mismatched locations, and non-operator context are denied",
+    "invalid queen status, frame count, and future queen year are rejected",
+    "stored operational state and creator attribution match the submitted inventory",
+    "runtime and Directus cannot directly insert hives or read private receipts",
+    "dedicated owner is no-login/no-inherit/no-bypass and only Gateway can execute capture"
+  ],
+  "assertions_passed": 8,
+  "candidate_database_touched": false,
+  "legacy_database_touched": false
+}

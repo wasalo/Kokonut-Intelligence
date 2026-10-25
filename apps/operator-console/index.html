@@ -2411,6 +2411,41 @@
               </form>
               <p id="pollinator-habitat-capture-status" class="muted" role="status" aria-live="polite"></p>
             </section>
+            <section id="pollinator-hive-capture" hidden aria-labelledby="pollinator-hive-capture-heading">
+              <h4 id="pollinator-hive-capture-heading">Register a managed hive</h4>
+              <p class="muted">Registration creates an active inventory record. Any colony-strength details are self-reported and have not been independently verified.</p>
+              <form id="pollinator-hive-capture-form" class="stacked-form">
+                <label for="pollinator-hive-id">Hive identifier</label>
+                <input id="pollinator-hive-id" type="text" maxlength="100" required>
+                <label for="pollinator-hive-type">Hive type</label>
+                <input id="pollinator-hive-type" type="text" maxlength="50" value="langstroth" required>
+                <label for="pollinator-hive-strength">Colony strength category (optional)</label>
+                <select id="pollinator-hive-strength">
+                  <option value="">Not recorded</option>
+                  <option value="strong">Strong</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="weak">Weak</option>
+                  <option value="dead">Dead</option>
+                </select>
+                <label for="pollinator-hive-strength-score">Colony strength score, 0–10 (optional)</label>
+                <input id="pollinator-hive-strength-score" type="number" min="0" max="10" step="1">
+                <label for="pollinator-hive-queen-status">Queen status</label>
+                <select id="pollinator-hive-queen-status" required>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="replaced">Replaced</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+                <label for="pollinator-hive-frame-count">Frame count</label>
+                <input id="pollinator-hive-frame-count" type="number" min="0" max="500" step="1" value="10" required>
+                <label for="pollinator-hive-queen-year">Queen year (optional)</label>
+                <input id="pollinator-hive-queen-year" type="number" min="1800" max="2100" step="1">
+                <label for="pollinator-hive-notes">Private inventory notes (optional)</label>
+                <textarea id="pollinator-hive-notes" maxlength="2000" rows="3"></textarea>
+                <button id="pollinator-hive-capture-submit" type="submit">Register self-reported hive</button>
+              </form>
+              <p id="pollinator-hive-capture-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
             <div id="pollinator-health-summary" hidden></div>
           </section>
         </section>
@@ -3666,12 +3701,17 @@
       const pollinatorHabitatCapture = document.querySelector("#pollinator-habitat-capture");
       const pollinatorHabitatCaptureForm = document.querySelector("#pollinator-habitat-capture-form");
       const pollinatorHabitatCaptureStatus = document.querySelector("#pollinator-habitat-capture-status");
+      const pollinatorHiveCapture = document.querySelector("#pollinator-hive-capture");
+      const pollinatorHiveCaptureForm = document.querySelector("#pollinator-hive-capture-form");
+      const pollinatorHiveCaptureStatus = document.querySelector("#pollinator-hive-capture-status");
+      pollinatorHiveCaptureForm.querySelector("#pollinator-hive-queen-year").max = String(new Date().getFullYear());
       let pollinatorHealthLocations = new Set();
       let pollinatorHealthCreateLocations = new Set();
       let pollinatorHealthRequestVersion = 0;
       let pollinatorObservationPending = null;
       let pesticideImpactPending = null;
       let pollinatorHabitatPending = null;
+      let pollinatorHivePending = null;
       const irrigationStatus = document.querySelector("#irrigation-status");
       const irrigationStatusLocation = document.querySelector("#irrigation-status-location");
       const irrigationStatusMessage = document.querySelector("#irrigation-status-message");
@@ -17932,10 +17972,12 @@
         pollinatorObservationCapture.hidden = !canCreate;
         pesticideImpactCapture.hidden = !canCreate;
         pollinatorHabitatCapture.hidden = !canCreate;
+        pollinatorHiveCapture.hidden = !canCreate;
         if (!canRead) pollinatorHealthSummary.replaceChildren();
         if (!canCreate) pollinatorObservationCaptureStatus.textContent = "";
         if (!canCreate) pesticideImpactCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHabitatCaptureStatus.textContent = "";
+        if (!canCreate) pollinatorHiveCaptureStatus.textContent = "";
       }
 
       async function submitPollinatorObservation(event) {
@@ -18134,6 +18176,79 @@
           if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
         } catch (error) {
           pollinatorHabitatCaptureStatus.textContent = `${error.message} Retrying unchanged input reuses the same request ID.`;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      async function submitPollinatorHive(event) {
+        event.preventDefault();
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthCreateLocations.has(locationId)) {
+          pollinatorHiveCaptureStatus.textContent = "A current location pollinator-create grant is required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          pollinatorHiveCaptureStatus.textContent = "Refresh the operator session before registering this hive.";
+          return;
+        }
+        const value = (selector) => pollinatorHiveCaptureForm.querySelector(selector).value;
+        const strength = value("#pollinator-hive-strength");
+        const scoreInput = value("#pollinator-hive-strength-score");
+        if (strength && scoreInput !== "") {
+          pollinatorHiveCaptureStatus.textContent = "Choose a strength category or score, not both.";
+          return;
+        }
+        const payload = {
+          hive_id: value("#pollinator-hive-id").trim(),
+          hive_type: value("#pollinator-hive-type").trim(),
+          colony_strength: strength || null,
+          colony_strength_score: scoreInput === "" ? null : Number(scoreInput),
+          queen_status: value("#pollinator-hive-queen-status"),
+          frame_count: Number(value("#pollinator-hive-frame-count")),
+          queen_year: value("#pollinator-hive-queen-year") === "" ? null : Number(value("#pollinator-hive-queen-year")),
+          notes: value("#pollinator-hive-notes").trim() || null
+        };
+        if (!payload.colony_strength && payload.colony_strength_score === null) {
+          pollinatorHiveCaptureStatus.textContent = "Enter a colony strength category or score.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ locationId, ...payload });
+        if (!pollinatorHivePending || pollinatorHivePending.fingerprint !== fingerprint) {
+          pollinatorHivePending = { fingerprint, request_id: crypto.randomUUID() };
+        }
+        const submit = document.querySelector("#pollinator-hive-capture-submit");
+        submit.disabled = true;
+        pollinatorHiveCaptureStatus.textContent = "Registering the self-reported hive inventory…";
+        try {
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/hives`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pollinatorHivePending.request_id })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location pollinator-create grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The hive could not be registered.");
+          if (locationId !== pollinatorHealthLocation.value) return;
+          if (result.location_id !== locationId || result.status !== "active"
+              || result.hive_id !== payload.hive_id
+              || typeof result.hive_record_id !== "string" || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not match the selected location or hive contract.");
+          }
+          pollinatorHivePending = null;
+          pollinatorHiveCaptureForm.reset();
+          pollinatorHiveCaptureStatus.textContent = result.replayed
+            ? "This request was already saved. It remains a self-reported active inventory entry."
+            : "Registered as active inventory; colony details have not been independently verified.";
+          if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
+        } catch (error) {
+          pollinatorHiveCaptureStatus.textContent = `${error.message} Retrying unchanged input reuses the same request ID.`;
         } finally {
           submit.disabled = false;
         }
@@ -24856,6 +24971,7 @@
       pollinatorObservationCaptureForm.addEventListener("submit", submitPollinatorObservation);
       pesticideImpactCaptureForm.addEventListener("submit", submitPesticideImpactReport);
       pollinatorHabitatCaptureForm.addEventListener("submit", submitPollinatorHabitat);
+      pollinatorHiveCaptureForm.addEventListener("submit", submitPollinatorHive);
       document.querySelector("#irrigation-status-refresh").addEventListener("click", () => loadIrrigationStatus());
       irrigationStatusLocation.addEventListener("change", () => loadIrrigationStatus());
       irrigationStatusMore.addEventListener("click", () => loadIrrigationStatus(true));

@@ -1,3 +1,27 @@
+### Progress addendum — CAP-006 location-scoped managed-hive registration, 25 October 2026
+
+Migration 622 and the authenticated Gateway now register managed hives under
+the exact `pollinator_health:create` grant. The database function checks signed
+operator/location context, enforces bounded fields and unique hive identifiers
+within a location, attributes the creator, and stores only a digest receipt for
+request replay. Runtime and Directus cannot insert hive rows or read receipts;
+the legacy `add-hive` CLI fails before database access. `active` is the existing
+operational inventory state, while colony strength remains self-reported.
+Existing direct hive-update paths remain available pending the inspection and
+maintenance Gateway slice.
+
+The 116-test Gateway, console, policy, and migration selection passes within
+the 254-test combined CAP-006 regression, with Ruff, compilation, inline
+JavaScript syntax, and diff checks. Disposable
+PostgreSQL 16 applies/replays migrations 155/602/622 with eight grouped checks
+on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-capture-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 622 is not rolled out. QEMU is
+software portability evidence only. Checklist: 1,130 complete / 25 open (1,155
+total). Hive inspection/status maintenance, habitat status/maintenance,
+populated parity, live OIDC/browser, independent review, wider ACL/RLS, Directus
+parity, and MAN-CAP-006 remain open.
+
 ### Progress addendum — CAP-006 self-reported pollinator habitat inventory, 25 October 2026
 
 Migration 621 and the authenticated Gateway now capture a new habitat inventory
