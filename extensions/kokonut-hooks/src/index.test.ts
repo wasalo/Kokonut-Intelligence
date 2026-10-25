@@ -29,6 +29,7 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('revenue_event.items.create');
     expect(events).toContain('revenue_event.items.update');
     expect(events).toContain('revenue_event.items.delete');
+    expect(events).toContain('stakeholder_feedback_review.items.create');
   });
 
   it('does not register Directus schedules unless explicitly enabled', () => {

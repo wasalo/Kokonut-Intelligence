@@ -51,6 +51,7 @@ import {
 import { errorClass } from './error-safety.js';
 import {
   authorizeDirectusCreate,
+  authorizeDirectusFeedbackReviewCreate,
   authorizeDirectusRead,
   authorizeDirectusReadResult,
   authorizeDirectusRows,
@@ -200,6 +201,27 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
       return keys;
     });
   }
+
+  // Review rows have no location_id; bind their create action to the exact
+  // parent feedback location and require the child collection's scoped grant.
+  filter('stakeholder_feedback_review.items.create', async (
+    payload: Record<string, any>,
+    _meta: Record<string, any>,
+    context: Record<string, any>,
+  ) => {
+    const requestDatabase = context?.database || database;
+    const locationId = await authorizeDirectusFeedbackReviewCreate(
+      createDirectusTenantStore(requestDatabase),
+      context?.accountability,
+      env.KOKONUT_OPERATOR_OIDC_ISSUER,
+      payload,
+    );
+    await validateTenantReferences(requestDatabase, 'stakeholder_feedback', {
+      location_id: locationId,
+      reviewer_id: payload.reviewer_id,
+    });
+    return payload;
+  });
 
   function getUserId(meta: Record<string, any>): string | undefined {
     const accountability = meta?.accountability;

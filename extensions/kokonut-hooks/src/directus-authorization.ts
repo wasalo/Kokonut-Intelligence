@@ -250,3 +250,32 @@ export async function authorizeDirectusCreate(
   if (!isUuid(payload?.location_id)) throw deny();
   if (!await store.canAccessLocation(operatorId, collection, 'create', payload.location_id)) throw deny();
 }
+
+/** Authorize the feedback-review child by its parent's tenant location. */
+export async function authorizeDirectusFeedbackReviewCreate(
+  store: DirectusTenantStore,
+  accountability: Accountability,
+  issuer: unknown,
+  payload: Record<string, any>,
+): Promise<string> {
+  const operatorId = await resolveOperator(store, accountability, issuer);
+  const locations = await store.authorizedLocations(
+    operatorId,
+    'stakeholder_feedback_review',
+    'create',
+  );
+  const feedbackId = payload?.feedback_id;
+  if (!isUuid(feedbackId) || locations.length === 0) throw deny();
+
+  const rows = await store.loadRows('stakeholder_feedback', [feedbackId]);
+  if (rows.length !== 1 || !isUuid(rows[0].location_id)) throw deny();
+  const locationId = rows[0].location_id;
+  if (!locations.includes(locationId) || !await store.canAccessLocation(
+    operatorId,
+    'stakeholder_feedback_review',
+    'create',
+    locationId,
+  )) throw deny();
+
+  return locationId;
+}

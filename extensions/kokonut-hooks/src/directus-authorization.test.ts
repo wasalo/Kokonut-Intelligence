@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   authorizeDirectusCreate,
+  authorizeDirectusFeedbackReviewCreate,
   authorizeDirectusRead,
   authorizeDirectusReadResult,
   authorizeDirectusRows,
@@ -179,6 +180,32 @@ describe('Directus tenant authorization', () => {
     await expect(authorizeDirectusCreate(
       makeStore({ canAccessLocation: vi.fn().mockResolvedValue(false) }),
       accountability, issuer, 'farm_activity', { location_id: locationB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+  });
+
+  it('scopes feedback-review creation to the exact parent feedback location', async () => {
+    const store = makeStore();
+
+    await expect(authorizeDirectusFeedbackReviewCreate(
+      store, accountability, issuer, { feedback_id: rowA },
+    )).resolves.toBe(locationA);
+    expect(store.loadRows).toHaveBeenCalledWith('stakeholder_feedback', [rowA]);
+    expect(store.authorizedLocations).toHaveBeenCalledWith(
+      operatorId, 'stakeholder_feedback_review', 'create',
+    );
+    expect(store.canAccessLocation).toHaveBeenCalledWith(
+      operatorId, 'stakeholder_feedback_review', 'create', locationA,
+    );
+
+    await expect(authorizeDirectusFeedbackReviewCreate(
+      store, accountability, issuer, { feedback_id: rowB },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusFeedbackReviewCreate(
+      store, accountability, issuer, { feedback_id: 'not-a-uuid' },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusFeedbackReviewCreate(
+      makeStore({ authorizedLocations: vi.fn().mockResolvedValue([]) }),
+      accountability, issuer, { feedback_id: rowA },
     )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
   });
 

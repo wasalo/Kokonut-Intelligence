@@ -144,6 +144,17 @@ describe('tenant reference validation', () => {
     )).rejects.toThrow('Unknown staff_id');
   });
 
+  it('validates a feedback reviewer against the parent feedback location', async () => {
+    const { database } = makeStaffReferenceDatabase(locationId, null);
+    const payload = { location_id: locationId, reviewer_id: farmId };
+
+    await expect(validateTenantReferences(
+      database,
+      'stakeholder_feedback',
+      payload,
+    )).resolves.toBe(payload);
+  });
+
   it('rejects cross-location references on update when the payload omits location_id', async () => {
     const { database } = makeReferenceDatabase(otherLocationId);
 

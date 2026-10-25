@@ -43,6 +43,7 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
     .first('location_id'),
   staff_id: lookupStaffAtLocation,
   reviewed_by: lookupStaffAtLocation,
+  reviewer_id: lookupStaffAtLocation,
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(
