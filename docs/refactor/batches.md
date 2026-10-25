@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,159 checklist items complete and 25
-open (1,184 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,160 checklist items complete and 25
+open (1,185 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3427,6 +3427,10 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-038 EBF evidence-gap output source scope — 25 October 2026
 
 - [x] Include the canonical safe summary view and normalized scorecard/location query scope in the read-only EBF worker output, and require the field in its task contract. The focused worker/task selection passes 91 tests; Ruff, compilation, capability-matrix validation, and diff checks pass. Mocked checks only; no database or provider was accessed ([worker](../../services/agents/worker_cli.py); [task contract](../../services/agents/tasks.py); [tests](../../tests/test_agent_worker_cli.py); [evidence](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json)). This is query-scope metadata, not a row-level source snapshot, and does not close CAP-038 or MAN-CAP-038.
+
+### CAP-038 Delphi facilitator output source scope — 25 October 2026
+
+- [x] Preserve the safe Delphi summary view and normalized study/location query scope from the signed read-only worker through the facilitator result. Three focused mocked checks pass; Ruff, compilation, capability-matrix validation, and diff checks pass. No database or provider was accessed ([worker](../../services/agents/worker_cli.py); [facilitator](../../services/agents/delphi_facilitator_agent.py); [tests](../../tests/test_agent_worker_cli.py); [evidence](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json)). This identifies the bounded query, not returned row snapshots or participant-level evidence, and does not close CAP-038 or MAN-CAP-038.
 
 ### CAP-039 unified CLI forwarding contract — 19 October 2026
 

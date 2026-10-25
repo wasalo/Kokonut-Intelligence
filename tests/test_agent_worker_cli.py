@@ -347,7 +347,14 @@ def test_delphi_agent_worker_uses_signed_location_and_safe_projection(monkeypatc
     credential_reader.assert_called_once_with("agent_delphi_source")
     assert "FROM kokonut_agent_source.delphi_live_summary" in statements[-1]
     assert cursor.execute.call_args_list[-1].args[1] == (study_id, LOCATION_ID)
-    assert result == source_row
+    assert result == {
+        **source_row,
+        "source_scope": {
+            "view": "kokonut_agent_source.delphi_live_summary",
+            "study_id": study_id,
+            "location_id": LOCATION_ID,
+        },
+    }
     connection.commit.assert_not_called()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()

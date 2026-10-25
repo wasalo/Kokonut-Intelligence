@@ -18053,3 +18053,17 @@ acceptance remain open. Checklist: 1,159 complete / 25 open (1,184 total);
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json).
+
+### Progress addendum — CAP-038 Delphi facilitator output source scope, 25 October 2026
+
+The Delphi signed worker now returns the safe summary view and normalized
+study/location query scope, and `summarize_study` preserves the metadata in its
+result. Three focused mocked checks pass; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. No database, provider,
+candidate, or legacy service was touched. This identifies the bounded query but
+does not snapshot returned rows or participant-level evidence. Live OIDC,
+provisioned worker credentials/grants, runtime recovery, and MAN-CAP-038 owner
+acceptance remain open. Checklist: 1,160 complete / 25 open (1,185 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json).

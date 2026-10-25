@@ -50,6 +50,7 @@ def summarize_study(study_id: str, location_id: str) -> Dict[str, Any]:
     return {
         "study_id": study_id,
         "location_id": location_id,
+        "source_scope": summary["source_scope"],
         "title": summary["title"],
         "status": summary["status"],
         "panel_size": summary["panel_size"],

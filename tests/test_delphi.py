@@ -381,6 +381,11 @@ class TestDelphiAgent:
         row = {
             "study_id": study_id,
             "location_id": location_id,
+            "source_scope": {
+                "view": "kokonut_agent_source.delphi_live_summary",
+                "study_id": study_id,
+                "location_id": location_id,
+            },
             "title": "Drought",
             "status": "open",
             "panel_size_available": True,
@@ -402,6 +407,7 @@ class TestDelphiAgent:
         with patch.object(worker_cli, "run_worker_delphi_facilitation", return_value=row) as read:
             summary = summarize_study(study_id, location_id)
         read.assert_called_once_with(study_id, location_id)
+        assert summary["source_scope"] == row["source_scope"]
         assert summary["title"] == "Drought"
         assert summary["panel_size"] == 4
         assert "display_token" not in summary
@@ -432,6 +438,11 @@ class TestDelphiAgent:
         source_summary = {
             "study_id": study_id,
             "location_id": location_id,
+            "source_scope": {
+                "view": "kokonut_agent_source.delphi_live_summary",
+                "study_id": study_id,
+                "location_id": location_id,
+            },
             "title": "Drought",
             "status": "open",
             "panel_size_available": True,

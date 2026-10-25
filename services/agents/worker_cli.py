@@ -699,6 +699,11 @@ def run_worker_delphi_facilitation(study_id: str, location_id: str) -> dict[str,
             result = dict(row)
             if str(result.get("location_id")) != location_id:
                 raise PermissionError("Delphi source returned a mismatched location")
+            result["source_scope"] = {
+                "view": "kokonut_agent_source.delphi_live_summary",
+                "study_id": study_id,
+                "location_id": location_id,
+            }
     except Exception:
         connection.rollback()
         raise

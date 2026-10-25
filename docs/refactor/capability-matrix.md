@@ -1,5 +1,15 @@
 # Capability preservation matrix
 
+**CAP-038 Delphi facilitator output scope (25 October 2026):** the signed
+read-only worker names `kokonut_agent_source.delphi_live_summary` and returns
+normalized study/location scope; the facilitator preserves the metadata. Three
+focused mocked checks pass with Ruff, compilation, matrix validation, and diff
+checks. This is query-scope metadata, not participant-level provenance or a
+snapshot of returned rows. Live OIDC, deployed worker credentials/grants,
+runtime recovery, and MAN-CAP-038 owner acceptance remain open. Classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [Delphi source scope](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json).
+
 **CAP-038 EBF evidence-gap output scope (25 October 2026):** the signed,
 read-only worker now returns the exact safe summary view and normalized
 scorecard/location query scope, and its task contract requires that metadata.
