@@ -19,7 +19,7 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,169 checklist items complete and 25
+**Current snapshot (25 October 2026):** 1,170 checklist items complete and 25
 open (1,190 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
@@ -4011,3 +4011,19 @@ The AST scope inventory now follows a location-filtered parent row into child re
   [tests](../../tests/test_gateway_delphi_study_lifecycle.py);
   [disposable check](../../scripts/check-delphi-study-lifecycle-disposable.py);
   [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
+
+- [x] Expose study transitions in the operator console only where the same
+  location has `delphi:read` and the corresponding `delphi:open` or
+  `delphi:close` grant. The panel lists studies with bounded no-store reads,
+  confirms irreversible actions, sends CSRF-protected requests with retry-stable
+  IDs, validates the returned location/study/status, and updates button state
+  without rendering server text as HTML. Six focused contract checks pass; the
+  four Delphi study/recommendation console suites pass 19 tests including Node
+  syntax validation. No database or provider was used. Live browser/OIDC,
+  questionnaire and panel authoring, contributions, stopping evaluation,
+  populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. Checklist:
+  1,170 complete / 25 open (1,195 total); classifications remain 24
+  baseline-retained, 7 deployed, and 36 prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
+  [console](../../apps/operator-console/index.html);
+  [tests](../../tests/test_operator_console_delphi_study_lifecycle.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-console.json)).

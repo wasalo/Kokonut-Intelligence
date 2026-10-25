@@ -18225,3 +18225,19 @@ populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
 prepared. Checklist: 1,169 complete / 25 open (1,194 total); matrix remains
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
 ([contract](delphi-consultation-kernel-contract.md); [migration](../schemas/postgres/631_location_scoped_delphi_study_lifecycle.sql); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-disposable.json)).
+
+### Progress addendum — CAP-027 Delphi lifecycle console controls, 25 October 2026
+
+The console now lists Delphi studies for exact-location `delphi:read` scopes
+and exposes opening/closing only when the matching `delphi:open` or
+`delphi:close` grant is present for that same location. Actions require
+confirmation, use CSRF-protected no-store requests with retry-stable request
+IDs, and validate the location/study/status response. The six focused console
+contracts pass, and the four Delphi study/recommendation console suites pass
+19 tests including Node.js syntax validation. This is source/contract
+verification; no database, provider, or live browser/OIDC was used. Questionnaire
+and panel authoring, contribution, stopping evaluation, live OIDC/browser,
+populated parity, broader ACL/RLS, and MAN-CAP-027 remain open. CAP-027 stays
+prepared. Checklist: 1,170 complete / 25 open (1,195 total); matrix remains
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows
+([contract](delphi-consultation-kernel-contract.md); [console](../../apps/operator-console/index.html); [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-lifecycle-console.json)).
