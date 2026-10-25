@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,171 checklist items complete and 25
-open (1,196 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,172 checklist items complete and 25
+open (1,197 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -4037,20 +4037,33 @@ The AST scope inventory now follows a location-filtered parent row into child re
   numeric bounds. An immutable private receipt supports exact retries and
   rejects changed-content request reuse. Runtime and Directus cannot read the
   receipt or execute the function; the function owner has only the required
-  read/insert privileges. The 32-test Gateway and route-policy selection passes;
+  read/insert privileges. The 32-test Gateway/policy selection passes;
   disposable PostgreSQL 16 applies/replays migrations 449–451 and 630–632 and
   passes six grouped assertions for replay, authorization, draft-only state,
   payload bounds, and role boundaries. Ruff and Python compilation pass. No
   candidate or legacy database was touched; migration 632 is not rolled out.
-  The console question editor, panel enrollment/contribution paths, stopping
-  evaluation, location-safe target-entity links, live OIDC/browser acceptance,
-  populated parity, universal ACL/RLS, and MAN-CAP-027 remain open. Rollback by
-  disabling the exact route/policy while retaining the additive migration and
-  receipts if applied
+  Rollback by disabling the exact route/policy while retaining the additive
+  migration and receipts if applied
   ([contract](delphi-consultation-kernel-contract.md);
   [migration](../../schemas/postgres/632_location_scoped_delphi_study_items.sql);
   [Gateway tests](../../tests/test_gateway_delphi_study_items.py);
   [disposable check](../../scripts/check-delphi-study-items-disposable.py);
   [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).
-  Checklist: 1,171 complete / 25 open (1,196 total); the matrix remains
+- [x] Add the grant-gated operator-console question editor. It requires
+  `delphi:read` and `delphi:draft` for the same location, lists only draft
+  studies from the bounded no-store study read, and submits CSRF-protected
+  same-origin item requests with stable retry IDs. It validates the returned
+  location, study, and item fields; no open, participant, response, or publish
+  action is exposed. Six focused contracts pass within the 25-test Delphi
+  console selection, including JavaScript parsing; the combined Gateway,
+  policy, and console regression passes 162 tests. The form does not add
+  target-entity links because the repository lacks a typed location-safe
+  resolver. Panel enrollment/contribution paths, stopping evaluation,
+  location-safe target-entity links, live OIDC/browser acceptance, populated
+  parity, universal ACL/RLS, and MAN-CAP-027 remain open. Rollback by removing
+  the panel and its exact-grant wiring; the Gateway remains independently
+  gated ([console](../../apps/operator-console/index.html);
+  [tests](../../tests/test_operator_console_delphi_study_items.py);
+  [contract](delphi-consultation-kernel-contract.md)).
+  Checklist: 1,172 complete / 25 open (1,197 total); the matrix remains
   24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

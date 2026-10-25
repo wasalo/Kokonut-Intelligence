@@ -258,6 +258,44 @@
           </div>
           <p id="delphi-study-lifecycle-status" class="muted" role="status" aria-live="polite"></p>
         </section>
+        <section id="delphi-study-item-create" hidden aria-labelledby="delphi-study-item-create-heading">
+          <h2 id="delphi-study-item-create-heading">Add a question to a Delphi study draft</h2>
+          <p class="muted">Choose a study that is still a private draft. Adding a question does not enroll participants, open the study, submit responses, or publish results. Target-entity links are not available in this form.</p>
+          <div class="toolbar">
+            <label for="delphi-study-item-location">Read and draft authorized location</label>
+            <select id="delphi-study-item-location"></select>
+            <label for="delphi-study-item-study">Draft study</label>
+            <select id="delphi-study-item-study"></select>
+            <button id="delphi-study-item-more" class="secondary" type="button" hidden>Load more drafts</button>
+          </div>
+          <div class="toolbar">
+            <label for="delphi-study-item-type">Question type</label>
+            <select id="delphi-study-item-type">
+              <option value="option">Option</option>
+              <option value="issue">Issue</option>
+              <option value="goal">Goal</option>
+            </select>
+            <label for="delphi-study-item-scale">Response scale</label>
+            <select id="delphi-study-item-scale">
+              <option value="desirability">Desirability</option>
+              <option value="feasibility_technical">Technical feasibility</option>
+              <option value="feasibility_political">Political feasibility</option>
+              <option value="probability">Probability</option>
+            </select>
+          </div>
+          <label for="delphi-study-item-label">Question</label>
+          <input id="delphi-study-item-label" type="text" maxlength="255" autocomplete="off" required>
+          <label for="delphi-study-item-description">Description (optional)</label>
+          <textarea id="delphi-study-item-description" rows="3" maxlength="4000"></textarea>
+          <div class="toolbar">
+            <label for="delphi-study-item-min">Minimum score</label>
+            <input id="delphi-study-item-min" type="number" min="-9999.9999" max="9999.9999" step="0.0001" value="-1" required>
+            <label for="delphi-study-item-max">Maximum score</label>
+            <input id="delphi-study-item-max" type="number" min="-9999.9999" max="9999.9999" step="0.0001" value="1" required>
+          </div>
+          <button id="delphi-study-item-submit" type="button" disabled>Add question to draft</button>
+          <p id="delphi-study-item-status" class="muted" role="status" aria-live="polite"></p>
+        </section>
         <section id="delphi-recommendation-draft-create" hidden aria-labelledby="delphi-recommendation-draft-create-heading">
           <h2 id="delphi-recommendation-draft-create-heading">Create Delphi facilitator draft</h2>
           <p class="muted">Create a bounded recommendation draft for an open or closed study at a location explicitly granted to your account. Draft creation never approves or publishes the text; an independent reviewer must decide it.</p>
@@ -2946,6 +2984,22 @@
       let delphiStudyLifecycleOffset = 0;
       let delphiStudyLifecycleRequestVersion = 0;
       let delphiStudyLifecycleRequestIds = new Map();
+      const delphiStudyItemCreate = document.querySelector("#delphi-study-item-create");
+      const delphiStudyItemLocation = document.querySelector("#delphi-study-item-location");
+      const delphiStudyItemStudy = document.querySelector("#delphi-study-item-study");
+      const delphiStudyItemMore = document.querySelector("#delphi-study-item-more");
+      const delphiStudyItemType = document.querySelector("#delphi-study-item-type");
+      const delphiStudyItemScale = document.querySelector("#delphi-study-item-scale");
+      const delphiStudyItemLabel = document.querySelector("#delphi-study-item-label");
+      const delphiStudyItemDescription = document.querySelector("#delphi-study-item-description");
+      const delphiStudyItemMin = document.querySelector("#delphi-study-item-min");
+      const delphiStudyItemMax = document.querySelector("#delphi-study-item-max");
+      const delphiStudyItemSubmit = document.querySelector("#delphi-study-item-submit");
+      const delphiStudyItemStatus = document.querySelector("#delphi-study-item-status");
+      let delphiStudyItemLocations = new Set();
+      let delphiStudyItemOffset = 0;
+      let delphiStudyItemRequestVersion = 0;
+      let delphiStudyItemRequestIds = new Map();
       const delphiRecommendationDraftCreate = document.querySelector("#delphi-recommendation-draft-create");
       const delphiRecommendationDraftLocation = document.querySelector("#delphi-recommendation-draft-location");
       const delphiRecommendationDraftStudy = document.querySelector("#delphi-recommendation-draft-study");
@@ -21367,6 +21421,9 @@
           const delphiStudyLifecycleLocationIds = [...delphiReadLocationIds]
             .filter((locationId) => delphiOpenLocationIds.has(locationId)
               || delphiCloseLocationIds.has(locationId));
+          const delphiStudyItemLocationIds = [...delphiReadLocationIds]
+            .filter((locationId) => delphiStudyDraftLocations.has(locationId));
+          delphiStudyItemLocations = new Set(delphiStudyItemLocationIds);
           delphiStudyLifecycleLocations = new Map(delphiStudyLifecycleLocationIds.map((locationId) => [
             locationId,
             { open: delphiOpenLocationIds.has(locationId), close: delphiCloseLocationIds.has(locationId) },
@@ -21972,6 +22029,17 @@
             await loadDelphiStudyLifecycleStudies();
             hasAuthorizedSurface = true;
           }
+          if (delphiStudyItemLocationIds.length) {
+            for (const locationId of delphiStudyItemLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              delphiStudyItemLocation.append(option);
+            }
+            delphiStudyItemCreate.hidden = false;
+            await loadDelphiStudyItemStudies();
+            hasAuthorizedSurface = true;
+          }
           if (governanceTensionLocations.length) {
             for (const locationId of governanceTensionLocations) {
               const option = document.createElement("option");
@@ -22274,6 +22342,165 @@
           delphiStudyDraftStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
           delphiStudyDraftSubmit.disabled = false;
+        }
+      }
+
+      function refreshDelphiStudyItemControls() {
+        const locationId = delphiStudyItemLocation.value;
+        const selected = delphiStudyItemStudy.selectedOptions[0];
+        delphiStudyItemSubmit.disabled = !delphiStudyItemLocations.has(locationId)
+          || !selected?.value
+          || selected?.dataset?.status !== "draft";
+      }
+
+      async function loadDelphiStudyItemStudies(append = false) {
+        const locationId = delphiStudyItemLocation.value;
+        const requestVersion = ++delphiStudyItemRequestVersion;
+        const previousStudyId = delphiStudyItemStudy.value;
+        if (!append) {
+          delphiStudyItemStudy.replaceChildren();
+          delphiStudyItemOffset = 0;
+        }
+        delphiStudyItemMore.hidden = true;
+        refreshDelphiStudyItemControls();
+        if (!delphiStudyItemLocations.has(locationId)) {
+          delphiStudyItemStatus.textContent = "Read and draft grants for the same location are required.";
+          return;
+        }
+        delphiStudyItemStatus.textContent = "Loading draft studies for this location…";
+        const params = new URLSearchParams({
+          limit: "50",
+          offset: String(delphiStudyItemOffset),
+        });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiStudyItemRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi read grant is not valid.");
+          }
+          if (!response.ok) throw new Error("Draft studies are unavailable.");
+          const result = await response.json();
+          if (result.location_id !== locationId || !Array.isArray(result.studies)) {
+            throw new Error("The response did not match the selected location.");
+          }
+          const existingIds = new Set([...delphiStudyItemStudy.options].map((option) => option.value));
+          for (const study of result.studies) {
+            const studyId = String(study.study_id || "");
+            if (!studyId || study.status !== "draft" || existingIds.has(studyId)) continue;
+            const option = document.createElement("option");
+            option.value = studyId;
+            option.dataset.status = "draft";
+            option.textContent = `${String(study.title || "Untitled study")} (draft)`;
+            delphiStudyItemStudy.append(option);
+            existingIds.add(studyId);
+          }
+          delphiStudyItemOffset += result.studies.length;
+          delphiStudyItemMore.hidden = result.has_more !== true;
+          if (previousStudyId
+              && [...delphiStudyItemStudy.options].some((option) => option.value === previousStudyId)) {
+            delphiStudyItemStudy.value = previousStudyId;
+          }
+          refreshDelphiStudyItemControls();
+          delphiStudyItemStatus.textContent = delphiStudyItemStudy.options.length
+            ? "Questions can be added only while the selected study remains a private draft."
+            : "No Delphi study drafts are available for this location.";
+        } catch (error) {
+          if (requestVersion === delphiStudyItemRequestVersion) {
+            delphiStudyItemStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitDelphiStudyItem() {
+        const locationId = delphiStudyItemLocation.value;
+        const studyId = delphiStudyItemStudy.value;
+        const selected = delphiStudyItemStudy.selectedOptions[0];
+        if (!delphiStudyItemLocations.has(locationId) || !studyId
+            || selected?.dataset?.status !== "draft") {
+          delphiStudyItemStatus.textContent = "Choose a draft study at a location with read and draft grants.";
+          return;
+        }
+        const label = delphiStudyItemLabel.value.trim();
+        const description = delphiStudyItemDescription.value.trim() || null;
+        const minValue = Number(delphiStudyItemMin.value);
+        const maxValue = Number(delphiStudyItemMax.value);
+        if (!label || label.length > 255 || (description && description.length > 4000)
+            || !delphiStudyItemMin.checkValidity() || !delphiStudyItemMax.checkValidity()
+            || !Number.isFinite(minValue) || !Number.isFinite(maxValue) || minValue >= maxValue) {
+          delphiStudyItemStatus.textContent = "Enter a question and valid, increasing numeric score bounds.";
+          delphiStudyItemLabel.focus();
+          return;
+        }
+        const payload = {
+          item_type: delphiStudyItemType.value,
+          label,
+          description,
+          scale: delphiStudyItemScale.value,
+          min_value: minValue,
+          max_value: maxValue,
+        };
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, studyId, payload]);
+        let requestId = delphiStudyItemRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiStudyItemRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiStudyItemStatus.textContent = "Refresh in a secure browser session before adding a question.";
+          return;
+        }
+        const controls = [
+          delphiStudyItemLocation, delphiStudyItemStudy, delphiStudyItemMore,
+          delphiStudyItemType, delphiStudyItemScale, delphiStudyItemLabel,
+          delphiStudyItemDescription, delphiStudyItemMin, delphiStudyItemMax,
+        ];
+        for (const control of controls) control.disabled = true;
+        delphiStudyItemSubmit.disabled = true;
+        delphiStudyItemStatus.textContent = "Adding a question to the private study draft…";
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/items`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId, ...payload }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi draft grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error("The study is no longer an eligible draft or this request ID conflicts.");
+          }
+          if (!response.ok) throw new Error("The question could not be added to the Delphi study.");
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || typeof result.item_id !== "string" || result.label !== label
+              || result.item_type !== payload.item_type || result.scale !== payload.scale
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not confirm the question under the selected draft and location.");
+          }
+          delphiStudyItemRequestIds.delete(requestKey);
+          delphiStudyItemLabel.value = "";
+          delphiStudyItemDescription.value = "";
+          delphiStudyItemStatus.textContent = result.replayed
+            ? `The previous question request was confirmed (${result.item_id}). The study remains a private draft.`
+            : `Question added to the private draft (${result.item_id}). The study remains unopened.`;
+        } catch (error) {
+          delphiStudyItemStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          for (const control of controls) control.disabled = false;
+          refreshDelphiStudyItemControls();
         }
       }
 
@@ -25586,6 +25813,10 @@
       delphiRecommendationDraftStudiesMore.addEventListener("click", () => loadDelphiRecommendationDraftStudies(true));
       delphiRecommendationDraftSubmit.addEventListener("click", submitDelphiRecommendationDraft);
       delphiStudyDraftSubmit.addEventListener("click", submitDelphiStudyDraft);
+      delphiStudyItemLocation.addEventListener("change", () => loadDelphiStudyItemStudies());
+      delphiStudyItemStudy.addEventListener("change", refreshDelphiStudyItemControls);
+      delphiStudyItemMore.addEventListener("click", () => loadDelphiStudyItemStudies(true));
+      delphiStudyItemSubmit.addEventListener("click", submitDelphiStudyItem);
       delphiStudyLifecycleLocation.addEventListener("change", () => loadDelphiStudyLifecycleStudies());
       delphiStudyLifecycleStudy.addEventListener("change", refreshDelphiStudyLifecycleControls);
       delphiStudyLifecycleMore.addEventListener("click", () => loadDelphiStudyLifecycleStudies(true));

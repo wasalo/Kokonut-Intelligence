@@ -18244,8 +18244,8 @@ prepared. Checklist: 1,170 complete / 25 open (1,195 total); matrix remains
 
 ### Progress addendum — CAP-027 Delphi questionnaire item drafts, 25 October 2026
 
-Migration 632 and a new exact-location Gateway route can add bounded questions
-only to a `draft` study under `delphi:draft`. Signed tenant context and current
+Migration 632, a new exact-location Gateway route, and its operator-console
+form add bounded questions only to a `draft` study under `delphi:draft`. Signed tenant context and current
 scope are rechecked in a dedicated database function, which validates the
 location-owned study, locks it against concurrent lifecycle transitions, and
 inserts only allowlisted item columns. Immutable private receipts make exact
@@ -18253,13 +18253,16 @@ retries replay and changed-content key reuse fail closed. The focused Gateway
 and route-policy selection passes 32 tests. Disposable PostgreSQL 16 applies
 and replays migrations 449–451 and 630–632 with six grouped assertions for
 authorization, replay, study state, field bounds, and runtime/Directus
-privileges. Ruff, compilation, migration integrity, and inventory checks are
-recorded with the batch. Candidate and legacy databases remain untouched;
-migration 632 is not rolled out. This is the API only: a console question
-editor, panel enrollment/contributions, stopping evaluation, location-safe
-target-entity links, live OIDC/browser, populated parity, broader ACL/RLS, and
-MAN-CAP-027 remain open. CAP-027 is still prepared. Checklist: 1,171 complete /
-25 open (1,196 total); matrix remains 24 baseline-retained, 7 deployed, and 36
+privileges. The console requires same-location read and draft grants, filters
+the bounded study list to draft status, and uses CSRF/no-store requests with
+retry-stable IDs; six focused new contracts pass within a 25-test Delphi
+console selection, including JavaScript parsing. Ruff, compilation, migration
+integrity, and inventory checks pass. Candidate and legacy databases remain
+untouched; migration 632 is not rolled out. Panel enrollment/contributions,
+stopping evaluation, location-safe target-entity links, live OIDC/browser,
+populated parity, broader ACL/RLS, and MAN-CAP-027 remain open. CAP-027 is still
+prepared. Checklist: 1,172 complete / 25 open (1,197 total); matrix remains
+24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows
 ([contract](delphi-consultation-kernel-contract.md);
 [migration](../schemas/postgres/632_location_scoped_delphi_study_items.sql);

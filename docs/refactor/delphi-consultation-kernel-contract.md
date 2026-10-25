@@ -134,7 +134,14 @@ The current contract intentionally omits `target_entity_type` and
 location-safe resolver for all supported target entity types. Preserve those
 links in the legacy implementation until a typed, per-entity resolver and
 cross-location denial contract are implemented. The operator console question
-editor, panel enrollment, contribution submission, and stopping evaluation
+editor appears only where the session has both `delphi:read` and `delphi:draft`
+for the same location. Its bounded, paged study read filters the chooser to
+`draft` status; the write still relies on the database check, so a concurrent
+open makes the request fail closed. The form uses CSRF-protected, same-origin,
+no-store requests, reuses a request ID for an unchanged retry, and validates
+that the returned item belongs to the selected location and study. It does not
+enroll panel members, collect answers, open the study, or attach a target
+entity. Panel enrollment, contribution submission, and stopping evaluation
 remain separate work. Migration 632 and six grouped disposable PostgreSQL 16
 acceptance checks are recorded in the [implementation evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json).
 
