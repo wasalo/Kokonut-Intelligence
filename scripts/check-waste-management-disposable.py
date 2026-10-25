@@ -93,13 +93,38 @@ def main() -> int:
         conn.autocommit = False
         checks.append("migration 153 applies and replays with only the required location fixture")
 
-        waste_a = waste_management.record_waste(
-            conn, location_a, "organic", "Crop residues", 25, "composting",
-            source="field log", notes="synthetic waste record",
-        )
-        waste_b = waste_management.record_waste(
-            conn, location_b, "chemical", "Container", 4, "incineration",
-        )
+        try:
+            waste_management.record_waste(
+                conn, location_a, "organic", "Crop residues", 25, "composting",
+                source="field log", notes="synthetic waste record",
+            )
+        except waste_management.TenantContextDenied:
+            pass
+        else:
+            raise AssertionError("unscoped legacy waste writer was not retired")
+        waste_a_id, waste_b_id = str(uuid.uuid4()), str(uuid.uuid4())
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO waste_stream
+                    (id, location_id, waste_type, waste_name, quantity_kg,
+                     quantity_unit, record_date, disposal_method, notes, metadata, status)
+                VALUES
+                    (%s, %s, 'organic_waste', 'Crop residues', 25, 'kg', CURRENT_DATE,
+                     'composting', 'synthetic waste record', %s::jsonb, 'verified'),
+                    (%s, %s, 'other', 'Container', 4, 'kg', CURRENT_DATE,
+                     'other', NULL, %s::jsonb, 'verified')
+                """,
+                (
+                    waste_a_id, location_a, json.dumps({"source": "field log"}),
+                    waste_b_id, location_b, json.dumps({
+                        "legacy_waste_type": "chemical",
+                        "legacy_disposal_method": "incineration",
+                    }),
+                ),
+            )
+        waste_a = {"waste_id": waste_a_id}
+        waste_b = {"waste_id": waste_b_id}
         compost = waste_management.record_composting(
             conn, location_a, "Banana stems", 100, "vermicomposting",
             output_kg=45, temperature_c=55, ph=6.5, moisture_pct=60,
@@ -111,12 +136,12 @@ def main() -> int:
             conn, location_a, "air_pollution", "high", "Synthetic event",
             "North plot", reported_by="synthetic operator",
         )
-        checks.append("all four writer operations insert valid canonical rows and preserve legacy inputs")
+        checks.append("unscoped legacy waste writer fails closed; synthetic read fixtures are isolated")
 
         with conn.cursor() as cursor:
             cursor.execute("SELECT status FROM waste_stream WHERE id = %s", (waste_a["waste_id"],))
-            if cursor.fetchone()[0] != "recorded":
-                raise AssertionError("waste writer did not use the canonical recorded state")
+            if cursor.fetchone()[0] != "verified":
+                raise AssertionError("synthetic waste fixture is not eligible for verified summary")
             cursor.execute("SELECT status FROM composting_record WHERE id = %s", (compost["compost_id"],))
             if cursor.fetchone()[0] != "recorded":
                 raise AssertionError("compost writer did not use the canonical recorded state")
@@ -129,14 +154,6 @@ def main() -> int:
             )
             if cursor.fetchone() != ("open", False):
                 raise AssertionError("incident writer did not use the canonical open state")
-            cursor.execute(
-                "UPDATE waste_stream SET status = 'verified' WHERE id = %s",
-                (waste_a["waste_id"],),
-            )
-            cursor.execute(
-                "UPDATE waste_stream SET status = 'verified' WHERE id = %s",
-                (waste_b["waste_id"],),
-            )
             cursor.execute(
                 "UPDATE composting_record SET status = 'verified' WHERE id = %s",
                 (compost["compost_id"],),
@@ -199,7 +216,7 @@ def main() -> int:
             ):
                 raise AssertionError("incident type/reporter metadata did not persist")
         conn.commit()
-        checks.append("each writer starts in its canonical recorded/open state")
+        checks.append("remaining legacy writers start in canonical recorded/open states")
         checks.append("schema-constrained category mappings and JSONB compatibility fields persist")
 
         waste_summary = waste_management.get_waste_summary(conn, location_a, days=30)

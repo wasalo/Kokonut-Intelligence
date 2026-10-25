@@ -48,15 +48,15 @@ non-integer, and boolean windows fail before cursor acquisition. Its cursor
 closes on both success and query failure. This remains a trusted local CLI
 path; it does not add an authenticated API or tenant authorization boundary.
 
-The legacy `record_waste` writer now inserts into `waste_stream` with the
-canonical `record_date`, `quantity_unit='kg'`, JSONB metadata, and `recorded`
-status. Its `organic` input maps to canonical `organic_waste`; `chemical` and
-other unsupported legacy type/disposal labels map to `other` and remain in
-metadata to avoid misclassification. The optional source value is also
-preserved in metadata. Function arguments, response shape, and CLI remain
-compatible. This is a trusted local CLI write path without tenant
-authorization; the database lifecycle still requires human verification
-before the summary includes a row.
+The legacy `record_waste` Python helper and `record-waste` CLI now fail closed
+because the old location argument was caller-selected and did not establish an
+authenticated tenant identity. The helper rejects before opening a cursor; the
+CLI is marked database-free and directs operators to the authenticated Gateway
+capture form. This removal applies only to that unscoped waste-stream writer;
+other local composting, recycling, and incident CLI writes still lack tenant
+authorization and remain separate parity work. The Gateway replacement checks
+`waste_management:create`, writes canonical kilogram rows as `recorded`, and
+uses an idempotency receipt. Human verification remains separate.
 
 The legacy `record_recycling` writer now inserts into migration-153
 `recycling_log`, including its required `record_date` and `recorded` lifecycle
@@ -81,9 +81,10 @@ trusted CLI paths and do not establish tenant authorization.
 
 The legacy CLI contract was exercised against the actual migration-153 schema
 in disposable PostgreSQL 16. Migration apply/replay and synthetic inserts
-verified all four writers, initial recorded/open states, canonical enum
-constraints, JSONB preservation, verified-only waste summary, compost
-yield/pH, reporter attribution, and incident resolution. This does not
+verified the retired waste helper fails closed, three remaining local writers,
+initial recorded/open states, canonical enum constraints, JSONB preservation,
+verified-only waste summary, compost yield/pH, reporter attribution, and incident
+resolution. Waste rows in this run are synthetic read fixtures, not helper writes. This does not
 exercise tenant roles or populated legacy outputs
 ([runner](../scripts/check-waste-management-disposable.py);
 [evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
@@ -129,10 +130,10 @@ publication. Newly captured rows remain absent from verified aggregates until
 a separate human verification path exists.
 
 The receipt table is not directly readable by runtime or Directus, and the
-bounded function is not executable by Directus. The legacy `record_waste` CLI
-remains a trusted direct-database compatibility path and does not inherit this
-tenant authorization; runtime/Directus access to the canonical waste table
-still needs a separate ACL/RLS decision. Entry notes are stored in the
+bounded function is not executable by Directus. The legacy `record_waste` helper and CLI fail closed before cursor/database
+acquisition; other local write CLIs still lack tenant authorization.
+Runtime/Directus access to canonical waste rows still needs a separate ACL/RLS
+decision. Entry notes are stored in the
 canonical table and omitted from this Gateway response and aggregate projection;
 this slice does not claim Directus field-level privacy parity.
 

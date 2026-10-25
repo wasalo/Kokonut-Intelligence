@@ -1,3 +1,20 @@
+### Progress addendum — CAP-006 retire unscoped waste-stream writer, 24 October 2026
+
+The legacy `record_waste` Python helper now fails before opening a cursor, and
+its CLI command runs offline and fails closed before opening PostgreSQL. The
+caller-selected location was not an authenticated scope. Waste entry creation
+remains available through the new exact-grant Gateway route; verified summaries
+and other legacy waste operations are unchanged. Five focused suites pass 61
+tests plus five subtests, covering the legacy waste module, capture/read routes,
+console, and route policy; Ruff and Python compilation pass. The migration-153
+disposable check passes with synthetic read fixtures and separately asserts
+that the retired helper rejects writes. No candidate or legacy database,
+migration rollout, or provider was accessed. Canonical-table ACL/RLS, other legacy direct
+writers, populated parity, live OIDC/browser, and MAN-CAP-006 remain open.
+([evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-writer-retirement.json))
+Checklist: 1,120 complete / 25 open (1,145 total). Roll back by restoring the
+helper/CLI only after an authenticated tenant-context contract is implemented.
+
 ### Progress addendum — CAP-006 location-scoped waste-stream capture, 24 October 2026
 
 Migration 613 adds `POST /operator/api/waste/{location_id}/records` with the
@@ -22,8 +39,9 @@ The isolated context helper is synthetic; shared signed-context tests remain
 the cryptographic evidence. QEMU is software portability evidence, not physical
 Raspberry Pi acceptance. Candidate and legacy databases are untouched and
 migration 613 is not rolled out. Runtime/Directus access to canonical waste
-rows, the legacy CLI's trusted direct-write path, populated parity, live
-OIDC/browser acceptance, and MAN-CAP-006 remain open. Rollback disables the
+rows, the trusted direct-write path that existed at this batch boundary,
+populated parity, live OIDC/browser acceptance, and MAN-CAP-006 remain open;
+the legacy `record_waste` helper and CLI are retired in the next batch. Rollback disables the
 route, exact policy and form; retain receipts if 613 is applied. Checklist:
 1,119 complete / 25 open (1,144 total); 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted.

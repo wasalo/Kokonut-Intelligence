@@ -1,3 +1,15 @@
+### Current CAP-006 implementation slice — retire unscoped waste writer, 24 October 2026
+
+The legacy `record_waste` service helper and CLI now fail closed before cursor
+or database acquisition because their location argument is not authenticated
+tenant context. Exact-location waste creation remains available through the
+Gateway path added in migration 613. The migration-153 disposable runner now
+uses synthetic rows as read fixtures and asserts that the old helper rejects
+writes. The focused waste/Gateway/console/route-policy selection passes 61 tests
+plus five subtests, and Ruff passes. No database, provider, candidate, or legacy
+stack was accessed. Other direct local waste writers, canonical-table ACL/RLS,
+populated parity, live OIDC/browser acceptance, and MAN-CAP-006 remain open.
+
 ### Current CAP-006 implementation slice — location-scoped waste-stream capture, 24 October 2026
 
 Migration 613 and the Gateway now provide `POST /operator/api/waste/{location_id}/records` under the exact `waste_management:create` grant. Input is bounded and normalized before database access; a bounded security-definer function rechecks signed tenant context, stores only a canonical `recorded` kilogram row, and uses a private digest receipt for idempotent retry. The console gates create independently from verified summary access and preserves the same request ID/payload after uncertain responses. A capture is never treated as verification or publication. The focused 32-test selection and broader 98-test selection (including migration checks and five subtests) pass, as do Ruff, Python compilation, console JavaScript syntax, and diff checks. Disposable PostgreSQL 16 apply/replay and authorization/ACL checks pass on native AMD64 and linux/arm64 Docker/QEMU. Candidate/legacy databases are untouched and the migration is not rolled out. Remaining CAP-006 work includes the trusted legacy direct-write boundary, canonical-table ACL/RLS, populated-data parity, live OIDC/browser behavior, and MAN-CAP-006 acceptance. See the [waste contract](waste-management-kernel-read-contract.md), [checklist](batches.md), [native evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-disposable.json), and [ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-arm64-disposable.json).

@@ -19,12 +19,30 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,119 checklist items complete and 25
-open (1,144 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,120 checklist items complete and 25
+open (1,145 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
-### CAP-006 location-scoped waste-stream capture — 24 October 2026
+### CAP-006 retire unscoped waste-stream writer — 24 October 2026
+
+- [x] Disable `record_waste` helper and CLI writes that trusted a
+  caller-selected location without authenticated tenant context. The helper
+  rejects before cursor access and the CLI is explicitly database-free before
+  returning the Gateway guidance. The migration-153 disposable runner now
+  creates isolated synthetic read fixtures and verifies the helper's denial
+  ([source evidence](builds/2026-10-24-recovery/cap-006-legacy-waste-writer-retirement.json);
+  [disposable evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+  The focused waste/Gateway/console/route-policy selection passes 61 tests plus
+  five subtests; Ruff and Python compilation pass. The disposable PostgreSQL 16
+  migration-153 check passes with synthetic records. No candidate or legacy
+  database, migration rollout, or provider was used. Other legacy write commands remain trusted local paths
+  and have not yet received scoped Gateway alternatives; canonical-table
+  ACL/RLS, populated parity, live OIDC/browser, and MAN-CAP-006 remain open.
+  Roll back only after an authenticated context contract replaces this guard.
+  Checklist: 1,120 complete / 25 open (1,145 total).
+
+### Previous CAP-006 batch — location-scoped waste-stream capture — 24 October 2026
 
 - [x] Add `POST /operator/api/waste/{location_id}/records` with the exact
   `waste_management:create` grant, bounded streamed JSON, CSRF/no-store
@@ -44,8 +62,8 @@ acceptance remains separate; none is marked accepted.
   ([ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-arm64-disposable.json)).
   The synthetic context helper does not replace cryptographic tenant-context
   acceptance; QEMU does not claim physical Raspberry Pi acceptance. Candidate
-  and legacy databases remain untouched; migration 613 is not rolled out. The
-  legacy CLI remains a trusted direct-database path, and canonical table
+  and legacy databases remain untouched; migration 613 is not rolled out. At this capture-batch boundary, the legacy CLI was still a trusted
+  direct-database path and the next checklist item retires it; canonical table
   ACL/RLS plus Directus field parity remain separate gates. Rollback disables
   the route, exact policy, and form; retain receipts if the migration is later
   applied. CAP-006 remains prepared pending populated parity, live OIDC/browser,

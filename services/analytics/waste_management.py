@@ -6,7 +6,7 @@ Records waste streams, composting operations, recycling activities,
 and pollution incidents. Provides summaries, efficiency metrics, and dashboards.
 
 Usage:
-    python -m services.analytics.waste_management record-waste --location-id UUID --waste-type organic --waste-name "Crop residues" --quantity 50.0 --disposal-method composting
+    python -m services.analytics.waste_management record-waste --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting
     python -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00
     python -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"
@@ -22,6 +22,7 @@ import uuid
 from datetime import date, datetime, timezone
 
 from services.common.commands import CommandLine
+from services.common.tenant_context import TenantContextDenied
 
 from ..common.logging import get_logger
 
@@ -43,70 +44,19 @@ def record_waste(
     notes: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Record a waste stream entry."""
-    cur = conn.cursor()
-    waste_id = str(uuid.uuid4())
+    """Reject legacy direct writes that lack authenticated tenant context.
 
-    canonical_waste_types = {
-        "crop_residue", "processing_waste", "packaging", "chemical_container",
-        "organic_waste", "wastewater", "other",
-    }
-    source_waste_type = waste_type.strip().lower().replace(" ", "_")
-    waste_type_aliases = {"organic": "organic_waste"}
-    canonical_waste_type = waste_type_aliases.get(
-        source_waste_type, source_waste_type,
+    The location argument is caller-selected and is not authorization. New
+    waste-stream captures must use the Gateway path, which installs signed
+    operator context and checks the current exact-location create grant in
+    PostgreSQL.
+    """
+    del conn, location_id, waste_type, waste_name, quantity_kg, disposal_method
+    del source, notes, metadata
+    raise TenantContextDenied(
+        "Unscoped waste writes are disabled; use the authenticated operator "
+        "Gateway waste-capture workflow"
     )
-    if canonical_waste_type not in canonical_waste_types:
-        canonical_waste_type = "other"
-
-    canonical_disposal_methods = {
-        "composting", "burning", "landfill", "recycling", "animal_feed",
-        "biogas", "mulching", "other",
-    }
-    source_disposal_method = disposal_method.strip().lower().replace(" ", "_")
-    canonical_disposal_method = (
-        source_disposal_method
-        if source_disposal_method in canonical_disposal_methods
-        else "other"
-    )
-    record_metadata = dict(metadata or {})
-    if source is not None:
-        record_metadata["source"] = source
-    if source_waste_type != canonical_waste_type:
-        record_metadata["legacy_waste_type"] = waste_type
-    if source_disposal_method != canonical_disposal_method:
-        record_metadata["legacy_disposal_method"] = disposal_method
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO waste_stream
-                (id, location_id, waste_type, waste_name, quantity_kg,
-                 quantity_unit, record_date, disposal_method, notes, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, 'kg', %s, %s, %s, %s::jsonb, 'recorded')
-            RETURNING id
-            """,
-            (
-                waste_id, location_id, canonical_waste_type, waste_name,
-                quantity_kg, date.today(), canonical_disposal_method, notes,
-                json.dumps(record_metadata),
-            ),
-        )
-        conn.commit()
-    finally:
-        cur.close()
-
-    logger.info("Recorded waste stream %s: %s %s kg via %s", waste_id, waste_type, quantity_kg, disposal_method)
-
-    return {
-        "waste_id": waste_id,
-        "location_id": location_id,
-        "waste_type": waste_type,
-        "waste_name": waste_name,
-        "quantity_kg": quantity_kg,
-        "disposal_method": disposal_method,
-        "recorded_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 # ============================================================
@@ -686,7 +636,7 @@ def _cmd_resolve_incident(db, a):
     )
 
 
-cli.subcommand("record-waste", "Record waste stream") \
+cli.subcommand("record-waste", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--waste-type", required=True, help="organic, plastic, metal, chemical, electronic, other") \
     .add("--waste-name", required=True) \
@@ -695,7 +645,7 @@ cli.subcommand("record-waste", "Record waste stream") \
     .add("--source") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_waste) \
+    .run(_cmd_record_waste, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_waste_record))
 
 cli.subcommand("record-composting", "Record composting operation") \

@@ -3,6 +3,7 @@
 Tests for Waste Management
 """
 
+import io
 import json
 import os
 import sys
@@ -10,9 +11,11 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from contextlib import redirect_stderr
 from datetime import date
 from unittest.mock import MagicMock, patch
 
+from services.analytics import waste_management
 from services.analytics.waste_management import (
     get_composting_efficiency,
     get_open_incidents,
@@ -24,6 +27,7 @@ from services.analytics.waste_management import (
     report_incident,
     resolve_incident,
 )
+from services.common.tenant_context import TenantContextDenied
 
 
 class TestRecordWaste(unittest.TestCase):
@@ -33,48 +37,28 @@ class TestRecordWaste(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_record_waste_returns_waste_id(self):
-        result = record_waste(
-            self.conn, "loc-001", "organic", "Crop residues",
-            50.0, "composting",
-        )
-        self.assertIn("waste_id", result)
-        self.assertEqual(result["waste_type"], "organic")
-        self.assertEqual(result["waste_name"], "Crop residues")
-        self.assertEqual(result["quantity_kg"], 50.0)
-        self.assertEqual(result["disposal_method"], "composting")
-        self.conn.commit.assert_called_once()
+    def test_legacy_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            record_waste(
+                self.conn, "loc-001", "organic", "Crop residues",
+                50.0, "composting", source="field A", notes="Clean plastic",
+            )
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
-    def test_record_waste_with_source_and_notes(self):
-        result = record_waste(
-            self.conn, "loc-001", "plastic", "Bags",
-            10.0, "recycling", source="field A", notes="Clean plastic",
-        )
-        self.assertIn("waste_id", result)
-        self.assertEqual(result["location_id"], "loc-001")
-
-    def test_record_waste_calls_execute(self):
-        record_waste(
-            self.conn, "loc-001", "chemical", "Solvent", 5.0, "incineration",
-            source="store room", notes="Empty container",
-        )
-        self.mock_cursor.execute.assert_called_once()
-        self.mock_cursor.close.assert_called_once()
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("INSERT INTO waste_stream", query)
-        self.assertIn("record_date", query)
-        self.assertIn("quantity_unit", query)
-        self.assertIn("'recorded'", query)
-        self.assertNotIn("waste_stream_record", query)
-        self.assertNotIn("'draft'", query)
-        self.assertEqual(params[2], "other")
-        self.assertEqual(params[6], "other")
-        self.assertEqual(params[7], "Empty container")
-        self.assertEqual(json.loads(params[8]), {
-            "source": "store room",
-            "legacy_waste_type": "chemical",
-            "legacy_disposal_method": "incineration",
-        })
+    def test_legacy_cli_writer_fails_before_opening_database(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "record-waste", "--location-id", "loc-001",
+                    "--waste-type", "organic", "--waste-name", "Crop residues",
+                    "--quantity", "50", "--disposal-method", "composting",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway waste-capture workflow", stderr.getvalue())
 
 
 class TestRecordComposting(unittest.TestCase):
