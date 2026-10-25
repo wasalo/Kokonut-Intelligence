@@ -18552,3 +18552,34 @@ acceptance. The checklist remains 1,184 complete / 25 open (1,209 total), and
 the matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67
 rows. This was a source/documentation reconciliation; no tests, database,
 candidate, legacy service, or provider were used.
+
+### Progress addendum — CAP-027 panel calibration safety boundary, 25 October 2026
+
+Disabled the legacy Delphi service-level calibration mutation, which had
+reweighted participants by distance from the current group consensus. That
+measure is circular and does not establish forecast accuracy; changing these
+weights also changes future consensus. Direct calls now fail before database
+connection acquisition, in addition to the already-blocked CLI path. The
+focused Delphi suite passes 68 tests; Ruff and Python compilation pass. No
+database, provider, candidate, legacy service, migration, or participant
+weights were touched. A reviewed location-scoped evidence model, advisory
+proposal, and independent Gateway approval remain future work. CAP-027 stays
+prepared, and named acceptance remains open. Checklist: 1,185 complete / 25
+open (1,210 total); matrix classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows. Evidence:
+[calibration boundary](builds/2026-10-25-recovery/cap-027-legacy-panel-calibration-boundary.json).
+
+### Progress addendum — current-schema ARM64/QEMU replay through migration 639, 25 October 2026
+
+A network-disabled disposable ARM64 PostgreSQL/PostGIS container applied all
+630 ordered schema files through migration 639 with zero pending or failed
+migrations. The database reported `aarch64`; no seeds, farm data, network, or
+host ports were used, and cleanup completed. Candidate and legacy stacks were
+untouched. This closes the software-emulated schema replay only; physical
+Raspberry Pi, power-loss, measured resource, endurance, and 24-hour recovery
+acceptance remain open. The schema replay used source revision `1e6771b2`; its
+separate service-level calibration change is covered by the 68-test Delphi
+boundary evidence above. Checklist remains 1,185 complete / 25 open (1,210
+total), with 24 baseline-retained, 7 deployed, and 36 prepared rows across 67
+capabilities. Evidence:
+[ARM64/QEMU replay](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json).

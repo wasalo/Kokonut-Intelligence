@@ -315,6 +315,15 @@ remain capability gaps until their matching authenticated Gateway contracts
 are implemented; this is an access-boundary hardening step, not a claim of full
 Delphi lifecycle parity. No candidate or legacy database change is implied.
 
+The legacy `Facilitator.calibrate_panel()` service method also fails before
+opening a database connection. Its former consensus-distance weighting rule
+treated agreement with the current group median as expertise, then changed
+weights that affect later consensus. That is circular and is not evidence of
+forecast accuracy. No calibration mutation is currently available. A future
+capability needs a location-scoped evidence contract, a documented scoring
+window, an advisory proposal, and independent human approval through a signed
+Gateway action; until then, preserve existing participant weights.
+
 
 ## Versioned participant consent and single-use invitation boundary
 

@@ -521,106 +521,15 @@ class Facilitator:
     # ------------------------------------------------------------------
 
     def calibrate_panel(self, study_id: str) -> Dict[str, Any]:
-        """Recalibrate expert weights based on historical prediction accuracy.
+        """Block the legacy unscoped, consensus-relative weight writer.
 
-        For each panel member, compares their past scores against final consensus
-        medians. Members closer to consensus get higher weights; outliers get
-        lower weights. Weight changes are bounded [0.1, 3.0].
+        Agreement with a panel median is not evidence of forecast accuracy, and
+        this operation mutates weights that affect later consensus. Re-enable
+        calibration only through a reviewed location-scoped proposal and a
+        separate human approval action.
         """
-        conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-        # Get all items with consensus
-        cur.execute(
-            """
-            SELECT dc.item_id, dc.median AS consensus_median
-            FROM delphi_consensus dc
-            WHERE dc.study_id = %s AND dc.participant_count >= 2
-            """,
-            (study_id,),
+        del study_id
+        raise RuntimeError(
+            "Direct Delphi panel calibration is disabled; use a reviewed, "
+            "location-scoped calibration workflow when available"
         )
-        item_consensus = {str(r["item_id"]): float(r["consensus_median"]) for r in cur.fetchall()}
-
-        if not item_consensus:
-            cur.close()
-            return {"study_id": study_id, "calibrated": False, "reason": "no_items_with_consensus"}
-
-        # Get all panel members
-        cur.execute(
-            "SELECT id, display_token, expert_weight FROM delphi_panel_member WHERE study_id = %s",
-            (study_id,),
-        )
-        members = [dict(r) for r in cur.fetchall()]
-
-        results = []
-        for member in members:
-            member_id = member["id"]
-
-            # Get this member's contributions for items with consensus
-            cur.execute(
-                """
-                SELECT c.item_id, c.score
-                FROM delphi_contribution c
-                WHERE c.panel_member_id = %s AND c.item_id = ANY(%s)
-                """,
-                (member_id, list(item_consensus.keys())),
-            )
-            contribs = cur.fetchall()
-
-            if len(contribs) < 2:
-                results.append({
-                    "member_id": member_id,
-                    "display_token": member["display_token"],
-                    "old_weight": float(member["expert_weight"]),
-                    "new_weight": float(member["expert_weight"]),
-                    "reason": "insufficient_data",
-                })
-                continue
-
-            # Compute mean absolute deviation from consensus
-            deviations = []
-            for c in contribs:
-                consensus_val = item_consensus[str(c["item_id"])]
-                deviations.append(abs(float(c["score"]) - consensus_val))
-            mad = sum(deviations) / len(deviations)
-
-            # Weight adjustment: inverse relationship to deviation
-            # MAD=0 → weight factor 1.5 (close to consensus)
-            # MAD=0.5 → weight factor 1.0 (neutral)
-            # MAD=1.0+ → weight factor 0.6 (outlier)
-            if mad < 0.01:
-                factor = 1.5
-            elif mad < 0.25:
-                factor = 1.2
-            elif mad < 0.5:
-                factor = 1.0
-            elif mad < 1.0:
-                factor = 0.8
-            else:
-                factor = 0.6
-
-            old_weight = float(member["expert_weight"])
-            new_weight = max(0.1, min(3.0, old_weight * factor))
-
-            cur.execute(
-                "UPDATE delphi_panel_member SET expert_weight = %s WHERE id = %s",
-                (new_weight, member_id),
-            )
-
-            results.append({
-                "member_id": member_id,
-                "display_token": member["display_token"],
-                "old_weight": old_weight,
-                "new_weight": new_weight,
-                "mad": round(mad, 4),
-                "factor": factor,
-            })
-
-        conn.commit()
-        cur.close()
-        return {
-            "study_id": study_id,
-            "calibrated": True,
-            "members": results,
-            "calibrated_at": datetime.now(timezone.utc).isoformat(),
-        }

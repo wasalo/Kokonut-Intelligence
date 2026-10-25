@@ -346,11 +346,11 @@ The OIDC Gateway now exposes bounded pages of saved kriging predictions and unce
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
 **Latest software portability check — 25 October 2026:** a clean, network-disabled
-ARM64/QEMU PostgreSQL 16 replay applied all 620 ordered schema files through
-migration 629 with zero pending or failed migrations, no seeds/farm data, no
+ARM64/QEMU PostgreSQL 16 replay applied all 630 ordered schema files through
+migration 639 with zero pending or failed migrations, no seeds/farm data, no
 published host ports, `aarch64` confirmed, and cleanup complete. This validates
 schema portability under emulation; physical Raspberry Pi, power, performance,
-and production recovery acceptance remain open ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-629.json)).
+and production recovery acceptance remain open ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)).
 
 **Latest local Directus tenant-integrity batch (25 October 2026):** create and update filters validate writable farm references plus plot-through-farm, crop-cycle, harvest, and staff references against the authorized target location. Feedback-review creates resolve the parent feedback location and require the exact child create grant there; optional reviewers are location-qualified. Plot location correctly comes from `farm.location_id`; writable `stakeholder_feedback.farm_id` is checked, and editable `staff_id`/`reviewed_by` values must resolve through direct same-location staff assignment or farm membership. Updates use the request database context and validate against every authorized target row, so mixed-location bulk targets fail closed. The full hook suite passes 84 tests, including request-transaction parent-scope and foreign-parent denial; the extension build/type check, 10 Python tenant/compatibility checks, and capability-matrix validation pass. No database, provider, candidate, legacy stack, or live Directus service was accessed, and no migration was needed. The two schedules remain independent opt-ins (legacy defaults enabled; optional Kernel profile defaults disabled). Polymorphic MRV source IDs, feedback-review read/update/delete parity, broader field/relation parity, schedule ownership, and runtime acceptance remain open ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)). Checklist: 1,149 complete / 25 open (1,174 total).
 

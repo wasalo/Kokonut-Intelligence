@@ -1,21 +1,17 @@
 # ARM64 Kernel candidate profile
 
-## Current ARM64 schema replay — 22 October 2026
+## Current ARM64 schema replay — 25 October 2026
 
 A fresh, network-disabled ARM64 PostgreSQL/PostGIS image ran the ordered
-schema-only migration runner under QEMU. All 539 current schema files applied
-through migration 548 with zero pending or failed migrations. A matching
-native AMD64 replay passed the same chain. Both runs used unique Compose
-projects and temporary volumes, with no network, host ports, seeds, or farm
-data; both projects were removed. The candidate and legacy stacks were not
-targets. Migration 541 now removes `PUBLIC SELECT` from
-`pg_stat_statements` and `pg_stat_statements_info`; the final ACL check confirms
-neither statistics relation remains publicly readable. This closes the
-current-source schema replay under native and emulated ARM64 software, not
-physical-device acceptance. Raspberry Pi hardware, resource endurance,
-power-loss, performance, and 24-hour recovery acceptance remain open
-([ARM64/QEMU evidence](builds/2026-10-22-recovery/arm64-qemu-current-schema-548.json);
-[native evidence](builds/2026-10-22-recovery/native-current-schema-548.json)).
+schema-only migration runner under QEMU. All 630 current schema files applied
+through migration 639 with zero pending or failed migrations. The database
+reported `aarch64`; `pg_stat_statements` and its info relation were not
+publicly selectable. The run used a unique Compose project and temporary
+volume, with no network, host ports, seeds, or farm data; cleanup completed.
+The candidate and legacy stacks were not targets. This establishes full
+current-schema replay under ARM64 software emulation only. Raspberry Pi
+hardware, resource endurance, power-loss, performance, and 24-hour recovery
+acceptance remain open ([ARM64/QEMU evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-639.json)).
 
 ## Current-source checks — 20 October 2026
 

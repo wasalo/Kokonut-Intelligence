@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-25",
+  "capability": "CAP-027",
+  "check": "legacy Delphi panel calibration fails closed before database access",
+  "result": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_delphi.py -q",
+    "passed": 68
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed"
+  },
+  "safety": {
+    "database": "not used",
+    "provider": "not used",
+    "candidate_or_legacy": "untouched",
+    "migration_or_panel_weights": "unchanged"
+  },
+  "boundary": "Facilitator.calibrate_panel raises before acquiring a connection. Consensus distance is not evidence of forecast accuracy, and mutating participant weights affects later consensus without an approved, independently reviewed calibration contract.",
+  "remaining_gap": "A future calibration proposal must be location-scoped, evidence-based, independently reviewed, and exposed through an authenticated Gateway path."
+}

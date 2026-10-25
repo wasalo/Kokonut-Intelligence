@@ -218,6 +218,20 @@ class TestFacilitatorFlow:
         assert study["status"] == "draft"
         mock_conn.commit.assert_called_once()
 
+    def test_direct_panel_calibration_fails_before_connection(self):
+        from services.delphi.facilitator import Facilitator
+
+        get_connection = MagicMock(
+            side_effect=AssertionError("unscoped Delphi calibration must stay closed")
+        )
+        facilitator = Facilitator()
+        facilitator._get_conn = get_connection
+
+        with pytest.raises(RuntimeError, match="reviewed, location-scoped"):
+            facilitator.calibrate_panel("study-1")
+
+        get_connection.assert_not_called()
+
     def test_open_study(self):
         f, mock_conn, mock_cursor = self._make()
         mock_cursor.fetchone.return_value = {"id": "study-1", "status": "open"}
