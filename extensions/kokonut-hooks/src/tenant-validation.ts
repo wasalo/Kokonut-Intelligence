@@ -4,7 +4,28 @@ import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
 type TenantReferenceLookup = (
   database: any,
   referenceId: string,
+  locationId: string,
 ) => Promise<{ location_id?: string | null } | undefined>;
+
+async function lookupStaffAtLocation(
+  database: any,
+  referenceId: string,
+  locationId: string,
+): Promise<{ location_id: string } | undefined> {
+  const directlyAssigned = await database('staff')
+    .where({ id: referenceId, location_id: locationId })
+    .first('id');
+  if (directlyAssigned) return { location_id: locationId };
+
+  const farmMember = await database('farm_staff_member as member_ref')
+    .join('farm as farm_ref', 'member_ref.farm_id', 'farm_ref.id')
+    .where({
+      'member_ref.staff_id': referenceId,
+      'farm_ref.location_id': locationId,
+    })
+    .first('member_ref.staff_id');
+  return farmMember ? { location_id: locationId } : undefined;
+}
 
 const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
   farm_id: (database, referenceId) => database('farm')
@@ -20,6 +41,8 @@ const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
   harvest_id: (database, referenceId) => database('harvest_event')
     .where('id', referenceId)
     .first('location_id'),
+  staff_id: lookupStaffAtLocation,
+  reviewed_by: lookupStaffAtLocation,
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(
@@ -47,7 +70,7 @@ async function validateReferencesAtLocation(
     if (referenceId === undefined || referenceId === null) continue;
     if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
 
-    const reference = await lookup(database, referenceId);
+    const reference = await lookup(database, referenceId, locationId);
     if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
     if (reference.location_id !== locationId) {
       throw invalidTenantPayload(`${field} belongs to a different location`);

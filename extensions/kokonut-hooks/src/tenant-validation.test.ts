@@ -25,6 +25,45 @@ function makeReferenceDatabase(referenceLocationId: string) {
   return { database, joins };
 }
 
+function makeStaffReferenceDatabase(
+  staffLocationId: string | null,
+  membershipLocationId: string | null,
+) {
+  const queries: Array<{ table: string; conditions: unknown[]; joins: unknown[][] }> = [];
+  const database = vi.fn((table: string) => {
+    const query = { table, conditions: [] as unknown[], joins: [] as unknown[][] };
+    queries.push(query);
+    const builder: any = {
+      join: vi.fn((...args: unknown[]) => {
+        query.joins.push(args);
+        return builder;
+      }),
+      where: vi.fn((...args: unknown[]) => {
+        query.conditions.push(args[0]);
+        return builder;
+      }),
+      first: vi.fn().mockImplementation(async () => {
+        const conditions = Object.assign({}, ...query.conditions.filter(
+          (condition): condition is Record<string, unknown> => (
+            condition !== null && typeof condition === 'object' && !Array.isArray(condition)
+          ),
+        ));
+        if (table === 'staff') {
+          return conditions.location_id === staffLocationId ? { id: farmId } : undefined;
+        }
+        if (table === 'farm_staff_member as member_ref') {
+          return conditions['farm_ref.location_id'] === membershipLocationId
+            ? { staff_id: farmId }
+            : undefined;
+        }
+        return undefined;
+      }),
+    };
+    return builder;
+  });
+  return { database, queries };
+}
+
 describe('tenant reference validation', () => {
   it('rejects malformed scopes as a Directus 400 payload error', async () => {
     const database = vi.fn();
@@ -74,6 +113,35 @@ describe('tenant reference validation', () => {
       'stakeholder_feedback',
       payload,
     )).rejects.toThrow('different location');
+  });
+
+  it('accepts staff directly assigned to the same location', async () => {
+    const { database } = makeStaffReferenceDatabase(locationId, null);
+    const payload = { location_id: locationId, staff_id: farmId };
+
+    await expect(validateTenantReferences(
+      database,
+      'labor_event',
+      payload,
+    )).resolves.toBe(payload);
+  });
+
+  it('accepts same-location farm membership and rejects unrelated staff', async () => {
+    const { database, queries } = makeStaffReferenceDatabase(otherLocationId, locationId);
+    const payload = { location_id: locationId, reviewed_by: farmId };
+
+    await expect(validateTenantReferences(
+      database,
+      'metric_proposal',
+      payload,
+    )).resolves.toBe(payload);
+    expect(queries[1].joins).toEqual([['farm as farm_ref', 'member_ref.farm_id', 'farm_ref.id']]);
+
+    await expect(validateTenantReferences(
+      makeStaffReferenceDatabase(otherLocationId, otherLocationId).database,
+      'labor_event',
+      { location_id: locationId, staff_id: farmId },
+    )).rejects.toThrow('Unknown staff_id');
   });
 
   it('rejects cross-location references on update when the payload omits location_id', async () => {

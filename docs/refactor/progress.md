@@ -3,6 +3,22 @@
 The tenant reference validator now resolves `plot_id` through `plot.farm_id`
 and the owning farm's `location_id`; `plot` has no direct location column.
 Writable `stakeholder_feedback.farm_id` is now checked against that farm
+location as well. `labor_event.staff_id` and `metric_proposal.reviewed_by` must
+resolve to staff assigned directly to the location or linked through a farm
+membership at that location. The full Directus extension suite passes 81 tests, the
+extension build and TypeScript check pass, 10 Python tenant/compatibility tests
+pass, and the capability-matrix validator passes ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)).
+No database, provider, Directus service, candidate, or legacy stack was
+accessed; no migration was needed. Broader Directus field, relation, hook, and
+runtime parity remains open. Checklist: 1,148 complete / 25 open (1,173 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows, with 0/67 named acceptance checks accepted.
+
+### Progress addendum — Directus update reference authorization (previous slice), 25 October 2026
+
+The tenant reference validator now resolves `plot_id` through `plot.farm_id`
+and the owning farm's `location_id`; `plot` has no direct location column.
+Writable `stakeholder_feedback.farm_id` is now checked against that farm
 location as well. The full Directus extension suite passes 79 tests, the
 extension build and TypeScript check pass, 10 Python tenant/compatibility tests
 pass, and the capability-matrix validator passes ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)).
