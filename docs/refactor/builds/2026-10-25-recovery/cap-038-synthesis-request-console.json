@@ -1,0 +1,27 @@
+{
+  "slice": "CAP-038 operator console for authenticated synthesis receipts",
+  "date": "2026-10-25",
+  "result": "passed",
+  "checks": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_operator_console_ai_summary_task_requests.py tests/test_gateway_ai_summary_task_request.py tests/test_operator_console_ai_summary_review.py -q",
+      "result": "22 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "inline_javascript_syntax": "passed through the focused console test",
+    "git_diff_check": "passed"
+  },
+  "behavior": [
+    "The console shows synthesis receipt creation only to operators with an exact-location ai_summary:draft grant.",
+    "The selectable task and summary-type pairs match the Gateway receipt registry.",
+    "A successful response must match the request, location, task, summary type, and authorized status before a manual worker command is displayed.",
+    "The command uses the stable request receipt and does not launch a worker from the Gateway."
+  ],
+  "database_touched": false,
+  "provider_touched": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "Automatic dispatch, worker credential provisioning, live OIDC, populated output parity, and MAN-CAP-038 acceptance remain open."
+  ]
+}

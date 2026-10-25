@@ -1,3 +1,19 @@
+### Progress addendum — CAP-038 synthesis request console, 25 October 2026
+
+The operator console now exposes a grant-gated request form for the 12
+registered synthesis tasks. Its task/type pairs track the Gateway allowlist;
+an uncertain POST reuses its request UUID, and the UI verifies the full receipt
+response before showing the `worker_cli` command. The form states that a receipt
+does not dispatch a worker. The focused console/Gateway selection passes 22
+tests, including its inline JavaScript parse check; Ruff, Python compilation,
+and `git diff --check` pass ([evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json);
+[attribution inventory](agent-task-attribution-inventory.md)). No database,
+provider, candidate, legacy stack, or credentials were accessed. Automatic
+dispatch, provisioned task identities, live OIDC, populated parity, and
+MAN-CAP-038 acceptance remain open. Checklist: 1,142 complete / 25 open
+(1,167 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared;
+0/67 named acceptance checks accepted.
+
 ### Progress addendum — CAP-038 unauthenticated synthesis CLI writes fail closed, 25 October 2026
 
 The public per-agent synthesis CLI and `SynthesisAgent.run(store=True)` no

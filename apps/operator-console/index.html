@@ -167,6 +167,40 @@
             <p id="ai-summary-draft-sources" class="muted"></p>
           </section>
         </section>
+        <section id="ai-summary-task-request" hidden aria-labelledby="ai-summary-task-request-heading">
+          <h2 id="ai-summary-task-request-heading">Authorize a synthesis worker run</h2>
+          <p class="muted">Create an immutable, location-scoped request receipt for a registered synthesis task. This records who requested the work; it does not start a worker. Run the displayed command in an environment with that task’s configured worker identity. The worker verifies this receipt before source reads and draft creation. A different operator must review the resulting draft; it is never published here.</p>
+          <div class="toolbar">
+            <label for="ai-summary-task-request-location">Granted location</label>
+            <select id="ai-summary-task-request-location"></select>
+            <label for="ai-summary-task-request-key">Registered synthesis task</label>
+            <select id="ai-summary-task-request-key">
+              <option value="organic_readiness_synthesis" data-summary-type="organic_readiness">Organic readiness</option>
+              <option value="ecological_modeling_synthesis" data-summary-type="ecological_modeling">Ecological modeling</option>
+              <option value="holistic_wellbeing_synthesis" data-summary-type="holistic_wellbeing">Holistic wellbeing</option>
+              <option value="feedback_synthesis" data-summary-type="stakeholder_feedback">Stakeholder feedback</option>
+              <option value="commons_liberation_synthesis" data-summary-type="commons_liberation">Commons liberation</option>
+              <option value="gnh_alignment_synthesis" data-summary-type="gnh_alignment">GNH alignment</option>
+              <option value="regenerator_synthesis" data-summary-type="regenerative_outcomes">Regenerative outcomes</option>
+              <option value="capital_efficiency_synthesis" data-summary-type="capital_efficiency">Capital efficiency</option>
+              <option value="financial_resilience_synthesis" data-summary-type="financial_resilience">Financial resilience</option>
+              <option value="bio_factory_synthesis" data-summary-type="bio_factory">Bio factory</option>
+              <option value="open_source_capitalist_synthesis" data-summary-type="open_source_capitalist">Open source capitalist</option>
+              <option value="kokonut_commons_synthesis" data-summary-type="kokonut_commons">Kokonut commons</option>
+            </select>
+            <button id="ai-summary-task-request-submit" type="button">Create request receipt</button>
+          </div>
+          <p id="ai-summary-task-request-status" class="muted" role="status" aria-live="polite"></p>
+          <section id="ai-summary-task-request-result" class="notice" hidden aria-labelledby="ai-summary-task-request-result-heading">
+            <h3 id="ai-summary-task-request-result-heading">Authorized worker request</h3>
+            <p>The request ID is the worker’s authorization receipt. Keep it with the generated draft for audit and retry.</p>
+            <label for="ai-summary-task-request-id">Request ID</label>
+            <input id="ai-summary-task-request-id" readonly>
+            <label for="ai-summary-task-request-command">Manual worker command</label>
+            <textarea id="ai-summary-task-request-command" rows="3" readonly></textarea>
+            <button id="ai-summary-task-request-copy" class="secondary" type="button">Copy worker command</button>
+          </section>
+        </section>
         <section id="delphi-recommendation-draft-create" hidden aria-labelledby="delphi-recommendation-draft-create-heading">
           <h2 id="delphi-recommendation-draft-create-heading">Create Delphi facilitator draft</h2>
           <p class="muted">Create a bounded recommendation draft for an open or closed study at a location explicitly granted to your account. Draft creation never approves or publishes the text; an independent reviewer must decide it.</p>
@@ -2809,6 +2843,14 @@
       const aiSummaryDraftSources = document.querySelector("#ai-summary-draft-sources");
       let aiSummaryDraftLocations = new Set();
       let aiSummaryDraftRequestIds = new Map();
+      const aiSummaryTaskRequestLocation = document.querySelector("#ai-summary-task-request-location");
+      const aiSummaryTaskRequestKey = document.querySelector("#ai-summary-task-request-key");
+      const aiSummaryTaskRequestSubmit = document.querySelector("#ai-summary-task-request-submit");
+      const aiSummaryTaskRequestStatus = document.querySelector("#ai-summary-task-request-status");
+      const aiSummaryTaskRequestResult = document.querySelector("#ai-summary-task-request-result");
+      const aiSummaryTaskRequestId = document.querySelector("#ai-summary-task-request-id");
+      const aiSummaryTaskRequestCommand = document.querySelector("#ai-summary-task-request-command");
+      let aiSummaryTaskRequestIds = new Map();
       const delphiRecommendationDraftCreate = document.querySelector("#delphi-recommendation-draft-create");
       const delphiRecommendationDraftLocation = document.querySelector("#delphi-recommendation-draft-location");
       const delphiRecommendationDraftStudy = document.querySelector("#delphi-recommendation-draft-study");
@@ -21607,8 +21649,13 @@
               option.value = locationId;
               option.textContent = locationId;
               aiSummaryDraftLocation.append(option);
+              const taskRequestOption = document.createElement("option");
+              taskRequestOption.value = locationId;
+              taskRequestOption.textContent = locationId;
+              aiSummaryTaskRequestLocation.append(taskRequestOption);
             }
             aiSummaryDraftCreate.hidden = false;
+            document.querySelector("#ai-summary-task-request").hidden = false;
             hasAuthorizedSurface = true;
           }
           if (delphiDraftLocationIds.length) {
@@ -22334,6 +22381,85 @@
           aiSummaryDraftStatus.textContent = error.message;
         } finally {
           aiSummaryDraftSubmit.disabled = false;
+        }
+      }
+
+      async function submitAiSummaryTaskRequest() {
+        const locationId = aiSummaryTaskRequestLocation.value;
+        const selectedTask = aiSummaryTaskRequestKey.selectedOptions[0];
+        const taskKey = selectedTask?.value || "";
+        const summaryType = selectedTask?.dataset.summaryType || "";
+        if (!aiSummaryDraftLocations.has(locationId)) {
+          aiSummaryTaskRequestStatus.textContent = "A location-scoped ai_summary:draft grant is required.";
+          return;
+        }
+        if (!/^[a-z][a-z0-9_]{0,99}$/.test(taskKey)
+            || !/^[a-z][a-z0-9_]{0,99}$/.test(summaryType)) {
+          aiSummaryTaskRequestStatus.textContent = "Choose a registered synthesis task.";
+          return;
+        }
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, taskKey, summaryType]);
+        let requestId = aiSummaryTaskRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) aiSummaryTaskRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          aiSummaryTaskRequestStatus.textContent = "Refresh in a secure browser session before authorizing a worker request.";
+          return;
+        }
+        aiSummaryTaskRequestSubmit.disabled = true;
+        aiSummaryTaskRequestResult.hidden = true;
+        aiSummaryTaskRequestStatus.textContent = "Recording the operator-authorized task request…";
+        try {
+          const response = await fetch(
+            `/operator/api/ai-summaries/${encodeURIComponent(locationId)}/synthesis-requests`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ task_key: taskKey, summary_type: summaryType, request_id: requestId }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific AI summary draft grant is not valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) aiSummaryTaskRequestIds.delete(requestKey);
+            throw new Error(result.error || "The synthesis request could not be authorized.");
+          }
+          if (result.request_id !== requestId
+              || result.location_id !== locationId
+              || result.task_key !== taskKey
+              || result.summary_type !== summaryType
+              || result.status !== "authorized"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The receipt response did not match this request. Retry to confirm the same request ID.");
+          }
+          aiSummaryTaskRequestIds.delete(requestKey);
+          aiSummaryTaskRequestId.value = requestId;
+          aiSummaryTaskRequestCommand.value = [
+            "python3 -m services.agents.worker_cli",
+            `--task-key ${taskKey}`,
+            `--location-id ${locationId}`,
+            `--request-id ${requestId}`,
+            "--persist-draft --source-only",
+          ].join(" ");
+          aiSummaryTaskRequestResult.hidden = false;
+          aiSummaryTaskRequestStatus.textContent = result.replayed === true
+            ? "The existing operator request receipt was confirmed. No worker was started."
+            : "Operator request receipt created. No worker was started; run the command in the configured worker environment.";
+        } catch (error) {
+          aiSummaryTaskRequestStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
+        } finally {
+          aiSummaryTaskRequestSubmit.disabled = false;
         }
       }
 
@@ -24867,6 +24993,26 @@
       aiSummaryReviewLocation.addEventListener("change", () => loadAiSummaryReviewQueue());
       aiSummaryReviewMore.addEventListener("click", () => loadAiSummaryReviewQueue(true));
       aiSummaryDraftSubmit.addEventListener("click", submitAiSummaryDraft);
+      aiSummaryTaskRequestSubmit.addEventListener("click", submitAiSummaryTaskRequest);
+      aiSummaryTaskRequestLocation.addEventListener("change", () => {
+        aiSummaryTaskRequestResult.hidden = true;
+        aiSummaryTaskRequestStatus.textContent = "";
+      });
+      aiSummaryTaskRequestKey.addEventListener("change", () => {
+        aiSummaryTaskRequestResult.hidden = true;
+        aiSummaryTaskRequestStatus.textContent = "";
+      });
+      document.querySelector("#ai-summary-task-request-copy").addEventListener("click", async () => {
+        if (!aiSummaryTaskRequestCommand.value) return;
+        try {
+          await navigator.clipboard.writeText(aiSummaryTaskRequestCommand.value);
+          aiSummaryTaskRequestStatus.textContent = "Worker command copied. The receipt still does not start the worker.";
+        } catch {
+          aiSummaryTaskRequestCommand.focus();
+          aiSummaryTaskRequestCommand.select();
+          aiSummaryTaskRequestStatus.textContent = "Clipboard access is unavailable; the command is selected for manual copying.";
+        }
+      });
       delphiRecommendationDraftLocation.addEventListener("change", () => loadDelphiRecommendationDraftStudies());
       delphiRecommendationDraftStudiesMore.addEventListener("click", () => loadDelphiRecommendationDraftStudies(true));
       delphiRecommendationDraftSubmit.addEventListener("click", submitDelphiRecommendationDraft);

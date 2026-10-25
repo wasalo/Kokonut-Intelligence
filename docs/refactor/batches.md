@@ -19,10 +19,29 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,141 checklist items complete and 25
-open (1,166 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,142 checklist items complete and 25
+open (1,167 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-038 operator console for synthesis request receipts — 25 October 2026
+
+- [x] Expose the registered synthesis receipt workflow in the operator console.
+  Only operators with an exact-location `ai_summary:draft` grant see the form.
+  Task/type choices match the Gateway registry; the console preserves a stable
+  retry UUID and validates the returned receipt before showing the manual
+  `worker_cli` command. It explicitly reports that creating a receipt does not
+  dispatch a worker. The focused console/Gateway selection passes 22 tests,
+  including the inline JavaScript syntax check; Ruff, Python compilation, and
+  `git diff --check` pass ([console](../../apps/operator-console/index.html);
+  [tests](../../tests/test_operator_console_ai_summary_task_requests.py);
+  [evidence](builds/2026-10-25-recovery/cap-038-synthesis-request-console.json);
+  [attribution inventory](agent-task-attribution-inventory.md)). No migration,
+  database, provider, candidate, legacy service, or credential was used.
+  Rollback by removing the console panel and its tests; issued immutable request
+  receipts remain auditable and worker code continues to require them.
+  Automatic dispatch, live OIDC, task credential provisioning, populated parity,
+  and MAN-CAP-038 remain open. Checklist: 1,142 complete / 25 open (1,167 total).
 
 ### CAP-038 generic agent-task route attribution guard — 25 October 2026
 
