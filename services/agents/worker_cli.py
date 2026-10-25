@@ -6,6 +6,8 @@ import argparse
 import importlib
 import json
 import re
+from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 from uuid import UUID
 
@@ -27,56 +29,85 @@ from services.common.worker_database import get_worker_credential, get_worker_db
 _SUMMARY_TYPES = DETERMINISTIC_SUMMARY_TYPES
 _SUMMARY_TYPE_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
 
-_SYNTHESIS_AGENT_MODULES = {
-    "bio_factory_synthesis": "services.agents.bio_factory_agent",
-    "capital_efficiency_synthesis": "services.agents.capital_efficiency_agent",
-    "commons_liberation_synthesis": "services.agents.commons_agent",
-    "feedback_synthesis": "services.agents.feedback_agent",
-    "gnh_alignment_synthesis": "services.agents.gnh_agent",
-    "holistic_wellbeing_synthesis": "services.agents.wellbeing_agent",
-    "kokonut_commons_synthesis": "services.agents.kokonut_commons_agent",
-    "open_source_capitalist_synthesis": "services.agents.open_source_capitalist_agent",
-    "financial_resilience_synthesis": "services.agents.resilience_agent",
-    "regenerator_synthesis": "services.agents.regenerator_agent",
-    "organic_readiness_synthesis": "services.agents.organic_readiness_agent",
-    "ecological_modeling_synthesis": "services.agents.ecological_modeling_agent",
-}
-_SYNTHESIS_SOURCE_IDENTITIES = {
-    "commons_liberation_synthesis": "agent_commons_liberation_source",
-    "ecological_modeling_synthesis": "agent_ecological_modeling_source",
-    "feedback_synthesis": "agent_feedback_source",
-    "gnh_alignment_synthesis": "agent_gnh_alignment_source",
-    "holistic_wellbeing_synthesis": "agent_holistic_wellbeing_source",
-    "organic_readiness_synthesis": "agent_organic_readiness_source",
-    "regenerator_synthesis": "agent_regenerator_source",
-    "capital_efficiency_synthesis": "agent_capital_efficiency_source",
-    "financial_resilience_synthesis": "agent_financial_resilience_source",
-    "bio_factory_synthesis": "agent_bio_factory_source",
-    "open_source_capitalist_synthesis": "agent_open_source_capitalist_source",
-    "kokonut_commons_synthesis": "agent_kokonut_commons_source",
-}
-_SYNTHESIS_SOURCE_READERS = {
-    "commons_liberation_synthesis": "kokonut_agent_commons_liberation_reader",
-    "ecological_modeling_synthesis": "kokonut_agent_ecological_modeling_reader",
-    "feedback_synthesis": "kokonut_agent_feedback_reader",
-    "gnh_alignment_synthesis": "kokonut_agent_gnh_alignment_reader",
-    "holistic_wellbeing_synthesis": "kokonut_agent_holistic_wellbeing_reader",
-    "organic_readiness_synthesis": "kokonut_agent_organic_readiness_reader",
-    "regenerator_synthesis": "kokonut_agent_regenerator_reader",
-    "capital_efficiency_synthesis": "kokonut_agent_capital_efficiency_reader",
-    "financial_resilience_synthesis": "kokonut_agent_financial_resilience_reader",
-    "bio_factory_synthesis": "kokonut_agent_bio_factory_reader",
-    "open_source_capitalist_synthesis": "kokonut_agent_open_source_capitalist_reader",
-    "kokonut_commons_synthesis": "kokonut_agent_kokonut_commons_reader",
-}
+@dataclass(frozen=True)
+class SynthesisWorkerSpec:
+    """One registered synthesis task and its isolated source boundary."""
+
+    agent_module: str
+    source_identity: str
+    source_reader: str
+
+
+_SYNTHESIS_WORKERS = MappingProxyType({
+    "bio_factory_synthesis": SynthesisWorkerSpec(
+        "services.agents.bio_factory_agent",
+        "agent_bio_factory_source",
+        "kokonut_agent_bio_factory_reader",
+    ),
+    "capital_efficiency_synthesis": SynthesisWorkerSpec(
+        "services.agents.capital_efficiency_agent",
+        "agent_capital_efficiency_source",
+        "kokonut_agent_capital_efficiency_reader",
+    ),
+    "commons_liberation_synthesis": SynthesisWorkerSpec(
+        "services.agents.commons_agent",
+        "agent_commons_liberation_source",
+        "kokonut_agent_commons_liberation_reader",
+    ),
+    "ecological_modeling_synthesis": SynthesisWorkerSpec(
+        "services.agents.ecological_modeling_agent",
+        "agent_ecological_modeling_source",
+        "kokonut_agent_ecological_modeling_reader",
+    ),
+    "feedback_synthesis": SynthesisWorkerSpec(
+        "services.agents.feedback_agent",
+        "agent_feedback_source",
+        "kokonut_agent_feedback_reader",
+    ),
+    "financial_resilience_synthesis": SynthesisWorkerSpec(
+        "services.agents.resilience_agent",
+        "agent_financial_resilience_source",
+        "kokonut_agent_financial_resilience_reader",
+    ),
+    "gnh_alignment_synthesis": SynthesisWorkerSpec(
+        "services.agents.gnh_agent",
+        "agent_gnh_alignment_source",
+        "kokonut_agent_gnh_alignment_reader",
+    ),
+    "holistic_wellbeing_synthesis": SynthesisWorkerSpec(
+        "services.agents.wellbeing_agent",
+        "agent_holistic_wellbeing_source",
+        "kokonut_agent_holistic_wellbeing_reader",
+    ),
+    "kokonut_commons_synthesis": SynthesisWorkerSpec(
+        "services.agents.kokonut_commons_agent",
+        "agent_kokonut_commons_source",
+        "kokonut_agent_kokonut_commons_reader",
+    ),
+    "open_source_capitalist_synthesis": SynthesisWorkerSpec(
+        "services.agents.open_source_capitalist_agent",
+        "agent_open_source_capitalist_source",
+        "kokonut_agent_open_source_capitalist_reader",
+    ),
+    "organic_readiness_synthesis": SynthesisWorkerSpec(
+        "services.agents.organic_readiness_agent",
+        "agent_organic_readiness_source",
+        "kokonut_agent_organic_readiness_reader",
+    ),
+    "regenerator_synthesis": SynthesisWorkerSpec(
+        "services.agents.regenerator_agent",
+        "agent_regenerator_source",
+        "kokonut_agent_regenerator_reader",
+    ),
+})
 
 
 def resolve_synthesis_agent(task_key: str) -> Any:
     """Load one explicitly registered shared synthesis agent for the worker."""
-    module_name = _SYNTHESIS_AGENT_MODULES.get(task_key)
-    if module_name is None:
+    spec = _SYNTHESIS_WORKERS.get(task_key)
+    if spec is None:
         raise ValueError("task_key is not a registered synthesis agent")
-    module = importlib.import_module(module_name)
+    module = importlib.import_module(spec.agent_module)
     agent = getattr(module, "agent", None)
     if getattr(agent, "task_key", None) != task_key:
         raise RuntimeError("registered synthesis agent task key does not match")
@@ -172,10 +203,11 @@ def run_worker_synthesis(
     if persist_draft:
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
 
-    source_identity = _SYNTHESIS_SOURCE_IDENTITIES.get(agent.task_key)
-    source_reader = _SYNTHESIS_SOURCE_READERS.get(agent.task_key)
-    if source_identity is None or source_reader is None:
+    worker_spec = _SYNTHESIS_WORKERS.get(agent.task_key)
+    if worker_spec is None:
         raise ValueError("synthesis task has no isolated source identity")
+    source_identity = worker_spec.source_identity
+    source_reader = worker_spec.source_reader
 
     if persist_draft:
         read_existing = existing_reader or (
@@ -662,7 +694,7 @@ def main() -> None:
     )
     parser.add_argument("--location-id", required=True, help="Location UUID")
     parser.add_argument(
-        "--task-key", choices=tuple(sorted(_SYNTHESIS_AGENT_MODULES)),
+        "--task-key", choices=tuple(sorted(_SYNTHESIS_WORKERS)),
         help="Registered shared synthesis task to run",
     )
     parser.add_argument(

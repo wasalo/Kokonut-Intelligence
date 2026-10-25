@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,153 checklist items complete and 25
-open (1,178 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,154 checklist items complete and 25
+open (1,179 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -131,6 +131,24 @@ acceptance remains separate; none is marked accepted.
   are still one-shot manual invocations without authenticated request receipts,
   so they remain open before human-triggered use. CAP-038 remains prepared.
   Checklist: 1,137 complete / 25 open (1,162 total).
+
+### CAP-038 single synthesis worker contract registry — 25 October 2026
+
+- [x] Consolidate the synthesis worker's task-module, source-identity, and
+  database-reader mappings into one immutable registry. Worker loading,
+  credential selection, role selection, and CLI choices now resolve from the
+  same task contract, so a task cannot be registered in one map without its
+  corresponding isolated database boundary. Regressions verify all 12 entries
+  have unique source identities/readers and resolve to matching agent task
+  keys. The focused worker, source-reference, database-boundary, and Compose
+  profile selection passes 219 tests; Ruff, Python compilation,
+  capability-matrix validation, and diff checks pass. No database, provider,
+  candidate, legacy stack, or credentials were used. This reduces source-level
+  configuration drift but does not prove provisioned grants or close CAP-038.
+  Checklist: 1,154 complete / 25 open (1,179 total)
+  ([implementation](../../services/agents/worker_cli.py);
+  [tests](../../tests/test_agent_worker_cli.py);
+  [evidence](builds/2026-10-25-recovery/cap-038-single-worker-registry.json)).
 
 ### CAP-006 independent review of managed-hive inspections — 25 October 2026
 

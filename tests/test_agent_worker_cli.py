@@ -3,6 +3,7 @@
 import hashlib
 import json
 import sys
+from dataclasses import FrozenInstanceError
 from unittest.mock import MagicMock
 
 import pytest
@@ -218,14 +219,14 @@ def test_synthesis_worker_uses_its_task_identity_for_default_draft_writer(monkey
     assert writer.call_args.kwargs["worker_key"] == "agent_kokonut_commons_source"
 
 
-def test_unmapped_synthesis_task_fails_before_source_identity_lookup(monkeypatch):
+def test_unregistered_synthesis_task_fails_before_source_identity_lookup(monkeypatch):
     agent = _synthetic_synthesis_agent()
     monkeypatch.setattr(
         worker_cli,
-        "_SYNTHESIS_SOURCE_IDENTITIES",
+        "_SYNTHESIS_WORKERS",
         {
-            task_key: identity
-            for task_key, identity in worker_cli._SYNTHESIS_SOURCE_IDENTITIES.items()
+            task_key: spec
+            for task_key, spec in worker_cli._SYNTHESIS_WORKERS.items()
             if task_key != agent.task_key
         },
     )
@@ -237,7 +238,7 @@ def test_unmapped_synthesis_task_fails_before_source_identity_lookup(monkeypatch
         "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
     )
 
-    with pytest.raises(ValueError, match="no isolated source identity"):
+    with pytest.raises(ValueError, match="not a registered synthesis agent"):
         worker_cli.run_worker_synthesis(
             agent,
             LOCATION_ID,
@@ -252,10 +253,18 @@ def test_unmapped_synthesis_task_fails_before_source_identity_lookup(monkeypatch
 
 
 def test_every_registered_synthesis_task_has_an_isolated_source_contract():
-    registered = set(worker_cli._SYNTHESIS_AGENT_MODULES)
+    workers = worker_cli._SYNTHESIS_WORKERS
 
-    assert set(worker_cli._SYNTHESIS_SOURCE_IDENTITIES) == registered
-    assert set(worker_cli._SYNTHESIS_SOURCE_READERS) == registered
+    assert len(workers) == 12
+    assert all(spec.agent_module.startswith("services.agents.") for spec in workers.values())
+    assert all(spec.source_identity.endswith("_source") for spec in workers.values())
+    assert all(spec.source_reader.startswith("kokonut_agent_") for spec in workers.values())
+    assert len({spec.source_identity for spec in workers.values()}) == len(workers)
+    assert len({spec.source_reader for spec in workers.values()}) == len(workers)
+    with pytest.raises(TypeError):
+        workers["unregistered_task"] = next(iter(workers.values()))
+    with pytest.raises(FrozenInstanceError):
+        workers["feedback_synthesis"].source_identity = "shared_source"
 
 
 def test_worker_cli_does_not_write_after_source_generation_failure():
@@ -1707,9 +1716,9 @@ def test_worker_cli_resolves_only_registered_synthesis_agents():
 def test_worker_cli_registry_resolves_all_declared_synthesis_tasks():
     resolved = {
         task_key: worker_cli.resolve_synthesis_agent(task_key)
-        for task_key in worker_cli._SYNTHESIS_AGENT_MODULES
+        for task_key in worker_cli._SYNTHESIS_WORKERS
     }
-    assert set(resolved) == set(worker_cli._SYNTHESIS_AGENT_MODULES)
+    assert set(resolved) == set(worker_cli._SYNTHESIS_WORKERS)
     assert all(agent.task_key == task_key for task_key, agent in resolved.items())
 
 

@@ -17962,3 +17962,21 @@ power-failure, thermal, or endurance acceptance
 The capability classifications are unchanged. Checklist: 1,145 complete / 25
 open (1,170 total); the matrix remains 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows, with 0/67 named acceptance checks accepted.
+
+
+### Progress addendum — CAP-038 single synthesis worker contract registry, 25 October 2026
+
+The registered synthesis worker now uses one frozen task contract for agent
+module, isolated source credential, and database reader role. This replaces
+three parallel maps used by agent resolution, credential lookup, and role
+selection. The worker CLI regression confirms all twelve entries resolve to
+their matching task keys and use unique source identities/readers; the focused
+worker, source-reference, database-boundary, and Compose profile selection
+passes 219 tests. Ruff, Python compilation, capability-matrix validation,
+and diff checks pass. No database, provider, candidate, legacy stack, or
+credential was used. This removes configuration drift between the Python
+worker's maps only: Compose/environment deployment, real grants, populated
+parity, live OIDC, automatic dispatch, and MAN-CAP-038 acceptance remain open.
+Checklist: 1,154 complete / 25 open (1,179 total); matrix classifications stay
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows, with 0/67
+named MAN-CAP checks accepted ([evidence](builds/2026-10-25-recovery/cap-038-single-worker-registry.json)).
