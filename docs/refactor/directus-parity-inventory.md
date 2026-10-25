@@ -1,6 +1,6 @@
 # Directus parity inventory
 
-**Review date:** 23 October 2026
+**Review date:** 25 October 2026
 **Status:** source inventory, the fail-closed tenant authorization adapter,
 and an organization/location permission seed repair are implemented. Pinned
 Directus 12.1.1 acceptance confirms grant-scoped Field Note reads, but the
@@ -18,6 +18,14 @@ now provides scoped operations for non-Field-Collector farm-activity records.
 Migration 404 and its disposable PostgreSQL acceptance establish this bounded
 Gateway slice only; broader collection, field/relationship, hook, and schedule
 parity remain open.
+
+The two legacy Directus schedules are now independent explicit opt-ins in the
+extension. The legacy root Compose stack keeps both enabled by default for
+compatibility; the optional Kernel Directus profile defaults both off. Daily
+NOI snapshot reconciliation is separately available through the signed,
+default-off Kernel worker, and weekly activity aggregation remains an optional
+read-only compatibility effect. No schedule was activated or run by this
+change; ownership, runtime identity, overlap, and output parity remain open.
 
 The 23 October runtime probe confirms the pinned unlicensed Directus profile
 cannot provide custom permission management: an owner request to create an

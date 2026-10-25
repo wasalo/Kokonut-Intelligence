@@ -342,15 +342,17 @@ The OIDC Gateway now exposes bounded pages of saved kriging predictions and unce
 
 # Code-first refactor execution plan
 
-**Updated:** 24 October 2026
+**Updated:** 25 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest software portability check — 24 October 2026:** a network-disabled
-ARM64/QEMU PostgreSQL 16 replay applied all 595 current schema files through
-migration 604 with zero pending or failed migrations, no seeds/farm data, no
+**Latest software portability check — 25 October 2026:** a clean, network-disabled
+ARM64/QEMU PostgreSQL 16 replay applied all 620 ordered schema files through
+migration 629 with zero pending or failed migrations, no seeds/farm data, no
 published host ports, `aarch64` confirmed, and cleanup complete. This validates
 schema portability under emulation; physical Raspberry Pi, power, performance,
-and production recovery acceptance remain open ([evidence](builds/2026-10-24-recovery/arm64-qemu-current-schema-604.json)).
+and production recovery acceptance remain open ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-629.json)).
+
+**Latest local Directus optionality batch — explicit schedule gates (25 October 2026):** the hook extension now registers its daily NOI reconciliation and weekly verified-activity aggregation only when their separate flags are explicitly enabled. Legacy Compose defaults both on for backward compatibility; the optional Kernel Directus profile defaults both off. Focused extension tests and Compose source-contract checks verify the defaults and independent selection. No service or scheduled job was started. Hook output parity, ownership, runtime identity, and overlap review remain open. Checklist: 1,145 complete / 25 open (1,170 total).
 
 **Latest local batch — CAP-002 nutrient operations operator-console reads (23 October 2026):** an exact `nutrient_budget:read` grant gates allowlisted balance, soil-test, input, and removal views. Same-origin/no-store pages validate location, offset, and event type, and stale views are discarded. Fixed scalar fields render as text; IDs, notes, and arbitrary metadata are omitted. Classified costs preserve currency and historic unclassified amounts are withheld. The 191-test CAP-002 console/Gateway/domain/route-policy selection, Ruff, inline JavaScript syntax, capability validation, and diff checks pass. No migration, provider, candidate, or legacy database was used. CAP-002 remains prepared pending historic currency reconciliation, model/populated parity, live OIDC/browser, ACL/RLS, and MAN-CAP-002 ([contract](nutrient-operations-console-contract.md); [evidence](builds/2026-10-23-recovery/cap-002-nutrient-console.json)).
 

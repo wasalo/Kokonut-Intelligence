@@ -12,7 +12,7 @@ describe('Directus hook event registration', () => {
         action: register,
         schedule: () => undefined,
       },
-      { database: {} },
+      { database: {}, env: {} },
     );
 
     expect(events.length).toBeGreaterThan(0);
@@ -29,6 +29,40 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('revenue_event.items.create');
     expect(events).toContain('revenue_event.items.update');
     expect(events).toContain('revenue_event.items.delete');
+  });
+
+  it('does not register Directus schedules unless explicitly enabled', () => {
+    const schedules: string[] = [];
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: () => undefined,
+        schedule: (cron: string) => schedules.push(cron),
+      },
+      { database: {}, env: {} },
+    );
+
+    expect(schedules).toEqual([]);
+  });
+
+  it('registers each Directus schedule only for its explicit flag', () => {
+    const schedules: string[] = [];
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: () => undefined,
+        schedule: (cron: string) => schedules.push(cron),
+      },
+      {
+        database: {},
+        env: {
+          KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: ' TRUE ',
+          KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: 'false',
+        },
+      },
+    );
+
+    expect(schedules).toEqual(['0 2 * * *']);
   });
 
   it('keeps financial ClickHouse delivery in the transactional PostgreSQL outbox', async () => {
@@ -98,7 +132,7 @@ describe('Directus hook event registration', () => {
           schedules.set(cron, callback);
         },
       },
-      { database },
+      { database, env: { KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: 'true' } },
     );
 
     await schedules.get('0 3 * * 0')!();

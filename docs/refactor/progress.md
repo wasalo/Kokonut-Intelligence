@@ -1,3 +1,28 @@
+### Progress addendum — Directus schedules are explicit opt-ins, 25 October 2026
+
+The optional Directus extension now registers daily NOI reconciliation and
+weekly verified-activity aggregation only when their independent environment
+flags are explicitly true. The legacy Compose profile sets both flags true by
+default to preserve its historical behavior; the optional Kernel Directus
+profile defaults both false, preventing overlapping NOI writers unless an
+operator deliberately opts in. Focused extension and Compose configuration
+checks cover default-off behavior and independent selection. No Directus
+container or schedule was started. This closes configuration gating only;
+hook parity, schedule ownership, runtime identity, and overlap/output review
+remain open. Checklist: 1,145 complete / 25 open (1,170 total); matrix
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared, with
+0/67 named acceptance checks accepted.
+
+### Progress addendum — full current-schema ARM64/QEMU replay through migration 629, 25 October 2026
+
+A clean, network-disabled PostgreSQL 16 ARM64/QEMU replay applied all 620
+ordered schema files through migration 629 with zero pending or failed
+migrations, zero seeds, no farm data or public `pg_stat_statements` read grant,
+no host ports, and successful cleanup ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-629.json)).
+Candidate and legacy databases were untouched. QEMU is software portability
+evidence only; physical Raspberry Pi and power-failure acceptance remain open.
+Checklist: 1,145 complete / 25 open (1,170 total).
+
 ### Progress addendum — CAP-038 synthesis request console, 25 October 2026
 
 The operator console now exposes a grant-gated request form for the 12
@@ -17843,6 +17868,6 @@ Candidate and legacy databases were untouched. The run took 2,555 seconds and
 provides software portability evidence only, not physical Raspberry Pi,
 power-failure, thermal, or endurance acceptance
 ([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-629.json)).
-The capability classifications are unchanged. Checklist: 1,144 complete / 25
-open (1,169 total); the matrix remains 24 baseline-retained, 7 deployed, and
+The capability classifications are unchanged. Checklist: 1,145 complete / 25
+open (1,170 total); the matrix remains 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows, with 0/67 named acceptance checks accepted.

@@ -45,3 +45,17 @@ def test_extensions_use_directus_12_discoverable_package_mounts() -> None:
     ) in mounts
     assert "./extensions:/directus/extensions" not in mounts
     assert "directus-extension build" in hook_package["scripts"]["build"]
+
+
+def test_optional_kernel_directus_schedules_default_off_and_legacy_defaults_on() -> None:
+    legacy = yaml.safe_load((ROOT / "docker-compose.yml").read_text())
+    kernel = yaml.safe_load((ROOT / "docker-compose.kernel-directus.yml").read_text())
+
+    legacy_environment = legacy["services"]["directus"]["environment"]
+    kernel_environment = kernel["services"]["directus"]["environment"]
+    for name in (
+        "KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION",
+        "KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION",
+    ):
+        assert legacy_environment[name] == f"${{{name}:-true}}"
+        assert kernel_environment[name] == f"${{{name}:-false}}"

@@ -71,7 +71,13 @@ describe('Directus exception logging', () => {
         action: () => undefined,
         schedule: (_expression: string, callback: () => Promise<void>) => callbacks.push(callback),
       },
-      { database },
+      {
+        database,
+        env: {
+          KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: 'true',
+          KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: 'true',
+        },
+      },
     );
 
     await callbacks[0]();
@@ -93,7 +99,13 @@ describe('Directus exception logging', () => {
         action: () => undefined,
         schedule: (_expression: string, callback: () => Promise<void>) => callbacks.push(callback),
       },
-      { database },
+      {
+        database,
+        env: {
+          KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION: 'true',
+          KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION: 'true',
+        },
+      },
     );
 
     await callbacks[0]();

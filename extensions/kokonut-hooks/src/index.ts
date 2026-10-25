@@ -103,6 +103,10 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
     ].includes(c)
 );
 
+function isExplicitlyEnabled(value: unknown): boolean {
+  return value === true || (typeof value === 'string' && value.trim().toLowerCase() === 'true');
+}
+
 export default defineHook(({ filter, action, schedule }, { database, env }) => {
   setDb(database);
 
@@ -609,48 +613,52 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   // Scheduled hooks
   // ============================================================
 
-  schedule('0 2 * * *', async () => {
-    console.log('[Kokonut] Running daily NOI reconciliation...');
-    try {
-      const result = await batchCalculateNoi();
-      if (result.failed > 0) {
-        console.error(
-          `[Kokonut] NOI reconciliation completed with partial failures: succeeded=${result.succeeded} failed=${result.failed}`
-        );
-      } else {
-        console.log(
-          `[Kokonut] NOI reconciliation completed: succeeded=${result.succeeded} failed=0`
-        );
+  if (isExplicitlyEnabled(env?.KOKONUT_DIRECTUS_SCHEDULE_NOI_RECONCILIATION)) {
+    schedule('0 2 * * *', async () => {
+      console.log('[Kokonut] Running daily NOI reconciliation...');
+      try {
+        const result = await batchCalculateNoi();
+        if (result.failed > 0) {
+          console.error(
+            `[Kokonut] NOI reconciliation completed with partial failures: succeeded=${result.succeeded} failed=${result.failed}`
+          );
+        } else {
+          console.log(
+            `[Kokonut] NOI reconciliation completed: succeeded=${result.succeeded} failed=0`
+          );
+        }
+      } catch (error) {
+        console.error(`[Kokonut] NOI reconciliation failed: ${errorClass(error)}`);
       }
-    } catch (error) {
-      console.error(`[Kokonut] NOI reconciliation failed: ${errorClass(error)}`);
-    }
-  });
+    });
+  }
 
-  schedule('0 3 * * 0', async () => {
-    console.log('[Kokonut] Running weekly verified farm activity aggregation...');
-    try {
-      const activities = await database('farm_activity')
-        .where('status', 'verified')
-        .whereRaw(
-          'farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)'
-        )
-        .select(
-          database.raw('DATE_TRUNC(\'week\', activity_date) as week'),
-          'location_id',
-          database.raw('COUNT(*) as activity_count'),
-          database.raw('SUM(labor_hours) as total_labor_hours'),
-          database.raw('SUM(labor_cost) as total_labor_cost')
-        )
-        .groupBy('week', 'location_id');
+  if (isExplicitlyEnabled(env?.KOKONUT_DIRECTUS_SCHEDULE_WEEKLY_ACTIVITY_AGGREGATION)) {
+    schedule('0 3 * * 0', async () => {
+      console.log('[Kokonut] Running weekly verified farm activity aggregation...');
+      try {
+        const activities = await database('farm_activity')
+          .where('status', 'verified')
+          .whereRaw(
+            'farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)'
+          )
+          .select(
+            database.raw('DATE_TRUNC(\'week\', activity_date) as week'),
+            'location_id',
+            database.raw('COUNT(*) as activity_count'),
+            database.raw('SUM(labor_hours) as total_labor_hours'),
+            database.raw('SUM(labor_cost) as total_labor_cost')
+          )
+          .groupBy('week', 'location_id');
 
-      console.log(
-        `[Kokonut] Weekly verified farm activity query returned ${activities.length} location-week rows; no snapshot records were persisted`
-      );
-    } catch (error) {
-      console.error(`[Kokonut] Weekly verified farm activity aggregation failed: ${errorClass(error)}`);
-    }
-  });
+        console.log(
+          `[Kokonut] Weekly verified farm activity query returned ${activities.length} location-week rows; no snapshot records were persisted`
+        );
+      } catch (error) {
+        console.error(`[Kokonut] Weekly verified farm activity aggregation failed: ${errorClass(error)}`);
+      }
+    });
+  }
 });
 
 async function recalculateNoi(cropCycleId: string | undefined) {
