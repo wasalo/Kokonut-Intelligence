@@ -541,52 +541,64 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
             graph = document.get("@graph")
             if not isinstance(graph, list):
                 errors.append("Invalid CIDS document graph (expected array)")
-            elif not graph:
-                errors.append("Invalid CIDS document graph (expected nodes)")
-            elif any(
-                not isinstance(node, dict)
-                or not isinstance(node.get("@id"), str)
-                or not node["@id"].strip()
-                or not isinstance(node.get("kokonut:sourceViews"), list)
-                or not node["kokonut:sourceViews"]
-                or any(
-                    not isinstance(view, str) or not view.strip()
-                    for view in node["kokonut:sourceViews"]
-                )
-                or node["kokonut:sourceViews"]
-                != sorted(set(node["kokonut:sourceViews"]))
-                or not set(node["kokonut:sourceViews"]).issubset(CIDS_SOURCE_VIEWS)
-                for node in graph
-            ):
-                errors.append(
-                    "Invalid CIDS document graph node source-view provenance"
-                )
-            elif any(
-                not isinstance(node.get("kokonut:propertySourceViews"), dict)
-                or set(node["kokonut:propertySourceViews"])
-                != set(node)
-                - {
-                    "@context",
-                    "@type",
-                    "kokonut:sourceViews",
-                    "kokonut:propertySourceViews",
-                }
-                or any(
-                    not isinstance(views, list)
+            else:
+                if not graph:
+                    errors.append("Invalid CIDS document graph (expected nodes)")
+                graph_count = output.get("graph_count")
+                if (
+                    not isinstance(graph_count, int)
+                    or isinstance(graph_count, bool)
+                    or graph_count != len(graph)
+                ):
+                    errors.append("Invalid CIDS graph count")
+                if output.get("alignment_tier") != document.get("kokonut:alignmentTier"):
+                    errors.append("Invalid CIDS alignment tier")
+                if output.get("cids_version") != document.get("kokonut:cidsVersion"):
+                    errors.append("Invalid CIDS version")
+                if any(
+                    not isinstance(node, dict)
+                    or not isinstance(node.get("@id"), str)
+                    or not node["@id"].strip()
+                    or not isinstance(node.get("kokonut:sourceViews"), list)
+                    or not node["kokonut:sourceViews"]
                     or any(
-                        not isinstance(view, str)
-                        or not view.strip()
-                        or view not in CIDS_SOURCE_VIEWS
-                        for view in views
+                        not isinstance(view, str) or not view.strip()
+                        for view in node["kokonut:sourceViews"]
                     )
-                    or views != sorted(set(views))
-                    for views in node["kokonut:propertySourceViews"].values()
-                )
-                for node in graph
-            ):
-                errors.append(
-                    "Invalid CIDS document graph node property-source provenance"
-                )
+                    or node["kokonut:sourceViews"]
+                    != sorted(set(node["kokonut:sourceViews"]))
+                    or not set(node["kokonut:sourceViews"]).issubset(CIDS_SOURCE_VIEWS)
+                    for node in graph
+                ):
+                    errors.append(
+                        "Invalid CIDS document graph node source-view provenance"
+                    )
+                elif any(
+                    not isinstance(node.get("kokonut:propertySourceViews"), dict)
+                    or set(node["kokonut:propertySourceViews"])
+                    != set(node)
+                    - {
+                        "@context",
+                        "@type",
+                        "kokonut:sourceViews",
+                        "kokonut:propertySourceViews",
+                    }
+                    or any(
+                        not isinstance(views, list)
+                        or any(
+                            not isinstance(view, str)
+                            or not view.strip()
+                            or view not in CIDS_SOURCE_VIEWS
+                            for view in views
+                        )
+                        or views != sorted(set(views))
+                        for views in node["kokonut:propertySourceViews"].values()
+                    )
+                    for node in graph
+                ):
+                    errors.append(
+                        "Invalid CIDS document graph node property-source provenance"
+                    )
             property_records = (
                 source_scope.get("property_source_records")
                 if isinstance(source_scope, dict)

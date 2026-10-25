@@ -18500,3 +18500,18 @@ populated output parity or runtime ACL evidence. Checklist: 1,182 complete /
 25 open (1,207 total); matrix classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 [public-schema lineage](builds/2026-10-25-recovery/cap-038-cids-public-source-lineage.json).
+
+### Progress addendum — CAP-038 CIDS envelope consistency, 25 October 2026
+
+The registered CIDS task validator now cross-checks its envelope against the
+JSON-LD document: `graph_count` must equal the graph length, and alignment tier
+and CIDS version must match the document metadata. A malformed graph shape
+also fails validation without an uncaught type error. The focused CIDS
+export/task/worker selection passes 110 tests; Ruff, Python compilation, and
+diff checks pass. No migration, database, provider, candidate, or legacy
+service was used. The checks establish envelope consistency, not external
+CIDS standards conformance. Source snapshots, populated parity, runtime
+credentials/grants, and MAN-CAP-038 remain open. Checklist: 1,183 complete /
+25 open (1,208 total); matrix classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+[envelope consistency](builds/2026-10-25-recovery/cap-038-cids-envelope-consistency.json).

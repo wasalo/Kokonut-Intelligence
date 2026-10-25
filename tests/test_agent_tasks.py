@@ -43,6 +43,14 @@ def _lineage_for_node(node):
     ]
 
 
+def _cids_document(graph):
+    return {
+        "@graph": graph,
+        "kokonut:alignmentTier": "essential",
+        "kokonut:cidsVersion": "3.2.0",
+    }
+
+
 def _cids_source_scope(document, property_source_records):
     return {
         "location_id": "a0000000-0000-4000-8000-000000000001",
@@ -91,7 +99,7 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
-    document = {"@graph": [node]}
+    document = _cids_document([node])
     lineage = _lineage_for_node(node)
     valid = {
         "document": document,
@@ -131,6 +139,33 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
     assert "private-not-a-uuid" not in " ".join(uuid_errors)
 
 
+def test_cids_output_rejects_inconsistent_document_envelope() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    document = _cids_document([node])
+    lineage = _lineage_for_node(node)
+    valid = {
+        "document": document,
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": _cids_source_scope(document, lineage),
+    }
+    cases = (
+        ("graph_count", 2, "Invalid CIDS graph count"),
+        ("alignment_tier", "comprehensive", "Invalid CIDS alignment tier"),
+        ("cids_version", "3.3.0", "Invalid CIDS version"),
+    )
+    for field, value, expected_error in cases:
+        errors = validate_output("cids_export", {**valid, field: value})
+        assert expected_error in errors
+
+
 def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() -> None:
     node = {
         "@id": "https://kokonut.network/cids/Organization/test",
@@ -139,7 +174,7 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
-    document = {"@graph": [node]}
+    document = _cids_document([node])
     lineage = _lineage_for_node(node)
     valid_output = {
         "document": document,
@@ -196,7 +231,7 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
     ):
         invalid_output = {
             **valid_output,
-            "document": {"@graph": [valid_node, invalid_node]},
+            "document": _cids_document([valid_node, invalid_node]),
         }
         errors = validate_output("cids_export", invalid_output)
         assert "Invalid CIDS document graph node source-view provenance" in errors
@@ -214,7 +249,7 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
         }
         invalid_output = {
             **valid_output,
-            "document": {"@graph": [invalid_node]},
+            "document": _cids_document([invalid_node]),
         }
         assert "Invalid CIDS document graph node property-source provenance" in validate_output(
             "cids_export", invalid_output
@@ -222,7 +257,7 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
 
     empty_output = {
         **valid_output,
-        "document": {"@graph": []},
+        "document": _cids_document([]),
     }
     assert "Invalid CIDS document graph (expected nodes)" in validate_output(
         "cids_export", empty_output
@@ -237,7 +272,7 @@ def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
-    document = {"@graph": [node]}
+    document = _cids_document([node])
     lineage = _lineage_for_node(node)
     output = {
         "document": document,
@@ -267,7 +302,7 @@ def test_cids_output_rejects_malformed_property_to_row_lineage() -> None:
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
-    document = {"@graph": [node]}
+    document = _cids_document([node])
     lineage = _lineage_for_node(node)
     valid = {
         "document": document,
@@ -329,7 +364,7 @@ def test_cids_output_rejects_artifact_digest_mismatch() -> None:
             "@id": ["kokonut_agent_source.cids_location"]
         },
     }
-    document = {"@graph": [node]}
+    document = _cids_document([node])
     lineage = _lineage_for_node(node)
     valid = {
         "document": document,
@@ -339,13 +374,13 @@ def test_cids_output_rejects_artifact_digest_mismatch() -> None:
         "source_scope": _cids_source_scope(document, lineage),
     }
     assert validate_output("cids_export", valid) == []
-    reordered_document = {"@graph": [dict(reversed(list(node.items())))]}
+    reordered_document = _cids_document([dict(reversed(list(node.items())))])
     assert cids_artifact_sha256(reordered_document, lineage) == cids_artifact_sha256(
         document, lineage
     )
     mutated = {**node, "hasName": "changed after digest"}
     errors = validate_output(
-        "cids_export", {**valid, "document": {"@graph": [mutated]}}
+        "cids_export", {**valid, "document": _cids_document([mutated])}
     )
     assert "Invalid CIDS artifact digest" in errors
     changed_lineage = _lineage_for_node(node)
