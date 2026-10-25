@@ -1,3 +1,16 @@
+### Progress addendum — current-source ARM64 Kernel app build and smoke, 24 October 2026
+
+The minimal Kernel image built as `linux/arm64` from revision `0b7a10ac`. A
+read-only, network-disabled QEMU container reported `aarch64`, created the
+Gateway app with 15 routes, imported `KokonutClient` and
+`KokonutPublicApiClient`, loaded all 18 JobSpecs, displayed migration CLI help
+without database credentials, and constructed a synthetic RPC snapshot with
+exact value `1.00000000`. The app image and runtime container were removed.
+No database, provider, secret, published port, candidate/legacy stack, or
+persistent volume was used. This is software-emulation evidence only and does
+not close physical Raspberry Pi, power-loss, thermal, performance, endurance,
+or long-duration recovery acceptance ([evidence](builds/2026-10-24-recovery/arm64-kernel-current-source-smoke-0b7a10ac.json)).
+
 ### Progress addendum — current-source ARM64/QEMU schema replay through 618, 24 October 2026
 
 The clean network-disabled replay applied all 609 current schema files on the

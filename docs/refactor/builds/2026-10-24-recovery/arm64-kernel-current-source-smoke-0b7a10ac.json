@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-24",
+  "source_revision": "0b7a10ac9b0298a73a87c8ec63ff28bef9583879",
+  "scope": "Current-source ARM64 Kernel image build and read-only, network-disabled QEMU software smoke; not physical Raspberry Pi acceptance",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --quiet --tag kokonut-kernel-current-arm64-0b7a10ac:local --file Dockerfile.kernel .",
+    "result": "passed",
+    "platform": "linux/arm64",
+    "image_user": "appuser",
+    "image_id": "sha256:fa6f1cc20ede319b7ad4f27fc741f9b85fbd1deb52068821287e893cda232f03",
+    "temporary_image_removed": true
+  },
+  "runtime": {
+    "architecture_reported": "aarch64",
+    "network": "none",
+    "root_filesystem": "read-only with 64 MiB temporary /tmp",
+    "sdk_mount": "read-only sdk/python bind mount at /sdk",
+    "checks": {
+      "gateway_application_created": true,
+      "gateway_route_count": 15,
+      "python_sdk_clients_imported": [
+        "KokonutClient",
+        "KokonutPublicApiClient"
+      ],
+      "job_spec_entries": 18,
+      "migration_cli_help_without_database_credentials": true,
+      "synthetic_rpc_snapshot_construction": true,
+      "synthetic_rpc_snapshot_value": "1.00000000"
+    },
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "published_ports": false
+  },
+  "cleanup": {
+    "runtime_container_removed": true,
+    "temporary_image_removed": true,
+    "candidate_app_database_proxy_metabase": "not modified",
+    "legacy_stack_targeted": false,
+    "persistent_volumes_or_compose_stacks_modified": false
+  },
+  "result": "PASS: current-source ARM64 image build and network-disabled Gateway/SDK/job/migration/RPC import smoke.",
+  "limitations": [
+    "QEMU is software-emulation evidence, not physical Raspberry Pi, power-loss, thermal, performance, or storage-endurance acceptance.",
+    "No application endpoint, database, provider, OIDC login, or long-duration recovery path was exercised."
+  ]
+}
