@@ -8089,13 +8089,13 @@
         {
           "caller": "services/analytics/digital_twin.py:monte_carlo_yield",
           "callee": "services/analytics/digital_twin.py:get_twin_config",
-          "line": 604,
+          "line": 629,
           "depth": 2
         },
         {
           "caller": "services/analytics/digital_twin.py:monte_carlo_yield",
           "callee": "services/simulation/resolution.py:monte_carlo",
-          "line": 617,
+          "line": 642,
           "depth": 2
         },
         {
@@ -8146,7 +8146,7 @@
         {
           "source_file": "services/analytics/digital_twin.py",
           "callable": "get_twin_config",
-          "line": 149,
+          "line": 161,
           "relations": [
             "simulation_config"
           ],
@@ -8171,7 +8171,7 @@
         {
           "source_file": "services/analytics/digital_twin.py",
           "callable": "list_twins",
-          "line": 170,
+          "line": 182,
           "relations": [
             "digital_twin"
           ],
@@ -8195,7 +8195,7 @@
         {
           "source_file": "services/analytics/digital_twin.py",
           "callable": "list_twins",
-          "line": 175,
+          "line": 187,
           "relations": [
             "digital_twin"
           ],

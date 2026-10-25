@@ -1,5 +1,14 @@
 # Capability preservation matrix
 
+**Current-source ARM64 Kernel software smoke (25 October 2026):** the pushed
+`e9d68670` source builds as `linux/arm64`; isolated QEMU execution reports
+`aarch64`, creates the Gateway, loads 18 job specs, and imports the Python SDK
+and two agent modules. This is code-level portability evidence only; physical
+Pi, power-loss, thermal, measured-resource, and storage-endurance gates remain
+open. No capability classification changes: 24 baseline-retained, 7 deployed,
+and 36 prepared across 67 rows.
+Evidence: [ARM64 smoke](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-e9d68670.json).
+
 **CAP-038 signed agent output provenance inventory (25 October 2026):** the
 current database-backed worker outputs are classified by row-level references,
 query-scope metadata, or privacy-limited aggregates. The inventory records

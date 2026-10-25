@@ -18108,3 +18108,24 @@ documentation audit added no tests and touched no database/provider. Checklist:
 1,163 complete / 25 open (1,188 total); matrix classifications remain 24
 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 [Inventory](agent-output-provenance-inventory.md).
+
+### Progress addendum — current-source ARM64 Kernel software smoke, 25 October 2026
+
+The pushed source revision `e9d68670` builds the default Kernel image for
+`linux/arm64` with the pinned runtime dependencies. A network-disabled,
+read-only QEMU container reports `aarch64`, creates the 15-route Gateway,
+loads all 18 scheduler job specs, and imports both Python SDK clients plus the
+worker CLI and Delphi facilitator modules. The candidate, legacy stack,
+databases, providers, credentials, and persistent Compose resources were not
+touched. This is software-emulation evidence only; physical Raspberry Pi,
+power-loss, thermal, measured-resource, and storage-endurance checks remain
+open. Checklist: 1,163 complete / 25 open (1,188 total); matrix
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows.
+[Evidence](builds/2026-10-25-recovery/arm64-kernel-current-source-smoke-e9d68670.json).
+
+Hosted CI #833 on that source failed because the generated report-generator
+helper-scope inventory had stale line references after edits to
+`services/analytics/digital_twin.py`; the inventory was regenerated and its
+local check passes. Security #557 passed. The required current-head CI gate
+remains open until both workflows pass on the repaired pushed revision.
