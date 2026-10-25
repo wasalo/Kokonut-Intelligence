@@ -17995,3 +17995,18 @@ stack, or credentials were used. This protects local operator logs only; it
 does not establish live-provider behavior or close CAP-038. Checklist: 1,155
 complete / 25 open (1,180 total); classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows ([evidence](builds/2026-10-25-recovery/cap-038-worker-cli-error-redaction.json)).
+
+
+### Progress addendum — CAP-038 explicit synthesis source-reference coverage, 25 October 2026
+
+Registered synthesis workers now reject source metadata that omits a declared
+table from both the provenance-view map and the documented-exclusion map. The
+existing Organic Readiness checklist exclusion remains because rows lack a
+governed review lifecycle and may expose evidence-linked findings or inspector
+identity. The ecological `location` source remains excluded as the already
+bound request subject. The focused source, agent, worker, database-boundary,
+and Compose-profile selection passes 239 tests; Ruff, compilation, matrix
+validation, and diff checks pass. No database, provider, candidate, or legacy
+service was touched. Checklist: 1,156 complete / 25 open (1,181 total); matrix
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows ([evidence](builds/2026-10-25-recovery/cap-038-source-reference-exclusions.json)).

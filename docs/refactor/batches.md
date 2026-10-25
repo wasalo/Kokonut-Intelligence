@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,155 checklist items complete and 25
-open (1,180 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,156 checklist items complete and 25
+open (1,181 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -165,6 +165,23 @@ acceptance remains separate; none is marked accepted.
   ([implementation](../../services/agents/worker_cli.py);
   [tests](../../tests/test_agent_worker_cli.py);
   [evidence](builds/2026-10-25-recovery/cap-038-worker-cli-error-redaction.json)).
+
+### CAP-038 explicit synthesis source-reference coverage — 25 October 2026
+
+- [x] Require every registered synthesis source to have either a provenance
+  view mapping or a documented exclusion reason. Organic compliance checklist
+  records remain excluded because they lack a governed review lifecycle and
+  may expose evidence-linked findings or inspector identity; the already-bound
+  location subject remains excluded as a duplicate scope identifier. New
+  unclassified sources now fail before a database cursor opens. The focused
+  source, agent, worker, and Compose-profile selection passes 239 tests; Ruff,
+  Python compilation, capability-matrix validation, and diff checks pass. No
+  database, provider, candidate, or legacy stack was used. This closes the
+  source-map completeness check only, not CAP-038. Checklist: 1,156 complete /
+  25 open (1,181 total)
+  ([implementation](../../services/agents/base.py);
+  [tests](../../tests/test_synthesis_source_references.py);
+  [evidence](builds/2026-10-25-recovery/cap-038-source-reference-exclusions.json)).
 
 ### CAP-006 independent review of managed-hive inspections — 25 October 2026
 

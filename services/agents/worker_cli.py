@@ -181,6 +181,7 @@ def run_worker_synthesis(
             "source_tables",
             "source_reference_views",
             "source_reference_scopes",
+            "source_reference_exclusions",
             "source_reference_query",
         )
     ):

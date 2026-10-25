@@ -86,6 +86,8 @@ class SynthesisAgent:
     source_reference_views: dict[str, str] = {}
     #: Scope for mapped source views; entries default to location-only.
     source_reference_scopes: dict[str, str] = {}
+    #: Explicit reason for each declared source excluded from the row manifest.
+    source_reference_exclusions: dict[str, str] = {}
     #: fixed SQL that returns source_table, row_count, and ordered record_ids
     source_reference_query: Optional[str] = None
 
@@ -99,9 +101,9 @@ class SynthesisAgent:
         """Return bounded row references for sources that have a safe view contract.
 
         The fixed or map-generated query runs only for signed draft storage, in
-        the same repeatable-read transaction as :meth:`synthesize`. Agents
-        without an exact public-view mapping retain their declared table-name
-        hints and return no row references.
+        the same repeatable-read transaction as :meth:`synthesize`. Every
+        declared source must have a public-view mapping or a bounded explicit
+        exclusion reason; unclassified sources fail before opening a cursor.
         """
         # These values define the reviewed provenance contract for the
         # registered agent class. Ignore instance shadowing here; the worker
@@ -109,19 +111,34 @@ class SynthesisAgent:
         source_tables = type(self).source_tables
         source_reference_views = type(self).source_reference_views
         source_reference_scopes = type(self).source_reference_scopes
+        source_reference_exclusions = type(self).source_reference_exclusions
         source_reference_query = type(self).source_reference_query
-        if not source_reference_views:
-            return {}
         if (
             len(source_reference_views) > 20
+            or len(source_tables) > 20
+            or len(set(source_tables)) != len(source_tables)
             or any(table not in source_tables for table in source_reference_views)
             or any(table not in source_reference_views for table in source_reference_scopes)
+            or any(table not in source_tables for table in source_reference_exclusions)
+            or set(source_reference_views).intersection(source_reference_exclusions)
+            or set(source_tables)
+            != set(source_reference_views).union(source_reference_exclusions)
             or any(
                 not isinstance(scope, str) or scope not in _SOURCE_REFERENCE_SCOPES
                 for scope in source_reference_scopes.values()
             )
+            or any(
+                not isinstance(reason, str)
+                or not reason.strip()
+                or len(reason) > 300
+                for reason in source_reference_exclusions.values()
+            )
         ):
-            raise ValueError("source reference views must match declared source tables")
+            raise ValueError(
+                "source reference views and documented exclusions must cover declared source tables"
+            )
+        if not source_reference_views:
+            return {}
         query = source_reference_query or self._build_source_reference_query()
         bound_scope_count = sum(
             source_reference_scopes.get(table, "location") != "network"

@@ -1,0 +1,31 @@
+{
+  "slice": "CAP-038 synthesis source-reference coverage",
+  "date": "2026-10-25",
+  "result": "passed",
+  "contract": "Every declared synthesis source table must have a reviewed public-view provenance mapping or a bounded explicit exclusion reason; an unclassified source fails before cursor access.",
+  "documented_exclusions": {
+    "organic_readiness_synthesis": {
+      "organic_compliance_checklist": "Rows lack a governed review lifecycle and may expose evidence-linked findings or inspector identity."
+    },
+    "ecological_modeling_synthesis": {
+      "location": "The location is the already-bound synthesis subject, not a separate source record."
+    }
+  },
+  "verification": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_synthesis_source_references.py tests/test_agent_source_metadata.py tests/test_agents_base.py tests/test_agent_worker_cli.py tests/test_agent_summary_worker_profile.py tests/test_worker_database.py -q",
+      "result": "239 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "candidate_or_legacy_touched": false,
+  "database_touched": false,
+  "provider_touched": false,
+  "limitations": [
+    "The organic checklist and location subject remain excluded from row-level provenance.",
+    "This enforces source-map completeness in the registered Python agents; it does not close populated parity, live credentials, or MAN-CAP-038 acceptance."
+  ]
+}

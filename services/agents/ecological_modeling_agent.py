@@ -123,6 +123,9 @@ class EcologicalModelingSynthesisAgent(SynthesisAgent):
         "token_reward_distribution": "v_public_token_reward_distribution",
         "reward_calibration_model": "v_public_reward_calibration",
     }
+    source_reference_exclusions = {
+        "location": "The location is the already-bound synthesis subject, not a separate source record."
+    }
 
     def synthesize(self, conn, location_id=None):
         return synthesize_ecological_modeling(conn, location_id)

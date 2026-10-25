@@ -53,6 +53,11 @@ def test_worker_summary_type_registry_covers_all_shared_synthesis_agents() -> No
 
 
 def test_registered_agent_source_hints_are_only_the_reviewed_exceptions() -> None:
+    assert all(
+        set(agent.source_tables)
+        == set(agent.source_reference_views).union(agent.source_reference_exclusions)
+        for agent in AGENTS
+    )
     omissions = {
         agent.task_key: set(agent.source_tables) - set(agent.source_reference_views)
         for agent in AGENTS
@@ -62,6 +67,14 @@ def test_registered_agent_source_hints_are_only_the_reviewed_exceptions() -> Non
     assert omissions == {
         "organic_readiness_synthesis": {"organic_compliance_checklist"},
         "ecological_modeling_synthesis": {"location"},
+    }
+    assert OrganicReadinessSynthesisAgent.source_reference_exclusions == {
+        "organic_compliance_checklist": (
+            "Rows lack a governed review lifecycle and may expose evidence-linked findings or inspector identity."
+        ),
+    }
+    assert EcologicalModelingSynthesisAgent.source_reference_exclusions == {
+        "location": "The location is the already-bound synthesis subject, not a separate source record."
     }
 
     organic_migration = (
@@ -136,7 +149,6 @@ def test_synthesis_queries_read_only_registered_scoped_views(agent_class: Any) -
             includes_unassigned = re.search(
                 r"\blocation_id\s+IS\s+NULL", query, re.IGNORECASE
             )
-
             if scope == "network":
                 assert params is None
                 assert location_bound is None
@@ -147,6 +159,18 @@ def test_synthesis_queries_read_only_registered_scoped_views(agent_class: Any) -
                 assert (includes_unassigned is not None) == (
                     scope == "location_or_network"
                 )
+
+
+def test_unmapped_source_requires_a_documented_exclusion_before_cursor_access() -> None:
+    class UnclassifiedCapitalAgent(CapitalEfficiencySynthesisAgent):
+        source_tables = [*CapitalEfficiencySynthesisAgent.source_tables, "new_source_table"]
+
+    connection = _Connection(list(CapitalEfficiencySynthesisAgent.source_reference_views))
+
+    with pytest.raises(ValueError, match="documented exclusions must cover"):
+        UnclassifiedCapitalAgent().collect_source_references(connection, LOCATION_ID)
+
+    assert connection.cursor_calls == 0
 
 
 class _CursorForbiddenConnection:
@@ -381,8 +405,10 @@ class _Cursor:
 class _Connection:
     def __init__(self, source_tables: list[str]) -> None:
         self.cursor_value = _Cursor(source_tables)
+        self.cursor_calls = 0
 
     def cursor(self, cursor_factory: Any = None) -> _Cursor:
+        self.cursor_calls += 1
         return self.cursor_value
 
 
