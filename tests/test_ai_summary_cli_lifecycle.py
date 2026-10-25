@@ -115,6 +115,22 @@ def test_store_uses_explicit_retry_id_and_omits_content_from_cli_output(
     assert "Summary content omitted from stdout" in output
 
 
+def test_store_without_gateway_request_id_fails_before_runner(monkeypatch, capsys):
+    _set_argv(monkeypatch, "--location-id", LOCATION_ID, "--store")
+    monkeypatch.setattr(
+        ai_summary,
+        "run_ai_summary",
+        lambda *_args, **_kwargs: pytest.fail("missing request dispatched the worker"),
+    )
+
+    with pytest.raises(SystemExit, match="2"):
+        ai_summary.main()
+
+    assert "--store requires --request-id issued by the authenticated Gateway" in (
+        capsys.readouterr().err
+    )
+
+
 def test_malformed_store_request_id_fails_before_runner(monkeypatch):
     _set_argv(monkeypatch, "--location-id", LOCATION_ID, "--store", "--request-id", "bad-id")
     monkeypatch.setattr(

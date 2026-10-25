@@ -9,7 +9,6 @@ only when --store is passed.
 Usage:
     python3 -m services.agents.ai_summary --location-id UUID
     python3 -m services.agents.ai_summary --location-id UUID --summary-type financial
-    python3 -m services.agents.ai_summary --location-id UUID --store
     python3 -m services.agents.ai_summary --location-id UUID --store --request-id UUID
     python3 -m services.agents.ai_summary --list --location-id UUID
     python3 -m services.agents.ai_summary --verify SUMMARY_ID --location-id UUID
@@ -584,10 +583,14 @@ def main():
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--summary-type", choices=list(GENERATORS.keys()), default="combined",
                         help="Type of summary to generate (default: combined)")
-    parser.add_argument("--store", action="store_true", help="Store draft via the signed worker path for human review")
+    parser.add_argument(
+        "--store",
+        action="store_true",
+        help="Store a draft using a request ID issued by the authenticated Gateway",
+    )
     parser.add_argument(
         "--request-id",
-        help="Stable UUID for retry-safe storage; valid only with --store",
+        help="Gateway-issued UUID for retry-safe storage; required with --store",
     )
     parser.add_argument(
         "--list",
@@ -605,6 +608,9 @@ def main():
 
     if args.request_id and not args.store:
         parser.error("--request-id requires --store")
+
+    if args.store and not args.request_id:
+        parser.error("--store requires --request-id issued by the authenticated Gateway")
 
     if args.list:
         if args.verify or args.store or args.request_id:
@@ -649,11 +655,7 @@ def main():
 
     args.location_id = _cli_uuid(parser, args.location_id, "location-id")
     if args.store:
-        args.request_id = (
-            _cli_uuid(parser, args.request_id, "request-id")
-            if args.request_id
-            else str(uuid.uuid4())
-        )
+        args.request_id = _cli_uuid(parser, args.request_id, "request-id")
         print(f"Request ID: {args.request_id}")
 
     print(f"Generating {args.summary_type} summary for location {args.location_id}...")

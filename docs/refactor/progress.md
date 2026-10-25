@@ -17785,3 +17785,18 @@ provider, candidate, or legacy service was accessed. Checklist: 1,140 complete /
 25 open (1,165 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows; 0/67 MAN-CAP checks accepted ([inventory script](../../scripts/agent_write_boundary_inventory.py);
 [generated inventory](agent-write-boundary-inventory.json); [attribution audit](agent-task-attribution-inventory.md)).
+
+
+### Progress addendum — CAP-038 deterministic CLI request preflight, 25 October 2026
+
+The legacy deterministic AI-summary CLI now requires an explicit request ID
+from the authenticated Gateway before `--store` can dispatch the worker. It no
+longer invents a UUID that the database would reject after connection setup.
+The focused CLI, safety, worker, and write-inventory selection passes 97 tests;
+Ruff, compilation, inventory freshness, matrix validation, and diff checks pass.
+No database, provider, candidate, or legacy service was accessed. This tightens
+preflight only and does not provide automatic dispatch or live OIDC acceptance.
+Checklist: 1,141 complete / 25 open (1,166 total); matrix: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted
+([implementation](../../services/agents/ai_summary.py); [tests](../../tests/test_ai_summary_cli_lifecycle.py);
+[evidence](builds/2026-10-25-recovery/cap-038-ai-summary-cli-request-preflight.json)).

@@ -1,0 +1,23 @@
+{
+  "slice": "CAP-038 deterministic AI-summary CLI request preflight",
+  "date": "2026-10-25",
+  "result": "passed",
+  "checks": {
+    "focused_pytest": {
+      "command": "python3 -m pytest tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_safety.py tests/test_agent_worker_cli.py tests/test_agent_write_boundary_inventory.py -q",
+      "result": "97 passed"
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "agent_write_boundary_inventory": "current",
+    "capability_matrix": "valid: 67 rows; 24 baseline-retained, 7 deployed, 36 prepared",
+    "git_diff_check": "passed"
+  },
+  "behavior": "--store requires an explicit request ID issued by the authenticated Gateway; the CLI no longer invents a UUID before worker dispatch",
+  "database_touched": false,
+  "provider_touched": false,
+  "candidate_or_legacy_touched": false,
+  "limitations": [
+    "This is CLI preflight coverage only; it does not implement automatic task dispatch or live OIDC acceptance."
+  ]
+}
