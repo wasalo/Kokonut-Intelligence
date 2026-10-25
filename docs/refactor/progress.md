@@ -18095,3 +18095,16 @@ credentials/grants, runtime recovery, and MAN-CAP-038 acceptance remain open.
 Checklist: 1,162 complete / 25 open (1,187 total); matrix classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json).
+
+### Progress addendum — CAP-038 signed agent output provenance inventory, 25 October 2026
+
+The source inventory now classifies all current database-backed agent worker
+outputs by provenance form: bounded record references, named query scopes, or
+privacy-limited aggregates. It explicitly leaves legacy/background execution,
+per-node CIDS view attribution, populated parity, production credentials/grants,
+and MAN-CAP-038 acceptance open. Existing focused worker, source-reference,
+task-contract, and agent tests support the recorded source behavior; this
+documentation audit added no tests and touched no database/provider. Checklist:
+1,163 complete / 25 open (1,188 total); matrix classifications remain 24
+baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+[Inventory](agent-output-provenance-inventory.md).

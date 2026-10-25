@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,162 checklist items complete and 25
-open (1,187 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,163 checklist items complete and 25
+open (1,188 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3439,6 +3439,10 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-038 AI-summary inspection output source scope — 25 October 2026
 
 - [x] Name the safe summary-list and summary-digest views and their normalized query keys in returned metadata. Two focused mocked checks pass, including mixed-case UUID normalization and digest content exclusion; Ruff, compilation, capability-matrix validation, and diff checks pass. No database or provider was accessed ([worker](../../services/agents/worker_cli.py); [tests](../../tests/test_agent_worker_cli.py); [evidence](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json)). The metadata records query scope, not content snapshots or operator attribution, and does not close CAP-038 or MAN-CAP-038.
+
+### CAP-038 signed agent output provenance inventory — 25 October 2026
+
+- [x] Record the source/provenance output contract for all current database-backed agent-worker paths and distinguish source references, query-scope metadata, and privacy-limited aggregates. Existing synthesis, deterministic-summary, EBF, CIDS, Delphi, and inspection regressions cover the listed behavior. The inventory preserves limits around legacy/background paths, per-node CIDS lineage, populated parity, production identities/grants, and MAN-CAP-038 ([inventory](agent-output-provenance-inventory.md); [worker tests](../../tests/test_agent_worker_cli.py); [synthesis source tests](../../tests/test_synthesis_source_references.py)). No new tests or database/provider checks were required for the documentation audit.
 
 ### CAP-039 unified CLI forwarding contract — 19 October 2026
 

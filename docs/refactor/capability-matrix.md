@@ -1,5 +1,14 @@
 # Capability preservation matrix
 
+**CAP-038 signed agent output provenance inventory (25 October 2026):** the
+current database-backed worker outputs are classified by row-level references,
+query-scope metadata, or privacy-limited aggregates. The inventory records
+remaining gaps for legacy/background paths, per-node CIDS view attribution,
+populated parity, production identities/grants, and owner acceptance. This
+source audit does not change capability classifications: 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+Evidence: [agent output provenance inventory](agent-output-provenance-inventory.md).
+
 **CAP-038 AI-summary inspection output scope (25 October 2026):** list rows
 identify the safe list view and normalized location; the metadata-only digest
 identifies its safe view plus normalized summary/location keys. Two focused
