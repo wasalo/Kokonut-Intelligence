@@ -2234,6 +2234,27 @@
           </section>
           <div id="waste-management-summary" hidden>
             <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="toolbar">
+              <label for="waste-management-period-days">Verified waste period</label>
+              <select id="waste-management-period-days">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last 365 days</option>
+              </select>
+            </div>
+            <div aria-labelledby="waste-management-period-heading">
+              <h3 id="waste-management-period-heading">Verified waste totals for selected period</h3>
+              <p id="waste-management-period-total"></p>
+              <div id="waste-management-by-type"></div>
+              <div id="waste-management-by-disposal"></div>
+            </div>
+            <div aria-labelledby="waste-management-efficiency-heading">
+              <h3 id="waste-management-efficiency-heading">Composting efficiency and recent quality readings</h3>
+              <p id="waste-management-compost-efficiency-total"></p>
+              <div id="waste-management-compost-methods"></div>
+              <div id="waste-management-compost-quality"></div>
+            </div>
             <div aria-labelledby="waste-management-streams-heading">
               <h3 id="waste-management-streams-heading">Verified waste streams</h3>
               <div id="waste-management-streams"></div>
@@ -3474,7 +3495,14 @@
       const wasteManagement = document.querySelector("#waste-management");
       const wasteManagementLocation = document.querySelector("#waste-management-location");
       const wasteManagementSummary = document.querySelector("#waste-management-summary");
+      const wasteManagementDays = document.querySelector("#waste-management-period-days");
       const wasteManagementStatus = document.querySelector("#waste-management-status");
+      const wasteManagementPeriodTotal = document.querySelector("#waste-management-period-total");
+      const wasteManagementByType = document.querySelector("#waste-management-by-type");
+      const wasteManagementByDisposal = document.querySelector("#waste-management-by-disposal");
+      const wasteManagementCompostEfficiencyTotal = document.querySelector("#waste-management-compost-efficiency-total");
+      const wasteManagementCompostMethods = document.querySelector("#waste-management-compost-methods");
+      const wasteManagementCompostQuality = document.querySelector("#waste-management-compost-quality");
       const wasteManagementStreams = document.querySelector("#waste-management-streams");
       const wasteManagementCompost = document.querySelector("#waste-management-compost");
       const wasteManagementRecycling = document.querySelector("#waste-management-recycling");
@@ -17113,6 +17141,48 @@
         const severities = new Set(["low", "medium", "high", "critical"]);
         const incidentStatuses = new Set(["open", "investigating", "remediation", "resolved", "closed"]);
         const optionalFinite = (value) => value === null || (typeof value === "number" && Number.isFinite(value));
+        const period = summary.waste_summary;
+        const selectedDays = Number(wasteManagementDays.value);
+        const wasteTypesForPeriod = new Set(["crop_residue", "processing_waste", "packaging", "chemical_container", "organic_waste", "wastewater", "other"]);
+        const disposalForPeriod = new Set(["composting", "burning", "landfill", "recycling", "animal_feed", "biogas", "mulching", "other"]);
+        const efficiency = summary.composting_efficiency;
+        const validPeriod = period && period.period_days === selectedDays
+          && Number.isSafeInteger(period.total_records) && period.total_records >= 0
+          && typeof period.total_waste_kg === "number" && Number.isFinite(period.total_waste_kg)
+          && Array.isArray(period.by_type) && Array.isArray(period.by_disposal_method);
+        if (!validPeriod || efficiency?.location_id !== summary.location_id
+            || !Number.isSafeInteger(efficiency.total_batches) || efficiency.total_batches < 0
+            || ![efficiency.total_feedstock_kg, efficiency.total_output_kg].every((value) => typeof value === "number" && Number.isFinite(value))
+            || !optionalFinite(efficiency.overall_yield_pct)
+            || !Array.isArray(efficiency.by_method) || !Array.isArray(efficiency.recent_quality)
+            || efficiency.recent_quality.length > 10) {
+          throw new Error("The response did not match the waste period and composting-efficiency contract.");
+        }
+        wasteManagementPeriodTotal.textContent = `${wasteManagementValue(period.total_waste_kg)} kg across ${wasteManagementValue(period.total_records)} verified records in the last ${wasteManagementValue(period.period_days)} days.`;
+        renderWasteAggregateTable(wasteManagementByType, period.by_type, [
+          ["waste_type", "Waste type"], ["total_kg", "Quantity (kg)"], ["record_count", "Records"]
+        ], (row) => wasteTypesForPeriod.has(row?.waste_type)
+          && typeof row.total_kg === "number" && Number.isFinite(row.total_kg)
+          && Number.isSafeInteger(row.record_count) && row.record_count > 0);
+        renderWasteAggregateTable(wasteManagementByDisposal, period.by_disposal_method, [
+          ["disposal_method", "Disposal method"], ["total_kg", "Quantity (kg)"], ["record_count", "Records"]
+        ], (row) => (row?.disposal_method === null || disposalForPeriod.has(row?.disposal_method))
+          && typeof row.total_kg === "number" && Number.isFinite(row.total_kg)
+          && Number.isSafeInteger(row.record_count) && row.record_count > 0);
+        wasteManagementCompostEfficiencyTotal.textContent = `${wasteManagementValue(efficiency.total_batches)} verified batches; ${wasteManagementValue(efficiency.total_feedstock_kg)} kg feedstock; ${wasteManagementValue(efficiency.total_output_kg)} kg recorded output; overall yield ${wasteManagementValue(efficiency.overall_yield_pct)}%. Measurements are descriptive, not a quality certification.`;
+        const validCompostMethod = (row) => typeof row?.compost_method === "string" && compostMethods.has(row.compost_method)
+          && Number.isSafeInteger(row.batches) && row.batches > 0
+          && [row.avg_yield_pct, row.avg_feedstock_kg, row.avg_output_kg, row.avg_duration_days].every(optionalFinite);
+        renderWasteAggregateTable(wasteManagementCompostMethods, efficiency.by_method, [
+          ["compost_method", "Method"], ["batches", "Batches"], ["avg_yield_pct", "Average yield (%)"],
+          ["avg_feedstock_kg", "Average feedstock (kg)"], ["avg_output_kg", "Average output (kg)"],
+          ["avg_duration_days", "Average duration (days)"]
+        ], validCompostMethod);
+        renderWasteAggregateTable(wasteManagementCompostQuality, efficiency.recent_quality, [
+          ["recorded_at", "Recorded"], ["ph", "pH"], ["moisture_pct", "Moisture (%)"],
+          ["temperature_c", "Temperature (°C)"], ["output_yield_pct", "Output yield (%)"]
+        ], (row) => typeof row?.recorded_at === "string"
+          && [row.ph, row.moisture_pct, row.temperature_c, row.output_yield_pct].every(optionalFinite));
         renderWasteAggregateTable(wasteManagementStreams, summary.waste_streams, [
           ["waste_type", "Waste type"], ["disposal_method", "Disposal method"],
           ["quantity_unit", "Recorded unit"], ["record_count", "Records"],
@@ -17162,7 +17232,9 @@
         incidentReview.hidden = !canReviewIncidents;
         if (!canRead) {
           wasteManagementStatus.textContent = "";
-          for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
+          wasteManagementPeriodTotal.textContent = "";
+          wasteManagementCompostEfficiencyTotal.textContent = "";
+          for (const container of [wasteManagementByType, wasteManagementByDisposal, wasteManagementCompostMethods, wasteManagementCompostQuality, wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
             container.replaceChildren();
           }
         }
@@ -17290,19 +17362,22 @@
 
       async function loadWasteManagementSummary() {
         const locationId = wasteManagementLocation.value;
+        const days = Number(wasteManagementDays.value);
         const requestVersion = ++wasteManagementRequestVersion;
         if (!wasteManagementLocations.has(locationId)) {
           updateWasteManagementAccess();
           return;
         }
         wasteManagementSummary.hidden = false;
-        for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
+        for (const container of [wasteManagementByType, wasteManagementByDisposal, wasteManagementCompostMethods, wasteManagementCompostQuality, wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
           container.replaceChildren();
         }
-        wasteManagementStatus.textContent = "Loading verified waste and pollution counts…";
+        wasteManagementPeriodTotal.textContent = "";
+        wasteManagementCompostEfficiencyTotal.textContent = "";
+        wasteManagementStatus.textContent = "Loading verified waste and pollution aggregates…";
         try {
           const response = await fetch(
-            `/operator/api/waste/${encodeURIComponent(locationId)}/summary`,
+            `/operator/api/waste/${encodeURIComponent(locationId)}/summary?days=${encodeURIComponent(days)}`,
             { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
           );
           if (!response.ok) {
@@ -17316,6 +17391,8 @@
           if (requestVersion !== wasteManagementRequestVersion
               || locationId !== wasteManagementLocation.value) return;
           if (result.location_id !== locationId
+              || result.waste_summary?.period_days !== days
+              || result.composting_efficiency?.location_id !== locationId
               || !Array.isArray(result.waste_streams)
               || !Array.isArray(result.composting)
               || !Array.isArray(result.recycling)
@@ -17323,12 +17400,14 @@
             throw new Error("The response did not match the selected location or waste contract.");
           }
           renderWasteManagementSummary(result);
-          wasteManagementStatus.textContent = "Read-only aggregates include verified waste records and incident counts only. Compost measurements and yields are descriptive and advisory; counts do not determine compliance.";
+          wasteManagementStatus.textContent = "Read-only totals, method averages, and recent numeric readings include verified records only. Compost measurements and yields are descriptive and advisory; they do not determine compliance.";
         } catch (error) {
           if (requestVersion !== wasteManagementRequestVersion) return;
-          for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
+          for (const container of [wasteManagementByType, wasteManagementByDisposal, wasteManagementCompostMethods, wasteManagementCompostQuality, wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
             container.replaceChildren();
           }
+          wasteManagementPeriodTotal.textContent = "";
+          wasteManagementCompostEfficiencyTotal.textContent = "";
           wasteManagementStatus.textContent = error.message;
         }
       }
@@ -24396,6 +24475,7 @@
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);
       energyMonitoringLocation.addEventListener("change", loadEnergyMonitoringSummary);
       document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary);
+      wasteManagementDays.addEventListener("change", loadWasteManagementSummary);
       document.querySelector("#incident-review-refresh").addEventListener("click", loadPollutionIncidentReviewQueue);
       incidentReviewMore.addEventListener("click", () => {
         incidentReviewOffset += 100;

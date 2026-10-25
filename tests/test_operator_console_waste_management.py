@@ -22,6 +22,10 @@ def test_waste_management_panel_is_hidden_and_omits_sensitive_details():
     for element_id in (
         "waste-management-streams", "waste-management-compost",
         "waste-management-recycling", "waste-management-incidents",
+        "waste-management-period-days", "waste-management-period-total",
+        "waste-management-by-type", "waste-management-by-disposal",
+        "waste-management-compost-efficiency-total", "waste-management-compost-methods",
+        "waste-management-compost-quality",
     ):
             assert f'id="{element_id}"' in panel
 
@@ -31,9 +35,11 @@ def test_waste_reader_uses_exact_grant_scope_and_no_store_location_checked_reque
     reader = re.search(r"async function loadWasteManagementSummary\(\).*?\n      }", SOURCE, re.DOTALL)
     assert reader
     assert "wasteManagementLocations.has(locationId)" in reader.group()
-    assert '`/operator/api/waste/${encodeURIComponent(locationId)}/summary`' in reader.group()
+    assert '`/operator/api/waste/${encodeURIComponent(locationId)}/summary?days=${encodeURIComponent(days)}`' in reader.group()
     assert 'cache: "no-store"' in reader.group()
     assert "result.location_id !== locationId" in reader.group()
+    assert "result.waste_summary?.period_days !== days" in reader.group()
+    assert "result.composting_efficiency?.location_id !== locationId" in reader.group()
     assert "requestVersion !== wasteManagementRequestVersion" in reader.group()
     assert "Array.isArray(result.pollution_incidents)" in reader.group()
 
@@ -47,6 +53,10 @@ def test_waste_console_validates_categories_and_renders_only_fixed_text_fields()
     assert '"mean_batch_yield_pct"' in renderer.group()
     assert "row.graded_batches <= row.record_count" in renderer.group()
     assert "incidentStatuses.has(row?.status)" in renderer.group()
+    assert "period.by_type" in renderer.group()
+    assert "efficiency.by_method" in renderer.group()
+    assert "efficiency.recent_quality" in renderer.group()
+    assert "cell.textContent = wasteManagementValue(item[field])" in SOURCE
     table_renderer = re.search(r"function renderWasteAggregateTable\(.*?\n      }", SOURCE, re.DOTALL)
     assert table_renderer
     assert "cell.textContent = wasteManagementValue(item[field])" in table_renderer.group()
@@ -56,6 +66,7 @@ def test_waste_console_validates_categories_and_renders_only_fixed_text_fields()
 def test_waste_console_refresh_and_location_change_are_wired_and_ids_unique():
     assert 'document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary)' in SOURCE
     assert 'wasteManagementLocation.addEventListener("change", () =>' in SOURCE
+    assert 'wasteManagementDays.addEventListener("change", loadWasteManagementSummary)' in SOURCE
     assert 'scope.resource === "waste_management" && scope.action === "create"' in SOURCE
     assert 'const compostingCaptureForm = document.querySelector("#composting-capture-form")' in SOURCE
     assert 'compostingCapture.hidden = !canCreate' in SOURCE

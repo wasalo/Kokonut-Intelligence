@@ -11,8 +11,8 @@ Usage:
     python -m services.analytics.waste_management record-recycling --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management report-incident --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management resolve-incident --incident-id UUID (retired; use the authenticated Gateway console)
-    python -m services.analytics.waste_management waste-summary --location-id UUID
-    python -m services.analytics.waste_management composting-efficiency --location-id UUID
+    python -m services.analytics.waste_management waste-summary --location-id UUID (retired; use the authenticated Gateway)
+    python -m services.analytics.waste_management composting-efficiency --location-id UUID (retired; use the authenticated Gateway)
     python -m services.analytics.waste_management open-incidents --location-id UUID (retired; use authenticated Gateway review)
     python -m services.analytics.waste_management dashboard --location-id UUID
 """
@@ -147,68 +147,12 @@ def resolve_incident(
 # ============================================================
 
 def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
-    """Get verified waste totals by type and disposal method."""
-    if isinstance(days, bool) or not isinstance(days, int) or days < 1:
-        raise ValueError("days must be a positive integer")
-
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            """
-            SELECT waste_type,
-                   SUM(quantity_kg) AS total_kg,
-                   COUNT(*) AS record_count
-            FROM waste_stream
-            WHERE location_id = %s
-              AND record_date >= CURRENT_DATE - (%s - 1)
-              AND status = 'verified'
-            GROUP BY waste_type
-            ORDER BY total_kg DESC
-            """,
-            (location_id, days),
-        )
-        cols = [d[0] for d in cur.description]
-        by_type = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT disposal_method,
-                   SUM(quantity_kg) AS total_kg,
-                   COUNT(*) AS record_count
-            FROM waste_stream
-            WHERE location_id = %s
-              AND record_date >= CURRENT_DATE - (%s - 1)
-              AND status = 'verified'
-            GROUP BY disposal_method
-            ORDER BY total_kg DESC
-            """,
-            (location_id, days),
-        )
-        cols = [d[0] for d in cur.description]
-        by_disposal = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT SUM(quantity_kg), COUNT(*)
-            FROM waste_stream
-            WHERE location_id = %s
-              AND record_date >= CURRENT_DATE - (%s - 1)
-              AND status = 'verified'
-            """,
-            (location_id, days),
-        )
-        total_row = cur.fetchone()
-    finally:
-        cur.close()
-
-    return {
-        "location_id": location_id,
-        "period_days": days,
-        "total_waste_kg": float(total_row[0]) if total_row[0] else 0,
-        "total_records": int(total_row[1]) if total_row[1] else 0,
-        "by_type": by_type,
-        "by_disposal_method": by_disposal,
-    }
+    """Reject location-argument-only reads without authenticated tenant context."""
+    del conn, location_id, days
+    raise TenantContextDenied(
+        "Unscoped waste summaries are disabled; use the authenticated operator "
+        "Gateway waste summary"
+    )
 
 
 # ============================================================
@@ -216,86 +160,12 @@ def get_waste_summary(conn, location_id: str, days: int = 30) -> dict:
 # ============================================================
 
 def get_composting_efficiency(conn, location_id: str) -> dict:
-    """Get verified composting yield and recorded process measurements."""
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            """
-            SELECT compost_method,
-                   COUNT(*) AS batches,
-                   ROUND(AVG(
-                       finished_volume_kg / NULLIF(feedstock_kg, 0) * 100
-                   ) FILTER (
-                       WHERE finished_volume_kg IS NOT NULL AND feedstock_kg > 0
-                   )::numeric, 1) AS avg_yield_pct,
-                   AVG(feedstock_kg) AS avg_feedstock_kg,
-                   AVG(finished_volume_kg) AS avg_output_kg,
-                   AVG(duration_days) AS avg_duration_days
-            FROM composting_record
-            WHERE location_id = %s
-              AND status = 'verified'
-              AND finished_volume_kg IS NOT NULL
-            GROUP BY compost_method
-            ORDER BY batches DESC, compost_method
-            """,
-            (location_id,),
-        )
-        cols = [d[0] for d in cur.description]
-        by_method = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT CASE
-                       WHEN jsonb_typeof(metadata -> 'ph') = 'number'
-                       THEN (metadata ->> 'ph')::numeric
-                       ELSE NULL
-                   END AS ph,
-                   moisture_pct, temperature_c,
-                   CASE
-                       WHEN feedstock_kg > 0 AND finished_volume_kg IS NOT NULL
-                       THEN ROUND((finished_volume_kg / feedstock_kg * 100)::numeric, 1)
-                       ELSE NULL
-                   END AS output_yield_pct,
-                   compost_date AS recorded_at
-            FROM composting_record
-            WHERE location_id = %s
-              AND status = 'verified'
-            ORDER BY compost_date DESC, id DESC
-            LIMIT 10
-            """,
-            (location_id,),
-        )
-        cols = [d[0] for d in cur.description]
-        recent_quality = []
-        for row in cur.fetchall():
-            recent_quality.append(dict(zip(cols, row)))
-
-        cur.execute(
-            """
-            SELECT COUNT(*), SUM(feedstock_kg), SUM(finished_volume_kg)
-            FROM composting_record
-            WHERE location_id = %s
-              AND status = 'verified'
-            """,
-            (location_id,),
-        )
-        total_row = cur.fetchone()
-    finally:
-        cur.close()
-
-    overall_yield_pct = None
-    if total_row[1] and total_row[2] and float(total_row[1]) > 0:
-        overall_yield_pct = round(float(total_row[2]) / float(total_row[1]) * 100, 1)
-
-    return {
-        "location_id": location_id,
-        "total_batches": int(total_row[0]) if total_row[0] else 0,
-        "total_feedstock_kg": float(total_row[1]) if total_row[1] else 0,
-        "total_output_kg": float(total_row[2]) if total_row[2] else 0,
-        "overall_yield_pct": overall_yield_pct,
-        "by_method": by_method,
-        "recent_quality": recent_quality,
-    }
+    """Reject location-argument-only reads without authenticated tenant context."""
+    del conn, location_id
+    raise TenantContextDenied(
+        "Unscoped composting summaries are disabled; use the authenticated operator "
+        "Gateway waste summary"
+    )
 
 
 # ============================================================
@@ -427,17 +297,17 @@ cli.subcommand("resolve-incident", "Retired unscoped writer; use the authenticat
     .run(_cmd_resolve_incident, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_resolve))
 
-cli.subcommand("waste-summary", "Waste totals by type and disposal") \
+cli.subcommand("waste-summary", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--days", type=int, default=30) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_waste_summary(db, a.location_id, days=a.days)) \
+    .run(lambda db, a: get_waste_summary(db, a.location_id, days=a.days), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_waste_summary))
 
-cli.subcommand("composting-efficiency", "Composting yield and quality") \
+cli.subcommand("composting-efficiency", "Retired unscoped read; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_composting_efficiency(db, a.location_id)) \
+    .run(lambda db, a: get_composting_efficiency(db, a.location_id), needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_composting_efficiency))
 
 cli.subcommand("open-incidents", "Retired unscoped read; use the authenticated Gateway") \

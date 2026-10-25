@@ -1,3 +1,30 @@
+### Progress addendum — CAP-006 waste-summary database reader boundary, 24 October 2026
+
+Migration 618 moves the Gateway's verified waste, composting, and recycling
+aggregates behind a no-login, non-inheriting function owner. The function checks
+signed operator/location context and the exact `waste_management:read` grant.
+Runtime and Directus lose direct table and column reads on the three canonical
+relations and access to `v_waste_summary` and `v_composting_efficiency`; the
+Gateway calls the aggregate function. The old local waste-summary and
+composting-efficiency CLI reads now fail before opening a database. The signed
+Gateway projection preserves 1–3650-day verified waste totals by type and
+disposal method, compost totals and method averages, and the ten latest numeric
+quality readings. The console offers 7/30/90/365-day windows; only numeric
+`metadata.ph` is projected, never arbitrary metadata.
+
+The 38-test Gateway/analytics/console selection passes. Ruff, Python and
+JavaScript syntax, dependency-group alignment, provider boundaries, matrix
+validation, runtime SQL inventory, and diff checks pass. Disposable PostgreSQL
+16 applies/replays migrations 153 and 613–618, verifies selected windows and
+synthetic verified output, and denies missing/wrong-location grants plus
+runtime and Directus table/view access on native AMD64 and ARM64/QEMU. Candidate
+and legacy remain untouched; migration 618 is not rolled out. QEMU is software
+portability evidence only, not physical Raspberry Pi acceptance. Checklist:
+1,126 complete / 25 open (1,151 total). Broader waste ACL/RLS, populated-data
+parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain open ([native
+evidence](builds/2026-10-24-recovery/cap-006-waste-summary-reader-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-006-waste-summary-reader-arm64-disposable.json)).
+
 ### Current CAP-006 implementation slice — isolate pollution incident reads, 24 October 2026
 
 Migration 617 moves the bounded narrative review queue and aggregate incident

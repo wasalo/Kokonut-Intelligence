@@ -11,7 +11,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
 from contextlib import redirect_stderr
-from datetime import date
 from unittest.mock import MagicMock, patch
 
 from services.analytics import waste_management
@@ -183,140 +182,52 @@ class TestResolveIncident(unittest.TestCase):
 
 class TestWasteSummary(unittest.TestCase):
 
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
+    def test_unscoped_waste_summary_fails_before_cursor_access(self):
+        conn = MagicMock()
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            get_waste_summary(conn, "loc-001")
+        conn.cursor.assert_not_called()
+        conn.commit.assert_not_called()
 
-    def test_get_waste_summary_returns_summary(self):
-        self.mock_cursor.description = [
-            ("waste_type",), ("total_kg",), ("record_count",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [
-            [("organic", 100.0, 5)],
-            [("composting", 100.0, 5)],
-        ]
-        self.mock_cursor.fetchone.return_value = (100.0, 5)
-        result = get_waste_summary(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["total_waste_kg"], 100.0)
-        self.assertEqual(result["total_records"], 5)
-        self.assertEqual(len(result["by_type"]), 1)
-        self.assertEqual(len(result["by_disposal_method"]), 1)
-        statements = self.mock_cursor.execute.call_args_list
-        self.assertEqual(len(statements), 3)
-        for call in statements:
-            query, params = call.args
-            self.assertIn("FROM waste_stream", query)
-            self.assertNotIn("waste_stream_record", query)
-            self.assertIn("record_date >= CURRENT_DATE - (%s - 1)", query)
-            self.assertIn("status = 'verified'", query)
-            self.assertEqual(params, ("loc-001", 30))
-        self.mock_cursor.close.assert_called_once()
-
-    def test_get_waste_summary_rejects_invalid_day_window_before_cursor(self):
-        for days in (0, -1, 1.5, True, "30"):
-            with self.subTest(days=days):
-                conn = MagicMock()
-                with self.assertRaisesRegex(ValueError, "positive integer"):
-                    get_waste_summary(conn, "loc-001", days=days)
-                conn.cursor.assert_not_called()
-
-    def test_get_waste_summary_empty(self):
-        self.mock_cursor.description = [
-            ("waste_type",), ("total_kg",), ("record_count",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (None, None)
-        result = get_waste_summary(self.conn, "loc-001")
-        self.assertEqual(result["total_waste_kg"], 0)
-        self.assertEqual(result["total_records"], 0)
-
-    def test_get_waste_summary_closes_cursor_when_query_fails(self):
-        self.mock_cursor.execute.side_effect = RuntimeError("synthetic query failure")
-        with self.assertRaisesRegex(RuntimeError, "synthetic query failure"):
-            get_waste_summary(self.conn, "loc-001")
-        self.mock_cursor.close.assert_called_once()
+    def test_unscoped_waste_summary_cli_fails_before_database_access(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run(["waste-summary", "--location-id", "loc-001"])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway waste summary", stderr.getvalue())
 
 
 class TestCompostingEfficiency(unittest.TestCase):
 
-    def setUp(self):
-        self.conn = MagicMock()
-        self.mock_cursor = MagicMock()
-        self.conn.cursor.return_value = self.mock_cursor
+    def test_unscoped_composting_summary_fails_before_cursor_access(self):
+        conn = MagicMock()
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            get_composting_efficiency(conn, "loc-001")
+        conn.cursor.assert_not_called()
+        conn.commit.assert_not_called()
 
-    def test_get_composting_efficiency_returns_efficiency(self):
-        method_columns = [
-            ("compost_method",), ("batches",), ("avg_yield_pct",),
-            ("avg_feedstock_kg",), ("avg_output_kg",), ("avg_duration_days",),
-        ]
-        quality_columns = [
-            ("ph",), ("moisture_pct",), ("temperature_c",),
-            ("output_yield_pct",), ("recorded_at",),
-        ]
+    def test_unscoped_composting_summary_cli_fails_before_database_access(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run(["composting-efficiency", "--location-id", "loc-001"])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway waste summary", stderr.getvalue())
 
-        def set_description(query, _params):
-            if "GROUP BY compost_method" in query:
-                self.mock_cursor.description = method_columns
-            elif "ORDER BY compost_date DESC" in query:
-                self.mock_cursor.description = quality_columns
-
-        self.mock_cursor.execute.side_effect = set_description
-        self.mock_cursor.fetchall.side_effect = [
-            [("vermicomposting", 3, 45.0, 100.0, 45.0, 30.0)],
-            [(6.5, 60.0, 55.0, 40.0, date(2026, 10, 24))],
-        ]
-        self.mock_cursor.fetchone.return_value = (3, 300.0, 135.0)
-        result = get_composting_efficiency(self.conn, "loc-001")
-        self.assertEqual(result["location_id"], "loc-001")
-        self.assertEqual(result["total_batches"], 3)
-        self.assertEqual(result["total_feedstock_kg"], 300.0)
-        self.assertEqual(result["total_output_kg"], 135.0)
-        self.assertEqual(result["overall_yield_pct"], 45.0)
-        self.assertEqual(result["by_method"][0]["avg_yield_pct"], 45.0)
-        self.assertEqual(result["recent_quality"], [{
-            "ph": 6.5, "moisture_pct": 60.0, "temperature_c": 55.0,
-            "output_yield_pct": 40.0, "recorded_at": date(2026, 10, 24),
-        }])
-        statements = self.mock_cursor.execute.call_args_list
-        self.assertEqual(len(statements), 3)
-        for call in statements:
-            query, params = call.args
-            self.assertIn("FROM composting_record", query)
-            self.assertIn("location_id = %s", query)
-            self.assertIn("status = 'verified'", query)
-            self.assertNotIn("status IN ('verified', 'published')", query)
-            self.assertEqual(params, ("loc-001",))
-        self.assertIn("finished_volume_kg", statements[0].args[0])
-        self.assertIn("finished_volume_kg", statements[1].args[0])
-        self.assertNotIn("output_yield_pct", statements[0].args[0])
-        self.mock_cursor.close.assert_called_once()
-
-    def test_get_composting_efficiency_zero_feedstock(self):
-        self.mock_cursor.description = [
-            ("compost_method",), ("batches",), ("avg_yield_pct",),
-            ("avg_feedstock_kg",), ("avg_output_kg",), ("avg_duration_days",),
-        ]
-        self.mock_cursor.fetchall.side_effect = [[], []]
-        self.mock_cursor.fetchone.return_value = (0, None, None)
-        result = get_composting_efficiency(self.conn, "loc-001")
-        self.assertEqual(result["overall_yield_pct"], None)
-
-    def test_get_composting_efficiency_closes_cursor_when_query_fails(self):
-        self.mock_cursor.execute.side_effect = RuntimeError("synthetic query failure")
-        with self.assertRaisesRegex(RuntimeError, "synthetic query failure"):
-            get_composting_efficiency(self.conn, "loc-001")
-        self.mock_cursor.close.assert_called_once()
-
-    def test_legacy_composting_helper_fails_before_opening_cursor(self):
+    def test_legacy_composting_writer_still_fails_before_cursor(self):
+        conn = MagicMock()
         with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
             record_composting(
-                self.conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
+                conn, "loc-001", "Banana stems", 100.0, "vermicomposting",
                 output_kg=45.0, ph=6.5, metadata={"source": "field"},
             )
-        self.conn.cursor.assert_not_called()
-        self.conn.commit.assert_not_called()
+        conn.cursor.assert_not_called()
+        conn.commit.assert_not_called()
 
 
 class TestOpenIncidents(unittest.TestCase):

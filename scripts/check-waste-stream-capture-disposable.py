@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import time
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -23,11 +23,12 @@ COMPOSTING_MIGRATION = ROOT / "schemas/postgres/614_location_composting_capture.
 RECYCLING_MIGRATION = ROOT / "schemas/postgres/615_location_recycling_capture.sql"
 INCIDENT_MIGRATION = ROOT / "schemas/postgres/616_location_pollution_incident_gateway.sql"
 INCIDENT_READ_MIGRATION = ROOT / "schemas/postgres/617_location_scoped_pollution_incident_reads.sql"
+WASTE_SUMMARY_MIGRATION = ROOT / "schemas/postgres/618_location_scoped_waste_summary_reader.sql"
 PLATFORM = os.environ.get("WASTE_CAPTURE_TEST_PLATFORM")
 OUTPUT_SUFFIX = "-arm64" if PLATFORM == "linux/arm64" else ""
 OUTPUT = ROOT / (
     "docs/refactor/builds/2026-10-24-recovery/"
-    f"cap-006-waste-incident-review-reader{OUTPUT_SUFFIX}-disposable.json"
+    f"cap-006-waste-summary-reader{OUTPUT_SUFFIX}-disposable.json"
 )
 IMAGE = os.environ.get("WASTE_CAPTURE_TEST_IMAGE", "postgres:16")
 
@@ -185,6 +186,51 @@ def main() -> int:
             cursor.execute(INCIDENT_MIGRATION.read_text())
             cursor.execute(INCIDENT_READ_MIGRATION.read_text())
             cursor.execute(INCIDENT_READ_MIGRATION.read_text())
+            cursor.execute(WASTE_SUMMARY_MIGRATION.read_text())
+            cursor.execute(WASTE_SUMMARY_MIGRATION.read_text())
+            cursor.execute(
+                "INSERT INTO public.waste_stream "
+                "(location_id, waste_type, waste_name, quantity_kg, quantity_unit, "
+                "record_date, disposal_method, status) "
+                "VALUES (%s, 'organic_waste', 'Synthetic verified compost input', 20, 'kg', %s, 'composting', 'verified')",
+                (location_id, date.today()),
+            )
+            cursor.execute(
+                "INSERT INTO public.waste_stream "
+                "(location_id, waste_type, waste_name, quantity_kg, quantity_unit, "
+                "record_date, disposal_method, status) "
+                "VALUES (%s, 'packaging', 'Older synthetic verified waste', 3, 'kg', %s, 'recycling', 'verified')",
+                (location_id, date.today() - timedelta(days=40)),
+            )
+            cursor.execute(
+                "INSERT INTO public.composting_record "
+                "(location_id, compost_date, feedstock_type, feedstock_kg, compost_method, "
+                "temperature_c, moisture_pct, duration_days, finished_volume_kg, quality_grade, status, metadata) "
+                "VALUES (%s, %s, 'manure', 20, 'vermiculture', 55, 60, 5, 10, 'A', 'verified', '{\"ph\": 6.5, \"private\": \"not returned\"}'::jsonb)",
+                (location_id, date.today()),
+            )
+            cursor.execute(
+                "INSERT INTO public.composting_record "
+                "(location_id, compost_date, feedstock_type, feedstock_kg, compost_method, status) "
+                "VALUES (%s, %s, 'crop_residue', 5, 'heap', 'verified')",
+                (location_id, date.today() - timedelta(days=1)),
+            )
+            cursor.execute(
+                "INSERT INTO public.composting_record "
+                "(location_id, compost_date, feedstock_type, feedstock_kg, compost_method, "
+                "temperature_c, moisture_pct, duration_days, finished_volume_kg, status, metadata) "
+                "SELECT %s, %s - sample.n, 'food_waste', 1, 'bokashi', "
+                "50, 55, 5, 0.5, 'verified', "
+                "jsonb_build_object('ph', 6 + sample.n::numeric / 10, 'private_note', 'must not be returned') "
+                "FROM generate_series(1, 11) AS sample(n)",
+                (other_location_id, date.today()),
+            )
+            cursor.execute(
+                "INSERT INTO public.recycling_log "
+                "(location_id, record_date, material_type, quantity_kg, status) "
+                "VALUES (%s, %s, 'plastic', 5, 'verified')",
+                (location_id, date.today()),
+            )
             cursor.execute(
                 "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'review', NULL)",
                 (operator_id, location_id),
@@ -192,6 +238,10 @@ def main() -> int:
             cursor.execute(
                 "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'read', NULL)",
                 (operator_id, location_id),
+            )
+            cursor.execute(
+                "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'read', NULL)",
+                (operator_id, other_location_id),
             )
             cursor.execute(
                 "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'read', NULL)",
@@ -201,7 +251,7 @@ def main() -> int:
                 "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'review', NULL)",
                 (review_only_operator_id, location_id),
             )
-        checks.append("migrations 613–617 apply and replay after the canonical migration-153 tables")
+        checks.append("migrations 613–618 apply and replay after the canonical migration-153 tables")
 
         connection.autocommit = False
         with connection.cursor() as cursor:
@@ -209,6 +259,103 @@ def main() -> int:
             cursor.execute("SELECT set_config('kokonut.actor_id', %s, false)", (operator_id,))
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
             cursor.execute("SELECT set_config('kokonut.actor_type', 'operator', false)")
+            cursor.execute(
+                "SELECT kokonut_security.summarize_location_waste_operations(%s, %s)",
+                (location_id, 30),
+            )
+            waste_summary = cursor.fetchone()[0]
+            expected_date = date.today().isoformat()
+            if (
+                waste_summary["location_id"] != location_id
+                or waste_summary["waste_summary"] != {
+                    "period_days": 30, "total_waste_kg": 20, "total_records": 1,
+                    "by_type": [{"waste_type": "organic_waste", "total_kg": 20, "record_count": 1}],
+                    "by_disposal_method": [{"disposal_method": "composting", "total_kg": 20, "record_count": 1}],
+                }
+                or waste_summary["waste_streams"] != [
+                    {
+                        "waste_type": "organic_waste", "disposal_method": "composting",
+                        "quantity_unit": "kg", "record_count": 1, "total_quantity": 20,
+                        "first_date": expected_date, "last_date": expected_date,
+                    },
+                    {
+                        "waste_type": "packaging", "disposal_method": "recycling",
+                        "quantity_unit": "kg", "record_count": 1, "total_quantity": 3,
+                        "first_date": (date.today() - timedelta(days=40)).isoformat(),
+                        "last_date": (date.today() - timedelta(days=40)).isoformat(),
+                    },
+                ]
+                or waste_summary["composting"] != [
+                    {
+                        "feedstock_type": "crop_residue", "compost_method": "heap",
+                        "record_count": 1, "feedstock_kg": 5, "total_output_kg": 0,
+                        "weighted_yield_pct": None, "mean_batch_yield_pct": None,
+                        "mean_duration_days": None, "mean_temperature_c": None,
+                        "mean_moisture_pct": None, "graded_batches": 0,
+                        "first_date": (date.today() - timedelta(days=1)).isoformat(),
+                        "last_date": (date.today() - timedelta(days=1)).isoformat(),
+                    },
+                    {
+                        "feedstock_type": "manure", "compost_method": "vermiculture",
+                        "record_count": 1, "feedstock_kg": 20, "total_output_kg": 10,
+                        "weighted_yield_pct": 50, "mean_batch_yield_pct": 50,
+                        "mean_duration_days": 5, "mean_temperature_c": 55,
+                        "mean_moisture_pct": 60, "graded_batches": 1,
+                        "first_date": expected_date, "last_date": expected_date,
+                    },
+                ]
+                or waste_summary["recycling"] != [{
+                    "material_type": "plastic", "record_count": 1, "quantity_kg": 5,
+                    "first_date": expected_date, "last_date": expected_date,
+                }]
+                or waste_summary["composting_efficiency"] != {
+                    "location_id": location_id,
+                    "total_batches": 2,
+                    "total_feedstock_kg": 25,
+                    "total_output_kg": 10,
+                    "overall_yield_pct": 40,
+                    "by_method": [{
+                        "compost_method": "vermiculture", "batches": 1,
+                        "avg_yield_pct": 50, "avg_feedstock_kg": 20,
+                        "avg_output_kg": 10, "avg_duration_days": 5,
+                    }],
+                    "recent_quality": [{
+                        "ph": 6.5, "moisture_pct": 60, "temperature_c": 55,
+                        "output_yield_pct": 50, "recorded_at": expected_date,
+                    }, {
+                        "ph": None, "moisture_pct": None, "temperature_c": None,
+                        "output_yield_pct": None,
+                        "recorded_at": (date.today() - timedelta(days=1)).isoformat(),
+                    }],
+                }
+            ):
+                raise AssertionError(f"unexpected signed waste summary: {waste_summary}")
+            cursor.execute(
+                "SELECT kokonut_security.summarize_location_waste_operations(%s, %s)",
+                (location_id, 60),
+            )
+            wider_period = cursor.fetchone()[0]["waste_summary"]
+            if wider_period["total_waste_kg"] != 23 or wider_period["total_records"] != 2:
+                raise AssertionError(f"requested period did not include older verified waste: {wider_period}")
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
+            cursor.execute(
+                "SELECT kokonut_security.summarize_location_waste_operations(%s, %s)",
+                (other_location_id, 30),
+            )
+            quality = cursor.fetchone()[0]["composting_efficiency"]["recent_quality"]
+            if (
+                len(quality) != 10
+                or quality[0]["recorded_at"] != (date.today() - timedelta(days=1)).isoformat()
+                or quality[-1]["recorded_at"] != (date.today() - timedelta(days=10)).isoformat()
+                or any(
+                    set(reading) != {
+                        "ph", "moisture_pct", "temperature_c", "output_yield_pct", "recorded_at",
+                    }
+                    for reading in quality
+                )
+            ):
+                raise AssertionError(f"recent quality projection is not bounded and metadata-free: {quality}")
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
             cursor.execute(
                 "SELECT kokonut_security.create_location_waste_stream_record("
                 "%s, %s, %s, %s, %s, %s, %s, %s)",
@@ -218,6 +365,7 @@ def main() -> int:
                 ),
             )
             created = cursor.fetchone()[0]
+            cursor.execute("RESET ROLE")
             cursor.execute(
                 "SELECT status, quantity_kg, quantity_unit, created_by FROM public.waste_stream WHERE id = %s",
                 (created["record_id"],),
@@ -227,6 +375,7 @@ def main() -> int:
                 raise AssertionError(f"unexpected recorded waste fields: {row}")
             if created["replayed"] is not False or created["location_id"] != location_id:
                 raise AssertionError("initial capture response was not location-bound")
+            cursor.execute("SET ROLE kokonut_runtime")
             cursor.execute(
                 "SELECT kokonut_security.create_location_waste_stream_record("
                 "%s, %s, %s, %s, %s, %s, %s, %s)",
@@ -239,6 +388,9 @@ def main() -> int:
             if replayed["record_id"] != created["record_id"] or replayed["replayed"] is not True:
                 raise AssertionError("identical retry did not replay the original entry")
         connection.commit()
+        checks.append(
+            "bounded waste windows preserve legacy totals, compost method averages and overall yield; recent numeric quality is limited to ten records and excludes arbitrary metadata"
+        )
         checks.append("exact create grant captures a recorded kg row and an identical retry returns the same ID")
 
         compost_request_id = str(uuid.uuid4())
@@ -260,6 +412,7 @@ def main() -> int:
                 or compost_created["replayed"] is not False
             ):
                 raise AssertionError("compost capture response did not preserve recorded location scope")
+            cursor.execute("RESET ROLE")
             cursor.execute(
                 "SELECT status, feedstock_type, feedstock_kg, compost_method, "
                 "finished_volume_kg, (metadata->>'ph')::numeric, created_by, "
@@ -274,6 +427,7 @@ def main() -> int:
                 {"feedstock_type": "Banana stems", "compost_method": "Vermicomposting"},
             ):
                 raise AssertionError(f"unexpected compost capture row: {compost_row}")
+            cursor.execute("SET ROLE kokonut_runtime")
             cursor.execute(
                 "SELECT kokonut_security.create_location_composting_record("
                 "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -338,6 +492,7 @@ def main() -> int:
                 or recycling_created["replayed"] is not False
             ):
                 raise AssertionError("recycling response did not preserve recorded location scope")
+            cursor.execute("RESET ROLE")
             cursor.execute(
                 "SELECT status, material_type, quantity_kg, destination, revenue, "
                 "metadata->>'legacy_material_type', created_by "
@@ -349,6 +504,7 @@ def main() -> int:
                 "recorded", "other", 8.0, "Scrap yard", 12.5, "Steel scrap", operator_id,
             ):
                 raise AssertionError(f"unexpected recycling capture row: {recycling_row}")
+            cursor.execute("SET ROLE kokonut_runtime")
             cursor.execute(
                 "SELECT kokonut_security.create_location_recycling_record("
                 "%s, %s, %s, %s, %s, %s, %s, %s, %s)",
@@ -723,11 +879,65 @@ def main() -> int:
         checks.append("runtime and Directus cannot directly read incidents, access the narrative view, write incidents, or read private receipts; bounded function owners are isolated")
 
         with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT has_table_privilege('kokonut_runtime', 'public.waste_stream', 'SELECT'), "
+                "has_column_privilege('kokonut_runtime', 'public.waste_stream', 'quantity_kg', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.waste_stream', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.composting_record', 'SELECT'), "
+                "has_column_privilege('kokonut_runtime', 'public.composting_record', 'metadata', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.composting_record', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.recycling_log', 'SELECT'), "
+                "has_column_privilege('kokonut_runtime', 'public.recycling_log', 'revenue', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.recycling_log', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.v_waste_summary', 'SELECT'), "
+                "has_table_privilege('kokonut_runtime', 'public.v_composting_efficiency', 'SELECT'), "
+                "has_function_privilege('kokonut_runtime', "
+                "'kokonut_security.summarize_location_waste_operations(uuid,integer)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_directus_runtime', "
+                "'kokonut_security.summarize_location_waste_operations(uuid,integer)', 'EXECUTE')"
+            )
+            waste_reader_privileges = cursor.fetchone()
+            if (
+                any(waste_reader_privileges[:11])
+                or not waste_reader_privileges[11]
+                or waste_reader_privileges[12]
+            ):
+                raise AssertionError("waste summary direct-read/function privileges are incorrect")
+            cursor.execute(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = "
+                "'kokonut_security.summarize_location_waste_operations(uuid,integer)'::regprocedure"
+            )
+            if cursor.fetchone()[0] != "kokonut_waste_summary_reader":
+                raise AssertionError("waste summary function owner is not isolated")
+        checks.append("runtime and Directus cannot directly read waste, compost, or recycling tables/views; runtime alone can call the exact-grant aggregate owned by an isolated role")
+
+        with connection.cursor() as cursor:
+            cursor.execute("SET ROLE kokonut_runtime")
+        connection.commit()
+        for relation in (
+            "public.waste_stream", "public.composting_record", "public.recycling_log",
+            "public.v_waste_summary", "public.v_composting_efficiency",
+        ):
+            expect_denied(
+                connection,
+                f"SELECT * FROM {relation} LIMIT 1",
+                (),
+                "42501",
+            )
+        checks.append("direct runtime table and legacy aggregate-view reads fail closed")
+
+        with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
         expect_denied(
             connection,
             "SELECT kokonut_security.create_location_waste_stream_record(%s, %s, %s, %s, %s, %s, %s, %s)",
             (other_location_id, str(uuid.uuid4()), "crop_residue", "Wrong location", 1, date.today(), None, None),
+            "42501",
+        )
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.summarize_location_waste_operations(%s, %s)",
+            (other_location_id, 30),
             "42501",
         )
         with connection.cursor() as cursor:
@@ -739,6 +949,12 @@ def main() -> int:
             connection,
             "SELECT kokonut_security.create_location_waste_stream_record(%s, %s, %s, %s, %s, %s, %s, %s)",
             (location_id, str(uuid.uuid4()), "crop_residue", "No grant", 1, date.today(), None, None),
+            "42501",
+        )
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.summarize_location_waste_operations(%s, %s)",
+            (location_id, 30),
             "42501",
         )
         with connection.cursor() as cursor:
@@ -845,6 +1061,7 @@ def main() -> int:
                 BASE_MIGRATION.name, MIGRATION.name, COMPOSTING_MIGRATION.name,
                 RECYCLING_MIGRATION.name,
                 INCIDENT_MIGRATION.name, INCIDENT_READ_MIGRATION.name,
+                WASTE_SUMMARY_MIGRATION.name,
             ],
             "checks": checks,
             "candidate_or_legacy_database_used": False,

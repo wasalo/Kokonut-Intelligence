@@ -19,10 +19,37 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,125 checklist items complete and 25
-open (1,150 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,126 checklist items complete and 25
+open (1,151 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 isolate verified waste, composting, and recycling summaries — 24 October 2026
+
+- [x] Add migration 618 with a no-login, non-inheriting summary reader. Its
+  single location-scoped function validates signed operator context and the
+  exact `waste_management:read` grant, then returns the existing verified
+  aggregates for waste streams, composting, and recycling. Runtime and Directus
+  lose table/column `SELECT` on those three canonical tables and access to the
+  `v_waste_summary` and `v_composting_efficiency` views; only Gateway runtime
+  can execute the aggregate function. The old waste-summary and composting-
+  efficiency CLI helpers now fail before database access. The authenticated
+  Gateway summary preserves the prior 1–3650-day verified waste totals by type
+  and disposal method, plus compost totals, method averages, and the latest ten
+  numeric quality readings; the console offers 7/30/90/365-day windows.
+  Thirty-eight focused Gateway, analytics, and console tests pass. Disposable
+  PostgreSQL 16 applies/replays migrations 153 and 613–618, verifies the selected
+  date window and synthetic legacy outputs, checks missing/wrong-location
+  grants, and denies runtime/Directus table and view access on native AMD64 and
+  ARM64/QEMU ([native](builds/2026-10-24-recovery/cap-006-waste-summary-reader-disposable.json);
+  [ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-summary-reader-arm64-disposable.json)). QEMU is software portability evidence only. Candidate and legacy
+  databases are untouched; migration 618 is not rolled out. Ruff, compilation,
+  JavaScript syntax, dependency boundaries, requirement groups, capability
+  matrix, runtime SQL inventory, and diff checks pass. Rollback disables the
+  Gateway summary and keeps legacy CLI reads fail-closed; do not restore
+  shared-role table access. CAP-006 remains prepared pending populated-data
+  parity, live OIDC/browser acceptance, broader ACL/RLS and Directus parity,
+  and MAN-CAP-006. Checklist: 1,126 complete / 25 open (1,151 total).
 
 ### CAP-006 isolate pollution incident reads behind database authorization — 24 October 2026
 

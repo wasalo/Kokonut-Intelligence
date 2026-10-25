@@ -67,7 +67,11 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
         return payload, None
 
     @router.get("/operator/api/waste/{location_id}/summary")
-    async def waste_summary(request: Request, location_id: str):
+    async def waste_summary(
+        request: Request,
+        location_id: str,
+        days: str = "30",
+    ):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -75,10 +79,25 @@ def register_waste_management_routes(router, provider, run_in_threadpool, psycop
                 headers=headers,
             )
         try:
+            period_days = int(days)
+        except (TypeError, ValueError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "days must be an integer between 1 and 3650"},
+                headers=headers,
+            )
+        if not 1 <= period_days <= 3650:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "days must be an integer between 1 and 3650"},
+                headers=headers,
+            )
+        try:
             result = await run_in_threadpool(
                 get_location_waste_summary,
                 request.state.operator_session.operator.operator_id,
                 location_id,
+                days=period_days,
             )
         except TenantContextDenied:
             return JSONResponse(

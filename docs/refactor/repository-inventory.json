@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "46c800e7a4f9f8a6d7b9e073d4812484895db841",
+  "baseline_commit": "95622bce337a6ccc57fa598bf5a666f94a67886f",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2547,37 +2547,37 @@
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 104,
+      "line": 123,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/records",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 166,
+      "line": 185,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/composting",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 228,
+      "line": 247,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/recycling",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 290,
+      "line": 309,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/incidents",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 352,
+      "line": 371,
       "method": "GET",
       "path": "/operator/api/waste/{location_id}/incidents",
       "source": "services/gateway/waste_management_routes.py"
     },
     {
-      "line": 398,
+      "line": 417,
       "method": "POST",
       "path": "/operator/api/waste/{location_id}/incidents/{incident_id}/resolve",
       "source": "services/gateway/waste_management_routes.py"
@@ -3354,7 +3354,8 @@
       "schemas/postgres/614_location_composting_capture.sql",
       "schemas/postgres/615_location_recycling_capture.sql",
       "schemas/postgres/616_location_pollution_incident_gateway.sql",
-      "schemas/postgres/617_location_scoped_pollution_incident_reads.sql"
+      "schemas/postgres/617_location_scoped_pollution_incident_reads.sql",
+      "schemas/postgres/618_location_scoped_waste_summary_reader.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

@@ -27,7 +27,9 @@ divided by all verified feedstock in the group, while mean batch yield and
 duration use only batches with output and positive feedstock. Mean temperature
 and moisture include all verified batches. `graded_batches` is only a count;
 grade labels, notes, and source rows are not returned. The schema has no pH
-column, so pH is not inferred. These summaries are descriptive and advisory,
+column; for the ten most recent verified readings, the projection extracts
+`metadata.ph` only when its JSON type is numeric. It never returns the metadata
+object or other metadata keys. These summaries are descriptive and advisory,
 not a compost-quality score, certification, or compliance result.
 
 Pollution incident aggregation reports count and first/last date by the
@@ -36,17 +38,32 @@ narrative, affected area, remedial action, reporter/recipient, notes, IDs, or
 arbitrary metadata. These counts are descriptive and do not determine
 compliance, severity response, or closure.
 
-## Legacy CLI summary compatibility
+## Legacy summary capability preservation
 
-The existing `services.analytics.waste_management.get_waste_summary` now reads
-the canonical `waste_stream` table and `record_date` column from migration 153.
-Its output shape is unchanged. It filters to `verified` rows, matching the
-schema's lifecycle constraint, and computes the requested window with a bound
-integer day count (`CURRENT_DATE - (%s - 1)`), which includes exactly the
-requested number of calendar dates including today. Invalid, non-positive,
-non-integer, and boolean windows fail before cursor acquisition. Its cursor
-closes on both success and query failure. This remains a trusted local CLI
-path; it does not add an authenticated API or tenant authorization boundary.
+The unscoped `services.analytics.waste_management.get_waste_summary` and
+`get_composting_efficiency` helpers now fail before database access because a
+caller-selected location is not authenticated tenant context. Their useful
+outputs remain available in the authenticated Gateway response rather than
+through the shared local CLI credential.
+
+`GET /operator/api/waste/{location_id}/summary` accepts `days` from 1 through
+3650 (default 30). The selected window contains exactly that many calendar
+dates including today and includes verified waste rows only. Its
+`waste_summary` projection preserves total kilograms, record count, grouping by
+waste type, and grouping by disposal method. The response also retains the
+all-time verified waste-stream groupings and separate composting and recycling
+aggregates. Composting efficiency preserves verified batch/feedstock/output
+totals, overall yield, per-method averages, and the ten latest quality readings
+(numeric pH from `metadata.ph`, moisture, temperature, yield, and date). No
+arbitrary metadata, notes, identities, or source-row IDs are returned. The
+console exposes 7/30/90/365-day windows and validates the requested period and
+fixed response fields before rendering them as text.
+
+The migration-owned aggregate checks the same signed operator/location context
+and exact read grant before returning any projection. Its isolated reader role
+has only the source columns needed for these aggregates. The legacy local CLI
+commands remain database-free and direct operators to the authenticated
+Gateway; rollback must not restore shared-role table access or unscoped reads.
 
 The legacy `record_waste` Python helper and `record-waste` CLI now fail closed
 because the old location argument was caller-selected and did not establish an
@@ -79,12 +96,11 @@ receipt. Exact retries replay the original ID; changed payload reuse conflicts.
 The console exposes the form only for the exact create grant and keeps capture
 separate from verification.
 
-Legacy incident summary reads preserve the migration-153 lifecycle and
-metadata mapping, but the report and resolve helper/CLI paths now fail before
-database access because caller-selected locations do not establish tenant
-authorization. Incident reporting and resolution are available through the
-location-scoped Gateway operations below. The read-only summary remains a
-trusted local CLI path; it does not add authenticated tenant authorization.
+Legacy incident report, resolve, summary, and mixed-dashboard helper/CLI paths
+fail before database access because caller-selected locations do not establish
+tenant authorization. Incident capture and resolution are available through
+the location-scoped Gateway operations below. Aggregate counts remain in the
+exact-grant Gateway summary; narrative review is separately gated.
 
 The legacy CLI contract was exercised against migration 153 in disposable
 PostgreSQL 16. Migration apply/replay and synthetic records verify that the
@@ -249,3 +265,18 @@ behavior ([evidence](builds/2026-10-24-recovery/cap-006-waste-incident-review-re
 legacy databases. This boundary covers pollution incidents only; it does not
 close ACL/RLS requirements for the other waste-management tables or broader
 Directus parity.
+
+## Waste, composting, and recycling summary reader isolation
+
+Migration 618 routes the Gateway's verified waste-stream, composting, and
+recycling aggregates through one security-definer function owned by a separate
+no-login, non-inheriting reader. It validates current operator/location
+context and the exact `waste_management:read` grant. Runtime and Directus lose
+table/column reads on the three canonical relations and read access to the
+legacy `v_waste_summary` and `v_composting_efficiency` views; only Gateway
+runtime can execute the function. The unscoped local waste-summary and
+composting-efficiency CLI operations fail before connecting. Native and
+ARM64/QEMU disposable PostgreSQL checks apply/replay migrations 153 and
+613–618, verify synthetic summary output and grant boundaries, and prove direct
+table/view denial ([native evidence](builds/2026-10-24-recovery/cap-006-waste-summary-reader-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-24-recovery/cap-006-waste-summary-reader-arm64-disposable.json)). Candidate and legacy are untouched and migration 618 is not rolled out. QEMU does not establish physical Raspberry Pi acceptance. This closes only the direct read path for these aggregates; other waste-table ACL/RLS, populated parity, live OIDC/browser, Directus parity, and MAN-CAP-006 remain open.
