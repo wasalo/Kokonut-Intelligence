@@ -476,10 +476,36 @@ def validate_task_inputs(task_key: str, inputs: dict[str, Any]) -> list[str]:
 
 
 def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
-    """Validate declared top-level output presence, types, and known formats."""
-    return _validate_declared_fields(
+    """Validate declared outputs and task-specific nested contracts."""
+    errors = _validate_declared_fields(
         output_schema(task_key), output, field_kind="output"
     )
+    if task_key == "cids_export":
+        document = output.get("document") if isinstance(output, dict) else None
+        if isinstance(document, dict):
+            graph = document.get("@graph")
+            if not isinstance(graph, list):
+                errors.append("Invalid CIDS document graph (expected array)")
+            elif not graph:
+                errors.append("Invalid CIDS document graph (expected nodes)")
+            elif any(
+                not isinstance(node, dict)
+                or not isinstance(node.get("@id"), str)
+                or not node["@id"].strip()
+                or not isinstance(node.get("kokonut:sourceViews"), list)
+                or not node["kokonut:sourceViews"]
+                or any(
+                    not isinstance(view, str) or not view.strip()
+                    for view in node["kokonut:sourceViews"]
+                )
+                or node["kokonut:sourceViews"]
+                != sorted(set(node["kokonut:sourceViews"]))
+                for node in graph
+            ):
+                errors.append(
+                    "Invalid CIDS document graph node source-view provenance"
+                )
+    return errors
 
 
 def main() -> None:

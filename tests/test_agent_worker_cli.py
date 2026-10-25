@@ -1913,7 +1913,15 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
     source_factory = MagicMock(return_value=connection)
     action_policy = MagicMock()
     document = {
-        "@graph": [{"@type": "cids:Organization"}],
+        "@graph": [
+            {
+                "@type": "cids:Organization",
+                "@id": "https://kokonut.network/cids/Organization/adelphi",
+                "kokonut:sourceViews": [
+                    "kokonut_agent_source.cids_location"
+                ],
+            }
+        ],
         "kokonut:alignmentTier": "essential",
         "kokonut:cidsVersion": "3.2.0",
     }

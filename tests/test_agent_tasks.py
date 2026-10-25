@@ -48,7 +48,14 @@ def test_output_validation_checks_required_fields() -> None:
 
 def test_output_validation_checks_declared_top_level_types_and_formats() -> None:
     valid = {
-        "document": {"@graph": []},
+        "document": {
+            "@graph": [
+                {
+                    "@id": "https://kokonut.network/cids/Organization/test",
+                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                }
+            ]
+        },
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
@@ -86,6 +93,60 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
     )
     assert uuid_errors == ["Invalid output format for field: ai_summary_id (expected uuid)"]
     assert "private-not-a-uuid" not in " ".join(uuid_errors)
+
+
+def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() -> None:
+    valid_output = {
+        "document": {
+            "@graph": [
+                {
+                    "@id": "https://kokonut.network/cids/Organization/test",
+                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                }
+            ]
+        },
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": {"location_id": "location-id", "views": []},
+    }
+    assert validate_output("cids_export", valid_output) == []
+
+    valid_node = valid_output["document"]["@graph"][0]
+    for invalid_node in (
+        {"kokonut:sourceViews": ["kokonut_agent_source.cids_location"]},
+        {"@id": "https://kokonut.network/cids/Outcome/missing-provenance"},
+        {
+            "@id": "https://kokonut.network/cids/Outcome/empty-provenance",
+            "kokonut:sourceViews": [],
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/malformed-provenance",
+            "kokonut:sourceViews": [None],
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/unsorted-provenance",
+            "kokonut:sourceViews": [
+                "kokonut_agent_source.cids_stakeholder_outcome",
+                "kokonut_agent_source.cids_location",
+            ],
+        },
+    ):
+        invalid_output = {
+            **valid_output,
+            "document": {"@graph": [valid_node, invalid_node]},
+        }
+        assert validate_output("cids_export", invalid_output) == [
+            "Invalid CIDS document graph node source-view provenance"
+        ]
+
+    empty_output = {
+        **valid_output,
+        "document": {"@graph": []},
+    }
+    assert validate_output("cids_export", empty_output) == [
+        "Invalid CIDS document graph (expected nodes)"
+    ]
 
 
 def test_task_input_validation_checks_required_types_and_formats() -> None:
@@ -198,7 +259,15 @@ def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
 
     expected = {
         "document": {
-            "@graph": [{"@type": "cids:Organization"}],
+            "@graph": [
+                {
+                    "@type": "cids:Organization",
+                    "@id": "https://kokonut.network/cids/Organization/adelphi",
+                    "kokonut:sourceViews": [
+                        "kokonut_agent_source.cids_location"
+                    ],
+                }
+            ],
             "kokonut:alignmentTier": "essential",
             "kokonut:cidsVersion": "3.2.0",
         },
