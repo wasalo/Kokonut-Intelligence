@@ -270,3 +270,97 @@ def test_coaching_history_route_is_private_no_store_and_coach_grant_gated(monkey
         "operator_auth": True,
     }
     assert auth_route_policy("POST", path, enabled=True) is None
+
+
+def test_coaching_participants_use_read_only_exact_tenant_context_and_cleanup():
+    page = {"items": [{"participant_id": str(uuid4()), "display_name": "Consented participant"}], "has_more": False}
+    connection = _Connection(page)
+    contexts = []
+
+    with patch.object(
+        reads,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    ):
+        result = reads.get_location_operating_pilot_coaching_participants(
+            OPERATOR_ID,
+            LOCATION_ID,
+            search="  participant  ",
+            limit=7,
+            offset=14,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "coach",
+    })]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_operating_pilot_coaching_participants" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, "participant", 7, 14)
+    assert result == {"location_id": LOCATION_ID, **page}
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("search", ["x" * 81, "bad\nsearch", 1, [], {}])
+def test_coaching_participants_reject_invalid_search_before_database_access(search):
+    with pytest.raises(reads.OperatingPilotReadInvalid):
+        reads.get_location_operating_pilot_coaching_participants(
+            OPERATOR_ID,
+            LOCATION_ID,
+            search=search,
+            connection_factory=lambda: pytest.fail("invalid search must fail before DB access"),
+        )
+
+
+def test_coaching_participant_route_is_private_no_store_and_coach_grant_gated(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_coaching_participants",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-participants"
+    with TestClient(app) as client:
+        response = client.get(f"{path}?q=seed&limit=7&offset=14")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == page
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"search": "seed", "limit": 7, "offset": 14})]
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "coach",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None

@@ -706,6 +706,41 @@
             </div>
             <button id="operating-pilot-competency-review-more" class="secondary" type="button" hidden>Load more competency submissions</button>
           </section>
+          <section id="operating-pilot-coaching" hidden aria-labelledby="operating-pilot-coaching-heading">
+            <h3 id="operating-pilot-coaching-heading">Private coaching sessions</h3>
+            <p class="muted">Only active, verified participants with current location-specific coaching consent appear in this list. Consent is checked again when you save. Session details remain private to you; withdrawal removes them from your history.</p>
+            <form id="operating-pilot-coaching-form">
+              <label for="operating-pilot-coaching-search">Find an eligible participant</label>
+              <div class="toolbar">
+                <input id="operating-pilot-coaching-search" type="search" maxlength="80" autocomplete="off">
+                <button id="operating-pilot-coaching-participants-refresh" class="secondary" type="button">Load eligible participants</button>
+              </div>
+              <label for="operating-pilot-coaching-participant">Participant with current coaching consent</label>
+              <select id="operating-pilot-coaching-participant" required>
+                <option value="">Load eligible participants first</option>
+              </select>
+              <button id="operating-pilot-coaching-participants-more" class="secondary" type="button" hidden>Load more eligible participants</button>
+              <label for="operating-pilot-coaching-date">Session date (optional)</label>
+              <input id="operating-pilot-coaching-date" type="date">
+              <label for="operating-pilot-coaching-focus">Session focus</label>
+              <input id="operating-pilot-coaching-focus" maxlength="255" required>
+              <label for="operating-pilot-coaching-commitments">Agreed commitments (one per line, optional)</label>
+              <textarea id="operating-pilot-coaching-commitments" maxlength="10000" rows="4"></textarea>
+              <label for="operating-pilot-coaching-notes">Private coaching notes (optional)</label>
+              <textarea id="operating-pilot-coaching-notes" maxlength="4000" rows="4"></textarea>
+              <label><input id="operating-pilot-coaching-confirmed" type="checkbox" required> I confirm this session occurred and these notes are appropriate to record.</label>
+              <button id="operating-pilot-coaching-save" type="submit">Save private coaching session</button>
+            </form>
+            <p id="operating-pilot-coaching-form-status" class="muted" role="status" aria-live="polite"></p>
+            <p id="operating-pilot-coaching-history-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Date</th><th>Participant</th><th>Focus</th><th>Commitments</th><th>Wellbeing check</th><th>Private notes</th><th>Status</th></tr></thead>
+                <tbody id="operating-pilot-coaching-history-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-coaching-history-more" class="secondary" type="button" hidden>Load more private coaching sessions</button>
+          </section>
           <section id="operating-pilot-learning-plans" hidden aria-labelledby="operating-pilot-learning-plans-heading">
             <h3 id="operating-pilot-learning-plans-heading">Your learning plans</h3>
             <p class="muted">A separate exact-location read_own grant shows only your own plans. Editing requires edit_own; submitting a draft for independent review requires submit_own. Activation and review remain separate workflows.</p>
@@ -2571,6 +2606,21 @@
       const operatingPilotOwnLearningPlansStatus = document.querySelector("#operating-pilot-learning-plans-status");
       const operatingPilotOwnLearningPlansRows = document.querySelector("#operating-pilot-learning-plans-rows");
       const operatingPilotOwnLearningPlansMore = document.querySelector("#operating-pilot-learning-plans-more");
+      const operatingPilotCoaching = document.querySelector("#operating-pilot-coaching");
+      const operatingPilotCoachingForm = document.querySelector("#operating-pilot-coaching-form");
+      const operatingPilotCoachingSearch = document.querySelector("#operating-pilot-coaching-search");
+      const operatingPilotCoachingParticipant = document.querySelector("#operating-pilot-coaching-participant");
+      const operatingPilotCoachingParticipantsMore = document.querySelector("#operating-pilot-coaching-participants-more");
+      const operatingPilotCoachingDate = document.querySelector("#operating-pilot-coaching-date");
+      const operatingPilotCoachingFocus = document.querySelector("#operating-pilot-coaching-focus");
+      const operatingPilotCoachingCommitments = document.querySelector("#operating-pilot-coaching-commitments");
+      const operatingPilotCoachingNotes = document.querySelector("#operating-pilot-coaching-notes");
+      const operatingPilotCoachingConfirmed = document.querySelector("#operating-pilot-coaching-confirmed");
+      const operatingPilotCoachingSave = document.querySelector("#operating-pilot-coaching-save");
+      const operatingPilotCoachingFormStatus = document.querySelector("#operating-pilot-coaching-form-status");
+      const operatingPilotCoachingHistoryStatus = document.querySelector("#operating-pilot-coaching-history-status");
+      const operatingPilotCoachingHistoryRows = document.querySelector("#operating-pilot-coaching-history-rows");
+      const operatingPilotCoachingHistoryMore = document.querySelector("#operating-pilot-coaching-history-more");
       const operatingPilotLearningPlanReview = document.querySelector("#operating-pilot-learning-plan-review");
       const operatingPilotLearningPlanReviewStatus = document.querySelector("#operating-pilot-learning-plan-review-status");
       const operatingPilotLearningPlanReviewRows = document.querySelector("#operating-pilot-learning-plan-review-rows");
@@ -2680,6 +2730,7 @@
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotCompetencyReadLocations = new Set();
       let operatingPilotOwnLearningPlanLocations = new Set();
+      let operatingPilotCoachingLocations = new Set();
       let operatingPilotEditOwnLearningPlanLocations = new Set();
       let operatingPilotCompetencyCreateLocations = new Set();
       let operatingPilotCompetencyEditLocations = new Set();
@@ -2707,12 +2758,17 @@
       const operatingPilotPendingLearningPlanRevisions = new Map();
       const operatingPilotPendingLearningPlanSubmissions = new Map();
       const operatingPilotPendingLearningPlanReviewDecisions = new Map();
+      const operatingPilotPendingCoachingWrites = new Map();
       let operatingPilotPendingLearningPlanEdit = null;
       let operatingPilotCompetencyFormLocationId = null;
       let operatingPilotCompetencyOffset = 0;
       let operatingPilotCompetencyRequestVersion = 0;
       let operatingPilotOwnLearningPlanOffset = 0;
       let operatingPilotOwnLearningPlanRequestVersion = 0;
+      let operatingPilotCoachingParticipantOffset = 0;
+      let operatingPilotCoachingParticipantRequestVersion = 0;
+      let operatingPilotCoachingHistoryOffset = 0;
+      let operatingPilotCoachingHistoryRequestVersion = 0;
       let operatingPilotLearningPlanReviewOffset = 0;
       let operatingPilotLearningPlanReviewRequestVersion = 0;
       let operatingPilotCompetencyReviewOffset = 0;
@@ -4589,6 +4645,247 @@
         if (!actions.childElementCount) actions.textContent = "No available own-record action";
         row.append(actions);
         operatingPilotCompetencyRows.append(row);
+      }
+
+      async function loadOperatingPilotCoachingParticipants(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotCoachingParticipantRequestVersion;
+        if (!operatingPilotCoachingLocations.has(locationId)) return;
+        const pending = operatingPilotPendingCoachingWrites.get(locationId);
+        let pendingPayload = null;
+        if (pending) {
+          try { pendingPayload = JSON.parse(pending.payload_text); } catch { pendingPayload = null; }
+        }
+        if (!append) {
+          operatingPilotCoachingParticipantOffset = 0;
+          operatingPilotCoachingParticipant.replaceChildren();
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "Choose an eligible participant";
+          operatingPilotCoachingParticipant.append(placeholder);
+          if (pendingPayload && typeof pendingPayload.coachee_party_id === "string") {
+            const retryOption = document.createElement("option");
+            retryOption.value = pendingPayload.coachee_party_id;
+            retryOption.textContent = `${pending.participant_name || "Prior participant"} (retry pending request)`;
+            operatingPilotCoachingParticipant.append(retryOption);
+          }
+          operatingPilotCoachingParticipantsMore.hidden = true;
+        }
+        const offset = append ? operatingPilotCoachingParticipantOffset : 0;
+        operatingPilotCoachingParticipantsMore.disabled = true;
+        operatingPilotCoachingHistoryStatus.textContent = "Loading currently consented participants…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const search = operatingPilotCoachingSearch.value.trim();
+          if (search) params.set("q", search);
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/coaching-participants?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotCoachingParticipantRequestVersion
+              || locationId !== operatingPilotLocation.value
+              || !operatingPilotCoachingLocations.has(locationId)) return;
+          const participants = Array.isArray(result.items) ? result.items : [];
+          for (const participant of participants) {
+            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(participant.participant_id || "")
+                || typeof participant.display_name !== "string") continue;
+            if ([...operatingPilotCoachingParticipant.options]
+                .some((option) => option.value === participant.participant_id)) continue;
+            const option = document.createElement("option");
+            option.value = participant.participant_id;
+            option.textContent = participant.display_name.slice(0, 255);
+            operatingPilotCoachingParticipant.append(option);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotCoachingParticipantsMore.hidden = !canContinue;
+          operatingPilotCoachingParticipantOffset = canContinue ? nextOffset : 0;
+          const eligibleCount = operatingPilotCoachingParticipant.options.length - 1;
+          operatingPilotCoachingHistoryStatus.textContent = canContinue
+            ? "Showing a bounded page of participants with current coaching consent."
+            : eligibleCount > 0
+              ? "Eligible participants are loaded. Consent will be checked again when you save."
+              : "No active verified participants with current coaching consent were found for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotCoachingParticipantRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotCoachingParticipantsMore.hidden = true;
+          operatingPilotCoachingHistoryStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotCoachingParticipantRequestVersion) {
+            operatingPilotCoachingParticipantsMore.disabled = false;
+          }
+        }
+      }
+
+      async function loadOperatingPilotOwnCoachingSessions(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotCoachingHistoryRequestVersion;
+        if (!operatingPilotCoachingLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotCoachingHistoryOffset = 0;
+          operatingPilotCoachingHistoryRows.replaceChildren();
+          operatingPilotCoachingHistoryMore.hidden = true;
+        }
+        const offset = append ? operatingPilotCoachingHistoryOffset : 0;
+        operatingPilotCoachingHistoryMore.disabled = true;
+        operatingPilotCoachingHistoryStatus.textContent = "Loading your private coaching history…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/my-coaching-sessions?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotCoachingHistoryRequestVersion
+              || locationId !== operatingPilotLocation.value
+              || !operatingPilotCoachingLocations.has(locationId)) return;
+          for (const item of Array.isArray(result.items) ? result.items : []) {
+            appendOperatingPilotOwnCoachingSessionRow(item);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotCoachingHistoryMore.hidden = !canContinue;
+          operatingPilotCoachingHistoryOffset = canContinue ? nextOffset : 0;
+          operatingPilotCoachingHistoryStatus.textContent = canContinue
+            ? "Showing a bounded page of your private coaching sessions."
+            : operatingPilotCoachingHistoryRows.childElementCount
+              ? "Your private coaching history is loaded."
+              : "You have no private coaching sessions for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotCoachingHistoryRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotCoachingHistoryMore.hidden = true;
+          operatingPilotCoachingHistoryStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotCoachingHistoryRequestVersion) {
+            operatingPilotCoachingHistoryMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotOwnCoachingSessionRow(item) {
+        const row = document.createElement("tr");
+        const commitments = Array.isArray(item.commitments)
+          ? item.commitments.map((value) => String(value).slice(0, 500)).join("; ")
+          : "—";
+        for (const value of [
+          item.session_date,
+          item.coachee_name,
+          item.focus,
+          commitments,
+          item.wellbeing_check,
+          item.notes,
+          item.status
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value).slice(0, 1200);
+          row.append(cell);
+        }
+        operatingPilotCoachingHistoryRows.append(row);
+      }
+
+      async function saveOperatingPilotCoachingSession(event) {
+        event.preventDefault();
+        const locationId = operatingPilotLocation.value;
+        if (!operatingPilotCoachingLocations.has(locationId)) {
+          operatingPilotCoachingFormStatus.textContent = "The exact location coaching grant is required.";
+          return;
+        }
+        if (!operatingPilotCoachingConfirmed.checked) {
+          operatingPilotCoachingFormStatus.textContent = "Confirm the session occurred before saving.";
+          return;
+        }
+        const participantId = operatingPilotCoachingParticipant.value;
+        const focus = operatingPilotCoachingFocus.value.trim();
+        const commitments = operatingPilotCoachingCommitments.value
+          .split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+        const notes = operatingPilotCoachingNotes.value.trim();
+        if (!participantId || !focus || focus.length > 255) {
+          operatingPilotCoachingFormStatus.textContent = "Choose a currently eligible participant and enter a session focus.";
+          return;
+        }
+        if (commitments.length > 20 || commitments.some((value) => value.length > 500)) {
+          operatingPilotCoachingFormStatus.textContent = "Enter no more than 20 commitments, each no longer than 500 characters.";
+          return;
+        }
+        if (notes.length > 4000) {
+          operatingPilotCoachingFormStatus.textContent = "Private notes must be 4,000 characters or fewer.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotCoachingFormStatus.textContent = "Refresh the page to establish a protected session before saving.";
+          return;
+        }
+        const payload = {
+          coachee_party_id: participantId,
+          session_date: operatingPilotCoachingDate.value || null,
+          focus,
+          commitments,
+          notes: notes || null
+        };
+        const payloadText = JSON.stringify(payload);
+        let pending = operatingPilotPendingCoachingWrites.get(locationId);
+        if (pending && pending.payload_text !== payloadText) {
+          operatingPilotCoachingFormStatus.textContent = "A prior save has an uncertain result. Retry the unchanged session before changing it.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotCoachingFormStatus.textContent = "A secure browser context is required to save a coaching session.";
+            return;
+          }
+          const selectedName = operatingPilotCoachingParticipant.selectedOptions[0]?.textContent || "Participant";
+          pending = { request_id: requestId, payload_text: payloadText, participant_name: selectedName };
+          operatingPilotPendingCoachingWrites.set(locationId, pending);
+        }
+        operatingPilotCoachingSave.disabled = true;
+        operatingPilotCoachingFormStatus.textContent = "Saving the private coaching session…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/coaching-sessions`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pending.request_id })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status < 500) operatingPilotPendingCoachingWrites.delete(locationId);
+            throw new Error(result.error || "The coaching session could not be saved.");
+          }
+          if (result.location_id !== locationId
+              || result.status !== "completed"
+              || result.privacy_level !== "private"
+              || typeof result.replayed !== "boolean"
+              || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.session_id || "")) {
+            throw new Error("The response did not confirm this session. Retry the unchanged request to check its outcome.");
+          }
+          operatingPilotPendingCoachingWrites.delete(locationId);
+          if (locationId !== operatingPilotLocation.value) return;
+          operatingPilotCoachingForm.reset();
+          operatingPilotCoachingFormStatus.textContent = result.replayed
+            ? "The prior private coaching request was confirmed; no additional session was created."
+            : "The private coaching session was saved. Only you can view it while consent remains active.";
+          await Promise.all([
+            loadOperatingPilotCoachingParticipants(),
+            loadOperatingPilotOwnCoachingSessions()
+          ]);
+        } catch (error) {
+          if (locationId === operatingPilotLocation.value) {
+            operatingPilotCoachingFormStatus.textContent = `${error.message} If interrupted, retry the same session unchanged to reuse its request ID.`;
+          }
+        } finally {
+          operatingPilotCoachingSave.disabled = false;
+        }
       }
 
       async function loadOperatingPilotOwnLearningPlans(append = false) {
@@ -6545,6 +6842,7 @@
         operatingPilotOwnCapacity.hidden = !operatingPilotOwnCapacityLocations.has(locationId);
         operatingPilotOwnDemand.hidden = !operatingPilotOwnDemandLocations.has(locationId);
         operatingPilotOwnResources.hidden = !operatingPilotOwnDemandLocations.has(locationId);
+        operatingPilotCoaching.hidden = !operatingPilotCoachingLocations.has(locationId);
         operatingPilotLearningPlanCreate.hidden = !operatingPilotCreateLocations.has(locationId)
           && !operatingPilotEditOwnLearningPlanLocations.has(locationId);
         operatingPilotCompetency.hidden = !operatingPilotCompetencyReadLocations.has(locationId)
@@ -6565,6 +6863,23 @@
         operatingPilotWorkClaimReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
         operatingPilotWorkClaimAllocation.hidden = !operatingPilotAllocateLocations.has(locationId);
         operatingPilotWorkOpportunities.hidden = !operatingPilotClaimOwnLocations.has(locationId);
+        const coachingReads = [];
+        if (operatingPilotCoachingLocations.has(locationId)) {
+          coachingReads.push(loadOperatingPilotCoachingParticipants());
+          coachingReads.push(loadOperatingPilotOwnCoachingSessions());
+        } else {
+          operatingPilotCoachingParticipantRequestVersion += 1;
+          operatingPilotCoachingHistoryRequestVersion += 1;
+          operatingPilotCoachingParticipant.replaceChildren();
+          const placeholder = document.createElement("option");
+          placeholder.value = "";
+          placeholder.textContent = "A location coach grant is required";
+          operatingPilotCoachingParticipant.append(placeholder);
+          operatingPilotCoachingParticipantsMore.hidden = true;
+          operatingPilotCoachingHistoryRows.replaceChildren();
+          operatingPilotCoachingHistoryMore.hidden = true;
+          operatingPilotCoachingHistoryStatus.textContent = "A separate exact location coach grant is required.";
+        }
         if (!operatingPilotLocations.has(locationId)) {
           operatingPilotSummary.replaceChildren();
           operatingPilotStatus.textContent = "An exact location read grant is required for the summary and queues.";
@@ -6647,6 +6962,7 @@
           } else {
             operatingPilotWorkClaimAllocationStatus.textContent = "A separate exact location allocate grant is required.";
           }
+          await Promise.all(coachingReads);
           return;
         }
         const reads = [
@@ -6656,6 +6972,7 @@
           loadOperatingPilotWorkClaims(),
           loadOperatingPilotResources()
         ];
+        reads.push(...coachingReads);
         if (operatingPilotClaimOwnLocations.has(locationId)) {
           reads.push(loadOperatingPilotWorkOpportunities());
         } else {
@@ -18469,6 +18786,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotAllocateLocations = new Set(operatingPilotAllocateLocationIds);
+          const operatingPilotCoachingLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "coach")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotCoachingLocations = new Set(operatingPilotCoachingLocationIds);
           const operatingPilotAccessibleLocationIds = [...new Set([
             ...operatingPilotLocationIds,
             ...operatingPilotCreateLocationIds,
@@ -18478,7 +18801,8 @@
             ...operatingPilotCapacityReviewLocationIds,
             ...operatingPilotResourceFulfillmentLocationIds,
             ...operatingPilotClaimOwnLocationIds,
-            ...operatingPilotAllocateLocationIds
+            ...operatingPilotAllocateLocationIds,
+            ...operatingPilotCoachingLocationIds
           ])];
           const sequentialEvidenceLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "sequential_evidence" && scope.action === "read")
@@ -22740,6 +23064,16 @@
       operatingPilotOwnLearningPlansMore.addEventListener(
         "click", () => loadOperatingPilotOwnLearningPlans(true)
       );
+      document.querySelector("#operating-pilot-coaching-participants-refresh").addEventListener(
+        "click", () => loadOperatingPilotCoachingParticipants()
+      );
+      operatingPilotCoachingParticipantsMore.addEventListener(
+        "click", () => loadOperatingPilotCoachingParticipants(true)
+      );
+      operatingPilotCoachingHistoryMore.addEventListener(
+        "click", () => loadOperatingPilotOwnCoachingSessions(true)
+      );
+      operatingPilotCoachingForm.addEventListener("submit", saveOperatingPilotCoachingSession);
       document.querySelector("#operating-pilot-learning-plan-review-refresh").addEventListener(
         "click", () => loadOperatingPilotLearningPlanReviewQueue()
       );

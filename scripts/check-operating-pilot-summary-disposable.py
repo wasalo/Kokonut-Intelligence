@@ -51,6 +51,7 @@ LEARNING_PLAN_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/608_location_opera
 LEARNING_PLAN_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/609_location_operating_pilot_learning_plan_review_queue.sql"
 LEARNING_PLAN_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql"
 COACHING_SESSION_MIGRATION = ROOT / "schemas/postgres/611_location_scoped_operating_coaching_sessions.sql"
+COACHING_PARTICIPANTS_MIGRATION = ROOT / "schemas/postgres/612_location_operating_pilot_coaching_participants.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -92,6 +93,8 @@ LEARNING_PLAN_REVIEW_DECISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-r
 LEARNING_PLAN_REVIEW_DECISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-arm64-disposable.json"
 COACHING_SESSION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-disposable.json"
 COACHING_SESSION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-arm64-disposable.json"
+COACHING_PARTICIPANTS_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-coaching-participant-selector-disposable.json"
+COACHING_PARTICIPANTS_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-coaching-participant-selector-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -6609,6 +6612,123 @@ RESET ROLE;
 ROLLBACK;
 """
 
+COACHING_PARTICIPANTS_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.party (id, party_type, status, display_name, privacy_level) VALUES
+ ('d8f10000-0000-4000-8000-000000000003', 'person', 'active', 'Synthetic Participant Two', 'private'),
+ ('d8f10000-0000-4000-8000-000000000004', 'person', 'active', 'Withdrawn Participant', 'private');
+INSERT INTO public.farmer_profile (id, location_id, status) VALUES
+ ('d8f20000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000001', 'active'),
+ ('d8f20000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000001', 'active');
+INSERT INTO public.party_identifier (
+    id, party_id, identifier_type, identifier_value, source_system, verification_status
+) VALUES
+ ('d8f30000-0000-4000-8000-000000000003', 'd8f10000-0000-4000-8000-000000000003', 'farmer_profile_id', 'd8f20000-0000-4000-8000-000000000003', 'synthetic', 'verified'),
+ ('d8f30000-0000-4000-8000-000000000004', 'd8f10000-0000-4000-8000-000000000004', 'farmer_profile_id', 'd8f20000-0000-4000-8000-000000000004', 'synthetic', 'verified');
+INSERT INTO public.stakeholder_consent (
+    id, party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_type, effective_at
+) VALUES
+ ('d8f40000-0000-4000-8000-000000000003', 'd8f10000-0000-4000-8000-000000000003',
+  'grant', 'coaching_session', 'operating_pilot_coaching', 'location',
+  'b0000000-0000-4000-8000-000000000001', 'system', now() - interval '1 hour'),
+ ('d8f40000-0000-4000-8000-000000000004', 'd8f10000-0000-4000-8000-000000000004',
+  'grant', 'coaching_session', 'operating_pilot_coaching', 'location',
+  'b0000000-0000-4000-8000-000000000001', 'system', now() - interval '1 hour'),
+ ('d8f40000-0000-4000-8000-000000000005', 'd8f10000-0000-4000-8000-000000000004',
+  'withdraw', 'coaching_session', 'operating_pilot_coaching', 'location',
+  'b0000000-0000-4000-8000-000000000001', 'system', now());
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE first_page jsonb; second_page jsonb; searched jsonb; empty_page jsonb;
+        invalid_page_denied boolean := false; invalid_search_denied boolean := false;
+        wrong_location_denied boolean := false; missing_grant_denied boolean := false;
+BEGIN
+    first_page := kokonut_security.location_operating_pilot_coaching_participants(
+        'b0000000-0000-4000-8000-000000000001', NULL, 1, 0
+    );
+    second_page := kokonut_security.location_operating_pilot_coaching_participants(
+        'b0000000-0000-4000-8000-000000000001', NULL, 1, 1
+    );
+    searched := kokonut_security.location_operating_pilot_coaching_participants(
+        'b0000000-0000-4000-8000-000000000001', 'Two', 25, 0
+    );
+    empty_page := kokonut_security.location_operating_pilot_coaching_participants(
+        'b0000000-0000-4000-8000-000000000001', 'no match', 25, 0
+    );
+    IF jsonb_array_length(first_page->'items') <> 1
+       OR first_page->>'has_more' <> 'true'
+       OR first_page->>'next_offset' <> '1'
+       OR first_page->'items'->0->>'participant_id' <> 'd8f10000-0000-4000-8000-000000000001'
+       OR first_page->'items'->0->>'display_name' <> 'Synthetic participant'
+       OR first_page::text ~* '(phone|email|national_id|farmer_profile_id|coachee_party_id)' THEN
+        RAISE EXCEPTION 'coaching participant selector leaked data or paged unexpectedly: %', first_page;
+    END IF;
+    IF jsonb_array_length(second_page->'items') <> 1
+       OR second_page->>'has_more' <> 'false'
+       OR second_page->'items'->0->>'participant_id' <> 'd8f10000-0000-4000-8000-000000000003'
+       OR second_page->'items'->0->>'display_name' <> 'Synthetic Participant Two' THEN
+        RAISE EXCEPTION 'coaching participant selector did not page deterministically: %', second_page;
+    END IF;
+    IF jsonb_array_length(searched->'items') <> 1
+       OR searched->'items'->0->>'participant_id' <> 'd8f10000-0000-4000-8000-000000000003'
+       OR jsonb_array_length(empty_page->'items') <> 0
+       OR empty_page->>'has_more' <> 'false' THEN
+        RAISE EXCEPTION 'coaching participant search did not respect its bounded query: %, %', searched, empty_page;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_coaching_participants(
+            'b0000000-0000-4000-8000-000000000001', repeat('x', 81), 25, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_search_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_coaching_participants(
+            'b0000000-0000-4000-8000-000000000001', NULL, 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_page_denied := true;
+    END;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_coaching_participants(
+            'b0000000-0000-4000-8000-000000000001', NULL, 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_coaching_participants(
+            'b0000000-0000-4000-8000-000000000001', NULL, 25, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN missing_grant_denied := true;
+    END;
+    IF NOT invalid_search_denied OR NOT invalid_page_denied
+       OR NOT wrong_location_denied OR NOT missing_grant_denied THEN
+        RAISE EXCEPTION 'coaching participant scope, grant, or bounds checks failed';
+    END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF NOT has_function_privilege(
+          'kokonut_runtime',
+          'kokonut_security.location_operating_pilot_coaching_participants(uuid,text,integer,integer)',
+          'EXECUTE')
+       OR has_function_privilege(
+          'kokonut_directus_runtime',
+          'kokonut_security.location_operating_pilot_coaching_participants(uuid,text,integer,integer)',
+          'EXECUTE') THEN
+        RAISE EXCEPTION 'coaching participant function ACL boundary is incorrect';
+    END IF;
+END $$;
+ROLLBACK;
+"""
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -6730,9 +6850,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--coaching-session",
         action="store_true",
-        help="Also apply/replay migrations 610–611 and test private, consented location coaching",
+        help="Also apply/replay migration 611 and test private, consented location coaching",
+    )
+    parser.add_argument(
+        "--coaching-participants",
+        action="store_true",
+        help="Also apply/replay migration 612 and test the consent-filtered coaching participant selector",
     )
     args = parser.parse_args(argv)
+    if args.coaching_participants:
+        args.coaching_session = True
     if args.coaching_session:
         args.learning_plan_review_decision = True
     if args.learning_plan_review_decision:
@@ -6772,6 +6899,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (COACHING_PARTICIPANTS_ARM64_OUTPUT if args.platform == "linux/arm64" else COACHING_PARTICIPANTS_OUTPUT)
+        if args.coaching_participants
+        else
         (COACHING_SESSION_ARM64_OUTPUT if args.platform == "linux/arm64" else COACHING_SESSION_OUTPUT)
         if args.coaching_session
         else
@@ -6860,7 +6990,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"operating-pilot migrations through {611 if args.coaching_session else 610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"operating-pilot migrations through {612 if args.coaching_participants else 611 if args.coaching_session else 610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -7194,6 +7324,17 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 611 reapplies cleanly after stale table and column grants are injected; private coaching route remains a candidate-only Gateway surface",
             ]
         )
+    if args.coaching_participants:
+        evidence["migrations"].append(COACHING_PARTICIPANTS_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "participant selection returns only active verified location participants with the latest exact-purpose active coaching consent",
+                "participant IDs and display names are the only identity fields exposed; phone, email, government identifiers, and profile IDs remain absent",
+                "search and deterministic pagination are bounded; withdrawn, other-location, inactive, or unverified participants are excluded",
+                "the exact coach grant and signed location are rechecked in SQL; runtime alone can execute the function and Directus/PUBLIC cannot",
+                "migration 612 replays after PUBLIC and Directus execution privileges are injected",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -7438,11 +7579,23 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, stale_coaching_privileges)
             psql(docker, container, coaching_session_migration)
             psql(docker, container, COACHING_SESSION_ACCEPTANCE)
+        if args.coaching_participants:
+            coaching_participants_migration = COACHING_PARTICIPANTS_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, coaching_participants_migration)
+            stale_participant_function_grants = """
+                GRANT EXECUTE ON FUNCTION
+                    kokonut_security.location_operating_pilot_coaching_participants(uuid,text,integer,integer)
+                TO PUBLIC, kokonut_directus_runtime;
+            """
+            psql(docker, container, stale_participant_function_grants)
+            psql(docker, container, coaching_participants_migration)
+            psql(docker, container, COACHING_PARTICIPANTS_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            269 if args.coaching_session
+            278 if args.coaching_participants
+            else 269 if args.coaching_session
             else 260 if args.learning_plan_review_decision
             else
             240 if args.learning_plan_review_queue
@@ -7472,7 +7625,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            611 if args.coaching_session
+            612 if args.coaching_participants
+            else 611 if args.coaching_session
             else 610 if args.learning_plan_review_decision
             else 609 if args.learning_plan_review_queue
             else

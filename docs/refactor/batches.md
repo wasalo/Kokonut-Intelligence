@@ -19,10 +19,40 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,117 checklist items complete and 25
-open (1,142 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,118 checklist items complete and 25
+open (1,143 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-037 consent-filtered coaching console — 24 October 2026
+
+- [x] Add a coach-grant-only console workflow for choosing an eligible
+  participant, recording a private coaching session, and viewing the
+  authenticated coach's own history. Migration 612 adds a bounded security-
+  definer selector that requires signed exact-location `operating_pilot:coach`
+  context, one active human binding, active Adelphi mapping, an active farmer
+  profile, a verified person identity link, and the latest exact-location
+  coaching-consent grant. It returns only participant ID and display name;
+  withdrawn, inactive, unverified, and other-location records are excluded.
+  Runtime may call the function; Directus cannot. The Gateway uses bounded
+  search/pagination and no-store responses. The console hides the workflow
+  without the exact coach grant, uses text-only participant/history rendering,
+  requires a session-recording confirmation, and preserves an in-memory
+  request ID and payload for exact retries. The existing write rechecks consent
+  at capture time. The focused Gateway, write, route-policy, console, and
+  migration selection passes 283 tests; Ruff and Python compilation pass.
+  Network-disabled disposable PostgreSQL 16 applies/replays through migration
+  612 and passes 278 grouped assertions on native AMD64
+  ([evidence](builds/2026-10-24-recovery/cap-037-coaching-participant-selector-disposable.json));
+  linux/arm64 Docker/QEMU also passes all 278 assertions
+  ([ARM64 evidence](builds/2026-10-24-recovery/cap-037-coaching-participant-selector-arm64-disposable.json)).
+  QEMU is software portability evidence only, not Raspberry Pi hardware
+  acceptance. Candidate and legacy remain untouched; migration 612 is not
+  rolled out. Roll back by disabling the selector/capture/history routes,
+  exact policies, and console panel; retain the additive migration and private
+  receipts if applied. CAP-037 remains prepared pending populated-data parity,
+  live OIDC/browser acceptance, broader ACL/RLS, recovery, privacy review, and
+  named owner acceptance. Checklist: 1,118 complete / 25 open (1,143 total).
 
 ### CAP-037 private location-scoped coaching sessions — 24 October 2026
 
@@ -44,8 +74,10 @@ acceptance remains separate; none is marked accepted.
   disabling both exact-policy Gateway routes while retaining the additive
   migration and private receipts if applied. The operator-console form,
   populated-data parity, live OIDC/browser behavior, broader ACL/RLS, recovery,
-  privacy review, and MAN-CAP-037 acceptance remain open. Checklist: 1,117
-  complete / 25 open (1,142 total); the matrix remains 24 baseline-retained,
+  privacy review, and MAN-CAP-037 acceptance remain open. The follow-up
+  consent-filtered participant selector and console are now implemented in the
+  next batch. Checklist at this historical boundary: 1,117 complete / 25 open
+  (1,142 total); the matrix remains 24 baseline-retained,
   7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP checks are accepted.
 
 ### CAP-037 retire unscoped coaching writes — 24 October 2026

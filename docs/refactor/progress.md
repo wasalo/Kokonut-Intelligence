@@ -1,3 +1,35 @@
+### Progress addendum — CAP-037 consent-filtered coaching console, 24 October 2026
+
+Migration 612 and the operator console complete the first end-to-end coaching
+capture surface. The new bounded `GET
+/operator/api/operating-pilot/{location_id}/coaching-participants` returns only
+an active verified participant's identifier and display name when the latest
+exact-location coaching consent remains active. It requires the same signed
+tenant context and exact `operating_pilot:coach` grant as capture; the function
+also checks the current human binding and active Adelphi mapping. The function
+owner has only the required read columns, runtime has execute only, and
+Directus cannot invoke it. The console exposes the workflow only for the exact
+coach grant, supports bounded search and paging, requires an explicit
+session-occurrence confirmation, and displays only the coach's own history.
+All personal values use text nodes; requests are same-origin and no-store.
+Uncertain writes retain an in-memory request ID and payload for exact retry,
+and the write path independently rechecks current consent.
+
+The focused Gateway, write, route-policy, console, and migration selection
+passes 283 tests. Ruff and Python compilation pass. Network-disabled disposable
+PostgreSQL 16 applies/replays migrations 461–612 and passes 278 grouped
+assertions on native AMD64 ([evidence](builds/2026-10-24-recovery/cap-037-coaching-participant-selector-disposable.json))
+and linux/arm64 Docker/QEMU ([ARM64 evidence](builds/2026-10-24-recovery/cap-037-coaching-participant-selector-arm64-disposable.json)).
+QEMU is software portability evidence only, not physical Raspberry Pi
+acceptance. Candidate and legacy databases remain untouched; migration 612 is
+not rolled out. Disable the new selector route, exact coach policy, and console
+panel to roll back; retain the additive migration and private receipts if
+applied. CAP-037 remains prepared pending populated-data parity, live
+ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and
+named owner acceptance. Checklist: 1,118 complete / 25 open (1,143 total);
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 MAN-CAP
+checks accepted.
+
 ### Progress addendum — CAP-037 location-scoped private coaching sessions, 24 October 2026
 
 The replacement coaching path is now implemented. `POST

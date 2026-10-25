@@ -35,6 +35,17 @@ def _normalize_page(limit: int, offset: int) -> tuple[int, int]:
     return limit, offset
 
 
+def _normalize_search(value: str | None, field: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise OperatingPilotReadInvalid(f"Invalid {field} search")
+    normalized = value.strip()
+    if len(normalized) > 80 or any(ord(character) < 32 or ord(character) == 127 for character in value):
+        raise OperatingPilotReadInvalid(f"Invalid {field} search")
+    return normalized or None
+
+
 def get_location_operating_pilot_summary(
     operator_id: str,
     location_id: str,
@@ -353,6 +364,56 @@ def get_location_operating_pilot_own_coaching_sessions(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Own operating coaching-session read returned no result")
+            page = row[0]
+            if isinstance(page, str):
+                page = json.loads(page)
+            return {"location_id": location_id, **page}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def get_location_operating_pilot_coaching_participants(
+    operator_id: str,
+    location_id: str,
+    *,
+    search: str | None = None,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return a bounded selection list of participants with current coaching consent."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    search = _normalize_search(search, "participant")
+    limit, offset = _normalize_page(limit, offset)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="coach",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.location_operating_pilot_coaching_participants("
+                "%s::uuid, %s::text, %s::integer, %s::integer)",
+                (location_id, search, limit, offset),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Coaching participant lookup returned no result")
             page = row[0]
             if isinstance(page, str):
                 page = json.loads(page)

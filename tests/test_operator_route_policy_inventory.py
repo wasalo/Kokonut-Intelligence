@@ -1180,6 +1180,10 @@ _EXPECTED_OPERATOR_POLICIES[(
 )] = _expected("operating_pilot", "coach", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
     "GET",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/coaching-participants",
+)] = _expected("operating_pilot", "coach", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "GET",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-review-queue",
 )] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(

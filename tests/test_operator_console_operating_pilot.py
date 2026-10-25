@@ -1093,6 +1093,73 @@ def test_learning_plan_submission_is_separately_grant_gated_and_retry_safe():
     assert "innerHTML" not in row + submit
 
 
+def test_coaching_console_is_exact_grant_gated_consent_filtered_and_private():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = _function(
+        source,
+        '<section id="operating-pilot-coaching"',
+        '<section id="operating-pilot-learning-plans"',
+    )
+    participants = _function(
+        source,
+        "async function loadOperatingPilotCoachingParticipants(append = false)",
+        "async function loadOperatingPilotOwnCoachingSessions(append = false)",
+    )
+    history = _function(
+        source,
+        "async function loadOperatingPilotOwnCoachingSessions(append = false)",
+        "function appendOperatingPilotOwnCoachingSessionRow(item)",
+    )
+    row = _function(
+        source,
+        "function appendOperatingPilotOwnCoachingSessionRow(item)",
+        "async function saveOperatingPilotCoachingSession(event)",
+    )
+    save = _function(
+        source,
+        "async function saveOperatingPilotCoachingSession(event)",
+        "async function loadOperatingPilotOwnLearningPlans(append = false)",
+    )
+    initialize = _function(source, "async function loadOperatingPilot()", "function addSequentialEvidenceMetric(")
+    grant_hydration = _function(
+        source,
+        "const operatingPilotCoachingLocationIds =",
+        "const operatingPilotAccessibleLocationIds =",
+    )
+
+    assert 'id="operating-pilot-coaching" hidden' in panel
+    assert 'id="operating-pilot-coaching-participant"' in panel
+    assert 'id="operating-pilot-coaching-confirmed" type="checkbox" required' in panel
+    assert "current location-specific coaching consent" in panel
+    assert "Consent is checked again when you save." in panel
+    assert 'scope.action === "coach"' in grant_hydration
+    assert "...operatingPilotCoachingLocationIds" in _function(
+        source,
+        "const operatingPilotAccessibleLocationIds =",
+        "const sequentialEvidenceLocationIds =",
+    )
+    assert "operatingPilotCoaching.hidden = !operatingPilotCoachingLocations.has(locationId)" in initialize
+    assert "/coaching-participants?${params}" in participants
+    assert "Loading currently consented participants" in participants
+    assert "requestVersion !== operatingPilotCoachingParticipantRequestVersion" in participants
+    assert "!operatingPilotCoachingLocations.has(locationId)" in participants
+    assert "option.textContent = participant.display_name.slice(0, 255)" in participants
+    assert "/my-coaching-sessions?${params}" in history
+    assert "requestVersion !== operatingPilotCoachingHistoryRequestVersion" in history
+    assert 'credentials: "same-origin"' in participants + history
+    assert 'cache: "no-store"' in participants + history
+    assert "cell.textContent = operatingPilotDisplayValue(value).slice(0, 1200)" in row
+    assert "!operatingPilotCoachingLocations.has(locationId)" in save
+    assert "operatingPilotCoachingConfirmed.checked" in save
+    assert '"X-CSRF-Token": csrf' in save
+    assert "globalThis.crypto?.randomUUID?.()" in save
+    assert "pending.payload_text !== payloadText" in save
+    assert "operatingPilotPendingCoachingWrites.delete(locationId)" in save
+    assert "result.privacy_level !== \"private\"" in save
+    assert "operatingPilotCoachingForm.addEventListener(\"submit\", saveOperatingPilotCoachingSession)" in source
+    assert "innerHTML" not in panel + participants + history + row + save
+
+
 def test_competency_review_console_is_grant_gated_private_and_retry_safe():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = _function(
