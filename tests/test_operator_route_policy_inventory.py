@@ -25,6 +25,7 @@ _PARAMETER_SAMPLES = {
     "block_name": "key_partners",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "report_id": "33333333-3333-4333-8333-333333333333",
+    "incident_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
     "activity_id": "55555555-5555-4555-8555-555555555555",
     "signal_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -292,6 +293,18 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/waste/11111111-1111-4111-8111-111111111111/recycling",
     ): _expected("waste_management", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/waste/11111111-1111-4111-8111-111111111111/incidents",
+    ): _expected("waste_management", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/waste/11111111-1111-4111-8111-111111111111/incidents",
+    ): _expected("waste_management", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/waste/11111111-1111-4111-8111-111111111111/incidents/33333333-3333-4333-8333-333333333333/resolve",
+    ): _expected("waste_management", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/landscape/11111111-1111-4111-8111-111111111111/summary",

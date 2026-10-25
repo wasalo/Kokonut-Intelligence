@@ -781,6 +781,42 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    pollution_incident_match = re.fullmatch(
+        r"/operator/api/waste/([0-9a-fA-F-]{36})/incidents", path
+    )
+    if pollution_incident_match and enabled:
+        method = method.upper()
+        if method == "POST":
+            action = "create"
+        elif method == "GET":
+            action = "review"
+        else:
+            action = None
+        if action:
+            return {
+                "resource": "waste_management",
+                "action": action,
+                "public": False,
+                "location_id": pollution_incident_match.group(1),
+                "scope_required": True,
+                "operator_auth": True,
+            }
+
+    pollution_incident_resolution_match = re.fullmatch(
+        r"/operator/api/waste/([0-9a-fA-F-]{36})/incidents/"
+        r"([0-9a-fA-F-]{36})/resolve",
+        path,
+    )
+    if pollution_incident_resolution_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "waste_management",
+            "action": "review",
+            "public": False,
+            "location_id": pollution_incident_resolution_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     landscape_summary_match = re.fullmatch(
         r"/operator/api/landscape/([0-9a-fA-F-]{36})/summary", path
     )

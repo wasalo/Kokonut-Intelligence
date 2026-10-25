@@ -4,7 +4,6 @@ Tests for Waste Management
 """
 
 import io
-import json
 import os
 import sys
 
@@ -131,37 +130,28 @@ class TestReportIncident(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_report_incident_returns_incident_id(self):
-        result = report_incident(
-            self.conn, "loc-001", "chemical_spill", "high",
-            "Pesticide container leak", "Near stream",
-        )
-        self.assertIn("incident_id", result)
-        self.assertEqual(result["incident_type"], "chemical_spill")
-        self.assertEqual(result["severity"], "high")
-        self.assertEqual(result["status"], "open")
-        self.conn.commit.assert_called_once()
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("incident_date", query)
-        self.assertIn("'open'", query)
-        self.assertNotIn("reported_by,", query)
-        self.assertEqual(params[3], "chemical_spill")
-        self.assertEqual(json.loads(params[7]), {})
-        self.mock_cursor.close.assert_called_once()
+    def test_legacy_report_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            report_incident(
+                self.conn, "loc-001", "chemical_spill", "high",
+                "Pesticide container leak", "Near stream",
+            )
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
-    def test_report_incident_with_reported_by(self):
-        result = report_incident(
-            self.conn, "loc-001", "air_pollution", "critical",
-            "Fertilizer runoff", "River bank",
-            reported_by="field_worker_01",
-        )
-        self.assertEqual(result["affected_area"], "River bank")
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertEqual(params[3], "air_emission")
-        self.assertEqual(json.loads(params[7]), {
-            "reported_by": "field_worker_01",
-            "legacy_incident_type": "air_pollution",
-        })
+    def test_legacy_report_cli_fails_before_opening_database(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "report-incident", "--location-id", "loc-001",
+                    "--incident-type", "chemical_spill", "--severity", "high",
+                    "--description", "Synthetic report", "--affected-area", "North plot",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway incident-capture workflow", stderr.getvalue())
 
 
 class TestResolveIncident(unittest.TestCase):
@@ -171,30 +161,24 @@ class TestResolveIncident(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-    def test_resolve_incident_updates_incident(self):
-        self.mock_cursor.fetchone.return_value = (
-            "inc-001", "chemical_spill", "high",
-        )
-        result = resolve_incident(
-            self.conn, "inc-001", "Cleaned and neutralized soil",
-            resolution_date="2026-07-10",
-        )
-        self.assertEqual(result["incident_id"], "inc-001")
-        self.assertEqual(result["status"], "resolved")
-        self.assertEqual(result["remedial_action"], "Cleaned and neutralized soil")
-        self.assertEqual(result["resolution_date"], "2026-07-10")
-        self.conn.commit.assert_called_once()
-        query, params = self.mock_cursor.execute.call_args.args
-        self.assertIn("resolved = TRUE", query)
-        self.assertIn("updated_at = NOW()", query)
-        self.assertNotIn("resolved_at", query)
-        self.assertEqual(params, ("Cleaned and neutralized soil", date(2026, 7, 10), "inc-001"))
-        self.mock_cursor.close.assert_called_once()
+    def test_legacy_resolve_helper_fails_before_opening_cursor(self):
+        with self.assertRaisesRegex(TenantContextDenied, "authenticated operator Gateway"):
+            resolve_incident(self.conn, "inc-001", "Cleaned and neutralized soil")
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
-    def test_resolve_incident_not_found(self):
-        self.mock_cursor.fetchone.return_value = None
-        with self.assertRaises(ValueError):
-            resolve_incident(self.conn, "nonexistent", "Action")
+    def test_legacy_resolve_cli_fails_before_opening_database(self):
+        connection_factory = MagicMock(side_effect=AssertionError("database opened"))
+        stderr = io.StringIO()
+        with patch.object(waste_management.cli, "_connection_factory", connection_factory):
+            with redirect_stderr(stderr), self.assertRaises(SystemExit) as error:
+                waste_management.cli.run([
+                    "resolve-incident", "--incident-id", "11111111-1111-4111-8111-111111111111",
+                    "--remedial-action", "Synthetic cleanup",
+                ])
+        self.assertEqual(error.exception.code, 1)
+        connection_factory.assert_not_called()
+        self.assertIn("authenticated operator Gateway review workflow", stderr.getvalue())
 
 
 class TestWasteSummary(unittest.TestCase):

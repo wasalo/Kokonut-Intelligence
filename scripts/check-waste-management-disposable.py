@@ -119,9 +119,27 @@ def main() -> int:
             pass
         else:
             raise AssertionError("unscoped legacy recycling writer was not retired")
+        try:
+            waste_management.report_incident(
+                conn, location_a, "air_pollution", "high", "Synthetic event",
+                "North plot", reported_by="synthetic operator",
+            )
+        except waste_management.TenantContextDenied:
+            pass
+        else:
+            raise AssertionError("unscoped legacy incident report writer was not retired")
+        try:
+            waste_management.resolve_incident(
+                conn, str(uuid.uuid4()), "Synthetic cleanup", "2026-10-24",
+            )
+        except waste_management.TenantContextDenied:
+            pass
+        else:
+            raise AssertionError("unscoped legacy incident resolution writer was not retired")
         waste_a_id, waste_b_id = str(uuid.uuid4()), str(uuid.uuid4())
         compost_id = str(uuid.uuid4())
         recycling_id = str(uuid.uuid4())
+        incident_id = str(uuid.uuid4())
         with conn.cursor() as cursor:
             cursor.execute(
                 """
@@ -163,16 +181,26 @@ def main() -> int:
                 """,
                 (recycling_id, location_a, json.dumps({"legacy_material_type": "steel_scrap"})),
             )
+            cursor.execute(
+                """
+                INSERT INTO pollution_incident
+                    (id, location_id, incident_date, incident_type, severity,
+                     description, affected_area, resolved, status, metadata)
+                VALUES (%s, %s, CURRENT_DATE, 'air_emission', 'high',
+                        'Synthetic event', 'North plot', FALSE, 'open', %s::jsonb)
+                """,
+                (incident_id, location_a, json.dumps({
+                    "reported_by": "synthetic operator",
+                    "legacy_incident_type": "air_pollution",
+                })),
+            )
         waste_a = {"waste_id": waste_a_id}
         waste_b = {"waste_id": waste_b_id}
         compost = {"compost_id": compost_id}
         recycling = {"recycle_id": recycling_id}
-        incident = waste_management.report_incident(
-            conn, location_a, "air_pollution", "high", "Synthetic event",
-            "North plot", reported_by="synthetic operator",
-        )
+        incident = {"incident_id": incident_id}
         checks.append(
-            "unscoped legacy waste, composting, and recycling writers fail closed; synthetic read fixtures are isolated"
+            "unscoped legacy waste, compost, recycling, report, and resolution writers fail closed; synthetic read fixtures are isolated"
         )
 
         with conn.cursor() as cursor:
@@ -245,7 +273,7 @@ def main() -> int:
             ):
                 raise AssertionError("incident type/reporter metadata did not persist")
         conn.commit()
-        checks.append("remaining legacy writers start in canonical recorded/open states")
+        checks.append("synthetic waste, compost, recycling, and incident fixtures use canonical lifecycle states")
         checks.append("schema-constrained category mappings and JSONB compatibility fields persist")
 
         waste_summary = waste_management.get_waste_summary(conn, location_a, days=30)
@@ -268,9 +296,14 @@ def main() -> int:
             or open_incidents["incidents"][0]["reported_by"] != "synthetic operator"
         ):
             raise AssertionError("incident summary lost active state or reporter attribution")
-        resolved = waste_management.resolve_incident(
-            conn, incident["incident_id"], "Synthetic cleanup", "2026-10-24",
-        )
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "UPDATE pollution_incident SET status = 'resolved', resolved = TRUE, "
+                "remedial_action = 'Synthetic cleanup', resolution_date = DATE '2026-10-24' "
+                "WHERE id = %s",
+                (incident["incident_id"],),
+            )
+        resolved = {"status": "resolved"}
         after_resolution = waste_management.get_open_incidents(conn, location_a)
         if (
             resolved["status"] != "resolved"

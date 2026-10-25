@@ -21,11 +21,12 @@ BASE_MIGRATION = ROOT / "schemas/postgres/153_waste_management.sql"
 MIGRATION = ROOT / "schemas/postgres/613_location_waste_stream_capture.sql"
 COMPOSTING_MIGRATION = ROOT / "schemas/postgres/614_location_composting_capture.sql"
 RECYCLING_MIGRATION = ROOT / "schemas/postgres/615_location_recycling_capture.sql"
+INCIDENT_MIGRATION = ROOT / "schemas/postgres/616_location_pollution_incident_gateway.sql"
 PLATFORM = os.environ.get("WASTE_CAPTURE_TEST_PLATFORM")
 OUTPUT_SUFFIX = "-arm64" if PLATFORM == "linux/arm64" else ""
 OUTPUT = ROOT / (
     "docs/refactor/builds/2026-10-24-recovery/"
-    f"cap-006-waste-compost-recycling-capture{OUTPUT_SUFFIX}-disposable.json"
+    f"cap-006-waste-incident-capture{OUTPUT_SUFFIX}-disposable.json"
 )
 IMAGE = os.environ.get("WASTE_CAPTURE_TEST_IMAGE", "postgres:16")
 
@@ -151,6 +152,12 @@ def main() -> int:
                 "destination, revenue, status, metadata, created_by) "
                 "ON public.recycling_log TO kokonut_runtime"
             )
+            cursor.execute(
+                "GRANT SELECT (id, location_id, incident_date, incident_type, severity, "
+                "description, affected_area, remedial_action, resolved, resolution_date, "
+                "notes, status, metadata, created_at, created_by, updated_by) "
+                "ON public.pollution_incident TO kokonut_runtime"
+            )
             cursor.execute("INSERT INTO location VALUES (%s, 'Synthetic'), (%s, 'Other')", (location_id, other_location_id))
             cursor.execute(
                 "INSERT INTO operator_identity VALUES (%s), (%s)",
@@ -166,7 +173,13 @@ def main() -> int:
             cursor.execute(COMPOSTING_MIGRATION.read_text())
             cursor.execute(RECYCLING_MIGRATION.read_text())
             cursor.execute(RECYCLING_MIGRATION.read_text())
-        checks.append("migrations 613, 614, and 615 apply and replay after the canonical migration-153 tables")
+            cursor.execute(INCIDENT_MIGRATION.read_text())
+            cursor.execute(INCIDENT_MIGRATION.read_text())
+            cursor.execute(
+                "INSERT INTO operator_scope_grant VALUES (%s, %s, 'waste_management', 'review', NULL)",
+                (operator_id, location_id),
+            )
+        checks.append("migrations 613, 614, 615, and 616 apply and replay after the canonical migration-153 tables")
 
         connection.autocommit = False
         with connection.cursor() as cursor:
@@ -364,6 +377,168 @@ def main() -> int:
         )
         checks.append("recycling changed-input reuse and foreign-location access fail; direct runtime inserts are denied")
 
+        incident_request_id = str(uuid.uuid4())
+        incident_date = date.today()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_pollution_incident("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, incident_request_id, incident_date, "air_emission",
+                    "air_pollution", "high", "Synthetic plume report", "North plot",
+                    "Field reporter", "Synthetic incident capture",
+                ),
+            )
+            incident_created = cursor.fetchone()[0]
+            if (
+                incident_created["location_id"] != location_id
+                or incident_created["status"] != "open"
+                or incident_created["replayed"] is not False
+            ):
+                raise AssertionError("incident capture did not return an open scoped record")
+            cursor.execute(
+                "SELECT status, resolved, incident_type, severity, description, affected_area, "
+                "metadata->>'reported_by', metadata->>'legacy_incident_type', created_by "
+                "FROM public.pollution_incident WHERE id = %s",
+                (incident_created["incident_id"],),
+            )
+            incident_row = cursor.fetchone()
+            if incident_row != (
+                "open", False, "air_emission", "high", "Synthetic plume report",
+                "North plot", "Field reporter", "air_pollution", operator_id,
+            ):
+                raise AssertionError(f"unexpected open incident row: {incident_row}")
+            cursor.execute(
+                "SELECT kokonut_security.create_location_pollution_incident("
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    location_id, incident_request_id, incident_date, "air_emission",
+                    "air_pollution", "high", "Synthetic plume report", "North plot",
+                    "Field reporter", "Synthetic incident capture",
+                ),
+            )
+            incident_replay = cursor.fetchone()[0]
+            if (
+                incident_replay["incident_id"] != incident_created["incident_id"]
+                or incident_replay["replayed"] is not True
+            ):
+                raise AssertionError("incident exact retry did not return the original incident")
+        connection.commit()
+        checks.append("incident capture maps legacy types, preserves bounded attribution, opens, and exactly replays")
+
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_pollution_incident(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                location_id, incident_request_id, incident_date, "air_emission",
+                "air_pollution", "high", "Changed report", "North plot",
+                "Field reporter", "Synthetic incident capture",
+            ),
+            "23505",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.create_location_pollution_incident(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                other_location_id, str(uuid.uuid4()), incident_date, "runoff", None,
+                "medium", "Wrong location", None, None, None,
+            ),
+            "42501",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (location_id,))
+
+        incident_resolution_request_id = str(uuid.uuid4())
+        resolution_date = date.today()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.resolve_location_pollution_incident(%s, %s, %s, %s, %s)",
+                (
+                    location_id, incident_created["incident_id"],
+                    incident_resolution_request_id, resolution_date, "Synthetic cleanup",
+                ),
+            )
+            resolution = cursor.fetchone()[0]
+            if resolution["status"] != "resolved" or resolution["replayed"] is not False:
+                raise AssertionError("incident resolution did not return a new resolved result")
+            cursor.execute(
+                "SELECT status, resolved, remedial_action, resolution_date, updated_by "
+                "FROM public.pollution_incident WHERE id = %s",
+                (incident_created["incident_id"],),
+            )
+            resolved_row = cursor.fetchone()
+            if resolved_row != (
+                "resolved", True, "Synthetic cleanup", resolution_date, operator_id,
+            ):
+                raise AssertionError(f"unexpected resolved incident fields: {resolved_row}")
+            cursor.execute(
+                "SELECT kokonut_security.resolve_location_pollution_incident(%s, %s, %s, %s, %s)",
+                (
+                    location_id, incident_created["incident_id"],
+                    incident_resolution_request_id, resolution_date, "Synthetic cleanup",
+                ),
+            )
+            resolution_replay = cursor.fetchone()[0]
+            if resolution_replay["replayed"] is not True:
+                raise AssertionError("incident exact resolution retry did not replay")
+        connection.commit()
+        checks.append("separate review grant resolves only the scoped incident, attributes the reviewer, and retries exactly")
+
+        expect_denied(
+            connection,
+            "SELECT kokonut_security.resolve_location_pollution_incident(%s, %s, %s, %s, %s)",
+            (
+                location_id, incident_created["incident_id"],
+                incident_resolution_request_id, resolution_date, "Changed cleanup",
+            ),
+            "23505",
+        )
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT has_table_privilege('kokonut_runtime', 'public.pollution_incident', 'INSERT'), "
+                "has_column_privilege('kokonut_runtime', 'public.pollution_incident', 'id', 'INSERT'), "
+                "has_table_privilege('kokonut_runtime', 'public.pollution_incident', 'UPDATE'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.pollution_incident', 'INSERT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.pollution_incident', 'UPDATE'), "
+                "has_table_privilege('kokonut_runtime', 'public.pollution_incident_operation_receipt', 'SELECT'), "
+                "has_table_privilege('kokonut_directus_runtime', 'public.pollution_incident_operation_receipt', 'SELECT'), "
+                "has_function_privilege('kokonut_runtime', "
+                "'kokonut_security.create_location_pollution_incident(uuid,uuid,date,text,text,text,text,text,text,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_directus_runtime', "
+                "'kokonut_security.create_location_pollution_incident(uuid,uuid,date,text,text,text,text,text,text,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_runtime', "
+                "'kokonut_security.resolve_location_pollution_incident(uuid,uuid,uuid,date,text)', 'EXECUTE'), "
+                "has_function_privilege('kokonut_directus_runtime', "
+                "'kokonut_security.resolve_location_pollution_incident(uuid,uuid,uuid,date,text)', 'EXECUTE')"
+            )
+            privileges = cursor.fetchone()
+            if (
+                any(privileges[:7])
+                or not privileges[7]
+                or privileges[8]
+                or not privileges[9]
+                or privileges[10]
+            ):
+                raise AssertionError("incident direct-write, receipt, or function privileges are incorrect")
+            cursor.execute(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = "
+                "'kokonut_security.create_location_pollution_incident(uuid,uuid,date,text,text,text,text,text,text,text)'::regprocedure"
+            )
+            if cursor.fetchone()[0] != "kokonut_incident_capture_writer":
+                raise AssertionError("incident capture function owner is not isolated")
+            cursor.execute(
+                "SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid = "
+                "'kokonut_security.resolve_location_pollution_incident(uuid,uuid,uuid,date,text)'::regprocedure"
+            )
+            if cursor.fetchone()[0] != "kokonut_incident_resolution_writer":
+                raise AssertionError("incident resolution function owner is not isolated")
+        checks.append("runtime and Directus cannot write incidents or read private receipts; function owners are isolated")
+
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('kokonut.location_id', %s, false)", (other_location_id,))
         expect_denied(
@@ -483,6 +658,7 @@ def main() -> int:
             "migrations": [
                 BASE_MIGRATION.name, MIGRATION.name, COMPOSTING_MIGRATION.name,
                 RECYCLING_MIGRATION.name,
+                INCIDENT_MIGRATION.name,
             ],
             "checks": checks,
             "candidate_or_legacy_database_used": False,

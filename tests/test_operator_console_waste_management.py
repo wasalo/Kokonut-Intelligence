@@ -16,7 +16,7 @@ def test_waste_management_panel_is_hidden_and_omits_sensitive_details():
     panel = SOURCE[start:end]
     assert 'id="waste-management" hidden' in panel
     assert "Compost yield and process measurements are descriptive and advisory, not a compost-quality certification." in panel
-    assert "Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded." in panel
+    assert "Aggregate summaries exclude incident narratives, affected areas, destinations, costs, notes, and reporter identities; the incident review queue is separately gated." in panel
     assert "Counts are not compliance determinations." in panel
     assert "New entries are location-scoped and remain recorded until a separate human verification workflow is available." in panel
     for element_id in (
@@ -74,10 +74,34 @@ def test_waste_console_refresh_and_location_change_are_wired_and_ids_unique():
     assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in SOURCE
     assert '"X-CSRF-Token": csrfToken()' in SOURCE
     assert "Retrying reuses the same request ID and entry." in SOURCE
-    assert "result.status !== \"recorded\"" in SOURCE
+    assert "result.status !== responseStatus" in SOURCE
+    assert 'responseStatus = "recorded"' in SOURCE
     ids = re.findall(r'\bid="([^\"]+)"', SOURCE)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+
+
+def test_incident_capture_and_resolution_use_separate_grants_and_stable_retries():
+    assert 'scope.resource === "waste_management" && scope.action === "create"' in SOURCE
+    assert 'scope.resource === "waste_management" && scope.action === "review"' in SOURCE
+    assert "incidentCapture.hidden = !canCreate" in SOURCE
+    assert "incidentReview.hidden = !canReviewIncidents" in SOURCE
+    assert '`/operator/api/waste/${encodeURIComponent(pending.locationId)}/${route}`' in SOURCE
+    assert 'route: "incidents"' in SOURCE
+    assert 'responseStatus: "open"' in SOURCE
+    assert 'responseIdField: "incident_id"' in SOURCE
+    assert '"X-CSRF-Token": csrfToken()' in SOURCE
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in SOURCE
+    assert '`/operator/api/waste/${encodeURIComponent(pending.locationId)}/incidents/${encodeURIComponent(pending.incidentId)}/resolve`' in SOURCE
+    assert 'request_id: requestId' in SOURCE
+    assert 'result.status !== "resolved"' in SOURCE
+    assert 'Retrying reuses the same request ID and resolution.' in SOURCE
+    assert '`/operator/api/waste/${encodeURIComponent(locationId)}/incidents?offset=${offset}`' in SOURCE
+    assert 'result.offset !== offset' in SOURCE
+    assert 'incidentReviewOffset += 100' in SOURCE
+    assert "heading.textContent = `${incident.severity.toUpperCase()} — ${incident.incident_type} — ${incident.incident_date}`" in SOURCE
+    assert "description.textContent = incident.description" in SOURCE
+    assert ".innerHTML" not in SOURCE[SOURCE.index("function renderPollutionIncidentReviewQueue"):SOURCE.index("async function loadPollutionIncidentReviewQueue")]
 
 
 def test_inline_console_javascript_passes_node_syntax_check():

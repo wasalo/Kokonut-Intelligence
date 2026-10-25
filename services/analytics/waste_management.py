@@ -9,8 +9,8 @@ Usage:
     python -m services.analytics.waste_management record-waste --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management record-composting --location-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management record-recycling --location-id UUID (retired; use the authenticated Gateway console)
-    python -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"
-    python -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10
+    python -m services.analytics.waste_management report-incident --location-id UUID (retired; use the authenticated Gateway console)
+    python -m services.analytics.waste_management resolve-incident --incident-id UUID (retired; use the authenticated Gateway console)
     python -m services.analytics.waste_management waste-summary --location-id UUID
     python -m services.analytics.waste_management composting-efficiency --location-id UUID
     python -m services.analytics.waste_management open-incidents --location-id UUID
@@ -18,16 +18,10 @@ Usage:
 """
 
 import json
-import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from services.common.commands import CommandLine
 from services.common.tenant_context import TenantContextDenied
-
-from ..common.logging import get_logger
-
-logger = get_logger("analytics.waste_management")
-
 
 # ============================================================
 # Waste Stream Recording
@@ -126,56 +120,13 @@ def report_incident(
     reported_by: str = None,
     metadata: dict = None,
 ) -> dict:
-    """Report a pollution incident."""
-    cur = conn.cursor()
-    incident_id = str(uuid.uuid4())
-
-    source_incident_type = incident_type.strip().lower().replace(" ", "_")
-    incident_type_aliases = {"air_pollution": "air_emission"}
-    canonical_incident_type = incident_type_aliases.get(
-        source_incident_type, source_incident_type,
+    """Reject reports that lack authenticated tenant context."""
+    del conn, location_id, incident_type, severity, description, affected_area
+    del reported_by, metadata
+    raise TenantContextDenied(
+        "Unscoped incident reports are disabled; use the authenticated operator "
+        "Gateway incident-capture workflow"
     )
-    if canonical_incident_type not in {
-        "chemical_spill", "runoff", "air_emission", "water_contamination",
-        "waste_dumping", "other",
-    }:
-        canonical_incident_type = "other"
-    record_metadata = dict(metadata or {})
-    if reported_by is not None:
-        record_metadata["reported_by"] = reported_by
-    if source_incident_type != canonical_incident_type:
-        record_metadata["legacy_incident_type"] = incident_type
-
-    try:
-        cur.execute(
-            """
-            INSERT INTO pollution_incident
-                (id, location_id, incident_date, incident_type, severity,
-                 description, affected_area, status, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'open', %s::jsonb)
-            RETURNING id
-            """,
-            (
-                incident_id, location_id, date.today(), canonical_incident_type,
-                severity, description, affected_area, json.dumps(record_metadata),
-            ),
-        )
-        conn.commit()
-    finally:
-        cur.close()
-
-    logger.warning("Pollution incident reported %s: %s [%s]", incident_id, incident_type, severity)
-
-    return {
-        "incident_id": incident_id,
-        "location_id": location_id,
-        "incident_type": incident_type,
-        "severity": severity,
-        "description": description,
-        "affected_area": affected_area,
-        "status": "open",
-        "reported_at": datetime.now(timezone.utc).isoformat(),
-    }
 
 
 def resolve_incident(
@@ -184,41 +135,12 @@ def resolve_incident(
     remedial_action: str,
     resolution_date: str = None,
 ) -> dict:
-    """Mark a pollution incident as resolved."""
-    res_date = date.fromisoformat(resolution_date) if resolution_date else date.today()
-    cur = conn.cursor()
-
-    try:
-        cur.execute(
-            """
-            UPDATE pollution_incident
-            SET status = 'resolved',
-                resolved = TRUE,
-                remedial_action = %s,
-                resolution_date = %s,
-                updated_at = NOW()
-            WHERE id = %s
-            RETURNING id, incident_type, severity
-            """,
-            (remedial_action, res_date, incident_id),
-        )
-        row = cur.fetchone()
-        if not row:
-            raise ValueError(f"Incident {incident_id} not found")
-        conn.commit()
-    finally:
-        cur.close()
-
-    logger.info("Incident %s resolved: %s", incident_id, remedial_action)
-
-    return {
-        "incident_id": row[0],
-        "incident_type": row[1],
-        "severity": row[2],
-        "status": "resolved",
-        "remedial_action": remedial_action,
-        "resolution_date": res_date.isoformat(),
-    }
+    """Reject resolution writes that lack authenticated review context."""
+    del conn, incident_id, remedial_action, resolution_date
+    raise TenantContextDenied(
+        "Unscoped incident resolution is disabled; use the authenticated operator "
+        "Gateway review workflow"
+    )
 
 
 # ============================================================
@@ -577,7 +499,7 @@ cli.subcommand("record-recycling", "Retired unscoped writer; use the authenticat
     .run(_cmd_record_recycling, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_recycling_record))
 
-cli.subcommand("report-incident", "Report pollution incident") \
+cli.subcommand("report-incident", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--location-id", required=True) \
     .add("--incident-type", required=True, help="chemical_spill, water_contamination, soil_contamination, air_pollution, waste_dumping") \
     .add("--severity", required=True, choices=["low", "medium", "high", "critical"]) \
@@ -585,15 +507,15 @@ cli.subcommand("report-incident", "Report pollution incident") \
     .add("--affected-area", required=True) \
     .add("--reported-by") \
     .add("--json", action="store_true") \
-    .run(_cmd_report_incident) \
+    .run(_cmd_report_incident, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_incident))
 
-cli.subcommand("resolve-incident", "Resolve pollution incident") \
+cli.subcommand("resolve-incident", "Retired unscoped writer; use the authenticated Gateway") \
     .add("--incident-id", required=True) \
     .add("--remedial-action", required=True) \
     .add("--resolution-date", help="YYYY-MM-DD") \
     .add("--json", action="store_true") \
-    .run(_cmd_resolve_incident) \
+    .run(_cmd_resolve_incident, needs_db=False) \
     .render_with(lambda r, a: _render(r, a, _format_resolve))
 
 cli.subcommand("waste-summary", "Waste totals by type and disposal") \

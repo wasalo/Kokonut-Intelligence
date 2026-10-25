@@ -2098,7 +2098,7 @@
         </section>
         <section id="waste-management" hidden aria-labelledby="waste-management-heading">
           <h2 id="waste-management-heading">Waste and pollution records</h2>
-          <p class="muted">Verified waste-stream, composting, and recycling aggregates plus pollution incident counts are read-only. Compost yield and process measurements are descriptive and advisory, not a compost-quality certification. Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded. Counts are not compliance determinations.</p>
+          <p class="muted">Verified waste-stream, composting, and recycling aggregates plus pollution incident counts are read-only. Compost yield and process measurements are descriptive and advisory, not a compost-quality certification. Aggregate summaries exclude incident narratives, affected areas, destinations, costs, notes, and reporter identities; the incident review queue is separately gated. Counts are not compliance determinations.</p>
           <div class="toolbar">
             <label for="waste-management-location">Granted location</label>
             <select id="waste-management-location"></select>
@@ -2189,6 +2189,48 @@
               <button id="recycling-capture-submit" type="submit">Save recorded recycling entry</button>
               <p id="recycling-capture-status" class="muted" role="status" aria-live="polite"></p>
             </form>
+          </section>
+          <section id="incident-capture" hidden aria-labelledby="incident-capture-heading">
+            <h3 id="incident-capture-heading">Report a pollution incident</h3>
+            <p class="muted">Reports are location-scoped and start open. Reporter attribution is operator-supplied text, not identity verification. Incident reporting does not determine compliance.</p>
+            <form id="incident-capture-form" class="form-grid">
+              <label for="incident-capture-date">Incident date</label>
+              <input id="incident-capture-date" type="date" required>
+              <label for="incident-capture-type">Incident type</label>
+              <select id="incident-capture-type" required>
+                <option value="chemical_spill">Chemical spill</option>
+                <option value="runoff">Runoff</option>
+                <option value="air_emission">Air emission</option>
+                <option value="water_contamination">Water contamination</option>
+                <option value="waste_dumping">Waste dumping</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="incident-capture-severity">Severity</label>
+              <select id="incident-capture-severity" required>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+              <label for="incident-capture-description">Description</label>
+              <textarea id="incident-capture-description" maxlength="2500" rows="4" required></textarea>
+              <label for="incident-capture-area">Affected area (optional)</label>
+              <input id="incident-capture-area" type="text" maxlength="200">
+              <label for="incident-capture-reporter">Reporter attribution (optional)</label>
+              <input id="incident-capture-reporter" type="text" maxlength="200">
+              <label for="incident-capture-notes">Private entry notes (optional)</label>
+              <textarea id="incident-capture-notes" maxlength="1000" rows="3"></textarea>
+              <button id="incident-capture-submit" type="submit">Save open incident report</button>
+              <p id="incident-capture-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
+          <section id="incident-review" hidden aria-labelledby="incident-review-heading">
+            <h3 id="incident-review-heading">Incident review queue</h3>
+            <p class="muted">Only operators with the separate location review grant can view incident narratives or record resolution. Resolution stores the reviewer and action; it does not certify regulatory compliance.</p>
+            <button id="incident-review-refresh" type="button">Refresh incident queue</button>
+            <p id="incident-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="incident-review-rows"></div>
+            <button id="incident-review-more" type="button" hidden>Load more incidents</button>
           </section>
           <div id="waste-management-summary" hidden>
             <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
@@ -3446,9 +3488,19 @@
       const recyclingCapture = document.querySelector("#recycling-capture");
       const recyclingCaptureForm = document.querySelector("#recycling-capture-form");
       const recyclingCaptureStatus = document.querySelector("#recycling-capture-status");
+      const incidentCapture = document.querySelector("#incident-capture");
+      const incidentCaptureForm = document.querySelector("#incident-capture-form");
+      const incidentCaptureStatus = document.querySelector("#incident-capture-status");
+      const incidentReview = document.querySelector("#incident-review");
+      const incidentReviewStatus = document.querySelector("#incident-review-status");
+      const incidentReviewRows = document.querySelector("#incident-review-rows");
+      const incidentReviewMore = document.querySelector("#incident-review-more");
       let wasteManagementLocations = new Set();
       let wasteManagementCreateLocations = new Set();
+      let wasteManagementReviewLocations = new Set();
       let wasteManagementRequestVersion = 0;
+      let incidentReviewRequestVersion = 0;
+      let incidentReviewOffset = 0;
       const landscapePollinator = document.querySelector("#landscape-pollinator");
       const landscapeConservation = document.querySelector("#landscape-conservation");
       const landscapeConservationLocation = document.querySelector("#landscape-conservation-location");
@@ -17101,15 +17153,138 @@
         const locationId = wasteManagementLocation.value;
         const canRead = wasteManagementLocations.has(locationId);
         const canCreate = wasteManagementCreateLocations.has(locationId);
+        const canReviewIncidents = wasteManagementReviewLocations.has(locationId);
         wasteManagementSummary.hidden = !canRead;
         wasteManagementCapture.hidden = !canCreate;
         compostingCapture.hidden = !canCreate;
         recyclingCapture.hidden = !canCreate;
+        incidentCapture.hidden = !canCreate;
+        incidentReview.hidden = !canReviewIncidents;
         if (!canRead) {
           wasteManagementStatus.textContent = "";
           for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
             container.replaceChildren();
           }
+        }
+        if (!canReviewIncidents) {
+          incidentReviewStatus.textContent = "";
+          incidentReviewRows.replaceChildren();
+          incidentReviewMore.hidden = true;
+        }
+      }
+
+      function renderPollutionIncidentReviewQueue(result) {
+        incidentReviewRows.replaceChildren();
+        if (!result.incidents.length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No unresolved pollution incidents for this location.";
+          incidentReviewRows.append(empty);
+          return;
+        }
+        for (const incident of result.incidents) {
+          const article = document.createElement("article");
+          const heading = document.createElement("h4");
+          heading.textContent = `${incident.severity.toUpperCase()} — ${incident.incident_type} — ${incident.incident_date}`;
+          article.append(heading);
+          const description = document.createElement("p");
+          description.textContent = incident.description;
+          article.append(description);
+          if (incident.affected_area) {
+            const affectedArea = document.createElement("p");
+            affectedArea.textContent = `Affected area: ${incident.affected_area}`;
+            article.append(affectedArea);
+          }
+          const status = document.createElement("p");
+          status.className = "muted";
+          status.textContent = `Current state: ${incident.status}`;
+          article.append(status);
+
+          const form = document.createElement("form");
+          form.className = "form-grid";
+          form.dataset.incidentId = incident.incident_id;
+          const actionLabel = document.createElement("label");
+          actionLabel.htmlFor = `incident-resolution-action-${incident.incident_id}`;
+          actionLabel.textContent = "Remedial action";
+          const actionInput = document.createElement("textarea");
+          actionInput.id = actionLabel.htmlFor;
+          actionInput.maxLength = 2000;
+          actionInput.rows = 3;
+          actionInput.required = true;
+          const dateLabel = document.createElement("label");
+          dateLabel.htmlFor = `incident-resolution-date-${incident.incident_id}`;
+          dateLabel.textContent = "Resolution date";
+          const dateInput = document.createElement("input");
+          dateInput.id = dateLabel.htmlFor;
+          dateInput.type = "date";
+          dateInput.required = true;
+          dateInput.value = wasteCaptureToday();
+          const submit = document.createElement("button");
+          submit.type = "submit";
+          submit.textContent = "Resolve incident";
+          const formStatus = document.createElement("p");
+          formStatus.className = "muted";
+          formStatus.setAttribute("role", "status");
+          formStatus.setAttribute("aria-live", "polite");
+          form.append(actionLabel, actionInput, dateLabel, dateInput, submit, formStatus);
+          article.append(form);
+          incidentReviewRows.append(article);
+        }
+      }
+
+      async function loadPollutionIncidentReviewQueue(reset = false) {
+        if (reset) incidentReviewOffset = 0;
+        const locationId = wasteManagementLocation.value;
+        const requestVersion = ++incidentReviewRequestVersion;
+        const offset = incidentReviewOffset;
+        if (!wasteManagementReviewLocations.has(locationId)) {
+          updateWasteManagementAccess();
+          return;
+        }
+        incidentReview.hidden = false;
+        incidentReviewRows.replaceChildren();
+        incidentReviewStatus.textContent = "Loading the location's open incident queue…";
+        try {
+          const response = await fetch(
+            `/operator/api/waste/${encodeURIComponent(locationId)}/incidents?offset=${offset}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or incident-review grant is no longer valid. Reload the console to refresh access.");
+            }
+            throw new Error("The incident review queue could not be loaded. Retry when the service is available.");
+          }
+          if (requestVersion !== incidentReviewRequestVersion
+              || locationId !== wasteManagementLocation.value) return;
+          const allowedTypes = new Set(["chemical_spill", "runoff", "air_emission", "water_contamination", "waste_dumping", "other"]);
+          const allowedSeverities = new Set(["low", "medium", "high", "critical"]);
+          const allowedStatuses = new Set(["open", "investigating", "remediation"]);
+          if (result.location_id !== locationId || result.offset !== offset || !Array.isArray(result.incidents)
+              || result.incidents.length > 100 || typeof result.has_more !== "boolean"
+              || !result.incidents.every((incident) =>
+                typeof incident?.incident_id === "string"
+                && /^[0-9a-f-]{36}$/i.test(incident.incident_id)
+                && typeof incident.incident_date === "string"
+                && allowedTypes.has(incident.incident_type)
+                && allowedSeverities.has(incident.severity)
+                && typeof incident.description === "string"
+                && incident.description.length <= 2500
+                && (incident.affected_area === null || (typeof incident.affected_area === "string" && incident.affected_area.length <= 200))
+                && allowedStatuses.has(incident.status))) {
+            throw new Error("The incident queue did not match the selected location or review contract.");
+          }
+          renderPollutionIncidentReviewQueue(result);
+          incidentReviewMore.hidden = !result.has_more;
+          incidentReviewStatus.textContent = result.has_more
+            ? `Showing up to 100 unresolved incidents from this page. ${offset + result.incidents.length} reviewed in the current queue.`
+            : "Incident details are shown only for this location under the separate review grant.";
+        } catch (error) {
+          if (requestVersion !== incidentReviewRequestVersion) return;
+          incidentReviewRows.replaceChildren();
+          incidentReviewMore.hidden = true;
+          incidentReviewStatus.textContent = error.message;
         }
       }
 
@@ -17169,7 +17344,10 @@
         return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       }
 
-      function registerWasteCaptureForm(form, status, {route, buildPayload, successLabel}) {
+      function registerWasteCaptureForm(form, status, {
+        route, buildPayload, successLabel, responseStatus = "recorded",
+        responseIdField = "record_id", successText, replayText
+      }) {
         form.querySelector('input[type="date"]').value = wasteCaptureToday();
         form.addEventListener("submit", async (event) => {
           event.preventDefault();
@@ -17225,8 +17403,8 @@
               throw new Error(result.error || `The ${successLabel} could not be recorded.`);
             }
             if (result.location_id !== pending.locationId
-                || result.status !== "recorded"
-                || typeof result.record_id !== "string"
+                || result.status !== responseStatus
+                || typeof result[responseIdField] !== "string"
                 || typeof result.replayed !== "boolean") {
               throw new Error("The response did not match the capture contract. Retry to confirm the same request.");
             }
@@ -17235,11 +17413,15 @@
             form.reset();
             form.querySelector('input[type="date"]').value = wasteCaptureToday();
             status.textContent = result.replayed
-              ? `The original ${successLabel} was confirmed after retry. It remains recorded until separate human verification.`
-              : `${successLabel} recorded. It remains outside verified aggregates until separate human verification.`;
+              ? (replayText || `The original ${successLabel} was confirmed after retry. It remains recorded until separate human verification.`)
+              : (successText || `${successLabel} recorded. It remains outside verified aggregates until separate human verification.`);
             if (wasteManagementLocations.has(pending.locationId)
                 && wasteManagementLocation.value === pending.locationId) {
               await loadWasteManagementSummary();
+            }
+            if (wasteManagementReviewLocations.has(pending.locationId)
+                && wasteManagementLocation.value === pending.locationId) {
+              await loadPollutionIncidentReviewQueue(true);
             }
           } catch (error) {
             status.textContent = form.pendingCapture
@@ -17294,6 +17476,112 @@
           revenue: recyclingCaptureForm.querySelector("#recycling-capture-revenue").value || null,
           notes: recyclingCaptureForm.querySelector("#recycling-capture-notes").value || null
         })
+      });
+      registerWasteCaptureForm(incidentCaptureForm, incidentCaptureStatus, {
+        route: "incidents",
+        successLabel: "pollution incident",
+        responseStatus: "open",
+        responseIdField: "incident_id",
+        successText: "Incident report saved and open for authorized review. It does not determine compliance.",
+        replayText: "The original incident report was confirmed after retry and remains open for authorized review.",
+        buildPayload: (requestId) => ({
+          request_id: requestId,
+          incident_date: incidentCaptureForm.querySelector("#incident-capture-date").value,
+          incident_type: incidentCaptureForm.querySelector("#incident-capture-type").value,
+          severity: incidentCaptureForm.querySelector("#incident-capture-severity").value,
+          description: incidentCaptureForm.querySelector("#incident-capture-description").value,
+          affected_area: incidentCaptureForm.querySelector("#incident-capture-area").value || null,
+          reported_by: incidentCaptureForm.querySelector("#incident-capture-reporter").value || null,
+          notes: incidentCaptureForm.querySelector("#incident-capture-notes").value || null
+        })
+      });
+
+      incidentReviewRows.addEventListener("submit", async (event) => {
+        const form = event.target.closest("form[data-incident-id]");
+        if (!form) return;
+        event.preventDefault();
+        const locationId = wasteManagementLocation.value;
+        const incidentId = form.dataset.incidentId;
+        const formStatus = form.querySelector('[role="status"]');
+        if (!wasteManagementReviewLocations.has(locationId)) {
+          formStatus.textContent = "A current incident-review grant for this location is required.";
+          return;
+        }
+        if (form.pendingResolution && form.pendingResolution.locationId !== locationId) {
+          formStatus.textContent = "Retry the pending resolution at its original location before changing locations.";
+          return;
+        }
+        if (!form.pendingResolution && !form.reportValidity()) return;
+        if (!form.pendingResolution) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            formStatus.textContent = "A secure browser context is required to resolve this incident.";
+            return;
+          }
+          form.pendingResolution = {
+            locationId,
+            incidentId,
+            payload: {
+              request_id: requestId,
+              resolution_date: form.querySelector('input[type="date"]').value,
+              remedial_action: form.querySelector("textarea").value
+            }
+          };
+          for (const field of form.querySelectorAll("input, textarea")) field.disabled = true;
+        }
+        const pending = form.pendingResolution;
+        const submit = form.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        formStatus.textContent = pending.attempted
+          ? "Retrying the same incident resolution…"
+          : "Recording the incident resolution…";
+        pending.attempted = true;
+        try {
+          const response = await fetch(
+            `/operator/api/waste/${encodeURIComponent(pending.locationId)}/incidents/${encodeURIComponent(pending.incidentId)}/resolve`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrfToken()
+              },
+              body: JSON.stringify(pending.payload)
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or incident-review grant is no longer valid. Reload the console to refresh access.");
+          }
+          if (!response.ok) {
+            if (response.status === 400 || response.status === 409) {
+              form.pendingResolution = null;
+              for (const field of form.querySelectorAll("input, textarea")) field.disabled = false;
+            }
+            throw new Error(result.error || "The incident resolution could not be recorded.");
+          }
+          if (result.location_id !== pending.locationId
+              || result.incident_id !== pending.incidentId
+              || result.status !== "resolved"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not match the incident resolution contract. Retry to confirm the same request.");
+          }
+          form.pendingResolution = null;
+          formStatus.textContent = result.replayed
+            ? "The original incident resolution was confirmed after retry."
+            : "Incident resolution recorded with your operator identity.";
+          incidentReviewOffset = 0;
+          await loadPollutionIncidentReviewQueue(true);
+        } catch (error) {
+          formStatus.textContent = form.pendingResolution
+            ? `${error.message} Retrying reuses the same request ID and resolution.`
+            : `${error.message} Review the incident queue before submitting a new resolution.`;
+          if (!form.pendingResolution && error.message.includes("incident is resolved")) {
+            await loadPollutionIncidentReviewQueue(true);
+          }
+        } finally {
+          submit.disabled = false;
+        }
       });
 
       function renderEcologySections(container, sections) {
@@ -19174,9 +19462,16 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           wasteManagementCreateLocations = new Set(wasteManagementCreateLocationIds);
+          const wasteManagementReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "waste_management" && scope.action === "review")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          wasteManagementReviewLocations = new Set(wasteManagementReviewLocationIds);
           const wasteManagementAvailableLocationIds = [...new Set([
             ...wasteManagementLocationIds,
             ...wasteManagementCreateLocationIds,
+            ...wasteManagementReviewLocationIds,
           ])];
           const landscapeConservationLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "landscape_conservation" && scope.action === "read")
@@ -19634,6 +19929,9 @@
             updateWasteManagementAccess();
             if (wasteManagementLocations.has(wasteManagementLocation.value)) {
               await loadWasteManagementSummary();
+            }
+            if (wasteManagementReviewLocations.has(wasteManagementLocation.value)) {
+              await loadPollutionIncidentReviewQueue();
             }
             hasAuthorizedSurface = true;
           }
@@ -24098,9 +24396,15 @@
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);
       energyMonitoringLocation.addEventListener("change", loadEnergyMonitoringSummary);
       document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary);
+      document.querySelector("#incident-review-refresh").addEventListener("click", loadPollutionIncidentReviewQueue);
+      incidentReviewMore.addEventListener("click", () => {
+        incidentReviewOffset += 100;
+        loadPollutionIncidentReviewQueue();
+      });
       wasteManagementLocation.addEventListener("change", () => {
         updateWasteManagementAccess();
         loadWasteManagementSummary();
+        loadPollutionIncidentReviewQueue(true);
       });
       document.querySelector("#landscape-conservation-refresh").addEventListener("click", loadLandscapeConservationSummary);
       landscapeConservationLocation.addEventListener("change", loadLandscapeConservationSummary);

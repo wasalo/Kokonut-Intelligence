@@ -3260,3 +3260,22 @@ was used. Evidence: `docs/refactor/builds/2026-10-22-recovery/cap-038-agent-sour
 ### 23 October 2026 — CAP-038 task-specific source identities
 
 Migration 580 and the worker profiles isolate EBF, CIDS, and Delphi source reads behind separate credentials and reader roles, each with an explicit projection allowlist. Migration 581 adds a distinct AI-summary inspection login and digest-only view, so inspection cannot read the deterministic worker's operational projections or return summary content to Python. The focused worker/database/profile/migration selection passes 128 tests; Ruff, compilation, Compose parsing, and refreshed inventories pass. Migration 581's disposable PostgreSQL 16 chain passes 42 grouped assertions natively and under ARM64/QEMU. Candidate and legacy are untouched; no credentials or location grants have been provisioned. Exact location grants, populated parity, live OIDC/provider checks, wider ACL/RLS, production recovery, Raspberry Pi hardware, and MAN-CAP-038 acceptance remain open.
+### Current CAP-006 implementation slice — location-scoped pollution incident capture and review, 24 October 2026
+
+Migration 616 adds exact-location incident capture under
+`waste_management:create` and a separately gated review queue/resolution under
+`waste_management:review`. Distinct function owners enforce bounded input,
+signed tenant context, lifecycle rules, reviewer attribution, and private
+exact-retry receipts; runtime and Directus cannot write incident rows or read
+receipts. The console separately gates capture/review and renders review data
+as text. Legacy incident report/resolve helpers and CLI commands now fail
+before database access. The focused suite passes 156 tests plus five subtests;
+Ruff and compilation pass. Disposable PostgreSQL 16 apply/replay and
+authorization/ACL checks pass on native AMD64 and linux/arm64 Docker/QEMU.
+Candidate/legacy databases remain untouched; migration 616 is not rolled out.
+QEMU is software portability evidence, not physical Raspberry Pi acceptance.
+CAP-006 remains prepared pending populated parity, live OIDC/browser,
+remaining ACL/RLS and Directus parity, review of legacy incident-detail CLI
+reads, and MAN-CAP-006 ([contract](waste-management-kernel-read-contract.md);
+[native evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
+[ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).

@@ -1,13 +1,13 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-25T01:05:29.146318+00:00",
+  "checked_at": "2026-10-25T01:23:43.335139+00:00",
   "database": "PostgreSQL 16 disposable container",
   "migration": "153_waste_management.sql",
   "migration_replayed": true,
   "checks": [
     "migration 153 applies and replays with only the required location fixture",
-    "unscoped legacy waste, composting, and recycling writers fail closed; synthetic read fixtures are isolated",
-    "remaining legacy writers start in canonical recorded/open states",
+    "unscoped legacy waste, compost, recycling, report, and resolution writers fail closed; synthetic read fixtures are isolated",
+    "synthetic waste, compost, recycling, and incident fixtures use canonical lifecycle states",
     "schema-constrained category mappings and JSONB compatibility fields persist",
     "verified waste summary excludes the second location",
     "compost efficiency reads canonical columns, verified rows, and numeric pH metadata",

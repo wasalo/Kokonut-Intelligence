@@ -79,30 +79,66 @@ receipt. Exact retries replay the original ID; changed payload reuse conflicts.
 The console exposes the form only for the exact create grant and keeps capture
 separate from verification.
 
-The legacy incident CLI now writes `incident_date` and schema-supported
-incident types to `pollution_incident`; `air_pollution` maps to `air_emission`,
-and unsupported labels map to `other` while the original type remains in
-metadata. `reported_by` is kept in metadata rather than assigned to the
-unrelated `reported_to` or UUID `created_by` columns. Resolution sets the
-canonical `resolved` boolean, status, remedial action, resolution date, and
-`updated_at`. The incident summary selects unresolved `open`, `investigating`,
-and `remediation` records, retrieves reporter attribution from metadata, and
-counts resolved rows using the lifecycle status/flag. These operations remain
-trusted CLI paths and do not establish tenant authorization.
+Legacy incident summary reads preserve the migration-153 lifecycle and
+metadata mapping, but the report and resolve helper/CLI paths now fail before
+database access because caller-selected locations do not establish tenant
+authorization. Incident reporting and resolution are available through the
+location-scoped Gateway operations below. The read-only summary remains a
+trusted local CLI path; it does not add authenticated tenant authorization.
 
-The legacy CLI contract was exercised against the actual migration-153 schema
-in disposable PostgreSQL 16. Migration apply/replay and synthetic inserts
-verify the retired waste, composting, and recycling helpers fail closed, the
-remaining local incident writer, initial recorded/open states, canonical enum
-constraints, JSONB preservation, verified-only waste summary, compost yield/pH,
-reporter attribution, and incident resolution. Waste, compost, and recycling
-rows in this run are synthetic read fixtures, not helper writes. Separate
-migration-613/614/615 disposable acceptance exercises authenticated capture
-functions on native AMD64 and linux/arm64 Docker/QEMU; QEMU is software
-portability evidence only, not physical Raspberry Pi acceptance. These checks
-do not exercise populated legacy outputs
+The legacy CLI contract was exercised against migration 153 in disposable
+PostgreSQL 16. Migration apply/replay and synthetic records verify that the
+unscoped waste, composting, recycling, and incident writers fail closed while
+canonical read/lifecycle projections remain intact. Waste, compost, recycling,
+and incident rows in this run are synthetic fixtures. Migrations
+613/614/615/616 have separate authenticated Gateway acceptance on native AMD64
+and linux/arm64 Docker/QEMU; QEMU is software portability evidence only, not
+physical Raspberry Pi acceptance. These checks do not exercise populated
+legacy outputs
 ([runner](../scripts/check-waste-management-disposable.py);
-[evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+[legacy evidence](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json);
+[native capture evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
+[ARM64 capture evidence](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).
+
+## Kernel pollution incident capture and review
+
+`POST /operator/api/waste/{location_id}/incidents` requires the exact
+`waste_management:create` grant and an authenticated CSRF-protected OIDC
+session. The Gateway validates the exact request shape, UUID, non-future date,
+canonical severity, and bounded description, affected-area, reporter, and
+notes fields before connecting. Unsupported incident types map to `other`;
+the original bounded label and reporter attribution are retained in metadata.
+Capture creates only an `open`, unresolved incident and never decides
+compliance or closure.
+
+`GET /operator/api/waste/{location_id}/incidents?offset=N` requires the
+separate exact `waste_management:review` grant. It sets signed tenant context
+before a repeatable-read, read-only query, qualifies every row by location,
+returns at most 100 rows per page, and orders critical/high/medium/low reports
+before recency. Its fixed projection includes incident date, type, severity,
+description, affected area, and status; it excludes reporter, notes, and
+arbitrary metadata. `POST
+/operator/api/waste/{location_id}/incidents/{incident_id}/resolve` also requires
+the review grant, validates a bounded remedial action and date, locks only the
+location-matched unresolved incident, and records the reviewing operator in
+`updated_by`. Resolution sets the canonical `resolved` flag, `resolved` status,
+resolution date, remedial action, and timestamp.
+
+Migration 616 installs separate `SECURITY DEFINER` owners for capture and
+resolution, revokes PUBLIC/runtime/Directus direct incident writes, and keeps a
+private append-only request receipt unreadable to runtime and Directus. Exact
+retries return the original operation result; changed request-ID reuse
+conflicts. The console gates capture and review independently and renders
+incident content through `textContent`. The unscoped analytics report/resolve
+helpers and CLI commands fail before database access. Directus has no access to
+the bounded functions; production Directus field/row parity and complete
+canonical ACL/RLS still require separate review.
+
+The historic local `open-incidents` and combined `dashboard` CLI can still read
+incident narratives through the shared database connection. They remain
+trusted local operations outside the Gateway tenant boundary and must not be
+exposed to users without database authorization; remaining legacy CLI review
+must decide whether to retire or replace these reads before broad operator use.
 
 Migration 615 additionally removes runtime and Directus table/column write
 privileges on `recycling_log` while preserving SELECT, then grants a dedicated
@@ -128,12 +164,13 @@ exact-location `waste_management:create` context, writes a recorded-only row,
 stores optional pH in JSONB, and uses a private SHA-256 receipt for exact
 retry. The old local helper and CLI fail closed before any database access.
 
-The console gates its summary on `waste_management:read` and the capture forms
-on `waste_management:create` independently. The create panel exposes separate
-waste-stream, composting, and recycling forms; captures remain recorded and do
-not imply human verification. It uses same-origin/no-store requests,
-validates the response location and bounded schema categories, discards stale
-responses, and renders fixed fields with `textContent`.
+The console gates its summary on `waste_management:read`, capture forms on
+`waste_management:create`, and the incident queue/resolve controls on
+`waste_management:review` independently. Waste-stream, composting, and
+recycling captures remain recorded and do not imply human verification.
+Requests use same-origin/no-store behavior, validate response location and
+bounded schema fields, discard stale responses, and render fixed fields with
+`textContent`.
 
 ## Kernel waste-stream capture
 
@@ -166,7 +203,7 @@ this slice does not claim Directus field-level privacy parity.
 
 ## Verification and rollback
 
-Migration 613 applies and replays against the canonical migration-153 table
+Migrations 613–616 apply and replay against the canonical migration-153 tables
 with synthetic identity/grant/context helpers in disposable PostgreSQL 16.
 The helper is not cryptographic acceptance; the shared tenant-context suite
 covers the signed context implementation. Native and linux/arm64 checks cover exact-grant
@@ -190,7 +227,8 @@ runtime SQL inventory; no data rollback is necessary.
 
 ## Remaining acceptance
 
-This is an initial CAP-006 read path, not full energy/waste/landscape parity.
+This is a prepared CAP-006 path, not full energy/waste/landscape parity.
 Compost quality scoring and certification, waste calculation parity,
 landscape habitat and pollinator workflows, populated legacy output parity,
-runtime ACL/RLS, live ZITADEL/browser behavior, and MAN-CAP-006 remain open.
+remaining canonical-table ACL/RLS and Directus parity, live ZITADEL/browser
+behavior, and MAN-CAP-006 remain open.

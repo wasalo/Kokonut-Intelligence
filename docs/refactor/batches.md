@@ -19,10 +19,44 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,122 checklist items complete and 25
-open (1,147 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,123 checklist items complete and 25
+open (1,148 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped pollution incident capture and review — 24 October 2026
+
+- [x] Add location-scoped incident reporting and a separately authorized
+  review/resolve workflow. Migration 616 installs distinct capture and
+  resolution function owners, removes runtime/Directus direct incident writes,
+  and keeps idempotency receipts private. `POST
+  /operator/api/waste/{location_id}/incidents` requires exact
+  `waste_management:create`; the bounded `GET` queue and `POST
+  /incidents/{incident_id}/resolve` require exact `waste_management:review`.
+  Capture begins in `open`, maps unsupported source types to `other` while
+  preserving the bounded original label, and stores reporter attribution in
+  metadata. The reviewer identity is written to `updated_by`; exact retries
+  replay and changed-input reuse conflicts. Queue pages return at most 100
+  location-qualified incidents and exclude reporter/notes/arbitrary metadata.
+  The operator console gates report and review separately and renders queue
+  content as text. Unscoped analytics helpers and CLI report/resolve commands
+  now fail before database access. The focused Gateway/legacy/console/policy/
+  migration selection passes 156 tests plus five subtests; Ruff and Python
+  compilation pass. Disposable PostgreSQL 16 migration apply/replay,
+  authorization, lifecycle, idempotency and ACL acceptance passes on native
+  AMD64 and linux/arm64 Docker/QEMU; QEMU is software portability evidence,
+  not physical Raspberry Pi acceptance ([native](builds/2026-10-24-recovery/cap-006-waste-incident-capture-disposable.json);
+  [ARM64/QEMU](builds/2026-10-24-recovery/cap-006-waste-incident-capture-arm64-disposable.json)).
+  The migration-153 checker now verifies legacy incident writers fail closed
+  while synthetic lifecycle fixtures remain readable
+  ([legacy acceptance](builds/2026-10-24-recovery/cap-006-waste-management-disposable.json)).
+  Candidate and legacy databases are untouched; migration 616 is not rolled
+  out. Rollback disables the routes, policies and console controls; retain the
+  additive migration and private receipts if applied. CAP-006 remains prepared
+  pending populated parity, live OIDC/browser acceptance, remaining canonical
+  ACL/RLS and Directus parity, review/retirement of legacy incident-detail CLI
+  reads, provider/manual acceptance, and MAN-CAP-006.
+  Checklist: 1,123 complete / 25 open (1,148 total).
 
 ### CAP-006 location-scoped recycling capture and legacy writer retirement — 24 October 2026
 
@@ -50,8 +84,8 @@ acceptance remains separate; none is marked accepted.
   615 is not rolled out. Rollback disables the route, exact policy, and form;
   retain additive schema and receipts if applied. CAP-006 remains prepared
   pending populated parity, live OIDC/browser acceptance, full ACL/RLS and
-  Directus parity, incident write parity, and MAN-CAP-006 review. Checklist:
-  1,122 complete / 25 open (1,147 total).
+  Directus parity, populated-data parity, and MAN-CAP-006 review. Checklist:
+  1,122 complete / 25 open (1,147 total) at that batch boundary.
 
 ### CAP-006 location-scoped composting capture — 24 October 2026
 
