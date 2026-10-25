@@ -1,3 +1,20 @@
+### Progress addendum — AI-summary empty-list scope metadata, 25 October 2026
+
+The signed AI-summary review-list reader now has an additive structured result
+that returns `items` and the safe source view plus normalized location at the
+top level, including when there are no rows. The digest reader also returns a
+structured null-item result with its normalized summary/location query keys
+when no row matches. Existing list and digest helpers retain their return
+contracts. The bounded CLI displays query scope for empty and populated list
+and digest results. The two focused worker/CLI test files pass all 91 tests;
+Ruff, Python compilation, capability-matrix validation, and diff checks pass.
+No database, provider, migration, candidate, or legacy service was used
+([evidence](builds/2026-10-25-recovery/cap-038-summary-list-empty-source-scope.json)).
+This closes empty-result metadata gaps only; live OIDC, worker credentials,
+populated parity, runtime recovery, and MAN-CAP-038 owner acceptance remain
+open. Matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+
 ### Progress addendum — Directus update filters use request database context, 25 October 2026
 
 All registered Directus update filters now pass the request database into

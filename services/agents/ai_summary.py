@@ -541,11 +541,25 @@ def list_summaries(location_id: str) -> list[dict[str, Any]]:
     return run_worker_summary_list(location_id)
 
 
+def list_summaries_with_scope(location_id: str) -> dict[str, Any]:
+    """Return the bounded summary list with query scope, even when empty."""
+    from services.agents.worker_cli import run_worker_summary_list_result
+
+    return run_worker_summary_list_result(location_id)
+
+
 def inspect_summary(location_id: str, summary_id: str) -> dict[str, Any] | None:
     """Compute a read-only summary digest through the signed location reader."""
     from services.agents.worker_cli import run_worker_summary_digest
 
     return run_worker_summary_digest(location_id, summary_id)
+
+
+def inspect_summary_with_scope(location_id: str, summary_id: str) -> dict[str, Any]:
+    """Return digest metadata and query scope, including for a missing row."""
+    from services.agents.worker_cli import run_worker_summary_digest_result
+
+    return run_worker_summary_digest_result(location_id, summary_id)
 
 
 def build_summary(conn, location_id: str, summary_type: str = "combined") -> dict[str, Any]:
@@ -673,7 +687,13 @@ def main():
         if not args.location_id:
             parser.error("--list requires --location-id")
         args.location_id = _cli_uuid(parser, args.location_id, "location-id")
-        summaries = list_summaries(args.location_id)
+        result = list_summaries_with_scope(args.location_id)
+        summaries = result["items"]
+        source_scope = result["source_scope"]
+        print(
+            "Source scope: "
+            f"{source_scope['view']} (location {source_scope['location_id']})"
+        )
         if not summaries:
             print("No summaries found.")
         else:
@@ -692,7 +712,14 @@ def main():
             parser.error("--verify requires --location-id")
         args.location_id = _cli_uuid(parser, args.location_id, "location-id")
         args.verify = _cli_uuid(parser, args.verify, "summary-id")
-        row = inspect_summary(args.location_id, args.verify)
+        result = inspect_summary_with_scope(args.location_id, args.verify)
+        row = result["item"]
+        source_scope = result["source_scope"]
+        print(
+            "Source scope: "
+            f"{source_scope['view']} (location {source_scope['location_id']}, "
+            f"summary {source_scope['summary_id']})"
+        )
         if not row:
             print(f"Summary not found at the requested location: {args.verify}")
         else:

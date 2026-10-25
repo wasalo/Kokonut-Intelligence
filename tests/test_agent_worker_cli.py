@@ -2102,6 +2102,34 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
     connection.close.assert_called_once_with()
 
 
+def test_summary_inspection_empty_list_keeps_query_scope(monkeypatch):
+    connection, cursor = _source_connection()
+    location_input = "00000000-0000-0000-0000-000000000aBc"
+    location_id = location_input.lower()
+    cursor.fetchall.return_value = []
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "i" * 40)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", MagicMock()
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_summary_list_result(location_input)
+
+    assert result == {
+        "items": [],
+        "source_scope": {
+            "view": "kokonut_agent_source.ai_summary_list",
+            "location_id": location_id,
+        },
+    }
+    assert "FROM kokonut_agent_source.ai_summary_list" in cursor.execute.call_args.args[0]
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
 def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
     connection, cursor = _source_connection()
     location_input = "00000000-0000-0000-0000-000000000aBc"
@@ -2149,6 +2177,41 @@ def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
         },
     }
     assert raw_content not in str(result)
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_missing_summary_digest_keeps_normalized_query_scope(monkeypatch):
+    connection, cursor = _source_connection()
+    location_input = "00000000-0000-0000-0000-000000000aBc"
+    location_id = location_input.lower()
+    summary_input = "00000000-0000-0000-0000-000000000DeF"
+    summary_id = summary_input.lower()
+    cursor.fetchone.return_value = None
+    monkeypatch.setattr(worker_cli, "get_worker_db", lambda _key: connection)
+    monkeypatch.setattr(worker_cli, "get_worker_credential", lambda _key: "i" * 40)
+    monkeypatch.setattr(
+        worker_cli, "set_agent_summary_source_tenant_context", MagicMock()
+    )
+    monkeypatch.setattr(
+        "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
+    )
+
+    result = worker_cli.run_worker_summary_digest_result(
+        location_input, summary_input
+    )
+
+    assert result == {
+        "item": None,
+        "source_scope": {
+            "view": "kokonut_agent_source.ai_summary_digest",
+            "summary_id": summary_id,
+            "location_id": location_id,
+        },
+    }
+    query_call = cursor.execute.call_args_list[-1]
+    assert "FROM kokonut_agent_source.ai_summary_digest" in query_call.args[0]
+    assert query_call.args[1] == (summary_id, location_id)
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
 

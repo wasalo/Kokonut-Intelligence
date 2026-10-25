@@ -426,7 +426,10 @@ def run_worker_summary(
 
 
 def _run_worker_summary_inspection(
-    location_id: str, *, summary_id: str | None = None
+    location_id: str,
+    *,
+    summary_id: str | None = None,
+    include_scope: bool = False,
 ) -> list[dict[str, Any]] | dict[str, Any] | None:
     """Read summary metadata or one digest input through the signed source view."""
     try:
@@ -471,7 +474,7 @@ def _run_worker_summary_inspection(
                     """,
                     (location_id,),
                 )
-                return [
+                rows = [
                     {
                         **dict(row),
                         "source_scope": {
@@ -481,6 +484,15 @@ def _run_worker_summary_inspection(
                     }
                     for row in cursor.fetchall()
                 ]
+                if include_scope:
+                    return {
+                        "items": rows,
+                        "source_scope": {
+                            "view": "kokonut_agent_source.ai_summary_list",
+                            "location_id": location_id,
+                        },
+                    }
+                return rows
             cursor.execute(
                 """
                 SELECT id, summary_type, status, model_version,
@@ -493,8 +505,17 @@ def _run_worker_summary_inspection(
             )
             row = cursor.fetchone()
             if row is None:
+                if include_scope:
+                    return {
+                        "item": None,
+                        "source_scope": {
+                            "view": "kokonut_agent_source.ai_summary_digest",
+                            "summary_id": summary_id,
+                            "location_id": location_id,
+                        },
+                    }
                 return None
-            return {
+            item = {
                 "id": str(row["id"]),
                 "summary_type": row["summary_type"],
                 "status": row["status"],
@@ -507,6 +528,12 @@ def _run_worker_summary_inspection(
                     "location_id": location_id,
                 },
             }
+            if include_scope:
+                return {
+                    "item": item,
+                    "source_scope": item["source_scope"],
+                }
+            return item
     except Exception:
         connection.rollback()
         raise
@@ -522,13 +549,43 @@ def run_worker_summary_list(location_id: str) -> list[dict[str, Any]]:
     return result
 
 
+def run_worker_summary_list_result(location_id: str) -> dict[str, Any]:
+    """Return the bounded summary list and query scope, including for zero rows."""
+    result = _run_worker_summary_inspection(location_id, include_scope=True)
+    if not isinstance(result, dict):
+        raise RuntimeError("AI-summary list result reader returned an invalid result")
+    items = result.get("items")
+    source_scope = result.get("source_scope")
+    if not isinstance(items, list) or not isinstance(source_scope, dict):
+        raise RuntimeError("AI-summary list result reader returned an invalid result")
+    return result
+
+
 def run_worker_summary_digest(
     location_id: str, summary_id: str
 ) -> dict[str, Any] | None:
     """Compute a read-only digest for one summary at the granted location."""
-    result = _run_worker_summary_inspection(location_id, summary_id=summary_id)
+    result = run_worker_summary_digest_result(location_id, summary_id)["item"]
     if result is not None and not isinstance(result, dict):
         raise RuntimeError("AI-summary digest reader returned an invalid result")
+    return result
+
+
+def run_worker_summary_digest_result(
+    location_id: str, summary_id: str
+) -> dict[str, Any]:
+    """Return digest metadata and query scope, including when no row matches."""
+    result = _run_worker_summary_inspection(
+        location_id, summary_id=summary_id, include_scope=True
+    )
+    if not isinstance(result, dict):
+        raise RuntimeError("AI-summary digest result reader returned an invalid result")
+    item = result.get("item")
+    source_scope = result.get("source_scope")
+    if (item is not None and not isinstance(item, dict)) or not isinstance(
+        source_scope, dict
+    ):
+        raise RuntimeError("AI-summary digest result reader returned an invalid result")
     return result
 
 
