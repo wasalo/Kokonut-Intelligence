@@ -54,6 +54,9 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
                 {
                     "@id": "https://kokonut.network/cids/Organization/test",
                     "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
                 }
             ]
         },
@@ -103,6 +106,9 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
                 {
                     "@id": "https://kokonut.network/cids/Organization/test",
                     "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
                 }
             ]
         },
@@ -118,15 +124,29 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
 
     valid_node = valid_output["document"]["@graph"][0]
     for invalid_node in (
-        {"kokonut:sourceViews": ["kokonut_agent_source.cids_location"]},
-        {"@id": "https://kokonut.network/cids/Outcome/missing-provenance"},
+        {
+            "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+            "kokonut:propertySourceViews": {},
+        },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/missing-provenance",
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
+        },
         {
             "@id": "https://kokonut.network/cids/Outcome/empty-provenance",
             "kokonut:sourceViews": [],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
         },
         {
             "@id": "https://kokonut.network/cids/Outcome/malformed-provenance",
             "kokonut:sourceViews": [None],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
         },
         {
             "@id": "https://kokonut.network/cids/Outcome/unsorted-provenance",
@@ -134,18 +154,42 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
                 "kokonut_agent_source.cids_stakeholder_outcome",
                 "kokonut_agent_source.cids_location",
             ],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
         },
         {
             "@id": "https://kokonut.network/cids/Outcome/unapproved-view",
             "kokonut:sourceViews": ["public.location"],
+            "kokonut:propertySourceViews": {
+                "@id": ["kokonut_agent_source.cids_location"]
+            },
         },
     ):
         invalid_output = {
             **valid_output,
             "document": {"@graph": [valid_node, invalid_node]},
         }
+        errors = validate_output("cids_export", invalid_output)
+        assert "Invalid CIDS document graph node source-view provenance" in errors
+
+    for invalid_property_views in (
+        None,
+        {},
+        {"@id": ["public.location"]},
+        {"@id": ["kokonut_agent_source.cids_stakeholder_outcome", "kokonut_agent_source.cids_location"]},
+        {"@id": [None]},
+    ):
+        invalid_node = {
+            **valid_node,
+            "kokonut:propertySourceViews": invalid_property_views,
+        }
+        invalid_output = {
+            **valid_output,
+            "document": {"@graph": [invalid_node]},
+        }
         assert validate_output("cids_export", invalid_output) == [
-            "Invalid CIDS document graph node source-view provenance"
+            "Invalid CIDS document graph node property-source provenance"
         ]
 
     empty_output = {
@@ -164,6 +208,9 @@ def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
                 {
                     "@id": "https://kokonut.network/cids/Organization/test",
                     "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
                 }
             ]
         },
@@ -305,6 +352,9 @@ def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
                     "kokonut:sourceViews": [
                         "kokonut_agent_source.cids_location"
                     ],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
                 }
             ],
             "kokonut:alignmentTier": "essential",

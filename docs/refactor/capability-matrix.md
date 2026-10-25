@@ -38,17 +38,18 @@ Evidence: [summary inspection scope](builds/2026-10-25-recovery/cap-038-summary-
 **CAP-038 CIDS export output source scope (25 October 2026):** the signed
 worker includes its six canonical views and normalized location in required
 task output metadata. Each JSON-LD graph node now carries a sorted
-`kokonut:sourceViews` list; stakeholder nodes combine the outcome and feedback
-views when both contribute. The registered task validator rejects empty graphs
-and source scopes that drift from the normalized location and six signed views;
-it also rejects unapproved node views and missing, malformed, empty, or
-unsorted node provenance. The 18-test focused CIDS/EBF/task-validation
-selection, Ruff, compilation, and matrix validation pass. This is view-level attribution, not
-property-to-row lineage or a source snapshot. Live OIDC, deployed worker
-credentials/grants, populated parity, and MAN-CAP-038 owner acceptance remain
-open. Classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
-across 67 rows. Evidence: [CIDS source scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json),
+`kokonut:sourceViews` union plus per-property `kokonut:propertySourceViews`;
+stakeholder nodes combine the outcome and feedback views when both contribute.
+The registered task validator rejects empty graphs and source scopes that drift
+from the normalized location and six signed views; it also requires every
+emitted data property to have a deterministically sorted allowlisted view map.
+The 14-test focused CIDS selection, Ruff, compilation, and matrix validation
+pass. This is field-to-view attribution, not exact source-row lineage or a
+source snapshot. Live OIDC, deployed worker credentials/grants, populated
+parity, and MAN-CAP-038 owner acceptance remain open. Classifications remain
+24 baseline-retained, 7 deployed, and 36 prepared across 67 rows. Evidence: [CIDS source scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json),
 [node attribution](builds/2026-10-25-recovery/cap-038-cids-node-source-attribution.json),
+[property attribution](builds/2026-10-25-recovery/cap-038-cids-property-source-attribution.json),
 [output contract](builds/2026-10-25-recovery/cap-038-cids-provenance-output-contract.json).
 
 **CAP-038 Delphi facilitator output scope (25 October 2026):** the signed

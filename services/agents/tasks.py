@@ -526,6 +526,32 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                 errors.append(
                     "Invalid CIDS document graph node source-view provenance"
                 )
+            elif any(
+                not isinstance(node.get("kokonut:propertySourceViews"), dict)
+                or set(node["kokonut:propertySourceViews"])
+                != set(node)
+                - {
+                    "@context",
+                    "@type",
+                    "kokonut:sourceViews",
+                    "kokonut:propertySourceViews",
+                }
+                or any(
+                    not isinstance(views, list)
+                    or any(
+                        not isinstance(view, str)
+                        or not view.strip()
+                        or view not in CIDS_SOURCE_VIEWS
+                        for view in views
+                    )
+                    or views != sorted(set(views))
+                    for views in node["kokonut:propertySourceViews"].values()
+                )
+                for node in graph
+            ):
+                errors.append(
+                    "Invalid CIDS document graph node property-source provenance"
+                )
     return errors
 
 

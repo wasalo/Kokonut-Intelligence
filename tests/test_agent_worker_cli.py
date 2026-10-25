@@ -1920,6 +1920,9 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
                 "kokonut:sourceViews": [
                     "kokonut_agent_source.cids_location"
                 ],
+                "kokonut:propertySourceViews": {
+                    "@id": ["kokonut_agent_source.cids_location"]
+                },
             }
         ],
         "kokonut:alignmentTier": "essential",

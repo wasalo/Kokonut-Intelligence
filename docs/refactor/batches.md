@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,163 checklist items complete and 25
-open (1,188 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,165 checklist items complete and 25
+open (1,190 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3446,6 +3446,10 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 ### CAP-038 signed agent output provenance inventory — 25 October 2026
 
 - [x] Record the source/provenance output contract for all current database-backed agent-worker paths and distinguish source references, query-scope metadata, and privacy-limited aggregates. Existing synthesis, deterministic-summary, EBF, CIDS, Delphi, and inspection regressions cover the listed behavior. The inventory preserves limits around legacy/background paths, per-node CIDS lineage, populated parity, production identities/grants, and MAN-CAP-038 ([inventory](agent-output-provenance-inventory.md); [worker tests](../../tests/test_agent_worker_cli.py); [synthesis source tests](../../tests/test_synthesis_source_references.py)). No new tests or database/provider checks were required for the documentation audit.
+
+### CAP-038 CIDS property-to-source-view attribution — 25 October 2026
+
+- [x] Attribute each emitted CIDS JSON-LD data property to its contributing signed source view or views. Node-level `kokonut:sourceViews` is now the union of its per-property map; generated literals use an empty view list. The registered task validator checks exact property coverage, canonical view allowlists, deterministic ordering, and node-level scope. The focused CIDS selection passes 14 tests; Ruff, compilation, matrix validation, and diff checks pass ([exporter](../../services/registry/cids_export.py); [task contract](../../services/agents/tasks.py); [tests](../../tests/test_cids_export.py); [evidence](builds/2026-10-25-recovery/cap-038-cids-property-source-attribution.json)). No source-row identifiers are added, and no migration, database, provider, candidate, or legacy service was used. Exact source-row lineage and content snapshots remain open; this does not close CAP-038 or MAN-CAP-038.
 
 ### CAP-039 unified CLI forwarding contract — 19 October 2026
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from datetime import date
 from decimal import Decimal
@@ -128,23 +129,30 @@ def test_cids_graph_attributes_each_node_to_its_signed_source_views() -> None:
     }
 
     assert by_type["cids:Organization"]["kokonut:sourceViews"] == [
-        "kokonut_agent_source.cids_location"
+        "kokonut_agent_source.cids_location",
+        "kokonut_agent_source.cids_metric_value",
+        "kokonut_agent_source.cids_stakeholder_feedback",
+        "kokonut_agent_source.cids_stakeholder_outcome",
     ]
     assert by_type["cids:Program"]["kokonut:sourceViews"] == [
         "kokonut_agent_source.cids_location"
     ]
     assert by_type["cids:ImpactPathway"]["kokonut:sourceViews"] == [
-        "kokonut_agent_source.cids_location"
+        "kokonut_agent_source.cids_location",
+        "kokonut_agent_source.cids_metric_value",
+        "kokonut_agent_source.cids_stakeholder_outcome",
     ]
     assert by_type["cids:Theme"]["kokonut:sourceViews"] == [
         "kokonut_agent_source.cids_farm_impact_mapping"
     ]
     stakeholder = next(item for item in graph if item["@type"] == "cids:Stakeholder")
     assert stakeholder["kokonut:sourceViews"] == [
+        "kokonut_agent_source.cids_location",
         "kokonut_agent_source.cids_stakeholder_feedback",
         "kokonut_agent_source.cids_stakeholder_outcome",
     ]
     assert by_type["cids:Outcome"]["kokonut:sourceViews"] == [
+        "kokonut_agent_source.cids_location",
         "kokonut_agent_source.cids_stakeholder_outcome"
     ]
     stakeholder_outcome = next(
@@ -154,19 +162,81 @@ def test_cids_graph_attributes_each_node_to_its_signed_source_views() -> None:
         "kokonut_agent_source.cids_stakeholder_outcome"
     ]
     assert by_type["cids:Indicator"]["kokonut:sourceViews"] == [
+        "kokonut_agent_source.cids_location",
         "kokonut_agent_source.cids_metric_value"
     ]
     indicator_report = next(
         item for item in graph if item["@type"] == "cids:IndicatorReport"
     )
     assert indicator_report["kokonut:sourceViews"] == [
+        "kokonut_agent_source.cids_location",
         "kokonut_agent_source.cids_metric_value"
     ]
     assert by_type["cids:ImpactReport"]["kokonut:sourceViews"] == [
-        "kokonut_agent_source.cids_impact_claim"
+        "kokonut_agent_source.cids_impact_claim",
+        "kokonut_agent_source.cids_location",
     ]
     assert all(views for views in signed_views.values())
     assert all(isinstance(views, list) for views in signed_views.values())
+
+
+def test_cids_graph_attributes_each_property_to_source_views_without_row_ids() -> None:
+    graph = build_cids_graph(_source(), source_schema="kokonut_agent_source")
+    by_type = {item["@type"]: item for item in graph if item["@type"] in {
+        "cids:Organization", "cids:ImpactPathway", "cids:Indicator",
+        "cids:IndicatorReport", "cids:ImpactReport",
+    }}
+    location_view = "kokonut_agent_source.cids_location"
+    outcome_view = "kokonut_agent_source.cids_stakeholder_outcome"
+    metric_view = "kokonut_agent_source.cids_metric_value"
+    feedback_view = "kokonut_agent_source.cids_stakeholder_feedback"
+    claim_view = "kokonut_agent_source.cids_impact_claim"
+
+    organization = by_type["cids:Organization"]["kokonut:propertySourceViews"]
+    assert organization["hasName"] == [location_view]
+    assert organization["hasOutcome"] == [outcome_view]
+    assert organization["hasIndicator"] == [metric_view]
+    assert organization["hasStakeholder"] == [feedback_view, outcome_view]
+
+    impact_pathway = by_type["cids:ImpactPathway"]["kokonut:propertySourceViews"]
+    assert impact_pathway["hasName"] == [location_view]
+    assert impact_pathway["hasOutcome"] == [outcome_view]
+    assert impact_pathway["hasIndicator"] == [metric_view]
+
+    indicator = next(
+        item["kokonut:propertySourceViews"]
+        for item in graph
+        if item["@type"] == "cids:Indicator" and "value-flowed" in item["@id"]
+    )
+    assert indicator["hasName"] == [metric_view]
+    assert indicator["forOrganization"] == [location_view]
+    assert indicator["hasComment"] == []
+
+    indicator_report = next(
+        item["kokonut:propertySourceViews"]
+        for item in graph
+        if item["@type"] == "cids:IndicatorReport"
+    )
+    assert indicator_report["hasName"] == [location_view, metric_view]
+    assert indicator_report["forOrganization"] == [location_view]
+    impact_report = by_type["cids:ImpactReport"]["kokonut:propertySourceViews"]
+    assert impact_report["hasDescription"] == [claim_view]
+    assert impact_report["forOrganization"] == [location_view]
+
+    for item in graph:
+        property_views = item["kokonut:propertySourceViews"]
+        expected_properties = set(item) - {
+            "@context", "@type", "kokonut:sourceViews", "kokonut:propertySourceViews"
+        }
+        assert set(property_views) == expected_properties
+        assert item["kokonut:sourceViews"] == sorted(
+            {view for views in property_views.values() for view in views}
+        )
+        assert all(
+            not re.fullmatch(r"[0-9a-f-]{36}", view)
+            for views in property_views.values()
+            for view in views
+        )
 
 
 def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:
@@ -187,6 +257,10 @@ def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:
         "public.farm",
         "public.farm_registry_record",
         "public.location",
+        "public.metric_definition",
+        "public.metric_value",
+        "public.stakeholder_feedback",
+        "public.stakeholder_outcome",
     ]
 
 

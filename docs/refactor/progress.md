@@ -1,3 +1,20 @@
+### Progress addendum — CIDS property-to-source-view provenance, 25 October 2026
+
+The CIDS exporter now attaches `kokonut:propertySourceViews` to every graph
+node, mapping each emitted data property to the signed view or views that
+contributed it. Fixed literals map to an empty view list; node-level
+`kokonut:sourceViews` is the union of that map. Organization and impact-pathway
+links now include their outcome/metric sources, and stakeholder nodes include
+their location and underlying stakeholder views. The CIDS task validator
+requires a complete, canonical, sorted property map and rejects unapproved
+views. Fourteen focused CIDS tests pass with Ruff, compilation, matrix
+validation, and diff checks. No source-row identifiers, database, provider,
+migration, candidate, or legacy service were used. Field-to-view provenance is
+not exact row lineage or a content snapshot; populated parity and MAN-CAP-038
+acceptance remain open ([evidence](builds/2026-10-25-recovery/cap-038-cids-property-source-attribution.json)).
+Matrix classifications remain 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows.
+
 ### Progress addendum — AI-summary empty-list scope metadata, 25 October 2026
 
 The signed AI-summary review-list reader now has an additive structured result

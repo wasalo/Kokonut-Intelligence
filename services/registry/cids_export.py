@@ -272,8 +272,33 @@ def _source_views(source_schema: str, source_key: str) -> tuple[str, ...]:
     raise ValueError("source_schema must be public or kokonut_agent_source")
 
 
-def _with_source_views(item: dict[str, Any], source_views: tuple[str, ...] | set[str]) -> dict[str, Any]:
-    return _context({**item, "kokonut:sourceViews": sorted(set(source_views))})
+def _with_source_views(
+    item: dict[str, Any],
+    source_views: tuple[str, ...] | set[str],
+    property_source_views: dict[str, tuple[str, ...] | set[str]] | None = None,
+) -> dict[str, Any]:
+    clean_item = _strip_none(item)
+    if property_source_views is None:
+        property_source_views = {
+            key: source_views
+            for key in clean_item
+            if key not in {"@context", "@type"}
+        }
+    normalized_property_views = {
+        key: sorted(set(views))
+        for key, views in property_source_views.items()
+        if key in clean_item and key not in {"@context", "@type"}
+    }
+    node_views = set(source_views)
+    for views in normalized_property_views.values():
+        node_views.update(views)
+    return _context(
+        {
+            **clean_item,
+            "kokonut:sourceViews": sorted(node_views),
+            "kokonut:propertySourceViews": normalized_property_views,
+        }
+    )
 
 
 def build_cids_graph(
@@ -302,6 +327,11 @@ def build_cids_graph(
                 stakeholder_id = _uri("Stakeholder", _slug(group))
                 stakeholder_sources.setdefault(stakeholder_id, set()).update(views)
     stakeholder_ids = sorted(stakeholder_sources)
+    outcome_views = _source_views(source_schema, "stakeholder_outcomes")
+    metric_views = _source_views(source_schema, "metric_values")
+    stakeholder_views = tuple(
+        sorted({view for views in stakeholder_sources.values() for view in views})
+    )
 
     graph: list[dict[str, Any]] = []
     graph.append(
@@ -318,6 +348,16 @@ def build_cids_graph(
                 "hasStakeholder": stakeholder_ids,
             },
             location_views,
+            {
+                "@id": location_views,
+                "hasName": location_views,
+                "hasLegalName": location_views,
+                "hasDescription": location_views,
+                "hasProgram": location_views,
+                "hasOutcome": outcome_views if outcome_ids else (),
+                "hasIndicator": metric_views if indicator_ids else (),
+                "hasStakeholder": stakeholder_views,
+            },
         )
     )
 
@@ -332,6 +372,13 @@ def build_cids_graph(
                 "hasImpactModel": [impact_pathway_id],
             },
             location_views,
+            {
+                "@id": location_views,
+                "hasName": location_views,
+                "hasDescription": location_views,
+                "forOrganization": location_views,
+                "hasImpactModel": location_views,
+            },
         )
     )
 
@@ -347,6 +394,14 @@ def build_cids_graph(
                 "hasIndicator": indicator_ids,
             },
             location_views,
+            {
+                "@id": location_views,
+                "hasName": location_views,
+                "hasDescription": location_views,
+                "forOrganization": location_views,
+                "hasOutcome": outcome_views if outcome_ids else (),
+                "hasIndicator": metric_views if indicator_ids else (),
+            },
         )
     )
 
@@ -365,6 +420,12 @@ def build_cids_graph(
                             "hasCode": [theme_id],
                         },
                         _source_views(source_schema, "framework_mappings"),
+                        {
+                            "@id": _source_views(source_schema, "framework_mappings"),
+                            "hasName": _source_views(source_schema, "framework_mappings"),
+                            "hasDescription": _source_views(source_schema, "framework_mappings"),
+                            "hasCode": _source_views(source_schema, "framework_mappings"),
+                        },
                     )
                 )
                 added_themes.add(theme_id)
@@ -379,7 +440,12 @@ def build_cids_graph(
                     "hasName": group.replace("-", " ").title(),
                     "forOrganization": org_id,
                 },
-                stakeholder_sources[stakeholder_id],
+                stakeholder_sources[stakeholder_id] | set(location_views),
+                {
+                    "@id": stakeholder_sources[stakeholder_id],
+                    "hasName": stakeholder_sources[stakeholder_id],
+                    "forOrganization": location_views,
+                },
             )
         )
 
@@ -401,7 +467,15 @@ def build_cids_graph(
                     "forTheme": theme_ids,
                     "hasStakeholderOutcome": [stakeholder_outcome_id],
                 },
-                _source_views(source_schema, "stakeholder_outcomes"),
+                outcome_views,
+                {
+                    "@id": set(outcome_views) | set(location_views),
+                    "hasName": outcome_views,
+                    "hasDescription": outcome_views,
+                    "forOrganization": location_views,
+                    "forTheme": outcome_views,
+                    "hasStakeholderOutcome": outcome_views,
+                },
             )
         )
         graph.append(
@@ -417,7 +491,17 @@ def build_cids_graph(
                     "isUnderserved": bool(row.get("is_underserved")),
                     "hasImpactManagementNormsDefinition": row.get("importance_perspective"),
                 },
-                _source_views(source_schema, "stakeholder_outcomes"),
+                outcome_views,
+                {
+                    "@id": outcome_views,
+                    "hasName": outcome_views,
+                    "hasDescription": outcome_views,
+                    "forStakeholder": outcome_views,
+                    "forOutcome": outcome_views,
+                    "hasImportance": outcome_views,
+                    "isUnderserved": outcome_views,
+                    "hasImpactManagementNormsDefinition": outcome_views,
+                },
             )
         )
 
@@ -442,7 +526,18 @@ def build_cids_graph(
                         "kokonut:framework": "ebf" if ebf_pillar else None,
                         "kokonut:ebfPillar": ebf_pillar,
                     },
-                    _source_views(source_schema, "metric_values"),
+                    set(metric_views) | set(location_views),
+                    {
+                        "@id": set(metric_views) | set(location_views),
+                        "hasName": metric_views,
+                        "hasDescription": metric_views,
+                        "unit_of_measure": metric_views,
+                        "forOrganization": location_views,
+                        "hasIndicatorReport": metric_views,
+                        "hasComment": (),
+                        "kokonut:framework": metric_views,
+                        "kokonut:ebfPillar": metric_views,
+                    },
                 )
             )
             seen_indicators.add(indicator_id)
@@ -462,7 +557,20 @@ def build_cids_graph(
                     "kokonut:ebfPillar": ebf_pillar,
                     "kokonut:cidsMapping": "metric_value -> cids:IndicatorReport" if ebf_pillar else None,
                 },
-                _source_views(source_schema, "metric_values"),
+                set(metric_views) | set(location_views),
+                {
+                    "@id": metric_views,
+                    "hasName": set(metric_views) | set(location_views),
+                    "value": metric_views,
+                    "startedAtTime": metric_views,
+                    "endedAtTime": metric_views,
+                    "forIndicator": metric_views,
+                    "forOrganization": location_views,
+                    "hasComment": metric_views,
+                    "kokonut:framework": metric_views,
+                    "kokonut:ebfPillar": metric_views,
+                    "kokonut:cidsMapping": metric_views,
+                },
             )
         )
 
@@ -485,11 +593,25 @@ def build_cids_graph(
                     "kokonut:externalVerifier": row.get("external_verifier"),
                     "kokonut:attestationUid": row.get("attestation_uid"),
                 },
-                _source_views(source_schema, "impact_claims"),
+                set(_source_views(source_schema, "impact_claims")) | set(location_views),
+                {
+                    "@id": _source_views(source_schema, "impact_claims"),
+                    "hasName": _source_views(source_schema, "impact_claims"),
+                    "hasDescription": _source_views(source_schema, "impact_claims"),
+                    "forOrganization": location_views,
+                    "startedAtTime": _source_views(source_schema, "impact_claims"),
+                    "endedAtTime": _source_views(source_schema, "impact_claims"),
+                    "hasComment": _source_views(source_schema, "impact_claims"),
+                    "kokonut:evidenceMaturity": _source_views(source_schema, "impact_claims"),
+                    "kokonut:evidenceMaturityLabel": _source_views(source_schema, "impact_claims"),
+                    "kokonut:methodologyRef": _source_views(source_schema, "impact_claims"),
+                    "kokonut:externalVerifier": _source_views(source_schema, "impact_claims"),
+                    "kokonut:attestationUid": _source_views(source_schema, "impact_claims"),
+                },
             )
         )
 
-    return [_strip_none(item) for item in graph]
+    return graph
 
 
 def _strip_none(value: Any) -> Any:
