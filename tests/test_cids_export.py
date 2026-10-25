@@ -8,7 +8,12 @@ import sys
 from datetime import date
 from decimal import Decimal
 
-from services.registry.cids_export import build_cids_graph, export_location, fetch_cids_source
+from services.registry.cids_export import (
+    build_cids_graph,
+    build_cids_property_row_lineage,
+    export_location,
+    fetch_cids_source,
+)
 
 
 def _source() -> dict:
@@ -39,7 +44,11 @@ def _source() -> dict:
             }
         ],
         "framework_mappings": [
-            {"sdg_number": 8, "sdg_name": "Decent Work and Economic Growth"}
+            {
+                "id": "a0000000-0000-0000-0000-000000000930",
+                "sdg_number": 8,
+                "sdg_name": "Decent Work and Economic Growth",
+            }
         ],
         "metric_values": [
             {
@@ -237,6 +246,95 @@ def test_cids_graph_attributes_each_property_to_source_views_without_row_ids() -
             for views in property_views.values()
             for view in views
         )
+
+
+def test_cids_private_lineage_maps_properties_to_exact_signed_projection_rows() -> None:
+    source = _source()
+    graph = build_cids_graph(source, source_schema="kokonut_agent_source")
+    lineage = build_cids_property_row_lineage(
+        source, graph, source_schema="kokonut_agent_source"
+    )
+    by_type = {item["@type"]: item for item in graph}
+    by_node = {item["node_id"]: item for item in lineage}
+
+    organization = by_node[by_type["cids:Organization"]["@id"]]
+    organization_properties = {
+        item["property"]: item for item in organization["properties"]
+    }
+    assert organization_properties["hasName"]["records"] == [
+        {
+            "view": "kokonut_agent_source.cids_location",
+            "record_id": source["location"]["id"],
+        }
+    ]
+    assert organization_properties["hasOutcome"]["records"] == [
+        {
+            "view": "kokonut_agent_source.cids_stakeholder_outcome",
+            "record_id": source["stakeholder_outcomes"][0]["id"],
+        }
+    ]
+    assert {
+        record["record_id"]
+        for record in organization_properties["hasIndicator"]["records"]
+    } == {row["metric_value_id"] for row in source["metric_values"]}
+    assert organization_properties["hasStakeholder"]["row_count"] == 2
+
+    outcome = next(item for item in graph if item["@type"] == "cids:Outcome")
+    outcome_properties = {
+        item["property"]: item for item in by_node[outcome["@id"]]["properties"]
+    }
+    assert outcome_properties["hasName"]["records"][0]["record_id"] == source[
+        "stakeholder_outcomes"
+    ][0]["id"]
+    assert outcome_properties["forOrganization"]["records"][0]["record_id"] == source[
+        "location"
+    ]["id"]
+
+    impact_report = next(item for item in graph if item["@type"] == "cids:ImpactReport")
+    claim = source["impact_claims"][0]
+    description = next(
+        item
+        for item in by_node[impact_report["@id"]]["properties"]
+        if item["property"] == "hasDescription"
+    )
+    assert description["records"] == [
+        {
+            "view": "kokonut_agent_source.cids_impact_claim",
+            "record_id": claim["id"],
+        }
+    ]
+    assert all(
+        "kokonut:propertySourceRecords" not in node and "record_id" not in node
+        for node in graph
+    )
+
+
+def test_cids_private_property_lineage_caps_row_ids_and_reports_truncation() -> None:
+    source = _source()
+    source["stakeholder_outcomes"] = [
+        {
+            "id": f"a0000000-0000-4000-8000-{index:012d}",
+            "outcome_name": f"Outcome {index}",
+            "stakeholder_group": "farmer",
+        }
+        for index in range(55)
+    ]
+    graph = build_cids_graph(source, source_schema="kokonut_agent_source")
+    lineage = build_cids_property_row_lineage(
+        source, graph, source_schema="kokonut_agent_source"
+    )
+    organization = next(item for item in graph if item["@type"] == "cids:Organization")
+    organization_lineage = next(
+        item for item in lineage if item["node_id"] == organization["@id"]
+    )
+    has_outcomes = next(
+        item
+        for item in organization_lineage["properties"]
+        if item["property"] == "hasOutcome"
+    )
+    assert has_outcomes["row_count"] == 55
+    assert len(has_outcomes["records"]) == 50
+    assert has_outcomes["truncated"] is True
 
 
 def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:

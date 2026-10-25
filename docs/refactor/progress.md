@@ -18449,3 +18449,21 @@ MAN-CAP-027 owner acceptance. Checklist: 1,179 complete / 25 open (1,204
 total); matrix classifications remain 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows. Evidence:
 [disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-stopping-evaluation-disposable.json).
+
+### Progress addendum — CAP-038 CIDS property-to-row lineage, 25 October 2026
+
+The signed CIDS worker now returns a private `source_scope.property_source_records`
+sidecar mapping each JSON-LD node property to row IDs from the exact signed
+projection views that contributed it. Each property includes its total row
+count, at most 50 sorted IDs, and a truncation flag. The task validator checks
+node/property coverage, same-property view membership, bounded identifiers,
+counts, and canonical order. The exported JSON-LD graph itself does not gain
+internal row IDs. The focused CIDS export, task-validator, and worker selection
+passes 107 tests; Ruff, Python compilation, runtime SQL inventory, capability
+matrix validation, and diff checks pass. No migration,
+database, provider, candidate, or legacy service was used. Source snapshots,
+populated parity, runtime credentials/grants, and MAN-CAP-038 remain open.
+Checklist: 1,180 complete / 25 open (1,205 total); matrix classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence:
+[property-row lineage](builds/2026-10-25-recovery/cap-038-cids-property-row-lineage.json).

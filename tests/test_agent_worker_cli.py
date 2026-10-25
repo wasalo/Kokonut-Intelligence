@@ -1928,14 +1928,38 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
         "kokonut:alignmentTier": "essential",
         "kokonut:cidsVersion": "3.2.0",
     }
-    exporter = MagicMock(side_effect=lambda *_args, **_kwargs: events.append("export") or document)
+    property_source_records = [
+        {
+            "node_index": 0,
+            "node_id": "https://kokonut.network/cids/Organization/adelphi",
+            "properties": [
+                {
+                    "property": "@id",
+                    "row_count": 1,
+                    "records": [
+                        {
+                            "view": "kokonut_agent_source.cids_location",
+                            "record_id": location_id,
+                        }
+                    ],
+                    "truncated": False,
+                }
+            ],
+        }
+    ]
+    exporter = MagicMock(
+        side_effect=lambda *_args, **_kwargs: events.append("export")
+        or (document, property_source_records)
+    )
     monkeypatch.setattr(worker_cli, "get_worker_db", source_factory)
     monkeypatch.setattr(worker_cli, "get_worker_credential", credential_reader)
     monkeypatch.setattr(worker_cli, "set_agent_source_tenant_context", context_setter)
     monkeypatch.setattr(
         "services.agents.safety.assert_agent_action_allowed", action_policy
     )
-    monkeypatch.setattr("services.registry.cids_export.export_location", exporter)
+    monkeypatch.setattr(
+        "services.registry.cids_export.export_location_with_lineage", exporter
+    )
 
     result = worker_cli.run_worker_cids_export(location_input)
 
@@ -1978,6 +2002,7 @@ def test_cids_worker_uses_signed_source_reader_and_preserves_export_contract(mon
                 "kokonut_agent_source.cids_stakeholder_feedback",
                 "kokonut_agent_source.cids_impact_claim",
             ],
+            "property_source_records": property_source_records,
         },
     }
     connection.rollback.assert_not_called()
@@ -2045,7 +2070,7 @@ def test_cids_worker_rolls_back_and_closes_when_projection_fails(monkeypatch):
         "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
     )
     monkeypatch.setattr(
-        "services.registry.cids_export.export_location",
+        "services.registry.cids_export.export_location_with_lineage",
         MagicMock(side_effect=RuntimeError("synthetic source failure")),
     )
 

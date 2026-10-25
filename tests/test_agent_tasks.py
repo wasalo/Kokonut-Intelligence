@@ -16,6 +16,32 @@ from services.agents.tasks import (
 )
 
 
+def _lineage_for_node(node):
+    return [
+        {
+            "node_index": 0,
+            "node_id": node["@id"],
+            "properties": [
+                {
+                    "property": property_name,
+                    "row_count": len(views),
+                    "records": [
+                        {
+                            "view": view,
+                            "record_id": "a0000000-0000-4000-8000-000000000001",
+                        }
+                        for view in views
+                    ],
+                    "truncated": False,
+                }
+                for property_name, views in sorted(
+                    node["kokonut:propertySourceViews"].items()
+                )
+            ],
+        }
+    ]
+
+
 def test_task_catalogue_contains_green_paper_agents() -> None:
     tasks = list_tasks()
     assert "cids_export" in tasks
@@ -48,17 +74,16 @@ def test_output_validation_checks_required_fields() -> None:
 
 
 def test_output_validation_checks_declared_top_level_types_and_formats() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
     valid = {
         "document": {
-            "@graph": [
-                {
-                    "@id": "https://kokonut.network/cids/Organization/test",
-                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
-                    "kokonut:propertySourceViews": {
-                        "@id": ["kokonut_agent_source.cids_location"]
-                    },
-                }
-            ]
+            "@graph": [node]
         },
         "graph_count": 1,
         "alignment_tier": "essential",
@@ -66,6 +91,7 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
         "source_scope": {
             "location_id": "a0000000-0000-4000-8000-000000000001",
             "views": list(CIDS_SOURCE_VIEWS),
+            "property_source_records": _lineage_for_node(node),
         },
     }
     assert validate_output("cids_export", valid) == []
@@ -100,17 +126,16 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
 
 
 def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
     valid_output = {
         "document": {
-            "@graph": [
-                {
-                    "@id": "https://kokonut.network/cids/Organization/test",
-                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
-                    "kokonut:propertySourceViews": {
-                        "@id": ["kokonut_agent_source.cids_location"]
-                    },
-                }
-            ]
+            "@graph": [node]
         },
         "graph_count": 1,
         "alignment_tier": "essential",
@@ -118,6 +143,7 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
         "source_scope": {
             "location_id": "a0000000-0000-4000-8000-000000000001",
             "views": list(CIDS_SOURCE_VIEWS),
+            "property_source_records": _lineage_for_node(node),
         },
     }
     assert validate_output("cids_export", valid_output) == []
@@ -188,31 +214,30 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
             **valid_output,
             "document": {"@graph": [invalid_node]},
         }
-        assert validate_output("cids_export", invalid_output) == [
-            "Invalid CIDS document graph node property-source provenance"
-        ]
+        assert "Invalid CIDS document graph node property-source provenance" in validate_output(
+            "cids_export", invalid_output
+        )
 
     empty_output = {
         **valid_output,
         "document": {"@graph": []},
     }
-    assert validate_output("cids_export", empty_output) == [
-        "Invalid CIDS document graph (expected nodes)"
-    ]
+    assert "Invalid CIDS document graph (expected nodes)" in validate_output(
+        "cids_export", empty_output
+    )
 
 
 def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
     output = {
         "document": {
-            "@graph": [
-                {
-                    "@id": "https://kokonut.network/cids/Organization/test",
-                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
-                    "kokonut:propertySourceViews": {
-                        "@id": ["kokonut_agent_source.cids_location"]
-                    },
-                }
-            ]
+            "@graph": [node]
         },
         "graph_count": 1,
         "alignment_tier": "essential",
@@ -220,6 +245,7 @@ def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
         "source_scope": {
             "location_id": "a0000000-0000-4000-8000-000000000001",
             "views": list(CIDS_SOURCE_VIEWS),
+            "property_source_records": _lineage_for_node(node),
         },
     }
     for location_id, views in (
@@ -232,7 +258,71 @@ def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
         }
         errors = validate_output("cids_export", invalid)
         assert errors
-        assert all("CIDS source scope" in error for error in errors)
+        assert any("CIDS source scope" in error for error in errors)
+
+
+def test_cids_output_rejects_malformed_property_to_row_lineage() -> None:
+    node = {
+        "@id": "https://kokonut.network/cids/Organization/test",
+        "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+        "kokonut:propertySourceViews": {
+            "@id": ["kokonut_agent_source.cids_location"]
+        },
+    }
+    valid = {
+        "document": {"@graph": [node]},
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": list(CIDS_SOURCE_VIEWS),
+            "property_source_records": _lineage_for_node(node),
+        },
+    }
+    assert validate_output("cids_export", valid) == []
+    invalid_lineages = []
+    missing = {**valid["source_scope"], "property_source_records": []}
+    invalid_lineages.append(missing)
+    wrong_node = _lineage_for_node(node)
+    wrong_node[0]["node_id"] = "https://kokonut.network/cids/Organization/other"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": wrong_node})
+    unapproved = _lineage_for_node(node)
+    unapproved[0]["properties"][0]["records"][0]["view"] = "public.operator_identity"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": unapproved})
+    malformed_id = _lineage_for_node(node)
+    malformed_id[0]["properties"][0]["records"][0]["record_id"] = "contains private text"
+    invalid_lineages.append({**valid["source_scope"], "property_source_records": malformed_id})
+    inconsistent_count = _lineage_for_node(node)
+    inconsistent_count[0]["properties"][0]["row_count"] = 2
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": inconsistent_count}
+    )
+    incomplete_truncated_sample = _lineage_for_node(node)
+    incomplete_truncated_sample[0]["properties"][0].update(
+        row_count=51,
+        records=[
+            {
+                "view": "kokonut_agent_source.cids_location",
+                "record_id": "a0000000-0000-4000-8000-000000000001",
+            }
+        ],
+        truncated=True,
+    )
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": incomplete_truncated_sample}
+    )
+    missing_mapped_rows = _lineage_for_node(node)
+    missing_mapped_rows[0]["properties"][0].update(
+        row_count=0, records=[], truncated=False
+    )
+    invalid_lineages.append(
+        {**valid["source_scope"], "property_source_records": missing_mapped_rows}
+    )
+
+    for source_scope in invalid_lineages:
+        errors = validate_output("cids_export", {**valid, "source_scope": source_scope})
+        assert any("CIDS property-to-row lineage" in error for error in errors)
 
 
 def test_task_input_validation_checks_required_types_and_formats() -> None:
@@ -373,6 +463,15 @@ def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:
                 "kokonut_agent_source.cids_stakeholder_feedback",
                 "kokonut_agent_source.cids_impact_claim",
             ],
+            "property_source_records": _lineage_for_node(
+                {
+                    "@id": "https://kokonut.network/cids/Organization/adelphi",
+                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                    "kokonut:propertySourceViews": {
+                        "@id": ["kokonut_agent_source.cids_location"]
+                    },
+                }
+            ),
         },
     }
     monkeypatch.setattr(worker_cli, "run_worker_cids_export", lambda _location_id: expected)

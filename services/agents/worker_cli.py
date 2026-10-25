@@ -691,9 +691,9 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
             cursor.execute("SET LOCAL search_path = kokonut_agent_source, pg_catalog")
             cursor.execute("SET LOCAL statement_timeout = '15s'")
             cursor.execute("SET LOCAL lock_timeout = '3s'")
-        from services.registry.cids_export import export_location
+        from services.registry.cids_export import export_location_with_lineage
 
-        document = export_location(
+        document, property_source_records = export_location_with_lineage(
             connection, location_id, source_schema="kokonut_agent_source"
         )
         output = {
@@ -704,6 +704,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
             "source_scope": {
                 "location_id": location_id,
                 "views": list(CIDS_SOURCE_VIEWS),
+                "property_source_records": property_source_records,
             },
         }
         output_errors = validate_output("cids_export", output)

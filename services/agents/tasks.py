@@ -19,6 +19,7 @@ CIDS_SOURCE_VIEWS = (
     "kokonut_agent_source.cids_stakeholder_feedback",
     "kokonut_agent_source.cids_impact_claim",
 )
+_CIDS_SOURCE_RECORD_ID = re.compile(r"^[A-Za-z0-9:_-]{1,128}$")
 
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     "cids_export": {
@@ -493,6 +494,12 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
         document = output.get("document") if isinstance(output, dict) else None
         source_scope = output.get("source_scope") if isinstance(output, dict) else None
         if isinstance(source_scope, dict):
+            if set(source_scope) != {
+                "location_id",
+                "views",
+                "property_source_records",
+            }:
+                errors.append("Invalid CIDS source scope fields")
             location_id = source_scope.get("location_id")
             try:
                 normalized_location_id = str(UUID(str(location_id)))
@@ -552,6 +559,77 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                 errors.append(
                     "Invalid CIDS document graph node property-source provenance"
                 )
+            property_records = (
+                source_scope.get("property_source_records")
+                if isinstance(source_scope, dict)
+                else None
+            )
+            if not isinstance(property_records, list) or len(property_records) != len(graph):
+                errors.append("Invalid CIDS property-to-row lineage coverage")
+            else:
+                for node_index, (node, lineage) in enumerate(zip(graph, property_records)):
+                    expected_properties = (
+                        node.get("kokonut:propertySourceViews")
+                        if isinstance(node, dict)
+                        else None
+                    )
+                    if (
+                        not isinstance(expected_properties, dict)
+                        or not isinstance(lineage, dict)
+                        or set(lineage) != {"node_index", "node_id", "properties"}
+                        or isinstance(lineage.get("node_index"), bool)
+                        or lineage.get("node_index") != node_index
+                        or lineage.get("node_id") != node.get("@id")
+                        or not isinstance(lineage.get("properties"), list)
+                    ):
+                        errors.append("Invalid CIDS property-to-row lineage node")
+                        continue
+                    property_lineage = lineage["properties"]
+                    property_names = [
+                        item.get("property") if isinstance(item, dict) else None
+                        for item in property_lineage
+                    ]
+                    if property_names != sorted(expected_properties) or any(
+                        not isinstance(item, dict)
+                        or set(item) != {"property", "row_count", "records", "truncated"}
+                        for item in property_lineage
+                    ):
+                        errors.append("Invalid CIDS property-to-row lineage properties")
+                        continue
+                    for item in property_lineage:
+                        row_count = item.get("row_count")
+                        records = item.get("records")
+                        truncated = item.get("truncated")
+                        allowed_property_views = expected_properties[item["property"]]
+                        if (
+                            not isinstance(row_count, int)
+                            or isinstance(row_count, bool)
+                            or row_count < 0
+                            or not isinstance(records, list)
+                            or len(records) > 50
+                            or not isinstance(truncated, bool)
+                            or len(records) != min(row_count, 50)
+                            or (bool(allowed_property_views) and row_count == 0)
+                            or truncated != (row_count > len(records))
+                        ):
+                            errors.append("Invalid CIDS property-to-row lineage record count")
+                            break
+                        record_keys = []
+                        for record in records:
+                            if (
+                                not isinstance(record, dict)
+                                or set(record) != {"view", "record_id"}
+                                or record.get("view") not in allowed_property_views
+                                or record.get("view") not in CIDS_SOURCE_VIEWS
+                                or not isinstance(record.get("record_id"), str)
+                                or _CIDS_SOURCE_RECORD_ID.fullmatch(record["record_id"]) is None
+                            ):
+                                errors.append("Invalid CIDS property-to-row lineage record")
+                                break
+                            record_keys.append((record["view"], record["record_id"]))
+                        if record_keys != sorted(set(record_keys)):
+                            errors.append("Invalid CIDS property-to-row lineage ordering")
+                            break
     return errors
 
 
