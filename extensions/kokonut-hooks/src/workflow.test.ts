@@ -11,7 +11,7 @@ import {
 import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
 import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
-import { isValidMetricProposalTransition } from './metric-proposal.js';
+import { handleMetricProposalUpdate, isValidMetricProposalTransition } from './metric-proposal.js';
 import { validateImpactClaim } from './impact-claim.js';
 import { enforceAgentTaskSafety, enforceAiSummarySafety, prepareAgentActionLog } from './agent-safety.js';
 
@@ -141,6 +141,34 @@ describe('metric proposal workflow', () => {
   it('allows proposed → approved and blocks implemented → approved', () => {
     expect(isValidMetricProposalTransition('proposed', 'approved')).toBe(true);
     expect(isValidMetricProposalTransition('implemented', 'approved')).toBe(false);
+  });
+
+  it('does not treat the Directus user UUID as a staff reviewer ID', async () => {
+    const payload: Record<string, any> = { status: 'approved' };
+    const db = () => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+    });
+
+    await handleMetricProposalUpdate(payload, { keys: ['proposal-1'] }, db);
+
+    expect(payload.review_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(payload).not.toHaveProperty('reviewed_by');
+  });
+
+  it('preserves an explicit staff reviewer for tenant validation', async () => {
+    const staffId = 'staff-1';
+    const payload = { status: 'approved', reviewed_by: staffId };
+    const db = () => ({
+      where: () => ({
+        first: async () => ({ status: 'proposed', proposal_date: '2020-01-01' }),
+      }),
+    });
+
+    await handleMetricProposalUpdate(payload, { keys: ['proposal-1'] }, db);
+
+    expect(payload.reviewed_by).toBe(staffId);
   });
 });
 

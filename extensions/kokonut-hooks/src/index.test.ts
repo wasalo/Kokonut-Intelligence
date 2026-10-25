@@ -101,6 +101,64 @@ describe('Directus hook event registration', () => {
     expect(globalDatabase).not.toHaveBeenCalled();
   });
 
+  it('stores the authenticated actor separately from the staff reviewer reference', async () => {
+    const feedbackId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const directusUserId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const inserts: Array<{ table: string; row: Record<string, unknown> }> = [];
+    const database = (table: string) => ({
+      insert: async (row: Record<string, unknown>) => {
+        inserts.push({ table, row });
+      },
+    });
+    const actions = new Map<string, Array<(...args: any[]) => Promise<void>>>();
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: (event: string, callback: (...args: any[]) => Promise<void>) => {
+          const callbacks = actions.get(event) || [];
+          callbacks.push(callback);
+          actions.set(event, callbacks);
+        },
+        schedule: () => undefined,
+      },
+      { database, env: {} },
+    );
+
+    const feedbackAction = actions.get('stakeholder_feedback.items.update')?.at(-1);
+    expect(feedbackAction).toBeDefined();
+    await feedbackAction!({
+      keys: [feedbackId],
+      payload: { status: 'published' },
+      accountability: { user: directusUserId },
+    });
+    await feedbackAction!({
+      keys: [feedbackId],
+      payload: { status: 'rejected', rejection_reason: 'Please review.' },
+      accountability: { user: directusUserId },
+    });
+
+    expect(inserts).toEqual([{
+      table: 'stakeholder_feedback_review',
+      row: {
+        feedback_id: feedbackId,
+        reviewer_id: null,
+        action: 'published_summary',
+        response_text: 'Public summary published.',
+        metadata: { actor_directus_user_id: directusUserId },
+      },
+    }, {
+      table: 'stakeholder_feedback_review',
+      row: {
+        feedback_id: feedbackId,
+        reviewer_id: null,
+        action: 'dismissed',
+        response_text: 'Please review.',
+        metadata: { actor_directus_user_id: directusUserId },
+      },
+    }]);
+  });
+
   it('does not register Directus schedules unless explicitly enabled', () => {
     const schedules: string[] = [];
     (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(

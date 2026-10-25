@@ -16,8 +16,7 @@ export function isValidMetricProposalTransition(fromStatus: string, toStatus: st
 export async function handleMetricProposalUpdate(
   payload: Record<string, any>,
   meta: Record<string, any>,
-  db: any,
-  accountability?: Record<string, any>
+  db: any
 ): Promise<Record<string, any>> {
   if (!payload.status) return payload;
 
@@ -49,7 +48,6 @@ export async function handleMetricProposalUpdate(
 
   if (REVIEW_STATUSES.has(payload.status)) {
     payload.review_date = payload.review_date || new Date().toISOString().slice(0, 10);
-    if (accountability?.user) payload.reviewed_by = payload.reviewed_by || accountability.user;
   }
 
   if (payload.status === 'implemented' && !payload.metric_definition_id) {

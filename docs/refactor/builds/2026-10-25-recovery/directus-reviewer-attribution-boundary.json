@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-25",
+  "scope": "Directus actor attribution versus staff foreign-key references",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "cd extensions/kokonut-hooks && npm test",
+      "result": "passed",
+      "summary": "7 test files; 87 tests passed"
+    },
+    {
+      "command": "cd extensions/kokonut-hooks && npm run build",
+      "result": "passed",
+      "summary": "Directus extension build and TypeScript no-emit check"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "summary": "67 valid rows: 24 baseline-retained, 7 deployed, 36 prepared"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "findings": {
+    "staff_identity_crosswalk": "No explicit operator-to-staff mapping was found in the inspected schema and service definitions.",
+    "existing_operator_party_binding": "operator_governance_party_binding links an authenticated operator to a canonical network party; it does not identify a staff row.",
+    "metric_proposal": "reviewed_by references staff.id. The hook no longer copies accountability.user into this field; explicitly supplied staff references remain subject to location validation.",
+    "feedback_review": "reviewer_id references staff.id. Automatic status-review records leave it null and preserve the authenticated Directus user UUID in private metadata.actor_directus_user_id."
+  },
+  "limitations": [
+    "This is source and mocked-hook verification, not live Directus or database acceptance.",
+    "The repository still lacks a reviewed mapping proving that an authenticated operator is a particular staff member.",
+    "Feedback-review read/update/delete parity, broader Directus field/relation/hook parity, and runtime parity remain open.",
+    "No migration, candidate database, legacy database, provider, or live service was used."
+  ],
+  "rollback": "Keep these attribution safeguards. Reintroduce staff attribution only after an explicit, reviewed operator-to-staff mapping and corresponding scoped tests exist."
+}

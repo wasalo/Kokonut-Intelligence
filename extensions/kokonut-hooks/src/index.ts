@@ -519,8 +519,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   });
 
   filter('metric_proposal.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    const accountability = meta?.accountability;
-    return await handleMetricProposalUpdate(payload, meta, database, accountability);
+    return await handleMetricProposalUpdate(payload, meta, database);
   });
 
   filter('impact_claim.items.create', (payload: Record<string, any>) => {
@@ -603,9 +602,23 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
 
     const userId = getUserId(meta);
     if (status === 'published') {
-      await recordFeedbackReview(database, recordId, 'published_summary', userId, 'Public summary published.');
+      await recordFeedbackReview(
+        database, {
+          feedbackId: recordId,
+          action: 'published_summary',
+          responseText: 'Public summary published.',
+          actorDirectusUserId: userId,
+        }
+      );
     } else if (status === 'rejected') {
-      await recordFeedbackReview(database, recordId, 'dismissed', userId, meta?.payload?.rejection_reason);
+      await recordFeedbackReview(
+        database, {
+          feedbackId: recordId,
+          action: 'dismissed',
+          responseText: meta?.payload?.rejection_reason,
+          actorDirectusUserId: userId,
+        }
+      );
     }
   });
 

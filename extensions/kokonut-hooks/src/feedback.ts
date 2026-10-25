@@ -31,15 +31,23 @@ export function validateStakeholderFeedback(payload: Record<string, any>): void 
 
 export async function recordFeedbackReview(
   db: any,
-  feedbackId: string,
-  action: string,
-  reviewerId?: string,
-  responseText?: string
+  review: {
+    feedbackId: string;
+    action: string;
+    reviewerStaffId?: string;
+    responseText?: string;
+    actorDirectusUserId?: string;
+  },
 ): Promise<void> {
   await db('stakeholder_feedback_review').insert({
-    feedback_id: feedbackId,
-    reviewer_id: reviewerId || null,
-    action,
-    response_text: responseText || null,
+    feedback_id: review.feedbackId,
+    // reviewer_id references staff.id. Keep the authenticated Directus actor
+    // separate until an explicit operator-to-staff mapping exists.
+    reviewer_id: review.reviewerStaffId || null,
+    action: review.action,
+    response_text: review.responseText || null,
+    metadata: review.actorDirectusUserId
+      ? { actor_directus_user_id: review.actorDirectusUserId }
+      : {},
   });
 }

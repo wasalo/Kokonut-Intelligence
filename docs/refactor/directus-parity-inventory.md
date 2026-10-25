@@ -21,6 +21,18 @@ parity remain open.
 
 Scoped Directus create and update filters validate known references against tenant location. Plot location is resolved through `plot.farm_id` to `farm.location_id` because the plot table has no location column; writable `stakeholder_feedback.farm_id` references use the same farm location. `labor_event.staff_id` and `metric_proposal.reviewed_by` resolve only through direct same-location staff assignment or a `farm_staff_member` edge whose farm belongs to that location. Crop-cycle and harvest references use their direct location columns. For updates, the hook uses authorized target rows and the request database context, and each reference must match every target row. The complete hook suite passes 84 tests, the extension build/type check and 10 Python tenant/compatibility checks pass, and no live Directus run was performed ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)). Directus `stakeholder_feedback_review` creates now resolve `feedback_id` to the parent location on the request transaction and require the exact child `create` grant there; optional reviewers are location-qualified. Its reads, updates, and deletes remain outside this slice because the managed permission currently grants create only. The writable `mrv_claim.source_record_ids` UUID array remains polymorphic without a source-table discriminator and still needs an explicit source contract. Broader collection, field, relation, hook, schedule, and runtime parity remain open.
 
+The schema has no explicit authenticated-operator-to-`staff` mapping. The
+existing `operator_governance_party_binding` links an operator to a canonical
+network party; it does not identify a `staff` row. Therefore Directus user UUIDs
+are no longer copied into the `staff` foreign keys `metric_proposal.reviewed_by`
+or `stakeholder_feedback_review.reviewer_id`. Feedback review actions keep the
+authenticated Directus user UUID in private review metadata and workflow
+history; `reviewer_id` stays null unless a real staff ID is supplied. Explicit
+staff references remain location-validated. This avoids false staff attribution
+but does not establish that an authenticated operator is the staff member named
+in an explicit reference. A reviewed operator-to-staff binding contract remains
+open.
+
 The two legacy Directus schedules are now independent explicit opt-ins in the
 extension. The legacy root Compose stack keeps both enabled by default for
 compatibility; the optional Kernel Directus profile defaults both off. Daily

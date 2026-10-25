@@ -19,10 +19,28 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,149 checklist items complete and 25
-open (1,174 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,150 checklist items complete and 25
+open (1,175 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### Directus actor and staff attribution boundary — 25 October 2026
+
+- [x] Keep authenticated Directus actors separate from `staff` foreign keys.
+  No explicit operator-to-staff crosswalk exists: the governance binding links
+  operators to canonical parties only. Feedback review actions now store the
+  authenticated actor in private review metadata and leave `reviewer_id` null
+  unless a real staff ID is supplied; metric proposal review updates no longer
+  copy the Directus user UUID into `reviewed_by`. Explicit staff references
+  continue to require location validation. The Directus hook suite passes 87
+  tests, extension build and TypeScript checking pass, and the capability-matrix
+  validator reports 67 valid rows ([evidence](builds/2026-10-25-recovery/directus-reviewer-attribution-boundary.json)).
+  No database, provider, Directus service, candidate, legacy stack, or migration
+  was used. This fixes type-confused attribution at source but does not prove
+  that an authenticated operator is the staff member in an explicit reference;
+  the operator-to-staff binding contract and broader Directus parity remain
+  open. Roll back only with a reviewed attribution contract; do not restore
+  copying Directus user IDs into staff references.
 
 ### CAP-038 operator console for synthesis request receipts — 25 October 2026
 

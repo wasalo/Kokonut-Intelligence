@@ -7,13 +7,22 @@ location as well. `labor_event.staff_id` and `metric_proposal.reviewed_by` must
 resolve to staff assigned directly to the location or linked through a farm
 membership at that location. The feedback-review create filter resolves `feedback_id` to the parent feedback
 location and requires an exact `stakeholder_feedback_review:create` grant there;
-an optional `reviewer_id` must map to same-location staff. The full Directus
-extension suite passes 84 tests, including request-transaction parent-scope and foreign-parent denial; the extension build and TypeScript check pass, 10 Python tenant/compatibility tests
-pass, and the capability-matrix validator passes ([evidence](builds/2026-10-25-recovery/directus-feedback-review-parent-scope.json); [reference evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)).
+an optional `reviewer_id` must map to same-location staff. The schema has no
+operator-to-staff crosswalk: `operator_governance_party_binding` identifies a
+network party, not a staff row. Feedback actions now retain the Directus actor
+in private review metadata instead of writing that UUID into the `staff.id`
+foreign key; metric proposal review updates no longer infer `reviewed_by` from
+the Directus user. Explicit staff references remain location-validated. The
+full Directus extension suite passes 87 tests, including request-transaction
+parent-scope, foreign-parent denial, and actor/staff attribution regressions;
+the extension build and TypeScript check pass. The capability-matrix validator
+passes ([evidence](builds/2026-10-25-recovery/directus-reviewer-attribution-boundary.json);
+[parent-scope evidence](builds/2026-10-25-recovery/directus-feedback-review-parent-scope.json)).
 No database, provider, Directus service, candidate, or legacy stack was
-accessed; no migration was needed. Feedback-review read/update/delete parity, polymorphic MRV source references, and
-broader Directus field, relation, hook, and runtime parity remain open. Checklist:
-1,149 complete / 25 open (1,174 total);
+accessed; no migration was needed. An explicit operator-to-staff binding,
+feedback-review read/update/delete parity, polymorphic MRV source references,
+and broader Directus field, relation, hook, and runtime parity remain open.
+Checklist: 1,150 complete / 25 open (1,175 total);
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
 across 67 rows, with 0/67 named acceptance checks accepted.
 
