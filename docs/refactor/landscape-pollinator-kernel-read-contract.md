@@ -12,6 +12,12 @@ Updated: 25 October 2026
   location grant `pollinator_health:create`.
 - `POST /operator/api/pollinators/{location_id}/hives/inspections` requires
   that same exact location create grant.
+- `GET /operator/api/pollinators/{location_id}/habitats` requires the exact
+  location grant `pollinator_health:read_detail`. It returns bounded operational
+  habitat details, not the aggregate summary.
+- `PATCH /operator/api/pollinators/{location_id}/habitats/{habitat_id}` requires
+  the exact location grant `pollinator_health:edit`; it updates only reported
+  status, condition, and maintenance date.
 - These endpoints are private, same-origin operator routes. Responses use
   `Cache-Control: no-store` and `Vary: Cookie`; invalid identifiers fail before
   opening a database connection.
@@ -75,6 +81,18 @@ route does not verify the inspection; runtime and Directus cannot directly
 change inspection rows or those snapshot fields, and the legacy inspection CLI
 fails before opening a database connection.
 
+Migration 624 adds a separate paginated habitat detail route and a constrained
+status/condition/maintenance update. Detail reads use a repeatable-read,
+read-only transaction, the exact `read_detail` grant, and a location predicate;
+they return habitat identity, name/type/area, reported status/condition, last
+maintenance, and update time while omitting ecological observations and freeform
+details. Updates require an expected `updated_at` and bounded reason, reject
+stale writes, and use an isolated no-login function owner to update the row and
+append an immutable actor-attributed before/after audit event atomically.
+Runtime and Directus cannot directly mutate habitat rows or read the private
+event ledger. The operation records self-reported operational state; it does not
+verify ecological condition or outcomes.
+
 Migration 622 adds managed-hive registration through a security-definer
 function under signed exact-location create authorization. It stores the legacy
 `active` inventory state, the creator, and a private digest-only retry receipt;
@@ -110,18 +128,24 @@ compatibility surface. They do not establish signed operator context or tenant
 RLS. The Gateway is the scoped operator path; direct CLI/database use must stay
 behind a trusted operator boundary until its runtime identity is narrowed.
 
-Neither response includes names, geometry, plot IDs, species names, products,
-active ingredients, hive identifiers, narratives, notes, assessor identities,
-weather JSON, or arbitrary metadata. Fixed-schema groupings are small and have
-an 8-second statement timeout. No client-supplied query or group dimensions
-are accepted.
+Aggregate landscape and pollinator summary responses omit names, geometry, plot
+IDs, species names, products, active ingredients, hive identifiers, narratives,
+notes, assessor identities, weather JSON, and arbitrary metadata. The separate
+habitat detail route exposes only the bounded fields documented above and omits
+species, nesting features, and freeform notes. Fixed-schema groupings are small
+and have an 8-second statement timeout. No client-supplied query or group
+dimensions are accepted.
 
 ## Console behavior
 
 The hidden-by-default console panel has independent subsections and selectors
-for each grant. It does not reveal either section without its exact scope. Reads
-are same-origin and no-store, validate response location and fixed categories,
-discard stale responses, and render values through `textContent`.
+for each grant. Aggregate sections require their exact read scope; habitat detail
+and edit controls separately require `read_detail` and `edit`. Reads are
+same-origin and no-store, validate response location and fixed categories,
+discard stale responses, and render values through `textContent`. Habitat edits
+use CSRF protection, stable request IDs, a required reason, and the detail
+response timestamp as the optimistic concurrency token; successful edits refresh
+the detail view without implying ecological verification.
 
 ## Verification and rollback
 

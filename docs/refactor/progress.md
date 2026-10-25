@@ -1,3 +1,30 @@
+### Progress addendum — CAP-006 pollinator habitat status and maintenance, 25 October 2026
+
+Migration 624 and the Gateway now provide a private paginated habitat detail
+read under exact `pollinator_health:read_detail` and a status/condition/
+maintenance update under exact location `pollinator_health:edit`. Detail output
+is deliberately limited to identity, descriptive type/area, operational status
+and condition, maintenance date, and update time. Updates require a reason and
+the currently observed timestamp, so stale edits fail instead of overwriting a
+concurrent change. A no-login function owner applies the update and appends an
+attributed immutable before/after event in one transaction. Runtime and
+Directus cannot directly mutate habitat rows or access the event ledger. The
+console uses distinct detail/edit grants, CSRF/no-store, and stable request IDs;
+the displayed values remain operator-reported rather than ecological
+verification.
+
+The combined CAP-006 Gateway, console, policy, ecology, waste, and migration
+selection passes 297 tests. Ruff, compilation, Node syntax, matrix validation,
+SQL inventory, dependency groups, provider boundaries, and diff checks pass.
+Disposable PostgreSQL 16 applies/replays migrations 155/602/619/620/621/624
+with nine grouped checks on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-habitat-lifecycle-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-habitat-lifecycle-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 624 is not rolled out. QEMU is
+software evidence only. Habitat status/maintenance code is closed; hive
+status/maintenance, populated parity, live OIDC/browser, independent review,
+broader ACL/RLS, Directus parity, and MAN-CAP-006 remain open. Checklist:
+1,132 complete / 24 open (1,156 total).
+
 ### Progress addendum — CAP-006 location-scoped managed-hive inspection capture, 25 October 2026
 
 Migration 623 adds signed location-scoped inspection capture under exact

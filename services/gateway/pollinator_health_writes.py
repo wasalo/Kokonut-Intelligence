@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from functools import partial
 from typing import Callable
@@ -20,6 +20,8 @@ _POLLINATOR_HABITAT_TYPES = {
     "cover_crop", "native_planting", "other",
 }
 _OBSERVATION_METHODS = {"transect", "pan_trap", "visual_count", "hive_weight", "other"}
+_POLLINATOR_HABITAT_STATUSES = {"active", "inactive", "degraded", "removed"}
+_POLLINATOR_HABITAT_CONDITIONS = {"excellent", "good", "fair", "poor"}
 _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -433,6 +435,124 @@ def create_location_pollinator_habitat(
                 or not Decimal("0") <= Decimal(str(area_value)) <= Decimal("99999999")
             ):
                 raise RuntimeError("Habitat capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def _normalize_habitat_lifecycle_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Habitat update body must be an object")
+    required = {"request_id", "expected_updated_at", "reason"}
+    allowed = required | {"status", "condition", "last_maintenance"}
+    if not required.issubset(payload) or not set(payload).issubset(allowed):
+        raise PollinatorObservationInvalid("Habitat update fields do not match the supported contract")
+
+    request_id = _identifier(payload["request_id"], "request")
+    expected_updated_at = payload["expected_updated_at"]
+    if not isinstance(expected_updated_at, str) or len(expected_updated_at) > 64:
+        raise PollinatorObservationInvalid("expected_updated_at must be a timezone-aware timestamp")
+    try:
+        expected_timestamp = datetime.fromisoformat(expected_updated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PollinatorObservationInvalid(
+            "expected_updated_at must be a timezone-aware timestamp"
+        ) from exc
+    if expected_timestamp.tzinfo is None or expected_timestamp.utcoffset() is None:
+        raise PollinatorObservationInvalid("expected_updated_at must include a timezone")
+    expected_timestamp = expected_timestamp.astimezone(timezone.utc)
+
+    status_supplied = "status" in payload
+    status = payload.get("status")
+    if status_supplied and (
+        not isinstance(status, str) or status not in _POLLINATOR_HABITAT_STATUSES
+    ):
+        raise PollinatorObservationInvalid("Unsupported habitat status")
+
+    condition_supplied = "condition" in payload
+    condition = payload.get("condition")
+    if condition_supplied and condition is not None and (
+        not isinstance(condition, str) or condition not in _POLLINATOR_HABITAT_CONDITIONS
+    ):
+        raise PollinatorObservationInvalid("Unsupported habitat condition")
+
+    maintenance_supplied = "last_maintenance" in payload
+    last_maintenance = payload.get("last_maintenance")
+    if maintenance_supplied and last_maintenance is not None:
+        if not isinstance(last_maintenance, str):
+            raise PollinatorObservationInvalid("last_maintenance must use YYYY-MM-DD or null")
+        try:
+            parsed_date = date.fromisoformat(last_maintenance)
+        except ValueError as exc:
+            raise PollinatorObservationInvalid("last_maintenance must use YYYY-MM-DD or null") from exc
+        if parsed_date.isoformat() != last_maintenance or parsed_date > date.today():
+            raise PollinatorObservationInvalid("last_maintenance must be a valid non-future date")
+        last_maintenance = parsed_date
+
+    if not (status_supplied or condition_supplied or maintenance_supplied):
+        raise PollinatorObservationInvalid("At least one habitat state field must be supplied")
+    reason = _text(payload["reason"], "change reason", 500)
+    if not reason:
+        raise PollinatorObservationInvalid("A habitat change reason is required")
+    return (
+        request_id, expected_timestamp, status, status_supplied,
+        condition, condition_supplied, last_maintenance, maintenance_supplied, reason,
+    )
+
+
+def update_location_pollinator_habitat(
+    operator_id: str,
+    location_id: str,
+    habitat_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Change reported habitat status/condition/maintenance under exact edit scope."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    habitat_id = _identifier(habitat_id, "habitat")
+    normalized = _normalize_habitat_lifecycle_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="edit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.update_location_pollinator_habitat("
+                "%s::uuid, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::boolean, "
+                "%s::text, %s::boolean, %s::date, %s::boolean, %s::text)",
+                (location_id, habitat_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Habitat update returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            condition = result.get("condition") if isinstance(result, dict) else None
+            maintenance_date = result.get("last_maintenance") if isinstance(result, dict) else None
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("habitat_id") != habitat_id
+                or not isinstance(result.get("event_id"), str)
+                or result.get("status") not in _POLLINATOR_HABITAT_STATUSES
+                or (condition is not None and condition not in _POLLINATOR_HABITAT_CONDITIONS)
+                or (maintenance_date is not None and not isinstance(maintenance_date, str))
+                or not isinstance(result.get("updated_at"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Habitat update returned an invalid result")
             connection.commit()
             return result
     except Exception:

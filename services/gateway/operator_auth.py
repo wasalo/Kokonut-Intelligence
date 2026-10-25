@@ -872,12 +872,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     pollinator_habitat_capture_match = re.fullmatch(
         r"/operator/api/pollinators/([0-9a-fA-F-]{36})/habitats", path
     )
+    if pollinator_habitat_capture_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "read_detail",
+            "public": False,
+            "location_id": pollinator_habitat_capture_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     if pollinator_habitat_capture_match and method.upper() == "POST" and enabled:
         return {
             "resource": "pollinator_health",
             "action": "create",
             "public": False,
             "location_id": pollinator_habitat_capture_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    pollinator_habitat_update_match = re.fullmatch(
+        r"/operator/api/pollinators/([0-9a-fA-F-]{36})/habitats/([0-9a-fA-F-]{36})", path
+    )
+    if pollinator_habitat_update_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "edit",
+            "public": False,
+            "location_id": pollinator_habitat_update_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

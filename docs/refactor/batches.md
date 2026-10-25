@@ -19,10 +19,38 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,131 checklist items complete and 25
+**Current snapshot (25 October 2026):** 1,132 checklist items complete and 24
 open (1,156 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped pollinator habitat status and maintenance — 25 October 2026
+
+- [x] Add migration 624, a private paginated habitat-detail read under
+  `pollinator_health:read_detail`, and a `PATCH
+  /operator/api/pollinators/{location_id}/habitats/{habitat_id}` update under
+  exact location `pollinator_health:edit`. Detail reads expose only habitat ID,
+  name, type, area, status, condition, last-maintenance date, and update time;
+  they do not expose species, nesting details, or notes. Updates require a
+  reason and expected timestamp, preserve optimistic concurrency, support the
+  source status/condition/date fields, and atomically append a private,
+  immutable before/after audit event attributed to the operator. Runtime and
+  Directus cannot directly mutate habitat rows or read/write the audit ledger.
+  The console shows detail and edit controls only with their separate grants;
+  state labels explicitly remain operator-reported rather than ecological
+  verification. The 297-test combined CAP-006 regression passes, as do Ruff,
+  compilation, JavaScript syntax, SQL inventory, matrix, dependency, provider,
+  and diff checks. Disposable PostgreSQL 16 applies/replays migrations
+  155/602/619/620/621/624 and passes nine authorization, stale-write, retry,
+  audit, and ACL groups on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-habitat-lifecycle-disposable.json);
+  [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-habitat-lifecycle-arm64-disposable.json)).
+  Candidate and legacy remain untouched; migration 624 is not rolled out. QEMU
+  is software portability evidence only. Roll back by disabling the detail and
+  update routes, exact policy entries, and console panel; keep direct-write
+  revocations and retain the additive migration/event ledger if applied. Hive
+  status/maintenance, populated parity, live OIDC/browser, independent review,
+  broader ACL/RLS, Directus parity, and MAN-CAP-006 remain open. Checklist:
+  1,132 complete / 24 open (1,156 total).
 
 ### CAP-006 location-scoped pollinator observation capture — 24 October 2026
 

@@ -8,6 +8,9 @@ from uuid import UUID
 
 from services.common.tenant_context import set_operator_tenant_context
 
+_MAX_HABITAT_PAGE_SIZE = 50
+_MAX_HABITAT_OFFSET = 10000
+
 
 def _connection_factory() -> Callable:
     from services.common.database import get_db
@@ -259,6 +262,74 @@ def get_location_pollinator_summary(
                     else None
                 ),
             },
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def get_location_pollinator_habitat_details(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return a bounded operational habitat inventory under a separate detail grant."""
+    try:
+        operator_id = str(UUID(str(operator_id)))
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("Invalid operator or location identifier") from exc
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= _MAX_HABITAT_PAGE_SIZE:
+        raise ValueError(f"limit must be between 1 and {_MAX_HABITAT_PAGE_SIZE}")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= _MAX_HABITAT_OFFSET:
+        raise ValueError(f"offset must be between 0 and {_MAX_HABITAT_OFFSET}")
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = '8s'")
+            cur.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="read_detail",
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT habitat.id::text, habitat.habitat_name, habitat.habitat_type,
+                       habitat.area_m2::numeric, habitat.condition, habitat.status,
+                       habitat.last_maintenance, habitat.updated_at
+                  FROM public.pollinator_habitat AS habitat
+                 WHERE habitat.location_id = %s::uuid
+                 ORDER BY habitat.habitat_name, habitat.id
+                 LIMIT %s OFFSET %s
+                """,
+                (location_id, limit + 1, offset),
+            )
+            rows = _rows(cur)
+        has_more = len(rows) > limit
+        items = rows[:limit]
+        for item in items:
+            item["area_m2"] = _number(item["area_m2"])
+            item["last_maintenance"] = _date(item["last_maintenance"])
+            item["updated_at"] = item["updated_at"].isoformat()
+        return {
+            "location_id": location_id,
+            "limit": limit,
+            "offset": offset,
+            "habitats": items,
+            "has_more": has_more,
+            "next_offset": offset + limit if has_more else None,
         }
     finally:
         try:

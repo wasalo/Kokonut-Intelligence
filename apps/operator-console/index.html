@@ -2497,6 +2497,14 @@
               </form>
               <p id="pollinator-hive-inspection-status" class="muted" role="status" aria-live="polite"></p>
             </section>
+            <section id="pollinator-habitat-management" hidden aria-labelledby="pollinator-habitat-management-heading">
+              <h4 id="pollinator-habitat-management-heading">Habitat status and maintenance</h4>
+              <p class="muted">This private detail view shows operator-reported inventory. Status, condition, and maintenance dates are operational records; they do not verify ecological outcomes.</p>
+              <button id="pollinator-habitat-management-refresh" class="secondary" type="button">Refresh habitat details</button>
+              <p id="pollinator-habitat-management-status" class="muted" role="status" aria-live="polite"></p>
+              <div id="pollinator-habitat-management-items" class="stacked-form"></div>
+              <button id="pollinator-habitat-management-more" class="secondary" type="button" hidden>Load more habitats</button>
+            </section>
             <div id="pollinator-health-summary" hidden></div>
           </section>
         </section>
@@ -3759,12 +3767,22 @@
       const pollinatorHiveInspectionCapture = document.querySelector("#pollinator-hive-inspection-capture");
       const pollinatorHiveInspectionForm = document.querySelector("#pollinator-hive-inspection-form");
       const pollinatorHiveInspectionStatus = document.querySelector("#pollinator-hive-inspection-status");
+      const pollinatorHabitatManagement = document.querySelector("#pollinator-habitat-management");
+      const pollinatorHabitatManagementStatus = document.querySelector("#pollinator-habitat-management-status");
+      const pollinatorHabitatManagementItems = document.querySelector("#pollinator-habitat-management-items");
+      const pollinatorHabitatManagementMore = document.querySelector("#pollinator-habitat-management-more");
       const pollinatorInspectionDateMax = new Date();
       pollinatorInspectionDateMax.setMinutes(pollinatorInspectionDateMax.getMinutes() - pollinatorInspectionDateMax.getTimezoneOffset());
       pollinatorHiveInspectionForm.querySelector("#pollinator-inspection-date").max = pollinatorInspectionDateMax.toISOString().slice(0, 10);
       let pollinatorHealthLocations = new Set();
       let pollinatorHealthCreateLocations = new Set();
+      let pollinatorHealthDetailLocations = new Set();
+      let pollinatorHealthEditLocations = new Set();
       let pollinatorHealthRequestVersion = 0;
+      let pollinatorHabitatDetailsRequestVersion = 0;
+      let pollinatorHabitatDetailsOffset = 0;
+      let pollinatorHabitatDetailsNextOffset = null;
+      let pollinatorHabitatUpdatePending = new Map();
       let pollinatorObservationPending = null;
       let pesticideImpactPending = null;
       let pollinatorHabitatPending = null;
@@ -18026,18 +18044,278 @@
         const locationId = pollinatorHealthLocation.value;
         const canRead = pollinatorHealthLocations.has(locationId);
         const canCreate = pollinatorHealthCreateLocations.has(locationId);
+        const canReadDetails = pollinatorHealthDetailLocations.has(locationId);
         pollinatorHealthSummary.hidden = !canRead;
         pollinatorObservationCapture.hidden = !canCreate;
         pesticideImpactCapture.hidden = !canCreate;
         pollinatorHabitatCapture.hidden = !canCreate;
         pollinatorHiveCapture.hidden = !canCreate;
         pollinatorHiveInspectionCapture.hidden = !canCreate;
+        pollinatorHabitatManagement.hidden = !canReadDetails;
         if (!canRead) pollinatorHealthSummary.replaceChildren();
+        if (!canReadDetails) {
+          pollinatorHabitatManagementItems.replaceChildren();
+          pollinatorHabitatManagementStatus.textContent = "";
+          pollinatorHabitatManagementMore.hidden = true;
+          pollinatorHabitatDetailsNextOffset = null;
+          pollinatorHabitatUpdatePending.clear();
+        }
         if (!canCreate) pollinatorObservationCaptureStatus.textContent = "";
         if (!canCreate) pesticideImpactCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHabitatCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHiveCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHiveInspectionStatus.textContent = "";
+      }
+
+      function appendPollinatorSelectOption(select, value, label) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.append(option);
+      }
+
+      function renderPollinatorHabitatDetail(item, canEdit) {
+        const article = document.createElement("article");
+        article.dataset.habitatId = item.id;
+        article.dataset.status = item.status;
+        article.dataset.condition = item.condition || "";
+        article.dataset.lastMaintenance = item.last_maintenance || "";
+        article.dataset.updatedAt = item.updated_at;
+        article.dataset.areaM2 = item.area_m2 === null ? "" : String(item.area_m2);
+        const heading = document.createElement("h5");
+        heading.textContent = `${item.habitat_name} · ${item.habitat_type}`;
+        const details = document.createElement("p");
+        details.className = "muted";
+        details.textContent = `Area: ${item.area_m2 === null ? "not recorded" : `${item.area_m2} m²`} · Status: ${item.status} · Condition: ${item.condition || "not recorded"} · Last maintenance: ${item.last_maintenance || "not recorded"}`;
+        article.append(heading, details);
+        if (!canEdit) return article;
+
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        form.dataset.habitatUpdateForm = "true";
+        const statusLabel = document.createElement("label");
+        statusLabel.textContent = "Operational status";
+        const statusSelect = document.createElement("select");
+        statusSelect.dataset.field = "status";
+        for (const [value, label] of [["active", "Active"], ["inactive", "Inactive"], ["degraded", "Degraded"], ["removed", "Removed"]]) {
+          appendPollinatorSelectOption(statusSelect, value, label);
+        }
+        statusSelect.value = item.status;
+        statusLabel.append(statusSelect);
+
+        const conditionLabel = document.createElement("label");
+        conditionLabel.textContent = "Reported condition";
+        const conditionSelect = document.createElement("select");
+        conditionSelect.dataset.field = "condition";
+        appendPollinatorSelectOption(conditionSelect, "", "Not recorded");
+        for (const [value, label] of [["excellent", "Excellent"], ["good", "Good"], ["fair", "Fair"], ["poor", "Poor"]]) {
+          appendPollinatorSelectOption(conditionSelect, value, label);
+        }
+        conditionSelect.value = item.condition || "";
+        conditionLabel.append(conditionSelect);
+
+        const maintenanceLabel = document.createElement("label");
+        maintenanceLabel.textContent = "Last maintenance date";
+        const maintenanceDate = document.createElement("input");
+        maintenanceDate.type = "date";
+        maintenanceDate.max = (() => {
+          const localToday = new Date();
+          localToday.setMinutes(localToday.getMinutes() - localToday.getTimezoneOffset());
+          return localToday.toISOString().slice(0, 10);
+        })();
+        maintenanceDate.value = item.last_maintenance || "";
+        maintenanceDate.dataset.field = "last_maintenance";
+        maintenanceLabel.append(maintenanceDate);
+
+        const clearLabel = document.createElement("label");
+        const clearMaintenance = document.createElement("input");
+        clearMaintenance.type = "checkbox";
+        clearMaintenance.dataset.field = "clear_last_maintenance";
+        clearLabel.append(clearMaintenance, document.createTextNode(" Clear an incorrect maintenance date"));
+
+        const reasonLabel = document.createElement("label");
+        reasonLabel.textContent = "Reason for this update (required)";
+        const reason = document.createElement("textarea");
+        reason.required = true;
+        reason.maxLength = 500;
+        reason.rows = 2;
+        reason.dataset.field = "reason";
+        reasonLabel.append(reason);
+
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Save habitat update";
+        const message = document.createElement("p");
+        message.className = "muted";
+        message.setAttribute("role", "status");
+        message.setAttribute("aria-live", "polite");
+        message.dataset.field = "message";
+        form.append(statusLabel, conditionLabel, maintenanceLabel, clearLabel, reasonLabel, submit, message);
+        article.append(form);
+        return article;
+      }
+
+      async function loadPollinatorHealthHabitatDetails(append = false) {
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthDetailLocations.has(locationId)) return;
+        const requestVersion = ++pollinatorHabitatDetailsRequestVersion;
+        const offset = append ? pollinatorHabitatDetailsNextOffset : 0;
+        if (append && !Number.isSafeInteger(offset)) return;
+        if (!append) {
+          pollinatorHabitatDetailsOffset = 0;
+          pollinatorHabitatDetailsNextOffset = null;
+          pollinatorHabitatManagementItems.replaceChildren();
+        }
+        pollinatorHabitatManagementStatus.textContent = "Loading private habitat details…";
+        pollinatorHabitatManagementMore.disabled = true;
+        try {
+          const query = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/habitats?${query}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) throw new Error("A current location pollinator-detail grant is required.");
+            throw new Error("Habitat details are unavailable. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== pollinatorHabitatDetailsRequestVersion || locationId !== pollinatorHealthLocation.value) return;
+          const habitatTypes = new Set(["wildflower_strip", "hedgerow", "nesting_site", "water_source", "cover_crop", "native_planting", "other"]);
+          const statuses = new Set(["active", "inactive", "degraded", "removed"]);
+          const conditions = new Set(["excellent", "good", "fair", "poor"]);
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (result.location_id !== locationId || result.limit !== 50 || result.offset !== offset
+              || !Array.isArray(result.habitats) || typeof result.has_more !== "boolean"
+              || (result.next_offset !== null && !Number.isSafeInteger(result.next_offset))) {
+            throw new Error("The habitat detail response did not match the selected location.");
+          }
+          for (const item of result.habitats) {
+            if (!item || !uuid.test(item.id) || typeof item.habitat_name !== "string" || item.habitat_name.length > 200
+                || !habitatTypes.has(item.habitat_type) || !statuses.has(item.status)
+                || (item.condition !== null && !conditions.has(item.condition))
+                || (item.area_m2 !== null && (typeof item.area_m2 !== "number" || !Number.isFinite(item.area_m2) || item.area_m2 < 0))
+                || (item.last_maintenance !== null && (typeof item.last_maintenance !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(item.last_maintenance)))
+                || typeof item.updated_at !== "string" || !Number.isFinite(Date.parse(item.updated_at))) {
+              throw new Error("A habitat record did not match the supported detail contract.");
+            }
+            pollinatorHabitatManagementItems.append(
+              renderPollinatorHabitatDetail(item, pollinatorHealthEditLocations.has(locationId))
+            );
+          }
+          pollinatorHabitatDetailsOffset = offset;
+          pollinatorHabitatDetailsNextOffset = result.next_offset;
+          pollinatorHabitatManagementMore.hidden = !result.has_more;
+          pollinatorHabitatManagementStatus.textContent = pollinatorHealthEditLocations.has(locationId)
+            ? "Updates are operator-reported, audited, and subject to a separate location edit grant."
+            : "Read-only private habitat details; editing requires a separate location pollinator-edit grant.";
+        } catch (error) {
+          if (requestVersion !== pollinatorHabitatDetailsRequestVersion) return;
+          pollinatorHabitatManagementStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === pollinatorHabitatDetailsRequestVersion) {
+            pollinatorHabitatManagementMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitPollinatorHabitatLifecycle(event) {
+        const form = event.target.closest("form[data-habitat-update-form]");
+        if (!form) return;
+        event.preventDefault();
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthEditLocations.has(locationId)) {
+          form.querySelector('[data-field="message"]').textContent = "A current location pollinator-edit grant is required.";
+          return;
+        }
+        const article = form.closest("article[data-habitat-id]");
+        if (!article) return;
+        const status = form.querySelector('[data-field="status"]').value;
+        const condition = form.querySelector('[data-field="condition"]').value;
+        const maintenanceDate = form.querySelector('[data-field="last_maintenance"]').value;
+        const clearMaintenance = form.querySelector('[data-field="clear_last_maintenance"]').checked;
+        const reason = form.querySelector('[data-field="reason"]').value.trim();
+        if (!reason || reason.length > 500) {
+          form.querySelector('[data-field="message"]').textContent = "Enter a short reason for the update.";
+          return;
+        }
+        const payload = {
+          expected_updated_at: article.dataset.updatedAt,
+          reason,
+        };
+        if (status !== article.dataset.status) payload.status = status;
+        if ((condition || "") !== article.dataset.condition) payload.condition = condition || null;
+        if (clearMaintenance && article.dataset.lastMaintenance) payload.last_maintenance = null;
+        else if (maintenanceDate && maintenanceDate !== article.dataset.lastMaintenance) payload.last_maintenance = maintenanceDate;
+        if (Object.keys(payload).length === 2) {
+          form.querySelector('[data-field="message"]').textContent = "No habitat fields changed.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ locationId, habitatId: article.dataset.habitatId, ...payload });
+        let pending = pollinatorHabitatUpdatePending.get(article.dataset.habitatId);
+        if (!pending || pending.fingerprint !== fingerprint) {
+          pending = { fingerprint, request_id: crypto.randomUUID() };
+          pollinatorHabitatUpdatePending.set(article.dataset.habitatId, pending);
+        }
+        payload.request_id = pending.request_id;
+        const submit = form.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        form.querySelector('[data-field="message"]').textContent = "Saving the habitat update…";
+        try {
+          const csrf = csrfToken();
+          if (!csrf) throw new Error("Refresh the operator session before saving.");
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/habitats/${encodeURIComponent(article.dataset.habitatId)}`,
+            {
+              method: "PATCH", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify(payload)
+            }
+          );
+          const result = await response.json();
+          if (!response.ok) {
+            if (response.status === 409) {
+              pollinatorHabitatUpdatePending.delete(article.dataset.habitatId);
+              await loadPollinatorHealthHabitatDetails();
+            }
+            throw new Error(response.status === 403 ? "The location pollinator-edit grant is no longer active."
+              : response.status === 409 ? "The habitat changed or the request ID conflicted. Details were refreshed; review your update and retry."
+              : "Habitat update could not be saved. Retry when the service is available.");
+          }
+          if (result.location_id !== locationId || result.habitat_id !== article.dataset.habitatId
+              || !statusesForHabitat().has(result.status)
+              || (result.condition !== null && !conditionsForHabitat().has(result.condition))
+              || (result.last_maintenance !== null && typeof result.last_maintenance !== "string")
+              || typeof result.updated_at !== "string" || !Number.isFinite(Date.parse(result.updated_at))) {
+            throw new Error("The saved habitat update did not match the selected record.");
+          }
+          article.dataset.status = result.status;
+          article.dataset.condition = result.condition || "";
+          article.dataset.lastMaintenance = result.last_maintenance || "";
+          article.dataset.updatedAt = result.updated_at;
+          form.querySelector('[data-field="status"]').value = result.status;
+          form.querySelector('[data-field="condition"]').value = result.condition || "";
+          form.querySelector('[data-field="last_maintenance"]').value = result.last_maintenance || "";
+          form.querySelector('[data-field="clear_last_maintenance"]').checked = false;
+          form.querySelector('[data-field="reason"]').value = "";
+          const summary = article.querySelector("p.muted");
+          const areaText = article.dataset.areaM2 === "" ? "not recorded" : `${article.dataset.areaM2} m²`;
+          summary.textContent = `Area: ${areaText} · Status: ${result.status} · Condition: ${result.condition || "not recorded"} · Last maintenance: ${result.last_maintenance || "not recorded"}`;
+          pollinatorHabitatUpdatePending.delete(article.dataset.habitatId);
+          form.querySelector('[data-field="message"]').textContent = "Habitat update recorded. It does not verify ecological condition or outcomes.";
+          if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
+        } catch (error) {
+          form.querySelector('[data-field="message"]').textContent = error.message;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      function statusesForHabitat() {
+        return new Set(["active", "inactive", "degraded", "removed"]);
+      }
+
+      function conditionsForHabitat() {
+        return new Set(["excellent", "good", "fair", "poor"]);
       }
 
       async function submitPollinatorObservation(event) {
@@ -20175,6 +20453,18 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           pollinatorHealthCreateLocations = new Set(pollinatorHealthCreateLocationIds);
+          const pollinatorHealthDetailLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "pollinator_health" && scope.action === "read_detail")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          pollinatorHealthDetailLocations = new Set(pollinatorHealthDetailLocationIds);
+          const pollinatorHealthEditLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "pollinator_health" && scope.action === "edit")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          pollinatorHealthEditLocations = new Set(pollinatorHealthEditLocationIds);
           const irrigationStatusLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "precision_irrigation" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -20625,7 +20915,7 @@
             }
             hasAuthorizedSurface = true;
           }
-          if (landscapeConservationLocationIds.length || pollinatorHealthLocationIds.length || pollinatorHealthCreateLocationIds.length) {
+          if (landscapeConservationLocationIds.length || pollinatorHealthLocationIds.length || pollinatorHealthCreateLocationIds.length || pollinatorHealthDetailLocationIds.length || pollinatorHealthEditLocationIds.length) {
             landscapePollinator.hidden = false;
             if (landscapeConservationLocationIds.length) {
               for (const locationId of landscapeConservationLocationIds) {
@@ -20640,6 +20930,8 @@
             const pollinatorHealthAvailableLocationIds = [...new Set([
               ...pollinatorHealthLocationIds,
               ...pollinatorHealthCreateLocationIds,
+              ...pollinatorHealthDetailLocationIds,
+              ...pollinatorHealthEditLocationIds,
             ])];
             if (pollinatorHealthAvailableLocationIds.length) {
               for (const locationId of pollinatorHealthAvailableLocationIds) {
@@ -20652,6 +20944,9 @@
               updatePollinatorHealthAccess();
               if (pollinatorHealthLocations.has(pollinatorHealthLocation.value)) {
                 await loadPollinatorHealthSummary();
+              }
+              if (pollinatorHealthDetailLocations.has(pollinatorHealthLocation.value)) {
+                await loadPollinatorHealthHabitatDetails();
               }
             }
             hasAuthorizedSurface = true;
@@ -25112,7 +25407,13 @@
         if (pollinatorHealthLocations.has(pollinatorHealthLocation.value)) {
           loadPollinatorHealthSummary();
         }
+        if (pollinatorHealthDetailLocations.has(pollinatorHealthLocation.value)) {
+          loadPollinatorHealthHabitatDetails();
+        }
       });
+      document.querySelector("#pollinator-habitat-management-refresh").addEventListener("click", () => loadPollinatorHealthHabitatDetails());
+      pollinatorHabitatManagementMore.addEventListener("click", () => loadPollinatorHealthHabitatDetails(true));
+      pollinatorHabitatManagementItems.addEventListener("submit", submitPollinatorHabitatLifecycle);
       pollinatorObservationCaptureForm.addEventListener("submit", submitPollinatorObservation);
       pesticideImpactCaptureForm.addEventListener("submit", submitPesticideImpactReport);
       pollinatorHabitatCaptureForm.addEventListener("submit", submitPollinatorHabitat);
