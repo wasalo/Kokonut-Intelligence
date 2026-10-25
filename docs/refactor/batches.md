@@ -19,10 +19,38 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (24 October 2026):** 1,118 checklist items complete and 25
-open (1,143 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (24 October 2026):** 1,119 checklist items complete and 25
+open (1,144 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped waste-stream capture — 24 October 2026
+
+- [x] Add `POST /operator/api/waste/{location_id}/records` with the exact
+  `waste_management:create` grant, bounded streamed JSON, CSRF/no-store
+  behavior, strict input validation before connect, a fixed recorded-only
+  lifecycle, and exact request retry handling. Migration 613 installs an
+  isolated `SECURITY DEFINER` writer and private append-only SHA-256 receipt;
+  changed request reuse conflicts, missing grants and wrong actor/location fail
+  closed, and runtime/Directus cannot read receipts. The create-only form is
+  independently gated from verified aggregate reads and keeps the exact payload
+  and request ID stable after uncertain failures. The focused 32-test Gateway/route-policy/console selection and broader 98-test
+  selection (including migration checks and five subtests) pass; Ruff, Python compilation,
+  inline JavaScript syntax, and `git diff --check` pass. Disposable PostgreSQL
+  16 applies/replays migrations 153/613 and passes five grouped capture/role
+  assertions on native AMD64
+  ([evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-disposable.json))
+  and linux/arm64 Docker/QEMU
+  ([ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-arm64-disposable.json)).
+  The synthetic context helper does not replace cryptographic tenant-context
+  acceptance; QEMU does not claim physical Raspberry Pi acceptance. Candidate
+  and legacy databases remain untouched; migration 613 is not rolled out. The
+  legacy CLI remains a trusted direct-database path, and canonical table
+  ACL/RLS plus Directus field parity remain separate gates. Rollback disables
+  the route, exact policy, and form; retain receipts if the migration is later
+  applied. CAP-006 remains prepared pending populated parity, live OIDC/browser,
+  broader ACL/RLS, and MAN-CAP-006 acceptance. Checklist: 1,119 complete / 25
+  open (1,144 total).
 
 ### CAP-037 consent-filtered coaching console — 24 October 2026
 

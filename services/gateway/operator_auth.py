@@ -742,6 +742,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    waste_capture_match = re.fullmatch(
+        r"/operator/api/waste/([0-9a-fA-F-]{36})/records", path
+    )
+    if waste_capture_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "waste_management",
+            "action": "create",
+            "public": False,
+            "location_id": waste_capture_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     landscape_summary_match = re.fullmatch(
         r"/operator/api/landscape/([0-9a-fA-F-]{36})/summary", path
     )

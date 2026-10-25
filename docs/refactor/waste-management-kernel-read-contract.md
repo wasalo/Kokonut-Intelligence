@@ -102,24 +102,63 @@ freeform labels plus pH in metadata. Its external function/CLI parameters and
 response remain compatible. These remain trusted local CLI operations, not
 authenticated tenant-scoped APIs.
 
-The console is hidden unless the session has an exact location grant. It uses
-same-origin/no-store requests, validates the response location and bounded
-schema categories, discards stale responses, and renders fixed fields with
-`textContent`.
+The console gates its summary on `waste_management:read` and the capture form on
+`waste_management:create` independently. It uses same-origin/no-store requests,
+validates the response location and bounded schema categories, discards stale
+responses, and renders fixed fields with `textContent`.
+
+## Kernel waste-stream capture
+
+`POST /operator/api/waste/{location_id}/records` records one waste-stream row
+under the exact location `waste_management:create` grant. Middleware requires
+an authenticated OIDC session and CSRF token; the service validates UUIDs,
+canonical waste/disposal categories, a positive kilogram amount with at most
+two decimal places, a non-future ISO date, bounded text, and an exact request
+shape before opening PostgreSQL. The route caps streamed JSON at 4 KiB and
+returns `no-store` responses.
+
+Migration 613 adds a bounded `SECURITY DEFINER` function owned by the isolated
+`kokonut_waste_stream_writer` role. It checks signed operator/location context
+and the live exact create grant, writes `status='recorded'` and `quantity_unit='kg'`,
+and records a private SHA-256 idempotency receipt. Exact retries return the
+original record ID; changed input with the same operator/request ID conflicts.
+The response contains only record ID, location, record date, lifecycle state,
+and replay indicator. The console preserves the exact payload and request ID
+for same-page retries, and never presents capture as verification or
+publication. Newly captured rows remain absent from verified aggregates until
+a separate human verification path exists.
+
+The receipt table is not directly readable by runtime or Directus, and the
+bounded function is not executable by Directus. The legacy `record_waste` CLI
+remains a trusted direct-database compatibility path and does not inherit this
+tenant authorization; runtime/Directus access to the canonical waste table
+still needs a separate ACL/RLS decision. Entry notes are stored in the
+canonical table and omitted from this Gateway response and aggregate projection;
+this slice does not claim Directus field-level privacy parity.
 
 ## Verification and rollback
 
-Focused fake-connection and Gateway tests cover route policy, missing-grant
+Migration 613 applies and replays against the canonical migration-153 table
+with synthetic identity/grant/context helpers in disposable PostgreSQL 16.
+The helper is not cryptographic acceptance; the shared tenant-context suite
+covers the signed context implementation. Native and linux/arm64 checks cover exact-grant
+success, recorded-only state, replay identity, changed-input conflict,
+mismatched location, absent grant, wrong actor type, invalid category, and
+runtime/Directus receipt and function ACLs. The ARM64 run is software
+emulation evidence, not physical Raspberry Pi acceptance. Candidate and legacy
+databases are not used. Source rollback disables the POST route, exact route
+policy, form, and migration reference; if migration 613 has been applied, keep
+the append-only receipts and function until dependent requests are resolved.
+
+The earlier read-only summary batch's focused fake-connection and Gateway tests cover route policy, missing-grant
 denial, invalid identifiers before connection, signed context ordering,
 location filters on each source query, lifecycle filters, output omission,
 compost yield/process calculations, and connection cleanup. Console contracts
 cover grant gating, compost numeric/count bounds, field allowlists,
-stale-response checks, no-store requests, and inline JavaScript syntax. The
-focused Gateway/console selection passes 11 tests with Ruff, Python
-compilation, SQL inventory, capability validation, and diff checks. No schema
-migration or database was used. Rollback is a source rollback: remove the
-projection and console fields, then regenerate the runtime SQL inventory. No
-data rollback is necessary.
+stale-response checks, no-store requests, and inline JavaScript syntax. That
+focused read selection passed 11 tests without a schema migration or database.
+Its rollback removes the projection and console fields and regenerates the
+runtime SQL inventory; no data rollback is necessary.
 
 ## Remaining acceptance
 

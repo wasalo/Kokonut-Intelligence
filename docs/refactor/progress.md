@@ -1,3 +1,33 @@
+### Progress addendum — CAP-006 location-scoped waste-stream capture, 24 October 2026
+
+Migration 613 adds `POST /operator/api/waste/{location_id}/records` with the
+exact `waste_management:create` scope. The Gateway validates the bounded input
+before connect, caps streamed bodies at 4 KiB, uses CSRF/no-store behavior, and
+stores only a `recorded` waste row in kilograms. An isolated security-definer
+function rechecks signed location context and the live grant; its SHA-256
+receipt makes exact retries idempotent and changed reuse conflicts. The console
+separates the create grant from verified-summary reads and preserves the same
+payload/request ID after uncertain responses. It does not verify or publish the
+entry.
+
+The focused Gateway, route-policy, and console selection passes 32 tests; a
+broader selection including the legacy waste and migration suites passes 98
+tests plus five subtests. Ruff, Python compilation, inline JavaScript syntax, and diff checks pass. Disposable
+PostgreSQL 16 applies/replays migrations 153/613 and passes five grouped
+authorization, retry, lifecycle, and ACL assertions on native AMD64
+([evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-disposable.json))
+and linux/arm64 Docker/QEMU
+([ARM64 evidence](builds/2026-10-24-recovery/cap-006-waste-stream-capture-arm64-disposable.json)).
+The isolated context helper is synthetic; shared signed-context tests remain
+the cryptographic evidence. QEMU is software portability evidence, not physical
+Raspberry Pi acceptance. Candidate and legacy databases are untouched and
+migration 613 is not rolled out. Runtime/Directus access to canonical waste
+rows, the legacy CLI's trusted direct-write path, populated parity, live
+OIDC/browser acceptance, and MAN-CAP-006 remain open. Rollback disables the
+route, exact policy and form; retain receipts if 613 is applied. Checklist:
+1,119 complete / 25 open (1,144 total); 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; 0/67 MAN-CAP checks accepted.
+
 ### Progress addendum — CAP-037 consent-filtered coaching console, 24 October 2026
 
 Migration 612 and the operator console complete the first end-to-end coaching

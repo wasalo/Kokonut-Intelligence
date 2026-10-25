@@ -11,17 +11,19 @@ SOURCE = Path("apps/operator-console/index.html").read_text()
 
 
 def test_waste_management_panel_is_hidden_and_omits_sensitive_details():
-    panel = re.search(r'<section id="waste-management".*?</section>', SOURCE, re.DOTALL)
-    assert panel
-    assert 'id="waste-management" hidden' in panel.group()
-    assert "Compost yield and process measurements are descriptive and advisory, not a compost-quality certification." in panel.group()
-    assert "Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded." in panel.group()
-    assert "Counts are not compliance determinations." in panel.group()
+    start = SOURCE.index('<section id="waste-management"')
+    end = SOURCE.index('<section id="landscape-pollinator"', start)
+    panel = SOURCE[start:end]
+    assert 'id="waste-management" hidden' in panel
+    assert "Compost yield and process measurements are descriptive and advisory, not a compost-quality certification." in panel
+    assert "Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded." in panel
+    assert "Counts are not compliance determinations." in panel
+    assert "New entries are location-scoped and remain recorded until a separate human verification workflow is available." in panel
     for element_id in (
         "waste-management-streams", "waste-management-compost",
         "waste-management-recycling", "waste-management-incidents",
     ):
-        assert f'id="{element_id}"' in panel.group()
+            assert f'id="{element_id}"' in panel
 
 
 def test_waste_reader_uses_exact_grant_scope_and_no_store_location_checked_request():
@@ -53,7 +55,12 @@ def test_waste_console_validates_categories_and_renders_only_fixed_text_fields()
 
 def test_waste_console_refresh_and_location_change_are_wired_and_ids_unique():
     assert 'document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary)' in SOURCE
-    assert "wasteManagementLocation.addEventListener(\"change\", loadWasteManagementSummary)" in SOURCE
+    assert 'wasteManagementLocation.addEventListener("change", () =>' in SOURCE
+    assert 'scope.resource === "waste_management" && scope.action === "create"' in SOURCE
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in SOURCE
+    assert '"X-CSRF-Token": csrfToken()' in SOURCE
+    assert "Retrying reuses the same request ID and entry." in SOURCE
+    assert "result.status !== \"recorded\"" in SOURCE
     ids = re.findall(r'\bid="([^\"]+)"', SOURCE)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"

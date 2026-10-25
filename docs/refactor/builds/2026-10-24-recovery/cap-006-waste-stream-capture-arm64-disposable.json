@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "postgres_image": "postgres:16",
+  "platform": "linux/arm64",
+  "migrations": [
+    "153_waste_management.sql",
+    "613_location_waste_stream_capture.sql"
+  ],
+  "checks": [
+    "migration 613 applies and replays after the canonical migration-153 table",
+    "exact create grant captures a recorded kg row and an identical retry returns the same ID",
+    "mismatched location, missing exact create grant, wrong actor type, and invalid category fail closed",
+    "idempotency key reuse with changed input conflicts",
+    "runtime/Directus cannot read private receipts; Directus cannot execute and function owner is isolated"
+  ],
+  "candidate_or_legacy_database_used": false,
+  "provider_calls": false
+}

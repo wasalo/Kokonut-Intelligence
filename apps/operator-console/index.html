@@ -2098,28 +2098,68 @@
         </section>
         <section id="waste-management" hidden aria-labelledby="waste-management-heading">
           <h2 id="waste-management-heading">Waste and pollution records</h2>
-          <p class="muted">Read-only verified waste-stream, composting, and recycling aggregates plus pollution incident counts for a granted location. Compost yield and process measurements are descriptive and advisory, not a compost-quality certification. Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded. Counts are not compliance determinations.</p>
+          <p class="muted">Verified waste-stream, composting, and recycling aggregates plus pollution incident counts are read-only. Compost yield and process measurements are descriptive and advisory, not a compost-quality certification. Incident narratives, affected areas, destinations, costs, notes, and reporter identities are excluded. Counts are not compliance determinations.</p>
           <div class="toolbar">
             <label for="waste-management-location">Granted location</label>
             <select id="waste-management-location"></select>
             <button id="waste-management-refresh" type="button">Refresh waste records</button>
           </div>
-          <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
-          <div aria-labelledby="waste-management-streams-heading">
-            <h3 id="waste-management-streams-heading">Verified waste streams</h3>
-            <div id="waste-management-streams"></div>
+          <section id="waste-management-capture" hidden aria-labelledby="waste-management-capture-heading">
+            <h3 id="waste-management-capture-heading">Record a waste stream</h3>
+            <p class="muted">New entries are location-scoped and remain recorded until a separate human verification workflow is available. This form does not verify or publish records.</p>
+            <form id="waste-management-capture-form" class="form-grid">
+              <label for="waste-management-capture-type">Waste type</label>
+              <select id="waste-management-capture-type" required>
+                <option value="crop_residue">Crop residue</option>
+                <option value="processing_waste">Processing waste</option>
+                <option value="packaging">Packaging</option>
+                <option value="chemical_container">Chemical container</option>
+                <option value="organic_waste">Organic waste</option>
+                <option value="wastewater">Wastewater</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="waste-management-capture-name">Waste name</label>
+              <input id="waste-management-capture-name" type="text" maxlength="200" required autocomplete="off">
+              <label for="waste-management-capture-quantity">Quantity (kg)</label>
+              <input id="waste-management-capture-quantity" type="number" min="0.01" max="99999999.99" step="0.01" required>
+              <label for="waste-management-capture-date">Record date</label>
+              <input id="waste-management-capture-date" type="date" required>
+              <label for="waste-management-capture-disposal">Disposal method (optional)</label>
+              <select id="waste-management-capture-disposal">
+                <option value="">Not specified</option>
+                <option value="composting">Composting</option>
+                <option value="burning">Burning</option>
+                <option value="landfill">Landfill</option>
+                <option value="recycling">Recycling</option>
+                <option value="animal_feed">Animal feed</option>
+                <option value="biogas">Biogas</option>
+                <option value="mulching">Mulching</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="waste-management-capture-notes">Entry notes (optional)</label>
+              <textarea id="waste-management-capture-notes" maxlength="1000" rows="3"></textarea>
+              <button id="waste-management-capture-submit" type="submit">Save recorded entry</button>
+              <p id="waste-management-capture-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
           </div>
-          <div aria-labelledby="waste-management-compost-heading">
-            <h3 id="waste-management-compost-heading">Verified composting</h3>
-            <div id="waste-management-compost"></div>
-          </div>
-          <div aria-labelledby="waste-management-recycling-heading">
-            <h3 id="waste-management-recycling-heading">Verified recycling</h3>
-            <div id="waste-management-recycling"></div>
-          </div>
-          <div aria-labelledby="waste-management-incidents-heading">
-            <h3 id="waste-management-incidents-heading">Pollution incident counts</h3>
-            <div id="waste-management-incidents"></div>
+          <div id="waste-management-summary" hidden>
+            <p id="waste-management-status" class="muted" role="status" aria-live="polite"></p>
+            <div aria-labelledby="waste-management-streams-heading">
+              <h3 id="waste-management-streams-heading">Verified waste streams</h3>
+              <div id="waste-management-streams"></div>
+            </div>
+            <div aria-labelledby="waste-management-compost-heading">
+              <h3 id="waste-management-compost-heading">Verified composting</h3>
+              <div id="waste-management-compost"></div>
+            </div>
+            <div aria-labelledby="waste-management-recycling-heading">
+              <h3 id="waste-management-recycling-heading">Verified recycling</h3>
+              <div id="waste-management-recycling"></div>
+            </div>
+            <div aria-labelledby="waste-management-incidents-heading">
+              <h3 id="waste-management-incidents-heading">Pollution incident counts</h3>
+              <div id="waste-management-incidents"></div>
+            </div>
           </div>
         </section>
         <section id="landscape-pollinator" hidden aria-labelledby="landscape-pollinator-heading">
@@ -3343,12 +3383,17 @@
       let energyMonitoringRequestVersion = 0;
       const wasteManagement = document.querySelector("#waste-management");
       const wasteManagementLocation = document.querySelector("#waste-management-location");
+      const wasteManagementSummary = document.querySelector("#waste-management-summary");
       const wasteManagementStatus = document.querySelector("#waste-management-status");
       const wasteManagementStreams = document.querySelector("#waste-management-streams");
       const wasteManagementCompost = document.querySelector("#waste-management-compost");
       const wasteManagementRecycling = document.querySelector("#waste-management-recycling");
       const wasteManagementIncidents = document.querySelector("#waste-management-incidents");
+      const wasteManagementCapture = document.querySelector("#waste-management-capture");
+      const wasteManagementCaptureForm = document.querySelector("#waste-management-capture-form");
+      const wasteManagementCaptureStatus = document.querySelector("#waste-management-capture-status");
       let wasteManagementLocations = new Set();
+      let wasteManagementCreateLocations = new Set();
       let wasteManagementRequestVersion = 0;
       const landscapePollinator = document.querySelector("#landscape-pollinator");
       const landscapeConservation = document.querySelector("#landscape-conservation");
@@ -16998,10 +17043,28 @@
           && incidentStatuses.has(row?.status));
       }
 
+      function updateWasteManagementAccess() {
+        const locationId = wasteManagementLocation.value;
+        const canRead = wasteManagementLocations.has(locationId);
+        const canCreate = wasteManagementCreateLocations.has(locationId);
+        wasteManagementSummary.hidden = !canRead;
+        wasteManagementCapture.hidden = !canCreate;
+        if (!canRead) {
+          wasteManagementStatus.textContent = "";
+          for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
+            container.replaceChildren();
+          }
+        }
+      }
+
       async function loadWasteManagementSummary() {
         const locationId = wasteManagementLocation.value;
         const requestVersion = ++wasteManagementRequestVersion;
-        if (!wasteManagementLocations.has(locationId)) return;
+        if (!wasteManagementLocations.has(locationId)) {
+          updateWasteManagementAccess();
+          return;
+        }
+        wasteManagementSummary.hidden = false;
         for (const container of [wasteManagementStreams, wasteManagementCompost, wasteManagementRecycling, wasteManagementIncidents]) {
           container.replaceChildren();
         }
@@ -17038,6 +17101,110 @@
           wasteManagementStatus.textContent = error.message;
         }
       }
+
+      function setWasteCaptureFieldsDisabled(disabled) {
+        for (const field of wasteManagementCaptureForm.querySelectorAll("select, input, textarea")) {
+          field.disabled = disabled;
+        }
+      }
+
+      function wasteCaptureToday() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      }
+
+      wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value = wasteCaptureToday();
+      wasteManagementCaptureForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const locationId = wasteManagementLocation.value;
+        if (!wasteManagementCreateLocations.has(locationId)) {
+          wasteManagementCaptureStatus.textContent = "A current waste-create grant for this location is required.";
+          return;
+        }
+        if (wasteManagementCaptureForm.pendingCapture
+            && wasteManagementCaptureForm.pendingCapture.locationId !== locationId) {
+          wasteManagementCaptureStatus.textContent = "Retry the pending entry at its original location before changing locations.";
+          return;
+        }
+        if (!wasteManagementCaptureForm.pendingCapture
+            && !wasteManagementCaptureForm.reportValidity()) return;
+
+        if (!wasteManagementCaptureForm.pendingCapture) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            wasteManagementCaptureStatus.textContent = "A secure browser context is required to record a waste entry.";
+            return;
+          }
+          wasteManagementCaptureForm.pendingCapture = {
+            locationId,
+            payload: {
+              request_id: requestId,
+              waste_type: wasteManagementCaptureForm.querySelector("#waste-management-capture-type").value,
+              waste_name: wasteManagementCaptureForm.querySelector("#waste-management-capture-name").value,
+              quantity_kg: wasteManagementCaptureForm.querySelector("#waste-management-capture-quantity").value,
+              record_date: wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value,
+              disposal_method: wasteManagementCaptureForm.querySelector("#waste-management-capture-disposal").value || null,
+              notes: wasteManagementCaptureForm.querySelector("#waste-management-capture-notes").value || null
+            }
+          };
+          setWasteCaptureFieldsDisabled(true);
+        }
+        const pending = wasteManagementCaptureForm.pendingCapture;
+        const submit = wasteManagementCaptureForm.querySelector("#waste-management-capture-submit");
+        submit.disabled = true;
+        wasteManagementCaptureStatus.textContent = pending.attempted
+          ? "Retrying the same recorded entry…"
+          : "Recording waste entry…";
+        pending.attempted = true;
+        try {
+          const response = await fetch(
+            `/operator/api/waste/${encodeURIComponent(pending.locationId)}/records`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrfToken()
+              },
+              body: JSON.stringify(pending.payload)
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or waste-create grant is no longer valid. Reload the console to refresh access.");
+          }
+          if (!response.ok) {
+            if (response.status === 400) {
+              wasteManagementCaptureForm.pendingCapture = null;
+              setWasteCaptureFieldsDisabled(false);
+            }
+            throw new Error(result.error || "The waste entry could not be recorded.");
+          }
+          if (result.location_id !== pending.locationId
+              || result.status !== "recorded"
+              || typeof result.record_id !== "string"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not match the waste-capture contract. Retry to confirm the same request.");
+          }
+          wasteManagementCaptureForm.pendingCapture = null;
+          setWasteCaptureFieldsDisabled(false);
+          wasteManagementCaptureForm.reset();
+          wasteManagementCaptureForm.querySelector("#waste-management-capture-date").value = wasteCaptureToday();
+          wasteManagementCaptureStatus.textContent = result.replayed
+            ? "The original entry was confirmed after retry. It remains recorded until separate human verification."
+            : "Entry recorded. It remains outside verified aggregates until separate human verification.";
+          if (wasteManagementLocations.has(pending.locationId)
+              && wasteManagementLocation.value === pending.locationId) {
+            await loadWasteManagementSummary();
+          }
+        } catch (error) {
+          wasteManagementCaptureStatus.textContent = wasteManagementCaptureForm.pendingCapture
+            ? `${error.message} Retrying reuses the same request ID and entry.`
+            : `${error.message} Correct the entry and submit again.`;
+        } finally {
+          submit.disabled = false;
+        }
+      });
 
       function renderEcologySections(container, sections) {
         container.replaceChildren();
@@ -18911,6 +19078,16 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           wasteManagementLocations = new Set(wasteManagementLocationIds);
+          const wasteManagementCreateLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "waste_management" && scope.action === "create")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          wasteManagementCreateLocations = new Set(wasteManagementCreateLocationIds);
+          const wasteManagementAvailableLocationIds = [...new Set([
+            ...wasteManagementLocationIds,
+            ...wasteManagementCreateLocationIds,
+          ])];
           const landscapeConservationLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "landscape_conservation" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -19356,15 +19533,18 @@
             await loadEnergyMonitoringSummary();
             hasAuthorizedSurface = true;
           }
-          if (wasteManagementLocationIds.length) {
-            for (const locationId of wasteManagementLocationIds) {
+          if (wasteManagementAvailableLocationIds.length) {
+            for (const locationId of wasteManagementAvailableLocationIds) {
               const option = document.createElement("option");
               option.value = locationId;
               option.textContent = locationId;
               wasteManagementLocation.append(option);
             }
             wasteManagement.hidden = false;
-            await loadWasteManagementSummary();
+            updateWasteManagementAccess();
+            if (wasteManagementLocations.has(wasteManagementLocation.value)) {
+              await loadWasteManagementSummary();
+            }
             hasAuthorizedSurface = true;
           }
           if (landscapeConservationLocationIds.length || pollinatorHealthLocationIds.length) {
@@ -23828,7 +24008,10 @@
       document.querySelector("#energy-monitoring-refresh").addEventListener("click", loadEnergyMonitoringSummary);
       energyMonitoringLocation.addEventListener("change", loadEnergyMonitoringSummary);
       document.querySelector("#waste-management-refresh").addEventListener("click", loadWasteManagementSummary);
-      wasteManagementLocation.addEventListener("change", loadWasteManagementSummary);
+      wasteManagementLocation.addEventListener("change", () => {
+        updateWasteManagementAccess();
+        loadWasteManagementSummary();
+      });
       document.querySelector("#landscape-conservation-refresh").addEventListener("click", loadLandscapeConservationSummary);
       landscapeConservationLocation.addEventListener("change", loadLandscapeConservationSummary);
       document.querySelector("#pollinator-health-refresh").addEventListener("click", loadPollinatorHealthSummary);
