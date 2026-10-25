@@ -332,6 +332,11 @@
           </div>
           <label for="delphi-consent-notice-draft-text">Participant notice text</label>
           <textarea id="delphi-consent-notice-draft-text" rows="8" maxlength="12000" required></textarea>
+          <fieldset>
+            <legend>Structured activities covered by this notice; participants will see these choices</legend>
+            <label><input id="delphi-consent-notice-scope-questionnaire" type="checkbox"> Questionnaire responses (scores and any reasoning entered)</label>
+            <label><input id="delphi-consent-notice-scope-minority" type="checkbox"> Minority reports (optional)</label>
+          </fieldset>
           <button id="delphi-consent-notice-draft-submit" type="button" disabled>Submit notice for independent review</button>
           <p id="delphi-consent-notice-draft-status" class="muted" role="status" aria-live="polite"></p>
         </section>
@@ -3129,6 +3134,8 @@
       const delphiConsentNoticeDraftStudiesMore = document.querySelector("#delphi-consent-notice-draft-studies-more");
       const delphiConsentNoticeDraftVersion = document.querySelector("#delphi-consent-notice-draft-version");
       const delphiConsentNoticeDraftText = document.querySelector("#delphi-consent-notice-draft-text");
+      const delphiConsentNoticeScopeQuestionnaire = document.querySelector("#delphi-consent-notice-scope-questionnaire");
+      const delphiConsentNoticeScopeMinority = document.querySelector("#delphi-consent-notice-scope-minority");
       const delphiConsentNoticeDraftSubmit = document.querySelector("#delphi-consent-notice-draft-submit");
       const delphiConsentNoticeDraftStatus = document.querySelector("#delphi-consent-notice-draft-status");
       const delphiConsentNoticeReview = document.querySelector("#delphi-consent-notice-review");
@@ -22729,8 +22736,9 @@
         );
         const validText = delphiConsentNoticeDraftText.value.trim().length > 0
           && delphiConsentNoticeDraftText.value.length <= 12000;
+        const validScopes = delphiConsentNoticeScopeQuestionnaire.checked;
         delphiConsentNoticeDraftSubmit.disabled = !delphiConsentNoticeDraftLocations.has(locationId)
-          || !studyId || selected?.dataset?.status !== "draft" || !validVersion || !validText;
+          || !studyId || selected?.dataset?.status !== "draft" || !validVersion || !validText || !validScopes;
       }
 
       async function loadDelphiConsentNoticeDraftStudies(append = false) {
@@ -22796,18 +22804,22 @@
         const studyId = delphiConsentNoticeDraftStudy.value;
         const version = delphiConsentNoticeDraftVersion.value;
         const noticeText = delphiConsentNoticeDraftText.value;
+        const collectionScopes = [];
+        if (delphiConsentNoticeScopeQuestionnaire.checked) collectionScopes.push("questionnaire_responses");
+        if (delphiConsentNoticeScopeMinority.checked) collectionScopes.push("minority_reports");
         if (!delphiConsentNoticeDraftLocations.has(locationId) || !studyId
             || delphiConsentNoticeDraftStudy.selectedOptions[0]?.dataset?.status !== "draft"
             || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$/.test(version)
-            || !noticeText.trim() || noticeText.length > 12000) {
-          delphiConsentNoticeDraftStatus.textContent = "Choose a draft study and provide a valid version and notice text.";
+            || !noticeText.trim() || noticeText.length > 12000
+            || !collectionScopes.includes("questionnaire_responses")) {
+          delphiConsentNoticeDraftStatus.textContent = "Choose a draft study, include questionnaire responses, and provide a valid version and notice text.";
           return;
         }
         if (!window.confirm("Submit this immutable participant notice for independent review? It will not issue invites or open the study.")) {
           return;
         }
         const csrf = csrfToken();
-        const requestKey = JSON.stringify([locationId, studyId, version, noticeText]);
+        const requestKey = JSON.stringify([locationId, studyId, version, noticeText, collectionScopes]);
         let requestId = delphiConsentNoticeDraftRequestIds.get(requestKey);
         if (!requestId) {
           requestId = globalThis.crypto?.randomUUID?.();
@@ -22831,7 +22843,7 @@
                 "Content-Type": "application/json",
                 "X-CSRF-Token": csrf,
               },
-              body: JSON.stringify({ request_id: requestId, version, notice_text: noticeText }),
+              body: JSON.stringify({ request_id: requestId, version, notice_text: noticeText, collection_scopes: collectionScopes }),
             }
           );
           const result = await response.json().catch(() => ({}));
@@ -22850,6 +22862,8 @@
             : `Notice ${result.version} was submitted for independent review.`;
           delphiConsentNoticeDraftVersion.value = "";
           delphiConsentNoticeDraftText.value = "";
+          delphiConsentNoticeScopeQuestionnaire.checked = false;
+          delphiConsentNoticeScopeMinority.checked = false;
           await loadDelphiConsentNoticeDraftStudies();
           delphiConsentNoticeDraftStatus.textContent = successMessage;
         } catch (error) {
@@ -22909,13 +22923,27 @@
             summary.textContent = "Read submitted participant notice";
             const body = document.createElement("p");
             body.textContent = String(notice.notice_text || "");
-            details.append(summary, body);
+            const scopes = document.createElement("p");
+            scopes.className = "muted";
+            const labels = {
+              questionnaire_responses: "Questionnaire responses",
+              minority_reports: "Minority reports",
+            };
+            const covered = Array.isArray(notice.collection_scopes)
+              ? notice.collection_scopes.filter((scope) => Object.prototype.hasOwnProperty.call(labels, scope)).map((scope) => labels[scope])
+              : [];
+            scopes.textContent = covered.length
+              ? `Structured activity scope: ${covered.join(", ")}`
+              : "Legacy notice: structured activity scope is not recorded; it cannot authorize new participant activity.";
+            details.append(summary, scopes, body);
             textCell.append(details);
             const submittedCell = document.createElement("td");
             submittedCell.textContent = notice.created_at ? new Date(notice.created_at).toLocaleString() : "—";
             const reviewCell = document.createElement("td");
             if (notice.review_ready !== true) {
               reviewCell.textContent = "Independent reviewer required; authors cannot review their own notice.";
+            } else if (covered.length === 0) {
+              reviewCell.textContent = "This legacy notice has no recorded activity scope. Submit a scoped replacement before issuing new invites.";
             } else {
               const approve = document.createElement("button");
               approve.type = "button";
@@ -26949,6 +26977,8 @@
       delphiConsentNoticeDraftStudy.addEventListener("change", refreshDelphiConsentNoticeDraftControls);
       delphiConsentNoticeDraftVersion.addEventListener("input", refreshDelphiConsentNoticeDraftControls);
       delphiConsentNoticeDraftText.addEventListener("input", refreshDelphiConsentNoticeDraftControls);
+      delphiConsentNoticeScopeQuestionnaire.addEventListener("change", refreshDelphiConsentNoticeDraftControls);
+      delphiConsentNoticeScopeMinority.addEventListener("change", refreshDelphiConsentNoticeDraftControls);
       delphiConsentNoticeDraftStudiesMore.addEventListener("click", () => loadDelphiConsentNoticeDraftStudies(true));
       delphiConsentNoticeDraftSubmit.addEventListener("click", submitDelphiConsentNoticeDraft);
       delphiConsentNoticeReviewLocation.addEventListener("change", () => loadDelphiConsentNoticeReviewQueue());

@@ -25,6 +25,9 @@ def test_notice_draft_requires_same_location_read_and_consent_draft_grants():
     assert "1 to 12,000 characters" not in source
     assert 'maxlength="12000"' in source
     assert "immutable after submission" in source
+    assert 'id="delphi-consent-notice-scope-questionnaire"' in source
+    assert 'id="delphi-consent-notice-scope-minority"' in source
+    assert "questionnaire_responses" in source and "minority_reports" in source
 
 
 def test_notice_draft_is_csrf_protected_no_store_and_retry_stable():
@@ -44,6 +47,8 @@ def test_notice_draft_is_csrf_protected_no_store_and_retry_stable():
     assert "delphiConsentNoticeDraftRequestIds.delete(requestKey)" in submit
     assert 'delphiConsentNoticeDraftVersion.value = ""' in submit
     assert 'delphiConsentNoticeDraftText.value = ""' in submit
+    assert "collection_scopes: collectionScopes" in submit
+    assert 'collectionScopes.includes("questionnaire_responses")' in submit
     assert 'result.status !== "submitted"' in submit
     assert "will not issue invites or open the study" in submit
 
@@ -63,6 +68,8 @@ def test_notice_review_is_bounded_and_renders_text_without_self_review():
     assert "authors cannot review their own notice" in loader
     assert "textContent" in loader
     assert "innerHTML" not in loader
+    assert "notice.collection_scopes" in loader
+    assert "Submit a scoped replacement" in loader
 
 
 def test_notice_decision_requires_independence_allowlists_csrf_and_stable_retry():
@@ -96,6 +103,8 @@ def test_notice_controls_have_unique_ids_and_inline_javascript_parses(tmp_path):
         "delphi-consent-notice-draft-study",
         "delphi-consent-notice-draft-version",
         "delphi-consent-notice-draft-text",
+        "delphi-consent-notice-scope-questionnaire",
+        "delphi-consent-notice-scope-minority",
         "delphi-consent-notice-review",
         "delphi-consent-notice-review-location",
         "delphi-consent-notice-review-rows",

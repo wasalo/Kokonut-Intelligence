@@ -18668,3 +18668,32 @@ remains prepared pending participant minority-report submission, live
 OIDC/browser, populated parity, universal ACL/RLS, SMTP, and owner acceptance.
 Checklist: 1,187 complete / 25 open (1,212 total); classifications remain
 24 baseline-retained, 7 deployed, and 36 prepared.
+
+### Progress addendum — CAP-027 structured Delphi participant activity consent, 25 October 2026
+
+Migration 641 adds immutable, versioned collection scopes to Delphi consent
+notices. New notices must explicitly cover questionnaire responses; a separate
+`minority_reports` scope can be selected when that activity is covered. The
+canonical scope list and notice text are bound together in the notice digest,
+retry receipt, invite preview, and accepted-consent digest. The operator
+console requires the questionnaire scope, exposes scopes to independent
+reviewers, and blocks approval of legacy submitted notices that have no
+structured scope. New invite issuance is blocked when the approved notice is
+unscoped. Existing issued invites and prior consent history retain their
+existing behavior; the participant page displays explicit scopes before
+acceptance and fails closed on unknown values. The focused Gateway, console,
+participant-bundle, and migration regression passes 87 tests. Network-disabled
+disposable PostgreSQL 16 applies and replays migration 641 and passes eight
+grouped scope, digest, review, invite, acceptance, and runtime/Directus
+boundary assertions ([migration](../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
+[runner](../scripts/check-delphi-consent-scopes-disposable.py);
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-consent-scopes-disposable.json)).
+Ruff, Python compilation, participant JavaScript syntax, capability validation,
+Kernel release-input validation, refreshed runtime SQL inventory, and diff
+checks pass. Candidate and legacy
+databases remain untouched; migration 641 is not rolled out. The scope field
+does not implement participant minority-report submission. CAP-027 remains
+prepared pending that workflow, live OIDC/browser acceptance, populated parity,
+universal ACL/RLS, SMTP, and MAN-CAP-027 owner acceptance. Checklist: 1,188
+complete / 25 open (1,213 total); classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 capabilities.

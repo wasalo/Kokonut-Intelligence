@@ -10,6 +10,8 @@ from uuid import UUID
 from services.common.tenant_context import set_operator_tenant_context
 
 _VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,39}$")
+_COLLECTION_SCOPE_ORDER = ("questionnaire_responses", "minority_reports")
+_COLLECTION_SCOPES = frozenset(_COLLECTION_SCOPE_ORDER)
 _APPROVAL_REASON = "approved_after_independent_review"
 _REJECTION_REASONS = frozenset(
     {"privacy_scope_incomplete", "purpose_unclear", "withdrawal_terms_incomplete", "other"}
@@ -47,6 +49,22 @@ def _page_value(value: int | str, field: str, maximum: int, minimum: int) -> int
     return parsed
 
 
+def _collection_scopes(value: list[str] | tuple[str, ...]) -> list[str]:
+    if (
+        not isinstance(value, (list, tuple))
+        or not value
+        or len(value) > len(_COLLECTION_SCOPE_ORDER)
+    ):
+        raise DelphiConsentNoticeInvalid(
+            "Select questionnaire responses and any additional covered activity"
+        )
+    if any(not isinstance(scope, str) or scope not in _COLLECTION_SCOPES for scope in value):
+        raise DelphiConsentNoticeInvalid("A participant activity scope is not supported")
+    if len(set(value)) != len(value) or "questionnaire_responses" not in value:
+        raise DelphiConsentNoticeInvalid("Questionnaire responses must be explicitly included once")
+    return [scope for scope in _COLLECTION_SCOPE_ORDER if scope in value]
+
+
 def submit_location_delphi_consent_notice(
     operator_id: str,
     location_id: str,
@@ -54,6 +72,7 @@ def submit_location_delphi_consent_notice(
     *,
     version: str,
     notice_text: str,
+    collection_scopes: list[str] | tuple[str, ...],
     request_id: str,
     connection_factory: Callable | None = None,
 ) -> dict:
@@ -66,6 +85,7 @@ def submit_location_delphi_consent_notice(
         raise DelphiConsentNoticeInvalid("Version must be a bounded version identifier")
     if not isinstance(notice_text, str) or not 1 <= len(notice_text.strip()) <= 12000:
         raise DelphiConsentNoticeInvalid("Notice text must contain 1 to 12,000 characters")
+    collection_scopes = _collection_scopes(collection_scopes)
 
     connection = (connection_factory or _connection_factory())()
     try:
@@ -81,10 +101,10 @@ def submit_location_delphi_consent_notice(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT * FROM kokonut_security.submit_location_delphi_consent_notice(
-                           %s::uuid, %s::uuid, %s::text, %s::text, %s::uuid
+                """SELECT * FROM kokonut_security.submit_location_delphi_consent_notice_scoped(
+                           %s::uuid, %s::uuid, %s::text, %s::text, %s::text[], %s::uuid
                        )""",
-                (location_id, study_id, version, notice_text, request_id),
+                (location_id, study_id, version, notice_text, collection_scopes, request_id),
             )
             row = cursor.fetchone()
         if row is None:
@@ -138,7 +158,7 @@ def list_location_delphi_consent_notices(
         )
         with connection.cursor() as cursor:
             cursor.execute(
-                """SELECT * FROM kokonut_security.list_location_delphi_consent_notices(
+                """SELECT * FROM kokonut_security.list_location_delphi_consent_notices_scoped(
                            %s::uuid, %s::integer, %s::integer
                        )""",
                 (location_id, page_size + 1, page_offset),
@@ -146,7 +166,7 @@ def list_location_delphi_consent_notices(
             rows = cursor.fetchall()
         notices = []
         for row in rows[:page_size]:
-            notice_id, study_id, title, version, text, digest, created_at, ready, blockers = row
+            notice_id, study_id, title, version, text, digest, created_at, ready, blockers, scopes = row
             notices.append(
                 {
                     "notice_id": str(notice_id),
@@ -158,6 +178,7 @@ def list_location_delphi_consent_notices(
                     "created_at": created_at,
                     "review_ready": bool(ready),
                     "blocked_reasons": list(blockers or []),
+                    "collection_scopes": list(scopes or []),
                 }
             )
         return {

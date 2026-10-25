@@ -77,12 +77,20 @@ def test_submit_uses_exact_location_draft_context_and_private_retry_function():
             STUDY_ID,
             version="v1.0",
             notice_text="Participation is voluntary.",
+            collection_scopes=["questionnaire_responses", "minority_reports"],
             request_id=REQUEST_ID,
             connection_factory=lambda: connection,
         )
     query, params = connection.calls[-1]
-    assert "submit_location_delphi_consent_notice" in query
-    assert params == (LOCATION_ID, STUDY_ID, "v1.0", "Participation is voluntary.", REQUEST_ID)
+    assert "submit_location_delphi_consent_notice_scoped" in query
+    assert params == (
+        LOCATION_ID,
+        STUDY_ID,
+        "v1.0",
+        "Participation is voluntary.",
+        ["questionnaire_responses", "minority_reports"],
+        REQUEST_ID,
+    )
     assert connection.context == {
         "operator_id": OPERATOR_ID,
         "location_id": LOCATION_ID,
@@ -106,8 +114,27 @@ def test_submit_invalid_notice_fails_before_database(version, text):
             STUDY_ID,
             version=version,
             notice_text=text,
+            collection_scopes=["questionnaire_responses"],
             request_id=REQUEST_ID,
             connection_factory=lambda: pytest.fail("invalid notice opened a connection"),
+        )
+
+
+@pytest.mark.parametrize(
+    "scopes",
+    [[], ["minority_reports"], ["unknown"], ["questionnaire_responses", "questionnaire_responses"]],
+)
+def test_submit_invalid_activity_scope_fails_before_database(scopes):
+    with pytest.raises(notices.DelphiConsentNoticeInvalid):
+        notices.submit_location_delphi_consent_notice(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            version="v1",
+            notice_text="Participation is voluntary.",
+            collection_scopes=scopes,
+            request_id=REQUEST_ID,
+            connection_factory=lambda: pytest.fail("invalid activity scope opened a connection"),
         )
 
 
@@ -124,6 +151,7 @@ def test_review_queue_sets_consent_review_context_and_bounds_rows():
                 None,
                 False,
                 ["self_review"],
+                ["questionnaire_responses", "minority_reports"],
             )
         ]
     )
@@ -136,7 +164,7 @@ def test_review_queue_sets_consent_review_context_and_bounds_rows():
             connection_factory=lambda: connection,
         )
     query, params = connection.calls[-1]
-    assert "list_location_delphi_consent_notices" in query
+    assert "list_location_delphi_consent_notices_scoped" in query
     assert params == (LOCATION_ID, 26, 0)
     assert connection.context["action"] == "consent_review"
     assert result["notices"] == [
@@ -150,6 +178,7 @@ def test_review_queue_sets_consent_review_context_and_bounds_rows():
             "created_at": None,
             "review_ready": False,
             "blocked_reasons": ["self_review"],
+            "collection_scopes": ["questionnaire_responses", "minority_reports"],
         }
     ]
     assert connection.closed
@@ -247,6 +276,7 @@ def test_create_notice_route_requires_exact_fields_and_returns_private_response(
         "notice_digest": "ab" * 32,
         "created_at": "2026-10-25T12:00:00+00:00",
         "replayed": False,
+        "collection_scopes": ["questionnaire_responses"],
     }
 
     async def run_in_threadpool(func, *args, **kwargs):
@@ -255,14 +285,22 @@ def test_create_notice_route_requires_exact_fields_and_returns_private_response(
 
     response = TestClient(_app(object(), run_in_threadpool)).post(
         f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/consent-notices",
-        json={"request_id": REQUEST_ID, "version": "v1", "notice_text": "A notice."},
+        json={
+            "request_id": REQUEST_ID,
+            "version": "v1",
+            "notice_text": "A notice.",
+            "collection_scopes": ["questionnaire_responses"],
+        },
     )
     assert response.status_code == 201 and response.json() == expected
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert calls[0][1] == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
     assert calls[0][2] == {
-        "version": "v1", "notice_text": "A notice.", "request_id": REQUEST_ID
+        "version": "v1",
+        "notice_text": "A notice.",
+        "collection_scopes": ["questionnaire_responses"],
+        "request_id": REQUEST_ID,
     }
 
 
@@ -278,6 +316,27 @@ def test_routes_reject_malformed_notice_payloads_before_service(method, path, pa
         pytest.fail("malformed notice payload reached the service")
 
     response = getattr(TestClient(_app(object(), run_in_threadpool)), method)(path, json=payload)
+    assert response.status_code == 400
+    assert response.headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize(
+    "scopes",
+    [None, "questionnaire_responses", ["questionnaire_responses", 4]],
+)
+def test_notice_route_rejects_malformed_activity_scope_before_service(scopes):
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("malformed activity scope reached the service")
+
+    response = TestClient(_app(object(), run_in_threadpool)).post(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/consent-notices",
+        json={
+            "request_id": REQUEST_ID,
+            "version": "v1",
+            "notice_text": "A notice.",
+            "collection_scopes": scopes,
+        },
+    )
     assert response.status_code == 400
     assert response.headers["cache-control"] == "no-store"
 

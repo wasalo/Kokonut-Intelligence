@@ -64,7 +64,7 @@ def preview_location_delphi_participant_invite(
     """Return the approved notice bound to a still-pending study invite."""
     invite_token = _token(invite_token, "invite token")
     row = _call(
-        "preview_location_delphi_participant_invite",
+        "preview_location_delphi_participant_invite_scoped",
         (invite_token,),
         connection_factory,
     )
@@ -74,6 +74,7 @@ def preview_location_delphi_participant_invite(
         "notice_text": row[2],
         "notice_digest": row[3],
         "expires_at": row[4],
+        "collection_scopes": list(row[5] or []),
     }
 
 

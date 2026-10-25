@@ -82,8 +82,16 @@ def register_delphi_consent_notice_routes(router, provider, run_in_threadpool, p
         payload, error = await read_json_object(request)
         if error is not None:
             return error
-        expected = {"request_id", "version", "notice_text"}
-        if set(payload) != expected or not all(isinstance(payload.get(key), str) for key in expected):
+        expected = {"request_id", "version", "notice_text", "collection_scopes"}
+        if (
+            set(payload) != expected
+            or not all(
+                isinstance(payload.get(key), str)
+                for key in expected - {"collection_scopes"}
+            )
+            or not isinstance(payload.get("collection_scopes"), list)
+            or not all(isinstance(scope, str) for scope in payload["collection_scopes"])
+        ):
             return JSONResponse(
                 status_code=400,
                 content={"error": "Consent notice fields are invalid"},
@@ -97,6 +105,7 @@ def register_delphi_consent_notice_routes(router, provider, run_in_threadpool, p
                 study_id,
                 version=payload["version"],
                 notice_text=payload["notice_text"],
+                collection_scopes=payload["collection_scopes"],
                 request_id=payload["request_id"],
             )
         except TenantContextDenied:

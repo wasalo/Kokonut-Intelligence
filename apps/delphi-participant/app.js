@@ -41,9 +41,30 @@ async function request(path, options = {}) {
 }
 
 function renderNotice(acceptance) {
+  const labels = {
+    questionnaire_responses: "Questionnaire responses, including scores and any reasoning you choose to enter",
+    minority_reports: "Minority reports",
+  };
+  if (!Array.isArray(acceptance.collection_scopes)
+      || acceptance.collection_scopes.some((scope) => !Object.prototype.hasOwnProperty.call(labels, scope))) {
+    throw new Error("The invite notice has an invalid activity scope. Ask the study facilitator for help.");
+  }
   $("#study-title").textContent = acceptance.study_title;
   $("#notice-version").textContent = `Consent notice ${acceptance.notice_version}`;
   $("#notice-text").textContent = acceptance.notice_text;
+  const scopeList = $("#notice-scopes");
+  scopeList.replaceChildren();
+  if (acceptance.collection_scopes.length === 0) {
+    const legacy = document.createElement("li");
+    legacy.textContent = "This older notice has no structured activity labels. The notice text above defines what you are being asked to consent to.";
+    scopeList.append(legacy);
+  } else {
+    for (const scope of acceptance.collection_scopes) {
+      const item = document.createElement("li");
+      item.textContent = labels[scope];
+      scopeList.append(item);
+    }
+  }
   $("#consent-check").checked = false;
   $("#accept").disabled = true;
   consentPanel.hidden = false;

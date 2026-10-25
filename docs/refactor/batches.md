@@ -4329,3 +4329,25 @@ The AST scope inventory now follows a location-filtered parent row into child re
   pass. No migration, database, provider, or participant invitation was used.
   Checklist: 1,187 complete / 25 open (1,212 total); matrix classifications
   remain 24 baseline-retained, 7 deployed, and 36 prepared.
+
+- [x] Add migration 641 and carry explicit participant activity scopes through
+  Delphi consent notice drafting, independent review, invite preview, and
+  participant acceptance. New notices require `questionnaire_responses` and
+  may separately include `minority_reports`; free-form notice text is never
+  interpreted as scope. Notice, retry, and accepted-consent digests bind the
+  canonical scope list. New invites cannot use legacy unscoped notices, while
+  already issued invitations retain prior behavior. The focused Gateway,
+  console, participant-bundle, and migration selection passes 87 tests.
+  Network-disabled disposable PostgreSQL 16 applies/replays migration 641 and
+  passes eight grouped scope, digest, review, invite, acceptance, and
+  Runtime/Directus privilege assertions ([migration](../../schemas/postgres/641_location_delphi_consent_activity_scopes.sql);
+  [runner](../../scripts/check-delphi-consent-scopes-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-consent-scopes-disposable.json)).
+  Ruff, Python compilation, JavaScript syntax, capability validation, release
+  input validation, refreshed runtime SQL inventory, and diff checks pass.
+  Candidate and legacy databases are
+  untouched; migration 641 is not rolled out. Actual participant minority-report
+  submission, live OIDC/browser, populated parity, universal ACL/RLS, SMTP, and
+  owner acceptance remain open; CAP-027 remains prepared. Checklist: 1,188
+  complete / 25 open (1,213 total); classifications remain 24 baseline-
+  retained, 7 deployed, and 36 prepared across 67 capabilities.

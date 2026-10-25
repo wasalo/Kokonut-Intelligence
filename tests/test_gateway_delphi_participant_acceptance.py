@@ -58,7 +58,14 @@ class _Cursor:
 
 
 def test_preview_calls_only_bounded_function_and_closes_connection():
-    connection = _Connection(("Watershed priorities", "v3", "Notice text", NOTICE_DIGEST, NOW))
+    connection = _Connection((
+        "Watershed priorities",
+        "v3",
+        "Notice text",
+        NOTICE_DIGEST,
+        NOW,
+        ["questionnaire_responses", "minority_reports"],
+    ))
     result = acceptance.preview_location_delphi_participant_invite(
         INVITE_TOKEN, connection_factory=lambda: connection
     )
@@ -71,6 +78,7 @@ def test_preview_calls_only_bounded_function_and_closes_connection():
         "notice_text": "Notice text",
         "notice_digest": NOTICE_DIGEST,
         "expires_at": NOW,
+        "collection_scopes": ["questionnaire_responses", "minority_reports"],
     }
     assert connection.committed and connection.rolled_back and connection.closed
 
@@ -168,6 +176,7 @@ def test_preview_response_is_private_and_never_echoes_invite_token():
         "notice_text": "Notice text",
         "notice_digest": NOTICE_DIGEST,
         "expires_at": NOW,
+        "collection_scopes": ["questionnaire_responses", "minority_reports"],
     }
 
     async def run_in_threadpool(func, *args, **_kwargs):
