@@ -86,16 +86,14 @@ def test_unmapped_synthesis_fails_before_shared_database_access():
             _DummyAgent().run(LOCATION_ID)
 
 
-def test_run_store_delegates_to_signed_worker_with_stable_request_id():
-    stable_request_id = "a0000000-0000-4000-8000-000000000004"
+def test_run_store_fails_before_worker_access_without_operator_attribution():
     with mock.patch(
         "services.agents.worker_cli.run_worker_synthesis",
-        return_value={"ai_summary_id": "stored-id", "request_id": stable_request_id},
+        side_effect=AssertionError("unattributed CLI must not write drafts"),
     ) as run_worker:
-        out = _MappedDummyAgent().run(LOCATION_ID, store=True, request_id=stable_request_id)
-    assert out["ai_summary_id"] == "stored-id"
-    run_worker.assert_called_once()
-    assert run_worker.call_args.args[1:] == (LOCATION_ID, stable_request_id)
+        with pytest.raises(RuntimeError, match="authenticated operator/request/task"):
+            _MappedDummyAgent().run(LOCATION_ID, store=True)
+    run_worker.assert_not_called()
 
 
 def test_registered_synthesis_read_only_run_uses_signed_worker_source_boundary():
@@ -144,9 +142,10 @@ def test_run_rejects_locationless_storage_before_worker_access():
     with mock.patch(
         "services.agents.worker_cli.run_worker_synthesis",
         side_effect=AssertionError("worker must not run without location scope"),
-    ):
-        with pytest.raises(ValueError, match="location_id"):
+    ) as run_worker:
+        with pytest.raises(RuntimeError, match="authenticated operator/request/task"):
             _LocationlessDummyAgent().run(store=True)
+    run_worker.assert_not_called()
 
 
 def test_mapped_synthesis_read_only_run_uses_worker_validation():
@@ -161,7 +160,7 @@ def test_mapped_synthesis_read_only_run_uses_worker_validation():
     )
 
 
-def test_run_store_delegates_to_worker_without_shared_database_fallback():
+def test_run_store_rejects_before_shared_database_or_worker_access():
     with mock.patch(
         "services.agents.base.get_db",
         side_effect=AssertionError("shared runtime DB must not be imported or opened"),
@@ -169,10 +168,11 @@ def test_run_store_delegates_to_worker_without_shared_database_fallback():
     ):
         with mock.patch(
             "services.agents.worker_cli.run_worker_synthesis",
-            return_value={"ai_summary_id": "stored-id"},
+            side_effect=AssertionError("unattributed draft write must not run"),
         ) as run_worker:
-            assert _MappedDummyAgent().run(LOCATION_ID, store=True)["ai_summary_id"] == "stored-id"
-    run_worker.assert_called_once()
+            with pytest.raises(RuntimeError, match="authenticated operator/request/task"):
+                _MappedDummyAgent().run(LOCATION_ID, store=True)
+    run_worker.assert_not_called()
 
 
 def test_agent_cli_requires_location_for_registered_synthesis_sources(monkeypatch):
@@ -272,28 +272,16 @@ def test_agent_cli_builds_parser():
             raise AssertionError("expected SystemExit from argparse --help")
 
 
-def test_agent_cli_redacts_content_after_storing_draft():
+def test_agent_cli_rejects_unattributed_draft_storage_before_agent_run(monkeypatch, capsys):
     agent = _DummyAgent()
-    agent.run = mock.Mock(
-        return_value={
-            "summary": {"synthesis": "private farm content"},
-            "ai_summary_id": "saved-id",
-            "request_id": "a0000000-0000-4000-8000-000000000005",
-            "replayed": False,
-        }
-    )
+    agent.run = mock.Mock(side_effect=AssertionError("agent must not run"))
     with mock.patch(
         "sys.argv",
         ["prog", "--location-id", LOCATION_ID, "--store"],
     ):
-        with mock.patch("services.agents.base.print_json") as print_json:
+        with pytest.raises(SystemExit) as exc:
             agent_cli(agent)
 
-    print_json.assert_called_once_with(
-        {
-            "ai_summary_id": "saved-id",
-            "request_id": "a0000000-0000-4000-8000-000000000005",
-            "resulting_status": "draft",
-            "replayed": False,
-        }
-    )
+    assert exc.value.code == 2
+    assert "authenticated operator/request/task attribution path" in capsys.readouterr().err
+    agent.run.assert_not_called()

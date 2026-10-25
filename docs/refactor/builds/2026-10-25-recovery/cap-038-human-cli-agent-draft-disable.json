@@ -1,0 +1,26 @@
+{
+  "verified_at": "2026-10-25T06:49:18Z",
+  "baseline_commit": "9485592e",
+  "scope": "fail-closed behavior for unauthenticated per-agent synthesis draft writes",
+  "disabled_entrypoints": [
+    "SynthesisAgent.run(store=True)",
+    "services.agents.agent_cli --store"
+  ],
+  "retained_behavior": [
+    "Read-only per-agent synthesis",
+    "Task-specific worker execution implementation"
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_agents_base.py tests/test_agent_worker_cli.py -q",
+    "result": "79 passed in 1.03s",
+    "lint_command": "python3 -m ruff check services/agents/base.py tests/test_agents_base.py",
+    "lint_result": "passed",
+    "compile_command": "python3 -m compileall -q services/agents/base.py tests/test_agents_base.py",
+    "compile_result": "passed"
+  },
+  "limitations": [
+    "The one-shot Compose worker CLI profiles still permit manually requested draft writes without an authenticated operator receipt.",
+    "No database, provider, candidate, legacy stack, or credential was used.",
+    "CAP-038 and MAN-CAP-038 remain open."
+  ]
+}

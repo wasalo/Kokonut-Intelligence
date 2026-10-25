@@ -1,3 +1,18 @@
+### Progress addendum — CAP-038 unauthenticated synthesis CLI writes fail closed, 25 October 2026
+
+The public per-agent synthesis CLI and `SynthesisAgent.run(store=True)` no
+longer create drafts through only a service worker identity. Both reject
+before synthesis, secret lookup, or database access unless an authenticated
+operator/request/task path is provided. Read-only synthesis and the worker
+implementation remain available. The focused agent-base and worker CLI
+selection passes 79 tests; Ruff and Python compilation pass
+([evidence](builds/2026-10-25-recovery/cap-038-human-cli-agent-draft-disable.json);
+[attribution inventory](agent-task-attribution-inventory.md)). The Compose
+worker profiles are still manually invoked one-shot commands and remain an
+open unauthenticated write entrypoint until they validate a Gateway-created
+request receipt. Checklist: 1,137 complete / 25 open (1,162 total); capability
+classifications are unchanged and no MAN-CAP acceptance is implied.
+
 ### Progress addendum — CAP-038 generic agent-task route attribution guard, 25 October 2026
 
 The current OIDC Gateway route registry now has an explicit regression against

@@ -209,8 +209,8 @@ class SynthesisAgent:
         """
         del conn, summary, model_version, request_id
         raise RuntimeError(
-            "store_summary is retired; use run(location_id, store=True) through "
-            "the registered signed synthesis worker"
+            "store_summary is retired; human-triggered persistence requires an "
+            "authenticated operator/request/task attribution path"
         )
 
     def run(
@@ -219,7 +219,12 @@ class SynthesisAgent:
         store: bool = False,
         request_id: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Run the agent: synthesize, optionally store a draft, and validate."""
+        """Run a read-only synthesis; unattributed caller persistence is disabled."""
+        if store:
+            raise RuntimeError(
+                "Human-triggered synthesis persistence is disabled until an "
+                "authenticated operator/request/task attribution path is available"
+            )
         validate_task_capabilities(self.task_key)
         if location_id is None:
             raise ValueError("Synthesis requires an exact location_id")
@@ -232,11 +237,6 @@ class SynthesisAgent:
             raise ValueError(
                 "Synthesis requires a registered signed source-reference view map"
             )
-        if store:
-            stable_request_id = str(uuid.UUID(request_id)) if request_id else str(uuid.uuid4())
-            from services.agents.worker_cli import run_worker_synthesis
-
-            return run_worker_synthesis(self, location_id, stable_request_id)
         if request_id is not None:
             raise ValueError("request_id is only valid when storing an agent draft")
         # Registered shared-synthesis agents use the dedicated signed,
@@ -271,7 +271,7 @@ def run_fetch(
 
 
 def agent_cli(agent: SynthesisAgent, description: str = "", location_required: bool = True) -> None:
-    """Standard synthesis-agent CLI: ``--location-id`` and ``--store``, JSON output."""
+    """Standard read-only synthesis CLI with an exact location and JSON output."""
     parser = argparse.ArgumentParser(
         description=description or f"Run the Kokonut {agent.summary_type} synthesis agent"
     )
@@ -283,26 +283,19 @@ def agent_cli(agent: SynthesisAgent, description: str = "", location_required: b
     parser.add_argument(
         "--store",
         action="store_true",
-        help="Store a location-scoped draft through the signed agent-summary worker",
+        help="Unavailable until an authenticated operator task route is implemented",
     )
     parser.add_argument(
         "--request-id",
-        help="Stable UUID to reuse when retrying --store (generated when omitted)",
+        help="Unavailable from this unauthenticated CLI; draft storage is disabled",
     )
     args = parser.parse_args()
-    result = agent.run(
-        args.location_id, store=args.store, request_id=args.request_id
-    )
     if args.store:
-        # Stored synthesis can include private farm and participant context.
-        # Return only the durable receipt from CLI output.
-        print_json(
-            {
-                "ai_summary_id": result.get("ai_summary_id"),
-                "request_id": result.get("request_id"),
-                "resulting_status": "draft",
-                "replayed": bool(result.get("replayed")),
-            }
+        parser.error(
+            "human-triggered synthesis draft storage requires an authenticated "
+            "operator/request/task attribution path"
         )
-    else:
-        print_json(result)
+    if args.request_id:
+        parser.error("--request-id is unavailable because this CLI cannot persist drafts")
+    result = agent.run(args.location_id)
+    print_json(result)
