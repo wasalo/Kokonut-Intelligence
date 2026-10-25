@@ -18180,3 +18180,18 @@ attribution, not property-to-row lineage or a content snapshot. Checklist:
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-cids-node-source-attribution.json).
+
+### Progress addendum — CAP-027/038 Delphi CLI database boundary, 25 October 2026
+
+Removed the legacy Delphi CLI's shared database connection helper. Its ten
+study/panel operations without authenticated location context now stop before
+database access. The signed location-scoped aggregate summary and in-memory
+recommendation suggestion remain available; existing Gateway workflows handle
+study listing and recommendation drafts/review. The focused CLI selection passes
+19 tests, and Ruff, Python compilation, capability-matrix validation, and
+`git diff --check` pass. No database, provider, candidate, or legacy service was
+used. This closes the unsafe CLI bypass only; study/panel lifecycle parity is
+still open until the matching authenticated Gateway operations exist. Checklist:
+1,166 complete / 25 open (1,191 total); matrix remains 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-027-delphi-cli-study-panel-boundary.json).

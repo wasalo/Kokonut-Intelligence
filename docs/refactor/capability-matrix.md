@@ -62,6 +62,16 @@ runtime recovery, and MAN-CAP-038 owner acceptance remain open. Classifications
 remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence: [Delphi source scope](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json).
 
+**CAP-027/038 Delphi CLI database boundary (25 October 2026):** the ten legacy
+study/panel commands that lack authenticated location context now fail before
+database import or connection. Signed aggregate summary and in-memory draft
+commands remain available. The focused CLI selection passes 19 tests; Ruff,
+compilation, and matrix validation pass. This prevents shared-login bypass but
+does not port the blocked lifecycle operations to Gateway; those contracts,
+live OIDC, populated parity, and MAN-CAP review remain open. Capability
+classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
+67 rows. Evidence: [Delphi CLI boundary](builds/2026-10-25-recovery/cap-027-delphi-cli-study-panel-boundary.json).
+
 **CAP-038 EBF evidence-gap output scope (25 October 2026):** the signed,
 read-only worker now returns the exact safe summary view and normalized
 scorecard/location query scope, and its task contract requires that metadata.

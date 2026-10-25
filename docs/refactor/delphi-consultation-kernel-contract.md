@@ -162,8 +162,12 @@ rollout is included in this batch.
 
 The legacy Delphi facilitator and CLI no longer persist, list, approve, or
 reject recommendations directly. The agent helper produces an in-memory
-suggestion only; the old command paths fail before database access. Use the
-authenticated Gateway draft and review routes for location-scoped persistence,
-request idempotency, audit, and independent human decisions. Other legacy
-Delphi study/panel commands remain outside this recommendation-specific
-boundary, and no candidate or legacy database change is implied.
+suggestion only; the old recommendation command paths fail before database
+access. The remaining CLI study and panel commands (create/open/close study,
+list studies, add/list panel, add item, submit contribution, check stopping,
+and calibrate panel) now also fail before database access because they lack an
+authenticated location grant. Use the scoped Gateway study-list and
+recommendation workflows where available. The blocked study/panel operations
+remain capability gaps until their matching authenticated Gateway contracts
+are implemented; this is an access-boundary hardening step, not a claim of full
+Delphi lifecycle parity. No candidate or legacy database change is implied.

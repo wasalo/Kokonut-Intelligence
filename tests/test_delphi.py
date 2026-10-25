@@ -16,6 +16,14 @@ def _make_mock_conn(mock_cursor):
     return mock_conn
 
 
+def _forbid_cli_database(monkeypatch):
+    from services.common import database
+
+    get_db = MagicMock(side_effect=AssertionError("Delphi CLI database access is forbidden"))
+    monkeypatch.setattr(database, "get_db", get_db)
+    return get_db
+
+
 # ---------------------------------------------------------------------------
 # Model tests
 # ---------------------------------------------------------------------------
@@ -477,9 +485,7 @@ class TestDelphiCLI:
 
         import services.delphi.cli as cli
 
-        monkeypatch.setattr(
-            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
-        )
+        get_db = _forbid_cli_database(monkeypatch)
         cli.cmd_draft_recommendation(
             SimpleNamespace(
                 study_id="a0000000-0000-4000-8000-000000000001",
@@ -492,6 +498,7 @@ class TestDelphiCLI:
         output = json.loads(capsys.readouterr().out)
         assert output["status"] == "draft"
         assert "created_by" not in output
+        get_db.assert_not_called()
 
     @pytest.mark.parametrize("command", ["cmd_live_summary", "cmd_consensus"])
     def test_legacy_summary_commands_use_signed_worker_without_shared_db(
@@ -515,9 +522,7 @@ class TestDelphiCLI:
             "privacy_note": "consented aggregate responses only",
             "synthesis": "results suppressed",
         }
-        monkeypatch.setattr(
-            cli, "_get_conn", MagicMock(side_effect=AssertionError("shared DB must stay closed"))
-        )
+        get_db = _forbid_cli_database(monkeypatch)
         with patch.object(
             delphi_facilitator_agent, "summarize_study", return_value=summary
         ) as read:
@@ -531,6 +536,7 @@ class TestDelphiCLI:
             assert output == {"study_id": study_id, "items": summary["items"]}
         else:
             assert output == summary
+        get_db.assert_not_called()
 
     def test_legacy_summary_cli_requires_explicit_location_before_worker(self, monkeypatch):
         import sys
@@ -538,9 +544,7 @@ class TestDelphiCLI:
         import services.delphi.cli as cli
         from services.agents import delphi_facilitator_agent
 
-        monkeypatch.setattr(
-            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
-        )
+        get_db = _forbid_cli_database(monkeypatch)
         with patch.object(
             delphi_facilitator_agent,
             "summarize_study",
@@ -556,6 +560,36 @@ class TestDelphiCLI:
 
         assert exc.value.code == 2
         read.assert_not_called()
+        get_db.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "cmd_create_study",
+            "cmd_open_study",
+            "cmd_close_study",
+            "cmd_add_panel",
+            "cmd_list_panel",
+            "cmd_add_item",
+            "cmd_submit",
+            "cmd_check_stopping",
+            "cmd_calibrate_panel",
+            "cmd_list_studies",
+        ],
+    )
+    def test_legacy_study_and_panel_commands_fail_before_database_access(
+        self, command, monkeypatch
+    ):
+        from types import SimpleNamespace
+
+        import services.delphi.cli as cli
+
+        database = _forbid_cli_database(monkeypatch)
+
+        with pytest.raises(SystemExit, match="authenticated location grant"):
+            getattr(cli, command)(SimpleNamespace())
+
+        database.assert_not_called()
 
     @pytest.mark.parametrize(
         "command",
@@ -566,8 +600,7 @@ class TestDelphiCLI:
 
         import services.delphi.cli as cli
 
-        monkeypatch.setattr(
-            cli, "_get_conn", MagicMock(side_effect=AssertionError("DB must stay closed"))
-        )
+        database = _forbid_cli_database(monkeypatch)
         with pytest.raises(SystemExit, match="authenticated.*Gateway"):
             getattr(cli, command)(SimpleNamespace())
+        database.assert_not_called()
