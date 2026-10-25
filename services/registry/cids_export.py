@@ -248,10 +248,41 @@ def fetch_cids_source(
             close()
 
 
-def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
+def _source_views(source_schema: str, source_key: str) -> tuple[str, ...]:
+    signed_views = {
+        "location": ("kokonut_agent_source.cids_location",),
+        "stakeholder_outcomes": ("kokonut_agent_source.cids_stakeholder_outcome",),
+        "framework_mappings": ("kokonut_agent_source.cids_farm_impact_mapping",),
+        "metric_values": ("kokonut_agent_source.cids_metric_value",),
+        "feedback": ("kokonut_agent_source.cids_stakeholder_feedback",),
+        "impact_claims": ("kokonut_agent_source.cids_impact_claim",),
+    }
+    public_tables = {
+        "location": ("public.location", "public.farm", "public.farm_registry_record"),
+        "stakeholder_outcomes": ("public.stakeholder_outcome",),
+        "framework_mappings": ("public.farm_impact_mapping", "public.sdg"),
+        "metric_values": ("public.metric_value", "public.metric_definition"),
+        "feedback": ("public.stakeholder_feedback",),
+        "impact_claims": ("public.impact_claim", "public.evidence_maturity_level"),
+    }
+    if source_schema == "kokonut_agent_source":
+        return signed_views[source_key]
+    if source_schema == "public":
+        return public_tables[source_key]
+    raise ValueError("source_schema must be public or kokonut_agent_source")
+
+
+def _with_source_views(item: dict[str, Any], source_views: tuple[str, ...] | set[str]) -> dict[str, Any]:
+    return _context({**item, "kokonut:sourceViews": sorted(set(source_views))})
+
+
+def build_cids_graph(
+    source: dict[str, Any], *, source_schema: str = "public"
+) -> list[dict[str, Any]]:
     """Build a CIDS Essential Tier JSON-LD graph from fetched Kokonut rows."""
     location = source["location"]
     location_slug = _slug(location.get("slug"))
+    location_views = _source_views(source_schema, "location")
     org_id = _uri("Organization", location_slug)
     program_id = _uri("Program", f"{location_slug}-farm-program")
     impact_pathway_id = _uri("ImpactPathway", f"{location_slug}-impact-pathway")
@@ -262,16 +293,19 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
     indicator_ids = [
         _uri("Indicator", f"{location_slug}-{_slug(row.get('metric_key'))}") for row in source["metric_values"]
     ]
-    stakeholder_ids = sorted(
-        {
-            _uri("Stakeholder", _slug(row.get("stakeholder_group")))
-            for row in source["stakeholder_outcomes"] + source["feedback"]
-        }
-    )
+    stakeholder_sources: dict[str, set[str]] = {}
+    for source_key in ("stakeholder_outcomes", "feedback"):
+        views = _source_views(source_schema, source_key)
+        for row in source[source_key]:
+            group = row.get("stakeholder_group")
+            if group:
+                stakeholder_id = _uri("Stakeholder", _slug(group))
+                stakeholder_sources.setdefault(stakeholder_id, set()).update(views)
+    stakeholder_ids = sorted(stakeholder_sources)
 
     graph: list[dict[str, Any]] = []
     graph.append(
-        _context(
+        _with_source_views(
             {
                 "@type": "cids:Organization",
                 "@id": org_id,
@@ -282,12 +316,13 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                 "hasOutcome": outcome_ids,
                 "hasIndicator": indicator_ids,
                 "hasStakeholder": stakeholder_ids,
-            }
+            },
+            location_views,
         )
     )
 
     graph.append(
-        _context(
+        _with_source_views(
             {
                 "@type": "cids:Program",
                 "@id": program_id,
@@ -295,12 +330,13 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                 "hasDescription": location.get("proposed_solution") or location.get("description"),
                 "forOrganization": org_id,
                 "hasImpactModel": [impact_pathway_id],
-            }
+            },
+            location_views,
         )
     )
 
     graph.append(
-        _context(
+        _with_source_views(
             {
                 "@type": "cids:ImpactPathway",
                 "@id": impact_pathway_id,
@@ -309,7 +345,8 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                 "forOrganization": org_id,
                 "hasOutcome": outcome_ids,
                 "hasIndicator": indicator_ids,
-            }
+            },
+            location_views,
         )
     )
 
@@ -319,14 +356,15 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
             theme_id = f"{SDG_BASE_URL}/{row['sdg_number']}"
             if theme_id not in added_themes:
                 graph.append(
-                    _context(
+                    _with_source_views(
                         {
                             "@type": "cids:Theme",
                             "@id": theme_id,
                             "hasName": row.get("sdg_name") or f"SDG {row['sdg_number']}",
                             "hasDescription": f"UN Sustainable Development Goal {row['sdg_number']}",
                             "hasCode": [theme_id],
-                        }
+                        },
+                        _source_views(source_schema, "framework_mappings"),
                     )
                 )
                 added_themes.add(theme_id)
@@ -334,13 +372,14 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
     for stakeholder_id in stakeholder_ids:
         group = stakeholder_id.rsplit("/", 1)[-1]
         graph.append(
-            _context(
+            _with_source_views(
                 {
                     "@type": "cids:Stakeholder",
                     "@id": stakeholder_id,
                     "hasName": group.replace("-", " ").title(),
                     "forOrganization": org_id,
-                }
+                },
+                stakeholder_sources[stakeholder_id],
             )
         )
 
@@ -352,7 +391,7 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
         if row.get("sdg_number"):
             theme_ids.append(f"{SDG_BASE_URL}/{row['sdg_number']}")
         graph.append(
-            _context(
+            _with_source_views(
                 {
                     "@type": "cids:Outcome",
                     "@id": outcome_id,
@@ -361,11 +400,12 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                     "forOrganization": org_id,
                     "forTheme": theme_ids,
                     "hasStakeholderOutcome": [stakeholder_outcome_id],
-                }
+                },
+                _source_views(source_schema, "stakeholder_outcomes"),
             )
         )
         graph.append(
-            _context(
+            _with_source_views(
                 {
                     "@type": "cids:StakeholderOutcome",
                     "@id": stakeholder_outcome_id,
@@ -376,7 +416,8 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                     "hasImportance": row.get("importance"),
                     "isUnderserved": bool(row.get("is_underserved")),
                     "hasImpactManagementNormsDefinition": row.get("importance_perspective"),
-                }
+                },
+                _source_views(source_schema, "stakeholder_outcomes"),
             )
         )
 
@@ -388,7 +429,7 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
         ebf_pillar = _ebf_pillar_from_metric(row.get("metric_key"))
         if indicator_id not in seen_indicators:
             graph.append(
-                _context(
+                _with_source_views(
                     {
                         "@type": "cids:Indicator",
                         "@id": indicator_id,
@@ -400,12 +441,13 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                         "hasComment": "Kokonut governed metric definition",
                         "kokonut:framework": "ebf" if ebf_pillar else None,
                         "kokonut:ebfPillar": ebf_pillar,
-                    }
+                    },
+                    _source_views(source_schema, "metric_values"),
                 )
             )
             seen_indicators.add(indicator_id)
         graph.append(
-            _context(
+            _with_source_views(
                 {
                     "@type": "cids:IndicatorReport",
                     "@id": report_id,
@@ -419,14 +461,15 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                     "kokonut:framework": "ebf" if ebf_pillar else None,
                     "kokonut:ebfPillar": ebf_pillar,
                     "kokonut:cidsMapping": "metric_value -> cids:IndicatorReport" if ebf_pillar else None,
-                }
+                },
+                _source_views(source_schema, "metric_values"),
             )
         )
 
     for row in source["impact_claims"]:
         claim_id = _uri("ImpactReport", str(row["id"]))
         graph.append(
-            _context(
+            _with_source_views(
                 {
                     "@type": "cids:ImpactReport",
                     "@id": claim_id,
@@ -441,7 +484,8 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                     "kokonut:methodologyRef": row.get("methodology_ref"),
                     "kokonut:externalVerifier": row.get("external_verifier"),
                     "kokonut:attestationUid": row.get("attestation_uid"),
-                }
+                },
+                _source_views(source_schema, "impact_claims"),
             )
         )
 
@@ -463,7 +507,7 @@ def export_location(
     source = fetch_cids_source(conn, location_id, source_schema=source_schema)
     return {
         "@context": CIDS_CONTEXTS,
-        "@graph": build_cids_graph(source),
+        "@graph": build_cids_graph(source, source_schema=source_schema),
         "kokonut:cidsVersion": CIDS_VERSION,
         "kokonut:alignmentTier": "essential",
     }

@@ -30,14 +30,16 @@ deployed, and 36 prepared across 67 rows.
 Evidence: [summary inspection scope](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json).
 
 **CAP-038 CIDS export output source scope (25 October 2026):** the signed
-worker now includes its six canonical views and normalized location in required
-task output metadata. Four focused mocked checks pass, including mixed-case
-UUID normalization; Ruff, compilation, matrix validation, and diff checks pass.
-This names exporter inputs and does not create additional row-to-view linkage
-beyond the JSON-LD graph. Live OIDC, deployed worker credentials/grants,
-populated parity, and MAN-CAP-038 owner acceptance remain open. Classifications
-remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
-Evidence: [CIDS source scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json).
+worker includes its six canonical views and normalized location in required
+task output metadata. Each JSON-LD graph node now carries a sorted
+`kokonut:sourceViews` list; stakeholder nodes combine the outcome and feedback
+views when both contribute. The 11-test CIDS/EBF compatibility selection,
+Ruff, compilation, and matrix validation pass. This is view-level attribution,
+not property-to-row lineage or a source snapshot. Live OIDC, deployed worker
+credentials/grants, populated parity, and MAN-CAP-038 owner acceptance remain
+open. Classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows. Evidence: [CIDS source scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json),
+[node attribution](builds/2026-10-25-recovery/cap-038-cids-node-source-attribution.json).
 
 **CAP-038 Delphi facilitator output scope (25 October 2026):** the signed
 read-only worker names `kokonut_agent_source.delphi_live_summary` and returns

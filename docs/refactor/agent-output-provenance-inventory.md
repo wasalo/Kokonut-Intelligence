@@ -16,7 +16,7 @@ signed tenant context and selecting its restricted reader role.
 | AI-summary review list | Each row names `kokonut_agent_source.ai_summary_list` and the normalized location. | Up to twenty location-scoped rows; preview remains as before. An empty list has no row on which to carry metadata. | [inspection scope](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json) |
 | AI-summary digest | Metadata names `kokonut_agent_source.ai_summary_digest`, the normalized summary ID, and location ID. | Returns summary type/status, model version, content hash, and content length; never returns summary content. A missing row remains `None`. | [inspection scope](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json) |
 | EBF evidence-gap analysis | Names `kokonut_agent_source.v_ebf_evidence_gap_summary` and normalized scorecard/location query scope. | The view returns aggregate evidence-gap data. The output does not claim identities or snapshots of underlying evidence records. | [EBF scope](builds/2026-10-25-recovery/cap-038-ebf-output-source-scope.json) |
-| CIDS Essential export | Names the six signed input views: location, stakeholder outcome, farm impact mapping, metric value, stakeholder feedback, and impact claim; includes normalized location. The JSON-LD graph carries its own entity references. | Every source query is exact-location scoped and filtered by its own publication, verification, or consent contract. The scope map does not create a mapping from each graph node to the view that supplied it. | [CIDS scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json) |
+| CIDS Essential export | Names the six signed input views: location, stakeholder outcome, farm impact mapping, metric value, stakeholder feedback, and impact claim; includes normalized location. Every JSON-LD node carries a deterministically sorted `kokonut:sourceViews` list for the projection or public source-table categories used to construct it. | Every worker source query is exact-location scoped and filtered by its own publication, verification, or consent contract. Stakeholder nodes combine provenance from outcome and feedback projections when both contribute. | [CIDS scope](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json), [node attribution](builds/2026-10-25-recovery/cap-038-cids-node-source-attribution.json) |
 | Delphi facilitation summary | Names `kokonut_agent_source.delphi_live_summary` and normalized study/location scope. | The signed summary projection applies consent and minimum-panel privacy thresholds. It does not expose participant identity, free text, or participant-level source rows. | [Delphi scope](builds/2026-10-25-recovery/cap-038-delphi-output-source-scope.json) |
 
 ## Remaining limits
@@ -27,8 +27,9 @@ signed tenant context and selecting its restricted reader role.
 - View/query scope does not mean content snapshot, complete lineage from each
   output field to an input row, or populated legacy-output parity.
 - Aggregate EBF and Delphi privacy projections intentionally do not disclose
-  participant/evidence row identifiers. CIDS graph nodes do not yet include a
-  per-node source-view attribution map.
+  participant/evidence row identifiers. CIDS node attribution names source
+  views/tables but does not map every output property to an exact input row or
+  capture a source-content snapshot.
 - The source contracts and tests do not prove production credential/grant
   provisioning, live OIDC, worker-process recovery, or MAN-CAP-038 acceptance.
 
