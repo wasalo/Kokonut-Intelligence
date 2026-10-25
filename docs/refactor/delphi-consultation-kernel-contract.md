@@ -406,14 +406,69 @@ CSRF token. A dedicated non-login role owns credential and consent ledgers;
 runtime and Directus cannot read those ledgers, and Directus cannot execute the
 participant functions.
 
-The participant browser page, live browser acceptance, and contribution
-submission/update path are not part of migration 636. Do not distribute invites
-until the first-party page is implemented and accepted. The 27-test focused
-Gateway/policy selection passes within the broader 335-test Delphi, Gateway,
-route-policy, and migration-integrity regression. Network-disabled disposable
-PostgreSQL 16 applies and replays migrations 449–451 and 630–636 with ten
-grouped checks. Candidate
-and legacy databases remain untouched; migration 636 is not rolled out. Roll
-back by disabling the exact routes and policy entries; retain the additive
-migration, consumed invites, consent events, and withdrawal receipts if
-applied.
+Migration 636 does not include the participant page or contribution path;
+migration 637 adds those separately. Do not distribute invites until the
+participant browser behavior has been accepted and operator invite delivery is
+available. The 27-test focused Gateway/policy selection passes within the
+broader 335-test Delphi, Gateway, route-policy, and migration-integrity
+regression. Network-disabled disposable PostgreSQL 16 applies and replays
+migrations 449–451 and 630–636 with ten grouped checks. Candidate and legacy
+databases remain untouched; migration 636 is not rolled out. Roll back by
+disabling the exact routes and policy entries; retain the additive migration,
+consumed invites, consent events, and withdrawal receipts if applied.
+
+
+### Participant workspace and contribution submission
+
+Migration 637 adds the first-party participant page at
+`GET /api/participation/delphi` and self-hosted JavaScript/CSS assets. The page
+uses a same-origin CSP, no-store/referrer protections, safe text rendering, and
+no third-party resources. An invite token is accepted only in the URL fragment;
+the browser removes that fragment from history before making requests. A
+session-scoped acceptance retry payload is held in `sessionStorage` only until
+the database confirms acceptance. The participant session cookie is Secure,
+HttpOnly, SameSite=Strict, and limited to the Delphi participation path; the
+readable CSRF cookie has the same scope and is checked with a same-origin
+double-submit header.
+
+`GET /api/participation/delphi/workspace?limit=50&offset=0` requires the active
+session cookie. It returns the study title and lifecycle state, a bounded page
+of questions, and only the authenticated participant's own saved score and
+reasoning. A draft study returns no questions. A closed study is read-only but
+continues to let the participant review their own answers. Response bodies are
+no-store; page bounds are one to 50 questions with offsets from zero to 10,000.
+
+`POST /api/participation/delphi/contributions` accepts exactly `item_id`,
+`score`, `reasoning`, and `request_id`; the session cookie and matching CSRF
+cookie/header are required. Scores must be finite, fit `NUMERIC(8,4)`, remain
+inside the item's configured range, and reasoning is limited to 4,000
+characters. Migration 637 serializes each write with that participant's
+withdrawal and locks the study row so closing the study cannot race a new
+answer. It verifies active session, current consent, exact study/item
+membership, and `open` status in the same transaction. It preserves the legacy
+upsert keyed by item and panel member, updates the live consensus snapshot,
+and appends consensus history when an answer changes. Repeating unchanged
+content creates a receipt but no duplicate consensus-history row. Exact
+request retries replay; request-ID reuse with changed content fails. The
+append-only receipt stores only the payload digest and contribution reference.
+
+Both SQL functions use the isolated non-login participant role and expose only
+bounded responses. Runtime may execute them but cannot read or write the
+private receipt directly; Directus cannot execute them or access the ledger.
+The global runtime still has broader legacy Delphi DML, so this does not prove
+universal tenant isolation or close every direct legacy write path. Withdrawal
+revokes the participant session and blocks later reads/writes while leaving
+prior submissions private for configured retention/erasure disposition.
+
+The focused Gateway, route-policy, acceptance, migration, and image-bundle
+selection passes 76 tests; the browser assets are bundled into both the default Kernel and
+legacy Gateway images and included in the Kernel source manifest. The
+network-disabled disposable PostgreSQL 16 runner applies/replays migration 637
+and passes eight grouped checks for draft hiding, own-answer privacy, paging,
+write validation, retries, legacy consensus/history parity, withdrawal, and
+role boundaries. Candidate and legacy databases remain untouched; migration
+637 is not rolled out. Roll back by disabling the exact participant routes and
+removing the participant page/asset image copies; retain the additive migration
+and private receipts if it has been applied. Live browser/OIDC acceptance,
+invite console and SMTP delivery, populated parity, universal ACL/RLS, and
+MAN-CAP-027 owner acceptance remain open. Do not distribute invite tokens yet.

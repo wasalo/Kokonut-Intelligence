@@ -15,8 +15,10 @@ def main():
     paths = []
     for directory, suffix in (("services", ".py"), ("schemas", ".sql"),
                               ("requirements", ".txt"), ("proto", ".proto"),
-                              ("generated", ".py"), ("apps", ".html")):
+                              ("generated", ".py")):
         paths.extend((root / directory).rglob(f"*{suffix}"))
+    for suffix in (".html", ".js", ".css"):
+        paths.extend((root / "apps").rglob(f"*{suffix}"))
     paths.extend(root / name for name in ("VERSION", "pyproject.toml", "Dockerfile.kernel"))
     files = {}
     for path in sorted(set(paths)):
@@ -27,7 +29,7 @@ def main():
     canonical = json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
     manifest = {
         "format": 1, "target": args.target,
-        "scope": "Python, SQL, requirement and protobuf sources; VERSION, pyproject and image recipe. Configuration, secrets, installed packages and runtime data excluded.",
+        "scope": "Python, SQL, requirement, protobuf, and first-party browser sources; VERSION, pyproject and image recipe. Configuration, secrets, installed packages and runtime data excluded.",
         "source_sha256": hashlib.sha256(canonical).hexdigest(), "files": files,
     }
     (root / "source-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")

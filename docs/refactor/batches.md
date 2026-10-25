@@ -4205,3 +4205,41 @@ The AST scope inventory now follows a location-filtered parent row into child re
   ACL/RLS, and MAN-CAP-027 owner acceptance remain open. Do not distribute
   invite tokens yet. Checklist: 1,176 complete / 25 open (1,201 total); matrix
   remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+
+
+### CAP-027 participant workspace and contribution path — 25 October 2026
+
+- [x] Add migration 637, a first-party self-hosted participant page, a bounded
+  session workspace, and consent-gated answer submission/update. Invite tokens
+  are accepted from a URL fragment and removed from browser history; session
+  credentials use scoped Secure cookies, CSRF uses a same-origin
+  double-submit pair, and the app loads no third-party assets. Draft studies
+  show no questions, open studies allow answer updates, and closed studies show
+  only the participant's own prior answers as read-only. The database
+  serializes writes with withdrawal and study closure, validates consent and
+  score bounds, upserts the legacy contribution row, refreshes consensus and
+  history atomically, and uses a private digest-only idempotency receipt.
+  Exact retries replay and changed payload reuse fails; unchanged answers do
+  not create duplicate history. The focused Gateway, route-policy, acceptance,
+  migration, and image-bundle selection passes 76 tests. Network-disabled
+  disposable PostgreSQL 16 applies/replays the Delphi chain through migration
+  637 and passes eight grouped assertions for draft hiding, own-answer privacy,
+  pagination, write bounds, retry/collision behavior, consensus/history parity,
+  closure and withdrawal, and role boundaries. Ruff, Python compilation,
+  JavaScript syntax, migration integrity, capability validation, runtime SQL
+  inventory, and diff checks pass. Candidate and legacy databases remain
+  untouched; migration 637 is not rolled out. Rollback is to disable the exact
+  participant endpoints and withdraw the static page from the image while
+  retaining the additive migration and private request receipts if applied
+  ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/637_location_scoped_delphi_participant_workspace.sql);
+  [Gateway service](../../services/gateway/delphi_participant_workspace.py);
+  [participant app](../../apps/delphi-participant/index.html);
+  [tests](../../tests/test_gateway_delphi_participant_workspace.py);
+  [disposable runner](../../scripts/check-delphi-participant-workspace-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-participant-workspace-disposable.json)).
+  Do not distribute invite tokens yet: live browser/OIDC acceptance, invite
+  console and SMTP delivery, populated parity, broad ACL/RLS, and MAN-CAP-027
+  owner acceptance remain open. Checklist: 1,177 complete / 25 open (1,202
+  total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared
+  across 67 rows. CAP-027 remains prepared, not accepted.

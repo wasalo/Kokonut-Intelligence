@@ -18370,3 +18370,29 @@ open. Do not distribute invite tokens until the participant page is ready.
 CAP-027 remains prepared. Checklist: 1,176 complete / 25 open (1,201 total);
 matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67
 rows. Evidence: [migration acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-acceptance-disposable.json).
+
+
+### Progress addendum — CAP-027 participant workspace and contribution path, 25 October 2026
+
+Migration 637 now provides a bounded participant workspace and consent-gated
+answer create/update for the selected study-scoped single-use invite model.
+The first-party page is served by the Gateway with self-hosted assets. It
+removes invite secrets from the URL before exchange, uses scoped Secure
+session/CSRF cookies, and stores no answer data in browser storage. Draft
+studies reveal no questions; open studies accept updates, while closed studies
+show only a participant's own existing answers read-only. Writes serialize
+against withdrawal and study closure, validate consent and score bounds,
+preserve the legacy contribution/consensus/history behavior, and use a private
+digest-only idempotency receipt. Runtime SQL inventory now includes the bounded
+workspace and write functions. The 76-test focused Gateway, route-policy,
+participant acceptance, migration, and image-bundle suite passes; Ruff,
+compilation, JavaScript syntax, migration integrity, capability validation,
+runtime SQL inventory, and diff checks pass. Network-disabled disposable
+PostgreSQL 16 applies and replays migration 637 with eight grouped assertions.
+Candidate and legacy databases remain untouched; migration 637 is not rolled
+out. Live browser/OIDC acceptance, operator invite console and SMTP delivery,
+populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
+remain open. Do not distribute invite tokens yet. Checklist: 1,177 complete /
+25 open (1,202 total); matrix classifications remain 24 baseline-retained,
+7 deployed, and 36 prepared across 67 rows. Evidence:
+[disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-workspace-disposable.json).

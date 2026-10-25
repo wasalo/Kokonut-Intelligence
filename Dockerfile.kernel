@@ -22,6 +22,7 @@ RUN pip list --disable-pip-version-check --format=json > /app/python-packages.js
     && python3 -VV > /app/python-runtime.txt
 
 COPY services/ ./services/
+COPY apps/delphi-participant/ ./apps/delphi-participant/
 COPY schemas/ ./schemas/
 COPY config/ ./config/
 COPY VERSION ./VERSION

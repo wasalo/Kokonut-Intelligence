@@ -77,6 +77,11 @@ _EXPECTED_ROUTE_POLICIES = {
     ("POST", "/api/participation/delphi/preview"): ("delphi_participant", "preview", True),
     ("POST", "/api/participation/delphi/accept"): ("delphi_participant", "accept", True),
     ("POST", "/api/participation/delphi/withdraw"): ("delphi_participant", "withdraw", True),
+    ("GET", "/api/participation/delphi"): ("delphi_participant_app", "read", True),
+    ("GET", "/api/participation/delphi/app.js"): ("delphi_participant_app", "read", True),
+    ("GET", "/api/participation/delphi/styles.css"): ("delphi_participant_app", "read", True),
+    ("GET", "/api/participation/delphi/workspace"): ("delphi_participant", "read", True),
+    ("POST", "/api/participation/delphi/contributions"): ("delphi_participant", "write", True),
 }
 
 _participant_router = APIRouter()

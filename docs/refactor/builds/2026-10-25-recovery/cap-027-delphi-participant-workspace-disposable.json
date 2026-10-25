@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "637_location_scoped_delphi_participant_workspace.sql",
+  "database_target": "new disposable PostgreSQL 16 container with networking disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 637 applies and replays after the participant acceptance chain",
+    "draft workspace hides all questionnaire items until study opening",
+    "workspace shows only the current participant's answer and bounded question pages",
+    "answer writes validate session, CSRF, consent, item/study, score range, and open state",
+    "answer updates preserve one contribution row and refresh consensus plus history",
+    "exact retries replay, changed request collisions fail, unchanged answers avoid duplicate history",
+    "withdrawal serializes with contribution access and preserves prior answer data",
+    "runtime and Directus lack direct answer-receipt access; writer is owned by isolated role"
+  ],
+  "assertions_passed": 8
+}
