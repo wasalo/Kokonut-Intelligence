@@ -333,3 +333,39 @@ Candidate and legacy databases were not touched; migration 634 is not rolled
 out. To roll back before migration deployment, remove the three routes and
 their exact policy entries. After migration application, disable the routes
 while retaining immutable notices and audit records.
+
+
+### One-time invite issuance and revocation
+
+Migration 635 adds two operator-only routes:
+
+- POST /operator/api/delphi/{location_id}/studies/{study_id}/invites
+  takes only a request ID and lifetime in seconds.
+- POST /operator/api/delphi/{location_id}/invites/{invite_id}/revoke
+  takes a request ID and a fixed revoke reason.
+
+Issuance requires exact delphi:invite scope, signed same-transaction location
+context, a draft study, and a currently approved notice. The invite binds the
+study/location plus the exact notice ID, version, and digest. The database
+generates a 32-byte random token, persists only its SHA-256 digest, and returns
+the bearer token once with Cache-Control: no-store. Lifetime is bounded to one
+hour through thirty days, and each study is capped at 500 simultaneously
+pending unexpired invites. Exact request retries replay metadata but omit the
+secret; a lost or exposed token must be explicitly revoked and replaced with a
+new request. Revocation has its own exact delphi:invite_revoke grant and
+append-only reason-coded audit.
+
+The token cannot yet be redeemed: public notice preview, one-time acceptance,
+pseudonymous panel creation, participant session, and withdrawal are the next
+implementation slice. No email or other external delivery occurs, and the
+invite token must not be sent to a participant until redemption is live.
+Operator responses are OIDC/CSRF protected by the enclosing Gateway middleware,
+location scoped, and no-store. Runtime and Directus have no direct access to
+invite rows or receipts.
+
+The focused Gateway/route-policy/migration tests pass (58); network-disabled
+disposable PostgreSQL 16 applies/replays migrations 449–451 and 630–635 and
+passes nine grouped assertions. Candidate and legacy databases remain
+untouched; migration 635 is not rolled out. Disable the two routes/policies to
+roll back application behavior; retain the additive migration and private
+invite history if applied.

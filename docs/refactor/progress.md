@@ -18314,3 +18314,24 @@ OIDC/browser, populated parity, broader ACL/RLS, and MAN-CAP-027 acceptance
 remain open. Checklist: 1,174 complete / 25 open (1,199 total); matrix remains
 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence: [migration acceptance](builds/2026-10-25-recovery/cap-027-delphi-consent-notice-review-disposable.json).
+
+
+### Progress addendum — CAP-027 pseudonymous invite issuance, 25 October 2026
+
+Migration 635 and two exact-location Gateway operations now issue and revoke
+pseudonymous Delphi invites. Issuance requires a draft study, its currently
+approved notice, and a delphi:invite grant. A separate delphi:invite_revoke
+grant controls pending-invite revocation. The database creates 256-bit tokens,
+stores only SHA-256 digests bound to the precise study/location/notice version,
+returns the raw secret only once, and omits it from exact retry responses.
+Fixed expiry bounds, a pending-invite cap, reason-coded revoke history, and
+runtime/Directus boundaries are covered. The focused tests pass (58); a
+network-disabled disposable PostgreSQL 16 replay through migration 635 passes
+nine grouped assertions. Ruff, compilation, capability validation, and runtime
+SQL inventory checks pass. Candidate and legacy databases remain untouched;
+migration 635 is not rolled out. Do not distribute tokens yet: public notice
+preview, one-time redemption, consent acceptance/withdrawal, participant
+sessions and contributions, plus invite console controls remain to implement.
+No external email was sent. Checklist: 1,175 complete / 25 open (1,200 total);
+matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [invite acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-disposable.json).

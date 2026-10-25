@@ -410,6 +410,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    delphi_invite_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/invites",
+        path,
+    )
+    if delphi_invite_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "invite",
+            "public": False,
+            "location_id": delphi_invite_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    delphi_invite_revoke_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/invites/([0-9a-fA-F-]{36})/revoke",
+        path,
+    )
+    if delphi_invite_revoke_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "invite_revoke",
+            "public": False,
+            "location_id": delphi_invite_revoke_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_consent_notice_queue_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/consent-notices",
         path,
@@ -5086,6 +5114,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         register_delphi_consent_notice_routes,
     )
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
+    from services.gateway.delphi_participant_invite_routes import (
+        register_delphi_participant_invite_routes,
+    )
     from services.gateway.delphi_recommendation_draft_routes import (
         register_delphi_recommendation_draft_routes,
     )
@@ -5161,6 +5192,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_nutrient_balance_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consent_notice_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_participant_invite_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_item_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,174 checklist items complete and 25
-open (1,199 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,175 checklist items complete and 25
+open (1,200 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -4132,3 +4132,40 @@ The AST scope inventory now follows a location-filtered parent row into child re
   remain open. Checklist: 1,174 complete / 25 open (1,199 total); matrix
   classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
   across 67 rows.
+
+
+### CAP-027 pseudonymous participant invite issuance and revocation — 25 October 2026
+
+- [x] Add migration 635 and exact location-scoped Gateway operations for
+  issuing and revoking Delphi participant invites. Issuance requires a draft
+  study, the currently approved versioned notice, and delphi:invite; revocation
+  uses a separate delphi:invite_revoke grant and fixed reason codes. The
+  database creates a 256-bit random bearer token and stores only its SHA-256
+  digest, bound to the study, location, and approved notice ID/version/digest.
+  The token is returned only on the first no-store response; an exact retry
+  returns metadata without disclosing it again. An operator must explicitly
+  revoke a pending invite before replacing a lost/compromised token.
+  This slice does not yet redeem invites, record participant acceptance or
+  withdrawal, establish participant sessions, or deliver emails; the token
+  must not be sent to participants until redemption is available.
+  The focused Gateway, exact route-policy, and migration suite passes 58 tests.
+  Network-disabled disposable PostgreSQL 16 applies/replays migrations
+  449–451 and 630–635 and passes nine grouped assertions covering approved
+  notice binding, token digest-only storage, exact retries, expiry bounds,
+  grant denial, revoke audit, replacement, and runtime/Directus boundaries.
+  Ruff, compilation, runtime SQL inventory, and diff checks pass. Candidate
+  and legacy databases remain untouched; migration 635 is not rolled out.
+  Roll back application behavior by disabling the two routes/policies; retain
+  the additive migration and private invite/audit records if applied
+  ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/635_location_scoped_delphi_participant_invites.sql);
+  [Gateway](../../services/gateway/delphi_participant_invites.py);
+  [tests](../../tests/test_gateway_delphi_participant_invites.py);
+  [disposable runner](../../scripts/check-delphi-participant-invite-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-disposable.json)).
+  CAP-027 remains prepared, not accepted. Public invite preview/redeem,
+  participant consent/withdrawal, contribution access, console invite controls,
+  SMTP delivery, live OIDC/browser, populated parity, broader ACL/RLS, and
+  MAN-CAP-027 acceptance remain open. Checklist: 1,175 complete / 25 open
+  (1,200 total); matrix classifications remain 24 baseline-retained, 7
+  deployed, and 36 prepared across 67 rows.

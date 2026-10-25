@@ -66,6 +66,7 @@ _PARAMETER_SAMPLES = {
     "summary_id": "99999999-9999-4999-8999-999999999996",
     "study_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "notice_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeeb",
+    "invite_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeea",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -115,6 +116,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/consent-notices",
     ): _expected("delphi", "consent_draft", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/invites",
+    ): _expected("delphi", "invite", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/invites/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeea/revoke",
+    ): _expected("delphi", "invite_revoke", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/consent-notices",
