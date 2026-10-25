@@ -843,6 +843,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    pollinator_review_queue_match = re.fullmatch(
+        r"/operator/api/pollinators/([0-9a-fA-F-]{36})/review-queue", path
+    )
+    if pollinator_review_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "review",
+            "public": False,
+            "location_id": pollinator_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    pollinator_review_decision_match = re.fullmatch(
+        r"/operator/api/pollinators/([0-9a-fA-F-]{36})/"
+        r"(observations|pesticide-impacts)/([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if pollinator_review_decision_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "review",
+            "public": False,
+            "location_id": pollinator_review_decision_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     pollinator_capture_match = re.fullmatch(
         r"/operator/api/pollinators/([0-9a-fA-F-]{36})/observations", path
     )

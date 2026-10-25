@@ -213,13 +213,17 @@ def test_hive_detail_page_bounds_fail_before_database(limit, offset):
         )
 
 
-def _route_test_client(monkeypatch, *, details, update):
+def _route_test_client(monkeypatch, *, details, update, review_queue=None, review=None):
     import psycopg2
 
     from services.gateway import pollinator_health_routes
 
     monkeypatch.setattr(pollinator_health_reads, "get_location_pollinator_hive_details", details)
     monkeypatch.setattr(pollinator_health_writes, "update_location_pollinator_hive", update)
+    if review_queue is not None:
+        monkeypatch.setattr(pollinator_health_reads, "list_location_pollinator_review_queue", review_queue)
+    if review is not None:
+        monkeypatch.setattr(pollinator_health_writes, "review_location_pollinator_record", review)
     app = FastAPI()
 
     @app.middleware("http")
@@ -273,3 +277,78 @@ def test_hive_update_route_maps_stale_conflict(monkeypatch):
     assert response.status_code == 409
     assert response.headers["cache-control"] == "no-store"
     assert "changed" in response.json()["error"]
+
+
+def test_pollinator_review_queue_route_is_private_and_forwards_bounded_page(monkeypatch):
+    called = {}
+
+    def review_queue(operator_id, location_id, *, limit, offset):
+        called.update(operator_id=operator_id, location_id=location_id, limit=limit, offset=offset)
+        return {
+            "location_id": location_id, "limit": limit, "offset": offset,
+            "items": [], "has_more": False, "next_offset": None, "total": 0,
+        }
+
+    client = _route_test_client(
+        monkeypatch, details=lambda *_a, **_kw: {}, update=lambda *_a, **_kw: {},
+        review_queue=review_queue,
+    )
+    response = client.get(f"/operator/api/pollinators/{_LOCATION}/review-queue?limit=10&offset=20")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert called == {"operator_id": _OPERATOR, "location_id": _LOCATION, "limit": 10, "offset": 20}
+
+
+def test_pollinator_review_route_maps_exact_decision_and_stale_conflict(monkeypatch):
+    import psycopg2
+
+    called = {}
+
+    def review(operator_id, location_id, record_type, record_id, payload):
+        called.update(
+            operator_id=operator_id, location_id=location_id,
+            record_type=record_type, record_id=record_id, payload=payload,
+        )
+        return {
+            "decision_id": str(uuid4()), "location_id": location_id,
+            "record_type": record_type, "record_id": record_id,
+            "status": payload["decision"], "replayed": False,
+        }
+
+    client = _route_test_client(
+        monkeypatch, details=lambda *_a, **_kw: {}, update=lambda *_a, **_kw: {}, review=review,
+    )
+    payload = {
+        "request_id": str(uuid4()), "expected_updated_at": _UPDATED_AT,
+        "decision": "reviewed", "reason": "Field note and count reconciled",
+    }
+    response = client.post(
+        f"/operator/api/pollinators/{_LOCATION}/pesticide-impacts/{_HIVE}/review",
+        json=payload,
+    )
+    assert response.status_code == 200
+    assert called == {
+        "operator_id": _OPERATOR, "location_id": _LOCATION,
+        "record_type": "pesticide_impact", "record_id": _HIVE, "payload": payload,
+    }
+    assert "safe" not in response.json().get("status", "")
+
+    class SyntheticStaleReview(psycopg2.Error):
+        @property
+        def pgcode(self):
+            return "40001"
+
+    def stale(*_args, **_kwargs):
+        raise SyntheticStaleReview("stale item")
+
+    monkeypatch.setattr(pollinator_health_writes, "review_location_pollinator_record", stale)
+    stale_client = _route_test_client(
+        monkeypatch, details=lambda *_a, **_kw: {}, update=lambda *_a, **_kw: {}, review=stale,
+    )
+    stale_response = stale_client.post(
+        f"/operator/api/pollinators/{_LOCATION}/observations/{_HIVE}/review",
+        json=payload,
+    )
+    assert stale_response.status_code == 409
+    assert "reload" in stale_response.json()["error"]

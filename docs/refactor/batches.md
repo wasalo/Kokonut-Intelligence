@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 24 October 2026. Current architecture focus is Phase 8 acceptance;
+Updated: 25 October 2026. Current architecture focus is Phase 8 acceptance;
 batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
@@ -19,10 +19,36 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,133 checklist items complete and 23
-open (1,156 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,134 checklist items complete and 23
+open (1,157 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped independent pollinator review — 25 October 2026
+
+- [x] Add migration 626 and a private, bounded review queue plus independent
+  decisions for recorded pollinator observations and completed pesticide-impact
+  reports. Exact location `pollinator_health:review` and signed tenant context
+  are required; submitters cannot review their own rows. Decisions require a
+  reason and the source `updated_at`, use a stable request ID for exact retry,
+  and atomically update source status with an immutable operator-attributed
+  ledger event. Runtime can call only the bounded functions; Directus and direct
+  table/ledger access are denied. `reviewed` makes records eligible for the
+  existing reviewed summaries; `dismissed` does not. Pesticide review is
+  explicitly not treatment approval or a safety certification. The hidden
+  console panel uses separate review grants, CSRF/no-store, text-only fields,
+  paging, and retry preservation. The focused Gateway/console/policy/migration selection passes 88 tests; the
+  broader CAP-006 regression passes 444 tests plus 8 subtests. Ruff, compilation,
+  dependency/provider boundaries,
+  and matrix checks pass. Disposable PostgreSQL 16 applies/replays through 626
+  and passes 11 grouped assertions on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-disposable.json);
+  [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-arm64-disposable.json)).
+  Candidate and legacy remain untouched; migration 626 is not rolled out.
+  QEMU is software portability evidence only. Inspection review, populated-data
+  parity, live OIDC/browser, broader ACL/RLS, Directus parity, and MAN-CAP-006
+  remain open. Rollback disables the review routes, policy entries, and console
+  panel; preserve migration 626's immutable decisions if it is applied.
+  Checklist: 1,134 complete / 23 open (1,157 total).
 
 ### CAP-006 location-scoped managed-hive status and maintenance — 25 October 2026
 

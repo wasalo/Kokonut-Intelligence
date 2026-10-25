@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "95622bce337a6ccc57fa598bf5a666f94a67886f",
+  "baseline_commit": "381c4e96088bcb044603b4d3360841b4d9a36ec9",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1641,157 +1641,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3603,
+      "line": 3740,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3618,
+      "line": 3755,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3627,
+      "line": 3764,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3685,
+      "line": 3822,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3713,
+      "line": 3850,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3753,
+      "line": 3890,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3804,
+      "line": 3941,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3844,
+      "line": 3981,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3897,
+      "line": 4034,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3957,
+      "line": 4094,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4012,
+      "line": 4149,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4056,
+      "line": 4193,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4117,
+      "line": 4254,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4200,
+      "line": 4337,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4293,
+      "line": 4430,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4341,
+      "line": 4478,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4393,
+      "line": 4530,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4451,
+      "line": 4588,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4505,
+      "line": 4642,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4594,
+      "line": 4731,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4614,
+      "line": 4751,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4634,
+      "line": 4771,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4670,
+      "line": 4807,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4698,
+      "line": 4835,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4726,
+      "line": 4863,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4769,
+      "line": 4906,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1803,9 +1803,81 @@
       "source": "services/gateway/planning_budget_routes.py"
     },
     {
-      "line": 12,
+      "line": 73,
       "method": "GET",
       "path": "/operator/api/pollinators/{location_id}/summary",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 104,
+      "method": "GET",
+      "path": "/operator/api/pollinators/{location_id}/review-queue",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 220,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/observations/{record_id}/review",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 226,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/pesticide-impacts/{record_id}/review",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 232,
+      "method": "GET",
+      "path": "/operator/api/pollinators/{location_id}/habitats",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 274,
+      "method": "GET",
+      "path": "/operator/api/pollinators/{location_id}/hives",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 315,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/observations",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 373,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/pesticide-impacts",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 431,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/habitats",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 489,
+      "method": "PATCH",
+      "path": "/operator/api/pollinators/{location_id}/habitats/{habitat_id}",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 560,
+      "method": "PATCH",
+      "path": "/operator/api/pollinators/{location_id}/hives/{hive_record_id}",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 627,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/hives",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 685,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/hives/inspections",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
@@ -3355,7 +3427,15 @@
       "schemas/postgres/615_location_recycling_capture.sql",
       "schemas/postgres/616_location_pollution_incident_gateway.sql",
       "schemas/postgres/617_location_scoped_pollution_incident_reads.sql",
-      "schemas/postgres/618_location_scoped_waste_summary_reader.sql"
+      "schemas/postgres/618_location_scoped_waste_summary_reader.sql",
+      "schemas/postgres/619_location_pollinator_observation_capture.sql",
+      "schemas/postgres/620_location_pesticide_impact_capture.sql",
+      "schemas/postgres/621_location_pollinator_habitat_capture.sql",
+      "schemas/postgres/622_location_pollinator_hive_capture.sql",
+      "schemas/postgres/623_location_pollinator_hive_inspection_capture.sql",
+      "schemas/postgres/624_location_pollinator_habitat_lifecycle.sql",
+      "schemas/postgres/625_location_pollinator_hive_lifecycle.sql",
+      "schemas/postgres/626_location_pollinator_independent_review.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -4708,6 +4788,7 @@
         "services/gateway/planning_budget_routes.py",
         "services/gateway/pollinator_health_reads.py",
         "services/gateway/pollinator_health_routes.py",
+        "services/gateway/pollinator_health_writes.py",
         "services/gateway/postgres_rate_limiter.py",
         "services/gateway/public_iri.py",
         "services/gateway/public_models.py",
@@ -4804,6 +4885,10 @@
         "tests/test_gateway_operating_pilot_work_claims.py",
         "tests/test_gateway_operating_pilot_writes.py",
         "tests/test_gateway_planning_budget_reads.py",
+        "tests/test_gateway_pollinator_habitat_lifecycle.py",
+        "tests/test_gateway_pollinator_hive_lifecycle.py",
+        "tests/test_gateway_pollinator_observation_capture.py",
+        "tests/test_gateway_pollinator_review.py",
         "tests/test_gateway_public_iri.py",
         "tests/test_gateway_public_locations.py",
         "tests/test_gateway_public_metrics.py",
@@ -6295,6 +6380,10 @@
     "tests/test_gateway_operating_pilot_work_claims.py",
     "tests/test_gateway_operating_pilot_writes.py",
     "tests/test_gateway_planning_budget_reads.py",
+    "tests/test_gateway_pollinator_habitat_lifecycle.py",
+    "tests/test_gateway_pollinator_hive_lifecycle.py",
+    "tests/test_gateway_pollinator_observation_capture.py",
+    "tests/test_gateway_pollinator_review.py",
     "tests/test_gateway_public_iri.py",
     "tests/test_gateway_public_locations.py",
     "tests/test_gateway_public_metrics.py",

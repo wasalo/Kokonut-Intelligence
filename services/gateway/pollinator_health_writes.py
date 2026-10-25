@@ -912,3 +912,89 @@ def update_location_pollinator_hive(
         raise
     finally:
         connection.close()
+
+
+def _normalize_pollinator_review_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Pollinator review body must be an object")
+    if set(payload) != {"request_id", "expected_updated_at", "decision", "reason"}:
+        raise PollinatorObservationInvalid("Pollinator review fields do not match the supported contract")
+    request_id = _identifier(payload["request_id"], "request")
+    expected_updated_at = payload["expected_updated_at"]
+    if not isinstance(expected_updated_at, str) or len(expected_updated_at) > 64:
+        raise PollinatorObservationInvalid("expected_updated_at must be a timezone-aware timestamp")
+    try:
+        expected_timestamp = datetime.fromisoformat(expected_updated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PollinatorObservationInvalid(
+            "expected_updated_at must be a timezone-aware timestamp"
+        ) from exc
+    if expected_timestamp.tzinfo is None or expected_timestamp.utcoffset() is None:
+        raise PollinatorObservationInvalid("expected_updated_at must include a timezone")
+    decision = payload["decision"]
+    if decision not in {"reviewed", "dismissed"}:
+        raise PollinatorObservationInvalid("Unsupported pollinator review decision")
+    reason = _text(payload["reason"], "review reason", 500)
+    if not reason:
+        raise PollinatorObservationInvalid("A pollinator review reason is required")
+    return request_id, expected_timestamp, decision, reason
+
+
+def review_location_pollinator_record(
+    operator_id: str,
+    location_id: str,
+    record_type: str,
+    record_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Review a submitted observation or completed pesticide-impact report.
+
+    The database enforces independent reviewer identity, exact location scope,
+    optimistic concurrency, immutable reasoned decisions, and exact retries.
+    """
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    record_id = _identifier(record_id, "pollinator record")
+    if record_type not in {"observation", "pesticide_impact"}:
+        raise PollinatorObservationInvalid("Unsupported pollinator record type")
+    normalized = _normalize_pollinator_review_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.review_location_pollinator_record("
+                "%s::uuid, %s::text, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::text)",
+                (location_id, record_type, record_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Pollinator review returned no decision")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("record_type") != record_type
+                or result.get("record_id") != record_id
+                or result.get("status") != normalized[2]
+                or not isinstance(result.get("decision_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Pollinator review returned an invalid decision")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -411,3 +412,133 @@ def get_location_pollinator_hive_details(
             conn.rollback()
         finally:
             conn.close()
+
+
+def list_location_pollinator_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return a bounded private queue of independently reviewable pollinator records."""
+    try:
+        operator_id = str(UUID(str(operator_id)))
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("Invalid operator or location identifier") from exc
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise ValueError("limit must be between 1 and 50")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise ValueError("offset must be between 0 and 10000")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.list_location_pollinator_review_queue("
+                "%s::uuid, %s::integer, %s::integer)",
+                (location_id, limit, offset),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Pollinator review queue returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                import json
+
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or str(result.get("location_id")) != location_id
+                or result.get("limit") != limit
+                or result.get("offset") != offset
+                or not isinstance(result.get("items"), list)
+                or not isinstance(result.get("has_more"), bool)
+                or isinstance(result.get("total"), bool)
+                or not isinstance(result.get("total"), int)
+                or result["total"] < 0
+                or len(result["items"]) > limit
+                or result.get("next_offset") != (offset + limit if result["has_more"] else None)
+            ):
+                raise RuntimeError("Pollinator review queue returned an invalid result")
+            for item in result["items"]:
+                if (
+                    not isinstance(item, dict)
+                    or item.get("record_type") not in {"observation", "pesticide_impact"}
+                    or item.get("status") != "recorded"
+                    or not isinstance(item.get("details"), dict)
+                ):
+                    raise RuntimeError("Pollinator review queue returned an invalid item")
+                item["record_id"] = str(UUID(str(item["record_id"])))
+                try:
+                    occurred_on = date.fromisoformat(item.get("occurred_on"))
+                except (TypeError, ValueError) as exc:
+                    raise RuntimeError("Pollinator review queue returned an invalid date") from exc
+                if occurred_on.isoformat() != item["occurred_on"]:
+                    raise RuntimeError("Pollinator review queue returned an invalid date")
+                item["updated_at"] = _date_time(item.get("updated_at"))
+                item["created_at"] = _date_time(item.get("created_at"))
+                item["details"] = _pollinator_review_details(item["record_type"], item["details"])
+            return result
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def _date_time(value) -> str:
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise RuntimeError("Pollinator review queue returned a timestamp without timezone")
+    return value.isoformat()
+
+
+def _pollinator_review_details(record_type: str, details: dict) -> dict:
+    fields = {
+        "observation": {
+            "pollinator_type", "count", "method", "duration_minutes", "species_name", "notes",
+        },
+        "pesticide_impact": {
+            "product_name", "active_ingredient", "toxicity_class", "application_rate",
+            "rate_unit", "area_treated_m2", "bloom_stage_at_application",
+            "pollinator_distance_m", "pollinator_safe_period_days", "mortality_observed",
+            "mortality_pct", "notes",
+        },
+    }
+    allowed = fields[record_type]
+    if set(details) - allowed:
+        raise RuntimeError("Pollinator review queue returned an unexpected detail field")
+    normalized = {}
+    for field, value in details.items():
+        if value is None:
+            normalized[field] = None
+        elif field in {"count", "duration_minutes", "pollinator_safe_period_days"}:
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise RuntimeError("Pollinator review queue returned an invalid integer")
+            normalized[field] = value
+        elif field == "mortality_observed":
+            if not isinstance(value, bool):
+                raise RuntimeError("Pollinator review queue returned an invalid boolean")
+            normalized[field] = value
+        elif field in {"application_rate", "area_treated_m2", "pollinator_distance_m", "mortality_pct"}:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise RuntimeError("Pollinator review queue returned an invalid number")
+            normalized[field] = value
+        elif isinstance(value, str) and len(value) <= 2000:
+            normalized[field] = value
+        else:
+            raise RuntimeError("Pollinator review queue returned an invalid text detail")
+    return normalized

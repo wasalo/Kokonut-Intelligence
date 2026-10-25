@@ -227,27 +227,41 @@ shared-identity CLI must not be treated as a tenant-safe writer until the
 worker/runtime identity gates close.
 
 
-## Tenant-scoped capture boundaries
+## Tenant-scoped capture and review boundaries
 
-`POST /operator/api/pollinators/{location_id}/observations` (migration 619)
-`POST /operator/api/pollinators/{location_id}/pesticide-impacts`
-(migration 620), and `POST /operator/api/pollinators/{location_id}/habitats`
-(migration 621) require an exact location `pollinator_health:create` grant.
-Each write installs signed operator/location context on one PostgreSQL
+`POST /operator/api/pollinators/{location_id}/observations` (migration 619),
+`POST /operator/api/pollinators/{location_id}/pesticide-impacts` (migration
+620), habitat registration (621), hive registration (622), and hive inspection
+capture (623) require the exact location `pollinator_health:create` grant.
+Each operation installs signed operator/location context on one PostgreSQL
 connection, which the bounded security-definer function independently checks.
 Payloads are capped and validated before database access; private receipts store
 only request identity, location, record reference, and SHA-256 input digest.
 Shared runtime and Directus roles cannot write these tables directly or read
 receipts. Same-input retries return the original record; changed-input reuse is
-rejected.
+rejected. Migrations 624 and 625 add audited habitat and hive
+status/maintenance changes with exact detail/edit grants and immutable event
+history.
 
-Observation records and pesticide-impact reports are always captured as
-`recorded`. Habitat capture retains `active` only as the existing domain
-inventory state. It is labeled self-reported and is not a verification state.
-Capture has no verification, publication, treatment-approval, or pesticide-safety
-action. Pesticide reports describe completed applications and
-are excluded from reviewed summaries until separately reviewed. The legacy
-observation, pesticide, and habitat-create CLI write commands now fail before
-opening the database; habitat status/maintenance, hive-registration, and
-inspection write paths remain unported and are tracked as open work. Candidate and legacy database migration
-rollout is separate and has not occurred.
+Migration 626 adds a private paginated review queue and independent review of
+recorded observations and pesticide-impact reports under exact
+`pollinator_health:review`. Reviewers cannot decide on their own submissions;
+decisions require a reason and the current source timestamp, and the source
+status change plus immutable operator-attributed decision event commit
+atomically. Identical request retries replay; altered reuse and stale decisions
+fail closed. Only `reviewed` records appear in the existing reviewed summaries;
+`dismissed` records remain excluded. Reviewing a pesticide report does not
+approve pesticide use or certify safety. Habitat and hive operational values
+remain self-reported; hive inspections are recorded observations without an
+independent review route. The legacy observation, pesticide, habitat, hive,
+and inspection CLI write commands fail before database access. Candidate and
+legacy database rollout is separate and has not occurred.
+
+Migration 626's focused Gateway, console, route-policy, and migration selection
+passes 88 tests. Disposable PostgreSQL 16 applies/replays the pollinator chain
+through migration 626 and passes 11 assertion groups on native x86_64 and
+ARM64/QEMU ([native evidence](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-arm64-disposable.json)).
+QEMU is software portability evidence only, not physical Raspberry Pi
+acceptance. Populated-data parity, live OIDC/browser, broader ACL/RLS, Directus
+parity, and MAN-CAP-006 acceptance remain open.

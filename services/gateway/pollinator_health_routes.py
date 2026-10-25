@@ -13,6 +13,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         get_location_pollinator_habitat_details,
         get_location_pollinator_hive_details,
         get_location_pollinator_summary,
+        list_location_pollinator_review_queue,
     )
     from services.gateway.pollinator_health_writes import (
         PollinatorObservationInvalid,
@@ -21,6 +22,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         create_location_pollinator_hive,
         create_location_pollinator_observation,
         record_location_pollinator_hive_inspection,
+        review_location_pollinator_record,
         update_location_pollinator_habitat,
         update_location_pollinator_hive,
     )
@@ -98,6 +100,134 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/pollinators/{location_id}/review-queue")
+    async def pollinator_review_queue(
+        request: Request, location_id: str, limit: int = 25, offset: int = 0
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                list_location_pollinator_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified pollinator review access is required"},
+                headers=headers,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location pollinator-review grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Pollinator review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Pollinator review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    async def _review_pollinator_record(
+        request: Request, location_id: str, record_type: str, record_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        normalized_type = {
+            "observations": "observation",
+            "pesticide-impacts": "pesticide_impact",
+        }.get(record_type)
+        if normalized_type is None:
+            return JSONResponse(status_code=404, content={"error": "Pollinator item not found"}, headers=headers)
+        payload, body_error = await bounded_payload(request)
+        if body_error:
+            return body_error
+        try:
+            result = await run_in_threadpool(
+                review_location_pollinator_record,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                normalized_type,
+                record_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified pollinator review access is required"},
+                headers=headers,
+            )
+        except PollinatorObservationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Independent exact location pollinator review is required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Pollinator review input is invalid"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The review request ID was already used with different input"},
+                    headers=headers,
+                )
+            if pgcode == "40001":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The pollinator item changed; reload the review queue"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Pollinator item not found in this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Pollinator review unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Pollinator review unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/pollinators/{location_id}/observations/{record_id}/review"
+    )
+    async def review_pollinator_observation(request: Request, location_id: str, record_id: str):
+        return await _review_pollinator_record(request, location_id, "observations", record_id)
+
+    @router.post(
+        "/operator/api/pollinators/{location_id}/pesticide-impacts/{record_id}/review"
+    )
+    async def review_pesticide_impact(request: Request, location_id: str, record_id: str):
+        return await _review_pollinator_record(request, location_id, "pesticide-impacts", record_id)
 
     @router.get("/operator/api/pollinators/{location_id}/habitats")
     async def pollinator_habitat_details(

@@ -83,6 +83,39 @@ def test_ecology_panels_refresh_on_change_and_have_unique_ids():
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
 
 
+def test_pollinator_review_is_hidden_and_gated_by_its_exact_location_grant():
+    assert 'id="pollinator-review" hidden' in SOURCE
+    assert 'scope.resource === "pollinator_health" && scope.action === "review"' in SOURCE
+    assert "pollinatorReview.hidden = !canReview" in SOURCE
+    assert "pollinatorHealthReviewLocations.has(pollinatorHealthLocation.value)" in SOURCE
+    assert "pollinatorHealthReviewLocations" in SOURCE
+    assert "pollinator-review-refresh" in SOURCE and "pollinator-review-more" in SOURCE
+    assert "Reviewers cannot review their own submissions" in SOURCE
+    assert "does not approve pesticide use or determine safety" in SOURCE
+
+
+def test_pollinator_review_loader_and_decision_use_scope_validation_csrf_and_stable_retry():
+    loader = re.search(r"async function loadPollinatorReviewQueue\(append = false\).*?\n      }", SOURCE, re.DOTALL)
+    submit = re.search(r"async function submitPollinatorReview\(event\).*?\n      }", SOURCE, re.DOTALL)
+    renderer = re.search(r"function appendPollinatorReviewItem\(item\).*?\n      }", SOURCE, re.DOTALL)
+    assert loader and submit and renderer
+    assert "pollinatorHealthReviewLocations.has(locationId)" in loader.group()
+    assert "/review-queue?${params}" in loader.group()
+    assert 'cache: "no-store"' in loader.group()
+    assert "result.location_id !== locationId" in loader.group()
+    assert 'pollinatorHealthReviewLocations.has(locationId)' in submit.group()
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit.group()
+    assert '"X-CSRF-Token": csrf' in submit.group()
+    assert "globalThis.crypto?.randomUUID?.()" in submit.group()
+    assert "pollinatorReviewPending" in submit.group()
+    assert '"reviewed", "dismissed"' in submit.group()
+    assert "expected_updated_at: expectedUpdatedAt" in submit.group()
+    assert "record_type" in submit.group() and "record_id" in submit.group()
+    assert "cell.textContent" not in renderer.group()
+    assert ".innerHTML" not in renderer.group()
+    assert "description.textContent" in renderer.group()
+
+
 def test_pollinator_capture_is_separately_grant_gated_and_uses_stable_csrf_retry():
     assert 'scope.resource === "pollinator_health" && scope.action === "read"' in SOURCE
     assert 'scope.resource === "pollinator_health" && scope.action === "create"' in SOURCE

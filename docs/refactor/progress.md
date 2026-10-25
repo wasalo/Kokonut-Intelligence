@@ -1,3 +1,29 @@
+### Progress addendum — CAP-006 independent pollinator review, 25 October 2026
+
+Migration 626 adds a private, bounded queue and separate location-scoped human
+review for recorded pollinator observations and pesticide-impact reports. Both
+routes require signed tenant context and exact `pollinator_health:review`;
+submitters cannot review their own rows. Decisions require a reason and the
+current source timestamp, use stable request IDs for exact retries, and update
+the source lifecycle plus an immutable operator-attributed ledger event in one
+transaction. `reviewed` rows enter the existing reviewed summaries;
+`dismissed` rows do not. Pesticide review is not treatment approval or a safety
+certification. Runtime access is limited to the bounded functions; Directus and
+direct source/ledger access are denied. The console is separately grant-gated,
+CSRF-protected, no-store, paginated, and text-only.
+
+The focused Gateway, console, route-policy, and migration selection passes 88
+tests; the broader CAP-006 regression passes 444 tests plus 8 subtests. Ruff,
+compilation, dependency-group and provider-boundary checks, and
+capability-matrix validation pass. Disposable PostgreSQL 16 applies/replays
+migrations through 626 and passes 11 grouped assertions on native x86_64 and
+ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-independent-review-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 626 is not rolled out. QEMU
+is software portability evidence only. Inspection review, populated parity,
+live OIDC/browser, broader ACL/RLS, Directus parity, and MAN-CAP-006 remain
+open. Checklist: 1,134 complete / 23 open (1,157 total).
+
 ### Progress addendum — CAP-006 managed-hive status and maintenance, 25 October 2026
 
 Migration 625 completes the managed-hive operational status/maintenance
