@@ -16,6 +16,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         create_location_pollinator_habitat,
         create_location_pollinator_hive,
         create_location_pollinator_observation,
+        record_location_pollinator_hive_inspection,
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -316,6 +317,64 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             return JSONResponse(
                 status_code=503,
                 content={"error": "Managed-hive capture unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result["replayed"] else 201,
+            headers=headers,
+        )
+
+    @router.post("/operator/api/pollinators/{location_id}/hives/inspections")
+    async def record_pollinator_hive_inspection(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        payload, body_error = await bounded_payload(request)
+        if body_error:
+            return body_error
+        try:
+            result = await run_in_threadpool(
+                record_location_pollinator_hive_inspection,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified hive inspection access is required"},
+                headers=headers,
+            )
+        except PollinatorObservationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location pollinator-create grant is required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Hive inspection input or location-scoped hive identifier is invalid"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The request ID was already used with different inspection input"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Hive inspection capture unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Hive inspection capture unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(

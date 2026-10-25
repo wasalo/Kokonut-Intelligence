@@ -2446,6 +2446,57 @@
               </form>
               <p id="pollinator-hive-capture-status" class="muted" role="status" aria-live="polite"></p>
             </section>
+            <section id="pollinator-hive-inspection-capture" hidden aria-labelledby="pollinator-hive-inspection-capture-heading">
+              <h4 id="pollinator-hive-inspection-capture-heading">Record a hive inspection</h4>
+              <p class="muted">Inspections are appended as recorded observations. They update the operational hive snapshot but do not independently verify hive health.</p>
+              <form id="pollinator-hive-inspection-form" class="stacked-form">
+                <label for="pollinator-inspection-hive-id">Hive identifier at this location</label>
+                <input id="pollinator-inspection-hive-id" type="text" maxlength="100" required>
+                <label for="pollinator-inspection-date">Inspection date (optional)</label>
+                <input id="pollinator-inspection-date" type="date">
+                <label for="pollinator-inspection-strength">Colony strength category (optional)</label>
+                <select id="pollinator-inspection-strength">
+                  <option value="">Not recorded</option>
+                  <option value="strong">Strong</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="weak">Weak</option>
+                  <option value="dead">Dead</option>
+                </select>
+                <label for="pollinator-inspection-strength-score">Colony strength score, 0–10 (optional)</label>
+                <input id="pollinator-inspection-strength-score" type="number" min="0" max="10" step="1">
+                <label for="pollinator-inspection-queen-status">Queen status (optional)</label>
+                <select id="pollinator-inspection-queen-status">
+                  <option value="">Not recorded</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="replaced">Replaced</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+                <label for="pollinator-inspection-queen-seen">Queen seen (optional)</label>
+                <select id="pollinator-inspection-queen-seen">
+                  <option value="">Not recorded</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+                <label for="pollinator-inspection-varroa">Varroa count (optional)</label>
+                <input id="pollinator-inspection-varroa" type="number" min="0" max="100000" step="1">
+                <label for="pollinator-inspection-brood">Brood pattern (optional)</label>
+                <input id="pollinator-inspection-brood" type="text" maxlength="100">
+                <label for="pollinator-inspection-honey">Honey stores (optional)</label>
+                <textarea id="pollinator-inspection-honey" maxlength="500" rows="2"></textarea>
+                <label for="pollinator-inspection-disease">Disease signs (optional)</label>
+                <textarea id="pollinator-inspection-disease" maxlength="2000" rows="3"></textarea>
+                <label for="pollinator-inspection-temperament">Temperament (optional)</label>
+                <input id="pollinator-inspection-temperament" type="text" maxlength="100">
+                <label for="pollinator-inspection-population">Population estimate (optional)</label>
+                <input id="pollinator-inspection-population" type="number" min="0" max="100000000" step="1">
+                <label><input id="pollinator-inspection-swarm-cells" type="checkbox"> Swarm cells observed</label>
+                <label for="pollinator-inspection-notes">Private inspection notes (optional)</label>
+                <textarea id="pollinator-inspection-notes" maxlength="2000" rows="3"></textarea>
+                <button id="pollinator-hive-inspection-submit" type="submit">Save recorded inspection</button>
+              </form>
+              <p id="pollinator-hive-inspection-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
             <div id="pollinator-health-summary" hidden></div>
           </section>
         </section>
@@ -3705,6 +3756,12 @@
       const pollinatorHiveCaptureForm = document.querySelector("#pollinator-hive-capture-form");
       const pollinatorHiveCaptureStatus = document.querySelector("#pollinator-hive-capture-status");
       pollinatorHiveCaptureForm.querySelector("#pollinator-hive-queen-year").max = String(new Date().getFullYear());
+      const pollinatorHiveInspectionCapture = document.querySelector("#pollinator-hive-inspection-capture");
+      const pollinatorHiveInspectionForm = document.querySelector("#pollinator-hive-inspection-form");
+      const pollinatorHiveInspectionStatus = document.querySelector("#pollinator-hive-inspection-status");
+      const pollinatorInspectionDateMax = new Date();
+      pollinatorInspectionDateMax.setMinutes(pollinatorInspectionDateMax.getMinutes() - pollinatorInspectionDateMax.getTimezoneOffset());
+      pollinatorHiveInspectionForm.querySelector("#pollinator-inspection-date").max = pollinatorInspectionDateMax.toISOString().slice(0, 10);
       let pollinatorHealthLocations = new Set();
       let pollinatorHealthCreateLocations = new Set();
       let pollinatorHealthRequestVersion = 0;
@@ -3712,6 +3769,7 @@
       let pesticideImpactPending = null;
       let pollinatorHabitatPending = null;
       let pollinatorHivePending = null;
+      let pollinatorHiveInspectionPending = null;
       const irrigationStatus = document.querySelector("#irrigation-status");
       const irrigationStatusLocation = document.querySelector("#irrigation-status-location");
       const irrigationStatusMessage = document.querySelector("#irrigation-status-message");
@@ -17973,11 +18031,13 @@
         pesticideImpactCapture.hidden = !canCreate;
         pollinatorHabitatCapture.hidden = !canCreate;
         pollinatorHiveCapture.hidden = !canCreate;
+        pollinatorHiveInspectionCapture.hidden = !canCreate;
         if (!canRead) pollinatorHealthSummary.replaceChildren();
         if (!canCreate) pollinatorObservationCaptureStatus.textContent = "";
         if (!canCreate) pesticideImpactCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHabitatCaptureStatus.textContent = "";
         if (!canCreate) pollinatorHiveCaptureStatus.textContent = "";
+        if (!canCreate) pollinatorHiveInspectionStatus.textContent = "";
       }
 
       async function submitPollinatorObservation(event) {
@@ -18249,6 +18309,91 @@
           if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
         } catch (error) {
           pollinatorHiveCaptureStatus.textContent = `${error.message} Retrying unchanged input reuses the same request ID.`;
+        } finally {
+          submit.disabled = false;
+        }
+      }
+
+      async function submitPollinatorHiveInspection(event) {
+        event.preventDefault();
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthCreateLocations.has(locationId)) {
+          pollinatorHiveInspectionStatus.textContent = "A current location pollinator-create grant is required.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          pollinatorHiveInspectionStatus.textContent = "Refresh the operator session before saving this inspection.";
+          return;
+        }
+        const value = (selector) => pollinatorHiveInspectionForm.querySelector(selector).value;
+        const strength = value("#pollinator-inspection-strength");
+        const scoreInput = value("#pollinator-inspection-strength-score");
+        if (strength && scoreInput !== "") {
+          pollinatorHiveInspectionStatus.textContent = "Choose a strength category or score, not both.";
+          return;
+        }
+        const queenSeen = value("#pollinator-inspection-queen-seen");
+        const varroa = value("#pollinator-inspection-varroa");
+        const population = value("#pollinator-inspection-population");
+        const payload = {
+          hive_id: value("#pollinator-inspection-hive-id").trim(),
+          inspection_date: value("#pollinator-inspection-date") || null,
+          colony_strength: strength || null,
+          colony_strength_score: scoreInput === "" ? null : Number(scoreInput),
+          queen_status: value("#pollinator-inspection-queen-status") || null,
+          queen_seen: queenSeen === "" ? null : queenSeen === "yes",
+          varroa_count: varroa === "" ? null : Number(varroa),
+          brood_pattern: value("#pollinator-inspection-brood").trim() || null,
+          honey_stores: value("#pollinator-inspection-honey").trim() || null,
+          disease_signs: value("#pollinator-inspection-disease").trim() || null,
+          temperament: value("#pollinator-inspection-temperament").trim() || null,
+          population_estimate: population === "" ? null : Number(population),
+          swarm_cells: pollinatorHiveInspectionForm.querySelector("#pollinator-inspection-swarm-cells").checked,
+          notes: value("#pollinator-inspection-notes").trim() || null
+        };
+        if (!payload.colony_strength && payload.colony_strength_score === null
+            && !payload.queen_status && payload.queen_seen === null
+            && payload.varroa_count === null && !payload.brood_pattern
+            && !payload.honey_stores && !payload.disease_signs && !payload.temperament
+            && payload.population_estimate === null && !payload.swarm_cells && !payload.notes) {
+          pollinatorHiveInspectionStatus.textContent = "Enter at least one inspection observation.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ locationId, ...payload });
+        if (!pollinatorHiveInspectionPending || pollinatorHiveInspectionPending.fingerprint !== fingerprint) {
+          pollinatorHiveInspectionPending = { fingerprint, request_id: crypto.randomUUID() };
+        }
+        const submit = document.querySelector("#pollinator-hive-inspection-submit");
+        submit.disabled = true;
+        pollinatorHiveInspectionStatus.textContent = "Saving the inspection as a recorded observation…";
+        try {
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/hives/inspections`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: pollinatorHiveInspectionPending.request_id })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location pollinator-create grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The hive inspection could not be saved.");
+          if (locationId !== pollinatorHealthLocation.value) return;
+          if (result.location_id !== locationId || result.status !== "recorded"
+              || typeof result.inspection_id !== "string" || typeof result.replayed !== "boolean") {
+            throw new Error("The response did not match the selected location or inspection contract.");
+          }
+          pollinatorHiveInspectionPending = null;
+          pollinatorHiveInspectionForm.reset();
+          pollinatorHiveInspectionStatus.textContent = result.replayed
+            ? "This inspection was already recorded. It remains unverified."
+            : "Inspection recorded; it has not been independently verified.";
+          if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
+        } catch (error) {
+          pollinatorHiveInspectionStatus.textContent = `${error.message} Retrying unchanged input reuses the same request ID.`;
         } finally {
           submit.disabled = false;
         }
@@ -24972,6 +25117,7 @@
       pesticideImpactCaptureForm.addEventListener("submit", submitPesticideImpactReport);
       pollinatorHabitatCaptureForm.addEventListener("submit", submitPollinatorHabitat);
       pollinatorHiveCaptureForm.addEventListener("submit", submitPollinatorHive);
+      pollinatorHiveInspectionForm.addEventListener("submit", submitPollinatorHiveInspection);
       document.querySelector("#irrigation-status-refresh").addEventListener("click", () => loadIrrigationStatus());
       irrigationStatusLocation.addEventListener("change", () => loadIrrigationStatus());
       irrigationStatusMore.addEventListener("click", () => loadIrrigationStatus(true));

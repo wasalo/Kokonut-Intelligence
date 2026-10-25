@@ -10,6 +10,8 @@ Updated: 25 October 2026
   location grant `pollinator_health:read`.
 - `POST /operator/api/pollinators/{location_id}/hives` requires the exact
   location grant `pollinator_health:create`.
+- `POST /operator/api/pollinators/{location_id}/hives/inspections` requires
+  that same exact location create grant.
 - These endpoints are private, same-origin operator routes. Responses use
   `Cache-Control: no-store` and `Vary: Cookie`; invalid identifiers fail before
   opening a database connection.
@@ -65,12 +67,20 @@ yield and counts for varroa observations; they are not a health certification.
 The reference species catalog is network-wide and is not joined into a
 location response.
 
+Migration 623 adds hive inspections through a separate security-definer
+function. It resolves one active hive identifier within the granted location,
+appends the source `recorded` inspection and updates the hive snapshot fields
+in the same transaction. A private digest receipt supports exact retries. The
+route does not verify the inspection; runtime and Directus cannot directly
+change inspection rows or those snapshot fields, and the legacy inspection CLI
+fails before opening a database connection.
+
 Migration 622 adds managed-hive registration through a security-definer
 function under signed exact-location create authorization. It stores the legacy
 `active` inventory state, the creator, and a private digest-only retry receipt;
 it does not make health or strength verified. Runtime and Directus cannot insert
-hive rows or read receipts. Existing direct hive update/inspection writers are
-not migrated by 622 and remain a separate gate.
+hive rows or read receipts. Inspection updates are now migrated by 623; other direct hive updates remain
+open for the separate status and maintenance surface.
 
 The scoped pollinator response also preserves three legacy calculations using
 aggregates only. Observation trends use the last 30 days and compare equal

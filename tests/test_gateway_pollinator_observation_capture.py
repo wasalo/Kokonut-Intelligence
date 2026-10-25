@@ -140,6 +140,28 @@ def _hive_payload(**changes):
     return payload
 
 
+def _inspection_payload(**changes):
+    payload = {
+        "request_id": str(uuid4()),
+        "hive_id": "KOK-TEST-001",
+        "inspection_date": date.today().isoformat(),
+        "colony_strength": "moderate",
+        "colony_strength_score": None,
+        "queen_status": "present",
+        "queen_seen": True,
+        "varroa_count": 25,
+        "brood_pattern": "solid",
+        "honey_stores": "medium",
+        "disease_signs": None,
+        "temperament": "calm",
+        "population_estimate": 15000,
+        "swarm_cells": False,
+        "notes": "Synthetic inspection observations",
+    }
+    payload.update(changes)
+    return payload
+
+
 def test_observation_sets_signed_create_context_before_function_and_cleans_connection(monkeypatch):
     connection = Connection()
     contexts = []
@@ -318,6 +340,48 @@ def test_hive_capture_sets_create_context_and_commits_active_inventory(monkeypat
     assert connection.closed
 
 
+def test_hive_inspection_sets_create_context_and_commits_recorded_only_result(monkeypatch):
+    connection = Connection()
+    connection.result = {
+        "inspection_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": _LOCATION,
+        "status": "recorded",
+        "replayed": False,
+    }
+    contexts = []
+    monkeypatch.setattr(
+        writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+    payload = _inspection_payload()
+
+    result = writes.record_location_pollinator_hive_inspection(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": _OPERATOR,
+            "location_id": _LOCATION,
+            "resource": "pollinator_health",
+            "action": "create",
+        },
+    )]
+    query, params = connection.operations[0]
+    assert "record_location_pollinator_hive_inspection" in query
+    assert params == (
+        _LOCATION, payload["request_id"], "KOK-TEST-001", date.today(),
+        "moderate", None, "present", True, 25, "solid", "medium", None,
+        "calm", 15000, False, "Synthetic inspection observations",
+    )
+    assert result["status"] == "recorded"
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed
+
+
 @pytest.mark.parametrize(
     "changes",
     [
@@ -410,6 +474,64 @@ def test_invalid_hive_capture_is_rejected_before_database_access(changes):
 @pytest.mark.parametrize(
     "changes",
     [
+        {"hive_id": " "},
+        {"inspection_date": "2999-01-01"},
+        {"inspection_date": "2026-02-30"},
+        {"colony_strength": "excellent"},
+        {"colony_strength_score": 11},
+        {"colony_strength": "strong", "colony_strength_score": 5},
+        {"queen_status": "healthy"},
+        {"queen_seen": "yes"},
+        {"varroa_count": 100001},
+        {"brood_pattern": "x" * 101},
+        {"honey_stores": "x" * 501},
+        {"disease_signs": "x" * 2001},
+        {"temperament": "bad\ntext"},
+        {"population_estimate": 100000001},
+        {"swarm_cells": 0},
+        {"notes": "bad\nnote"},
+        {"unexpected": "field"},
+    ],
+)
+def test_invalid_hive_inspection_is_rejected_before_database_access(changes):
+    opened = []
+    with pytest.raises(writes.PollinatorObservationInvalid):
+        writes.record_location_pollinator_hive_inspection(
+            _OPERATOR,
+            _LOCATION,
+            _inspection_payload(**changes),
+            connection_factory=lambda: opened.append(True),
+        )
+    assert opened == []
+
+
+def test_empty_hive_inspection_is_rejected_before_database_access():
+    opened = []
+    with pytest.raises(writes.PollinatorObservationInvalid, match="At least one inspection observation"):
+        writes.record_location_pollinator_hive_inspection(
+            _OPERATOR,
+            _LOCATION,
+            _inspection_payload(
+                colony_strength=None,
+                queen_status=None,
+                queen_seen=None,
+                varroa_count=None,
+                brood_pattern=None,
+                honey_stores=None,
+                disease_signs=None,
+                temperament=None,
+                population_estimate=None,
+                swarm_cells=False,
+                notes=None,
+            ),
+            connection_factory=lambda: opened.append(True),
+        )
+    assert opened == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
         {"pollinator_type": "bumblebee"},
         {"observation_method": "directus"},
         {"count": True},
@@ -444,6 +566,7 @@ def test_invalid_capture_is_rejected_before_database_access(changes):
         ("/operator/api/pollinators/{}/pesticide-impacts", "POST", "create"),
         ("/operator/api/pollinators/{}/habitats", "POST", "create"),
         ("/operator/api/pollinators/{}/hives", "POST", "create"),
+        ("/operator/api/pollinators/{}/hives/inspections", "POST", "create"),
     ],
 )
 def test_pollinator_routes_have_exact_location_grants(path, method, action):
@@ -652,6 +775,49 @@ def test_hive_http_capture_is_create_gated_and_no_store(monkeypatch):
     assert posted[0][0:2] == (_OPERATOR, _LOCATION)
 
 
+def test_hive_inspection_http_capture_is_create_gated_recorded_and_no_store(monkeypatch):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    posted = []
+
+    def create(operator_id, location_id, payload):
+        posted.append((operator_id, location_id, payload))
+        return {
+            "inspection_id": "33333333-3333-4333-8333-333333333333",
+            "location_id": location_id,
+            "status": "recorded",
+            "replayed": False,
+        }
+
+    monkeypatch.setattr(writes, "record_location_pollinator_hive_inspection", create)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/hives/inspections",
+            json=_inspection_payload(),
+        )
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert posted[0][0:2] == (_OPERATOR, _LOCATION)
+
+
 def test_legacy_pollinator_observation_cli_fails_before_database_access(monkeypatch):
     cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
     command = next(item for item in cli._commands if item.name == "record-observation")
@@ -711,4 +877,19 @@ def test_legacy_hive_cli_fails_before_database_access(monkeypatch):
     with pytest.raises(RuntimeError, match="Unscoped managed-hive writes are retired"):
         cli.main([
             "add-hive", "--location-id", _LOCATION, "--hive-id", "KOK-TEST-001",
+        ])
+
+
+def test_legacy_hive_inspection_cli_fails_before_database_access(monkeypatch):
+    cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
+    command = next(item for item in cli._commands if item.name == "record-inspection")
+    assert command.needs_db is False
+    monkeypatch.setattr(
+        cli,
+        "_connection_factory",
+        lambda: pytest.fail("retired hive inspection writer must not open the database"),
+    )
+    with pytest.raises(RuntimeError, match="Unscoped hive inspection writes are retired"):
+        cli.main([
+            "record-inspection", "--location-id", _LOCATION, "--hive-id", "KOK-TEST-001",
         ])

@@ -164,6 +164,34 @@ def test_hive_capture_is_grant_gated_self_reported_and_uses_stable_retry():
     assert "pollinatorHiveCaptureForm.reset()" in submit.group()
 
 
+def test_hive_inspection_capture_is_grant_gated_recorded_and_uses_stable_retry():
+    assert 'id="pollinator-hive-inspection-capture" hidden' in SOURCE
+    assert "pollinatorHiveInspectionCapture.hidden = !canCreate" in SOURCE
+    assert "do not independently verify hive health" in SOURCE
+    submit = re.search(
+        r"async function submitPollinatorHiveInspection\(event\).*?\n      }",
+        SOURCE,
+        re.DOTALL,
+    )
+    assert submit
+    assert "pollinatorHealthCreateLocations.has(locationId)" in submit.group()
+    assert '"X-CSRF-Token": csrf' in submit.group()
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit.group()
+    assert "pollinatorHiveInspectionPending.fingerprint !== fingerprint" in submit.group()
+    assert "crypto.randomUUID()" in submit.group()
+    assert 'result.status !== "recorded"' in submit.group()
+    assert "Retrying unchanged input reuses the same request ID." in submit.group()
+    assert "independently verified" in submit.group()
+    assert "Saving the inspection as a recorded observation" in submit.group()
+    assert "pollinatorHiveInspectionForm.reset()" in submit.group()
+    for field in (
+        "inspection_date", "colony_strength", "colony_strength_score", "queen_status",
+        "queen_seen", "varroa_count", "brood_pattern", "honey_stores", "disease_signs",
+        "temperament", "population_estimate", "swarm_cells", "notes",
+    ):
+        assert f"{field}:" in submit.group()
+
+
 def test_inline_console_javascript_passes_node_syntax_check():
     node = shutil.which("node")
     assert node, "Node.js is required for the operator-console JavaScript syntax check"

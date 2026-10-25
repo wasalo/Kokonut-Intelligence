@@ -544,3 +544,136 @@ def create_location_pollinator_hive(
         raise
     finally:
         connection.close()
+
+
+def _normalize_hive_inspection_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Hive inspection body must be an object")
+    allowed = {
+        "request_id", "hive_id", "inspection_date", "colony_strength",
+        "colony_strength_score", "queen_status", "queen_seen", "varroa_count",
+        "brood_pattern", "honey_stores", "disease_signs", "temperament",
+        "population_estimate", "swarm_cells", "notes",
+    }
+    if set(payload) != allowed:
+        raise PollinatorObservationInvalid("Hive inspection fields do not match the supported contract")
+    request_id = _identifier(payload["request_id"], "request")
+    hive_id = _text(payload["hive_id"], "hive identifier", 100)
+    if not hive_id:
+        raise PollinatorObservationInvalid("Hive identifier is required")
+
+    inspection_date = payload["inspection_date"]
+    if inspection_date is not None:
+        if not isinstance(inspection_date, str):
+            raise PollinatorObservationInvalid("Inspection date must use YYYY-MM-DD")
+        try:
+            inspection_date = date.fromisoformat(inspection_date)
+        except ValueError as exc:
+            raise PollinatorObservationInvalid("Inspection date must use YYYY-MM-DD") from exc
+        if inspection_date.isoformat() != payload["inspection_date"] or inspection_date > date.today():
+            raise PollinatorObservationInvalid("Inspection date must be a completed date in YYYY-MM-DD format")
+
+    strength = payload["colony_strength"]
+    score = payload["colony_strength_score"]
+    if strength is not None and (
+        not isinstance(strength, str)
+        or strength not in {"strong", "moderate", "weak", "dead"}
+    ):
+        raise PollinatorObservationInvalid("Unsupported colony strength category")
+    if score is not None and (
+        isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 10
+    ):
+        raise PollinatorObservationInvalid("Colony strength score must be between 0 and 10")
+    if strength is not None and score is not None:
+        raise PollinatorObservationInvalid("Provide a colony strength category or score, not both")
+
+    queen_status = payload["queen_status"]
+    if queen_status is not None and (
+        not isinstance(queen_status, str)
+        or queen_status not in {"present", "absent", "replaced", "unknown"}
+    ):
+        raise PollinatorObservationInvalid("Unsupported queen status")
+    queen_seen = payload["queen_seen"]
+    if queen_seen is not None and not isinstance(queen_seen, bool):
+        raise PollinatorObservationInvalid("Queen-seen value must be a boolean or null")
+
+    def optional_integer(field: str, maximum: int) -> int | None:
+        value = payload[field]
+        if value is None:
+            return None
+        if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= maximum:
+            raise PollinatorObservationInvalid(f"{field.replace('_', ' ').capitalize()} is outside its bounds")
+        return value
+
+    swarm_cells = payload["swarm_cells"]
+    if not isinstance(swarm_cells, bool):
+        raise PollinatorObservationInvalid("Swarm-cells value must be a boolean")
+    varroa_count = optional_integer("varroa_count", 100_000)
+    brood_pattern = _text(payload["brood_pattern"], "brood pattern", 100, optional=True)
+    honey_stores = _text(payload["honey_stores"], "honey stores", 500, optional=True)
+    disease_signs = _text(payload["disease_signs"], "disease signs", 2000, optional=True)
+    temperament = _text(payload["temperament"], "temperament", 100, optional=True)
+    population_estimate = optional_integer("population_estimate", 100_000_000)
+    notes = _text(payload["notes"], "notes", 2000, optional=True)
+    if not any((
+        strength, score is not None, queen_status, queen_seen is not None,
+        varroa_count is not None, brood_pattern, honey_stores, disease_signs,
+        temperament, population_estimate is not None, swarm_cells, notes,
+    )):
+        raise PollinatorObservationInvalid("At least one inspection observation is required")
+    return (
+        request_id, hive_id, inspection_date, strength, score, queen_status, queen_seen,
+        varroa_count, brood_pattern, honey_stores, disease_signs, temperament,
+        population_estimate, swarm_cells, notes,
+    )
+
+
+def record_location_pollinator_hive_inspection(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Append one recorded hive inspection and update its scoped snapshot atomically."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_hive_inspection_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.record_location_pollinator_hive_inspection("
+                "%s::uuid, %s::uuid, %s::text, %s::date, %s::text, %s::smallint, "
+                "%s::text, %s::boolean, %s::integer, %s::text, %s::text, %s::text, "
+                "%s::text, %s::integer, %s::boolean, %s::text)",
+                (location_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Hive inspection capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("status") != "recorded"
+                or not isinstance(result.get("inspection_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Hive inspection capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

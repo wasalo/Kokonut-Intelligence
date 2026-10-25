@@ -13,7 +13,6 @@ from .pollinator_health import (
     get_pesticide_risk,
     get_pollinator_dashboard,
     get_pollinator_summary,
-    record_hive_inspection,
 )
 
 # ============================================================
@@ -51,20 +50,10 @@ def _cmd_add_hive(_db, _a):
     )
 
 
-def _cmd_record_inspection(db, a):
-    return record_hive_inspection(
-        db, a.location_id, a.hive_id,
-        colony_strength=a.colony_strength,
-        queen_status=a.queen_status,
-        queen_seen=a.queen_seen,
-        varroa_count=a.varroa_count,
-        brood_pattern=a.brood_pattern,
-        honey_stores=a.honey_stores,
-        disease_signs=a.disease_signs,
-        temperament=a.temperament,
-        population_estimate=a.population_estimate,
-        swarm_cells=a.swarm_cells,
-        notes=a.notes,
+def _cmd_record_inspection(_db, _a):
+    raise RuntimeError(
+        "Unscoped hive inspection writes are retired; use the authenticated "
+        "Kokonut Gateway inspection form with a location create grant."
     )
 
 
@@ -146,7 +135,7 @@ cli.subcommand("record-inspection", "Record hive inspection") \
     .add("--swarm-cells", action="store_true") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_inspection)
+    .run(_cmd_record_inspection, needs_db=False)
 
 cli.subcommand("summary", "Pollinator summary") \
     .add("--location-id", required=True) \

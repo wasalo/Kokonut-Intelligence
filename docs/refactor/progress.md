@@ -1,3 +1,27 @@
+### Progress addendum — CAP-006 location-scoped managed-hive inspection capture, 25 October 2026
+
+Migration 623 adds signed location-scoped inspection capture under exact
+`pollinator_health:create`. A dedicated function owner resolves one active
+hive by its location-scoped identifier, validates bounded inspection values,
+appends the source `recorded` inspection with operator attribution, and stores
+a private digest receipt for retries. It atomically updates only the associated
+hive snapshot fields. Runtime and Directus cannot directly mutate inspection
+rows or those snapshot fields, and the legacy `record-inspection` CLI fails
+before database access. The console labels the inspection as unverified and
+uses a stable retry key, CSRF, and no-store requests.
+
+The focused Gateway/console/route selection passes 103 tests; the combined
+CAP-006 selection passes 277. Ruff, compilation, Node syntax, route and matrix
+checks, and SQL inventory pass. Disposable PostgreSQL 16 applies/replays
+migrations 155/602/622/623 with 14 groups on native x86_64 and ARM64/QEMU
+([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-inspection-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-inspection-capture-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 623 is not rolled out. QEMU is
+software evidence only. Hive status/maintenance, habitat status/maintenance,
+populated parity, live OIDC/browser, independent review, wider ACL/RLS, Directus
+parity, and MAN-CAP-006 remain open. Checklist: 1,131 complete / 25 open
+(1,156 total).
+
 ### Progress addendum — CAP-006 location-scoped managed-hive registration, 25 October 2026
 
 Migration 622 and the authenticated Gateway now register managed hives under
