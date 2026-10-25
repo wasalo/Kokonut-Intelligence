@@ -18,6 +18,12 @@ Updated: 25 October 2026
 - `PATCH /operator/api/pollinators/{location_id}/habitats/{habitat_id}` requires
   the exact location grant `pollinator_health:edit`; it updates only reported
   status, condition, and maintenance date.
+- `GET /operator/api/pollinators/{location_id}/hives` requires the exact
+  location grant `pollinator_health:read_detail`; its paginated projection omits
+  private notes and metadata.
+- `PATCH /operator/api/pollinators/{location_id}/hives/{hive_record_id}`
+  requires the exact location grant `pollinator_health:edit`; it updates only
+  operational status and last-maintenance date.
 - These endpoints are private, same-origin operator routes. Responses use
   `Cache-Control: no-store` and `Vary: Cookie`; invalid identifiers fail before
   opening a database connection.
@@ -93,12 +99,25 @@ Runtime and Directus cannot directly mutate habitat rows or read the private
 event ledger. The operation records self-reported operational state; it does not
 verify ecological condition or outcomes.
 
+Migration 625 provides a paginated managed-hive detail route and a separate
+status/maintenance operation. Detail uses repeatable-read/read-only semantics,
+the exact `read_detail` grant, and a repeated location predicate; it returns
+identifier, type, operational status, recorded strength/queen/frame fields,
+inspection date, last-maintenance date, and update timestamp. It omits private
+notes and metadata. Updates require the latest `updated_at` and a bounded reason,
+reject stale writes, and append an immutable operator-attributed before/after
+event atomically with the status/maintenance change. Runtime and Directus cannot
+directly alter hive rows or read the private ledger. This is operational
+self-reporting and does not verify colony health. Inspection capture remains a
+separate recorded observation under migration 623.
+
 Migration 622 adds managed-hive registration through a security-definer
 function under signed exact-location create authorization. It stores the legacy
 `active` inventory state, the creator, and a private digest-only retry receipt;
 it does not make health or strength verified. Runtime and Directus cannot insert
-hive rows or read receipts. Inspection updates are now migrated by 623; other direct hive updates remain
-open for the separate status and maintenance surface.
+hive rows or read receipts. Migration 623 owns inspection history and its
+snapshot updates; migration 625 owns operational status and last-maintenance
+updates through a separate audited function.
 
 The scoped pollinator response also preserves three legacy calculations using
 aggregates only. Observation trends use the last 30 days and compare equal
@@ -146,6 +165,9 @@ discard stale responses, and render values through `textContent`. Habitat edits
 use CSRF protection, stable request IDs, a required reason, and the detail
 response timestamp as the optimistic concurrency token; successful edits refresh
 the detail view without implying ecological verification.
+The managed-hive panel follows the same hidden-by-default, paginated,
+grant-separated pattern and labels status/maintenance as operational
+self-reporting.
 
 ## Verification and rollback
 

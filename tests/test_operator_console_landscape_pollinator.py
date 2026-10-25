@@ -220,6 +220,34 @@ def test_habitat_lifecycle_detail_and_edit_have_separate_grants_and_audited_upda
     assert "does not verify ecological condition or outcomes" in SOURCE
 
 
+def test_managed_hive_lifecycle_is_grant_gated_audited_and_separate_from_inspections():
+    assert 'id="pollinator-hive-management" hidden' in SOURCE
+    assert "pollinatorHiveManagement.hidden = !canReadDetails" in SOURCE
+    loader = re.search(
+        r"async function loadPollinatorHealthHiveDetails\(append = false\).*?\n      }",
+        SOURCE,
+        re.DOTALL,
+    )
+    assert loader
+    assert "pollinatorHealthDetailLocations.has(locationId)" in loader.group()
+    assert 'cache: "no-store"' in loader.group()
+    assert "result.location_id !== locationId" in loader.group()
+    assert "item.metadata" not in loader.group()
+    submit = re.search(
+        r"async function submitPollinatorHiveLifecycle\(event\).*?\n      }",
+        SOURCE,
+        re.DOTALL,
+    )
+    assert submit
+    assert "pollinatorHealthEditLocations.has(locationId)" in submit.group()
+    assert 'method: "PATCH", credentials: "same-origin", cache: "no-store"' in submit.group()
+    assert '"X-CSRF-Token": csrf' in submit.group()
+    assert "expected_updated_at" in submit.group()
+    assert "crypto.randomUUID()" in submit.group()
+    assert "does not verify colony health" in submit.group()
+    assert "inspections remain separate recorded observations" in SOURCE
+
+
 def test_inline_console_javascript_passes_node_syntax_check():
     node = shutil.which("node")
     assert node, "Node.js is required for the operator-console JavaScript syntax check"

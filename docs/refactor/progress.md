@@ -1,3 +1,27 @@
+### Progress addendum — CAP-006 managed-hive status and maintenance, 25 October 2026
+
+Migration 625 completes the managed-hive operational status/maintenance
+surface. A private paginated detail read uses exact location
+`pollinator_health:read_detail`; a separate update requires exact
+`pollinator_health:edit`, a bounded reason, and the current `updated_at` value.
+Stale writes fail closed. A no-login function owner updates only reported
+operational status and last-maintenance date and atomically appends an immutable,
+operator-attributed before/after event. The detail projection omits notes and
+metadata. Hive inspection remains a separate recorded observation and neither
+surface verifies colony health. Runtime and Directus cannot directly alter hive
+rows or inspect the private event ledger.
+
+The focused Gateway/console/policy selection passes 34 tests and the broader
+CAP-006 and waste regression passes 316 tests. Ruff, compilation,
+Node syntax, runtime SQL inventory, matrix validation, and diff checks pass.
+Disposable PostgreSQL 16 applies/replays migrations 155/602/619/620/621/622/623/
+624/625 and passes 17 grouped checks on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-lifecycle-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-lifecycle-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 625 is not rolled out. QEMU is
+software portability evidence only. Populated parity, live OIDC/browser,
+independent review, broader ACL/RLS, Directus parity, and MAN-CAP-006 remain
+open. Checklist: 1,133 complete / 23 open (1,156 total).
+
 ### Progress addendum — CAP-006 pollinator habitat status and maintenance, 25 October 2026
 
 Migration 624 and the Gateway now provide a private paginated habitat detail

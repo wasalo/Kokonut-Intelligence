@@ -10,6 +10,8 @@ from services.common.tenant_context import set_operator_tenant_context
 
 _MAX_HABITAT_PAGE_SIZE = 50
 _MAX_HABITAT_OFFSET = 10000
+_MAX_HIVE_PAGE_SIZE = 50
+_MAX_HIVE_OFFSET = 10000
 
 
 def _connection_factory() -> Callable:
@@ -328,6 +330,79 @@ def get_location_pollinator_habitat_details(
             "limit": limit,
             "offset": offset,
             "habitats": items,
+            "has_more": has_more,
+            "next_offset": offset + limit if has_more else None,
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def get_location_pollinator_hive_details(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 50,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded operational hive details under a separate detail grant."""
+    try:
+        operator_id = str(UUID(str(operator_id)))
+        location_id = str(UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("Invalid operator or location identifier") from exc
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= _MAX_HIVE_PAGE_SIZE:
+        raise ValueError(f"limit must be between 1 and {_MAX_HIVE_PAGE_SIZE}")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= _MAX_HIVE_OFFSET:
+        raise ValueError(f"offset must be between 0 and {_MAX_HIVE_OFFSET}")
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = '8s'")
+            cur.execute("SET LOCAL lock_timeout = '2s'")
+
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="read_detail",
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT hive.id::text, hive.hive_id, hive.hive_type, hive.status,
+                       hive.colony_strength, hive.colony_strength_score,
+                       hive.queen_status, hive.frame_count, hive.inspection_date,
+                       hive.last_maintenance_date, hive.updated_at
+                  FROM public.hive_record AS hive
+                 WHERE hive.location_id = %s::uuid
+                 ORDER BY hive.hive_id, hive.id
+                 LIMIT %s OFFSET %s
+                """,
+                (location_id, limit + 1, offset),
+            )
+            rows = _rows(cur)
+        has_more = len(rows) > limit
+        items = rows[:limit]
+        for item in items:
+            item["inspection_date"] = _date(item["inspection_date"])
+            item["last_maintenance_date"] = _date(item["last_maintenance_date"])
+            item["updated_at"] = item["updated_at"].isoformat()
+            if item["colony_strength_score"] is not None:
+                item["colony_strength_score"] = int(item["colony_strength_score"])
+            if item["frame_count"] is not None:
+                item["frame_count"] = int(item["frame_count"])
+        return {
+            "location_id": location_id,
+            "limit": limit,
+            "offset": offset,
+            "hives": items,
             "has_more": has_more,
             "next_offset": offset + limit if has_more else None,
         }

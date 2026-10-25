@@ -18,6 +18,7 @@ _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 _PARAMETER_SAMPLES = {
     "location_id": _LOCATION_ID,
     "habitat_id": "55555555-5555-4555-8555-555555555555",
+    "hive_record_id": "55555555-5555-4555-8555-555555555555",
     "batch_id": "33333333-3333-4333-8333-333333333333",
     "prediction_id": "55555555-5555-4555-8555-555555555555",
     "realization_id": "33333333-3333-4333-8333-333333333333",
@@ -338,6 +339,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/hives",
     ): _expected("pollinator_health", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/hives",
+    ): _expected("pollinator_health", "read_detail", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/hives/55555555-5555-4555-8555-555555555555",
+    ): _expected("pollinator_health", "edit", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
         "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/hives/inspections",

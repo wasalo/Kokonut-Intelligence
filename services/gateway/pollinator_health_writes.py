@@ -22,6 +22,7 @@ _POLLINATOR_HABITAT_TYPES = {
 _OBSERVATION_METHODS = {"transect", "pan_trap", "visual_count", "hive_weight", "other"}
 _POLLINATOR_HABITAT_STATUSES = {"active", "inactive", "degraded", "removed"}
 _POLLINATOR_HABITAT_CONDITIONS = {"excellent", "good", "fair", "poor"}
+_POLLINATOR_HIVE_STATUSES = {"active", "inactive", "decommissioned"}
 _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f\x7f]")
 
 
@@ -790,6 +791,120 @@ def record_location_pollinator_hive_inspection(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Hive inspection capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def _normalize_hive_lifecycle_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Managed-hive update body must be an object")
+    required = {"request_id", "expected_updated_at", "reason"}
+    allowed = required | {"status", "last_maintenance_date"}
+    if not required.issubset(payload) or not set(payload).issubset(allowed):
+        raise PollinatorObservationInvalid("Managed-hive update fields do not match the supported contract")
+
+    request_id = _identifier(payload["request_id"], "request")
+    expected_updated_at = payload["expected_updated_at"]
+    if not isinstance(expected_updated_at, str) or len(expected_updated_at) > 64:
+        raise PollinatorObservationInvalid("expected_updated_at must be a timezone-aware timestamp")
+    try:
+        expected_timestamp = datetime.fromisoformat(expected_updated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise PollinatorObservationInvalid(
+            "expected_updated_at must be a timezone-aware timestamp"
+        ) from exc
+    if expected_timestamp.tzinfo is None or expected_timestamp.utcoffset() is None:
+        raise PollinatorObservationInvalid("expected_updated_at must include a timezone")
+    expected_timestamp = expected_timestamp.astimezone(timezone.utc)
+
+    status_supplied = "status" in payload
+    status = payload.get("status")
+    if status_supplied and (not isinstance(status, str) or status not in _POLLINATOR_HIVE_STATUSES):
+        raise PollinatorObservationInvalid("Unsupported managed-hive status")
+
+    maintenance_supplied = "last_maintenance_date" in payload
+    maintenance_date = payload.get("last_maintenance_date")
+    if maintenance_supplied and maintenance_date is not None:
+        if not isinstance(maintenance_date, str):
+            raise PollinatorObservationInvalid("last_maintenance_date must use YYYY-MM-DD or null")
+        try:
+            parsed_date = date.fromisoformat(maintenance_date)
+        except ValueError as exc:
+            raise PollinatorObservationInvalid(
+                "last_maintenance_date must use YYYY-MM-DD or null"
+            ) from exc
+        if parsed_date.isoformat() != maintenance_date or parsed_date > date.today():
+            raise PollinatorObservationInvalid("last_maintenance_date must be a valid non-future date")
+        maintenance_date = parsed_date
+
+    if not (status_supplied or maintenance_supplied):
+        raise PollinatorObservationInvalid("At least one managed-hive lifecycle field must be supplied")
+    reason = _text(payload["reason"], "change reason", 500)
+    if not reason:
+        raise PollinatorObservationInvalid("A managed-hive change reason is required")
+    return (
+        request_id,
+        expected_timestamp,
+        status,
+        status_supplied,
+        maintenance_date,
+        maintenance_supplied,
+        reason,
+    )
+
+
+def update_location_pollinator_hive(
+    operator_id: str,
+    location_id: str,
+    hive_record_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Change reported hive status/maintenance under exact location edit scope."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    hive_record_id = _identifier(hive_record_id, "managed hive")
+    normalized = _normalize_hive_lifecycle_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="edit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.update_location_pollinator_hive("
+                "%s::uuid, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::boolean, "
+                "%s::date, %s::boolean, %s::text)",
+                (location_id, hive_record_id, *normalized),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Managed-hive update returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            maintenance_date = result.get("last_maintenance_date") if isinstance(result, dict) else None
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("hive_record_id") != hive_record_id
+                or not isinstance(result.get("event_id"), str)
+                or result.get("status") not in _POLLINATOR_HIVE_STATUSES
+                or (maintenance_date is not None and not isinstance(maintenance_date, str))
+                or not isinstance(result.get("updated_at"), str)
+                or not isinstance(result.get("replayed"), bool)
+            ):
+                raise RuntimeError("Managed-hive update returned an invalid result")
             connection.commit()
             return result
     except Exception:

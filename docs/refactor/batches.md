@@ -19,10 +19,36 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,132 checklist items complete and 24
+**Current snapshot (25 October 2026):** 1,133 checklist items complete and 23
 open (1,156 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 location-scoped managed-hive status and maintenance — 25 October 2026
+
+- [x] Add migration 625 and a private paginated managed-hive detail read under
+  `pollinator_health:read_detail`, plus a `PATCH
+  /operator/api/pollinators/{location_id}/hives/{hive_record_id}` update under
+  exact location `pollinator_health:edit`. Detail reads expose the bounded hive
+  identifier/type, operational status, recorded strength/queen/frame fields,
+  inspection date, maintenance date, and update timestamp; private notes and
+  metadata stay omitted. Updates require a reason and expected timestamp, retain
+  optimistic concurrency, and update only operational status/maintenance date
+  while appending an immutable operator-attributed before/after event. Inspection
+  history remains a separate recorded observation. The console uses the
+  independent detail/edit grants and labels both fields as reported state, not
+  health verification. The focused Gateway/console/policy regression passes 34 tests; the broader
+  CAP-006 and waste regression passes 316 tests. Ruff, compilation, JavaScript
+  syntax, runtime SQL inventory, and diff
+  checks pass. Disposable PostgreSQL 16 applies/replays through migration 625
+  and passes 17 grouped checks on native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-hive-lifecycle-disposable.json);
+  [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-hive-lifecycle-arm64-disposable.json)).
+  Candidate and legacy remain untouched; migration 625 is not rolled out. QEMU
+  is software portability evidence only. Populated hive parity, live
+  OIDC/browser, independent review, broader ACL/RLS, Directus parity, and
+  MAN-CAP-006 remain open. Rollback disables the detail/update routes, exact
+  policy entries, and console panel; retain the additive fields and audit ledger
+  if migration 625 has been applied. Checklist: 1,133 complete / 23 open.
 
 ### CAP-006 location-scoped pollinator habitat status and maintenance — 25 October 2026
 

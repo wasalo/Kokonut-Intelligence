@@ -11,6 +11,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.pollinator_health_reads import (
         get_location_pollinator_habitat_details,
+        get_location_pollinator_hive_details,
         get_location_pollinator_summary,
     )
     from services.gateway.pollinator_health_writes import (
@@ -21,6 +22,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         create_location_pollinator_observation,
         record_location_pollinator_hive_inspection,
         update_location_pollinator_habitat,
+        update_location_pollinator_hive,
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -135,6 +137,47 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             return JSONResponse(
                 status_code=503,
                 content={"error": "Pollinator habitat details unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/pollinators/{location_id}/hives")
+    async def pollinator_hive_details(
+        request: Request, location_id: str, limit: int = 50, offset: int = 0
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_pollinator_hive_details,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified managed-hive detail access is required"},
+                headers=headers,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location pollinator-detail grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Managed-hive details unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Managed-hive details unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
@@ -383,6 +426,73 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
             status_code=200,
             headers=headers,
         )
+
+    @router.patch("/operator/api/pollinators/{location_id}/hives/{hive_record_id}")
+    async def update_pollinator_hive(request: Request, location_id: str, hive_record_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        payload, body_error = await bounded_payload(request)
+        if body_error:
+            return body_error
+        try:
+            result = await run_in_threadpool(
+                update_location_pollinator_hive,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                hive_record_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified managed-hive update access is required"},
+                headers=headers,
+            )
+        except PollinatorObservationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location pollinator-edit grant is required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Managed-hive update input is invalid or outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The request ID was already used with different hive input"},
+                    headers=headers,
+                )
+            if pgcode == "40001":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The hive changed; reload it before applying this update"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Managed hive not found in this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.pollinators").warning(
+                "Managed-hive update unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Managed-hive update unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
 
     @router.post("/operator/api/pollinators/{location_id}/hives")
     async def create_pollinator_hive(request: Request, location_id: str):

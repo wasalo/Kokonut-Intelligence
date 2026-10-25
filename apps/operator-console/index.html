@@ -2505,6 +2505,14 @@
               <div id="pollinator-habitat-management-items" class="stacked-form"></div>
               <button id="pollinator-habitat-management-more" class="secondary" type="button" hidden>Load more habitats</button>
             </section>
+            <section id="pollinator-hive-management" hidden aria-labelledby="pollinator-hive-management-heading">
+              <h4 id="pollinator-hive-management-heading">Managed-hive status and maintenance</h4>
+              <p class="muted">This private detail view shows operator-reported hive inventory. Operational status and maintenance dates do not verify colony health; inspections remain separate recorded observations.</p>
+              <button id="pollinator-hive-management-refresh" class="secondary" type="button">Refresh managed hives</button>
+              <p id="pollinator-hive-management-status" class="muted" role="status" aria-live="polite"></p>
+              <div id="pollinator-hive-management-items" class="stacked-form"></div>
+              <button id="pollinator-hive-management-more" class="secondary" type="button" hidden>Load more hives</button>
+            </section>
             <div id="pollinator-health-summary" hidden></div>
           </section>
         </section>
@@ -3771,6 +3779,10 @@
       const pollinatorHabitatManagementStatus = document.querySelector("#pollinator-habitat-management-status");
       const pollinatorHabitatManagementItems = document.querySelector("#pollinator-habitat-management-items");
       const pollinatorHabitatManagementMore = document.querySelector("#pollinator-habitat-management-more");
+      const pollinatorHiveManagement = document.querySelector("#pollinator-hive-management");
+      const pollinatorHiveManagementStatus = document.querySelector("#pollinator-hive-management-status");
+      const pollinatorHiveManagementItems = document.querySelector("#pollinator-hive-management-items");
+      const pollinatorHiveManagementMore = document.querySelector("#pollinator-hive-management-more");
       const pollinatorInspectionDateMax = new Date();
       pollinatorInspectionDateMax.setMinutes(pollinatorInspectionDateMax.getMinutes() - pollinatorInspectionDateMax.getTimezoneOffset());
       pollinatorHiveInspectionForm.querySelector("#pollinator-inspection-date").max = pollinatorInspectionDateMax.toISOString().slice(0, 10);
@@ -3783,6 +3795,9 @@
       let pollinatorHabitatDetailsOffset = 0;
       let pollinatorHabitatDetailsNextOffset = null;
       let pollinatorHabitatUpdatePending = new Map();
+      let pollinatorHiveDetailsRequestVersion = 0;
+      let pollinatorHiveDetailsNextOffset = null;
+      let pollinatorHiveUpdatePending = new Map();
       let pollinatorObservationPending = null;
       let pesticideImpactPending = null;
       let pollinatorHabitatPending = null;
@@ -18052,6 +18067,7 @@
         pollinatorHiveCapture.hidden = !canCreate;
         pollinatorHiveInspectionCapture.hidden = !canCreate;
         pollinatorHabitatManagement.hidden = !canReadDetails;
+        pollinatorHiveManagement.hidden = !canReadDetails;
         if (!canRead) pollinatorHealthSummary.replaceChildren();
         if (!canReadDetails) {
           pollinatorHabitatManagementItems.replaceChildren();
@@ -18059,6 +18075,11 @@
           pollinatorHabitatManagementMore.hidden = true;
           pollinatorHabitatDetailsNextOffset = null;
           pollinatorHabitatUpdatePending.clear();
+          pollinatorHiveManagementItems.replaceChildren();
+          pollinatorHiveManagementStatus.textContent = "";
+          pollinatorHiveManagementMore.hidden = true;
+          pollinatorHiveDetailsNextOffset = null;
+          pollinatorHiveUpdatePending.clear();
         }
         if (!canCreate) pollinatorObservationCaptureStatus.textContent = "";
         if (!canCreate) pesticideImpactCaptureStatus.textContent = "";
@@ -18316,6 +18337,225 @@
 
       function conditionsForHabitat() {
         return new Set(["excellent", "good", "fair", "poor"]);
+      }
+
+      function renderPollinatorHiveDetail(item, canEdit) {
+        const article = document.createElement("article");
+        article.dataset.hiveRecordId = item.id;
+        article.dataset.status = item.status;
+        article.dataset.lastMaintenanceDate = item.last_maintenance_date || "";
+        article.dataset.updatedAt = item.updated_at;
+        const heading = document.createElement("h5");
+        heading.textContent = `${item.hive_id}${item.hive_type ? ` · ${item.hive_type}` : ""}`;
+        const details = document.createElement("p");
+        details.className = "muted";
+        const strength = item.colony_strength || (item.colony_strength_score === null ? "not recorded" : `score ${item.colony_strength_score}/10`);
+        details.textContent = `Status: ${item.status} · Strength: ${strength} · Queen: ${item.queen_status || "not recorded"} · Frames: ${item.frame_count ?? "not recorded"} · Last inspection: ${item.inspection_date || "not recorded"} · Last maintenance: ${item.last_maintenance_date || "not recorded"}`;
+        article.append(heading, details);
+        if (!canEdit) return article;
+
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        form.dataset.hiveUpdateForm = "true";
+        const statusLabel = document.createElement("label");
+        statusLabel.textContent = "Operational status";
+        const statusSelect = document.createElement("select");
+        statusSelect.dataset.field = "status";
+        for (const [value, label] of [["active", "Active"], ["inactive", "Inactive"], ["decommissioned", "Decommissioned"]]) {
+          appendPollinatorSelectOption(statusSelect, value, label);
+        }
+        statusSelect.value = item.status;
+        statusLabel.append(statusSelect);
+
+        const maintenanceLabel = document.createElement("label");
+        maintenanceLabel.textContent = "Last maintenance date";
+        const maintenanceDate = document.createElement("input");
+        maintenanceDate.type = "date";
+        const localToday = new Date();
+        localToday.setMinutes(localToday.getMinutes() - localToday.getTimezoneOffset());
+        maintenanceDate.max = localToday.toISOString().slice(0, 10);
+        maintenanceDate.value = item.last_maintenance_date || "";
+        maintenanceDate.dataset.field = "last_maintenance_date";
+        maintenanceLabel.append(maintenanceDate);
+
+        const clearLabel = document.createElement("label");
+        const clearMaintenance = document.createElement("input");
+        clearMaintenance.type = "checkbox";
+        clearMaintenance.dataset.field = "clear_last_maintenance_date";
+        clearLabel.append(clearMaintenance, document.createTextNode(" Clear an incorrect maintenance date"));
+
+        const reasonLabel = document.createElement("label");
+        reasonLabel.textContent = "Reason for this update (required)";
+        const reason = document.createElement("textarea");
+        reason.required = true;
+        reason.maxLength = 500;
+        reason.rows = 2;
+        reason.dataset.field = "reason";
+        reasonLabel.append(reason);
+
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Save hive update";
+        const message = document.createElement("p");
+        message.className = "muted";
+        message.setAttribute("role", "status");
+        message.setAttribute("aria-live", "polite");
+        message.dataset.field = "message";
+        form.append(statusLabel, maintenanceLabel, clearLabel, reasonLabel, submit, message);
+        article.append(form);
+        return article;
+      }
+
+      async function loadPollinatorHealthHiveDetails(append = false) {
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthDetailLocations.has(locationId)) return;
+        const requestVersion = ++pollinatorHiveDetailsRequestVersion;
+        const offset = append ? pollinatorHiveDetailsNextOffset : 0;
+        if (append && !Number.isSafeInteger(offset)) return;
+        if (!append) {
+          pollinatorHiveDetailsNextOffset = null;
+          pollinatorHiveManagementItems.replaceChildren();
+        }
+        pollinatorHiveManagementStatus.textContent = "Loading private managed-hive details…";
+        pollinatorHiveManagementMore.disabled = true;
+        try {
+          const query = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/hives?${query}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) throw new Error("A current location pollinator-detail grant is required.");
+            throw new Error("Managed-hive details are unavailable. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== pollinatorHiveDetailsRequestVersion || locationId !== pollinatorHealthLocation.value) return;
+          const statuses = new Set(["active", "inactive", "decommissioned"]);
+          const strengths = new Set(["strong", "moderate", "weak", "dead"]);
+          const queenStatuses = new Set(["present", "absent", "replaced", "unknown"]);
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const validDate = (value) => value === null || (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(`${value}T00:00:00Z`)));
+          if (result.location_id !== locationId || result.limit !== 50 || result.offset !== offset
+              || !Array.isArray(result.hives) || typeof result.has_more !== "boolean"
+              || (result.next_offset !== null && !Number.isSafeInteger(result.next_offset))) {
+            throw new Error("The managed-hive detail response did not match the selected location.");
+          }
+          for (const item of result.hives) {
+            if (!item || !uuid.test(item.id) || typeof item.hive_id !== "string" || item.hive_id.length > 100
+                || (item.hive_type !== null && (typeof item.hive_type !== "string" || item.hive_type.length > 50))
+                || !statuses.has(item.status) || (item.colony_strength !== null && !strengths.has(item.colony_strength))
+                || (item.colony_strength_score !== null && (!Number.isSafeInteger(item.colony_strength_score) || item.colony_strength_score < 0 || item.colony_strength_score > 10))
+                || (item.queen_status !== null && !queenStatuses.has(item.queen_status))
+                || (item.frame_count !== null && (!Number.isSafeInteger(item.frame_count) || item.frame_count < 0 || item.frame_count > 500))
+                || !validDate(item.inspection_date) || !validDate(item.last_maintenance_date)
+                || typeof item.updated_at !== "string" || !Number.isFinite(Date.parse(item.updated_at))) {
+              throw new Error("A managed-hive record did not match the supported detail contract.");
+            }
+            pollinatorHiveManagementItems.append(
+              renderPollinatorHiveDetail(item, pollinatorHealthEditLocations.has(locationId))
+            );
+          }
+          pollinatorHiveDetailsNextOffset = result.next_offset;
+          pollinatorHiveManagementMore.hidden = !result.has_more;
+          pollinatorHiveManagementStatus.textContent = pollinatorHealthEditLocations.has(locationId)
+            ? "Status and maintenance changes are operator-reported, audited, and subject to a separate location edit grant."
+            : "Read-only private managed-hive details; editing requires a separate location pollinator-edit grant.";
+        } catch (error) {
+          if (requestVersion !== pollinatorHiveDetailsRequestVersion) return;
+          pollinatorHiveManagementStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === pollinatorHiveDetailsRequestVersion) {
+            pollinatorHiveManagementMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitPollinatorHiveLifecycle(event) {
+        const form = event.target.closest("form[data-hive-update-form]");
+        if (!form) return;
+        event.preventDefault();
+        const locationId = pollinatorHealthLocation.value;
+        if (!pollinatorHealthEditLocations.has(locationId)) {
+          form.querySelector('[data-field="message"]').textContent = "A current location pollinator-edit grant is required.";
+          return;
+        }
+        const article = form.closest("article[data-hive-record-id]");
+        if (!article) return;
+        const status = form.querySelector('[data-field="status"]').value;
+        const maintenanceDate = form.querySelector('[data-field="last_maintenance_date"]').value;
+        const clearMaintenance = form.querySelector('[data-field="clear_last_maintenance_date"]').checked;
+        const reason = form.querySelector('[data-field="reason"]').value.trim();
+        if (!reason || reason.length > 500) {
+          form.querySelector('[data-field="message"]').textContent = "Enter a short reason for the update.";
+          return;
+        }
+        const payload = { expected_updated_at: article.dataset.updatedAt, reason };
+        if (status !== article.dataset.status) payload.status = status;
+        if (clearMaintenance && article.dataset.lastMaintenanceDate) payload.last_maintenance_date = null;
+        else if (maintenanceDate && maintenanceDate !== article.dataset.lastMaintenanceDate) payload.last_maintenance_date = maintenanceDate;
+        if (Object.keys(payload).length === 2) {
+          form.querySelector('[data-field="message"]').textContent = "No managed-hive fields changed.";
+          return;
+        }
+        const hiveRecordId = article.dataset.hiveRecordId;
+        const fingerprint = JSON.stringify({ locationId, hiveRecordId, ...payload });
+        let pending = pollinatorHiveUpdatePending.get(hiveRecordId);
+        if (!pending || pending.fingerprint !== fingerprint) {
+          pending = { fingerprint, request_id: crypto.randomUUID() };
+          pollinatorHiveUpdatePending.set(hiveRecordId, pending);
+        }
+        payload.request_id = pending.request_id;
+        const submit = form.querySelector('button[type="submit"]');
+        submit.disabled = true;
+        form.querySelector('[data-field="message"]').textContent = "Saving the hive update…";
+        try {
+          const csrf = csrfToken();
+          if (!csrf) throw new Error("Refresh the operator session before saving.");
+          const response = await fetch(
+            `/operator/api/pollinators/${encodeURIComponent(locationId)}/hives/${encodeURIComponent(hiveRecordId)}`,
+            {
+              method: "PATCH", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify(payload)
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status === 409) {
+              pollinatorHiveUpdatePending.delete(hiveRecordId);
+              await loadPollinatorHealthHiveDetails();
+            }
+            throw new Error(response.status === 403 ? "The location pollinator-edit grant is no longer active."
+              : response.status === 409 ? "The hive changed or the request ID conflicted. Details were refreshed; review your update and retry."
+              : result.error || "Managed-hive update could not be saved. Retry when the service is available.");
+          }
+          const statuses = new Set(["active", "inactive", "decommissioned"]);
+          if (result.location_id !== locationId || result.hive_record_id !== hiveRecordId
+              || typeof result.event_id !== "string" || !statuses.has(result.status)
+              || (result.last_maintenance_date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(result.last_maintenance_date))
+              || typeof result.updated_at !== "string" || !Number.isFinite(Date.parse(result.updated_at))) {
+            throw new Error("The saved managed-hive update did not match the selected record.");
+          }
+          article.dataset.status = result.status;
+          article.dataset.lastMaintenanceDate = result.last_maintenance_date || "";
+          article.dataset.updatedAt = result.updated_at;
+          form.querySelector('[data-field="status"]').value = result.status;
+          form.querySelector('[data-field="last_maintenance_date"]').value = result.last_maintenance_date || "";
+          form.querySelector('[data-field="clear_last_maintenance_date"]').checked = false;
+          form.querySelector('[data-field="reason"]').value = "";
+          const details = article.querySelector("p.muted");
+          const parts = details.textContent.split(" · ");
+          parts[0] = `Status: ${result.status}`;
+          parts[5] = `Last maintenance: ${result.last_maintenance_date || "not recorded"}`;
+          details.textContent = parts.join(" · ");
+          pollinatorHiveUpdatePending.delete(hiveRecordId);
+          form.querySelector('[data-field="message"]').textContent = "Hive update recorded. It does not verify colony health.";
+          if (pollinatorHealthLocations.has(locationId)) await loadPollinatorHealthSummary();
+        } catch (error) {
+          form.querySelector('[data-field="message"]').textContent = error.message;
+        } finally {
+          submit.disabled = false;
+        }
       }
 
       async function submitPollinatorObservation(event) {
@@ -25409,11 +25649,15 @@
         }
         if (pollinatorHealthDetailLocations.has(pollinatorHealthLocation.value)) {
           loadPollinatorHealthHabitatDetails();
+          loadPollinatorHealthHiveDetails();
         }
       });
       document.querySelector("#pollinator-habitat-management-refresh").addEventListener("click", () => loadPollinatorHealthHabitatDetails());
       pollinatorHabitatManagementMore.addEventListener("click", () => loadPollinatorHealthHabitatDetails(true));
       pollinatorHabitatManagementItems.addEventListener("submit", submitPollinatorHabitatLifecycle);
+      document.querySelector("#pollinator-hive-management-refresh").addEventListener("click", () => loadPollinatorHealthHiveDetails());
+      pollinatorHiveManagementMore.addEventListener("click", () => loadPollinatorHealthHiveDetails(true));
+      pollinatorHiveManagementItems.addEventListener("submit", submitPollinatorHiveLifecycle);
       pollinatorObservationCaptureForm.addEventListener("submit", submitPollinatorObservation);
       pesticideImpactCaptureForm.addEventListener("submit", submitPesticideImpactReport);
       pollinatorHabitatCaptureForm.addEventListener("submit", submitPollinatorHabitat);
