@@ -15,6 +15,20 @@ initiator.
 | Generic `agent_task` execution | No OIDC-protected Gateway route invoking the unrestricted task catalogue or generic `agent_task` creation was found. The synthesis request route is limited to the registered summary-task map and only mints an authorization receipt. | That bounded route records the session operator before execution. It does not claim that CLI, scheduled, or background runs have human initiators. | Do not infer a human operator from a worker credential, free-form CLI flag, or legacy nullable `agent_task.requested_by`. Automatic task dispatch remains open. |
 | Per-agent synthesis CLI draft storage | `services.agents.agent_cli --store` and `SynthesisAgent.run(store=True)` fail before synthesis or worker/database access. The one-shot `services.agents.worker_cli` accepts either `--read-only` or `--persist-draft --request-id`; default/ambiguous use, missing IDs, and malformed IDs fail before task resolution. | Worker lookup, source generation, and persistence require a matching immutable Gateway receipt under signed worker/task/location scope, including a currently active operator draft grant. Migration 628 enforces the match again at the database write boundary and the review queue exposes operator/request attribution. | Compose worker profiles remain `--read-only`. The task receipt endpoint does not dispatch jobs, and there is no operator-console task form; live OIDC and real task grants/credentials remain unverified. |
 
+The non-synthesis task helpers are not persistence paths: the EBF scorecard and
+calibration agents return in-memory draft templates, the EBF evidence-gap helper
+uses the signed read-only EBF worker, and Delphi facilitation returns a
+read-only aggregate plus an in-memory recommendation. Persisted Delphi
+recommendations use the separate authenticated operator Gateway route. A
+source scan finds no literal direct DML call sites in `services/agents`; the
+only AI-summary worker write calls use the signed worker functions, and
+`worker_draft.py` verifies the immutable operator task receipt before retry
+lookup and again immediately before the database write. The generated
+[write-boundary inventory](agent-write-boundary-inventory.json) records the
+Gateway receipt creator, worker receipt verifier, review projection, and draft
+functions. It is a static literal-SQL inventory; dynamic SQL and runtime
+privileges require separate review.
+
 The Gateway route tests verify session-derived operator identity is forwarded
 for all three draft/request surfaces. Source review of migrations 451, 522,
 597, and 628 confirms the corresponding creator/request records and review

@@ -17770,3 +17770,18 @@ acceptance, and MAN-CAP-038 owner review. Checklist: 1,139 complete / 25 open
 67 rows; 0/67 MAN-CAP checks accepted ([migration](../../schemas/postgres/628_authenticated_agent_task_requests.sql);
 [native evidence](builds/2026-10-25-recovery/cap-038-authenticated-task-request-disposable.json);
 [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-038-authenticated-task-request-arm64-disposable.json)).
+
+
+### Progress addendum — CAP-038 agent persistence source audit, 25 October 2026
+
+The source-level attribution inventory now records the authenticated Gateway
+request mint, signed worker receipt verification, review projection, and draft
+functions. The audit confirms EBF draft helpers and Delphi recommendations
+return in-memory structures; EBF evidence-gap and Delphi facilitation reads use
+signed read-only workers. The inventory finds no literal direct DML call sites
+in `services/agents`; dynamic SQL and database privilege boundaries remain
+separate review gates. The focused inventory suite passes 3 tests. No database,
+provider, candidate, or legacy service was accessed. Checklist: 1,140 complete /
+25 open (1,165 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows; 0/67 MAN-CAP checks accepted ([inventory script](../../scripts/agent_write_boundary_inventory.py);
+[generated inventory](agent-write-boundary-inventory.json); [attribution audit](agent-task-attribution-inventory.md)).

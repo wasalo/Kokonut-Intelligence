@@ -1,13 +1,16 @@
 {
-  "version": 3,
+  "version": 4,
   "generated_by": "scripts/agent_write_boundary_inventory.py",
-  "scope": "Static Python call-site inventory for literal direct DML in services/agents, the signed operator draft function call in services/gateway, the signed worker draft/result and source-reference function calls in services/agents, and calls to the disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. Source locations classify code paths; they do not prove runtime identity, database privileges, query reachability, or tenant isolation.",
+  "scope": "Static Python call-site inventory for literal direct DML in services/agents, signed operator draft/request/review function calls in services/gateway, signed worker request verification and draft/result/source-reference function calls in services/agents, and calls to the disabled set_agent_context/audit_agent_action helpers. Dynamic SQL can be missed. Source locations classify code paths; they do not prove runtime identity, database privileges, query reachability, or tenant isolation.",
   "summary": {
     "direct_agent_write_sites": 0,
     "legacy_direct_ai_summary_insert_sites": 0,
     "agent_action_log_insert_sites": 0,
     "authenticated_operator_draft_function_calls": 1,
+    "authenticated_operator_task_request_function_calls": 1,
+    "authenticated_operator_task_review_function_calls": 1,
     "authenticated_worker_draft_function_calls": 2,
+    "authenticated_worker_operator_request_verification_calls": 1,
     "authenticated_worker_summary_function_calls": 5,
     "set_agent_context_call_sites": 0,
     "audit_agent_action_call_sites": 0
@@ -21,40 +24,58 @@
       "line": 106
     }
   ],
+  "authenticated_operator_task_request_function_calls": [
+    {
+      "source": "services/gateway/ai_summary_task_request.py",
+      "line": 76
+    }
+  ],
+  "authenticated_operator_task_review_function_calls": [
+    {
+      "source": "services/gateway/ai_summary_review.py",
+      "line": 70
+    }
+  ],
   "authenticated_worker_draft_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 429
+      "line": 457
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 445
+      "line": 473
+    }
+  ],
+  "authenticated_worker_operator_request_verification_calls": [
+    {
+      "source": "services/agents/worker_draft.py",
+      "line": 318
     }
   ],
   "authenticated_worker_summary_function_calls": [
     {
       "source": "services/agents/worker_draft.py",
-      "line": 335,
+      "line": 351,
       "function": "get_location_ai_summary_worker_source_references"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 369,
+      "line": 391,
       "function": "get_location_ai_summary_worker_result"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 429,
+      "line": 457,
       "function": "create_location_ai_summary_worker_draft_with_result"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 445,
+      "line": 473,
       "function": "create_location_ai_summary_worker_draft"
     },
     {
       "source": "services/agents/worker_draft.py",
-      "line": 464,
+      "line": 492,
       "function": "set_location_ai_summary_source_references"
     }
   ],
