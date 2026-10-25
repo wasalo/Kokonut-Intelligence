@@ -1,3 +1,17 @@
+### Progress addendum — Directus reference locations follow the current schema, 25 October 2026
+
+The tenant reference validator now resolves `plot_id` through `plot.farm_id`
+and the owning farm's `location_id`; `plot` has no direct location column.
+Writable `stakeholder_feedback.farm_id` is now checked against that farm
+location as well. The full Directus extension suite passes 79 tests, the
+extension build and TypeScript check pass, 10 Python tenant/compatibility tests
+pass, and the capability-matrix validator passes ([evidence](builds/2026-10-25-recovery/directus-reference-location-resolution.json)).
+No database, provider, Directus service, candidate, or legacy stack was
+accessed; no migration was needed. Broader Directus field, relation, hook, and
+runtime parity remains open. Checklist: 1,147 complete / 25 open (1,172 total);
+matrix classifications remain 24 baseline-retained, 7 deployed, and 36 prepared
+across 67 rows, with 0/67 named acceptance checks accepted.
+
 ### Progress addendum — Directus update references stay within tenant scope, 25 October 2026
 
 Scoped Directus create and update hooks now validate the supported scalar

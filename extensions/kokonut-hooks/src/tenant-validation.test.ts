@@ -5,7 +5,25 @@ import {
 } from './tenant-validation.js';
 
 const locationId = '11111111-1111-4111-8111-111111111111';
+const otherLocationId = '33333333-3333-4333-8333-333333333333';
 const plotId = '22222222-2222-4222-8222-222222222222';
+const farmId = '44444444-4444-4444-8444-444444444444';
+
+function makeReferenceDatabase(referenceLocationId: string) {
+  const joins: unknown[][] = [];
+  const database = vi.fn((table: string) => {
+    const builder: any = {
+      join: vi.fn((...args: unknown[]) => {
+        joins.push(args);
+        return builder;
+      }),
+      where: vi.fn(() => builder),
+      first: vi.fn().mockResolvedValue({ location_id: referenceLocationId }),
+    };
+    return builder;
+  });
+  return { database, joins };
+}
 
 describe('tenant reference validation', () => {
   it('rejects malformed scopes as a Directus 400 payload error', async () => {
@@ -22,11 +40,7 @@ describe('tenant reference validation', () => {
   });
 
   it('rejects a reference belonging to another location', async () => {
-    const database = vi.fn(() => ({
-      where: () => ({ first: vi.fn().mockResolvedValue({
-        location_id: '33333333-3333-4333-8333-333333333333',
-      }) }),
-    }));
+    const { database } = makeReferenceDatabase(otherLocationId);
 
     await expect(validateTenantReferences(database, 'farm_activity', {
       location_id: locationId,
@@ -35,22 +49,35 @@ describe('tenant reference validation', () => {
   });
 
   it('accepts references in the same location', async () => {
-    const database = vi.fn(() => ({
-      where: () => ({ first: vi.fn().mockResolvedValue({ location_id: locationId }) }),
-    }));
+    const { database, joins } = makeReferenceDatabase(locationId);
 
     await expect(validateTenantReferences(database, 'farm_activity', {
       location_id: locationId,
       plot_id: plotId,
     })).resolves.toEqual({ location_id: locationId, plot_id: plotId });
+    expect(database).toHaveBeenCalledWith('plot as plot_ref');
+    expect(joins).toEqual([['farm as farm_ref', 'plot_ref.farm_id', 'farm_ref.id']]);
+  });
+
+  it('validates the writable stakeholder farm reference through farm.location_id', async () => {
+    const { database } = makeReferenceDatabase(locationId);
+    const payload = { location_id: locationId, farm_id: farmId };
+
+    await expect(validateTenantReferences(
+      database,
+      'stakeholder_feedback',
+      payload,
+    )).resolves.toBe(payload);
+
+    await expect(validateTenantReferences(
+      makeReferenceDatabase(otherLocationId).database,
+      'stakeholder_feedback',
+      payload,
+    )).rejects.toThrow('different location');
   });
 
   it('rejects cross-location references on update when the payload omits location_id', async () => {
-    const database = vi.fn(() => ({
-      where: () => ({ first: vi.fn().mockResolvedValue({
-        location_id: '33333333-3333-4333-8333-333333333333',
-      }) }),
-    }));
+    const { database } = makeReferenceDatabase(otherLocationId);
 
     await expect(validateTenantReferencesForRows(
       database,
@@ -65,9 +92,7 @@ describe('tenant reference validation', () => {
   });
 
   it('validates update references against every authorized row location', async () => {
-    const database = vi.fn(() => ({
-      where: () => ({ first: vi.fn().mockResolvedValue({ location_id: locationId }) }),
-    }));
+    const { database } = makeReferenceDatabase(locationId);
     const payload = { crop_cycle_id: plotId };
 
     await expect(validateTenantReferencesForRows(

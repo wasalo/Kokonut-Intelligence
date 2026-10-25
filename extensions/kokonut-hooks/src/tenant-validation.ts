@@ -1,10 +1,25 @@
 import { createError } from '@directus/errors';
 import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
 
-const REFERENCE_TABLES: Record<string, string[]> = {
-  plot_id: ['plot'],
-  crop_cycle_id: ['crop_cycle'],
-  harvest_id: ['harvest_event'],
+type TenantReferenceLookup = (
+  database: any,
+  referenceId: string,
+) => Promise<{ location_id?: string | null } | undefined>;
+
+const TENANT_REFERENCE_LOOKUPS: Record<string, TenantReferenceLookup> = {
+  farm_id: (database, referenceId) => database('farm')
+    .where('id', referenceId)
+    .first('location_id'),
+  plot_id: (database, referenceId) => database('plot as plot_ref')
+    .join('farm as farm_ref', 'plot_ref.farm_id', 'farm_ref.id')
+    .where('plot_ref.id', referenceId)
+    .first('farm_ref.location_id as location_id'),
+  crop_cycle_id: (database, referenceId) => database('crop_cycle')
+    .where('id', referenceId)
+    .first('location_id'),
+  harvest_id: (database, referenceId) => database('harvest_event')
+    .where('id', referenceId)
+    .first('location_id'),
 };
 
 const InvalidTenantPayloadError = createError<{ message: string }>(
@@ -27,16 +42,12 @@ async function validateReferencesAtLocation(
   locationId: string,
   payload: Record<string, any>,
 ): Promise<void> {
-  for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
+  for (const [field, lookup] of Object.entries(TENANT_REFERENCE_LOOKUPS)) {
     const referenceId = payload[field];
     if (referenceId === undefined || referenceId === null) continue;
     if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
 
-    let reference: any;
-    for (const table of tables) {
-      reference = await database(table).where('id', referenceId).first('location_id');
-      if (reference) break;
-    }
+    const reference = await lookup(database, referenceId);
     if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
     if (reference.location_id !== locationId) {
       throw invalidTenantPayload(`${field} belongs to a different location`);
