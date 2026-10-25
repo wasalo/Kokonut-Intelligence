@@ -2047,6 +2047,8 @@ def test_cids_worker_rolls_back_and_closes_when_projection_fails(monkeypatch):
 
 def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkeypatch):
     connection, cursor = _source_connection()
+    location_input = "00000000-0000-0000-0000-000000000aBc"
+    location_id = location_input.lower()
     cursor.fetchall.return_value = [
         {
             "id": "c0000000-0000-4000-8000-000000000101",
@@ -2066,7 +2068,7 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
         "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
     )
 
-    rows = worker_cli.run_worker_summary_list(LOCATION_ID)
+    rows = worker_cli.run_worker_summary_list(location_input)
 
     statements = [call.args[0].strip() for call in cursor.execute.call_args_list]
     assert statements[:4] == [
@@ -2078,21 +2080,29 @@ def test_summary_inspection_list_uses_signed_exact_location_source_reader(monkey
     assert "FROM kokonut_agent_source.ai_summary_list" in statements[-1]
     assert "WHERE location_id = %s" in statements[-1]
     assert "LIMIT 20" in statements[-1]
-    assert cursor.execute.call_args_list[-1].args[1] == (LOCATION_ID,)
+    assert cursor.execute.call_args_list[-1].args[1] == (location_id,)
     source_factory.assert_called_once_with("agent_summary_inspection_source")
     context_setter.assert_called_once_with(
-        connection, credential=credential, location_id=LOCATION_ID
+        connection, credential=credential, location_id=location_id
     )
     assert rows[0]["preview"] == "Synthetic location preview"
+    assert rows[0]["source_scope"] == {
+        "view": "kokonut_agent_source.ai_summary_list",
+        "location_id": location_id,
+    }
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
 
 
 def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
     connection, cursor = _source_connection()
+    location_input = "00000000-0000-0000-0000-000000000aBc"
+    location_id = location_input.lower()
+    summary_input = "00000000-0000-0000-0000-000000000DeF"
+    summary_id = summary_input.lower()
     raw_content = "Sensitive synthetic summary"
     cursor.fetchone.return_value = {
-        "id": SUMMARY_ID,
+        "id": summary_id,
         "summary_type": "operations",
         "status": "draft",
         "model_version": "synthetic-v1",
@@ -2108,7 +2118,7 @@ def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
         "services.agents.safety.assert_agent_action_allowed", lambda *_args: None
     )
 
-    result = worker_cli.run_worker_summary_digest(LOCATION_ID, SUMMARY_ID)
+    result = worker_cli.run_worker_summary_digest(location_input, summary_input)
 
     query_call = cursor.execute.call_args_list[-1]
     assert "FROM kokonut_agent_source.ai_summary_digest" in query_call.args[0]
@@ -2116,14 +2126,19 @@ def test_summary_digest_returns_metadata_only_for_exact_location(monkeypatch):
     assert "content_length" in query_call.args[0]
     assert "summary.content" not in query_call.args[0]
     assert "WHERE id = %s AND location_id = %s" in query_call.args[0]
-    assert query_call.args[1] == (SUMMARY_ID, LOCATION_ID)
+    assert query_call.args[1] == (summary_id, location_id)
     assert result == {
-        "id": SUMMARY_ID,
+        "id": summary_id,
         "summary_type": "operations",
         "status": "draft",
         "model_version": "synthetic-v1",
         "content_sha256": hashlib.sha256(raw_content.encode()).hexdigest(),
         "content_length": len(raw_content),
+        "source_scope": {
+            "view": "kokonut_agent_source.ai_summary_digest",
+            "summary_id": summary_id,
+            "location_id": location_id,
+        },
     }
     assert raw_content not in str(result)
     connection.rollback.assert_not_called()

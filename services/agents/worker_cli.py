@@ -471,7 +471,16 @@ def _run_worker_summary_inspection(
                     """,
                     (location_id,),
                 )
-                return [dict(row) for row in cursor.fetchall()]
+                return [
+                    {
+                        **dict(row),
+                        "source_scope": {
+                            "view": "kokonut_agent_source.ai_summary_list",
+                            "location_id": location_id,
+                        },
+                    }
+                    for row in cursor.fetchall()
+                ]
             cursor.execute(
                 """
                 SELECT id, summary_type, status, model_version,
@@ -492,6 +501,11 @@ def _run_worker_summary_inspection(
                 "model_version": row["model_version"],
                 "content_sha256": row["content_sha256"],
                 "content_length": row["content_length"],
+                "source_scope": {
+                    "view": "kokonut_agent_source.ai_summary_digest",
+                    "summary_id": summary_id,
+                    "location_id": location_id,
+                },
             }
     except Exception:
         connection.rollback()

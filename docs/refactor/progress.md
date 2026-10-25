@@ -18081,3 +18081,17 @@ acceptance remain open. Checklist: 1,161 complete / 25 open (1,186 total);
 matrix classifications remain 24 baseline-retained, 7 deployed, and 36
 prepared across 67 rows.
 [Evidence](builds/2026-10-25-recovery/cap-038-cids-output-source-scope.json).
+
+### Progress addendum — CAP-038 AI-summary inspection output source scope, 25 October 2026
+
+Summary list rows now identify the safe list view and normalized location;
+digest output identifies its safe view and normalized summary/location keys
+while remaining metadata-only. Two focused mocked checks pass, including
+mixed-case UUID normalization and the digest content-exclusion check. Ruff,
+Python compilation, matrix validation, and diff checks pass. No database,
+provider, candidate, or legacy service was touched. This records query scope,
+not content snapshots or operator attribution. Live OIDC, provisioned worker
+credentials/grants, runtime recovery, and MAN-CAP-038 acceptance remain open.
+Checklist: 1,162 complete / 25 open (1,187 total); matrix classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json).

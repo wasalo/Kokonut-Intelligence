@@ -1,5 +1,16 @@
 # Capability preservation matrix
 
+**CAP-038 AI-summary inspection output scope (25 October 2026):** list rows
+identify the safe list view and normalized location; the metadata-only digest
+identifies its safe view plus normalized summary/location keys. Two focused
+mocked checks pass, including mixed-case UUID normalization and content
+exclusion; Ruff, compilation, matrix validation, and diff checks pass. This is
+query-scope metadata, not content snapshot or operator attribution. Live OIDC,
+deployed worker credentials/grants, runtime recovery, and MAN-CAP-038 owner
+acceptance remain open. Classifications remain 24 baseline-retained, 7
+deployed, and 36 prepared across 67 rows.
+Evidence: [summary inspection scope](builds/2026-10-25-recovery/cap-038-summary-inspection-source-scope.json).
+
 **CAP-038 CIDS export output source scope (25 October 2026):** the signed
 worker now includes its six canonical views and normalized location in required
 task output metadata. Four focused mocked checks pass, including mixed-case
