@@ -45,6 +45,7 @@ class Connection:
     def __init__(self):
         self.operations = []
         self.rollbacks = 0
+        self.commits = 0
         self.closed = False
         self.row = None
 
@@ -53,6 +54,9 @@ class Connection:
 
     def rollback(self):
         self.rollbacks += 1
+
+    def commit(self):
+        self.commits += 1
 
     def close(self):
         self.closed = True
@@ -136,7 +140,8 @@ def test_capture_sets_exact_signed_create_context_before_call_and_closes_connect
         "Banana stems", Decimal("12.50"), date.today(), "composting", "Field log"
     )
     assert result["status"] == "recorded"
-    assert connection.rollbacks == 1
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
     assert connection.closed
 
 
@@ -199,7 +204,7 @@ def test_capture_rolls_back_and_closes_on_database_failure(monkeypatch):
         writes.create_location_waste_stream_record(
             _OPERATOR, _LOCATION, _payload(), connection_factory=lambda: connection
         )
-    assert connection.rollbacks == 2
+    assert connection.rollbacks == 1
     assert connection.closed
 
 
@@ -273,7 +278,8 @@ def test_composting_capture_sets_signed_context_and_calls_bounded_function(monke
         "Synthetic batch",
     )
     assert result["status"] == "recorded"
-    assert connection.rollbacks == 1
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
     assert connection.closed
 
 
@@ -374,7 +380,8 @@ def test_recycling_capture_sets_exact_context_and_preserves_freeform_material(mo
         "Synthetic recycling entry",
     )
     assert result["status"] == "recorded"
-    assert connection.rollbacks == 1
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
     assert connection.closed
 
 

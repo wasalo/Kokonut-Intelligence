@@ -134,15 +134,13 @@ def create_location_pollution_incident(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Incident capture returned an invalid result")
+            connection.commit()
             return result
     except Exception:
         connection.rollback()
         raise
     finally:
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
+        connection.close()
 
 
 def list_location_pollution_incidents(
@@ -273,12 +271,10 @@ def resolve_location_pollution_incident(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Incident resolution returned an invalid result")
+            connection.commit()
             return result
     except Exception:
         connection.rollback()
         raise
     finally:
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
+        connection.close()

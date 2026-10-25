@@ -19,7 +19,8 @@ def test_landscape_pollinator_panels_are_hidden_and_split_by_exact_grant():
     assert 'scope.resource === "landscape_conservation" && scope.action === "read"' in SOURCE
     assert 'scope.resource === "pollinator_health" && scope.action === "read"' in SOURCE
     assert "Inventories are descriptive" in parent.group()
-    assert "Names, plots, geometry, species, products, notes, and arbitrary metadata are excluded." in parent.group()
+    assert "Summaries are location-scoped and aggregate-only." in parent.group()
+    assert "Observation capture requires a separate create grant" in parent.group()
 
 
 def test_landscape_and_pollinator_loaders_check_location_staleness_and_no_store():
@@ -76,10 +77,35 @@ def test_ecology_panels_refresh_on_change_and_have_unique_ids():
     assert 'document.querySelector("#landscape-conservation-refresh").addEventListener("click", loadLandscapeConservationSummary)' in SOURCE
     assert 'landscapeConservationLocation.addEventListener("change", loadLandscapeConservationSummary)' in SOURCE
     assert 'document.querySelector("#pollinator-health-refresh").addEventListener("click", loadPollinatorHealthSummary)' in SOURCE
-    assert 'pollinatorHealthLocation.addEventListener("change", loadPollinatorHealthSummary)' in SOURCE
+    assert 'pollinatorHealthLocation.addEventListener("change", () =>' in SOURCE
     ids = re.findall(r'\bid="([^"]+)"', SOURCE)
     duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
     assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+
+
+def test_pollinator_capture_is_separately_grant_gated_and_uses_stable_csrf_retry():
+    assert 'scope.resource === "pollinator_health" && scope.action === "read"' in SOURCE
+    assert 'scope.resource === "pollinator_health" && scope.action === "create"' in SOURCE
+    assert 'id="pollinator-observation-capture" hidden' in SOURCE
+    assert 'pollinatorObservationCapture.hidden = !canCreate' in SOURCE
+    assert 'pollinatorHealthSummary.hidden = !canRead' in SOURCE
+    submit = re.search(r"async function submitPollinatorObservation\(event\).*?\n      }", SOURCE, re.DOTALL)
+    assert submit
+    assert "pollinatorHealthCreateLocations.has(locationId)" in submit.group()
+    assert '"X-CSRF-Token": csrf' in submit.group()
+    assert 'method: "POST", credentials: "same-origin", cache: "no-store"' in submit.group()
+    assert "crypto.randomUUID()" in submit.group()
+    assert "pollinatorObservationPending.fingerprint !== fingerprint" in submit.group()
+    assert 'result.status !== "recorded"' in submit.group()
+    assert "Retrying unchanged input reuses the same request ID." in submit.group()
+    assert 'await loadPollinatorHealthSummary()' in submit.group()
+    assert 'pollinatorHealthLocation.addEventListener("change", () =>' in SOURCE
+    for field in (
+        "pollinator_type", "observation_method", "duration_minutes", "observation_date",
+        "plot_id", "species_name", "weather_conditions", "temperature_c", "hive_record_id", "notes",
+    ):
+        assert f"{field}:" in submit.group()
+    assert "It has not been verified or published." in submit.group()
 
 
 def test_inline_console_javascript_passes_node_syntax_check():

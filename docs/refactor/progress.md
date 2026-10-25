@@ -1,3 +1,32 @@
+### Progress addendum — CAP-006 tenant-scoped pollinator observation capture, 24 October 2026
+
+Migration 619 and the Gateway add recorded-only pollinator observation capture
+under exact `pollinator_health:create`, with signed location context, operator
+attribution, same-location plot/hive validation, and private digest-only retry
+receipts. Shared runtime and Directus roles lose direct observation writes and
+receipt access. The legacy `record-observation` CLI fails before opening the
+database. The operator console keeps observation capture under the create grant
+and summary reads under `pollinator_health:read`; writes use CSRF/no-store,
+stable retries, and response-scope checks.
+
+The transaction audit also found that the new and adjacent waste, compost,
+recycling, and pollution incident Gateway writers rolled back successful
+function calls after validating a success response. These paths now commit only
+a validated result and roll back failures; focused regressions cover both
+outcomes. The focused pollinator, ecology, console, waste-capture, and incident
+selection passes 162 tests. Ruff, compilation, JavaScript syntax, runtime SQL
+inventory, route-policy inventory, dependency checks, matrix validation, and
+diff checks pass. Disposable PostgreSQL 16 applies/replays migrations 155/602/619
+with twelve grouped assertions on native AMD64 and linux/arm64 Docker/QEMU
+([native](builds/2026-10-24-recovery/cap-006-pollinator-observation-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-24-recovery/cap-006-pollinator-observation-capture-arm64-disposable.json)).
+Candidate and legacy databases remain untouched; migration 619 is not rolled
+out. QEMU demonstrates software portability only, not physical Raspberry Pi
+acceptance. Checklist: 1,127 complete / 25 open (1,152 total); CAP-006 remains
+prepared pending populated parity, live OIDC/browser behavior, independent
+observation review, remaining pollinator writers, broader ACL/RLS, Directus
+parity, and MAN-CAP-006.
+
 ### Progress addendum — current-source ARM64 Kernel app build and smoke, 24 October 2026
 
 The minimal Kernel image built as `linux/arm64` from revision `0b7a10ac`. A

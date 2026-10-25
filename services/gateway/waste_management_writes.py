@@ -330,15 +330,13 @@ def create_location_waste_stream_record(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Waste capture returned an invalid result")
+            connection.commit()
             return result
     except Exception:
         connection.rollback()
         raise
     finally:
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
+        connection.close()
 
 
 def create_location_composting_record(
@@ -385,15 +383,13 @@ def create_location_composting_record(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Composting capture returned an invalid result")
+            connection.commit()
             return result
     except Exception:
         connection.rollback()
         raise
     finally:
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
+        connection.close()
 
 
 def create_location_recycling_record(
@@ -439,12 +435,10 @@ def create_location_recycling_record(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Recycling capture returned an invalid result")
+            connection.commit()
             return result
     except Exception:
         connection.rollback()
         raise
     finally:
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
+        connection.close()

@@ -51,6 +51,7 @@ class Connection:
         self.rows = rows or []
         self.operations = []
         self.rollbacks = 0
+        self.commits = 0
         self.closed = False
 
     def cursor(self):
@@ -58,6 +59,9 @@ class Connection:
 
     def rollback(self):
         self.rollbacks += 1
+
+    def commit(self):
+        self.commits += 1
 
     def close(self):
         self.closed = True
@@ -114,7 +118,8 @@ def test_capture_sets_exact_create_context_and_preserves_legacy_type(monkeypatch
     assert connection.operations[0][1][3:6] == ("air_emission", "air_pollution", "high")
     assert connection.operations[0][1][5] == "high"
     assert result["status"] == "open"
-    assert connection.rollbacks == 1
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
     assert connection.closed
 
 
@@ -207,6 +212,8 @@ def test_resolve_uses_separate_review_grant_and_validates_location(monkeypatch):
     assert connection.operations[0][1][0:2] == (_LOCATION, _INCIDENT)
     assert connection.operations[0][1][3:] == (date.today(), "Synthetic cleanup")
     assert result["status"] == "resolved"
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
     assert connection.closed
 
 

@@ -18,7 +18,6 @@ from .pollinator_health import (
     get_pollinator_dashboard,
     get_pollinator_summary,
     record_hive_inspection,
-    record_observation,
     record_pesticide_impact,
 )
 
@@ -29,18 +28,10 @@ from .pollinator_health import (
 cli = CommandLine("pollinator_health", "Pollinator health monitoring")
 
 
-def _cmd_record_observation(db, a):
-    return record_observation(
-        db, a.location_id, a.pollinator_type, a.count,
-        observation_method=a.observation_method,
-        duration_minutes=a.duration_minutes,
-        habitat_area_id=a.habitat_area_id,
-        weather_conditions=a.weather,
-        temperature_c=a.temperature,
-        notes=a.notes,
-        observation_date=date.fromisoformat(a.observation_date) if a.observation_date else None,
-        species_name=a.species_name,
-        hive_record_id=a.hive_record_id,
+def _cmd_retired_record_observation(_db, _a):
+    raise RuntimeError(
+        "Unscoped pollinator observation writes are retired; use the authenticated "
+        "Kokonut Gateway pollinator capture form with a location create grant."
     )
 
 
@@ -102,7 +93,7 @@ def _cmd_record_inspection(db, a):
     )
 
 
-cli.subcommand("record-observation", "Record pollinator observation") \
+cli.subcommand("record-observation", "Retired; use authenticated Gateway capture") \
     .add("--location-id", required=True) \
     .add("--type", required=True, dest="pollinator_type",
          help="Pollinator type (honeybee, wild_bee, butterfly, moth, etc.)") \
@@ -118,7 +109,7 @@ cli.subcommand("record-observation", "Record pollinator observation") \
     .add("--hive-record-id", help="Optional UUID linking this observation to a managed hive") \
     .add("--notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_record_observation)
+    .run(_cmd_retired_record_observation, needs_db=False)
 
 cli.subcommand("create-habitat", "Create pollinator habitat") \
     .add("--location-id", required=True) \
