@@ -103,6 +103,59 @@ def test_issue_retry_never_returns_the_one_time_secret_again():
     assert result["replayed"] is True
 
 
+def test_list_invites_uses_signed_location_scope_and_safe_bounded_projection():
+    projection = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [{
+            "invite_id": INVITE_ID,
+            "study_id": STUDY_ID,
+            "notice_version": "v2",
+            "status": "pending",
+            "created_at": "2026-10-25T12:00:00+00:00",
+            "expires_at": "2026-10-26T12:00:00+00:00",
+        }],
+        "has_more": False,
+        "limit": 20,
+        "offset": 0,
+    }
+    connection = _Connection(row=(projection,))
+    with patch.object(invites, "set_operator_tenant_context", _context):
+        result = invites.list_location_delphi_participant_invites(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            limit="20",
+            offset="0",
+            connection_factory=lambda: connection,
+        )
+    query, params = connection.calls[-1]
+    assert "list_location_delphi_participant_invites" in query
+    assert params == (LOCATION_ID, STUDY_ID, 20, 0)
+    assert connection.context == {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "delphi",
+        "action": "invite",
+    }
+    assert result == projection
+    assert "invite_token" not in str(result) and "token_digest" not in str(result)
+    assert connection.committed and connection.closed
+
+
+@pytest.mark.parametrize("field,value", [("limit", "51"), ("limit", True), ("offset", "10001"), ("offset", "-1")])
+def test_invalid_invite_page_fails_before_database(field, value):
+    arguments = {field: value}
+    with pytest.raises(invites.DelphiParticipantInviteInvalid):
+        invites.list_location_delphi_participant_invites(
+            OPERATOR_ID,
+            LOCATION_ID,
+            STUDY_ID,
+            connection_factory=lambda: pytest.fail("invalid page opened a connection"),
+            **arguments,
+        )
+
+
 @pytest.mark.parametrize("lifetime", [True, 0, 3599, 2_592_001, "86400"])
 def test_invalid_lifetime_fails_before_database(lifetime):
     with pytest.raises(invites.DelphiParticipantInviteInvalid):
@@ -230,6 +283,29 @@ def test_revoke_route_forwards_fixed_reason_and_request_id():
     assert response.headers["cache-control"] == "no-store"
 
 
+def test_list_route_forwards_location_study_and_page_without_caching():
+    expected = {
+        "location_id": LOCATION_ID,
+        "study_id": STUDY_ID,
+        "invites": [],
+        "has_more": False,
+        "limit": 25,
+        "offset": 50,
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        assert func is invites.list_location_delphi_participant_invites
+        assert args == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
+        assert kwargs == {"limit": "25", "offset": "50"}
+        return expected
+
+    response = TestClient(_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites?limit=25&offset=50"
+    )
+    assert response.status_code == 200 and response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_invite_routes_fail_closed_when_oidc_is_disabled():
     async def run_in_threadpool(*_args, **_kwargs):
         pytest.fail("OIDC-disabled request reached service")
@@ -243,4 +319,7 @@ def test_invite_routes_fail_closed_when_oidc_is_disabled():
         f"/operator/api/delphi/{LOCATION_ID}/invites/{INVITE_ID}/revoke",
         json={"request_id": REQUEST_ID, "reason_code": "token_exposed"},
     )
-    assert issue.status_code == revoke.status_code == 404
+    queue = client.get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/invites"
+    )
+    assert issue.status_code == revoke.status_code == queue.status_code == 404

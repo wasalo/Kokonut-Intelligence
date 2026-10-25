@@ -297,6 +297,39 @@
           <button id="delphi-study-item-submit" type="button" disabled>Add question to draft</button>
           <p id="delphi-study-item-status" class="muted" role="status" aria-live="polite"></p>
         </section>
+        <section id="delphi-participant-invites" hidden aria-labelledby="delphi-participant-invites-heading">
+          <h2 id="delphi-participant-invites-heading">Delphi participant invites</h2>
+          <p class="muted">Issue a single-use link only for a draft study with an independently approved notice. The link is shown once and is not recoverable from the server. Copy it directly to the participant using your approved channel; this panel does not send email or retain participant contact details. Revoke a pending invite if its link is exposed or sent to the wrong person.</p>
+          <div class="toolbar">
+            <label for="delphi-participant-invites-location">Read and invite authorized location</label>
+            <select id="delphi-participant-invites-location"></select>
+            <label for="delphi-participant-invites-study">Study</label>
+            <select id="delphi-participant-invites-study"></select>
+            <button id="delphi-participant-invites-studies-more" class="secondary" type="button" hidden>Load more studies</button>
+          </div>
+          <div class="toolbar">
+            <label for="delphi-participant-invites-lifetime">Invite lifetime (hours)</label>
+            <input id="delphi-participant-invites-lifetime" type="number" min="1" max="720" step="1" value="168">
+            <button id="delphi-participant-invites-issue" type="button" disabled>Issue one-time invite</button>
+            <button id="delphi-participant-invites-refresh" class="secondary" type="button">Refresh invite history</button>
+          </div>
+          <p id="delphi-participant-invites-status" class="muted" role="status" aria-live="polite"></p>
+          <section id="delphi-participant-invites-link" class="notice" hidden aria-labelledby="delphi-participant-invites-link-heading">
+            <h3 id="delphi-participant-invites-link-heading">One-time participant link</h3>
+            <p>The link contains a bearer token. Share it only with the intended participant, then clear it from this page.</p>
+            <label for="delphi-participant-invites-link-value">Participant link</label>
+            <textarea id="delphi-participant-invites-link-value" rows="2" readonly autocomplete="off" spellcheck="false"></textarea>
+            <button id="delphi-participant-invites-copy" type="button">Copy link</button>
+            <button id="delphi-participant-invites-clear" class="secondary" type="button">Clear link</button>
+          </section>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Invite</th><th>Notice</th><th>Status</th><th>Issued</th><th>Expires</th><th>Action</th></tr></thead>
+              <tbody id="delphi-participant-invites-rows"></tbody>
+            </table>
+          </div>
+          <button id="delphi-participant-invites-more" class="secondary" type="button" hidden>Load more invites</button>
+        </section>
         <section id="delphi-recommendation-draft-create" hidden aria-labelledby="delphi-recommendation-draft-create-heading">
           <h2 id="delphi-recommendation-draft-create-heading">Create Delphi facilitator draft</h2>
           <p class="muted">Create a bounded recommendation draft for an open or closed study at a location explicitly granted to your account. Draft creation never approves or publishes the text; an independent reviewer must decide it.</p>
@@ -3004,6 +3037,26 @@
       let delphiStudyItemOffset = 0;
       let delphiStudyItemRequestVersion = 0;
       let delphiStudyItemRequestIds = new Map();
+      const delphiParticipantInvites = document.querySelector("#delphi-participant-invites");
+      const delphiParticipantInviteLocation = document.querySelector("#delphi-participant-invites-location");
+      const delphiParticipantInviteStudy = document.querySelector("#delphi-participant-invites-study");
+      const delphiParticipantInviteStudiesMore = document.querySelector("#delphi-participant-invites-studies-more");
+      const delphiParticipantInviteLifetime = document.querySelector("#delphi-participant-invites-lifetime");
+      const delphiParticipantInviteIssue = document.querySelector("#delphi-participant-invites-issue");
+      const delphiParticipantInviteRefresh = document.querySelector("#delphi-participant-invites-refresh");
+      const delphiParticipantInviteStatus = document.querySelector("#delphi-participant-invites-status");
+      const delphiParticipantInviteLink = document.querySelector("#delphi-participant-invites-link");
+      const delphiParticipantInviteLinkValue = document.querySelector("#delphi-participant-invites-link-value");
+      const delphiParticipantInviteRows = document.querySelector("#delphi-participant-invites-rows");
+      const delphiParticipantInviteMore = document.querySelector("#delphi-participant-invites-more");
+      let delphiParticipantInviteLocations = new Set();
+      let delphiParticipantInviteRevokeLocations = new Set();
+      let delphiParticipantInviteStudyOffset = 0;
+      let delphiParticipantInviteOffset = 0;
+      let delphiParticipantInviteStudyRequestVersion = 0;
+      let delphiParticipantInviteRequestVersion = 0;
+      const delphiParticipantInviteIssueRequestIds = new Map();
+      const delphiParticipantInviteRevokeRequestIds = new Map();
       const delphiRecommendationDraftCreate = document.querySelector("#delphi-recommendation-draft-create");
       const delphiRecommendationDraftLocation = document.querySelector("#delphi-recommendation-draft-location");
       const delphiRecommendationDraftStudy = document.querySelector("#delphi-recommendation-draft-study");
@@ -21414,6 +21467,19 @@
             .filter((scope) => scope.resource === "delphi" && scope.action === "read")
             .map((scope) => scope.location_id)
             .filter(validDelphiReviewLocation));
+          const delphiInviteGrantLocationIds = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "invite")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation));
+          const delphiInviteRevokeGrantLocationIds = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "invite_revoke")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation));
+          const delphiParticipantInviteLocationIds = [...delphiInviteGrantLocationIds]
+            .filter((locationId) => delphiReadLocationIds.has(locationId));
+          delphiParticipantInviteLocations = new Set(delphiParticipantInviteLocationIds);
+          delphiParticipantInviteRevokeLocations = new Set(delphiParticipantInviteLocationIds
+            .filter((locationId) => delphiInviteRevokeGrantLocationIds.has(locationId)));
           const delphiOpenLocationIds = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "delphi" && scope.action === "open")
             .map((scope) => scope.location_id)
@@ -22044,6 +22110,17 @@
             await loadDelphiStudyItemStudies();
             hasAuthorizedSurface = true;
           }
+          if (delphiParticipantInviteLocationIds.length) {
+            for (const locationId of delphiParticipantInviteLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              delphiParticipantInviteLocation.append(option);
+            }
+            delphiParticipantInvites.hidden = false;
+            await loadDelphiParticipantInviteStudies();
+            hasAuthorizedSurface = true;
+          }
           if (governanceTensionLocations.length) {
             for (const locationId of governanceTensionLocations) {
               const option = document.createElement("option");
@@ -22346,6 +22423,312 @@
           delphiStudyDraftStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
           delphiStudyDraftSubmit.disabled = false;
+        }
+      }
+
+      function clearDelphiParticipantInviteLink() {
+        delphiParticipantInviteLinkValue.value = "";
+        delphiParticipantInviteLink.hidden = true;
+      }
+
+      function refreshDelphiParticipantInviteControls() {
+        const locationId = delphiParticipantInviteLocation.value;
+        const studyId = delphiParticipantInviteStudy.value;
+        const selected = delphiParticipantInviteStudy.selectedOptions[0];
+        delphiParticipantInviteIssue.disabled = !delphiParticipantInviteLocations.has(locationId)
+          || !studyId
+          || selected?.dataset?.status !== "draft"
+          || !delphiParticipantInviteLifetime.checkValidity();
+        delphiParticipantInviteRefresh.disabled = !delphiParticipantInviteLocations.has(locationId)
+          || !studyId;
+      }
+
+      async function loadDelphiParticipantInviteStudies(append = false) {
+        const locationId = delphiParticipantInviteLocation.value;
+        const requestVersion = ++delphiParticipantInviteStudyRequestVersion;
+        const previousStudyId = delphiParticipantInviteStudy.value;
+        if (!append) {
+          delphiParticipantInviteStudy.replaceChildren();
+          delphiParticipantInviteStudyOffset = 0;
+          delphiParticipantInviteRows.replaceChildren();
+          delphiParticipantInviteOffset = 0;
+          clearDelphiParticipantInviteLink();
+        }
+        delphiParticipantInviteStudiesMore.hidden = true;
+        refreshDelphiParticipantInviteControls();
+        if (!delphiParticipantInviteLocations.has(locationId)) {
+          delphiParticipantInviteStatus.textContent = "Read and invite grants for the same location are required.";
+          return;
+        }
+        delphiParticipantInviteStatus.textContent = "Loading location-scoped Delphi studies…";
+        const params = new URLSearchParams({
+          limit: "50",
+          offset: String(delphiParticipantInviteStudyOffset),
+        });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiParticipantInviteStudyRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or same-location Delphi read and invite grants are not valid.");
+          }
+          if (!response.ok) throw new Error("Delphi studies are unavailable.");
+          const result = await response.json();
+          if (result.location_id !== locationId || !Array.isArray(result.studies)) {
+            throw new Error("The study response did not match the selected location.");
+          }
+          const existingIds = new Set([...delphiParticipantInviteStudy.options].map((option) => option.value));
+          for (const study of result.studies) {
+            const studyId = String(study.study_id || "");
+            if (!studyId || !["draft", "open", "closed"].includes(study.status) || existingIds.has(studyId)) continue;
+            const option = document.createElement("option");
+            option.value = studyId;
+            option.dataset.status = study.status;
+            option.textContent = `${String(study.title || "Untitled study")} (${study.status})`;
+            delphiParticipantInviteStudy.append(option);
+            existingIds.add(studyId);
+          }
+          delphiParticipantInviteStudyOffset += result.studies.length;
+          delphiParticipantInviteStudiesMore.hidden = result.has_more !== true;
+          if (previousStudyId
+              && [...delphiParticipantInviteStudy.options].some((option) => option.value === previousStudyId)) {
+            delphiParticipantInviteStudy.value = previousStudyId;
+          }
+          refreshDelphiParticipantInviteControls();
+          await loadDelphiParticipantInviteQueue();
+          if (!delphiParticipantInviteStudy.options.length) {
+            delphiParticipantInviteStatus.textContent = "No Delphi studies are available for this location.";
+          } else if (delphiParticipantInviteStudy.selectedOptions[0]?.dataset?.status !== "draft") {
+            delphiParticipantInviteStatus.textContent = "Invite issuance is available only while a study remains a draft.";
+          } else {
+            delphiParticipantInviteStatus.textContent = "Issue links only after an independent reviewer approves the study notice.";
+          }
+        } catch (error) {
+          if (requestVersion === delphiParticipantInviteStudyRequestVersion) {
+            delphiParticipantInviteStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function loadDelphiParticipantInviteQueue(append = false) {
+        const locationId = delphiParticipantInviteLocation.value;
+        const studyId = delphiParticipantInviteStudy.value;
+        const requestVersion = ++delphiParticipantInviteRequestVersion;
+        if (!append) {
+          delphiParticipantInviteRows.replaceChildren();
+          delphiParticipantInviteOffset = 0;
+        }
+        delphiParticipantInviteMore.hidden = true;
+        refreshDelphiParticipantInviteControls();
+        if (!delphiParticipantInviteLocations.has(locationId) || !studyId) return;
+        const params = new URLSearchParams({
+          limit: "50",
+          offset: String(delphiParticipantInviteOffset),
+        });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/invites?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiParticipantInviteRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or same-location Delphi invite grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The invite history is unavailable.");
+          const result = await response.json();
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || !Array.isArray(result.invites)) {
+            throw new Error("The invite response did not match the selected location and study.");
+          }
+          const revokeReasons = [
+            ["sent_to_wrong_recipient", "Sent to wrong recipient"],
+            ["token_exposed", "Link exposed"],
+            ["study_cancelled", "Study cancelled"],
+            ["notice_replaced", "Notice replaced"],
+            ["other", "Other reviewed reason"],
+          ];
+          for (const invite of result.invites) {
+            const inviteId = String(invite.invite_id || "");
+            if (!inviteId || invite.study_id !== studyId) continue;
+            const row = document.createElement("tr");
+            const inviteCell = document.createElement("td");
+            inviteCell.textContent = inviteId;
+            const noticeCell = document.createElement("td");
+            noticeCell.textContent = String(invite.notice_version || "—");
+            const statusCell = document.createElement("td");
+            const allowedStatuses = new Set(["pending", "accepted", "revoked", "expired"]);
+            const inviteStatus = allowedStatuses.has(invite.status) ? invite.status : "unknown";
+            statusCell.textContent = inviteStatus;
+            const createdCell = document.createElement("td");
+            createdCell.textContent = invite.created_at
+              ? new Date(invite.created_at).toLocaleString()
+              : "—";
+            const expiresCell = document.createElement("td");
+            expiresCell.textContent = invite.expires_at
+              ? new Date(invite.expires_at).toLocaleString()
+              : "—";
+            const actionCell = document.createElement("td");
+            const expiresAt = Date.parse(invite.expires_at || "");
+            if (inviteStatus === "pending" && Number.isFinite(expiresAt)
+                && expiresAt > Date.now()
+                && delphiParticipantInviteRevokeLocations.has(locationId)) {
+              const reasonSelect = document.createElement("select");
+              reasonSelect.setAttribute("aria-label", `Revoke reason for invite ${inviteId}`);
+              for (const [value, label] of revokeReasons) {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                reasonSelect.append(option);
+              }
+              const revokeButton = document.createElement("button");
+              revokeButton.type = "button";
+              revokeButton.className = "secondary";
+              revokeButton.textContent = "Revoke pending invite";
+              revokeButton.addEventListener("click", () => submitDelphiParticipantInviteRevoke(
+                inviteId, reasonSelect.value, revokeButton
+              ));
+              actionCell.append(reasonSelect, revokeButton);
+            } else {
+              actionCell.textContent = "—";
+            }
+            row.append(inviteCell, noticeCell, statusCell, createdCell, expiresCell, actionCell);
+            delphiParticipantInviteRows.append(row);
+          }
+          delphiParticipantInviteOffset += result.invites.length;
+          delphiParticipantInviteMore.hidden = result.has_more !== true;
+        } catch (error) {
+          if (requestVersion === delphiParticipantInviteRequestVersion) {
+            delphiParticipantInviteStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitDelphiParticipantInvite() {
+        const locationId = delphiParticipantInviteLocation.value;
+        const studyId = delphiParticipantInviteStudy.value;
+        const selectedStudy = delphiParticipantInviteStudy.selectedOptions[0];
+        const lifetimeHours = Number(delphiParticipantInviteLifetime.value);
+        if (!delphiParticipantInviteLocations.has(locationId) || !studyId
+            || selectedStudy?.dataset?.status !== "draft"
+            || !Number.isInteger(lifetimeHours) || lifetimeHours < 1 || lifetimeHours > 720
+            || !delphiParticipantInviteLifetime.checkValidity()) {
+          delphiParticipantInviteStatus.textContent = "Choose a draft study and a valid one-to-720-hour invite lifetime.";
+          return;
+        }
+        if (!window.confirm("Issue a single-use participant link for this draft study? The link will be shown once and must be shared securely.")) {
+          return;
+        }
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, studyId, lifetimeHours]);
+        let requestId = delphiParticipantInviteIssueRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiParticipantInviteIssueRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiParticipantInviteStatus.textContent = "Refresh this secure console before issuing an invite.";
+          return;
+        }
+        delphiParticipantInviteIssue.disabled = true;
+        delphiParticipantInviteStatus.textContent = "Issuing a single-use participant invite…";
+        clearDelphiParticipantInviteLink();
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/invites`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId, lifetime_seconds: lifetimeHours * 3600 }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or exact location invite grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error(result.error || "This draft does not have an eligible approved notice.");
+          }
+          if (!response.ok) throw new Error(result.error || "Invite service is unavailable.");
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || typeof result.invite_id !== "string" || typeof result.replayed !== "boolean") {
+            throw new Error("The invite response did not match the selected study.");
+          }
+          delphiParticipantInviteIssueRequestIds.delete(requestKey);
+          if (!result.replayed && /^[0-9a-f]{64}$/.test(result.invite_token || "")) {
+            delphiParticipantInviteLinkValue.value = `${window.location.origin}/api/participation/delphi#${result.invite_token}`;
+            delphiParticipantInviteLink.hidden = false;
+            delphiParticipantInviteStatus.textContent = `Invite ${result.invite_id} created. Copy the link now; its token cannot be retrieved again.`;
+          } else {
+            delphiParticipantInviteStatus.textContent = `Invite ${result.invite_id} already exists, but its one-time token is unavailable. Revoke it if unused before creating a replacement.`;
+          }
+          await loadDelphiParticipantInviteQueue();
+        } catch (error) {
+          delphiParticipantInviteStatus.textContent = `${error.message} Retrying unchanged inputs reuses the same request ID.`;
+        } finally {
+          refreshDelphiParticipantInviteControls();
+        }
+      }
+
+      async function submitDelphiParticipantInviteRevoke(inviteId, reasonCode, button) {
+        const locationId = delphiParticipantInviteLocation.value;
+        if (!delphiParticipantInviteRevokeLocations.has(locationId)
+            || !["sent_to_wrong_recipient", "token_exposed", "study_cancelled", "notice_replaced", "other"].includes(reasonCode)) {
+          delphiParticipantInviteStatus.textContent = "A location-specific invite-revoke grant and supported reason are required.";
+          return;
+        }
+        if (!window.confirm("Revoke this pending Delphi participant link? It will no longer be redeemable.")) return;
+        const csrf = csrfToken();
+        const requestKey = JSON.stringify([locationId, inviteId, reasonCode]);
+        let requestId = delphiParticipantInviteRevokeRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiParticipantInviteRevokeRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiParticipantInviteStatus.textContent = "Refresh this secure console before revoking an invite.";
+          return;
+        }
+        button.disabled = true;
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/invites/${encodeURIComponent(inviteId)}/revoke`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ request_id: requestId, reason_code: reasonCode }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate location invite-revoke grant is not valid.");
+          }
+          if (response.status === 409) throw new Error(result.error || "This invite is no longer revocable.");
+          if (!response.ok || result.invite_id !== inviteId || result.status !== "revoked") {
+            throw new Error(result.error || "The invite revoke was not confirmed.");
+          }
+          delphiParticipantInviteRevokeRequestIds.delete(requestKey);
+          delphiParticipantInviteStatus.textContent = result.replayed
+            ? "The existing invite revocation was confirmed."
+            : "The pending invite has been revoked.";
+          await loadDelphiParticipantInviteQueue();
+        } catch (error) {
+          delphiParticipantInviteStatus.textContent = `${error.message} Retrying uses the same request ID.`;
+        } finally {
+          button.disabled = false;
         }
       }
 
@@ -25896,6 +26279,32 @@
       delphiStudyItemStudy.addEventListener("change", refreshDelphiStudyItemControls);
       delphiStudyItemMore.addEventListener("click", () => loadDelphiStudyItemStudies(true));
       delphiStudyItemSubmit.addEventListener("click", submitDelphiStudyItem);
+      delphiParticipantInviteLocation.addEventListener("change", () => loadDelphiParticipantInviteStudies());
+      delphiParticipantInviteStudy.addEventListener("change", () => {
+        clearDelphiParticipantInviteLink();
+        refreshDelphiParticipantInviteControls();
+        loadDelphiParticipantInviteQueue();
+      });
+      delphiParticipantInviteLifetime.addEventListener("input", refreshDelphiParticipantInviteControls);
+      delphiParticipantInviteStudiesMore.addEventListener("click", () => loadDelphiParticipantInviteStudies(true));
+      delphiParticipantInviteIssue.addEventListener("click", submitDelphiParticipantInvite);
+      delphiParticipantInviteRefresh.addEventListener("click", () => loadDelphiParticipantInviteQueue());
+      delphiParticipantInviteMore.addEventListener("click", () => loadDelphiParticipantInviteQueue(true));
+      document.querySelector("#delphi-participant-invites-copy").addEventListener("click", async () => {
+        if (!delphiParticipantInviteLinkValue.value) return;
+        try {
+          await navigator.clipboard.writeText(delphiParticipantInviteLinkValue.value);
+          delphiParticipantInviteStatus.textContent = "One-time link copied. Share it only with the intended participant, then clear it.";
+        } catch {
+          delphiParticipantInviteLinkValue.focus();
+          delphiParticipantInviteLinkValue.select();
+          delphiParticipantInviteStatus.textContent = "Clipboard access is unavailable; the one-time link is selected for manual copying.";
+        }
+      });
+      document.querySelector("#delphi-participant-invites-clear").addEventListener("click", () => {
+        clearDelphiParticipantInviteLink();
+        delphiParticipantInviteStatus.textContent = "The one-time link was cleared from this page.";
+      });
       delphiStudyLifecycleLocation.addEventListener("change", () => loadDelphiStudyLifecycleStudies());
       delphiStudyLifecycleStudy.addEventListener("change", () => {
         refreshDelphiStudyLifecycleControls();

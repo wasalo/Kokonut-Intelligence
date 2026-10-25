@@ -30,6 +30,81 @@ def _uuid(value: str, field: str) -> str:
         raise DelphiParticipantInviteInvalid(f"Invalid {field} identifier") from exc
 
 
+def _page_value(value: int | str, field: str, maximum: int, minimum: int) -> int:
+    if isinstance(value, bool):
+        raise DelphiParticipantInviteInvalid(
+            f"{field} must be an integer between {minimum} and {maximum}"
+        )
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise DelphiParticipantInviteInvalid(
+            f"{field} must be an integer between {minimum} and {maximum}"
+        ) from exc
+    if str(parsed) != str(value).strip() or not minimum <= parsed <= maximum:
+        raise DelphiParticipantInviteInvalid(
+            f"{field} must be an integer between {minimum} and {maximum}"
+        )
+    return parsed
+
+
+def list_location_delphi_participant_invites(
+    operator_id: str,
+    location_id: str,
+    study_id: str,
+    *,
+    limit: int | str = 50,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List bounded lifecycle metadata without exposing invite credentials."""
+    operator_id = _uuid(operator_id, "operator")
+    location_id = _uuid(location_id, "location")
+    study_id = _uuid(study_id, "study")
+    page_size = _page_value(limit, "Limit", 50, 1)
+    page_offset = _page_value(offset, "Offset", 10000, 0)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="delphi",
+            action="invite",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.list_location_delphi_participant_invites(
+                           %s::uuid, %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, study_id, page_size, page_offset),
+            )
+            row = cursor.fetchone()
+        if row is None or row[0] is None:
+            raise RuntimeError("Delphi invite inventory function returned no result")
+        result = row[0]
+        if isinstance(result, str):
+            import json
+
+            result = json.loads(result)
+        if not isinstance(result, dict):
+            raise RuntimeError("Delphi invite inventory returned an invalid payload")
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
 def issue_location_delphi_participant_invite(
     operator_id: str,
     location_id: str,

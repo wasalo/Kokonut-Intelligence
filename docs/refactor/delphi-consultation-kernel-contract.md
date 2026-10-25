@@ -472,3 +472,34 @@ removing the participant page/asset image copies; retain the additive migration
 and private receipts if it has been applied. Live browser/OIDC acceptance,
 invite console and SMTP delivery, populated parity, universal ACL/RLS, and
 MAN-CAP-027 owner acceptance remain open. Do not distribute invite tokens yet.
+
+
+### Operator invite management
+
+Migration 638 adds kokonut_security.list_location_delphi_participant_invites,
+a bounded inventory that requires the signed operator context and current
+location-scoped delphi:invite grant. Pages contain invite ID, study ID, notice
+version, lifecycle status, and issue/expiry timestamps only. Token digests,
+bearer tokens, contact details, and operator identities are omitted. The
+runtime role can call the projection but has no direct invite-table access;
+Directus cannot execute it.
+
+The operator console requires both delphi:read and delphi:invite for the same
+location, filters study selection by current lifecycle state, and lets an
+authorized operator issue an invite only while the study is still a draft.
+The raw bearer link is returned once, placed in the URL fragment for the
+participant, and held only in the current page until the operator copies or
+clears it. Invite history shows safe metadata and supports paging. Revocation
+controls appear only with the separate delphi:invite_revoke grant and use
+fixed reason codes, confirmation, CSRF, and retry-stable request IDs. The
+console does not store participant contact details or send email; SMTP delivery
+and its recipient/ownership policy remain a separate gate.
+
+The focused Gateway, route-policy, and console suite passes 69 tests. The
+network-disabled disposable PostgreSQL 16 runner applies/replays migration 638
+after the Delphi participant chain and passes five grouped scope, privacy,
+pagination, and role checks. Candidate and legacy databases remain untouched;
+migration 638 is not rolled out. Live OIDC/browser and SMTP acceptance,
+populated parity, universal ACL/RLS, and MAN-CAP-027 owner acceptance remain
+open. Do not distribute invites yet. Evidence:
+[invite-console acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json).

@@ -12,6 +12,7 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
     from services.gateway.delphi_participant_invites import (
         DelphiParticipantInviteInvalid,
         issue_location_delphi_participant_invite,
+        list_location_delphi_participant_invites,
         revoke_location_delphi_participant_invite,
     )
 
@@ -77,6 +78,41 @@ def register_delphi_participant_invite_routes(router, provider, run_in_threadpoo
                 headers=headers,
             )
         return payload, None
+
+    @router.get(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/invites"
+    )
+    async def list_invites(
+        request: Request,
+        location_id: str,
+        study_id: str,
+        limit: str = "50",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_delphi_participant_invites,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                study_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified Delphi invite access is required"},
+                headers=headers,
+            )
+        except DelphiParticipantInviteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            return database_error(exc)
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post("/operator/api/delphi/{location_id}/studies/{study_id}/invites")
     async def issue_invite(request: Request, location_id: str, study_id: str):

@@ -18396,3 +18396,27 @@ remain open. Do not distribute invite tokens yet. Checklist: 1,177 complete /
 25 open (1,202 total); matrix classifications remain 24 baseline-retained,
 7 deployed, and 36 prepared across 67 rows. Evidence:
 [disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-workspace-disposable.json).
+
+
+### Progress addendum — CAP-027 operator invite management, 25 October 2026
+
+Migration 638 adds a bounded same-location invite inventory with no token,
+digest, participant contact, or operator-identity disclosure. The operator
+console now selects same-location read/invite grants, issues a single-use link
+only for a draft study, displays and copies the returned bearer once, lists
+safe invite metadata, and reveals revocation controls only when the separate
+invite-revoke grant is present. CSRF, confirmation, fixed reason codes,
+no-store requests, page bounds, and retry-stable request IDs are enforced.
+The browser retains no contact details or persisted invite tokens. SMTP delivery
+remains separate because the current invite model intentionally has no
+recipient/contact field; no email was sent. The 69-test focused Gateway,
+route-policy, and console suite passes. Migration 638 applies/replays on a
+network-disabled disposable PostgreSQL 16 chain and passes five grouped
+authorization, privacy, paging, and role checks. Ruff, Python/JavaScript
+syntax, migration integrity, capability, SQL inventory, and diff checks pass.
+Candidate and legacy databases remain untouched; migration 638 is not rolled
+out. Do not distribute invites before live OIDC/browser and SMTP acceptance.
+Populated parity, universal ACL/RLS, and MAN-CAP-027 acceptance remain open.
+Checklist: 1,178 complete / 25 open (1,203 total); matrix classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+Evidence: [disposable acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json).

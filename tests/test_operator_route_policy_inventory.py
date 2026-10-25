@@ -121,6 +121,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/invites",
     ): _expected("delphi", "invite", scoped=True, location_id=_LOCATION_ID),
     (
+        "GET",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/invites",
+    ): _expected("delphi", "invite", scoped=True, location_id=_LOCATION_ID),
+    (
         "POST",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/invites/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeea/revoke",
     ): _expected("delphi", "invite_revoke", scoped=True, location_id=_LOCATION_ID),

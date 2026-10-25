@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "638_location_scoped_delphi_invite_inventory.sql",
+  "database_target": "new disposable PostgreSQL 16 container with networking disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 638 applies and replays after Delphi invite and participant migrations",
+    "invite inventory returns bounded status metadata with no tokens, digests, or operator IDs",
+    "pagination returns disjoint invite rows and an accurate has_more flag",
+    "cross-location context, absent invite grant, and invalid page bounds are denied",
+    "runtime may execute the projection while Runtime/Directus cannot read invite tables"
+  ],
+  "assertions_passed": 5
+}

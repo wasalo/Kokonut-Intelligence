@@ -4243,3 +4243,33 @@ The AST scope inventory now follows a location-filtered parent row into child re
   owner acceptance remain open. Checklist: 1,177 complete / 25 open (1,202
   total); matrix remains 24 baseline-retained, 7 deployed, and 36 prepared
   across 67 rows. CAP-027 remains prepared, not accepted.
+
+
+### CAP-027 operator invite management — 25 October 2026
+
+- [x] Add migration 638 and operator controls for the existing single-use
+  participant invite flow. Migration 638 exposes only bounded location/study
+  invite metadata under signed operator context and the exact invite grant;
+  it omits token digests, bearer tokens, contact details, and operator IDs.
+  The console requires read and invite grants on the same location, permits
+  issuance only for a draft study, displays and copies the bearer link once,
+  pages the token-free invite history, and offers revocation only with the
+  separate invite-revoke grant. CSRF, confirmation, fixed reason codes,
+  no-store requests, and retry-stable IDs are covered. No email was sent and
+  participant contact data is not retained. The focused Gateway, route-policy,
+  and console suite passes 69 tests. Network-disabled disposable PostgreSQL 16
+  applies/replays migration 638 after the Delphi participant chain and passes
+  five grouped checks for authorization, metadata privacy, pagination, and
+  Runtime/Directus boundaries. Ruff, Python/JavaScript syntax, migration
+  integrity, capability validation, runtime SQL inventory, and diff checks
+  pass. Candidate and legacy databases remain untouched; migration 638 is not
+  rolled out ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/638_location_scoped_delphi_invite_inventory.sql);
+  [console](../../apps/operator-console/index.html);
+  [tests](../../tests/test_operator_console_delphi_participant_invites.py);
+  [disposable runner](../../scripts/check-delphi-participant-invite-console-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-console-disposable.json)).
+  SMTP delivery, real OIDC/browser acceptance, populated parity, universal
+  ACL/RLS, and MAN-CAP-027 owner acceptance remain open. Do not distribute
+  invites yet. Checklist: 1,178 complete / 25 open (1,203 total); matrix
+  remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

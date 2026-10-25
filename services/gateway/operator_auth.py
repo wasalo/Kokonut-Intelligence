@@ -414,7 +414,7 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/invites",
         path,
     )
-    if delphi_invite_match and method.upper() == "POST" and enabled:
+    if delphi_invite_match and method.upper() in {"GET", "POST"} and enabled:
         return {
             "resource": "delphi",
             "action": "invite",
