@@ -18136,9 +18136,10 @@ Every CIDS JSON-LD graph node now carries a sorted `kokonut:sourceViews` list.
 Location-derived organization/program/pathway nodes use the location source;
 outcomes, indicators, and impact reports name their corresponding source; and
 stakeholder nodes combine outcome and feedback views when both contribute.
-The focused CIDS/EBF/task-validation selection passes 17 tests with Ruff and
-Python compilation. The registered task validator rejects empty graphs and
-nodes with missing, malformed, empty, or unsorted provenance. No migration,
+The focused CIDS/EBF/task-validation selection passes 18 tests with Ruff and
+Python compilation. The registered task validator enforces the normalized
+location and six-view scope, rejects unapproved source views, and rejects empty
+graphs or nodes with missing, malformed, empty, or unsorted provenance. No migration,
 database, provider, candidate, or legacy service was used. This adds view-level
 attribution, not property-to-row lineage or a content snapshot. Checklist:
 1,163 complete / 25 open (1,188 total);

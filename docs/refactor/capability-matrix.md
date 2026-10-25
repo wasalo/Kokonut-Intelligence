@@ -35,9 +35,10 @@ worker includes its six canonical views and normalized location in required
 task output metadata. Each JSON-LD graph node now carries a sorted
 `kokonut:sourceViews` list; stakeholder nodes combine the outcome and feedback
 views when both contribute. The registered task validator rejects empty graphs
-and missing, malformed, empty, or unsorted node provenance. The 17-test focused
-CIDS/EBF/task-validation selection, Ruff, compilation, and matrix validation
-pass. This is view-level attribution, not
+and source scopes that drift from the normalized location and six signed views;
+it also rejects unapproved node views and missing, malformed, empty, or
+unsorted node provenance. The 18-test focused CIDS/EBF/task-validation
+selection, Ruff, compilation, and matrix validation pass. This is view-level attribution, not
 property-to-row lineage or a source snapshot. Live OIDC, deployed worker
 credentials/grants, populated parity, and MAN-CAP-038 owner acceptance remain
 open. Classifications remain 24 baseline-retained, 7 deployed, and 36 prepared

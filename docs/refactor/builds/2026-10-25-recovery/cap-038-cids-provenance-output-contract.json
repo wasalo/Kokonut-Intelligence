@@ -2,11 +2,11 @@
   "slice": "CAP-038 CIDS output source-provenance contract",
   "date": "2026-10-25",
   "result": "passed",
-  "contract": "The registered task output validator requires a non-empty CIDS graph and rejects any graph node that lacks an @id or a non-empty, sorted, unique kokonut:sourceViews list.",
+  "contract": "The registered task output validator requires the normalized location UUID and exact six signed source views, a non-empty CIDS graph, and for each node a non-empty, sorted, unique kokonut:sourceViews list drawn from those views.",
   "verification": {
     "focused_pytest": {
       "command": "python3 -m pytest tests/test_agent_tasks.py tests/test_cids_export.py tests/test_ebf_cids.py tests/test_agent_worker_cli.py -k 'cids or output_validation' -q",
-      "result": "17 passed, 86 deselected"
+      "result": "18 passed, 86 deselected"
     },
     "ruff": "passed",
     "python_compilation": "passed",

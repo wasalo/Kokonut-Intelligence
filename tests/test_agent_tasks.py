@@ -6,6 +6,7 @@ from services.agents.cids_agent import run_cids_export
 from services.agents.feedback_agent import synthesize_feedback
 from services.agents.safety import assess_agent_action
 from services.agents.tasks import (
+    CIDS_SOURCE_VIEWS,
     TASK_CATALOGUE,
     get_task,
     list_tasks,
@@ -61,7 +62,7 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
         "cids_version": "3.2.0",
         "source_scope": {
             "location_id": "a0000000-0000-4000-8000-000000000001",
-            "views": [],
+            "views": list(CIDS_SOURCE_VIEWS),
         },
     }
     assert validate_output("cids_export", valid) == []
@@ -79,7 +80,7 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
             "cids_version": "3.2.0",
             "source_scope": {
                 "location_id": "a0000000-0000-4000-8000-000000000001",
-                "views": [],
+                "views": list(CIDS_SOURCE_VIEWS),
             },
         },
     )
@@ -108,7 +109,10 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
         "graph_count": 1,
         "alignment_tier": "essential",
         "cids_version": "3.2.0",
-        "source_scope": {"location_id": "location-id", "views": []},
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": list(CIDS_SOURCE_VIEWS),
+        },
     }
     assert validate_output("cids_export", valid_output) == []
 
@@ -131,6 +135,10 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
                 "kokonut_agent_source.cids_location",
             ],
         },
+        {
+            "@id": "https://kokonut.network/cids/Outcome/unapproved-view",
+            "kokonut:sourceViews": ["public.location"],
+        },
     ):
         invalid_output = {
             **valid_output,
@@ -147,6 +155,37 @@ def test_cids_output_rejects_graph_nodes_without_deterministic_source_views() ->
     assert validate_output("cids_export", empty_output) == [
         "Invalid CIDS document graph (expected nodes)"
     ]
+
+
+def test_cids_output_rejects_unmatched_or_unapproved_source_scope() -> None:
+    output = {
+        "document": {
+            "@graph": [
+                {
+                    "@id": "https://kokonut.network/cids/Organization/test",
+                    "kokonut:sourceViews": ["kokonut_agent_source.cids_location"],
+                }
+            ]
+        },
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+        "source_scope": {
+            "location_id": "a0000000-0000-4000-8000-000000000001",
+            "views": list(CIDS_SOURCE_VIEWS),
+        },
+    }
+    for location_id, views in (
+        ("location-id", list(CIDS_SOURCE_VIEWS)),
+        ("a0000000-0000-4000-8000-000000000001", list(CIDS_SOURCE_VIEWS[:-1])),
+    ):
+        invalid = {
+            **output,
+            "source_scope": {"location_id": location_id, "views": views},
+        }
+        errors = validate_output("cids_export", invalid)
+        assert errors
+        assert all("CIDS source scope" in error for error in errors)
 
 
 def test_task_input_validation_checks_required_types_and_formats() -> None:

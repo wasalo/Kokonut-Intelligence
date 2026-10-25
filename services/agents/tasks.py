@@ -11,6 +11,15 @@ from datetime import date
 from typing import Any
 from uuid import UUID
 
+CIDS_SOURCE_VIEWS = (
+    "kokonut_agent_source.cids_location",
+    "kokonut_agent_source.cids_stakeholder_outcome",
+    "kokonut_agent_source.cids_farm_impact_mapping",
+    "kokonut_agent_source.cids_metric_value",
+    "kokonut_agent_source.cids_stakeholder_feedback",
+    "kokonut_agent_source.cids_impact_claim",
+)
+
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     "cids_export": {
         "description": "Prepare a CIDS v3.2.0 Essential Tier JSON-LD export for one location.",
@@ -482,6 +491,17 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
     )
     if task_key == "cids_export":
         document = output.get("document") if isinstance(output, dict) else None
+        source_scope = output.get("source_scope") if isinstance(output, dict) else None
+        if isinstance(source_scope, dict):
+            location_id = source_scope.get("location_id")
+            try:
+                normalized_location_id = str(UUID(str(location_id)))
+            except (TypeError, ValueError, AttributeError):
+                normalized_location_id = None
+            if normalized_location_id is None or normalized_location_id != location_id:
+                errors.append("Invalid CIDS source scope location identifier")
+            if source_scope.get("views") != list(CIDS_SOURCE_VIEWS):
+                errors.append("Invalid CIDS source scope views")
         if isinstance(document, dict):
             graph = document.get("@graph")
             if not isinstance(graph, list):
@@ -500,6 +520,7 @@ def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
                 )
                 or node["kokonut:sourceViews"]
                 != sorted(set(node["kokonut:sourceViews"]))
+                or not set(node["kokonut:sourceViews"]).issubset(CIDS_SOURCE_VIEWS)
                 for node in graph
             ):
                 errors.append(

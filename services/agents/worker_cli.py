@@ -601,6 +601,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
     """Create the existing CIDS output through a signed location reader."""
     from services.agents.safety import assert_agent_action_allowed
     from services.agents.tasks import (
+        CIDS_SOURCE_VIEWS,
         validate_output,
         validate_task_capabilities,
         validate_task_inputs,
@@ -645,14 +646,7 @@ def run_worker_cids_export(location_id: str) -> dict[str, Any]:
             "cids_version": document.get("kokonut:cidsVersion"),
             "source_scope": {
                 "location_id": location_id,
-                "views": [
-                    "kokonut_agent_source.cids_location",
-                    "kokonut_agent_source.cids_stakeholder_outcome",
-                    "kokonut_agent_source.cids_farm_impact_mapping",
-                    "kokonut_agent_source.cids_metric_value",
-                    "kokonut_agent_source.cids_stakeholder_feedback",
-                    "kokonut_agent_source.cids_impact_claim",
-                ],
+                "views": list(CIDS_SOURCE_VIEWS),
             },
         }
         output_errors = validate_output("cids_export", output)
