@@ -1,3 +1,15 @@
+### Progress addendum — full current-schema ARM64/QEMU replay through migration 627, 25 October 2026
+
+A fresh network-disabled PostgreSQL 16 ARM64/QEMU project applied and verified
+all 618 current schema files through migration 627: 618 applied, zero pending,
+zero failed, zero seeds, no farm data, no host ports, confirmed `aarch64`, and
+successful volume cleanup. The replay used the current clean source revision
+`1d780da9`; the candidate and legacy databases were not accessed
+([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-627.json)).
+This refreshes software portability evidence only; physical Raspberry Pi,
+power-failure, performance, thermal, storage, networking, and device-restart
+acceptance remain open. Checklist remains 1,135 complete / 23 open.
+
 ### Progress addendum — CAP-006 independent hive-inspection review, 25 October 2026
 
 Migration 627 extends the existing location-scoped pollinator review queue to
