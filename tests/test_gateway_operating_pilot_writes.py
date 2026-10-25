@@ -1132,6 +1132,129 @@ def test_learning_plan_review_route_policy_requires_exact_location_review_grant(
     assert auth_route_policy("POST", path + "/extra", enabled=True) is None
 
 
+def test_learning_plan_activation_sets_exact_context_and_binds_approved_version(monkeypatch):
+    connection, cursor = _connection_with_result({
+        "learning_plan_id": PROFILE_ID,
+        "status": "active",
+        "replayed": False,
+    })
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.activate_location_operating_pilot_learning_plan(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {"submitted_at": "2026-10-24T12:34:56.123456Z"},
+        connection_factory=lambda: connection,
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "active",
+        "replayed": False,
+    }
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": OPERATOR_ID,
+            "location_id": LOCATION_ID,
+            "resource": "operating_pilot",
+            "action": "activate",
+        },
+    )]
+    assert "activate_location_operating_pilot_learning_plan" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        operating_pilot_writes.datetime(
+            2026, 10, 24, 12, 34, 56, 123456,
+            tzinfo=operating_pilot_writes.timezone.utc,
+        ),
+    )
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize("payload", [
+    {"submitted_at": "2026-10-24T12:00:00"},
+    {"submitted_at": "not-a-timestamp"},
+    {"submitted_at": "2026-10-24T12:00:00Z", "status": "active"},
+])
+def test_invalid_learning_plan_activation_payload_fails_before_database_access(payload):
+    factory = MagicMock(side_effect=AssertionError("database opened before validation"))
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid):
+        operating_pilot_writes.activate_location_operating_pilot_learning_plan(
+            OPERATOR_ID,
+            LOCATION_ID,
+            PROFILE_ID,
+            REQUEST_ID,
+            payload,
+            connection_factory=factory,
+        )
+    factory.assert_not_called()
+
+
+def test_learning_plan_activation_http_route_is_exact_grant_csrf_surface_and_no_store(monkeypatch):
+    action = MagicMock(return_value={
+        "location_id": LOCATION_ID,
+        "learning_plan_id": PROFILE_ID,
+        "status": "active",
+        "replayed": False,
+    })
+    client = _route_app(monkeypatch, action, "activate_location_operating_pilot_learning_plan")
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/activate"
+    invalid = client.post(path, json={
+        "request_id": REQUEST_ID,
+        "submitted_at": "2026-10-24T12:00:00Z",
+        "status": "active",
+    })
+    assert invalid.status_code == 400
+    action.assert_not_called()
+
+    response = client.post(path, json={
+        "request_id": REQUEST_ID,
+        "submitted_at": "2026-10-24T12:00:00Z",
+    })
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    action.assert_called_once_with(
+        OPERATOR_ID,
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        {"submitted_at": "2026-10-24T12:00:00Z"},
+    )
+
+
+def test_learning_plan_activation_route_policy_requires_separate_exact_location_grant():
+    queue_path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-activation-queue"
+    activation_path = f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plans/{PROFILE_ID}/activate"
+    expected = {
+        "resource": "operating_pilot",
+        "action": "activate",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("GET", queue_path, enabled=True) == expected
+    assert auth_route_policy("GET", queue_path, enabled=False) is None
+    assert auth_route_policy("POST", activation_path, enabled=True) == expected
+    assert auth_route_policy("POST", activation_path, enabled=False) is None
+    assert auth_route_policy("GET", activation_path, enabled=True) is None
+    assert auth_route_policy("POST", activation_path + "/extra", enabled=True) is None
+
+
 def test_competency_draft_route_policy_requires_exact_location_create_grant():
     path = f"/operator/api/operating-pilot/{LOCATION_ID}/competency-assessments"
     assert auth_route_policy("POST", path, enabled=True) == {

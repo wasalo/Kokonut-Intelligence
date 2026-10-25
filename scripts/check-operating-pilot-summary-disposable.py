@@ -50,6 +50,7 @@ LEARNING_PLAN_REVISION_MIGRATION = ROOT / "schemas/postgres/607_location_operati
 LEARNING_PLAN_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/608_location_operating_pilot_learning_plan_submission.sql"
 LEARNING_PLAN_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/609_location_operating_pilot_learning_plan_review_queue.sql"
 LEARNING_PLAN_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql"
+LEARNING_PLAN_ACTIVATION_MIGRATION = ROOT / "schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql"
 COACHING_SESSION_MIGRATION = ROOT / "schemas/postgres/611_location_scoped_operating_coaching_sessions.sql"
 COACHING_PARTICIPANTS_MIGRATION = ROOT / "schemas/postgres/612_location_operating_pilot_coaching_participants.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
@@ -91,6 +92,8 @@ LEARNING_PLAN_REVIEW_QUEUE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-reco
 LEARNING_PLAN_REVIEW_QUEUE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-arm64-disposable.json"
 LEARNING_PLAN_REVIEW_DECISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-disposable.json"
 LEARNING_PLAN_REVIEW_DECISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-arm64-disposable.json"
+LEARNING_PLAN_ACTIVATION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json"
+LEARNING_PLAN_ACTIVATION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json"
 COACHING_SESSION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-disposable.json"
 COACHING_SESSION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-arm64-disposable.json"
 COACHING_PARTICIPANTS_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-coaching-participant-selector-disposable.json"
@@ -6094,6 +6097,238 @@ RESET ROLE;
 ROLLBACK;
 """
 
+LEARNING_PLAN_ACTIVATION_ACCEPTANCE = r"""
+BEGIN;
+INSERT INTO public.operator_identity VALUES
+ ('a0000000-0000-4000-8000-000000000097', true),
+ ('a0000000-0000-4000-8000-000000000098', true);
+INSERT INTO public.party (id, party_type, status, display_name)
+VALUES ('d8000000-0000-4000-8000-000000000097', 'person', 'active', 'Synthetic plan activator'),
+       ('d8000000-0000-4000-8000-000000000098', 'person', 'active', 'Synthetic plan reviewer');
+INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
+VALUES ('d8000000-0000-4000-8000-000000000097',
+        'a0000000-0000-4000-8000-000000000097',
+        'd8000000-0000-4000-8000-000000000097', NULL),
+       ('d8000000-0000-4000-8000-000000000098',
+        'a0000000-0000-4000-8000-000000000098',
+        'd8000000-0000-4000-8000-000000000098', NULL);
+INSERT INTO public.operator_organization_membership
+VALUES ('a2000000-0000-4000-8000-000000000097',
+        'a0000000-0000-4000-8000-000000000097',
+        'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a2000000-0000-4000-8000-000000000098',
+        'a0000000-0000-4000-8000-000000000098',
+        'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_scope_grant
+VALUES ('a1000000-0000-4000-8000-000000000097',
+        'a0000000-0000-4000-8000-000000000097',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'activate', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000098',
+        'a0000000-0000-4000-8000-000000000098',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000099',
+        'a0000000-0000-4000-8000-000000000098',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'create', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000100',
+        'a0000000-0000-4000-8000-000000000098',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'submit_own', 'f0000000-0000-4000-8000-000000000001', NULL),
+       ('a1000000-0000-4000-8000-000000000101',
+        'a0000000-0000-4000-8000-000000000001',
+        'b0000000-0000-4000-8000-000000000001',
+        'operating_pilot', 'activate', 'f0000000-0000-4000-8000-000000000001', NULL);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE created jsonb; submitted jsonb;
+BEGIN
+    created := kokonut_security.create_location_operating_pilot_learning_plan_draft(
+        'b0000000-0000-4000-8000-000000000001',
+        'd9900000-0000-4000-8000-000000000301',
+        'Separate human activation', '[{"goal":"soil health"}]'::jsonb,
+        '[]'::jsonb, NULL);
+    submitted := kokonut_security.submit_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        (created->>'learning_plan_id')::uuid,
+        'd9900000-0000-4000-8000-000000000302');
+    PERFORM set_config('kokonut.test_activation_plan', created->>'learning_plan_id', true);
+    IF submitted->>'status' <> 'submitted' THEN
+        RAISE EXCEPTION 'activation fixture was not submitted';
+    END IF;
+END $$;
+RESET ROLE;
+SELECT set_config('kokonut.test_activation_submitted_at', (
+    SELECT created_at::text FROM public.operating_pilot_learning_plan_submission_receipt
+     WHERE learning_plan_id = current_setting('kokonut.test_activation_plan')::uuid
+     ORDER BY created_at DESC LIMIT 1
+), true);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000098', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE reviewed jsonb;
+BEGIN
+    reviewed := kokonut_security.review_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        current_setting('kokonut.test_activation_plan')::uuid,
+        'd9900000-0000-4000-8000-000000000303',
+        current_setting('kokonut.test_activation_submitted_at')::timestamptz,
+        'approved', NULL);
+    IF reviewed->>'status' <> 'submitted' OR reviewed->>'decision' <> 'approved' THEN
+        RAISE EXCEPTION 'review approval must remain distinct from activation: %', reviewed;
+    END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000097', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE queue jsonb; activated jsonb; replay jsonb;
+        owner_denied boolean := false; changed_retry_denied boolean := false;
+        duplicate_denied boolean := false; stale_denied boolean := false;
+BEGIN
+    queue := kokonut_security.location_operating_pilot_learning_plan_activation_queue(
+        'b0000000-0000-4000-8000-000000000001', 25, 0);
+    IF queue->>'total' <> '1'
+       OR jsonb_array_length(queue->'items') <> 1
+       OR queue->'items'->0->>'learning_plan_id' <> current_setting('kokonut.test_activation_plan')
+       OR queue->'items'->0->>'status' <> 'submitted'
+       OR queue->'items'->0->>'approved_at' IS NULL
+       OR queue::text ~* '(party_id|operator_id|scope_id|reviewer|receipt|input_digest)' THEN
+        RAISE EXCEPTION 'activation queue included wrong scope or private fields: %', queue;
+    END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    IF jsonb_array_length(kokonut_security.location_operating_pilot_learning_plan_activation_queue(
+        'b0000000-0000-4000-8000-000000000001', 25, 0)->'items') <> 0 THEN
+        RAISE EXCEPTION 'activation queue exposed the plan to its owner';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.activate_location_operating_pilot_learning_plan(
+            'b0000000-0000-4000-8000-000000000001',
+            current_setting('kokonut.test_activation_plan')::uuid,
+            'd9900000-0000-4000-8000-000000000304',
+            current_setting('kokonut.test_activation_submitted_at')::timestamptz);
+    EXCEPTION WHEN insufficient_privilege THEN owner_denied := true;
+    END;
+    IF NOT owner_denied THEN RAISE EXCEPTION 'plan owner activated their own learning plan'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000097', true);
+    activated := kokonut_security.activate_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        current_setting('kokonut.test_activation_plan')::uuid,
+        'd9900000-0000-4000-8000-000000000305',
+        current_setting('kokonut.test_activation_submitted_at')::timestamptz);
+    replay := kokonut_security.activate_location_operating_pilot_learning_plan(
+        'b0000000-0000-4000-8000-000000000001',
+        current_setting('kokonut.test_activation_plan')::uuid,
+        'd9900000-0000-4000-8000-000000000305',
+        current_setting('kokonut.test_activation_submitted_at')::timestamptz);
+    IF activated->>'status' <> 'active' OR activated->>'replayed' <> 'false'
+       OR replay->>'status' <> 'active' OR replay->>'replayed' <> 'true'
+       OR activated::text ~* '(actor_party_id|operator_id|input_digest|submission_created_at)' THEN
+        RAISE EXCEPTION 'activation or exact retry failed / leaked internal fields: %, %', activated, replay;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.activate_location_operating_pilot_learning_plan(
+            'b0000000-0000-4000-8000-000000000001',
+            current_setting('kokonut.test_activation_plan')::uuid,
+            'd9900000-0000-4000-8000-000000000305',
+            current_setting('kokonut.test_activation_submitted_at')::timestamptz + interval '1 second');
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    IF NOT changed_retry_denied THEN RAISE EXCEPTION 'activation request ID accepted changed input'; END IF;
+    BEGIN
+        PERFORM kokonut_security.activate_location_operating_pilot_learning_plan(
+            'b0000000-0000-4000-8000-000000000001',
+            current_setting('kokonut.test_activation_plan')::uuid,
+            'd9900000-0000-4000-8000-000000000306',
+            current_setting('kokonut.test_activation_submitted_at')::timestamptz);
+    EXCEPTION WHEN unique_violation THEN duplicate_denied := true;
+    END;
+    IF NOT duplicate_denied THEN RAISE EXCEPTION 'approved submission was activated twice'; END IF;
+    BEGIN
+        PERFORM kokonut_security.activate_location_operating_pilot_learning_plan(
+            'b0000000-0000-4000-8000-000000000001',
+            current_setting('kokonut.test_activation_plan')::uuid,
+            'd9900000-0000-4000-8000-000000000307',
+            current_setting('kokonut.test_activation_submitted_at')::timestamptz + interval '1 second');
+    EXCEPTION WHEN serialization_failure THEN stale_denied := true;
+    END;
+    IF NOT stale_denied THEN RAISE EXCEPTION 'activation accepted a stale submission timestamp'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF (SELECT status FROM public.operating_learning_plan
+         WHERE id = current_setting('kokonut.test_activation_plan')::uuid) <> 'active'
+       OR (SELECT count(*) FROM public.operating_pilot_learning_plan_activation_receipt
+            WHERE learning_plan_id = current_setting('kokonut.test_activation_plan')::uuid) <> 1 THEN
+        RAISE EXCEPTION 'activation did not atomically update lifecycle and write one receipt';
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF has_table_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'INSERT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_activation_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_activation_receipt', 'DELETE')
+       OR has_column_privilege('kokonut_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'input_digest', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime', 'public.operating_pilot_learning_plan_activation_receipt', 'input_digest', 'SELECT')
+       OR has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_activation_receipt', 'input_digest', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_activation_receipt', 'input_digest', 'SELECT')
+       OR NOT has_column_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_learning_plan_activation_receipt', 'input_digest', 'INSERT')
+       OR NOT has_function_privilege('kokonut_runtime',
+            'kokonut_security.activate_location_operating_pilot_learning_plan(uuid,uuid,uuid,timestamptz)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+            'kokonut_security.activate_location_operating_pilot_learning_plan(uuid,uuid,uuid,timestamptz)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'activation function/table privileges violate the boundary';
+    END IF;
+END $$;
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.operating_pilot_learning_plan_activation_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime read the activation receipt table directly'; END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_directus_runtime;
+DO $$
+DECLARE table_denied boolean := false; function_denied boolean := false;
+BEGIN
+    BEGIN
+        PERFORM 1 FROM public.operating_pilot_learning_plan_activation_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN table_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.activate_location_operating_pilot_learning_plan(
+            'b0000000-0000-4000-8000-000000000001',
+            current_setting('kokonut.test_activation_plan')::uuid,
+            'd9900000-0000-4000-8000-000000000308', now());
+    EXCEPTION WHEN insufficient_privilege THEN function_denied := true;
+    END;
+    IF NOT table_denied OR NOT function_denied THEN
+        RAISE EXCEPTION 'Directus accessed activation receipt or function';
+    END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+"""
+
 COMPETENCY_LIFECYCLE_ACCEPTANCE = r"""
 BEGIN;
 SET LOCAL ROLE kokonut_runtime;
@@ -6848,6 +7083,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Also apply/replay migration 610 and test independent learning-plan review decisions",
     )
     parser.add_argument(
+        "--learning-plan-activation",
+        action="store_true",
+        help="Also apply/replay migration 629 and test separate approved learning-plan activation",
+    )
+    parser.add_argument(
         "--coaching-session",
         action="store_true",
         help="Also apply/replay migration 611 and test private, consented location coaching",
@@ -6858,6 +7098,8 @@ def main(argv: list[str] | None = None) -> int:
         help="Also apply/replay migration 612 and test the consent-filtered coaching participant selector",
     )
     args = parser.parse_args(argv)
+    if args.learning_plan_activation:
+        args.learning_plan_review_decision = True
     if args.coaching_participants:
         args.coaching_session = True
     if args.coaching_session:
@@ -6901,6 +7143,11 @@ def main(argv: list[str] | None = None) -> int:
     default_output = (
         (COACHING_PARTICIPANTS_ARM64_OUTPUT if args.platform == "linux/arm64" else COACHING_PARTICIPANTS_OUTPUT)
         if args.coaching_participants
+        else
+        LEARNING_PLAN_ACTIVATION_OUTPUT
+        if args.learning_plan_activation and args.platform != "linux/arm64"
+        else LEARNING_PLAN_ACTIVATION_ARM64_OUTPUT
+        if args.learning_plan_activation
         else
         (COACHING_SESSION_ARM64_OUTPUT if args.platform == "linux/arm64" else COACHING_SESSION_OUTPUT)
         if args.coaching_session
@@ -6990,7 +7237,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"operating-pilot migrations through {612 if args.coaching_participants else 611 if args.coaching_session else 610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"selected operating-pilot migrations through {629 if args.learning_plan_activation else 612 if args.coaching_participants else 611 if args.coaching_session else 610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -7312,6 +7559,18 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 610 applies and replays after stale PUBLIC/runtime/Directus/reader table and column grants are injected",
             ]
         )
+    if args.learning_plan_activation:
+        evidence["migrations"].append(LEARNING_PLAN_ACTIVATION_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "activation requires a separate exact-location operating_pilot:activate grant after independent review approved the latest submitted version",
+                "approval leaves lifecycle submitted until activation; the independent activator cannot be the plan owner",
+                "queue is receipt-backed, bounded, location-scoped, excludes self-activation and already activated submissions, and omits private identity/receipt fields",
+                "activation atomically changes submitted to active and appends one private receipt; exact retries replay while changed request reuse, duplicate activation, and stale submission timestamps fail closed",
+                "runtime can execute only bounded activation functions; Directus cannot execute them, runtime/Directus cannot access activation receipts directly, and the function owner has only required receipt columns with no update/delete access",
+                "migration 629 replays after stale PUBLIC/runtime/Directus/reader table, column, and function grants are injected",
+            ]
+        )
     if args.coaching_session:
         evidence["migrations"].append(COACHING_SESSION_MIGRATION.name)
         evidence["checks"].extend(
@@ -7561,6 +7820,26 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, stale_decision_privileges)
             psql(docker, container, learning_plan_review_decision_migration)
             psql(docker, container, LEARNING_PLAN_REVIEW_DECISION_ACCEPTANCE)
+        if args.learning_plan_activation:
+            learning_plan_activation_migration = LEARNING_PLAN_ACTIVATION_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, learning_plan_activation_migration)
+            stale_activation_privileges = """
+                GRANT ALL ON TABLE public.operating_pilot_learning_plan_activation_receipt
+                TO kokonut_runtime, kokonut_directus_runtime, kokonut_operating_pilot_reader;
+                GRANT ALL ON TABLE public.operating_pilot_learning_plan_activation_receipt TO PUBLIC;
+                GRANT SELECT (input_digest), UPDATE (input_digest)
+                ON TABLE public.operating_pilot_learning_plan_activation_receipt
+                TO kokonut_runtime, kokonut_directus_runtime, kokonut_operating_pilot_reader, PUBLIC;
+                GRANT EXECUTE ON FUNCTION
+                    kokonut_security.activate_location_operating_pilot_learning_plan(uuid,uuid,uuid,timestamptz)
+                TO kokonut_directus_runtime, PUBLIC;
+                GRANT EXECUTE ON FUNCTION
+                    kokonut_security.location_operating_pilot_learning_plan_activation_queue(uuid,integer,integer)
+                TO kokonut_directus_runtime, PUBLIC;
+            """
+            psql(docker, container, stale_activation_privileges)
+            psql(docker, container, learning_plan_activation_migration)
+            psql(docker, container, LEARNING_PLAN_ACTIVATION_ACCEPTANCE)
         if args.coaching_session:
             coaching_session_migration = COACHING_SESSION_MIGRATION.read_text(encoding="utf-8")
             psql(docker, container, coaching_session_migration)
@@ -7594,7 +7873,8 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            278 if args.coaching_participants
+            266 if args.learning_plan_activation
+            else 278 if args.coaching_participants
             else 269 if args.coaching_session
             else 260 if args.learning_plan_review_decision
             else
@@ -7625,7 +7905,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            612 if args.coaching_participants
+            629 if args.learning_plan_activation
+            else 612 if args.coaching_participants
             else 611 if args.coaching_session
             else 610 if args.learning_plan_review_decision
             else 609 if args.learning_plan_review_queue
@@ -7657,7 +7938,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         assertion_count = evidence["assertion_groups_passed"]
         print(
-            f"PASS: migrations 461/479/480/526/538/552–{migration_end} apply/replay "
+            f"PASS: selected migration sequence ending at {migration_end} applies/replays "
             f"and all {assertion_count} grouped PostgreSQL assertions passed"
         )
         result = 0

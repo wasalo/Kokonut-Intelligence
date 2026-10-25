@@ -399,6 +399,25 @@ def _normalize_learning_plan_review_payload(
     return submitted_at, decision, reason
 
 
+def _normalize_learning_plan_activation_payload(payload: Any) -> datetime:
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Learning-plan activation body must be an object")
+    submitted_at = payload.get("submitted_at")
+    if not isinstance(submitted_at, str) or len(submitted_at) > 64:
+        raise OperatingPilotWriteInvalid("submitted_at must be an ISO timestamp with a timezone")
+    try:
+        submitted_at = datetime.fromisoformat(submitted_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise OperatingPilotWriteInvalid(
+            "submitted_at must be an ISO timestamp with a timezone"
+        ) from exc
+    if submitted_at.tzinfo is None or submitted_at.utcoffset() is None:
+        raise OperatingPilotWriteInvalid("submitted_at must include a timezone")
+    if set(payload) - {"submitted_at"}:
+        raise OperatingPilotWriteInvalid("Learning-plan activation contains unsupported fields")
+    return submitted_at.astimezone(timezone.utc)
+
+
 def _normalize_coaching_session_payload(
     payload: Any,
 ) -> tuple[str, date | None, str, str, str | None, str | None]:
@@ -878,6 +897,54 @@ def review_location_operating_pilot_learning_plan(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating learning-plan review returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def activate_location_operating_pilot_learning_plan(
+    operator_id: str,
+    location_id: str,
+    learning_plan_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Activate an approved other-party learning plan under its own exact grant."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_plan_id = _normalize_uuid(learning_plan_id, "learning plan")
+    request_id = _normalize_uuid(request_id, "request")
+    submitted_at = _normalize_learning_plan_activation_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="activate",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.activate_location_operating_pilot_learning_plan(
+                           %s::uuid, %s::uuid, %s::uuid, %s::timestamptz)""",
+                (location_id, learning_plan_id, request_id, submitted_at),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Learning-plan activation returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

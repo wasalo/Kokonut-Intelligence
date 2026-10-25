@@ -2156,3 +2156,98 @@ def test_http_learning_plan_review_queue_fails_closed_when_oidc_is_disabled(monk
         )
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_learning_plan_activation_queue_sets_exact_context_read_only_and_bounded_page():
+    page = {
+        "limit": 2,
+        "offset": 4,
+        "items": [{
+            "learning_plan_id": str(uuid4()),
+            "title": "Approved plan",
+            "status": "submitted",
+            "submitted_at": "2026-10-24T12:00:00+00:00",
+            "approved_at": "2026-10-24T13:00:00+00:00",
+        }],
+        "has_more": False,
+        "next_offset": None,
+        "total": 1,
+    }
+    connection = _Connection(page)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.get_location_operating_pilot_learning_plan_activation_queue(
+            OPERATOR_ID, LOCATION_ID, limit=2, offset=4,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "activate",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_operating_pilot_learning_plan_activation_queue" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 2, 4)
+    assert result == {"location_id": LOCATION_ID, **page}
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [
+    (0, 0), (51, 0), (True, 0), (25, -1), (25, 10001), (25, False),
+])
+def test_learning_plan_activation_queue_invalid_bounds_fail_before_database_access(limit, offset):
+    with pytest.raises(reads.OperatingPilotReadInvalid):
+        reads.get_location_operating_pilot_learning_plan_activation_queue(
+            OPERATOR_ID,
+            LOCATION_ID,
+            limit=limit,
+            offset=offset,
+            connection_factory=lambda: pytest.fail("invalid activation page must not open DB"),
+        )
+
+
+def test_http_learning_plan_activation_queue_uses_its_exact_grant(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    calls = []
+    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_learning_plan_activation_queue",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_inline(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(router, object(), run_inline, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/operating-pilot/{LOCATION_ID}/learning-plan-activation-queue?limit=7&offset=14"
+        )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == page
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 7, "offset": 14})]

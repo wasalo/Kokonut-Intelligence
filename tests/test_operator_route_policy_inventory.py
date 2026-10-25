@@ -798,6 +798,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plan-activation-queue",
+    ): _expected("operating_pilot", "activate", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/learning-plans/d9900000-0000-4000-8000-000000000101/activate",
+    ): _expected("operating_pilot", "activate", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/operating-pilot/11111111-1111-4111-8111-111111111111/my-resource-requests",
     ): _expected("operating_pilot", "read_own", scoped=True, location_id=_LOCATION_ID),
     (
@@ -1236,6 +1244,14 @@ _EXPECTED_OPERATOR_POLICIES[(
     "POST",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans/{_PARAMETER_SAMPLES['learning_plan_id']}/review",
 )] = _expected("operating_pilot", "review", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "GET",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plan-activation-queue",
+)] = _expected("operating_pilot", "activate", scoped=True, location_id=_LOCATION_ID)
+_EXPECTED_OPERATOR_POLICIES[(
+    "POST",
+    f"/operator/api/operating-pilot/{_LOCATION_ID}/learning-plans/{_PARAMETER_SAMPLES['learning_plan_id']}/activate",
+)] = _expected("operating_pilot", "activate", scoped=True, location_id=_LOCATION_ID)
 _EXPECTED_OPERATOR_POLICIES[(
     "PUT",
     f"/operator/api/operating-pilot/{_LOCATION_ID}/competency-assessments/"

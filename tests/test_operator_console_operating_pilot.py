@@ -129,6 +129,14 @@ def test_learning_plan_review_queue_is_review_grant_gated_bounded_and_text_safe(
         "function appendOperatingPilotLearningPlanReviewRow(item, locationId)",
     )
     assert 'id="operating-pilot-learning-plan-review-rows"' in panel
+    activation_panel = _function(
+        source,
+        'id="operating-pilot-learning-plan-activation"',
+        'id="operating-pilot-learning-plan-review-dialog"',
+    )
+    assert 'id="operating-pilot-learning-plan-activation-rows"' in activation_panel
+    assert 'id="operating-pilot-learning-plan-activation" hidden' in activation_panel
+    assert 'scope.action === "activate"' in source
     assert "Approval records the review outcome but does not activate the plan" in panel
     assert "operatingPilotLearningPlanReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId)" in source
     assert "/learning-plan-review-queue?${params}" in loader
@@ -174,6 +182,39 @@ def test_learning_plan_review_decision_is_exact_version_csrf_protected_and_retry
     assert "cell.textContent = displayValue" in append_row
     assert "activation remains separate" in submit
     assert "innerHTML" not in append_row + begin + submit
+
+
+def test_learning_plan_activation_is_separately_granted_review_gated_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    loader = _function(
+        source,
+        "async function loadOperatingPilotLearningPlanActivationQueue(append = false)",
+        "function appendOperatingPilotLearningPlanActivationRow(",
+    )
+    append_row = _function(
+        source,
+        "function appendOperatingPilotLearningPlanActivationRow(item, locationId)",
+        "async function activateOperatingPilotLearningPlan(",
+    )
+    activate = _function(
+        source,
+        "async function activateOperatingPilotLearningPlan(item, locationId, button)",
+        "function beginOperatingPilotLearningPlanReview(",
+    )
+    assert 'operatingPilotLearningPlanActivation.hidden = !operatingPilotLearningPlanActivationLocations.has(locationId)' in source
+    assert "/learning-plan-activation-queue?${params}" in loader
+    assert 'credentials: "same-origin"' in loader and 'cache: "no-store"' in loader
+    assert "operatingPilotLearningPlanActivationLocations.has(locationId)" in loader
+    assert 'item.status !== "submitted"' in activate
+    assert 'item.approved_at !== "string"' in activate
+    assert "window.confirm" in activate
+    assert 'method: "POST"' in activate and 'cache: "no-store"' in activate
+    assert '"X-CSRF-Token": csrf' in activate and 'credentials: "same-origin"' in activate
+    assert "/learning-plans/${encodeURIComponent(item.learning_plan_id)}/activate" in activate
+    assert "operatingPilotPendingLearningPlanActivations" in append_row + activate
+    assert "pending.request_id" in activate and "pending.submitted_at" in activate
+    assert 'result.status !== "active"' in activate
+    assert "innerHTML" not in loader + append_row + activate
 
 
 def test_resource_revision_is_edit_own_gated_idempotent_and_keeps_submission_separate():

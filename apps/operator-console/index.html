@@ -800,6 +800,19 @@
             </div>
             <button id="operating-pilot-learning-plan-review-more" class="secondary" type="button" hidden>Load more learning plans</button>
           </section>
+          <section id="operating-pilot-learning-plan-activation" hidden aria-labelledby="operating-pilot-learning-plan-activation-heading">
+            <h3 id="operating-pilot-learning-plan-activation-heading">Approved learning plans awaiting activation</h3>
+            <p class="muted">A separate exact-location activate grant lists only other participants’ currently approved submissions. Activation is an explicit human action and cannot be done by the plan owner.</p>
+            <div class="toolbar"><button id="operating-pilot-learning-plan-activation-refresh" type="button">Refresh activation queue</button></div>
+            <p id="operating-pilot-learning-plan-activation-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Plan</th><th>Competency goals</th><th>Support requested</th><th>Target date</th><th>Submitted</th><th>Approved</th><th>Action</th></tr></thead>
+                <tbody id="operating-pilot-learning-plan-activation-rows"></tbody>
+              </table>
+            </div>
+            <button id="operating-pilot-learning-plan-activation-more" class="secondary" type="button" hidden>Load more approved plans</button>
+          </section>
           <dialog id="operating-pilot-learning-plan-review-dialog" aria-labelledby="operating-pilot-learning-plan-review-dialog-heading">
             <form id="operating-pilot-learning-plan-review-form">
               <h3 id="operating-pilot-learning-plan-review-dialog-heading">Review submitted learning plan</h3>
@@ -3045,6 +3058,10 @@
       const operatingPilotLearningPlanReviewStatus = document.querySelector("#operating-pilot-learning-plan-review-status");
       const operatingPilotLearningPlanReviewRows = document.querySelector("#operating-pilot-learning-plan-review-rows");
       const operatingPilotLearningPlanReviewMore = document.querySelector("#operating-pilot-learning-plan-review-more");
+      const operatingPilotLearningPlanActivation = document.querySelector("#operating-pilot-learning-plan-activation");
+      const operatingPilotLearningPlanActivationStatus = document.querySelector("#operating-pilot-learning-plan-activation-status");
+      const operatingPilotLearningPlanActivationRows = document.querySelector("#operating-pilot-learning-plan-activation-rows");
+      const operatingPilotLearningPlanActivationMore = document.querySelector("#operating-pilot-learning-plan-activation-more");
       const operatingPilotLearningPlanReviewDialog = document.querySelector("#operating-pilot-learning-plan-review-dialog");
       const operatingPilotLearningPlanReviewForm = document.querySelector("#operating-pilot-learning-plan-review-form");
       const operatingPilotLearningPlanReviewPlan = document.querySelector("#operating-pilot-learning-plan-review-plan");
@@ -3150,6 +3167,7 @@
       let operatingPilotOwnDemandLocations = new Set();
       let operatingPilotCompetencyReadLocations = new Set();
       let operatingPilotOwnLearningPlanLocations = new Set();
+      let operatingPilotLearningPlanActivationLocations = new Set();
       let operatingPilotCoachingLocations = new Set();
       let operatingPilotEditOwnLearningPlanLocations = new Set();
       let operatingPilotCompetencyCreateLocations = new Set();
@@ -3178,6 +3196,7 @@
       const operatingPilotPendingLearningPlanRevisions = new Map();
       const operatingPilotPendingLearningPlanSubmissions = new Map();
       const operatingPilotPendingLearningPlanReviewDecisions = new Map();
+      const operatingPilotPendingLearningPlanActivations = new Map();
       const operatingPilotPendingCoachingWrites = new Map();
       let operatingPilotPendingLearningPlanEdit = null;
       let operatingPilotCompetencyFormLocationId = null;
@@ -3191,6 +3210,8 @@
       let operatingPilotCoachingHistoryRequestVersion = 0;
       let operatingPilotLearningPlanReviewOffset = 0;
       let operatingPilotLearningPlanReviewRequestVersion = 0;
+      let operatingPilotLearningPlanActivationOffset = 0;
+      let operatingPilotLearningPlanActivationRequestVersion = 0;
       let operatingPilotCompetencyReviewOffset = 0;
       let operatingPilotCompetencyReviewRequestVersion = 0;
       let operatingPilotPendingResourceFulfillment = null;
@@ -5557,6 +5578,147 @@
         operatingPilotLearningPlanReviewRows.append(row);
       }
 
+      async function loadOperatingPilotLearningPlanActivationQueue(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotLearningPlanActivationRequestVersion;
+        if (!operatingPilotLearningPlanActivationLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotLearningPlanActivationOffset = 0;
+          operatingPilotLearningPlanActivationRows.replaceChildren();
+          operatingPilotLearningPlanActivationMore.hidden = true;
+        }
+        const offset = append ? operatingPilotLearningPlanActivationOffset : 0;
+        operatingPilotLearningPlanActivationMore.disabled = true;
+        operatingPilotLearningPlanActivationStatus.textContent = "Loading approved learning plans…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/learning-plan-activation-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotLearningPlanActivationRequestVersion
+              || locationId !== operatingPilotLocation.value
+              || !operatingPilotLearningPlanActivationLocations.has(locationId)) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotLearningPlanActivationRow(item, locationId);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotLearningPlanActivationMore.hidden = !canContinue;
+          operatingPilotLearningPlanActivationOffset = canContinue ? nextOffset : 0;
+          operatingPilotLearningPlanActivationStatus.textContent = canContinue
+            ? "Showing a bounded page of approved plans awaiting activation."
+            : operatingPilotLearningPlanActivationRows.childElementCount
+              ? "Approved plans are loaded."
+              : "There are no approved plans awaiting activation for this location.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotLearningPlanActivationRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          operatingPilotLearningPlanActivationMore.hidden = true;
+          operatingPilotLearningPlanActivationStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotLearningPlanActivationRequestVersion) {
+            operatingPilotLearningPlanActivationMore.disabled = false;
+          }
+        }
+      }
+
+      function appendOperatingPilotLearningPlanActivationRow(item, locationId) {
+        const row = document.createElement("tr");
+        for (const value of [
+          item.title,
+          item.competency_goals,
+          item.support_requested,
+          item.target_date,
+          item.submitted_at,
+          item.approved_at
+        ]) {
+          const cell = document.createElement("td");
+          const displayValue = Array.isArray(value) || (value !== null && typeof value === "object")
+            ? JSON.stringify(value)
+            : operatingPilotDisplayValue(value);
+          cell.textContent = displayValue.length > 1200 ? `${displayValue.slice(0, 1200)}…` : displayValue;
+          row.append(cell);
+        }
+        const actionCell = document.createElement("td");
+        const pending = operatingPilotPendingLearningPlanActivations.get(item.learning_plan_id);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = pending?.location_id === locationId ? "Retry activation" : "Activate approved plan";
+        button.disabled = pending !== undefined && pending.location_id !== locationId;
+        button.addEventListener("click", () => activateOperatingPilotLearningPlan(item, locationId, button));
+        actionCell.append(button);
+        row.append(actionCell);
+        operatingPilotLearningPlanActivationRows.append(row);
+      }
+
+      async function activateOperatingPilotLearningPlan(item, locationId, button) {
+        if (locationId !== operatingPilotLocation.value
+            || !operatingPilotLearningPlanActivationLocations.has(locationId)
+            || item.status !== "submitted"
+            || typeof item.learning_plan_id !== "string"
+            || typeof item.submitted_at !== "string"
+            || typeof item.approved_at !== "string") return;
+        if (!window.confirm(`Activate “${operatingPilotDisplayValue(item.title)}”? This changes the approved plan status to active.`)) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          operatingPilotLearningPlanActivationStatus.textContent = "Refresh the page to establish a protected session before activating this plan.";
+          return;
+        }
+        let pending = operatingPilotPendingLearningPlanActivations.get(item.learning_plan_id);
+        if (pending && (pending.location_id !== locationId || pending.submitted_at !== item.submitted_at)) {
+          operatingPilotLearningPlanActivationStatus.textContent = "A prior activation is unresolved. Refresh the queue before selecting a different submission.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            operatingPilotLearningPlanActivationStatus.textContent = "A secure browser context is required to activate a plan.";
+            return;
+          }
+          pending = { location_id: locationId, submitted_at: item.submitted_at, request_id: requestId };
+          operatingPilotPendingLearningPlanActivations.set(item.learning_plan_id, pending);
+        }
+        button.disabled = true;
+        operatingPilotLearningPlanActivationStatus.textContent = "Activating the approved learning plan…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/learning-plans/${encodeURIComponent(item.learning_plan_id)}/activate`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({
+                request_id: pending.request_id,
+                submitted_at: pending.submitted_at
+              })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            if (response.status < 500) operatingPilotPendingLearningPlanActivations.delete(item.learning_plan_id);
+            throw new Error(result.error || "The learning plan could not be activated.");
+          }
+          if (result.learning_plan_id !== item.learning_plan_id
+              || result.status !== "active"
+              || typeof result.replayed !== "boolean") {
+            throw new Error("The activation response did not confirm this plan. Retry unchanged to check its outcome.");
+          }
+          operatingPilotPendingLearningPlanActivations.delete(item.learning_plan_id);
+          operatingPilotLearningPlanActivationStatus.textContent = result.replayed
+            ? "The earlier activation was confirmed; no additional change was made."
+            : "The approved plan is now active.";
+          if (locationId === operatingPilotLocation.value) await loadOperatingPilotLearningPlanActivationQueue();
+        } catch (error) {
+          operatingPilotLearningPlanActivationStatus.textContent = `${error.message} If interrupted, retry unchanged to reuse its request ID.`;
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       function beginOperatingPilotLearningPlanReview(item, locationId, decision) {
         if (locationId !== operatingPilotLocation.value
             || !operatingPilotCapacityReviewLocations.has(locationId)
@@ -7349,6 +7511,7 @@
           && !operatingPilotCompetencyReviewLocations.has(locationId);
         operatingPilotOwnLearningPlans.hidden = !operatingPilotOwnLearningPlanLocations.has(locationId);
         operatingPilotLearningPlanReview.hidden = !operatingPilotCapacityReviewLocations.has(locationId);
+        operatingPilotLearningPlanActivation.hidden = !operatingPilotLearningPlanActivationLocations.has(locationId);
         operatingPilotCompetencyForm.hidden = (!operatingPilotCompetencyCreateLocations.has(locationId)
           && !operatingPilotCompetencyEditLocations.has(locationId))
           || (operatingPilotPendingCompetencyWrite !== null
@@ -7450,6 +7613,14 @@
             operatingPilotLearningPlanReviewMore.hidden = true;
             operatingPilotLearningPlanReviewStatus.textContent = "A separate exact location review grant is required.";
           }
+          if (operatingPilotLearningPlanActivationLocations.has(locationId)) {
+            await loadOperatingPilotLearningPlanActivationQueue();
+          } else {
+            operatingPilotLearningPlanActivationRequestVersion += 1;
+            operatingPilotLearningPlanActivationRows.replaceChildren();
+            operatingPilotLearningPlanActivationMore.hidden = true;
+            operatingPilotLearningPlanActivationStatus.textContent = "A separate exact location activate grant is required.";
+          }
           if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
             await loadOperatingPilotResourceFulfillmentQueue();
           } else {
@@ -7499,6 +7670,14 @@
           operatingPilotLearningPlanReviewRows.replaceChildren();
           operatingPilotLearningPlanReviewMore.hidden = true;
           operatingPilotLearningPlanReviewStatus.textContent = "A separate exact location review grant is required.";
+        }
+        if (operatingPilotLearningPlanActivationLocations.has(locationId)) {
+          reads.push(loadOperatingPilotLearningPlanActivationQueue());
+        } else {
+          operatingPilotLearningPlanActivationRequestVersion += 1;
+          operatingPilotLearningPlanActivationRows.replaceChildren();
+          operatingPilotLearningPlanActivationMore.hidden = true;
+          operatingPilotLearningPlanActivationStatus.textContent = "A separate exact location activate grant is required.";
         }
         if (operatingPilotResourceFulfillmentLocations.has(locationId)) {
           reads.push(loadOperatingPilotResourceFulfillmentQueue());
@@ -20792,6 +20971,12 @@
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           operatingPilotCapacityReviewLocations = new Set(operatingPilotCapacityReviewLocationIds);
           operatingPilotCompetencyReviewLocations = new Set(operatingPilotCapacityReviewLocationIds);
+          const operatingPilotLearningPlanActivationLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "activate")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotLearningPlanActivationLocations = new Set(operatingPilotLearningPlanActivationLocationIds);
           const operatingPilotResourceFulfillmentLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "operating_pilot" && scope.action === "fulfill")
             .map((scope) => scope.location_id)
@@ -25299,6 +25484,12 @@
       operatingPilotCoachingForm.addEventListener("submit", saveOperatingPilotCoachingSession);
       document.querySelector("#operating-pilot-learning-plan-review-refresh").addEventListener(
         "click", () => loadOperatingPilotLearningPlanReviewQueue()
+      );
+      document.querySelector("#operating-pilot-learning-plan-activation-refresh").addEventListener(
+        "click", () => loadOperatingPilotLearningPlanActivationQueue()
+      );
+      operatingPilotLearningPlanActivationMore.addEventListener(
+        "click", () => loadOperatingPilotLearningPlanActivationQueue(true)
       );
       operatingPilotLearningPlanReviewMore.addEventListener(
         "click", () => loadOperatingPilotLearningPlanReviewQueue(true)
