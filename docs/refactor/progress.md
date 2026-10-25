@@ -18010,3 +18010,18 @@ validation, and diff checks pass. No database, provider, candidate, or legacy
 service was touched. Checklist: 1,156 complete / 25 open (1,181 total); matrix
 classifications remain 24 baseline-retained, 7 deployed, and 36 prepared across
 67 rows ([evidence](builds/2026-10-25-recovery/cap-038-source-reference-exclusions.json)).
+
+### Progress addendum — CAP-038 deterministic summary source-reference coverage, 25 October 2026
+
+Operations, financial, environmental, and combined deterministic summaries now
+require their fixed registered source-table inventories and an exact matching
+source-reference entry for every table. The worker rejects missing or extra
+provenance before returning read-only results or invoking the draft writer;
+failures roll back and close the source transaction. The focused AI-summary
+source/worker selection passes 106 tests. Ruff, Python compilation, capability
+matrix validation, and diff checks pass. All checks use mocks; no database,
+provider, candidate, or legacy service was touched. The references are bounded
+row identities, not content snapshots or populated-output parity evidence.
+Checklist: 1,157 complete / 25 open (1,182 total); matrix classifications
+remain 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
+[Evidence](builds/2026-10-25-recovery/cap-038-deterministic-source-coverage.json).

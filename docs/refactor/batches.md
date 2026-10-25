@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,156 checklist items complete and 25
-open (1,181 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,157 checklist items complete and 25
+open (1,182 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -3415,6 +3415,10 @@ open ([contract](agent-ecosystem-kernel-contract.md); [migration](../../schemas/
 - [x] Close EBF evidence-gap query cursors on SQL errors. The cursor now closes in `finally` if execution or fetching fails, while `run_fetch` still closes its connection; the existing scorecard/location filters are unchanged. Two failure-injection cases pass within the 49-test EBF/agent-base/task selection, along with Ruff and compilation. No database or provider was contacted. This closes resource cleanup only; authenticated tenant scope and least-privilege runtime identity remain open ([agent](../../services/agents/ebf_evidence_gap_agent.py); [tests](../../tests/test_ebf_agents.py); [evidence](builds/2026-10-21-recovery/cap-038-ebf-query-resource-cleanup.json)). Checklist: 922 complete / 24 open (946 total).
 
 - [x] Pin source-reference collector and worker-adapter contracts for all ten shared synthesis agents. Each agent now uses its registered location-scoped view map; tests require a bounded `FROM` clause per view, an exact location bind for every view, bounded ID samples, and successful adapter validation. The focused worker/agent selection passes 84 tests; Ruff, Python compilation, four inventory checks, capability-matrix validation, and diff checks pass. This completes only the shared synthesis collector regression; it does not establish populated task parity, direct-database isolation, authenticated operator identity, or MAN-CAP-038 acceptance ([tests](../../tests/test_synthesis_source_references.py); [evidence](builds/2026-10-21-recovery/cap-038-all-synthesis-source-map-contracts.json)). Checklist: 909 complete / 24 open (933 total).
+
+### CAP-038 deterministic summary source-reference coverage — 25 October 2026
+
+- [x] Require exact source-reference coverage for deterministic AI summaries. Operations, financial, environmental, and combined summaries now have fixed source inventories; the signed worker rejects missing or extra tables/references before returning a read-only result or writing a draft. The focused AI-summary source/worker selection passes 106 tests, with Ruff, compilation, capability-matrix validation, and diff checks passing. Checks use mocks only; no database or provider was accessed ([implementation](../../services/agents/ai_summary.py); [worker](../../services/agents/worker_cli.py); [tests](../../tests/test_ai_summary_source_references.py); [evidence](builds/2026-10-25-recovery/cap-038-deterministic-source-coverage.json)).
 
 ### CAP-039 unified CLI forwarding contract — 19 October 2026
 

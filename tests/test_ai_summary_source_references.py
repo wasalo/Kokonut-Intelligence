@@ -9,6 +9,41 @@ import pytest
 from services.agents import ai_summary
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
+SUMMARY_SOURCE_TABLES = {
+    "operations": {
+        "harvest_event",
+        "sales_event",
+        "crop_cycle",
+        "sensor_reading",
+    },
+    "financial": {
+        "sales_event",
+        "expense_event",
+        "noi_snapshot",
+        "crop_cycle",
+        "crop",
+        "expense_category",
+    },
+    "environmental": {
+        "soil_carbon_measurement",
+        "species_observation",
+        "remote_sensing_observation",
+        "weather_observation",
+    },
+}
+SUMMARY_SOURCE_TABLES["combined"] = set().union(*SUMMARY_SOURCE_TABLES.values())
+
+
+def _complete_summary(summary_type):
+    source_tables = sorted(SUMMARY_SOURCE_TABLES[summary_type])
+    return {
+        "summary_type": summary_type,
+        "source_tables": source_tables,
+        "source_references": {
+            table: {"record_ids": [], "row_count": 0, "truncated": False}
+            for table in source_tables
+        },
+    }
 
 
 class _Cursor:
@@ -98,6 +133,51 @@ def test_source_table_name_is_allowlisted_before_database_query():
         )
 
     connection.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_SOURCE_TABLES)
+def test_deterministic_summary_source_coverage_accepts_complete_registered_manifests(
+    summary_type,
+):
+    summary = _complete_summary(summary_type)
+
+    ai_summary.validate_source_reference_coverage(summary)
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_SOURCE_TABLES)
+@pytest.mark.parametrize("omission", ["source_table", "reference"])
+def test_deterministic_summary_source_coverage_rejects_missing_provenance(
+    summary_type, omission
+):
+    summary = _complete_summary(summary_type)
+    missing = summary["source_tables"][0]
+    if omission == "source_table":
+        summary["source_tables"].remove(missing)
+    else:
+        del summary["source_references"][missing]
+
+    with pytest.raises(ValueError, match="source tables|source references"):
+        ai_summary.validate_source_reference_coverage(summary)
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_SOURCE_TABLES)
+@pytest.mark.parametrize("addition", ["source_table", "reference"])
+def test_deterministic_summary_source_coverage_rejects_extra_provenance(
+    summary_type, addition
+):
+    summary = _complete_summary(summary_type)
+    extra = "unexpected_source"
+    if addition == "source_table":
+        summary["source_tables"].append(extra)
+    else:
+        summary["source_references"][extra] = {
+            "record_ids": [],
+            "row_count": 0,
+            "truncated": False,
+        }
+
+    with pytest.raises(ValueError, match="source tables|source references"):
+        ai_summary.validate_source_reference_coverage(summary)
 
 
 def test_operations_manifest_matches_the_top_three_sensor_types(monkeypatch):

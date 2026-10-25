@@ -15,6 +15,31 @@ from services.common.worker_database import WorkerDatabaseConfigurationError
 LOCATION_ID = "00000000-0000-0000-0000-000000000123"
 REQUEST_ID = "00000000-0000-0000-0000-000000000456"
 SUMMARY_ID = "00000000-0000-0000-0000-000000000789"
+_OPERATIONS_SOURCES = (
+    "harvest_event",
+    "sales_event",
+    "crop_cycle",
+    "sensor_reading",
+)
+
+
+def _operations_summary(**overrides):
+    summary = {
+        "location_id": LOCATION_ID,
+        "summary_type": "operations",
+        "content": "Synthetic operations summary",
+        "source_tables": list(_OPERATIONS_SOURCES),
+        "source_references": {
+            table: {
+                "record_ids": [LOCATION_ID],
+                "row_count": 1,
+                "truncated": False,
+            }
+            for table in _OPERATIONS_SOURCES
+        },
+    }
+    summary.update(overrides)
+    return summary
 
 
 @pytest.fixture(autouse=True)
@@ -39,13 +64,7 @@ def test_worker_cli_replays_before_opening_source_database():
 
 def test_worker_cli_reads_only_and_sends_lineage_through_signed_writer():
     connection, cursor = _source_connection()
-    summary = {
-        "content": "Synthetic summary",
-        "source_tables": ["harvest_event"],
-        "source_references": {
-            "harvest_event": {"record_ids": [LOCATION_ID], "row_count": 1, "truncated": False}
-        },
-    }
+    summary = _operations_summary(content="Synthetic summary")
     writer = MagicMock(return_value={"summary_id": "saved-id", "replayed": False})
 
     result = worker_cli.run_worker_summary(
@@ -104,11 +123,9 @@ def test_deterministic_worker_uses_its_task_identity_for_default_draft_writer(
         "operations",
         REQUEST_ID,
         connection_factory=lambda: connection,
-        summary_builder=lambda *_args: {
-            "location_id": LOCATION_ID,
-            "content": "Task identity draft",
-            "source_tables": ["harvest_event"],
-        },
+        summary_builder=lambda *_args: _operations_summary(
+            content="Task identity draft"
+        ),
         existing_reader=lambda *_args: None,
     )
 
@@ -1307,7 +1324,7 @@ def test_deterministic_worker_defaults_to_its_own_source_login(monkeypatch):
         LOCATION_ID,
         "operations",
         REQUEST_ID,
-        summary_builder=lambda *_args: {"content": "synthetic", "source_tables": []},
+        summary_builder=lambda *_args: _operations_summary(content="synthetic"),
         existing_reader=lambda *_args: None,
         draft_writer=lambda *_args: {"summary_id": "saved-id", "replayed": False},
     )
@@ -1364,6 +1381,35 @@ def test_deterministic_worker_rejects_non_object_output_before_draft_write():
     connection.close.assert_called_once_with()
 
 
+@pytest.mark.parametrize("missing", ["source_table", "source_reference"])
+def test_deterministic_worker_rejects_incomplete_source_coverage_before_draft_write(
+    missing,
+):
+    connection, _cursor = _source_connection()
+    writer = MagicMock(side_effect=AssertionError("incomplete provenance must not persist"))
+    summary = _operations_summary()
+    source = _OPERATIONS_SOURCES[0]
+    if missing == "source_table":
+        summary["source_tables"].remove(source)
+    else:
+        del summary["source_references"][source]
+
+    with pytest.raises(ValueError, match="source tables|source references"):
+        worker_cli.run_worker_summary(
+            LOCATION_ID,
+            "operations",
+            REQUEST_ID,
+            connection_factory=lambda: connection,
+            summary_builder=lambda *_args: summary,
+            existing_reader=lambda *_args: None,
+            draft_writer=writer,
+        )
+
+    writer.assert_not_called()
+    connection.rollback.assert_called_once_with()
+    connection.close.assert_called_once_with()
+
+
 def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or_write(
     monkeypatch,
 ):
@@ -1375,7 +1421,7 @@ def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or
     monkeypatch.setattr(worker_cli, "set_agent_summary_source_tenant_context", context_setter)
     builder = MagicMock(
         side_effect=lambda *_args: events.append("summary")
-        or {"content": "Synthetic read-only summary", "source_tables": ["harvest_event"]}
+        or _operations_summary(content="Synthetic read-only summary")
     )
     receipt_reader = MagicMock(side_effect=AssertionError("read-only run has no receipt"))
     draft_writer = MagicMock(side_effect=AssertionError("read-only run cannot write"))
@@ -1396,7 +1442,7 @@ def test_deterministic_read_only_run_uses_signed_source_scope_without_receipt_or
     )
 
     assert result == {
-        "summary": {"content": "Synthetic read-only summary", "source_tables": ["harvest_event"]}
+        "summary": _operations_summary(content="Synthetic read-only summary")
     }
     context_setter.assert_called_once_with(
         connection,

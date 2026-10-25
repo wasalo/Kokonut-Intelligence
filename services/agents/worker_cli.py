@@ -13,7 +13,7 @@ from uuid import UUID
 
 import psycopg2.extras
 
-from services.agents.ai_summary import build_summary
+from services.agents.ai_summary import build_summary, validate_source_reference_coverage
 from services.agents.worker_draft import (
     DETERMINISTIC_SUMMARY_TYPES,
     SYNTHESIS_SUMMARY_TYPES,
@@ -389,6 +389,7 @@ def run_worker_summary(
             raise ValueError(
                 "AI-summary worker output location does not match its signed scope"
             )
+        validate_source_reference_coverage(summary)
     except Exception:
         connection.rollback()
         raise

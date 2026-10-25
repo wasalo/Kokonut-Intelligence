@@ -45,6 +45,60 @@ _SOURCE_REFERENCE_TABLES = {
     "crop",
     "expense_category",
 }
+_SUMMARY_SOURCE_TABLES = {
+    "operations": frozenset(
+        {"harvest_event", "sales_event", "crop_cycle", "sensor_reading"}
+    ),
+    "financial": frozenset(
+        {
+            "sales_event",
+            "expense_event",
+            "noi_snapshot",
+            "crop_cycle",
+            "crop",
+            "expense_category",
+        }
+    ),
+    "environmental": frozenset(
+        {
+            "soil_carbon_measurement",
+            "species_observation",
+            "remote_sensing_observation",
+            "weather_observation",
+        }
+    ),
+}
+_SUMMARY_SOURCE_TABLES["combined"] = frozenset().union(
+    *tuple(_SUMMARY_SOURCE_TABLES.values())
+)
+
+
+def validate_source_reference_coverage(summary: dict[str, Any]) -> None:
+    """Require deterministic summary provenance to cover its fixed source set."""
+    if not isinstance(summary, dict):
+        raise ValueError("AI-summary worker output must be an object")
+    summary_type = summary.get("summary_type")
+    if not isinstance(summary_type, str):
+        raise ValueError("AI-summary worker output has an unsupported summary type")
+    expected_tables = _SUMMARY_SOURCE_TABLES.get(summary_type)
+    if expected_tables is None:
+        raise ValueError("AI-summary worker output has an unsupported summary type")
+    source_tables = validate_source_tables(
+        summary.get("source_tables"), label="Invalid AI-summary worker output"
+    )
+    if (
+        len(source_tables) != len(set(source_tables))
+        or set(source_tables) != expected_tables
+    ):
+        raise ValueError("AI-summary source tables do not match the registered summary type")
+    source_references = summary.get("source_references")
+    if (
+        not isinstance(source_references, dict)
+        or set(source_references) != expected_tables
+    ):
+        raise ValueError(
+            "AI-summary source references must cover every registered source table"
+        )
 
 
 def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[str, tuple, str, bool]]) -> dict:
@@ -516,6 +570,7 @@ def build_summary(conn, location_id: str, summary_type: str = "combined") -> dic
         "summary_type": result["summary_type"],
         "location_id": location_id,
     }
+    validate_source_reference_coverage(summary)
     errors = validate_output("ai_summary_synthesis", {"summary": summary})
     if errors:
         raise ValueError("; ".join(errors))
