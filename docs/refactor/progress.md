@@ -17830,3 +17830,19 @@ Checklist: 1,141 complete / 25 open (1,166 total); matrix: 24 baseline-retained,
 ### Progress addendum — CAP-037 separately approved learning-plan activation, 25 October 2026
 
 Migration 629 closes the implementation gap left by migration 610's independent approval: the learning-plan lifecycle now has a separate activation action requiring the exact location `operating_pilot:activate` grant. The receipt-backed queue includes only the latest approved submission still in `submitted`, excludes the owner's own plan and already activated versions, and omits identities and internal receipt fields. Activation rechecks signed tenant context, grant, active human binding, active Adelphi location mapping, exact submission timestamp and approval, then atomically changes status and writes a private idempotency receipt. The operator console uses explicit confirmation, CSRF/no-store, stable retries, and bounded text-only rendering. The focused Gateway, route-policy, console, and migration-integrity selection passes 430 tests. Network-disabled disposable PostgreSQL 16 applies/replays the selected CAP-037 migration sequence ending at 629 and passes 266 grouped assertions on native AMD64 and ARM64/QEMU (software portability only, not physical Raspberry Pi acceptance) ([contract](operating-pilot-kernel-read-contract.md); [migration](../schemas/postgres/629_location_operating_pilot_learning_plan_activation.sql); [native evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-disposable.json); [ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-037-learning-plan-activation-arm64-disposable.json)). Ruff, compilation, the runtime SQL inventory, dependency-group alignment, provider boundaries, capability matrix, and diff checks pass. Candidate and legacy remain untouched; migration 629 is not rolled out. CAP-037 remains prepared: populated parity, live ZITADEL/browser acceptance, broader ACL/RLS, recovery, privacy review, and named MAN-CAP-037 owner acceptance are still open. Checklist: 1,143 complete / 25 open (1,168 total); matrix: 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows; 0/67 named acceptance checks accepted.
+
+
+### Progress addendum — full current-schema ARM64/QEMU replay through migration 629, 25 October 2026
+
+A clean, network-disabled PostgreSQL 16 ARM64/QEMU replay applied all 620
+ordered schema files through migration 629. The database reported `aarch64`,
+zero pending or failed migrations, zero seeds, and no public
+`pg_stat_statements` read grant. No host ports or network were enabled; no farm
+data was loaded; the temporary Compose project and volume were removed.
+Candidate and legacy databases were untouched. The run took 2,555 seconds and
+provides software portability evidence only, not physical Raspberry Pi,
+power-failure, thermal, or endurance acceptance
+([evidence](builds/2026-10-25-recovery/arm64-qemu-current-schema-629.json)).
+The capability classifications are unchanged. Checklist: 1,144 complete / 25
+open (1,169 total); the matrix remains 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows, with 0/67 named acceptance checks accepted.
