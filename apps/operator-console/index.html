@@ -2515,7 +2515,7 @@
             </section>
             <section id="pollinator-review" hidden aria-labelledby="pollinator-review-heading">
               <h4 id="pollinator-review-heading">Independent pollinator record review</h4>
-              <p class="muted">Reviewers cannot review their own submissions. A reviewed pesticide report records that a person reviewed the report; it does not approve pesticide use or determine safety. Dismissed items are excluded from reviewed summaries.</p>
+              <p class="muted">Reviewers cannot review their own submissions. A reviewed pesticide report records that a person reviewed the report; it does not approve pesticide use or determine safety. Hive inspection review records an independent human review, not colony-health certification.</p>
               <button id="pollinator-review-refresh" class="secondary" type="button">Refresh review queue</button>
               <p id="pollinator-review-status" class="muted" role="status" aria-live="polite"></p>
               <div id="pollinator-review-items" class="stacked-form"></div>
@@ -18114,7 +18114,7 @@
       }
 
       function appendPollinatorReviewItem(item) {
-        const recordTypes = new Set(["observation", "pesticide_impact"]);
+        const recordTypes = new Set(["observation", "pesticide_impact", "hive_inspection"]);
         const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (!item || !recordTypes.has(item.record_type) || !validId.test(item.record_id || "")
             || item.status !== "recorded" || typeof item.updated_at !== "string"
@@ -18122,17 +18122,27 @@
         const article = document.createElement("article");
         article.className = "review-card";
         const title = document.createElement("h5");
-        const kind = item.record_type === "observation" ? "Pollinator observation" : "Completed pesticide-impact report";
+        const kind = item.record_type === "observation" ? "Pollinator observation"
+          : item.record_type === "pesticide_impact" ? "Completed pesticide-impact report"
+            : "Recorded managed-hive inspection";
         title.textContent = `${kind} · ${item.occurred_on}`;
         const details = document.createElement("dl");
         const detailLabels = item.record_type === "observation"
           ? [["pollinator_type", "Pollinator type"], ["count", "Observed count"], ["method", "Method"],
             ["duration_minutes", "Duration (minutes)"], ["species_name", "Species"], ["notes", "Notes"]]
-          : [["product_name", "Product"], ["active_ingredient", "Active ingredient"], ["toxicity_class", "Reported toxicity"],
+          : item.record_type === "pesticide_impact"
+            ? [["product_name", "Product"], ["active_ingredient", "Active ingredient"], ["toxicity_class", "Reported toxicity"],
             ["application_rate", "Application rate"], ["rate_unit", "Rate unit"], ["area_treated_m2", "Area treated (m²)"],
             ["bloom_stage_at_application", "Bloom stage"], ["pollinator_distance_m", "Pollinator distance (m)"],
             ["pollinator_safe_period_days", "Reported safe-period days"], ["mortality_observed", "Mortality observed"],
-            ["mortality_pct", "Reported mortality (%)"], ["notes", "Notes"]];
+            ["mortality_pct", "Reported mortality (%)"], ["notes", "Notes"]]
+            : [["hive_id", "Hive"], ["colony_strength", "Reported colony strength"],
+              ["colony_strength_score", "Reported strength score"], ["queen_status", "Reported queen status"],
+              ["queen_seen", "Queen seen"], ["varroa_count", "Reported varroa count"],
+              ["brood_pattern", "Reported brood pattern"], ["honey_stores", "Reported honey stores"],
+              ["disease_signs", "Reported disease signs"], ["temperament", "Reported temperament"],
+              ["population_estimate", "Reported population"], ["swarm_cells", "Swarm cells reported"],
+              ["notes", "Notes"]];
         for (const [key, label] of detailLabels) {
           const value = item.details[key];
           if (value === null || value === undefined || value === "") continue;
@@ -18153,8 +18163,8 @@
         const decision = document.createElement("select");
         decision.dataset.field = "decision";
         decision.required = true;
-        appendPollinatorSelectOption(decision, "reviewed", "Reviewed; include in reviewed summaries");
-        appendPollinatorSelectOption(decision, "dismissed", "Dismiss; exclude from reviewed summaries");
+        appendPollinatorSelectOption(decision, "reviewed", "Mark independently reviewed");
+        appendPollinatorSelectOption(decision, "dismissed", "Dismiss from reviewed records");
         decisionLabel.append(decision);
         const reasonLabel = document.createElement("label");
         reasonLabel.textContent = "Reason for this independent review (required)";
@@ -18242,7 +18252,7 @@
         const status = form.querySelector('[data-field="message"]');
         const submit = form.querySelector('button[type="submit"]');
         if (!pollinatorHealthReviewLocations.has(locationId)
-            || !["observation", "pesticide_impact"].includes(recordType)
+            || !["observation", "pesticide_impact", "hive_inspection"].includes(recordType)
             || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(recordId || "")
             || !["reviewed", "dismissed"].includes(decision) || !reason || reason.length > 500) {
           status.textContent = "A current exact-location review grant, valid item, decision, and reason are required.";
@@ -18272,7 +18282,11 @@
         submit.disabled = true;
         status.textContent = "Saving the independent review decision…";
         try {
-          const recordPath = recordType === "observation" ? "observations" : "pesticide-impacts";
+          const recordPath = {
+            observation: "observations",
+            pesticide_impact: "pesticide-impacts",
+            hive_inspection: "hives/inspections",
+          }[recordType];
           const response = await fetch(
             `/operator/api/pollinators/${encodeURIComponent(locationId)}/${recordPath}/${encodeURIComponent(recordId)}/review`,
             {

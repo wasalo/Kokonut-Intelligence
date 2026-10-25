@@ -334,6 +334,15 @@ def test_pollinator_review_route_maps_exact_decision_and_stale_conflict(monkeypa
     }
     assert "safe" not in response.json().get("status", "")
 
+    called.clear()
+    inspection_response = client.post(
+        f"/operator/api/pollinators/{_LOCATION}/hives/inspections/{_HIVE}/review",
+        json=payload,
+    )
+    assert inspection_response.status_code == 200
+    assert called["record_type"] == "hive_inspection"
+    assert called["record_id"] == _HIVE
+
     class SyntheticStaleReview(psycopg2.Error):
         @property
         def pgcode(self):

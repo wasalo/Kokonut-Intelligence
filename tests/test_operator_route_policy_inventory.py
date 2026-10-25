@@ -330,6 +330,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("pollinator_health", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/hives/inspections/33333333-3333-4333-8333-333333333333/review",
+    ): _expected("pollinator_health", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/pollinators/11111111-1111-4111-8111-111111111111/observations",
     ): _expected("pollinator_health", "create", scoped=True, location_id=_LOCATION_ID),
     (

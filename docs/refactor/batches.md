@@ -19,10 +19,36 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (25 October 2026):** 1,134 checklist items complete and 23
-open (1,157 total). The [capability matrix](capability-matrix.md) has 67 validated
+**Current snapshot (25 October 2026):** 1,135 checklist items complete and 23
+open (1,158 total). The [capability matrix](capability-matrix.md) has 67 validated
 rows: 24 baseline-retained, 7 deployed, and 36 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
+
+### CAP-006 independent review of managed-hive inspections — 25 October 2026
+
+- [x] Extend the migration-626 review surface with migration 627 for recorded
+  hive inspections. The same private, bounded location review queue now includes
+  inspection date, same-location hive identifier, and allowlisted field
+  observations; a dedicated signed-context decision function updates only the
+  review lifecycle with optimistic concurrency and an immutable reasoned ledger
+  entry. Submitters cannot review their own records. Historical pollinator
+  observations, pesticide reports, and inspections without a known submitter are
+  withheld and denied by the ledger guard. Runtime receives only bounded
+  function execution; existing runtime summary reads remain available and
+  Directus/direct table state mutation remains denied. The console is grant
+  gated and labels inspection measurements as reported data, not health
+  certification. The focused Gateway/console/policy selection passes 58 tests;
+  the broader CAP-006 regression passes 450 tests plus 8 subtests. Ruff,
+  compilation, dependency/provider-boundary and matrix checks pass. Disposable
+  PostgreSQL 16 applies/replays through 627 with 14 groups on native x86_64 and
+  ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-disposable.json);
+  [ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-arm64-disposable.json)).
+  Candidate and legacy remain untouched; migration 627 is not rolled out. QEMU
+  is software portability evidence only. Populated parity, live OIDC/browser,
+  broader ACL/RLS, Directus parity, physical-device acceptance, and MAN-CAP-006
+  remain open. Rollback disables the inspection review route, queue inclusion,
+  exact policy path, and console affordance; preserve decisions if the additive
+  migration has been applied. Checklist: 1,135 complete / 23 open (1,158 total).
 
 ### CAP-006 location-scoped independent pollinator review — 25 October 2026
 

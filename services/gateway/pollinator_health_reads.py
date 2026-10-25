@@ -477,7 +477,9 @@ def list_location_pollinator_review_queue(
             for item in result["items"]:
                 if (
                     not isinstance(item, dict)
-                    or item.get("record_type") not in {"observation", "pesticide_impact"}
+                    or item.get("record_type") not in {
+                        "observation", "pesticide_impact", "hive_inspection"
+                    }
                     or item.get("status") != "recorded"
                     or not isinstance(item.get("details"), dict)
                 ):
@@ -501,6 +503,11 @@ def list_location_pollinator_review_queue(
 
 
 def _date_time(value) -> str:
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise RuntimeError("Pollinator review queue returned an invalid timestamp") from exc
     if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
         raise RuntimeError("Pollinator review queue returned a timestamp without timezone")
     return value.isoformat()
@@ -517,6 +524,11 @@ def _pollinator_review_details(record_type: str, details: dict) -> dict:
             "pollinator_distance_m", "pollinator_safe_period_days", "mortality_observed",
             "mortality_pct", "notes",
         },
+        "hive_inspection": {
+            "hive_id", "colony_strength", "colony_strength_score", "queen_status",
+            "queen_seen", "varroa_count", "brood_pattern", "honey_stores",
+            "disease_signs", "temperament", "population_estimate", "swarm_cells", "notes",
+        },
     }
     allowed = fields[record_type]
     if set(details) - allowed:
@@ -525,15 +537,20 @@ def _pollinator_review_details(record_type: str, details: dict) -> dict:
     for field, value in details.items():
         if value is None:
             normalized[field] = None
-        elif field in {"count", "duration_minutes", "pollinator_safe_period_days"}:
+        elif field in {
+            "count", "duration_minutes", "pollinator_safe_period_days",
+            "colony_strength_score", "varroa_count", "population_estimate",
+        }:
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 raise RuntimeError("Pollinator review queue returned an invalid integer")
             normalized[field] = value
-        elif field == "mortality_observed":
+        elif field in {"mortality_observed", "queen_seen", "swarm_cells"}:
             if not isinstance(value, bool):
                 raise RuntimeError("Pollinator review queue returned an invalid boolean")
             normalized[field] = value
-        elif field in {"application_rate", "area_treated_m2", "pollinator_distance_m", "mortality_pct"}:
+        elif field in {
+            "application_rate", "area_treated_m2", "pollinator_distance_m", "mortality_pct",
+        }:
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise RuntimeError("Pollinator review queue returned an invalid number")
             normalized[field] = value

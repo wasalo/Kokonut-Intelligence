@@ -150,6 +150,7 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
         normalized_type = {
             "observations": "observation",
             "pesticide-impacts": "pesticide_impact",
+            "hives/inspections": "hive_inspection",
         }.get(record_type)
         if normalized_type is None:
             return JSONResponse(status_code=404, content={"error": "Pollinator item not found"}, headers=headers)
@@ -228,6 +229,12 @@ def register_pollinator_health_routes(router, provider, run_in_threadpool, psyco
     )
     async def review_pesticide_impact(request: Request, location_id: str, record_id: str):
         return await _review_pollinator_record(request, location_id, "pesticide-impacts", record_id)
+
+    @router.post(
+        "/operator/api/pollinators/{location_id}/hives/inspections/{record_id}/review"
+    )
+    async def review_pollinator_hive_inspection(request: Request, location_id: str, record_id: str):
+        return await _review_pollinator_record(request, location_id, "hives/inspections", record_id)
 
     @router.get("/operator/api/pollinators/{location_id}/habitats")
     async def pollinator_habitat_details(

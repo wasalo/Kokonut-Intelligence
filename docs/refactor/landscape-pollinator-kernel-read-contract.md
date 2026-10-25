@@ -252,8 +252,8 @@ atomically. Identical request retries replay; altered reuse and stale decisions
 fail closed. Only `reviewed` records appear in the existing reviewed summaries;
 `dismissed` records remain excluded. Reviewing a pesticide report does not
 approve pesticide use or certify safety. Habitat and hive operational values
-remain self-reported; hive inspections are recorded observations without an
-independent review route. The legacy observation, pesticide, habitat, hive,
+remain self-reported; independent inspection review does not certify colony
+health. The legacy observation, pesticide, habitat, hive,
 and inspection CLI write commands fail before database access. Candidate and
 legacy database rollout is separate and has not occurred.
 
@@ -265,3 +265,26 @@ ARM64/QEMU ([native evidence](builds/2026-10-25-recovery/cap-006-pollinator-inde
 QEMU is software portability evidence only, not physical Raspberry Pi
 acceptance. Populated-data parity, live OIDC/browser, broader ACL/RLS, Directus
 parity, and MAN-CAP-006 acceptance remain open.
+
+Migration 627 extends the private review queue and decision contract to hive
+inspections. Inspection reviews use the same exact-location
+`pollinator_health:review` grant, exclude the submitting operator, require an
+expected review-state timestamp and reason, and append an immutable decision
+atomically with the review status update. A new `updated_at` tracks only review
+lifecycle changes; inspection measurements remain as submitted. The reviewer
+sees the associated same-location hive identifier and a bounded allowlist of
+reported fields. Old observation, pesticide, or inspection rows without a
+known submitting operator are omitted and cannot be independently reviewed. A
+database ledger trigger also rejects missing or matching submitter identities.
+The console labels this as human review, not verification or colony-health
+certification.
+
+The focused Gateway/console/route-policy selection passes 58 tests; the broader
+CAP-006 regression passes 450 tests plus 8 subtests. Disposable PostgreSQL 16
+applies/replays through migration 627 and passes 14 groups on native x86_64 and
+ARM64/QEMU ([native evidence](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-disposable.json);
+[ARM64/QEMU evidence](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 627 is not rolled out. QEMU
+is software portability evidence only. Physical Raspberry Pi acceptance,
+populated-data parity, live OIDC/browser, broader ACL/RLS, Directus parity, and
+MAN-CAP-006 acceptance remain open.

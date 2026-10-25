@@ -1,3 +1,27 @@
+### Progress addendum — CAP-006 independent hive-inspection review, 25 October 2026
+
+Migration 627 extends the existing location-scoped pollinator review queue to
+recorded hive inspections, with a dedicated reasoned decision function and
+optimistic concurrency through the new review-state `updated_at`. The review
+ledger now accepts inspection decisions while retaining immutable history.
+The function and shared ledger trigger deny self-review and foreign-location
+access. The queue and ledger guard also fail closed for older observation,
+pesticide, and inspection records whose submitting operator is unknown. The
+private review console displays the hive identifier and allowlisted reported
+measurements, labels the operation as human review rather than health
+certification, and uses the same CSRF/no-store and retry protections.
+
+The focused Gateway/console/route-policy selection passes 58 tests; the broader
+CAP-006 regression passes 450 tests plus 8 subtests. Ruff, compilation,
+dependency/provider-boundary, matrix, and SQL-inventory checks pass. Disposable
+PostgreSQL 16 applies/replays through migration 627 and passes 14 groups on
+native x86_64 and ARM64/QEMU ([native](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-inspection-review-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 627 is not rolled out. QEMU
+is software portability evidence only. Populated parity, live OIDC/browser,
+broader ACL/RLS, Directus parity, physical-device acceptance, and MAN-CAP-006
+remain open. Checklist: 1,135 complete / 23 open (1,158 total).
+
 ### Progress addendum — CAP-006 independent pollinator review, 25 October 2026
 
 Migration 626 adds a private, bounded queue and separate location-scoped human

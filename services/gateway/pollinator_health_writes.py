@@ -957,7 +957,7 @@ def review_location_pollinator_record(
     operator_id = _identifier(operator_id, "operator")
     location_id = _identifier(location_id, "location")
     record_id = _identifier(record_id, "pollinator record")
-    if record_type not in {"observation", "pesticide_impact"}:
+    if record_type not in {"observation", "pesticide_impact", "hive_inspection"}:
         raise PollinatorObservationInvalid("Unsupported pollinator record type")
     normalized = _normalize_pollinator_review_payload(payload)
     connection = (connection_factory or _connection_factory())()
@@ -970,11 +970,18 @@ def review_location_pollinator_record(
             action="review",
         )
         with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT kokonut_security.review_location_pollinator_record("
-                "%s::uuid, %s::text, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::text)",
-                (location_id, record_type, record_id, *normalized),
-            )
+            if record_type == "hive_inspection":
+                cursor.execute(
+                    "SELECT kokonut_security.review_location_pollinator_hive_inspection("
+                    "%s::uuid, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::text)",
+                    (location_id, record_id, *normalized),
+                )
+            else:
+                cursor.execute(
+                    "SELECT kokonut_security.review_location_pollinator_record("
+                    "%s::uuid, %s::text, %s::uuid, %s::uuid, %s::timestamptz, %s::text, %s::text)",
+                    (location_id, record_type, record_id, *normalized),
+                )
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Pollinator review returned no decision")

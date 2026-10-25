@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "381c4e96088bcb044603b4d3360841b4d9a36ec9",
+  "baseline_commit": "8d7a045c7113be72477833896acd38f6175b2e3c",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1641,157 +1641,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 3740,
+      "line": 3755,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3755,
+      "line": 3770,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3764,
+      "line": 3779,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3822,
+      "line": 3837,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3850,
+      "line": 3865,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3890,
+      "line": 3905,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3941,
+      "line": 3956,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3981,
+      "line": 3996,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4034,
+      "line": 4049,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4094,
+      "line": 4109,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4149,
+      "line": 4164,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4193,
+      "line": 4208,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4254,
+      "line": 4269,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4337,
+      "line": 4352,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4430,
+      "line": 4445,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4478,
+      "line": 4493,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4530,
+      "line": 4545,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4588,
+      "line": 4603,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4642,
+      "line": 4657,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4731,
+      "line": 4746,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4751,
+      "line": 4766,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4771,
+      "line": 4786,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4807,
+      "line": 4822,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4835,
+      "line": 4850,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4863,
+      "line": 4878,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 4906,
+      "line": 4921,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -1815,67 +1815,73 @@
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 220,
+      "line": 221,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/observations/{record_id}/review",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 226,
+      "line": 227,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/pesticide-impacts/{record_id}/review",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 232,
+      "line": 233,
+      "method": "POST",
+      "path": "/operator/api/pollinators/{location_id}/hives/inspections/{record_id}/review",
+      "source": "services/gateway/pollinator_health_routes.py"
+    },
+    {
+      "line": 239,
       "method": "GET",
       "path": "/operator/api/pollinators/{location_id}/habitats",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 274,
+      "line": 281,
       "method": "GET",
       "path": "/operator/api/pollinators/{location_id}/hives",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 315,
+      "line": 322,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/observations",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 373,
+      "line": 380,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/pesticide-impacts",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 431,
+      "line": 438,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/habitats",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 489,
+      "line": 496,
       "method": "PATCH",
       "path": "/operator/api/pollinators/{location_id}/habitats/{habitat_id}",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 560,
+      "line": 567,
       "method": "PATCH",
       "path": "/operator/api/pollinators/{location_id}/hives/{hive_record_id}",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 627,
+      "line": 634,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/hives",
       "source": "services/gateway/pollinator_health_routes.py"
     },
     {
-      "line": 685,
+      "line": 692,
       "method": "POST",
       "path": "/operator/api/pollinators/{location_id}/hives/inspections",
       "source": "services/gateway/pollinator_health_routes.py"
@@ -3435,7 +3441,8 @@
       "schemas/postgres/623_location_pollinator_hive_inspection_capture.sql",
       "schemas/postgres/624_location_pollinator_habitat_lifecycle.sql",
       "schemas/postgres/625_location_pollinator_hive_lifecycle.sql",
-      "schemas/postgres/626_location_pollinator_independent_review.sql"
+      "schemas/postgres/626_location_pollinator_independent_review.sql",
+      "schemas/postgres/627_location_pollinator_hive_inspection_review.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

@@ -871,6 +871,21 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    pollinator_inspection_review_match = re.fullmatch(
+        r"/operator/api/pollinators/([0-9a-fA-F-]{36})/hives/inspections/"
+        r"([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if pollinator_inspection_review_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "pollinator_health",
+            "action": "review",
+            "public": False,
+            "location_id": pollinator_inspection_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     pollinator_capture_match = re.fullmatch(
         r"/operator/api/pollinators/([0-9a-fA-F-]{36})/observations", path
     )

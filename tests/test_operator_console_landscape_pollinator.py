@@ -92,6 +92,7 @@ def test_pollinator_review_is_hidden_and_gated_by_its_exact_location_grant():
     assert "pollinator-review-refresh" in SOURCE and "pollinator-review-more" in SOURCE
     assert "Reviewers cannot review their own submissions" in SOURCE
     assert "does not approve pesticide use or determine safety" in SOURCE
+    assert "not colony-health certification" in SOURCE
 
 
 def test_pollinator_review_loader_and_decision_use_scope_validation_csrf_and_stable_retry():
@@ -114,6 +115,8 @@ def test_pollinator_review_loader_and_decision_use_scope_validation_csrf_and_sta
     assert "cell.textContent" not in renderer.group()
     assert ".innerHTML" not in renderer.group()
     assert "description.textContent" in renderer.group()
+    assert '"hive_inspection"' in renderer.group()
+    assert '"hives/inspections"' in submit.group()
 
 
 def test_pollinator_capture_is_separately_grant_gated_and_uses_stable_csrf_retry():
