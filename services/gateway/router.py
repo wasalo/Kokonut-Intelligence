@@ -64,6 +64,11 @@ _ROUTE_POLICIES = (
     # These endpoints perform their own opaque device-token authentication.
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
+    # Capability-token routes authenticate inside the handler and deliberately
+    # do not create canonical party identities for Delphi participants.
+    ("POST", re.compile(r"^/api/participation/delphi/preview$"), "delphi_participant", "preview", True),
+    ("POST", re.compile(r"^/api/participation/delphi/accept$"), "delphi_participant", "accept", True),
+    ("POST", re.compile(r"^/api/participation/delphi/withdraw$"), "delphi_participant", "withdraw", True),
     ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),

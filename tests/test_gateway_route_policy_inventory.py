@@ -8,11 +8,15 @@ from unittest.mock import patch
 import pytest
 
 pytest.importorskip("fastapi")
+from fastapi import APIRouter  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import (
     _request_location,  # noqa: E402
     create_app,  # noqa: E402
+)
+from services.gateway.delphi_participant_routes import (  # noqa: E402
+    register_delphi_participant_routes,
 )
 from services.gateway.router import get_route_policy  # noqa: E402
 from services.gateway.router import router as gateway_router
@@ -70,7 +74,13 @@ _EXPECTED_ROUTE_POLICIES = {
     ("POST", "/api/mobile/locations/{location_id}/devices/{device_id}/revoke"): ("mobile_device", "revoke", False),
     ("POST", "/api/mobile/sync"): ("offline_collection", "write", True),
     ("GET", "/api/mobile/sync/status"): ("offline_collection", "read", True),
+    ("POST", "/api/participation/delphi/preview"): ("delphi_participant", "preview", True),
+    ("POST", "/api/participation/delphi/accept"): ("delphi_participant", "accept", True),
+    ("POST", "/api/participation/delphi/withdraw"): ("delphi_participant", "withdraw", True),
 }
+
+_participant_router = APIRouter()
+register_delphi_participant_routes(_participant_router, None, __import__("psycopg2"))
 
 
 def _concrete_path(path: str) -> str:
@@ -83,7 +93,7 @@ def _concrete_path(path: str) -> str:
 
 def test_registered_api_routes_have_exact_reviewed_policy_coverage():
     actual = {}
-    for router in (gateway_router, mobile_router):
+    for router in (gateway_router, mobile_router, _participant_router):
         for route in router.routes:
             for method in route.methods or ():
                 path = "/api" + route.path

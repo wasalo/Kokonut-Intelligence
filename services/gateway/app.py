@@ -73,15 +73,18 @@ async def _request_location(request, policy: dict) -> str | None:
 def create_app(*, rate_limiter: RateLimitBackend | None = None):
     """Create the FastAPI gateway application."""
     try:
-        from fastapi import FastAPI, Request
+        from fastapi import APIRouter, FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
         from starlette.concurrency import run_in_threadpool
     except ImportError:
         raise ImportError("FastAPI is required: pip install fastapi uvicorn")
 
+    import psycopg2
+
     from services.gateway.audit import GatewayAudit
     from services.gateway.auth import verify_request
+    from services.gateway.delphi_participant_routes import register_delphi_participant_routes
     from services.gateway.operator_auth import (
         OperatorAuthConfigurationError,
         auth_route_policy,
@@ -480,6 +483,9 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     app.include_router(router, prefix="/api")
     app.include_router(mobile_router, prefix="/api")
+    participant_router = APIRouter()
+    register_delphi_participant_routes(participant_router, run_in_threadpool, psycopg2)
+    app.include_router(participant_router, prefix="/api")
     app.include_router(create_auth_router(operator_provider))
 
     if operator_provider is not None:

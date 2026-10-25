@@ -4169,3 +4169,39 @@ The AST scope inventory now follows a location-filtered parent row into child re
   MAN-CAP-027 acceptance remain open. Checklist: 1,175 complete / 25 open
   (1,200 total); matrix classifications remain 24 baseline-retained, 7
   deployed, and 36 prepared across 67 rows.
+
+
+### CAP-027 participant consent acceptance and withdrawal — 25 October 2026
+
+- [x] Add migration 636 and the invite-bound participant preview, acceptance,
+  and withdrawal contracts. Preview exposes only the exact currently approved
+  notice for a pending invite on a draft study. Acceptance requires literal
+  consent to the stored notice digest and atomically consumes the invite,
+  creates an anonymous panel member with no canonical-party reference, records
+  immutable consent evidence, and stores only session/CSRF digests. Exact
+  retries replay; changed credentials fail. Withdrawal validates the
+  same-site double-submit CSRF pair, changes consent to `withdrawn`, revokes
+  the participant session, and preserves prior records for configurable
+  retention/erasure disposition. The 27-test focused Gateway, route-policy,
+  and operator-route selection passes within the broader 335-test Delphi,
+  Gateway, route-policy, and migration-integrity regression. A network-disabled
+  disposable PostgreSQL 16 replay through migration 636 passes ten grouped
+  assertions for preview eligibility, explicit consent, pseudonymous
+  membership, token digest-only storage, retry/collision behavior, withdrawal,
+  and runtime/Directus access boundaries. Ruff, compilation, migration
+  integrity, runtime SQL inventory, and capability-matrix checks pass.
+  Candidate and legacy
+  databases remain untouched; migration 636 is not rolled out. Rollback is to
+  disable the three exact routes and policy entries while retaining the
+  additive migration and immutable history if applied ([contract](delphi-consultation-kernel-contract.md);
+  [migration](../../schemas/postgres/636_location_scoped_delphi_participant_acceptance.sql);
+  [Gateway](../../services/gateway/delphi_participant_acceptance.py);
+  [routes](../../services/gateway/delphi_participant_routes.py);
+  [tests](../../tests/test_gateway_delphi_participant_acceptance.py);
+  [disposable runner](../../scripts/check-delphi-participant-acceptance-disposable.py);
+  [evidence](builds/2026-10-25-recovery/cap-027-delphi-participant-acceptance-disposable.json)).
+  The participant-facing browser page, live browser acceptance, contribution
+  access, invite console delivery, SMTP, live OIDC, populated parity, broad
+  ACL/RLS, and MAN-CAP-027 owner acceptance remain open. Do not distribute
+  invite tokens yet. Checklist: 1,176 complete / 25 open (1,201 total); matrix
+  remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.

@@ -18335,3 +18335,38 @@ sessions and contributions, plus invite console controls remain to implement.
 No external email was sent. Checklist: 1,175 complete / 25 open (1,200 total);
 matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67 rows.
 Evidence: [invite acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-invite-disposable.json).
+
+
+### Progress addendum — CAP-027 participant consent acceptance and withdrawal, 25 October 2026
+
+Migration 636 adds the missing capability-token path for the selected
+study-scoped single-use invite model. Preview returns only the exact still-
+approved consent notice for a pending invite on a draft study. Acceptance
+requires literal `accepted: true` and the invite-bound notice digest; one
+transaction consumes the invite, creates a pseudonymous panel member without a
+canonical party reference, records the notice version/digest, and stores only
+SHA-256 digests for the session and CSRF credentials. Exact retries replay and
+credential or request collisions fail closed. Withdrawal requires the
+same-site double-submit CSRF pair, marks consent withdrawn, revokes the
+participant session, and appends an immutable event/receipt. Existing
+contributions remain private for later configurable retention/erasure
+disposition.
+
+All three routes have exact public-capability policies, no-store responses,
+referrer protection, Secure/HttpOnly/SameSite session cookies, and bounded
+database functions owned by an isolated non-login role. The 27-test focused
+Gateway/route-policy selection passes within the broader 335-test Delphi,
+Gateway, route-policy, and migration-integrity regression. Migration 636 applies
+and replays in a network-disabled disposable PostgreSQL 16 chain and passes ten
+grouped assertions for preview, acceptance, pseudonymity, digest-only storage,
+retries, withdrawal, and runtime/Directus boundaries. Ruff, Python compilation,
+migration integrity, runtime SQL inventory, and matrix checks pass. Candidate
+and legacy databases remain untouched; migration 636 is not rolled out.
+
+The first-party participant browser page, live browser acceptance, Delphi
+contribution submission/update routes, invite console delivery, SMTP, live
+OIDC, populated parity, broad ACL/RLS, and MAN-CAP-027 owner acceptance remain
+open. Do not distribute invite tokens until the participant page is ready.
+CAP-027 remains prepared. Checklist: 1,176 complete / 25 open (1,201 total);
+matrix remains 24 baseline-retained, 7 deployed, and 36 prepared across 67
+rows. Evidence: [migration acceptance](builds/2026-10-25-recovery/cap-027-delphi-participant-acceptance-disposable.json).

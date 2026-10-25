@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 953,
-    "execution_sites": 4867,
+    "source_files": 955,
+    "execution_sites": 4870,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4525,
+    "sites_without_worker_operation_refs": 4528,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,16 +15,16 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2828,
-      "SET": 644,
+      "SELECT": 2829,
+      "SET": 646,
       "UNKNOWN": 205,
       "UPDATE": 429,
       "WITH": 29
     },
     "statement_groups": {
-      "read_candidate": 2828,
+      "read_candidate": 2829,
       "schema_change": 1,
-      "transaction_or_session": 687,
+      "transaction_or_session": 689,
       "unknown_requires_manual_review": 205,
       "with_requires_manual_review": 29,
       "write_candidate": 1117
@@ -32,11 +32,11 @@
     "expression_kinds": {
       "composed": 19,
       "composed_or_variable": 281,
-      "fstring": 285,
-      "literal": 4282
+      "fstring": 286,
+      "literal": 4284
     },
     "relation_candidates": 1215,
-    "sites_without_relation_candidates": 1185,
+    "sites_without_relation_candidates": 1187,
     "service_packages": 68
   },
   "service_packages": {
@@ -365,18 +365,18 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 139,
-      "execution_sites": 1020,
+      "source_files": 141,
+      "execution_sites": 1023,
       "statement_groups": {
-        "read_candidate": 383,
-        "transaction_or_session": 577,
+        "read_candidate": 384,
+        "transaction_or_session": 579,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 4,
         "write_candidate": 38
       },
       "candidate_relation_names": 253,
-      "sites_without_relation_candidates": 682,
-      "non_literal_sites": 14,
+      "sites_without_relation_candidates": 684,
+      "non_literal_sites": 15,
       "sites_with_worker_operation_refs": 0
     },
     "geostatistics": {
@@ -1313,7 +1313,7 @@
     "kokonut_agent_source.v_public_vulnerable_access_summary": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/gnh_agent.py"]},
     "kokonut_agent_source.v_public_wellbeing_metric_summary": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/wellbeing_agent.py"]},
     "kokonut_guild": {"execution_site_count": 6,"statement_kinds": ["SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/guilds/projections.py"]},
-    "kokonut_security": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/solution_lifecycle_actions.py","services/gateway/solution_lifecycle_reads.py"]},
+    "kokonut_security": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/delphi_participant_acceptance.py","services/gateway/solution_lifecycle_actions.py","services/gateway/solution_lifecycle_reads.py"]},
     "kokonut_security.activate_location_solution_replication": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/solution_lifecycle_actions.py"]},
     "kokonut_security.analyze_location_solution_experiment": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/solution_lifecycle_actions.py"]},
     "kokonut_security.apply_location_solution_learning": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/solution_lifecycle_actions.py"]},
@@ -4620,6 +4620,9 @@
     {"id": "services/gateway/delphi_consultation.py:60:12","source": "services/gateway/delphi_consultation.py","line": 60,"column": 12,"scope": "list_location_delphi_consultations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_consultation.py:61:12","source": "services/gateway/delphi_consultation.py","line": 61,"column": 12,"scope": "list_location_delphi_consultations","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_consultation.py:72:12","source": "services/gateway/delphi_consultation.py","line": 72,"column": 12,"scope": "list_location_delphi_consultations","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.list_location_delphi_consultations"],"static_sql_sha256": "13a615e6d8b35eb5c11dfbfd5c29d043c4a64236c14970127d1823e001af3c2a","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/delphi_participant_acceptance.py:40:12","source": "services/gateway/delphi_participant_acceptance.py","line": 40,"column": 12,"scope": "_call","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/delphi_participant_acceptance.py:41:12","source": "services/gateway/delphi_participant_acceptance.py","line": 41,"column": 12,"scope": "_call","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/delphi_participant_acceptance.py:43:12","source": "services/gateway/delphi_participant_acceptance.py","line": 43,"column": 12,"scope": "_call","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["kokonut_security"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/delphi_participant_invites.py:59:12","source": "services/gateway/delphi_participant_invites.py","line": 59,"column": 12,"scope": "issue_location_delphi_participant_invite","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_participant_invites.py:60:12","source": "services/gateway/delphi_participant_invites.py","line": 60,"column": 12,"scope": "issue_location_delphi_participant_invite","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/delphi_participant_invites.py:69:12","source": "services/gateway/delphi_participant_invites.py","line": 69,"column": 12,"scope": "issue_location_delphi_participant_invite","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.issue_location_delphi_participant_invite"],"static_sql_sha256": "4c39016f6a4ff50df48af6c72769d16ba8819ff7fde71b394a7531fb04246702","operation_refs": [],"statement_group": "read_candidate"},

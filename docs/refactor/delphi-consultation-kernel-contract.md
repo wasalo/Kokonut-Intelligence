@@ -308,22 +308,21 @@ functions only; Directus cannot read the notice ledger or invoke those
 functions. Notice versions are immutable, and invitation issuance must reject
 any version whose current state is not approved.
 
-The selected participant model is a study-scoped single-use invite. The
-upcoming invitation implementation must generate an unguessable token, store
-only its cryptographic digest, bind it to the exact study, location, approved
-notice ID/version/digest, and expiry, and consume it atomically once. It must
-not attach a participant to a canonical party identity. Acceptance records
-the notice version/digest and the minimum state required to prove consent;
-participant-facing data remains pseudonymous. A later approved notice version
-must prevent new invite issuance against the superseded version.
+The selected participant model is a study-scoped single-use invite. Migrations
+635–636 implement notice-bound token issuance, preview and atomic acceptance,
+with no canonical party link. The database stores only cryptographic digests
+for invite/session/CSRF credentials, and acceptance records the exact notice
+version/digest. Participant-facing state remains pseudonymous. A later
+approved notice version prevents both new issuance and redemption against the
+superseded version.
 
-Withdrawal will prevent future submissions and make affected contributions
-unavailable for future study operations. Existing records remain private until
-the configured retention/erasure policy determines their disposition; no fixed
-period or automatic deletion is introduced here. Human review of actual notice
-language and any applicable legal requirements remains necessary. Migration
-634 does not issue invites or accept participant consent, and CAP-027 remains
-prepared.
+Withdrawal prevents future submissions through the member's `withdrawn`
+consent state and revokes the participant session. Existing records remain
+private until the configured retention/erasure policy determines their
+disposition; no fixed period or automatic deletion is introduced here. Human
+review of actual notice language and applicable legal requirements remains
+necessary. Migration 634 does not itself issue invites or accept participant
+consent, and CAP-027 remains prepared.
 
 Migration 634 has passed focused Gateway/route-policy/migration checks (62
 tests) and a network-disabled disposable PostgreSQL 16 apply/replay with nine
@@ -355,10 +354,10 @@ secret; a lost or exposed token must be explicitly revoked and replaced with a
 new request. Revocation has its own exact delphi:invite_revoke grant and
 append-only reason-coded audit.
 
-The token cannot yet be redeemed: public notice preview, one-time acceptance,
-pseudonymous panel creation, participant session, and withdrawal are the next
-implementation slice. No email or other external delivery occurs, and the
-invite token must not be sent to a participant until redemption is live.
+No email or other external delivery occurs. Do not distribute invite tokens
+until the first-party participant page and live browser acceptance are
+implemented; the API primitives alone are not a finished participant
+experience.
 Operator responses are OIDC/CSRF protected by the enclosing Gateway middleware,
 location scoped, and no-store. Runtime and Directus have no direct access to
 invite rows or receipts.
@@ -369,3 +368,52 @@ passes nine grouped assertions. Candidate and legacy databases remain
 untouched; migration 635 is not rolled out. Disable the two routes/policies to
 roll back application behavior; retain the additive migration and private
 invite history if applied.
+
+
+### Participant notice preview, consent acceptance, and withdrawal
+
+Migration 636 adds three exact public-capability routes. The invite token is
+accepted only in a JSON body, never in a URL:
+
+- `POST /api/participation/delphi/preview` accepts exactly `invite_token` and
+  returns the study title and exact approved notice text, version, digest, and
+  expiry. It succeeds only while the invite is pending and unexpired, the study
+  remains draft, and the approved notice still matches the stored location,
+  notice ID, version, and digest.
+- `POST /api/participation/delphi/accept` accepts the invite token, notice
+  digest, request UUID, literal `accepted: true`, and two client-generated
+  256-bit random values. These values support exact retries after a lost
+  response; only their SHA-256 digests reach the database. The database locks
+  and consumes the invite, creates one anonymous `pseudonymous_participant`
+  panel member with no party reference, records an immutable acceptance event,
+  and creates a 30-day revocable session in one transaction. Exact retries
+  replay without creating a second member; changed credentials or request
+  content fail closed.
+- `POST /api/participation/delphi/withdraw` accepts a request UUID, the
+  HttpOnly session cookie, and a CSRF header matching the readable CSRF cookie.
+  It marks consent `withdrawn`, revokes the session, and appends the withdrawal
+  event atomically. Exact retries replay; a different request or mismatched
+  CSRF token is rejected. Existing submissions remain private for disposition
+  under the configurable retention/erasure policy and are not deleted here.
+
+These routes are public only at the Gateway authentication layer; their
+capability tokens and bounded database functions enforce access. Responses are
+no-store and set `Referrer-Policy: no-referrer`. Session cookies are Secure,
+HttpOnly, SameSite=Strict, and path-limited. The CSRF cookie is same-origin
+readable and is checked with constant-time comparison against the request
+header and its database digest. PostgreSQL retains no raw invite, session, or
+CSRF token. A dedicated non-login role owns credential and consent ledgers;
+runtime and Directus cannot read those ledgers, and Directus cannot execute the
+participant functions.
+
+The participant browser page, live browser acceptance, and contribution
+submission/update path are not part of migration 636. Do not distribute invites
+until the first-party page is implemented and accepted. The 27-test focused
+Gateway/policy selection passes within the broader 335-test Delphi, Gateway,
+route-policy, and migration-integrity regression. Network-disabled disposable
+PostgreSQL 16 applies and replays migrations 449–451 and 630–636 with ten
+grouped checks. Candidate
+and legacy databases remain untouched; migration 636 is not rolled out. Roll
+back by disabling the exact routes and policy entries; retain the additive
+migration, consumed invites, consent events, and withdrawal receipts if
+applied.
