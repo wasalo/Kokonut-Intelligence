@@ -18,6 +18,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         get_location_operating_pilot_demand_signals,
         get_location_operating_pilot_learning_plan_review_queue,
         get_location_operating_pilot_own_capacity_profiles,
+        get_location_operating_pilot_own_coaching_sessions,
         get_location_operating_pilot_own_competency_drafts,
         get_location_operating_pilot_own_demand_signals,
         get_location_operating_pilot_own_learning_plans,
@@ -36,6 +37,7 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
         allocate_location_operating_pilot_work_claim,
         claim_location_operating_pilot_work,
         create_location_operating_pilot_capacity_draft,
+        create_location_operating_pilot_coaching_session,
         create_location_operating_pilot_competency_draft,
         create_location_operating_pilot_demand_draft,
         create_location_operating_pilot_learning_plan_draft,
@@ -86,6 +88,98 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
                 headers=headers,
             )
         return payload, None
+
+    async def bounded_coaching_payload(request):
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > 32 * 1024:
+                return None, JSONResponse(
+                    status_code=413,
+                    content={"error": "Coaching-session request body exceeds 32 KiB"},
+                    headers=headers,
+                )
+            body.extend(chunk)
+        try:
+            payload = json.loads(body)
+        except (ValueError, RecursionError):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Coaching-session request body must be valid JSON"},
+                headers=headers,
+            )
+        if not isinstance(payload, dict):
+            return None, JSONResponse(
+                status_code=400,
+                content={"error": "Coaching-session request body must be an object"},
+                headers=headers,
+            )
+        return payload, None
+
+    @router.post("/operator/api/operating-pilot/{location_id}/coaching-sessions")
+    async def create_operating_pilot_coaching_session(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        payload, body_error = await bounded_coaching_payload(request)
+        if body_error:
+            return body_error
+        request_id = payload.pop("request_id", None)
+        try:
+            result = await run_in_threadpool(
+                create_location_operating_pilot_coaching_session,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                request_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified coaching access is required"},
+                headers=headers,
+            )
+        except OperatingPilotWriteInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location coaching grant, participant link, and consent are required"},
+                    headers=headers,
+                )
+            if pgcode == "23505":
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Coaching request ID was reused with different input"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Coaching-session input is invalid or outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Operating coaching-session write unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operating coaching-session write unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
 
     @router.post("/operator/api/operating-pilot/{location_id}/capacity-profiles")
     async def create_operating_pilot_capacity_draft(request: Request, location_id: str):
@@ -1879,6 +1973,67 @@ def register_operating_pilot_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Own learning-plan history unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/operating-pilot/{location_id}/my-coaching-sessions")
+    async def location_operating_pilot_own_coaching_sessions(
+        request: Request,
+        location_id: str,
+        limit: int = 25,
+        offset: int = 0,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_operating_pilot_own_coaching_sessions,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified own-coaching access is required"},
+                headers=headers,
+            )
+        except OperatingPilotReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            pgcode = getattr(exc, "pgcode", None)
+            if pgcode == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact location coaching grant and human binding are required"},
+                    headers=headers,
+                )
+            if pgcode == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Own coaching-session page is outside its bounds"},
+                    headers=headers,
+                )
+            if pgcode == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No active operating-pilot scope is mapped to this location"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operating_pilot").warning(
+                "Own coaching-session history unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Own coaching-session history unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

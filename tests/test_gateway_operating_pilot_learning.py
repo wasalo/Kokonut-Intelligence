@@ -191,3 +191,82 @@ def test_http_learning_plans_fail_closed_when_oidc_is_disabled(monkeypatch):
         )
     assert response.status_code == 404
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_own_coaching_history_uses_coach_scope_and_read_only_transaction():
+    page = {"items": [{"focus": "Private synthetic coaching"}], "has_more": False}
+    connection = _Connection(page)
+    contexts = []
+
+    with patch.object(
+        reads,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    ):
+        result = reads.get_location_operating_pilot_own_coaching_sessions(
+            OPERATOR_ID, LOCATION_ID, limit=5, offset=10,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "coach",
+    })]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_operating_pilot_own_coaching_sessions" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 5, 10)
+    assert result == {"location_id": LOCATION_ID, **page}
+    assert connection.rolled_back and connection.closed
+
+
+def test_coaching_history_route_is_private_no_store_and_coach_grant_gated(monkeypatch):
+    from services.gateway.operating_pilot_routes import register_operating_pilot_routes
+
+    page = {"location_id": LOCATION_ID, "items": [], "has_more": False}
+    calls = []
+    monkeypatch.setattr(
+        "services.gateway.operating_pilot_reads.get_location_operating_pilot_own_coaching_sessions",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or page,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_operating_pilot_routes(
+        router, object(), run_in_threadpool, SimpleNamespace(Error=Exception)
+    )
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/my-coaching-sessions"
+    with TestClient(app) as client:
+        response = client.get(f"{path}?limit=5&offset=10")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == page
+    assert calls == [((OPERATOR_ID, LOCATION_ID), {"limit": 5, "offset": 10})]
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "coach",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None

@@ -1,3 +1,34 @@
+### Progress addendum — CAP-037 location-scoped private coaching sessions, 24 October 2026
+
+The replacement coaching path is now implemented. `POST
+/operator/api/operating-pilot/{location_id}/coaching-sessions` creates a private
+completed session, and `GET
+/operator/api/operating-pilot/{location_id}/my-coaching-sessions` returns only
+the authenticated coach's own history. Both require the exact location
+`operating_pilot:coach` grant and transaction-bound tenant context. The write
+validates bounded content before database access; migration 611 independently
+checks the active human binding, current farm/location relationship, active
+participant, and latest exact coaching consent. The private receipt makes exact
+retries idempotent and rejects changed request reuse. Consent withdrawal hides
+prior history and blocks new capture. Runtime and Directus cannot read/write the
+session or receipt tables directly; the bounded non-login function owner holds
+only required columns. No operator-console form is exposed yet.
+
+The focused Gateway, route-policy, and migration-integrity selection passes
+234 tests. Ruff, Python compilation, and diff checks pass. Network-disabled
+disposable PostgreSQL 16 applies/replays migrations 461–611 and passes 269
+assertion groups on native AMD64 ([evidence](builds/2026-10-24-recovery/cap-037-private-coaching-session-disposable.json));
+linux/arm64 Docker/QEMU also passes all 269 assertions ([ARM64 evidence](builds/2026-10-24-recovery/cap-037-private-coaching-session-arm64-disposable.json)). QEMU is software
+portability evidence only, not physical Raspberry Pi acceptance. Candidate and
+legacy databases are untouched; migration 611 is not rolled out. Roll back by
+disabling both routes and their exact policy while retaining the additive
+migration and private receipts if applied. CAP-037 remains prepared pending
+console workflow, populated-data parity, live OIDC/browser acceptance, broader
+ACL/RLS, recovery, privacy review, and named owner acceptance. Checklist:
+1,117 complete / 25 open (1,142 total); 24 baseline-retained, 7 deployed, and
+36 prepared across 67 rows; 0/67 MAN-CAP checks accepted. Evidence:
+[disposable PostgreSQL acceptance](builds/2026-10-24-recovery/cap-037-private-coaching-session-disposable.json).
+
 ### Progress addendum — CAP-037 retire unscoped coaching writes, 24 October 2026
 
 The legacy `services.management.operating_support.record_coaching_session`
@@ -9,10 +40,9 @@ mutation helpers fail closed without cursor access or commit. Ruff, Python
 compilation, and diff checks pass. No database, migration, provider, candidate,
 or legacy service was used.
 
-This is a protective boundary, not a replacement coaching workflow. CAP-037
-still exposes aggregate-only coaching counts; private session writes remain
-unavailable until an authenticated, signed location-scoped Gateway path is
-implemented. Re-enabling the old helper is not a safe rollback. Checklist:
+This records the state at the time of the retirement batch. The later addendum
+above implements the replacement private workflow; aggregate counts remain
+available separately. Re-enabling the old helper is not a safe rollback. Checklist:
 1,116 complete / 25 open (1,141 total); 24 baseline-retained, 7 deployed, and
 36 prepared across 67 rows; 0/67 MAN-CAP checks accepted. Evidence:
 [focused checks](builds/2026-10-24-recovery/cap-037-coaching-write-retirement.json).

@@ -399,6 +399,84 @@ def _normalize_learning_plan_review_payload(
     return submitted_at, decision, reason
 
 
+def _normalize_coaching_session_payload(
+    payload: Any,
+) -> tuple[str, date | None, str, str, str | None, str | None]:
+    """Normalize a bounded private coaching submission before opening a DB connection."""
+    if not isinstance(payload, dict):
+        raise OperatingPilotWriteInvalid("Coaching-session body must be an object")
+    coachee_party_id = _normalize_uuid(payload.get("coachee_party_id"), "coachee party")
+    session_date_value = payload.get("session_date")
+    session_date = None if session_date_value in (None, "") else _normalize_date(
+        session_date_value, "session_date"
+    )
+
+    focus = payload.get("focus")
+    if (
+        not isinstance(focus, str)
+        or not focus.strip()
+        or len(focus.strip()) > 255
+        or any(ord(character) < 32 or ord(character) == 127 for character in focus)
+    ):
+        raise OperatingPilotWriteInvalid("Coaching focus must be text of 1 to 255 characters")
+    focus = focus.strip()
+
+    commitments = payload.get("commitments", [])
+    if not isinstance(commitments, list) or len(commitments) > 20:
+        raise OperatingPilotWriteInvalid("Commitments must be an array with at most 20 entries")
+    normalized_commitments: list[str] = []
+    for item in commitments:
+        if (
+            not isinstance(item, str)
+            or not item.strip()
+            or len(item.strip()) > 500
+            or any(ord(character) < 32 or ord(character) == 127 for character in item)
+        ):
+            raise OperatingPilotWriteInvalid(
+                "Each commitment must be text of 1 to 500 safe characters"
+            )
+        normalized_commitments.append(item.strip())
+    try:
+        encoded_commitments = json.dumps(
+            normalized_commitments,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise OperatingPilotWriteInvalid("Commitments must contain valid text values") from exc
+
+    optional_text: list[str | None] = []
+    for field, maximum in (("wellbeing_check", 1000), ("notes", 4000)):
+        value = payload.get(field)
+        if value is not None:
+            if (
+                not isinstance(value, str)
+                or len(value) > maximum
+                or any(ord(character) < 32 or ord(character) == 127 for character in value)
+            ):
+                raise OperatingPilotWriteInvalid(
+                    f"{field} must be safe text of at most {maximum} characters"
+                )
+            value = value.strip() or None
+        optional_text.append(value)
+
+    unexpected = set(payload) - {
+        "coachee_party_id", "session_date", "focus", "commitments",
+        "wellbeing_check", "notes",
+    }
+    if unexpected:
+        raise OperatingPilotWriteInvalid("Coaching-session body contains unsupported fields")
+    return (
+        coachee_party_id,
+        session_date,
+        focus,
+        encoded_commitments,
+        optional_text[0],
+        optional_text[1],
+    )
+
+
 def _normalize_work_claim_payload(payload: Any) -> Decimal | None:
     if not isinstance(payload, dict):
         raise OperatingPilotWriteInvalid("Work-claim body must be an object")
@@ -1249,6 +1327,69 @@ def allocate_location_operating_pilot_work_claim(
             row = cursor.fetchone()
             if row is None or row[0] is None:
                 raise RuntimeError("Operating-pilot work-claim allocation returned no result")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+        connection.commit()
+        return {"location_id": location_id, **result}
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_operating_pilot_coaching_session(
+    operator_id: str,
+    location_id: str,
+    request_id: str,
+    payload: Any,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Write one consented private coaching record through its bounded SQL function."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    request_id = _normalize_uuid(request_id, "request")
+    (
+        coachee_party_id,
+        session_date,
+        focus,
+        commitments,
+        wellbeing_check,
+        notes,
+    ) = _normalize_coaching_session_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="operating_pilot",
+            action="coach",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT kokonut_security.create_location_operating_pilot_coaching_session(
+                           %s::uuid, %s::uuid, %s::uuid, %s::date, %s::text,
+                           %s::jsonb, %s::text, %s::text)""",
+                (
+                    location_id,
+                    coachee_party_id,
+                    request_id,
+                    session_date,
+                    focus,
+                    commitments,
+                    wellbeing_check,
+                    notes,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Operating-pilot coaching session returned no result")
             result = row[0]
             if isinstance(result, str):
                 result = json.loads(result)

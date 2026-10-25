@@ -56,6 +56,14 @@ LEARNING_PLAN_REVISION_PAYLOAD = {
     **LEARNING_PLAN_PAYLOAD,
     "expected_updated_at": "2026-10-24T12:00:00+00:00",
 }
+COACHING_PAYLOAD = {
+    "coachee_party_id": PROFILE_ID,
+    "session_date": "2026-10-20",
+    "focus": "Soil health planning",
+    "commitments": ["Prepare a compost plan", "Review mulch sourcing"],
+    "wellbeing_check": "Participant reports feeling supported",
+    "notes": "Private synthetic session note",
+}
 
 
 def _connection_with_result(result):
@@ -2824,3 +2832,111 @@ def test_resource_fulfillment_http_route_rejects_extra_payload_fields(monkeypatc
     )
     assert response.status_code == 400
     action.assert_not_called()
+
+
+def test_coaching_session_write_sets_exact_coach_context_and_calls_bounded_function(monkeypatch):
+    connection, cursor = _connection_with_result(
+        {"session_id": PROFILE_ID, "status": "completed", "privacy_level": "private", "replayed": False}
+    )
+    contexts = []
+    monkeypatch.setattr(
+        operating_pilot_writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operating_pilot_writes.create_location_operating_pilot_coaching_session(
+        OPERATOR_ID, LOCATION_ID, REQUEST_ID, COACHING_PAYLOAD,
+        connection_factory=lambda: connection,
+    )
+
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "operating_pilot",
+        "action": "coach",
+    })]
+    assert "create_location_operating_pilot_coaching_session" in cursor.execute.call_args_list[2].args[0]
+    assert cursor.execute.call_args_list[2].args[1] == (
+        LOCATION_ID,
+        PROFILE_ID,
+        REQUEST_ID,
+        operating_pilot_writes.date(2026, 10, 20),
+        "Soil health planning",
+        '["Prepare a compost plan","Review mulch sourcing"]',
+        "Participant reports feeling supported",
+        "Private synthetic session note",
+    )
+    assert result["location_id"] == LOCATION_ID
+    assert result["privacy_level"] == "private"
+    connection.commit.assert_called_once_with()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ({**COACHING_PAYLOAD, "coachee_party_id": "bad"}, "coachee party"),
+        ({**COACHING_PAYLOAD, "session_date": "2026-10-20T00:00:00Z"}, "ISO date"),
+        ({**COACHING_PAYLOAD, "focus": "  "}, "focus"),
+        ({**COACHING_PAYLOAD, "focus": "bad\nvalue"}, "focus"),
+        ({**COACHING_PAYLOAD, "commitments": [1]}, "commitment"),
+        ({**COACHING_PAYLOAD, "commitments": ["  "]}, "commitment"),
+        ({**COACHING_PAYLOAD, "notes": "bad\x00value"}, "notes"),
+        ({**COACHING_PAYLOAD, "unexpected": "value"}, "unsupported fields"),
+    ],
+)
+def test_invalid_coaching_session_fails_before_database_access(payload, message):
+    factory = MagicMock(side_effect=AssertionError("invalid input must fail before DB access"))
+    with pytest.raises(operating_pilot_writes.OperatingPilotWriteInvalid, match=message):
+        operating_pilot_writes.create_location_operating_pilot_coaching_session(
+            OPERATOR_ID, LOCATION_ID, REQUEST_ID, payload, connection_factory=factory
+        )
+    factory.assert_not_called()
+
+
+def test_coaching_session_route_requires_request_id_and_returns_no_store(monkeypatch):
+    action = MagicMock(return_value={
+        "session_id": PROFILE_ID, "status": "completed", "privacy_level": "private", "replayed": False,
+    })
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        json={**COACHING_PAYLOAD, "request_id": REQUEST_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["privacy_level"] == "private"
+    action.assert_called_once_with(OPERATOR_ID, LOCATION_ID, REQUEST_ID, COACHING_PAYLOAD)
+
+
+def test_coaching_session_route_rejects_oversized_body_before_write(monkeypatch):
+    action = MagicMock(side_effect=AssertionError("oversized body must not reach the writer"))
+    client = _route_app(monkeypatch, action, "create_location_operating_pilot_coaching_session")
+    response = client.post(
+        f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions",
+        content=b" " * (32 * 1024 + 1),
+        headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 413
+    assert response.headers["cache-control"] == "no-store"
+    action.assert_not_called()
+
+
+def test_coaching_session_route_policy_requires_exact_coach_grant():
+    path = f"/operator/api/operating-pilot/{LOCATION_ID}/coaching-sessions"
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "operating_pilot",
+        "action": "coach",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("GET", path, enabled=True) is None
+    assert auth_route_policy("POST", path + "/unexpected", enabled=True) is None
+    assert auth_route_policy("POST", path, enabled=False) is None

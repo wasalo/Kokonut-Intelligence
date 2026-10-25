@@ -50,6 +50,7 @@ LEARNING_PLAN_REVISION_MIGRATION = ROOT / "schemas/postgres/607_location_operati
 LEARNING_PLAN_SUBMISSION_MIGRATION = ROOT / "schemas/postgres/608_location_operating_pilot_learning_plan_submission.sql"
 LEARNING_PLAN_REVIEW_QUEUE_MIGRATION = ROOT / "schemas/postgres/609_location_operating_pilot_learning_plan_review_queue.sql"
 LEARNING_PLAN_REVIEW_DECISION_MIGRATION = ROOT / "schemas/postgres/610_location_operating_pilot_learning_plan_review_decision.sql"
+COACHING_SESSION_MIGRATION = ROOT / "schemas/postgres/611_location_scoped_operating_coaching_sessions.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-own-demand-revision-disposable.json"
 DEMAND_REVIEW_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-demand-review-decision-disposable.json"
 WORK_OPPORTUNITIES_OUTPUT = ROOT / "docs/refactor/builds/2026-10-22-recovery/cap-037-work-opportunities-disposable.json"
@@ -89,6 +90,8 @@ LEARNING_PLAN_REVIEW_QUEUE_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-reco
 LEARNING_PLAN_REVIEW_QUEUE_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-queue-arm64-disposable.json"
 LEARNING_PLAN_REVIEW_DECISION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-disposable.json"
 LEARNING_PLAN_REVIEW_DECISION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-learning-plan-review-decision-arm64-disposable.json"
+COACHING_SESSION_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-disposable.json"
+COACHING_SESSION_ARM64_OUTPUT = ROOT / "docs/refactor/builds/2026-10-24-recovery/cap-037-private-coaching-session-arm64-disposable.json"
 spec = importlib.util.spec_from_file_location(
     "sequential_decision_summary_disposable",
     ROOT / "scripts/check-sequential-decision-summary-disposable.py",
@@ -136,7 +139,23 @@ CREATE ROLE kokonut_directus_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
 CREATE SCHEMA kokonut_security;
 CREATE TABLE public.party (
     id uuid PRIMARY KEY, party_type text NOT NULL DEFAULT 'person',
-    status text NOT NULL DEFAULT 'active', display_name text NOT NULL DEFAULT 'Synthetic person'
+    status text NOT NULL DEFAULT 'active', display_name text NOT NULL DEFAULT 'Synthetic person',
+    privacy_level text NOT NULL DEFAULT 'private'
+);
+CREATE TABLE public.farmer_profile (
+    id uuid PRIMARY KEY, location_id uuid, status text NOT NULL DEFAULT 'active'
+);
+CREATE TABLE public.party_identifier (
+    id uuid PRIMARY KEY, party_id uuid NOT NULL, identifier_type text NOT NULL,
+    identifier_value text NOT NULL, source_system text NOT NULL,
+    verification_status text NOT NULL DEFAULT 'unreviewed'
+);
+CREATE TABLE public.stakeholder_consent (
+    id uuid PRIMARY KEY, party_id uuid NOT NULL, event_type text NOT NULL,
+    data_category text NOT NULL, purpose text NOT NULL,
+    scope_type text NOT NULL, scope_id uuid, recipient_party_id uuid,
+    recipient_type text NOT NULL DEFAULT 'system', effective_at timestamptz NOT NULL DEFAULT now(),
+    expires_at timestamptz, created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.operator_identity (id uuid PRIMARY KEY, enabled boolean NOT NULL);
 CREATE TABLE public.operator_governance_party_binding (
@@ -263,7 +282,10 @@ CREATE TABLE public.operating_resource_request (
 );
 CREATE TABLE public.operating_coaching_session (
     id uuid PRIMARY KEY, coachee_party_id uuid NOT NULL, scope_type text NOT NULL,
-    scope_id uuid NOT NULL, privacy_level text NOT NULL, notes text
+    scope_id uuid NOT NULL, coach_party_id uuid, session_date date NOT NULL DEFAULT CURRENT_DATE,
+    focus text NOT NULL DEFAULT 'Synthetic legacy session', commitments jsonb NOT NULL DEFAULT '[]',
+    wellbeing_check text, notes text, privacy_level text NOT NULL, status text NOT NULL DEFAULT 'completed',
+    created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE OR REPLACE FUNCTION kokonut_security.current_tenant_context()
 RETURNS TABLE(tenant_id uuid, location_id uuid, actor_id uuid, actor_type text)
@@ -336,9 +358,29 @@ INSERT INTO public.operator_scope_grant VALUES
  ('a1000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read', 'f0000000-0000-4000-8000-000000000001', NULL),
  ('a1000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'read_own', 'f0000000-0000-4000-8000-000000000001', NULL),
  ('a1000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'edit_own', 'f0000000-0000-4000-8000-000000000001', NULL),
- ('a1000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'submit_own', 'f0000000-0000-4000-8000-000000000001', NULL);
+ ('a1000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'submit_own', 'f0000000-0000-4000-8000-000000000001', NULL),
+ ('a1f00000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'operating_pilot', 'coach', 'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.party (id, party_type, status, display_name)
 VALUES ('d8000000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic operator party');
+INSERT INTO public.party (id, party_type, status, display_name, privacy_level) VALUES
+ ('d8f10000-0000-4000-8000-000000000001', 'person', 'active', 'Synthetic participant', 'private'),
+ ('d8f10000-0000-4000-8000-000000000002', 'person', 'active', 'Other farm participant', 'private');
+INSERT INTO public.farmer_profile (id, location_id, status) VALUES
+ ('d8f20000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'active'),
+ ('d8f20000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002', 'active');
+INSERT INTO public.party_identifier (
+    id, party_id, identifier_type, identifier_value, source_system, verification_status
+) VALUES
+ ('d8f30000-0000-4000-8000-000000000001', 'd8f10000-0000-4000-8000-000000000001', 'farmer_profile_id', 'd8f20000-0000-4000-8000-000000000001', 'synthetic', 'verified'),
+ ('d8f30000-0000-4000-8000-000000000002', 'd8f10000-0000-4000-8000-000000000002', 'farmer_profile_id', 'd8f20000-0000-4000-8000-000000000002', 'synthetic', 'verified');
+INSERT INTO public.stakeholder_consent (
+    id, party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_type, effective_at
+) VALUES (
+    'd8f40000-0000-4000-8000-000000000001', 'd8f10000-0000-4000-8000-000000000001',
+    'grant', 'coaching_session', 'operating_pilot_coaching', 'location',
+    'b0000000-0000-4000-8000-000000000001', 'system', now() - interval '1 hour'
+);
 INSERT INTO public.operator_governance_party_binding (id, operator_id, party_id, revoked_at)
 VALUES ('d8000000-0000-4000-8000-000000000002',
         'a0000000-0000-4000-8000-000000000001',
@@ -6396,6 +6438,177 @@ END $$;
 ROLLBACK;
 """
 
+COACHING_SESSION_ACCEPTANCE = r"""
+BEGIN;
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE created jsonb; replayed jsonb; history jsonb; changed_retry_denied boolean := false;
+        malformed_denied boolean := false; wrong_party_denied boolean := false;
+        wrong_location_denied boolean := false; other_operator_denied boolean := false;
+        invalid_page_denied boolean := false;
+BEGIN
+    created := kokonut_security.create_location_operating_pilot_coaching_session(
+        'b0000000-0000-4000-8000-000000000001',
+        'd8f10000-0000-4000-8000-000000000001',
+        'd8400000-0000-4000-8000-000000000001', CURRENT_DATE - 1,
+        'Soil health planning', '["Review compost plan"]'::jsonb,
+        'Participant reports feeling supported', 'PRIVATE synthetic coaching note'
+    );
+    replayed := kokonut_security.create_location_operating_pilot_coaching_session(
+        'b0000000-0000-4000-8000-000000000001',
+        'd8f10000-0000-4000-8000-000000000001',
+        'd8400000-0000-4000-8000-000000000001', CURRENT_DATE - 1,
+        'Soil health planning', '["Review compost plan"]'::jsonb,
+        'Participant reports feeling supported', 'PRIVATE synthetic coaching note'
+    );
+    IF created->>'status' <> 'completed' OR created->>'privacy_level' <> 'private'
+       OR created->>'replayed' <> 'false' OR replayed->>'replayed' <> 'true'
+       OR created::text ~* '(notes|wellbeing|participant|party_id)' THEN
+        RAISE EXCEPTION 'coaching capture result or exact idempotent replay is incorrect: %, %', created, replayed;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_coaching_session(
+            'b0000000-0000-4000-8000-000000000001',
+            'd8f10000-0000-4000-8000-000000000001',
+            'd8400000-0000-4000-8000-000000000001', CURRENT_DATE - 1,
+            'Changed focus', '[]'::jsonb, NULL, NULL
+        );
+    EXCEPTION WHEN unique_violation THEN changed_retry_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_coaching_session(
+            'b0000000-0000-4000-8000-000000000001',
+            'd8f10000-0000-4000-8000-000000000001',
+            'd8400000-0000-4000-8000-000000000002', CURRENT_DATE - 1,
+            'Soil health planning', '{}'::jsonb, NULL, NULL
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN malformed_denied := true;
+    END;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_coaching_session(
+            'b0000000-0000-4000-8000-000000000001',
+            'd8f10000-0000-4000-8000-000000000002',
+            'd8400000-0000-4000-8000-000000000003', CURRENT_DATE - 1,
+            'Other location participant', '[]'::jsonb, NULL, NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_party_denied := true;
+    END;
+    history := kokonut_security.location_operating_pilot_own_coaching_sessions(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    IF jsonb_array_length(history->'items') <> 1
+       OR history->>'has_more' <> 'false'
+       OR history::text !~ 'PRIVATE synthetic coaching note'
+       OR history::text ~* '(operator_id|coach_party_id|coachee_party_id|scope_id|consent_event_id|input_digest)' THEN
+        RAISE EXCEPTION 'own private coaching history escaped its bounded receipt-backed projection: %', history;
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_coaching_sessions(
+            'b0000000-0000-4000-8000-000000000001', 51, 0
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN invalid_page_denied := true;
+    END;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_coaching_sessions(
+            'b0000000-0000-4000-8000-000000000001', 10, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN wrong_location_denied := true;
+    END;
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    BEGIN
+        PERFORM kokonut_security.location_operating_pilot_own_coaching_sessions(
+            'b0000000-0000-4000-8000-000000000001', 10, 0
+        );
+    EXCEPTION WHEN insufficient_privilege THEN other_operator_denied := true;
+    END;
+    IF NOT changed_retry_denied OR NOT malformed_denied OR NOT wrong_party_denied
+       OR NOT wrong_location_denied OR NOT other_operator_denied OR NOT invalid_page_denied THEN
+        RAISE EXCEPTION 'coaching retry, payload, participant, location, operator, or paging boundary failed';
+    END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_runtime;
+DO $$
+DECLARE direct_read_denied boolean := false;
+BEGIN
+    BEGIN
+        EXECUTE 'SELECT notes FROM public.operating_coaching_session LIMIT 1';
+    EXCEPTION WHEN insufficient_privilege THEN direct_read_denied := true;
+    END;
+    IF NOT direct_read_denied THEN RAISE EXCEPTION 'runtime can directly read private coaching notes'; END IF;
+END $$;
+RESET ROLE;
+SET LOCAL ROLE kokonut_directus_runtime;
+DO $$
+DECLARE direct_read_denied boolean := false;
+BEGIN
+    BEGIN
+        EXECUTE 'SELECT notes FROM public.operating_coaching_session LIMIT 1';
+    EXCEPTION WHEN insufficient_privilege THEN direct_read_denied := true;
+    END;
+    IF NOT direct_read_denied THEN RAISE EXCEPTION 'Directus can directly read private coaching notes'; END IF;
+END $$;
+RESET ROLE;
+DO $$
+BEGIN
+    IF has_table_privilege('kokonut_runtime', 'public.operating_pilot_coaching_session_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.operating_pilot_coaching_session_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_coaching_session_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_operating_pilot_reader', 'public.operating_pilot_coaching_session_receipt', 'DELETE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.create_location_operating_pilot_coaching_session(uuid,uuid,uuid,date,text,jsonb,text,text)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.location_operating_pilot_own_coaching_sessions(uuid,integer,integer)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.create_location_operating_pilot_coaching_session(uuid,uuid,uuid,date,text,jsonb,text,text)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.location_operating_pilot_own_coaching_sessions(uuid,integer,integer)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'coaching function and private append-only ACL boundaries are incorrect';
+    END IF;
+END $$;
+INSERT INTO public.stakeholder_consent (
+    id, party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_type, effective_at
+) VALUES (
+    'd8f40000-0000-4000-8000-000000000002', 'd8f10000-0000-4000-8000-000000000001',
+    'withdraw', 'coaching_session', 'operating_pilot_coaching', 'location',
+    'b0000000-0000-4000-8000-000000000001', 'system', now()
+);
+SET LOCAL ROLE kokonut_runtime;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE history jsonb; withdrawal_denied boolean := false;
+BEGIN
+    history := kokonut_security.location_operating_pilot_own_coaching_sessions(
+        'b0000000-0000-4000-8000-000000000001', 10, 0
+    );
+    IF jsonb_array_length(history->'items') <> 0 THEN
+        RAISE EXCEPTION 'withdrawn consent left private coaching visible';
+    END IF;
+    BEGIN
+        PERFORM kokonut_security.create_location_operating_pilot_coaching_session(
+            'b0000000-0000-4000-8000-000000000001',
+            'd8f10000-0000-4000-8000-000000000001',
+            'd8400000-0000-4000-8000-000000000004', CURRENT_DATE,
+            'Post-withdrawal attempt', '[]'::jsonb, NULL, NULL
+        );
+    EXCEPTION WHEN insufficient_privilege THEN withdrawal_denied := true;
+    END;
+    IF NOT withdrawal_denied THEN RAISE EXCEPTION 'coaching capture remained enabled after consent withdrawal'; END IF;
+END $$;
+RESET ROLE;
+ROLLBACK;
+"""
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -6514,7 +6727,14 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Also apply/replay migration 610 and test independent learning-plan review decisions",
     )
+    parser.add_argument(
+        "--coaching-session",
+        action="store_true",
+        help="Also apply/replay migrations 610–611 and test private, consented location coaching",
+    )
     args = parser.parse_args(argv)
+    if args.coaching_session:
+        args.learning_plan_review_decision = True
     if args.learning_plan_review_decision:
         args.learning_plan_review_queue = True
     if args.learning_plan_review_queue:
@@ -6552,6 +6772,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.work_claim_allocation:
         args.work_claim_review = True
     default_output = (
+        (COACHING_SESSION_ARM64_OUTPUT if args.platform == "linux/arm64" else COACHING_SESSION_OUTPUT)
+        if args.coaching_session
+        else
         (LEARNING_PLAN_REVIEW_DECISION_ARM64_OUTPUT if args.platform == "linux/arm64" else LEARNING_PLAN_REVIEW_DECISION_OUTPUT)
         if args.learning_plan_review_decision
         else
@@ -6637,7 +6860,7 @@ def main(argv: list[str] | None = None) -> int:
         "network_access": "disabled with Docker network mode none",
         "candidate_or_legacy_modified": False,
         "checks": [
-            f"operating-pilot migrations through {610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
+            f"operating-pilot migrations through {611 if args.coaching_session else 610 if args.learning_plan_review_decision else 609 if args.learning_plan_review_queue else 608 if args.learning_plan_submission else 607 if args.learning_plan_revision else 606 if args.learning_plan_draft else 605 if args.learning_plan_own_read else 577 if args.competency_review else 576 if args.competency_lifecycle else 575 if args.competency_own_read else 574 if args.competency_draft else 573 if args.resource_request_fulfillment else 572 if args.resource_request_review_decision else 571 if args.resource_request_review_queue else 570 if args.resource_request_own_submission else 569 if args.resource_request_own_revision else 568 if args.resource_request_own_read else 567 if args.resource_request_draft else 566 if args.work_claim_allocation else 565 if args.work_claim_review else 564 if args.work_opportunities else 563 if args.demand_review_decision else 562} apply and replay on disposable PostgreSQL 16",
             "active Adelphi farm scope maps through farm.location_id and gates exact location data",
             "work, claims, learning, competency, resource, and aggregate-only coaching counts match fixtures",
             "signed tenant context and exact operating_pilot:read are enforced",
@@ -6959,6 +7182,18 @@ def main(argv: list[str] | None = None) -> int:
                 "migration 610 applies and replays after stale PUBLIC/runtime/Directus/reader table and column grants are injected",
             ]
         )
+    if args.coaching_session:
+        evidence["migrations"].append(COACHING_SESSION_MIGRATION.name)
+        evidence["checks"].extend(
+            [
+                "private coaching capture requires the exact signed operating_pilot:coach grant, active Adelphi mapping, one active human coach binding, and a verified active participant at the same location",
+                "capture requires the latest exact-purpose location consent grant and records a private completed session with a private append-only idempotency receipt",
+                "exact retries replay without date drift; changed request reuse, malformed structured payload, missing consent, wrong location, and unverified participant fail closed",
+                "only the authenticated coach can read bounded receipt-backed own history, and a newer withdrawal immediately hides history and blocks future capture",
+                "runtime and Directus cannot directly read private coaching fields or receipts; Directus cannot execute either function, and the non-login reader cannot mutate receipts",
+                "migration 611 reapplies cleanly after stale table and column grants are injected; private coaching route remains a candidate-only Gateway surface",
+            ]
+        )
     try:
         container_command = [docker, "run"]
         if args.platform:
@@ -7185,11 +7420,30 @@ def main(argv: list[str] | None = None) -> int:
             psql(docker, container, stale_decision_privileges)
             psql(docker, container, learning_plan_review_decision_migration)
             psql(docker, container, LEARNING_PLAN_REVIEW_DECISION_ACCEPTANCE)
+        if args.coaching_session:
+            coaching_session_migration = COACHING_SESSION_MIGRATION.read_text(encoding="utf-8")
+            psql(docker, container, coaching_session_migration)
+            stale_coaching_privileges = """
+                GRANT ALL ON TABLE public.operating_coaching_session
+                TO kokonut_runtime, kokonut_directus_runtime, PUBLIC;
+                GRANT ALL ON TABLE public.operating_pilot_coaching_session_receipt
+                TO kokonut_runtime, kokonut_directus_runtime, kokonut_operating_pilot_reader, PUBLIC;
+                GRANT SELECT (notes, wellbeing_check), UPDATE (notes)
+                ON TABLE public.operating_coaching_session
+                TO kokonut_runtime, kokonut_directus_runtime;
+                GRANT SELECT (input_digest), UPDATE (input_digest)
+                ON TABLE public.operating_pilot_coaching_session_receipt
+                TO kokonut_runtime, kokonut_directus_runtime, PUBLIC;
+            """
+            psql(docker, container, stale_coaching_privileges)
+            psql(docker, container, coaching_session_migration)
+            psql(docker, container, COACHING_SESSION_ACCEPTANCE)
         elif not args.competency_own_read:
             psql(docker, container, PRIVACY_SUPPRESSION)
         evidence["result"] = "passed"
         evidence["assertion_groups_passed"] = (
-            260 if args.learning_plan_review_decision
+            269 if args.coaching_session
+            else 260 if args.learning_plan_review_decision
             else
             240 if args.learning_plan_review_queue
             else
@@ -7218,7 +7472,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         evidence["preexisting_runtime_or_directus_grants_assessed"] = True
         migration_end = (
-            610 if args.learning_plan_review_decision
+            611 if args.coaching_session
+            else 610 if args.learning_plan_review_decision
             else 609 if args.learning_plan_review_queue
             else
             608 if args.learning_plan_submission
