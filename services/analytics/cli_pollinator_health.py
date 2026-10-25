@@ -9,7 +9,6 @@ queries/business logic. Reachable via:
 from ..common.commands import CommandLine
 from .pollinator_health import (
     add_hive,
-    create_habitat,
     get_habitat_inventory,
     get_hive_status,
     get_pesticide_risk,
@@ -33,14 +32,9 @@ def _cmd_retired_record_observation(_db, _a):
 
 
 def _cmd_create_habitat(db, a):
-    return create_habitat(
-        db, a.location_id, a.name, a.habitat_type, a.area_m2,
-        plant_species=a.plant_species,
-        bloom_start_month=a.bloom_start_month,
-        bloom_end_month=a.bloom_end_month,
-        water_source=a.water_source,
-        nesting_sites=a.nesting_sites,
-        management_notes=a.management_notes,
+    raise RuntimeError(
+        "Unscoped pollinator habitat writes are retired; use the authenticated "
+        "Kokonut Gateway habitat form with a location create grant."
     )
 
 
@@ -98,7 +92,7 @@ cli.subcommand("record-observation", "Retired; use authenticated Gateway capture
     .add("--json", action="store_true") \
     .run(_cmd_retired_record_observation, needs_db=False)
 
-cli.subcommand("create-habitat", "Create pollinator habitat") \
+cli.subcommand("create-habitat", "Retired; use authenticated Gateway habitat capture") \
     .add("--location-id", required=True) \
     .add("--name", required=True) \
     .add("--type", required=True, dest="habitat_type") \
@@ -110,7 +104,7 @@ cli.subcommand("create-habitat", "Create pollinator habitat") \
     .add("--nesting-sites") \
     .add("--notes", dest="management_notes") \
     .add("--json", action="store_true") \
-    .run(_cmd_create_habitat)
+    .run(_cmd_create_habitat, needs_db=False)
 
 cli.subcommand("record-pesticide", "Retired; use authenticated Gateway pesticide report") \
     .add("--location-id", required=True) \

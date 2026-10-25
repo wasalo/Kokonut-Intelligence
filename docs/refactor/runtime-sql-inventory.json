@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 942,
-    "execution_sites": 4810,
+    "execution_sites": 4811,
     "worker_operation_roots": 33,
     "sites_with_worker_operation_refs": 342,
-    "sites_without_worker_operation_refs": 4468,
+    "sites_without_worker_operation_refs": 4469,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 46,
@@ -15,14 +15,14 @@
       "RELEASE": 20,
       "ROLLBACK": 12,
       "SAVEPOINT": 11,
-      "SELECT": 2805,
+      "SELECT": 2806,
       "SET": 610,
       "UNKNOWN": 205,
       "UPDATE": 429,
       "WITH": 29
     },
     "statement_groups": {
-      "read_candidate": 2805,
+      "read_candidate": 2806,
       "schema_change": 1,
       "transaction_or_session": 653,
       "unknown_requires_manual_review": 205,
@@ -33,10 +33,10 @@
       "composed": 19,
       "composed_or_variable": 281,
       "fstring": 285,
-      "literal": 4225
+      "literal": 4226
     },
     "relation_candidates": 1202,
-    "sites_without_relation_candidates": 1141,
+    "sites_without_relation_candidates": 1142,
     "service_packages": 68
   },
   "service_packages": {
@@ -366,16 +366,16 @@
     },
     "gateway": {
       "source_files": 128,
-      "execution_sites": 964,
+      "execution_sites": 965,
       "statement_groups": {
-        "read_candidate": 361,
+        "read_candidate": 362,
         "transaction_or_session": 543,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 4,
         "write_candidate": 38
       },
       "candidate_relation_names": 241,
-      "sites_without_relation_candidates": 638,
+      "sites_without_relation_candidates": 639,
       "non_literal_sites": 14,
       "sites_with_worker_operation_refs": 0
     },
@@ -5072,8 +5072,9 @@
     {"id": "services/gateway/pollinator_health_reads.py:125:12","source": "services/gateway/pollinator_health_reads.py","line": 125,"column": 12,"scope": "get_location_pollinator_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pollinator_habitat"],"static_sql_sha256": "ddcebb036d4f9b726c88955851471af559ea2b5cf80ca9545b6480a9dce03488","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/pollinator_health_reads.py:139:12","source": "services/gateway/pollinator_health_reads.py","line": 139,"column": 12,"scope": "get_location_pollinator_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["pesticide_impact_log"],"static_sql_sha256": "38fb15239f5b1fc1f15ec54b8955e5e8ef614c2d0085d26d64ff6b9b5382852c","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/pollinator_health_reads.py:172:12","source": "services/gateway/pollinator_health_reads.py","line": 172,"column": 12,"scope": "get_location_pollinator_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["hive_record"],"static_sql_sha256": "f0fde10cfb8a4014e43dabbcdf37c5b02c6580db7c77eda47e44764ad72d8eeb","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/pollinator_health_writes.py:182:12","source": "services/gateway/pollinator_health_writes.py","line": 182,"column": 12,"scope": "create_location_pollinator_observation","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "99e49b4e3d33803ef71b47c1f8c9f67fdd9289b1c4c269ccf8cc2a87fb2bf5cc","operation_refs": [],"statement_group": "read_candidate"},
-    {"id": "services/gateway/pollinator_health_writes.py:296:12","source": "services/gateway/pollinator_health_writes.py","line": 296,"column": 12,"scope": "create_location_pesticide_impact","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "ab4cba25888250a33f71c166e05b90f5dbe54ea6bce425754a4b06a63e43c90d","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/pollinator_health_writes.py:186:12","source": "services/gateway/pollinator_health_writes.py","line": 186,"column": 12,"scope": "create_location_pollinator_observation","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "99e49b4e3d33803ef71b47c1f8c9f67fdd9289b1c4c269ccf8cc2a87fb2bf5cc","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/pollinator_health_writes.py:300:12","source": "services/gateway/pollinator_health_writes.py","line": 300,"column": 12,"scope": "create_location_pesticide_impact","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "ab4cba25888250a33f71c166e05b90f5dbe54ea6bce425754a4b06a63e43c90d","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/pollinator_health_writes.py:406:12","source": "services/gateway/pollinator_health_writes.py","line": 406,"column": 12,"scope": "create_location_pollinator_habitat","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "2a8db67a9ff1b06c7b861a45ce62779755d28206757af23fcc69b6dc8654756d","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/postgres_rate_limiter.py:20:12","source": "services/gateway/postgres_rate_limiter.py","line": 20,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/postgres_rate_limiter.py:21:12","source": "services/gateway/postgres_rate_limiter.py","line": 21,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "533631607e3f7cfccfec5c163f787a0d14ddf3a4e3e49ce74a3ea398393a39cc","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/postgres_rate_limiter.py:22:12","source": "services/gateway/postgres_rate_limiter.py","line": 22,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["gateway_rate_bucket"],"static_sql_sha256": "31bfce29910d690d239d48a60a5ae0e4acc70be8eeb265e1757e67c9359a3a57","operation_refs": [],"statement_group": "write_candidate"},

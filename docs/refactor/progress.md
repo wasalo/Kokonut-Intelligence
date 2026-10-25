@@ -1,3 +1,27 @@
+### Progress addendum — CAP-006 self-reported pollinator habitat inventory, 25 October 2026
+
+Migration 621 and the authenticated Gateway now capture a new habitat inventory
+entry only under exact `pollinator_health:create` with signed location context,
+operator attribution, field bounds and digest-only retry receipts. The database
+function owner is isolated; runtime and Directus cannot write the table directly
+or read receipts. The source `active` value is retained as habitat inventory
+state and is explicitly not verification of condition or ecological outcomes.
+The console separates the create grant from summary reads and labels the entry
+as self-reported. The legacy `create-habitat` command fails before database
+access.
+
+The combined CAP-006 Gateway/ecology/waste/console selection passes 235 tests.
+Ruff, Python compilation, route policy, capability matrix, and runtime SQL
+inventory checks pass. Disposable PostgreSQL 16 applies/replays migrations
+155/602/619/620/621 with ten grouped checks on native x86_64 and ARM64/QEMU
+([native](builds/2026-10-25-recovery/cap-006-pollinator-habitat-capture-disposable.json);
+[ARM64/QEMU](builds/2026-10-25-recovery/cap-006-pollinator-habitat-capture-arm64-disposable.json)).
+Candidate and legacy remain untouched; migration 621 is not rolled out. QEMU is
+software portability evidence only. Checklist: 1,129 complete / 25 open (1,154
+total). Habitat status/maintenance operations, hive registration, and inspection
+remain open along with populated parity, live OIDC/browser, independent review,
+broader ACL/RLS, Directus parity, and MAN-CAP-006.
+
 ### Progress addendum — CAP-006 location-scoped pesticide-impact reports, 25 October 2026
 
 Migration 620 adds a tenant-authorized, recorded-only pesticide-impact report

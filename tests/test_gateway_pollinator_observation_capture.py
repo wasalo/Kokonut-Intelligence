@@ -2,6 +2,7 @@
 
 import importlib
 from datetime import date
+from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -106,6 +107,23 @@ def _pesticide_payload(**changes):
     return payload
 
 
+def _habitat_payload(**changes):
+    payload = {
+        "request_id": str(uuid4()),
+        "habitat_name": "Synthetic native strip",
+        "habitat_type": "wildflower_strip",
+        "area_m2": "125.50",
+        "plant_species": ["Native clover", "Buttonwood"],
+        "bloom_start_month": 3,
+        "bloom_end_month": 9,
+        "water_source": True,
+        "nesting_sites": "Undisturbed ground edge",
+        "notes": "Synthetic habitat inventory",
+    }
+    payload.update(changes)
+    return payload
+
+
 def test_observation_sets_signed_create_context_before_function_and_cleans_connection(monkeypatch):
     connection = Connection()
     contexts = []
@@ -193,6 +211,50 @@ def test_pesticide_report_sets_create_context_and_commits_recorded_result(monkey
     assert connection.closed
 
 
+def test_habitat_capture_sets_create_context_and_commits_self_reported_inventory(monkeypatch):
+    connection = Connection()
+    connection.result = {
+        "habitat_id": "33333333-3333-4333-8333-333333333333",
+        "location_id": _LOCATION,
+        "habitat_type": "wildflower_strip",
+        "area_m2": 125.5,
+        "status": "active",
+        "replayed": False,
+    }
+    contexts = []
+    monkeypatch.setattr(
+        writes,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+    payload = _habitat_payload()
+
+    result = writes.create_location_pollinator_habitat(
+        _OPERATOR, _LOCATION, payload, connection_factory=lambda: connection
+    )
+
+    assert contexts == [(
+        connection,
+        {
+            "operator_id": _OPERATOR,
+            "location_id": _LOCATION,
+            "resource": "pollinator_health",
+            "action": "create",
+        },
+    )]
+    query, params = connection.operations[0]
+    assert "create_location_pollinator_habitat" in query
+    assert params == (
+        _LOCATION, payload["request_id"], "Synthetic native strip", "wildflower_strip",
+        Decimal("125.50"), '["Native clover", "Buttonwood"]', 3, 9, True,
+        "Undisturbed ground edge", "Synthetic habitat inventory",
+    )
+    assert result["status"] == "active"
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed
+
+
 @pytest.mark.parametrize(
     "changes",
     [
@@ -217,6 +279,35 @@ def test_invalid_pesticide_report_is_rejected_before_database_access(changes):
             _OPERATOR,
             _LOCATION,
             _pesticide_payload(**changes),
+            connection_factory=lambda: opened.append(True),
+        )
+    assert opened == []
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"habitat_name": "  "},
+        {"habitat_type": "citrus_orchard"},
+        {"area_m2": "NaN"},
+        {"area_m2": "100000000"},
+        {"plant_species": ["x" * 101]},
+        {"plant_species": ["bee balm", 1]},
+        {"plant_species": ["clover"] * 51},
+        {"bloom_start_month": True},
+        {"bloom_end_month": 13},
+        {"water_source": "yes"},
+        {"nesting_sites": "bad\nnote"},
+        {"unexpected": "field"},
+    ],
+)
+def test_invalid_habitat_report_is_rejected_before_database_access(changes):
+    opened = []
+    with pytest.raises(writes.PollinatorObservationInvalid):
+        writes.create_location_pollinator_habitat(
+            _OPERATOR,
+            _LOCATION,
+            _habitat_payload(**changes),
             connection_factory=lambda: opened.append(True),
         )
     assert opened == []
@@ -257,6 +348,7 @@ def test_invalid_capture_is_rejected_before_database_access(changes):
         ("/operator/api/pollinators/{}/summary", "GET", "read"),
         ("/operator/api/pollinators/{}/observations", "POST", "create"),
         ("/operator/api/pollinators/{}/pesticide-impacts", "POST", "create"),
+        ("/operator/api/pollinators/{}/habitats", "POST", "create"),
     ],
 )
 def test_pollinator_routes_have_exact_location_grants(path, method, action):
@@ -373,6 +465,51 @@ def test_pesticide_report_http_capture_is_create_gated_recorded_and_no_store(mon
     assert posted[0][0:2] == (_OPERATOR, _LOCATION)
 
 
+def test_habitat_http_capture_is_create_gated_self_reported_and_no_store(monkeypatch):
+    routes = importlib.import_module("services.gateway.pollinator_health_routes")
+    posted = []
+
+    def create(operator_id, location_id, payload):
+        posted.append((operator_id, location_id, payload))
+        return {
+            "habitat_id": "33333333-3333-4333-8333-333333333333",
+            "location_id": location_id,
+            "habitat_type": payload["habitat_type"],
+            "area_m2": payload["area_m2"],
+            "status": "active",
+            "replayed": False,
+        }
+
+    monkeypatch.setattr(writes, "create_location_pollinator_habitat", create)
+    router = APIRouter()
+
+    async def run_inline(function, *args):
+        return function(*args)
+
+    import psycopg2
+
+    routes.register_pollinator_health_routes(router, object(), run_inline, psycopg2)
+    app = FastAPI()
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def operator_session(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=_OPERATOR)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/pollinators/{_LOCATION}/habitats",
+            json=_habitat_payload(),
+        )
+    assert response.status_code == 201
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert posted[0][0:2] == (_OPERATOR, _LOCATION)
+
+
 def test_legacy_pollinator_observation_cli_fails_before_database_access(monkeypatch):
     cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
     command = next(item for item in cli._commands if item.name == "record-observation")
@@ -401,4 +538,20 @@ def test_legacy_pesticide_cli_fails_before_database_access(monkeypatch):
         cli.main([
             "record-pesticide", "--location-id", _LOCATION, "--date", date.today().isoformat(),
             "--product", "synthetic", "--ingredient", "synthetic", "--toxicity", "moderate",
+        ])
+
+
+def test_legacy_habitat_cli_fails_before_database_access(monkeypatch):
+    cli = importlib.import_module("services.analytics.cli_pollinator_health").cli
+    command = next(item for item in cli._commands if item.name == "create-habitat")
+    assert command.needs_db is False
+    monkeypatch.setattr(
+        cli,
+        "_connection_factory",
+        lambda: pytest.fail("retired habitat writer must not open the database"),
+    )
+    with pytest.raises(RuntimeError, match="Unscoped pollinator habitat writes are retired"):
+        cli.main([
+            "create-habitat", "--location-id", _LOCATION, "--name", "Synthetic",
+            "--type", "wildflower_strip", "--area", "10",
         ])

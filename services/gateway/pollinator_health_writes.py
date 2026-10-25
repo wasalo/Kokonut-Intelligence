@@ -15,6 +15,10 @@ from services.common.tenant_context import set_operator_tenant_context
 _POLLINATOR_TYPES = {
     "honeybee", "wild_bee", "butterfly", "moth", "beetle", "fly", "bird", "bat", "other",
 }
+_POLLINATOR_HABITAT_TYPES = {
+    "wildflower_strip", "hedgerow", "nesting_site", "water_source",
+    "cover_crop", "native_planting", "other",
+}
 _OBSERVATION_METHODS = {"transect", "pan_trap", "visual_count", "hive_weight", "other"}
 _CONTROL_CHARACTER = re.compile(r"[\x00-\x1f\x7f]")
 
@@ -315,6 +319,120 @@ def create_location_pesticide_impact(
                 or not isinstance(result.get("replayed"), bool)
             ):
                 raise RuntimeError("Pesticide report capture returned an invalid result")
+            connection.commit()
+            return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def _normalize_habitat_payload(payload: dict) -> tuple:
+    if not isinstance(payload, dict):
+        raise PollinatorObservationInvalid("Habitat report body must be an object")
+    allowed = {
+        "request_id", "habitat_name", "habitat_type", "area_m2", "plant_species",
+        "bloom_start_month", "bloom_end_month", "water_source", "nesting_sites", "notes",
+    }
+    if set(payload) != allowed:
+        raise PollinatorObservationInvalid("Habitat report fields do not match the supported contract")
+    request_id = _identifier(payload["request_id"], "request")
+    habitat_name = _text(payload["habitat_name"], "habitat name", 200)
+    if not habitat_name:
+        raise PollinatorObservationInvalid("Habitat name is required")
+    habitat_type = payload["habitat_type"]
+    if not isinstance(habitat_type, str) or habitat_type not in _POLLINATOR_HABITAT_TYPES:
+        raise PollinatorObservationInvalid("Unsupported pollinator habitat type")
+    area = _optional_decimal(payload["area_m2"], "habitat area", maximum=Decimal("99999999"))
+    if area is None:
+        raise PollinatorObservationInvalid("Habitat area is required")
+    plant_species = payload["plant_species"]
+    if not isinstance(plant_species, list) or len(plant_species) > 50:
+        raise PollinatorObservationInvalid("Plant species must be a list of at most 50 names")
+    normalized_species = []
+    for species in plant_species:
+        normalized = _text(species, "plant species", 100)
+        if normalized:
+            normalized_species.append(normalized)
+    if len(json.dumps(normalized_species, ensure_ascii=True).encode("utf-8")) > 8192:
+        raise PollinatorObservationInvalid("Plant species exceed the 8 KB limit")
+
+    bloom_months = []
+    for field in ("bloom_start_month", "bloom_end_month"):
+        month = payload[field]
+        if month is not None and (
+            isinstance(month, bool) or not isinstance(month, int) or not 1 <= month <= 12
+        ):
+            raise PollinatorObservationInvalid("Bloom months must be between 1 and 12")
+        bloom_months.append(month)
+    water_source = payload["water_source"]
+    if not isinstance(water_source, bool):
+        raise PollinatorObservationInvalid("Water-source flag must be a boolean")
+    return (
+        request_id,
+        habitat_name,
+        habitat_type,
+        area,
+        normalized_species,
+        *bloom_months,
+        water_source,
+        _text(payload["nesting_sites"], "nesting features", 1000, optional=True),
+        _text(payload["notes"], "notes", 2000, optional=True),
+    )
+
+
+def create_location_pollinator_habitat(
+    operator_id: str,
+    location_id: str,
+    payload: dict,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create self-reported habitat inventory with exact location authorization."""
+    operator_id = _identifier(operator_id, "operator")
+    location_id = _identifier(location_id, "location")
+    normalized = _normalize_habitat_payload(payload)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="pollinator_health",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT kokonut_security.create_location_pollinator_habitat("
+                "%s::uuid, %s::uuid, %s::text, %s::text, %s::numeric, "
+                "%s::jsonb, %s::smallint, %s::smallint, %s::boolean, %s::text, %s::text)",
+                (
+                    location_id,
+                    *normalized[:4],
+                    json.dumps(normalized[4]),
+                    *normalized[5:],
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None or row[0] is None:
+                raise RuntimeError("Habitat capture returned no record")
+            result = row[0]
+            if isinstance(result, str):
+                result = json.loads(result)
+            area_value = result.get("area_m2") if isinstance(result, dict) else None
+            if (
+                not isinstance(result, dict)
+                or result.get("location_id") != location_id
+                or result.get("habitat_type") != normalized[2]
+                or result.get("status") != "active"
+                or not isinstance(result.get("habitat_id"), str)
+                or not isinstance(result.get("replayed"), bool)
+                or isinstance(area_value, bool)
+                or not isinstance(area_value, (int, float))
+                or not Decimal("0") <= Decimal(str(area_value)) <= Decimal("99999999")
+            ):
+                raise RuntimeError("Habitat capture returned an invalid result")
             connection.commit()
             return result
     except Exception:

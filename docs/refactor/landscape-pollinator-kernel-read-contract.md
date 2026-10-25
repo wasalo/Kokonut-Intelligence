@@ -165,9 +165,10 @@ worker/runtime identity gates close.
 ## Tenant-scoped capture boundaries
 
 `POST /operator/api/pollinators/{location_id}/observations` (migration 619)
-and `POST /operator/api/pollinators/{location_id}/pesticide-impacts`
-(migration 620) require an exact location `pollinator_health:create` grant.
-Both operations install signed operator/location context on one PostgreSQL
+`POST /operator/api/pollinators/{location_id}/pesticide-impacts`
+(migration 620), and `POST /operator/api/pollinators/{location_id}/habitats`
+(migration 621) require an exact location `pollinator_health:create` grant.
+Each write installs signed operator/location context on one PostgreSQL
 connection, which the bounded security-definer function independently checks.
 Payloads are capped and validated before database access; private receipts store
 only request identity, location, record reference, and SHA-256 input digest.
@@ -176,10 +177,12 @@ receipts. Same-input retries return the original record; changed-input reuse is
 rejected.
 
 Observation records and pesticide-impact reports are always captured as
-`recorded`. Capture has no verification, publication, treatment-approval, or
-pesticide-safety action. Pesticide reports describe completed applications and
+`recorded`. Habitat capture retains `active` only as the existing domain
+inventory state. It is labeled self-reported and is not a verification state.
+Capture has no verification, publication, treatment-approval, or pesticide-safety
+action. Pesticide reports describe completed applications and
 are excluded from reviewed summaries until separately reviewed. The legacy
-observation and pesticide CLI write commands now fail before opening the
-database; other habitat, hive-registration, and inspection write paths remain
-unported and are tracked as open work. Candidate and legacy database migration
+observation, pesticide, and habitat-create CLI write commands now fail before
+opening the database; habitat status/maintenance, hive-registration, and
+inspection write paths remain unported and are tracked as open work. Candidate and legacy database migration
 rollout is separate and has not occurred.
