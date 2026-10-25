@@ -82,3 +82,58 @@ def transition_location_delphi_study(
             connection.rollback()
         finally:
             connection.close()
+
+
+def get_location_delphi_study_open_readiness(
+    operator_id: str,
+    location_id: str,
+    study_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return fixed readiness blockers without exposing panel size or identity."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    study_id = _normalize_uuid(study_id, "study")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="delphi",
+            action="open",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.get_location_delphi_study_open_readiness(
+                           %s::uuid, %s::uuid
+                       )""",
+                (location_id, study_id),
+            )
+            row = cursor.fetchone()
+        if row is None:
+            raise RuntimeError("Delphi readiness function returned no study")
+        connection.commit()
+        return {
+            "study_id": str(row[0]),
+            "location_id": str(row[1]),
+            "status": row[2],
+            "has_question": bool(row[3]),
+            "minimum_policy_valid": bool(row[4]),
+            "consent_minimum_met": bool(row[5]),
+            "eligible_to_open": bool(row[6]),
+            "blocker_codes": list(row[7] or []),
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()

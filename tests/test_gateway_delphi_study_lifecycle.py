@@ -168,6 +168,53 @@ def test_database_failure_rolls_back_and_closes_connection():
     assert connection.rolled_back and connection.closed
 
 
+def test_open_readiness_sets_signed_open_context_and_returns_only_safe_projection():
+    connection = _Connection(
+        row=(STUDY_ID, LOCATION_ID, "draft", True, True, False, False,
+             ["consented_panel_below_minimum"])
+    )
+    with patch.object(lifecycle, "set_operator_tenant_context", _set_context):
+        result = lifecycle.get_location_delphi_study_open_readiness(
+            OPERATOR_ID, LOCATION_ID, STUDY_ID, connection_factory=lambda: connection
+        )
+
+    query, params = connection.operations[-1]
+    assert "get_location_delphi_study_open_readiness" in query
+    assert params == (LOCATION_ID, STUDY_ID)
+    assert connection.events.index("SIGNED_CONTEXT") < len(connection.events) - 1
+    assert connection.context == {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "delphi",
+        "action": "open",
+    }
+    assert result == {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "status": "draft",
+        "has_question": True,
+        "minimum_policy_valid": True,
+        "consent_minimum_met": False,
+        "eligible_to_open": False,
+        "blocker_codes": ["consented_panel_below_minimum"],
+    }
+    assert "participant_count" not in result and "consented_count" not in result
+    assert connection.committed and connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize(
+    ("operator_id", "location_id", "study_id"),
+    [("bad", LOCATION_ID, STUDY_ID), (OPERATOR_ID, "bad", STUDY_ID),
+     (OPERATOR_ID, LOCATION_ID, "bad")],
+)
+def test_open_readiness_invalid_ids_fail_before_database(operator_id, location_id, study_id):
+    with pytest.raises(lifecycle.DelphiStudyLifecycleInvalid):
+        lifecycle.get_location_delphi_study_open_readiness(
+            operator_id, location_id, study_id,
+            connection_factory=lambda: pytest.fail("invalid scope opened a connection"),
+        )
+
+
 def _make_app(provider, run_in_threadpool, psycopg2_errors=None):
     from services.gateway.delphi_study_lifecycle_routes import (
         register_delphi_study_lifecycle_routes,
@@ -259,6 +306,43 @@ def test_route_maps_scope_denial_to_private_forbidden():
     )
     assert response.status_code == 403
     assert "private tenant details" not in response.text
+
+
+def test_open_readiness_route_uses_session_identity_and_no_store():
+    calls = []
+    expected = {
+        "study_id": STUDY_ID,
+        "location_id": LOCATION_ID,
+        "status": "draft",
+        "has_question": True,
+        "minimum_policy_valid": True,
+        "consent_minimum_met": True,
+        "eligible_to_open": True,
+        "blocker_codes": [],
+    }
+
+    async def run_in_threadpool(func, *args, **kwargs):
+        calls.append((func, args, kwargs))
+        return expected
+
+    response = TestClient(_make_app(object(), run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open-readiness"
+    )
+    assert response.status_code == 200 and response.json() == expected
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert calls[0][1] == (OPERATOR_ID, LOCATION_ID, STUDY_ID)
+
+
+def test_open_readiness_route_fails_closed_when_oidc_is_disabled():
+    async def run_in_threadpool(*_args, **_kwargs):
+        pytest.fail("OIDC-disabled readiness must not reach the service")
+
+    response = TestClient(_make_app(None, run_in_threadpool)).get(
+        f"/operator/api/delphi/{LOCATION_ID}/studies/{STUDY_ID}/open-readiness"
+    )
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
 
 
 @pytest.mark.parametrize(("pgcode", "status"), [("42501", 403), ("22023", 409)])

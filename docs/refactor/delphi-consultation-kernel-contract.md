@@ -77,6 +77,29 @@ identical retry. Five focused console contract checks pass, including Node.js
 parsing of the inline application script. The console has not been accepted
 through live OIDC/browser use.
 
+## Study opening readiness
+
+`GET /operator/api/delphi/{location_id}/studies/{study_id}/open-readiness`
+requires the exact location-scoped `delphi:open` grant and signed operator
+context. Migration 633 checks the selected study, question presence, the
+configured minimum rule, and the current consent status of panel members. It
+returns only those booleans, the study/location/status, and fixed blocker codes;
+it never returns a participant identifier or panel count. Pending and
+withdrawn members do not satisfy the current-consent threshold.
+
+The console keeps **Open study** disabled until a fresh matching readiness
+response says the study is eligible, refreshes readiness when the selection or
+question set changes, and makes another no-store check before asking for the
+open confirmation. The migration-631 transition remains authoritative and
+rechecks prerequisites in its write transaction, so consent changes between
+the projection and the action cannot bypass the gate. The readiness result is
+advisory and can become stale immediately; it is not a reservation.
+
+The current repository still has no tenant-safe participant invitation flow,
+participant-authenticated consent receipt, or bounded panel-membership write
+path. This readiness projection does not grant consent and does not close those
+CAP-027 implementation gates.
+
 ## Study draft creation
 
 `POST /operator/api/delphi/{location_id}/studies` creates one private Delphi

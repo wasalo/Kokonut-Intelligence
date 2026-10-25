@@ -80,9 +80,9 @@ def test_closed_state_is_terminal_and_action_controls_follow_grants():
     controls = _function(
         source,
         "function refreshDelphiStudyLifecycleControls()",
-        "async function loadDelphiStudyLifecycleStudies(",
+        "async function loadDelphiStudyLifecycleOpenReadiness()",
     )
-    assert 'grants?.open || status !== "draft"' in controls
+    assert '!grants?.open || status !== "draft"' in controls
     assert 'grants?.close || status !== "open"' in controls
     submitter = _function(
         source,
@@ -92,6 +92,37 @@ def test_closed_state_is_terminal_and_action_controls_follow_grants():
     assert 'action === "open" ? "open" : "closed"' in submitter
     assert "result.closed_at !== null" in submitter
     assert "Closed Delphi study cannot be reopened" in submitter or "cannot be reopened" in source
+
+
+def test_open_button_fails_closed_until_current_safe_readiness_is_confirmed():
+    source = CONSOLE.read_text(encoding="utf-8")
+    controls = _function(
+        source,
+        "function refreshDelphiStudyLifecycleControls()",
+        "async function loadDelphiStudyLifecycleOpenReadiness()",
+    )
+    readiness = _function(
+        source,
+        "async function loadDelphiStudyLifecycleOpenReadiness()",
+        "async function loadDelphiStudyLifecycleStudies(",
+    )
+    submitter = _function(
+        source,
+        "async function submitDelphiStudyLifecycle(action)",
+        "async function loadDelphiRecommendationDraftStudies(",
+    )
+    assert "!readinessMatches" in controls
+    assert "eligible_to_open !== true" in controls
+    assert "/open-readiness" in readiness
+    assert 'cache: "no-store"' in readiness
+    assert 'credentials: "same-origin"' in readiness
+    assert "delphiStudyLifecycleReadinessRequestVersion" in readiness
+    assert "consented_panel_below_minimum" in readiness
+    assert "minimum_participants_invalid" in readiness
+    assert "participant_count" not in readiness and "consented_count" not in readiness
+    assert "loadDelphiStudyLifecycleOpenReadiness()" in submitter
+    assert "freshReadiness?.eligible_to_open !== true" in submitter
+    assert 'delphiStudyLifecycleStudy.addEventListener("change", () =>' in source
 
 
 def test_lifecycle_controls_have_unique_ids_and_event_handlers():
@@ -106,6 +137,7 @@ def test_lifecycle_controls_have_unique_ids_and_event_handlers():
         "delphi-study-lifecycle-more",
         "delphi-study-lifecycle-open",
         "delphi-study-lifecycle-close",
+        "delphi-study-lifecycle-readiness",
         "delphi-study-lifecycle-status",
     ):
         assert f'id="{element_id}"' in source

@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "633_location_delphi_study_open_readiness.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 449\u2013451 and 630\u2013633 apply and replay on disposable PostgreSQL 16",
+    "readiness requires signed exact-location operator context and current delphi:open grant",
+    "question, minimum rule, consent threshold, and draft state produce fixed blocker codes",
+    "withdrawn and pending panel members do not count toward readiness",
+    "readiness exposes no participant or count fields and runtime cannot read panel rows directly",
+    "runtime can execute the bounded function while Directus cannot"
+  ],
+  "assertions_passed": 6
+}

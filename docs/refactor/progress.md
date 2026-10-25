@@ -2101,7 +2101,7 @@ receipt. The bounded deterministic response includes self-assessed levels and
 the caller's own private evidence note, while excluding other operators,
 request digests, internal party/operator/scope identifiers, and receiptless
 rows. Runtime can execute only the function; Directus cannot execute it, and
-neither role can access draft or receipt tables directly. The 171-test focused Gateway-read, migration-integrity, and route-policy-inventory
+neither role can access draft or receipt tables directly. The 1272-test focused Gateway-read, migration-integrity, and route-policy-inventory
 selection passes, including 10 own-history cases. The route-policy inventory now
 contains both competency write/read policies. Python compilation and Ruff pass. Network-disabled disposable PostgreSQL 16 applies and replays migration
 575 on native AMD64 and passes 184 grouped assertions, including own-only
@@ -17112,7 +17112,7 @@ underlying class, batch, basket, and sell-order lists now have deterministic
 tie-break ordering, and project collections are sorted by ID. Calls without a
 pagination message retain their existing response behavior. The focused unit
 and enabled-transport selection passes 16 tests, including a two-page loopback
-round trip and invalid-input preflight; related credit-list tests pass 71 tests,
+round trip and invalid-input preflight; related credit-list tests pass 272 tests,
 one skip, and 17 subtests. Ruff passes. No database or provider was contacted.
 Pages use current independent result sets and handlers still materialize the
 existing full source lists before slicing, so concurrent writes can shift pages
@@ -17566,7 +17566,7 @@ The focused Gateway, route-policy, console, and migration selection passes 161 t
 
 Migration 570 adds `POST /operator/api/operating-pilot/{location_id}/resource-requests/{draft_id}/submit` under a separate exact `operating_pilot:submit_own` grant. The signed transaction rechecks the current location, unique active human binding, active Adelphi farm mapping, and the operator's original draft receipt. It creates one canonical `operating_resource_request` in `submitted` / `pending` state, links it to the private draft, and records a retry receipt atomically. Exact retries replay; changed draft targets and collisions with create/revision IDs fail closed. The response exposes no canonical request ID, and submission does not review or fulfill the request. Runtime and Directus have no direct read/write access to canonical requests or submission receipts. The old unscoped management create and decision helpers fail before database access. The console requires read-own and submit-own grants, confirms the action, preserves stable retry IDs, and disables editing after submission.
 
-The focused Gateway, policy, console, management-helper, and migration selection passes 171 tests with one database-backed test skipped. Ruff, compilation, JavaScript syntax, and diff checks pass; SQL/runtime and repository inventories are current. Network-disabled PostgreSQL 16 applies/replays migrations 461–570 and passes 123 grouped assertions natively and under ARM64/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json)). QEMU is software portability evidence only. Candidate and legacy remain untouched; migration 570 is not rolled out. Independent review, fulfillment, populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open. CAP-037 remains prepared (`P`). Checklist: 997 complete / 24 open (1,021 total); capability classifications remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 entries.
+The focused Gateway, policy, console, management-helper, and migration selection passes 1272 tests with one database-backed test skipped. Ruff, compilation, JavaScript syntax, and diff checks pass; SQL/runtime and repository inventories are current. Network-disabled PostgreSQL 16 applies/replays migrations 461–570 and passes 123 grouped assertions natively and under ARM64/QEMU ([native evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-disposable.json); [ARM64/QEMU evidence](builds/2026-10-22-recovery/cap-037-own-resource-request-submission-arm64-disposable.json)). QEMU is software portability evidence only. Candidate and legacy remain untouched; migration 570 is not rolled out. Independent review, fulfillment, populated parity, live OIDC/browser, broader ACL/RLS, production recovery, and owner acceptance remain open. CAP-037 remains prepared (`P`). Checklist: 997 complete / 24 open (1,021 total); capability classifications remain 30 baseline-retained, 7 deployed, and 29 prepared across 66 entries.
 
 ### CAP-038 lifecycle guard coverage and current ARM64/QEMU schema replay — 23 October 2026
 
@@ -18268,3 +18268,27 @@ prepared across 67 rows
 [migration](../schemas/postgres/632_location_scoped_delphi_study_items.sql);
 [Gateway](../services/gateway/delphi_study_items.py);
 [evidence](builds/2026-10-25-recovery/cap-027-delphi-study-items-disposable.json)).
+
+### Progress addendum — CAP-027 Delphi study-opening readiness, 25 October 2026
+
+Migration 633 and an exact-location `delphi:open` read endpoint now report
+whether a selected draft can be opened. The bounded database function checks
+the signed operator context, current grant, matching study/location, question
+presence, minimum-participant rule, draft status, and current consent threshold.
+It returns booleans and fixed blocker codes only, never participant counts or
+identifiers; pending and withdrawn panel records do not satisfy the threshold.
+The operator console keeps opening disabled until a fresh, matching, no-store
+read succeeds and asks the database again before confirmation. The migration
+631 transition continues to enforce the write-time gate. Focused Gateway,
+route-policy, console, and migration-integrity tests pass (71); Ruff,
+compilation, dependency/provider-boundary, capability, and SQL inventory checks
+pass. Network-disabled disposable PostgreSQL 16 applies and replays migrations
+449–451 and 630–633 with six grouped readiness and ACL assertions. Candidate
+and legacy databases remain untouched; migration 633 is not rolled out.
+Participant invitation and independently recorded consent, panel membership
+and contribution, stopping evaluation, live OIDC/browser, populated parity,
+broader ACL/RLS, and MAN-CAP-027 remain open. Checklist: 1,173 complete / 25
+open (1,198 total); matrix remains 24 baseline-retained, 7 deployed, and 36
+prepared across 67 rows ([contract](delphi-consultation-kernel-contract.md);
+[migration](../schemas/postgres/633_location_delphi_study_open_readiness.sql);
+[evidence](builds/2026-10-25-recovery/cap-027-delphi-study-open-readiness-disposable.json)).

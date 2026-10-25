@@ -256,6 +256,7 @@
             <button id="delphi-study-lifecycle-open" type="button" disabled>Open study</button>
             <button id="delphi-study-lifecycle-close" class="secondary" type="button" disabled>Close study</button>
           </div>
+          <p id="delphi-study-lifecycle-readiness" class="muted" role="status" aria-live="polite"></p>
           <p id="delphi-study-lifecycle-status" class="muted" role="status" aria-live="polite"></p>
         </section>
         <section id="delphi-study-item-create" hidden aria-labelledby="delphi-study-item-create-heading">
@@ -2979,10 +2980,13 @@
       const delphiStudyLifecycleMore = document.querySelector("#delphi-study-lifecycle-more");
       const delphiStudyLifecycleOpen = document.querySelector("#delphi-study-lifecycle-open");
       const delphiStudyLifecycleClose = document.querySelector("#delphi-study-lifecycle-close");
+      const delphiStudyLifecycleReadiness = document.querySelector("#delphi-study-lifecycle-readiness");
       const delphiStudyLifecycleStatus = document.querySelector("#delphi-study-lifecycle-status");
       let delphiStudyLifecycleLocations = new Map();
       let delphiStudyLifecycleOffset = 0;
       let delphiStudyLifecycleRequestVersion = 0;
+      let delphiStudyLifecycleReadinessRequestVersion = 0;
+      let delphiStudyLifecycleReadinessResult = null;
       let delphiStudyLifecycleRequestIds = new Map();
       const delphiStudyItemCreate = document.querySelector("#delphi-study-item-create");
       const delphiStudyItemLocation = document.querySelector("#delphi-study-item-location");
@@ -22496,6 +22500,10 @@
           delphiStudyItemStatus.textContent = result.replayed
             ? `The previous question request was confirmed (${result.item_id}). The study remains a private draft.`
             : `Question added to the private draft (${result.item_id}). The study remains unopened.`;
+          if (delphiStudyLifecycleLocation.value === locationId
+              && delphiStudyLifecycleStudy.value === studyId) {
+            await loadDelphiStudyLifecycleOpenReadiness();
+          }
         } catch (error) {
           delphiStudyItemStatus.textContent = `${error.message} Retrying unchanged values will reuse the same request ID.`;
         } finally {
@@ -22509,8 +22517,71 @@
         const grants = delphiStudyLifecycleLocations.get(locationId);
         const selected = delphiStudyLifecycleStudy.selectedOptions[0];
         const status = selected?.dataset?.status;
-        delphiStudyLifecycleOpen.disabled = !grants?.open || status !== "draft";
+        const readinessMatches = delphiStudyLifecycleReadinessResult?.location_id === locationId
+          && delphiStudyLifecycleReadinessResult?.study_id === delphiStudyLifecycleStudy.value;
+        delphiStudyLifecycleOpen.disabled = !grants?.open || status !== "draft"
+          || !readinessMatches || delphiStudyLifecycleReadinessResult?.eligible_to_open !== true;
         delphiStudyLifecycleClose.disabled = !grants?.close || status !== "open";
+      }
+
+      async function loadDelphiStudyLifecycleOpenReadiness() {
+        const locationId = delphiStudyLifecycleLocation.value;
+        const studyId = delphiStudyLifecycleStudy.value;
+        const requestVersion = ++delphiStudyLifecycleReadinessRequestVersion;
+        delphiStudyLifecycleReadinessResult = null;
+        refreshDelphiStudyLifecycleControls();
+        if (!delphiStudyLifecycleLocations.get(locationId)?.open || !studyId) {
+          delphiStudyLifecycleReadiness.textContent = "An exact location delphi:open grant and selected study are required to check opening readiness.";
+          return null;
+        }
+        delphiStudyLifecycleReadiness.textContent = "Checking current opening prerequisites…";
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/studies/${encodeURIComponent(studyId)}/open-readiness`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiStudyLifecycleReadinessRequestVersion
+              || locationId !== delphiStudyLifecycleLocation.value
+              || studyId !== delphiStudyLifecycleStudy.value) return null;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi open grant is not valid.");
+          }
+          if (!response.ok) throw new Error("Opening readiness is unavailable; the study remains closed to opening.");
+          const result = await response.json();
+          const allowedBlockers = new Set([
+            "study_not_draft", "question_required", "minimum_participants_invalid",
+            "consented_panel_below_minimum",
+          ]);
+          if (result.location_id !== locationId || result.study_id !== studyId
+              || !["draft", "open", "closed"].includes(result.status)
+              || typeof result.has_question !== "boolean"
+              || typeof result.minimum_policy_valid !== "boolean"
+              || typeof result.consent_minimum_met !== "boolean"
+              || typeof result.eligible_to_open !== "boolean"
+              || !Array.isArray(result.blocker_codes)
+              || result.blocker_codes.some((code) => !allowedBlockers.has(code))
+              || result.eligible_to_open !== (result.blocker_codes.length === 0)) {
+            throw new Error("Opening readiness did not match the selected study.");
+          }
+          delphiStudyLifecycleReadinessResult = result;
+          const blockerLabels = {
+            study_not_draft: "Study must remain a draft.",
+            question_required: "Add at least one question.",
+            minimum_participants_invalid: "Set a valid minimum participation rule (at least three).",
+            consented_panel_below_minimum: "The consented panel is below the configured minimum.",
+          };
+          delphiStudyLifecycleReadiness.textContent = result.eligible_to_open
+            ? "Ready to open. The question and consent minimum are satisfied; the database will check again when you open."
+            : result.blocker_codes.map((code) => blockerLabels[code]).join(" ");
+          refreshDelphiStudyLifecycleControls();
+          return result;
+        } catch (_error) {
+          if (requestVersion === delphiStudyLifecycleReadinessRequestVersion) {
+            delphiStudyLifecycleReadiness.textContent = "Opening readiness could not be confirmed. Opening remains disabled until a fresh check succeeds.";
+            refreshDelphiStudyLifecycleControls();
+          }
+          return null;
+        }
       }
 
       async function loadDelphiStudyLifecycleStudies(append = false) {
@@ -22568,6 +22639,7 @@
           delphiStudyLifecycleStatus.textContent = delphiStudyLifecycleStudy.options.length
             ? "Choose a study. Opening is allowed only after its questions and consented panel meet the configured minimum."
             : "No Delphi studies are available for this location.";
+          await loadDelphiStudyLifecycleOpenReadiness();
         } catch (error) {
           if (requestVersion === delphiStudyLifecycleRequestVersion) {
             delphiStudyLifecycleStatus.textContent = error.message;
@@ -22586,6 +22658,13 @@
         if (!grants?.[action] || !studyId || selected?.dataset?.status !== expectedStatus) {
           delphiStudyLifecycleStatus.textContent = `A location-scoped Delphi ${action} grant and eligible study status are required.`;
           return;
+        }
+        if (action === "open") {
+          const freshReadiness = await loadDelphiStudyLifecycleOpenReadiness();
+          if (freshReadiness?.eligible_to_open !== true) {
+            delphiStudyLifecycleStatus.textContent = "Study opening is blocked until a fresh readiness check confirms every prerequisite.";
+            return;
+          }
         }
         const confirmation = action === "open"
           ? "Open this study for participation? It must have a question and enough currently consented panel members."
@@ -25818,7 +25897,10 @@
       delphiStudyItemMore.addEventListener("click", () => loadDelphiStudyItemStudies(true));
       delphiStudyItemSubmit.addEventListener("click", submitDelphiStudyItem);
       delphiStudyLifecycleLocation.addEventListener("change", () => loadDelphiStudyLifecycleStudies());
-      delphiStudyLifecycleStudy.addEventListener("change", refreshDelphiStudyLifecycleControls);
+      delphiStudyLifecycleStudy.addEventListener("change", () => {
+        refreshDelphiStudyLifecycleControls();
+        loadDelphiStudyLifecycleOpenReadiness();
+      });
       delphiStudyLifecycleMore.addEventListener("click", () => loadDelphiStudyLifecycleStudies(true));
       delphiStudyLifecycleOpen.addEventListener("click", () => submitDelphiStudyLifecycle("open"));
       delphiStudyLifecycleClose.addEventListener("click", () => submitDelphiStudyLifecycle("close"));

@@ -1,4 +1,4 @@
-"""OIDC routes for opening and closing prepared Delphi studies."""
+"""OIDC routes for Delphi study opening readiness and lifecycle transitions."""
 
 
 def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, psycopg2):
@@ -11,6 +11,7 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.delphi_study_lifecycle import (
         DelphiStudyLifecycleInvalid,
+        get_location_delphi_study_open_readiness,
         transition_location_delphi_study,
     )
 
@@ -76,6 +77,51 @@ def register_delphi_study_lifecycle_routes(router, provider, run_in_threadpool, 
             return JSONResponse(
                 status_code=503,
                 content={"error": "Delphi study lifecycle request unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)
+
+    @router.get(
+        "/operator/api/delphi/{location_id}/studies/{study_id}/open-readiness"
+    )
+    async def open_readiness(request: Request, location_id: str, study_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_delphi_study_open_readiness,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                study_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified Delphi open access is required"},
+                headers=headers,
+            )
+        except DelphiStudyLifecycleInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location Delphi open grant is required"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_study_lifecycle").warning(
+                "Delphi study readiness request unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Delphi study readiness is unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), status_code=200, headers=headers)

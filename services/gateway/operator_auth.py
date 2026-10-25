@@ -396,6 +396,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    delphi_open_readiness_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/open-readiness",
+        path,
+    )
+    if delphi_open_readiness_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "open",
+            "public": False,
+            "location_id": delphi_open_readiness_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_lifecycle_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/(open|close)",
         path,
